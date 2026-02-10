@@ -253,14 +253,25 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         });
         // Clear the ID after use to avoid accidental reuse.
         lastCodeExecutionToolCallId = undefined;
-      } else if ('text' in part && part.text != null && part.text.length > 0) {
-        content.push({
-          type: part.thought === true ? 'reasoning' : 'text',
-          text: part.text,
-          providerMetadata: part.thoughtSignature
-            ? { google: { thoughtSignature: part.thoughtSignature } }
-            : undefined,
-        });
+      } else if ('text' in part && part.text != null) {
+        const thoughtSignatureMetadata = part.thoughtSignature
+          ? { google: { thoughtSignature: part.thoughtSignature } }
+          : undefined;
+
+        if (part.text.length === 0) {
+          if (thoughtSignatureMetadata != null && content.length > 0) {
+            const lastContent = content[content.length - 1];
+            if (lastContent.type !== 'file') {
+              lastContent.providerMetadata = thoughtSignatureMetadata;
+            }
+          }
+        } else {
+          content.push({
+            type: part.thought === true ? 'reasoning' : 'text',
+            text: part.text,
+            providerMetadata: thoughtSignatureMetadata,
+          });
+        }
       } else if ('functionCall' in part) {
         content.push({
           type: 'tool-call' as const,
@@ -464,12 +475,28 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                     // Clear the ID after use.
                     lastCodeExecutionToolCallId = undefined;
                   }
-                } else if (
-                  'text' in part &&
-                  part.text != null &&
-                  part.text.length > 0
-                ) {
-                  if (part.thought === true) {
+                } else if ('text' in part && part.text != null) {
+                  const thoughtSignatureMetadata = part.thoughtSignature
+                    ? {
+                        google: {
+                          thoughtSignature: part.thoughtSignature,
+                        },
+                      }
+                    : undefined;
+
+                  if (part.text.length === 0) {
+                    if (
+                      thoughtSignatureMetadata != null &&
+                      currentTextBlockId !== null
+                    ) {
+                      controller.enqueue({
+                        type: 'text-delta',
+                        id: currentTextBlockId,
+                        delta: '',
+                        providerMetadata: thoughtSignatureMetadata,
+                      });
+                    }
+                  } else if (part.thought === true) {
                     // End any active text block before starting reasoning
                     if (currentTextBlockId !== null) {
                       controller.enqueue({
@@ -485,13 +512,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       controller.enqueue({
                         type: 'reasoning-start',
                         id: currentReasoningBlockId,
-                        providerMetadata: part.thoughtSignature
-                          ? {
-                              google: {
-                                thoughtSignature: part.thoughtSignature,
-                              },
-                            }
-                          : undefined,
+                        providerMetadata: thoughtSignatureMetadata,
                       });
                     }
 
@@ -499,11 +520,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       type: 'reasoning-delta',
                       id: currentReasoningBlockId,
                       delta: part.text,
-                      providerMetadata: part.thoughtSignature
-                        ? {
-                            google: { thoughtSignature: part.thoughtSignature },
-                          }
-                        : undefined,
+                      providerMetadata: thoughtSignatureMetadata,
                     });
                   } else {
                     // End any active reasoning block before starting text
@@ -521,13 +538,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       controller.enqueue({
                         type: 'text-start',
                         id: currentTextBlockId,
-                        providerMetadata: part.thoughtSignature
-                          ? {
-                              google: {
-                                thoughtSignature: part.thoughtSignature,
-                              },
-                            }
-                          : undefined,
+                        providerMetadata: thoughtSignatureMetadata,
                       });
                     }
 
@@ -535,11 +546,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       type: 'text-delta',
                       id: currentTextBlockId,
                       delta: part.text,
-                      providerMetadata: part.thoughtSignature
-                        ? {
-                            google: { thoughtSignature: part.thoughtSignature },
-                          }
-                        : undefined,
+                      providerMetadata: thoughtSignatureMetadata,
                     });
                   }
                 } else if ('inlineData' in part) {
