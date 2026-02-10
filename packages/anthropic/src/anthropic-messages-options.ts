@@ -170,6 +170,12 @@ export const anthropicProviderOptions = z.object({
    */
   effort: z.enum(['low', 'medium', 'high', 'max']).optional(),
 
+  /**
+   * Enable fast mode for faster inference (2.5x faster output token speeds).
+   * Only supported with claude-opus-4-6.
+   */
+  speed: z.literal('fast').optional(),
+
   contextManagement: z
     .object({
       edits: z.array(
@@ -214,6 +220,17 @@ export const anthropicProviderOptions = z.object({
                 }),
               ])
               .optional(),
+          }),
+          z.object({
+            type: z.literal('compact_20260112'),
+            trigger: z
+              .object({
+                type: z.literal('input_tokens'),
+                value: z.number(),
+              })
+              .optional(),
+            pauseAfterCompaction: z.boolean().optional(),
+            instructions: z.string().optional(),
           }),
         ]),
       ),

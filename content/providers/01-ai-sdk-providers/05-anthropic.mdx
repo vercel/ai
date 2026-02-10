@@ -290,6 +290,98 @@ const result = await generateText({
 });
 ```
 
+#### Compaction
+
+The `compact_20260112` edit type automatically summarizes earlier conversation context when token limits are reached. This is useful for long-running conversations where you want to preserve the essence of earlier exchanges while staying within token limits.
+
+```ts highlight="7-19"
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: anthropic('claude-opus-4-6'),
+  messages: conversationHistory,
+  providerOptions: {
+    anthropic: {
+      contextManagement: {
+        edits: [
+          {
+            type: 'compact_20260112',
+            trigger: {
+              type: 'input_tokens',
+              value: 50000, // trigger compaction when input exceeds 50k tokens
+            },
+            instructions:
+              'Summarize the conversation concisely, preserving key decisions and context.',
+            pauseAfterCompaction: false,
+          },
+        ],
+      },
+    } satisfies AnthropicProviderOptions,
+  },
+});
+```
+
+**Configuration:**
+
+- **trigger** - Condition that triggers compaction (e.g., `{ type: 'input_tokens', value: 50000 }`)
+- **instructions** - Custom instructions for how the model should summarize the conversation. Use this to guide the compaction summary towards specific aspects of the conversation you want to preserve.
+- **pauseAfterCompaction** - When `true`, the model will pause after generating the compaction summary, allowing you to inspect or process it before continuing. Defaults to `false`.
+
+When compaction occurs, the model generates a summary of the earlier context. This summary appears as a text block with special provider metadata.
+
+##### Detecting Compaction in Streams
+
+When using `streamText`, you can detect compaction summaries by checking the `providerMetadata` on `text-start` events:
+
+```ts
+for await (const part of result.fullStream) {
+  switch (part.type) {
+    case 'text-start': {
+      const isCompaction =
+        part.providerMetadata?.anthropic?.type === 'compaction';
+      if (isCompaction) {
+        console.log('[COMPACTION SUMMARY START]');
+      }
+      break;
+    }
+    case 'text-delta': {
+      process.stdout.write(part.text);
+      break;
+    }
+  }
+}
+```
+
+##### Compaction in UI Applications
+
+When using `useChat` or other UI hooks, compaction summaries appear as regular text parts with `providerMetadata`. You can style them differently in your UI:
+
+```tsx
+{
+  message.parts.map((part, index) => {
+    if (part.type === 'text') {
+      const isCompaction =
+        (part.providerMetadata?.anthropic as { type?: string } | undefined)
+          ?.type === 'compaction';
+
+      if (isCompaction) {
+        return (
+          <div
+            key={index}
+            className="bg-yellow-100 border-l-4 border-yellow-500 p-2"
+          >
+            <span className="font-bold">[Compaction Summary]</span>
+            <div>{part.text}</div>
+          </div>
+        );
+      }
+      return <div key={index}>{part.text}</div>;
+    }
+  });
+}
+```
+
 #### Applied Edits Metadata
 
 After generation, you can check which edits were applied in the provider metadata:
@@ -304,6 +396,9 @@ if (metadata?.appliedEdits) {
       console.log(`Freed ${edit.clearedInputTokens} tokens`);
     } else if (edit.type === 'clear_thinking_20251015') {
       console.log(`Cleared ${edit.clearedThinkingTurns} thinking turns`);
+      console.log(`Freed ${edit.clearedInputTokens} tokens`);
+    } else if (edit.type === 'compact_20260112') {
+      console.log('Compaction was applied');
       console.log(`Freed ${edit.clearedInputTokens} tokens`);
     }
   });
@@ -1174,17 +1269,17 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 ### Model Capabilities
 
-| Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         |
-| -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `claude-opus-4-6`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-opus-4-5`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-haiku-4-5`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-sonnet-4-5`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-opus-4-1`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-opus-4-0`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-sonnet-4-0`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-3-7-sonnet-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-3-5-haiku-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         | Compaction          |
+| -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-opus-4-6`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-opus-4-5`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-haiku-4-5`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-sonnet-4-5`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-opus-4-1`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-opus-4-0`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-sonnet-4-0`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-3-7-sonnet-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-3-5-haiku-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
 
 <Note>
   The table above lists popular models. Please see the [Anthropic

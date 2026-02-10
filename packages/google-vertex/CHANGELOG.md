@@ -1,5 +1,39 @@
 # @ai-sdk/google-vertex
 
+## 4.0.50
+
+### Patch Changes
+
+- Updated dependencies [c60b393]
+  - @ai-sdk/anthropic@3.0.41
+
+## 4.0.49
+
+### Patch Changes
+
+- Updated dependencies [8c2b1e1]
+  - @ai-sdk/anthropic@3.0.40
+
+## 4.0.48
+
+### Patch Changes
+
+- Updated dependencies [ba98c56]
+  - @ai-sdk/google@3.0.23
+
+## 4.0.47
+
+### Patch Changes
+
+- Updated dependencies [0a0d29c]
+  - @ai-sdk/anthropic@3.0.39
+
+## 4.0.46
+
+### Patch Changes
+
+- 90a41e3: feat (provider/google-vertex): update model ids and add video generation docs
+
 ## 4.0.45
 
 ### Patch Changes

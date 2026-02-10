@@ -1,10 +1,10 @@
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
-import { createAlibaba } from './alibaba-provider';
-import { AlibabaUsage } from './convert-alibaba-usage';
 import { describe, it, expect, vi } from 'vitest';
+import { createAlibaba } from './alibaba-provider';
+import type { AlibabaUsage } from './convert-alibaba-usage';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
