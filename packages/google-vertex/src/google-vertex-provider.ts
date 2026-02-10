@@ -1,5 +1,10 @@
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
-import { ImageModelV3, LanguageModelV3, ProviderV3 } from '@ai-sdk/provider';
+import {
+  Experimental_VideoModelV3,
+  ImageModelV3,
+  LanguageModelV3,
+  ProviderV3,
+} from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,
@@ -19,6 +24,8 @@ import { GoogleVertexImageModel } from './google-vertex-image-model';
 import { GoogleVertexImageModelId } from './google-vertex-image-settings';
 import { GoogleVertexModelId } from './google-vertex-options';
 import { googleVertexTools } from './google-vertex-tools';
+import { GoogleVertexVideoModel } from './google-vertex-video-model';
+import { GoogleVertexVideoModelId } from './google-vertex-video-settings';
 
 const EXPRESS_MODE_BASE_URL =
   'https://aiplatform.googleapis.com/v1/publishers/google';
@@ -66,6 +73,16 @@ export interface GoogleVertexProvider extends ProviderV3 {
   textEmbeddingModel(
     modelId: GoogleVertexEmbeddingModelId,
   ): GoogleVertexEmbeddingModel;
+
+  /**
+   * Creates a model for video generation.
+   */
+  video(modelId: GoogleVertexVideoModelId): Experimental_VideoModelV3;
+
+  /**
+   * Creates a model for video generation.
+   */
+  videoModel(modelId: GoogleVertexVideoModelId): Experimental_VideoModelV3;
 }
 
 export interface GoogleVertexProviderSettings {
@@ -195,6 +212,12 @@ export function createVertex(
   const createImageModel = (modelId: GoogleVertexImageModelId) =>
     new GoogleVertexImageModel(modelId, createConfig('image'));
 
+  const createVideoModel = (modelId: GoogleVertexVideoModelId) =>
+    new GoogleVertexVideoModel(modelId, {
+      ...createConfig('video'),
+      generateId: options.generateId ?? generateId,
+    });
+
   const provider = function (modelId: GoogleVertexModelId) {
     if (new.target) {
       throw new Error(
@@ -211,6 +234,8 @@ export function createVertex(
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
+  provider.video = createVideoModel;
+  provider.videoModel = createVideoModel;
   provider.tools = googleVertexTools;
 
   return provider;

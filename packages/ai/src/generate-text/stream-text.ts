@@ -292,6 +292,7 @@ export function streamText<
   onAbort,
   onStepFinish,
   experimental_context,
+  experimental_include: include,
   _internal: { now = originalNow, generateId = originalGenerateId } = {},
   ...settings
 }: CallSettings &
@@ -436,6 +437,22 @@ export function streamText<
     experimental_context?: unknown;
 
     /**
+     * Settings for controlling what data is included in step results.
+     * Disabling inclusion can help reduce memory usage when processing
+     * large payloads like images.
+     *
+     * By default, all data is included for backwards compatibility.
+     */
+    experimental_include?: {
+      /**
+       * Whether to retain the request body in step results.
+       * The request body can be large when sending images or files.
+       * @default true
+       */
+      requestBody?: boolean;
+    };
+
+    /**
      * Internal. For test use only. May change without notice.
      */
     _internal?: {
@@ -488,6 +505,7 @@ export function streamText<
     generateId,
     experimental_context,
     download,
+    include,
   });
 }
 
@@ -658,6 +676,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     onStepFinish,
     experimental_context,
     download,
+    include,
   }: {
     model: LanguageModelV3;
     telemetry: TelemetrySettings | undefined;
@@ -686,6 +705,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     generateId: () => string;
     experimental_context: unknown;
     download: DownloadFunction | undefined;
+    include: { requestBody?: boolean } | undefined;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
@@ -1004,6 +1024,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               attributes: {
                 'ai.response.finishReason': finishReason,
                 'ai.response.text': { output: () => finalStep.text },
+                'ai.response.reasoning': {
+                  output: () => finalStep.reasoningText,
+                },
                 'ai.response.toolCalls': {
                   output: () =>
                     finalStep.toolCalls?.length
@@ -1475,7 +1498,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               generateId,
             });
 
-            const stepRequest = request ?? {};
+            // Conditionally include request.body based on include settings.
+            // Large payloads (e.g., base64-encoded images) can cause memory issues.
+            const stepRequest: LanguageModelRequestMetadata =
+              (include?.requestBody ?? true)
+                ? (request ?? {})
+                : { ...request, body: undefined };
             const stepToolCalls: TypedToolCall<TOOLS>[] = [];
             const stepToolOutputs: ToolOutput<TOOLS>[] = [];
             let warnings: SharedV3Warning[] | undefined;
@@ -1718,6 +1746,19 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                             'ai.response.finishReason': stepFinishReason,
                             'ai.response.text': {
                               output: () => activeText,
+                            },
+                            'ai.response.reasoning': {
+                              output: () => {
+                                const reasoningParts = recordedContent.filter(
+                                  (
+                                    c,
+                                  ): c is { type: 'reasoning'; text: string } =>
+                                    c.type === 'reasoning',
+                                );
+                                return reasoningParts.length > 0
+                                  ? reasoningParts.map(r => r.text).join('\n')
+                                  : undefined;
+                              },
                             },
                             'ai.response.toolCalls': {
                               output: () => stepToolCallsJson,
