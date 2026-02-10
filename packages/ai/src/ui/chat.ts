@@ -590,20 +590,24 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     let isDisconnect = false;
     let isError = false;
 
+    // Capture in local variable for safe access in finally block.
+    // See: https://github.com/vercel/ai/issues/8477
+    let activeResponse: ActiveResponse<UI_MESSAGE> | undefined;
+
     try {
-      const activeResponse = {
+      const response = {
         state: createStreamingUIMessageState({
           lastMessage: this.state.snapshot(lastMessage),
           messageId: this.generateId(),
         }),
         abortController: new AbortController(),
       } as ActiveResponse<UI_MESSAGE>;
+      activeResponse = response;
+      this.activeResponse = response;
 
-      activeResponse.abortController.signal.addEventListener('abort', () => {
+      response.abortController.signal.addEventListener('abort', () => {
         isAbort = true;
       });
-
-      this.activeResponse = activeResponse;
 
       let stream: ReadableStream<UIMessageChunk>;
 
@@ -625,7 +629,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         stream = await this.transport.sendMessages({
           chatId: this.id,
           messages: this.state.messages,
-          abortSignal: activeResponse.abortController.signal,
+          abortSignal: response.abortController.signal,
           metadata,
           headers,
           body,
@@ -643,21 +647,21 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         // serialize the job execution to avoid race conditions:
         this.jobExecutor.run(() =>
           job({
-            state: activeResponse.state,
+            state: response.state,
             write: () => {
               // streaming is set on first write (before it should be "submitted")
               this.setStatus({ status: 'streaming' });
 
               const replaceLastMessage =
-                activeResponse.state.message.id === this.lastMessage?.id;
+                response.state.message.id === this.lastMessage?.id;
 
               if (replaceLastMessage) {
                 this.state.replaceMessage(
                   this.state.messages.length - 1,
-                  activeResponse.state.message,
+                  response.state.message,
                 );
               } else {
-                this.state.pushMessage(activeResponse.state.message);
+                this.state.pushMessage(response.state.message);
               }
             },
           }),
@@ -706,17 +710,19 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       this.setStatus({ status: 'error', error: err as Error });
     } finally {
-      try {
-        this.onFinish?.({
-          message: this.activeResponse!.state.message,
-          messages: this.state.messages,
-          isAbort,
-          isDisconnect,
-          isError,
-          finishReason: this.activeResponse?.state.finishReason,
-        });
-      } catch (err) {
-        console.error(err);
+      if (activeResponse) {
+        try {
+          this.onFinish?.({
+            message: activeResponse.state.message,
+            messages: this.state.messages,
+            isAbort,
+            isDisconnect,
+            isError,
+            finishReason: activeResponse.state.finishReason,
+          });
+        } catch (err) {
+          console.error(err);
+        }
       }
 
       this.activeResponse = undefined;
