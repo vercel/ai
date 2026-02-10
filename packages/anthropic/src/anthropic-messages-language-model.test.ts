@@ -3908,7 +3908,8 @@ describe('AnthropicMessagesLanguageModel', () => {
       );
       expect(compactionTextStart).toBeDefined();
       expect(
-        (compactionTextStart as { providerMetadata?: unknown }).providerMetadata,
+        (compactionTextStart as { providerMetadata?: unknown })
+          .providerMetadata,
       ).toEqual({
         anthropic: {
           type: 'compaction',
