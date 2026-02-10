@@ -16,6 +16,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > agent skills > should exp
       ],
     },
     "contextManagement": null,
+    "iterations": null,
     "stopSequence": null,
     "usage": {
       "cache_creation": {
@@ -46,6 +47,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
       "skills": null,
     },
     "contextManagement": null,
+    "iterations": null,
     "stopSequence": null,
     "usage": {
       "cache_creation": {
@@ -296,6 +298,7 @@ Both files have been exported and are ready for download!",
         "skills": null,
       },
       "contextManagement": null,
+      "iterations": null,
       "stopSequence": null,
       "usage": {
         "cache_creation": {
@@ -5103,6 +5106,7 @@ The presentation has",
           ],
         },
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -10172,6 +10176,7 @@ Both",
           "skills": null,
         },
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -11495,6 +11500,7 @@ The Fibonacci sequence starts with 0, ",
           "skills": null,
         },
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -12145,6 +12151,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > json schema response format
         "cacheCreationInputTokens": 0,
         "container": null,
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -12267,6 +12274,7 @@ It simply echoed back",
         "cacheCreationInputTokens": 0,
         "container": null,
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -13172,6 +13180,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
           "skills": null,
         },
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -13265,6 +13274,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
           "skills": null,
         },
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "input_tokens": 0,
@@ -13344,6 +13354,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
           "skills": null,
         },
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "input_tokens": 0,
@@ -13423,6 +13434,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
           "skills": null,
         },
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "input_tokens": 0,
@@ -13502,6 +13514,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
           "skills": null,
         },
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "input_tokens": 0,
@@ -13581,6 +13594,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
           "skills": null,
         },
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "input_tokens": 0,
@@ -13660,6 +13674,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
           "skills": null,
         },
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "input_tokens": 0,
@@ -13739,6 +13754,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
           "skills": null,
         },
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "input_tokens": 0,
@@ -13818,6 +13834,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
           "skills": null,
         },
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "input_tokens": 0,
@@ -13897,6 +13914,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
           "skills": null,
         },
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "input_tokens": 0,
@@ -13976,6 +13994,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
           "skills": null,
         },
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "input_tokens": 0,
@@ -14055,6 +14074,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
           "skills": null,
         },
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "input_tokens": 0,
@@ -14134,6 +14154,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
           "skills": null,
         },
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "input_tokens": 0,
@@ -14213,6 +14234,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
           "skills": null,
         },
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "input_tokens": 0,
@@ -14727,6 +14749,7 @@ The",
         "cacheCreationInputTokens": 0,
         "container": null,
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -14950,6 +14973,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 var
         "cacheCreationInputTokens": 0,
         "container": null,
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -15062,6 +15086,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 var
         "cacheCreationInputTokens": 0,
         "container": null,
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -15281,6 +15306,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > regex va
         "cacheCreationInputTokens": 0,
         "container": null,
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -15422,6 +15448,7 @@ The weather in",
         "cacheCreationInputTokens": 0,
         "container": null,
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -15839,6 +15866,7 @@ The page also discusses",
         "cacheCreationInputTokens": 0,
         "container": null,
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -16781,6 +16809,7 @@ The main tech story today appears to be Apple's significant",
         "cacheCreationInputTokens": 0,
         "container": null,
         "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
