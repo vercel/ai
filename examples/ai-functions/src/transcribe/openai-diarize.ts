@@ -19,16 +19,7 @@ run(async () => {
   console.log('Language:', result.language);
   console.log('Segments:', result.segments);
   console.log('Warnings:', result.warnings);
-
-  // Access speaker information from the raw response (provider specific)
-  const rawResponse = (result.responses[0] as any)?.body;
-  console.log(
-    'Diarized Segments (raw):',
-    rawResponse?.segments.map((s: any) => ({
-      speaker: s.speaker,
-      text: s.text,
-      start: s.start,
-      end: s.end,
-    })),
-  );
+  // The full response body
+  // console.log('Responses:', result.responses[0].body.segments);
+  console.log('Responses:', result.responses);
 });
