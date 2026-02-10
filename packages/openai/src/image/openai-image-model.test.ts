@@ -421,10 +421,12 @@ describe('doGenerate', () => {
     });
 
     expect(result.providerMetadata?.openai).toMatchObject({
-      inputTokensDetails: {
-        imageTokens: 7,
-        textTokens: 5,
-      },
+      images: [
+        {
+          imageTokens: 7,
+          textTokens: 5,
+        },
+      ],
     });
   });
 });

@@ -245,30 +245,6 @@ export async function generateImage({
           providerMetadata[providerName].images.push(
             ...result.providerMetadata[providerName].images,
           );
-
-          // Accumulate token details across calls
-          const incoming = metadata as Record<string, unknown>;
-          if (incoming.inputTokensDetails != null) {
-            const incomingDetails = incoming.inputTokensDetails as {
-              imageTokens?: number;
-              textTokens?: number;
-            };
-            const existing = (
-              providerMetadata[providerName] as Record<string, unknown>
-            ).inputTokensDetails as
-              | { imageTokens?: number; textTokens?: number }
-              | undefined;
-
-            (
-              providerMetadata[providerName] as Record<string, unknown>
-            ).inputTokensDetails = {
-              imageTokens:
-                (existing?.imageTokens ?? 0) +
-                (incomingDetails.imageTokens ?? 0),
-              textTokens:
-                (existing?.textTokens ?? 0) + (incomingDetails.textTokens ?? 0),
-            };
-          }
         }
       }
     }

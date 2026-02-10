@@ -804,7 +804,7 @@ describe('generateImage', () => {
       });
     });
 
-    it('should accumulate inputTokensDetails across multiple calls', async () => {
+    it('should concatenate per-image token details across multiple calls', async () => {
       let callCount = 0;
 
       const result = await generateImage({
@@ -817,11 +817,13 @@ describe('generateImage', () => {
                   images: [pngBase64],
                   providerMetaData: {
                     openai: {
-                      images: [{ size: '1024x1024' }],
-                      inputTokensDetails: {
-                        imageTokens: 194,
-                        textTokens: 28,
-                      },
+                      images: [
+                        {
+                          size: '1024x1024',
+                          imageTokens: 194,
+                          textTokens: 28,
+                        },
+                      ],
                     },
                   },
                 });
@@ -830,11 +832,13 @@ describe('generateImage', () => {
                   images: [jpegBase64],
                   providerMetaData: {
                     openai: {
-                      images: [{ size: '1024x1024' }],
-                      inputTokensDetails: {
-                        imageTokens: 194,
-                        textTokens: 28,
-                      },
+                      images: [
+                        {
+                          size: '1024x1024',
+                          imageTokens: 194,
+                          textTokens: 28,
+                        },
+                      ],
                     },
                   },
                 });
@@ -848,11 +852,10 @@ describe('generateImage', () => {
       });
 
       expect(result.providerMetadata.openai).toStrictEqual({
-        images: [{ size: '1024x1024' }, { size: '1024x1024' }],
-        inputTokensDetails: {
-          imageTokens: 388,
-          textTokens: 56,
-        },
+        images: [
+          { size: '1024x1024', imageTokens: 194, textTokens: 28 },
+          { size: '1024x1024', imageTokens: 194, textTokens: 28 },
+        ],
       });
     });
 
