@@ -1,5 +1,133 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.55
+
+### Patch Changes
+
+- Updated dependencies [c60b393]
+  - @ai-sdk/anthropic@3.0.41
+
+## 4.0.54
+
+### Patch Changes
+
+- Updated dependencies [8c2b1e1]
+  - @ai-sdk/anthropic@3.0.40
+
+## 4.0.53
+
+### Patch Changes
+
+- aebbebd: Remove misleading warning when mixing Anthropic provider-defined tools and standard function tools on Bedrock. The warning incorrectly stated that only Anthropic tools would be used, but both tool types are sent to Bedrock and work correctly together.
+
+## 4.0.52
+
+### Patch Changes
+
+- Updated dependencies [0a0d29c]
+  - @ai-sdk/anthropic@3.0.39
+
+## 4.0.51
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/anthropic@3.0.38
+  - @ai-sdk/provider-utils@4.0.14
+
+## 4.0.50
+
+### Patch Changes
+
+- 632ab10: feat(amazon-bedrock): add support for new Anthropic adaptive thinking and reasoning effort including max
+
+## 4.0.49
+
+### Patch Changes
+
+- Updated dependencies [e288302]
+  - @ai-sdk/anthropic@3.0.37
+
+## 4.0.48
+
+### Patch Changes
+
+- Updated dependencies [1652320]
+  - @ai-sdk/anthropic@3.0.36
+
+## 4.0.47
+
+### Patch Changes
+
+- 46bc2b3: fix(amazon-bedrock): proper decoding for base64 data
+
+## 4.0.46
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/anthropic@3.0.35
+  - @ai-sdk/provider-utils@4.0.13
+
+## 4.0.45
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+  - @ai-sdk/anthropic@3.0.34
+
+## 4.0.44
+
+### Patch Changes
+
+- b128d9b: add TTL support for prompt caching
+
+## 4.0.43
+
+### Patch Changes
+
+- Updated dependencies [445cbe3]
+  - @ai-sdk/anthropic@3.0.33
+
+## 4.0.42
+
+### Patch Changes
+
+- Updated dependencies [c33343b]
+  - @ai-sdk/anthropic@3.0.32
+
+## 4.0.41
+
+### Patch Changes
+
+- 0df64d6: Add `outputDimension` option for Cohere embedding models to control the size of the output embedding vector (256, 512, 1024, or 1536).
+
+## 4.0.40
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+  - @ai-sdk/anthropic@3.0.31
+
+## 4.0.39
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+- Updated dependencies [1524271]
+  - @ai-sdk/anthropic@3.0.30
+
+## 4.0.38
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
 ## 4.0.37
 
 ### Patch Changes

@@ -1,5 +1,48 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.28
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/provider-utils@4.0.14
+
+## 2.0.27
+
+### Patch Changes
+
+- 9e490ad: Change usage schemas from z.object to z.looseObject to improve compatibility with non-standard OpenAI-compatible APIs.
+
+## 2.0.26
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/provider-utils@4.0.13
+
+## 2.0.25
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+
+## 2.0.24
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+
+## 2.0.23
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
 ## 2.0.22
 
 ### Patch Changes

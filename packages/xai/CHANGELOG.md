@@ -1,5 +1,73 @@
 # @ai-sdk/xai
 
+## 3.0.50
+
+### Patch Changes
+
+- de16a00: fix(xai): add dummy usage data when response.usage is missing
+
+## 3.0.49
+
+### Patch Changes
+
+- 8b3e72d: fix (provider/xai): handle new reasoning text chunk parts
+
+## 3.0.48
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/openai-compatible@2.0.28
+  - @ai-sdk/provider-utils@4.0.14
+
+## 3.0.47
+
+### Patch Changes
+
+- Updated dependencies [9e490ad]
+  - @ai-sdk/openai-compatible@2.0.27
+
+## 3.0.46
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/openai-compatible@2.0.26
+  - @ai-sdk/provider-utils@4.0.13
+
+## 3.0.45
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+  - @ai-sdk/openai-compatible@2.0.25
+
+## 3.0.44
+
+### Patch Changes
+
+- 9a2427e: chore(xai): remove duplicate schema definition
+
+## 3.0.43
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+  - @ai-sdk/openai-compatible@2.0.24
+
+## 3.0.42
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+- Updated dependencies [1524271]
+  - @ai-sdk/openai-compatible@2.0.23
+
 ## 3.0.41
 
 ### Patch Changes

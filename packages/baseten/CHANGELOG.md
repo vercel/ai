@@ -1,5 +1,61 @@
 # @ai-sdk/baseten
 
+## 1.0.31
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/openai-compatible@2.0.28
+  - @ai-sdk/provider-utils@4.0.14
+
+## 1.0.30
+
+### Patch Changes
+
+- Updated dependencies [9e490ad]
+  - @ai-sdk/openai-compatible@2.0.27
+
+## 1.0.29
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/openai-compatible@2.0.26
+  - @ai-sdk/provider-utils@4.0.13
+
+## 1.0.28
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+  - @ai-sdk/openai-compatible@2.0.25
+
+## 1.0.27
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+  - @ai-sdk/openai-compatible@2.0.24
+
+## 1.0.26
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+- Updated dependencies [1524271]
+  - @ai-sdk/openai-compatible@2.0.23
+
+## 1.0.25
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
 ## 1.0.24
 
 ### Patch Changes

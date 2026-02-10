@@ -1,5 +1,143 @@
 # ai
 
+## 6.0.78
+
+### Patch Changes
+
+- 59fcf30: fix(ai): make experimental_context required in ToolLoopAgentOnFinishCallback
+
+  This fixes a type inconsistency where `ToolLoopAgentOnFinishCallback` had `experimental_context` as optional while `StreamTextOnFinishCallback` and `GenerateTextOnFinishCallback` had it as required. Since `ToolLoopAgent` delegates to `streamText`/`generateText`, and both always pass `experimental_context` when invoking the callback, the types should match.
+
+## 6.0.77
+
+### Patch Changes
+
+- Updated dependencies [eea5d30]
+  - @ai-sdk/gateway@3.0.39
+
+## 6.0.76
+
+### Patch Changes
+
+- Updated dependencies [70028ab]
+  - @ai-sdk/gateway@3.0.38
+
+## 6.0.75
+
+### Patch Changes
+
+- 7168375: feat (ai, provider): default global provider video model resolution
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/gateway@3.0.37
+  - @ai-sdk/provider-utils@4.0.14
+
+## 6.0.74
+
+### Patch Changes
+
+- 471009b: fix(ai): pass reasoning text in telemetry
+
+## 6.0.73
+
+### Patch Changes
+
+- Updated dependencies [9892c58]
+  - @ai-sdk/gateway@3.0.36
+
+## 6.0.72
+
+### Patch Changes
+
+- Updated dependencies [8e2eaac]
+  - @ai-sdk/gateway@3.0.35
+
+## 6.0.71
+
+### Patch Changes
+
+- Updated dependencies [4867635]
+  - @ai-sdk/gateway@3.0.34
+
+## 6.0.70
+
+### Patch Changes
+
+- Updated dependencies [ae30443]
+  - @ai-sdk/gateway@3.0.33
+
+## 6.0.69
+
+### Patch Changes
+
+- d659305: fix(ai): auto-populate `originalMessages` in `createAgentUIStream`
+
+## 6.0.68
+
+### Patch Changes
+
+- 8bf2660: chore(ai): export `DefaultGeneratedFile`
+
+## 6.0.67
+
+### Patch Changes
+
+- 53f6731: feat (ai, provider): experimental generate video support
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/gateway@3.0.32
+  - @ai-sdk/provider-utils@4.0.13
+
+## 6.0.66
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+  - @ai-sdk/gateway@3.0.31
+
+## 6.0.65
+
+### Patch Changes
+
+- Updated dependencies [1a74972]
+  - @ai-sdk/gateway@3.0.30
+
+## 6.0.64
+
+### Patch Changes
+
+- ce9daa3: Fixed 'reasoning part reasoning-0 not found' error by ensuring 'reasoning-start' event is emitted for empty thinking blocks (eg. <think></think>)
+
+## 6.0.63
+
+### Patch Changes
+
+- be95579: fix(ui): respect `Promise<false>` when returned by `sendAutomaticallyWhen`
+
+## 6.0.62
+
+### Patch Changes
+
+- 2810850: fix(ai): improve type validation error messages with field paths and entity identifiers
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+  - @ai-sdk/gateway@3.0.29
+
+## 6.0.61
+
+### Patch Changes
+
+- Updated dependencies [1524271]
+  - @ai-sdk/gateway@3.0.28
+
+## 6.0.60
+
+### Patch Changes
+
+- 5fc42fa: feat(ai): add experimental retention setting
+
 ## 6.0.59
 
 ### Patch Changes

@@ -616,7 +616,7 @@ describe('generateText', () => {
   });
 
   describe('result.request', () => {
-    it('should contain request body', async () => {
+    it('should contain request body by default', async () => {
       const result = await generateText({
         model: new MockLanguageModelV3({
           doGenerate: async ({}) => ({
@@ -632,6 +632,26 @@ describe('generateText', () => {
 
       expect(result.request).toStrictEqual({
         body: 'test body',
+      });
+    });
+
+    it('should exclude request body when retention.requestBody is false', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({}) => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            request: {
+              body: 'test body',
+            },
+          }),
+        }),
+        prompt: 'prompt',
+        experimental_include: { requestBody: false },
+      });
+
+      expect(result.request).toStrictEqual({
+        body: undefined,
       });
     });
   });
@@ -2869,6 +2889,32 @@ describe('generateText', () => {
       });
 
       expect(tracer.jsonSpans).toMatchSnapshot();
+    });
+
+    it('should record reasoning in telemetry when present', async () => {
+      await generateText({
+        model: modelWithReasoning,
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          tracer,
+        },
+      });
+
+      // Check that reasoning is recorded in both spans
+      const rootSpan = tracer.jsonSpans.find(
+        span => span.name === 'ai.generateText',
+      );
+      const doGenerateSpan = tracer.jsonSpans.find(
+        span => span.name === 'ai.generateText.doGenerate',
+      );
+
+      expect(rootSpan?.attributes['ai.response.reasoning']).toBe(
+        'I will open the conversation with witty banter.\n',
+      );
+      expect(doGenerateSpan?.attributes['ai.response.reasoning']).toBe(
+        'I will open the conversation with witty banter.\n',
+      );
     });
   });
 
