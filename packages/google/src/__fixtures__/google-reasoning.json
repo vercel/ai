@@ -1,0 +1,34 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "I need to count the letter \"r\" in \"strawberry\". Let me go through it letter by letter: s-t-r-a-w-b-e-r-r-y. I count 3 r's.\n",
+            "thought": true
+          },
+          {
+            "text": "There are **3** \"r\"s in the word \"strawberry\"."
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 14,
+    "candidatesTokenCount": 15,
+    "totalTokenCount": 210,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 14
+      }
+    ],
+    "thoughtsTokenCount": 181
+  },
+  "modelVersion": "gemini-2.5-flash",
+  "responseId": "xmmLadK-FaCmmtkP-6WE6AQ"
+}

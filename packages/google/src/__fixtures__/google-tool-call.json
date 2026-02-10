@@ -1,0 +1,40 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "functionCall": {
+              "name": "weather",
+              "args": {
+                "location": "San Francisco"
+              }
+            }
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "avgLogprobs": -0.0000394245216739364
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 26,
+    "candidatesTokenCount": 4,
+    "totalTokenCount": 30,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 26
+      }
+    ],
+    "candidatesTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 4
+      }
+    ]
+  },
+  "modelVersion": "gemini-2.0-flash",
+  "responseId": "k2mLafruFb-bqtsPqZzu2Qo"
+}
