@@ -343,7 +343,6 @@ If `main` is set up to publish `beta` releases, no further action is necessary. 
 - [ ] Examples created in `examples/ai-functions/src/`
 - [ ] Documentation added in `content/providers/01-ai-sdk-providers/`
 - [ ] README.md written
-- [ ] CHANGELOG.md created (can be empty initially)
 - [ ] Major changeset created
 - [ ] `pnpm update-references` run
 - [ ] All tests passing (`pnpm test` from package)
