@@ -596,6 +596,16 @@ Here is the breakdown: st**r**awbe**rr**y.",
     "type": "text-delta",
   },
   {
+    "delta": "",
+    "id": "1",
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "EusGCugGAb4+9vuaV2kwaBS2kFSFukRiq44OkNtntO4z8rhZX13Jgl9TxGeCgI0o0nyNbKJgckOFelVQbRHexeC0ZpiOuGKrD0YyOH5fy9cURRjta0vERUgsffmC3+boaSTLIH4Gxx33AlPEZPZ2IQU7gixDHOnxfns1i+XNyhau+aCkBwfCDYff3taoTt4v2ikn7qav+x05f2zMG37xfme50SVPhbR9o+KdNrbMP9AykAhahrD1tRe+nhG+av7YUvJVdbTpIR+INLyS+3Gwyv0qVyN6NGTfBFtLVP/GG8lIJ4kBpj4Gii/dHqxrxxyRW7qxW7NG9N4jWhbs/qL2jrSh2Dw+eBnPXYInYr11VJ3EJs98U90A6khDc1goXuc05tOCM5JRDcOJ1YtnlazzmmT3OOYYH0YfY0G8uWAffsq5r4J69BHlac4WUATn5wnevhWpF3gdAQMiSjL6A+YubHb4E13biZPju77tyUoLPbnyCeV/DxTYlksUc79AcAfIDi+jPK21FB1cJISJ5O1hRKZ6tuWU42CRKhuKEIb3rvU24JMQ8Krx3dGV5NRLEXYJsmDbnOa7+m2fWEGMJ2wTQ2Z3Rom8mB6E1OjLrFmoEQd2qI+e9jHXguSpi3ZaAYnUOpqGI7BhIPp7CewGHxP0JCgJqETXUmWOUMMvEWTqABOtGRqAY5in/abulhOja8vBvZI6VlsMnfFXIonss9d86TH+Oq9ABPOqlCZeEGLuP8qwChWM/e2GjUzdmTZ0MzVuWaaU1j0WkkwHlwBGas22MpsN27npd8QJzrbk8rEvMaZJdP0QO3NLZE+sJ1Pa5mgXLlA+7r5OI6lujfNI1Uo8XXcGXMRQoCHyKRRh0fyrySRAJ6X03vOskuiAzHC1/QFntIEcpeCxUHGPf5uUh8RNDkRt9357vpAD6vzUtoRtt3+tLUAXMOtXkNEQqj+E98FSM9Vzk70o8k/0KlxuHgRJYa1JZ/fRtFQhRMInQY5HyoeYSvaC6HwVxPdjVFq3iZmLBGlhVBD9MEs8tp5BfP71kKjy2UPKq36ZmXW93GZ3yNlbs8IpDIz4bSJN560+23bDUYF/TFIL6r19qv+L+Nvcwf6nhbwkqgong79MtxlS293YLMWq4XahV6iO8txrUGcaS3/0gNhgyCGj7/k9ydg=",
+      },
+    },
+    "type": "text-delta",
+  },
+  {
     "id": "1",
     "type": "text-end",
   },
