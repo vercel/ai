@@ -22,62 +22,57 @@ import { z } from 'zod/v4';
 import { klingaiFailedResponseHandler } from './klingai-error';
 import type { KlingAIVideoModelId } from './klingai-video-settings';
 
-/**
- * Maps known model IDs to their API endpoint paths.
- */
-const modelEndpointMap: Record<string, string> = {
-  'kling-v2.6-motion-control': '/v1/videos/motion-control',
-};
+type KlingAIVideoMode = 't2v' | 'i2v' | 'motion-control';
 
-function getEndpointPath(modelId: string): string {
-  const endpoint = modelEndpointMap[modelId];
-  if (!endpoint) {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'videoModel',
-    });
-  }
-  return endpoint;
+/**
+ * Detects the video generation mode from the model ID suffix.
+ */
+function detectMode(modelId: string): KlingAIVideoMode {
+  if (modelId.endsWith('-t2v')) return 't2v';
+  if (modelId.endsWith('-i2v')) return 'i2v';
+  if (modelId.endsWith('-motion-control')) return 'motion-control';
+  throw new NoSuchModelError({ modelId, modelType: 'videoModel' });
 }
 
+/**
+ * Maps video generation mode to the KlingAI API endpoint path.
+ */
+const modeEndpointMap: Record<KlingAIVideoMode, string> = {
+  t2v: '/v1/videos/text2video',
+  i2v: '/v1/videos/image2video',
+  'motion-control': '/v1/videos/motion-control',
+};
+
+/**
+ * Derives the KlingAI API `model_name` from the SDK model ID.
+ * Strips the mode suffix and converts dots to hyphens.
+ *
+ * Examples:
+ * - 'kling-v2.6-t2v' → 'kling-v2-6'
+ * - 'kling-v2.1-master-i2v' → 'kling-v2-1-master'
+ * - 'kling-v1-t2v' → 'kling-v1'
+ */
+function getApiModelName(modelId: string, mode: KlingAIVideoMode): string {
+  const suffix = mode === 'motion-control' ? '-motion-control' : `-${mode}`;
+  const baseName = modelId.slice(0, -suffix.length);
+  return baseName.replace(/\./g, '-');
+}
+
+/**
+ * Provider-specific options for KlingAI video generation.
+ *
+ * Not all options are supported by every model version and video mode (T2V, I2V,
+ * motion control). See the KlingAI capability map for detailed compatibility:
+ * https://app.klingai.com/global/dev/document-api/apiReference/model/skillsMap
+ */
 export type KlingAIVideoProviderOptions = {
-  /**
-   * URL of the reference video. The character actions in the generated video
-   * are consistent with the reference video.
-   *
-   * Supports .mp4/.mov, max 100MB, side lengths 340px–3850px,
-   * duration 3–30 seconds (depends on `characterOrientation`).
-   */
-  videoUrl: string;
-
-  /**
-   * Orientation of the characters in the generated video.
-   *
-   * - `'image'`: Same orientation as the person in the image.
-   *   Reference video duration max 10 seconds.
-   * - `'video'`: Same orientation as the person in the video.
-   *   Reference video duration max 30 seconds.
-   */
-  characterOrientation: 'image' | 'video';
-
   /**
    * Video generation mode.
    *
    * - `'std'`: Standard mode — cost-effective.
    * - `'pro'`: Professional mode — higher quality but longer generation time.
    */
-  mode: 'std' | 'pro';
-
-  /**
-   * Whether to keep the original sound of the reference video.
-   * Default: `'yes'`.
-   */
-  keepOriginalSound?: 'yes' | 'no' | null;
-
-  /**
-   * Whether to generate watermarked results simultaneously.
-   */
-  watermarkEnabled?: boolean | null;
+  mode?: 'std' | 'pro' | null;
 
   /**
    * Polling interval in milliseconds for checking task status.
@@ -91,6 +86,105 @@ export type KlingAIVideoProviderOptions = {
    */
   pollTimeoutMs?: number | null;
 
+  // --- T2V and I2V options ---
+
+  /**
+   * Negative text prompt to specify what to avoid.
+   * Cannot exceed 2500 characters.
+   */
+  negativePrompt?: string | null;
+
+  /**
+   * Whether to generate sound simultaneously when generating videos.
+   * Only V2.6 and subsequent versions support this parameter,
+   * and requires `mode: 'pro'`.
+   */
+  sound?: 'on' | 'off' | null;
+
+  /**
+   * Flexibility in video generation. The higher the value, the lower the
+   * model's flexibility, and the stronger the relevance to the user's prompt.
+   * Value range: [0, 1]. Kling-v2.x models do not support this parameter.
+   */
+  cfgScale?: number | null;
+
+  /**
+   * Camera movement control. If not specified, the model will intelligently
+   * match based on the input text/images.
+   */
+  cameraControl?: {
+    type:
+      | 'simple'
+      | 'down_back'
+      | 'forward_up'
+      | 'right_turn_forward'
+      | 'left_turn_forward';
+    config?: {
+      horizontal?: number | null;
+      vertical?: number | null;
+      pan?: number | null;
+      tilt?: number | null;
+      roll?: number | null;
+      zoom?: number | null;
+    } | null;
+  } | null;
+
+  // --- I2V-specific options ---
+
+  /**
+   * End frame image for I2V start+end frame control.
+   * Supports image URL or raw base64-encoded image data.
+   * Requires `mode: 'pro'` for most models.
+   */
+  imageTail?: string | null;
+
+  /**
+   * Static brush mask image for I2V motion brush.
+   * Supports image URL or raw base64-encoded image data.
+   */
+  staticMask?: string | null;
+
+  /**
+   * Dynamic brush configurations for I2V motion brush.
+   * Up to 6 groups, each with a mask and motion trajectories.
+   */
+  dynamicMasks?: Array<{
+    mask: string;
+    trajectories: Array<{ x: number; y: number }>;
+  }> | null;
+
+  // --- Motion-control-specific options ---
+
+  /**
+   * URL of the reference video. The character actions in the generated video
+   * are consistent with the reference video.
+   *
+   * Supports .mp4/.mov, max 100MB, side lengths 340px–3850px,
+   * duration 3–30 seconds (depends on `characterOrientation`).
+   */
+  videoUrl?: string | null;
+
+  /**
+   * Orientation of the characters in the generated video.
+   *
+   * - `'image'`: Same orientation as the person in the image.
+   *   Reference video duration max 10 seconds.
+   * - `'video'`: Same orientation as the person in the video.
+   *   Reference video duration max 30 seconds.
+   */
+  characterOrientation?: 'image' | 'video' | null;
+
+  /**
+   * Whether to keep the original sound of the reference video.
+   * Default: `'yes'`.
+   */
+  keepOriginalSound?: 'yes' | 'no' | null;
+
+  /**
+   * Whether to generate watermarked results simultaneously.
+   */
+  watermarkEnabled?: boolean | null;
+
   [key: string]: unknown; // For passthrough
 };
 
@@ -98,17 +192,75 @@ const klingaiVideoProviderOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
-        videoUrl: z.string(),
-        characterOrientation: z.enum(['image', 'video']),
-        mode: z.enum(['std', 'pro']),
-        keepOriginalSound: z.enum(['yes', 'no']).nullish(),
-        watermarkEnabled: z.boolean().nullish(),
+        mode: z.enum(['std', 'pro']).nullish(),
         pollIntervalMs: z.number().positive().nullish(),
         pollTimeoutMs: z.number().positive().nullish(),
+        // T2V and I2V
+        negativePrompt: z.string().nullish(),
+        sound: z.enum(['on', 'off']).nullish(),
+        cfgScale: z.number().nullish(),
+        cameraControl: z
+          .object({
+            type: z.enum([
+              'simple',
+              'down_back',
+              'forward_up',
+              'right_turn_forward',
+              'left_turn_forward',
+            ]),
+            config: z
+              .object({
+                horizontal: z.number().nullish(),
+                vertical: z.number().nullish(),
+                pan: z.number().nullish(),
+                tilt: z.number().nullish(),
+                roll: z.number().nullish(),
+                zoom: z.number().nullish(),
+              })
+              .nullish(),
+          })
+          .nullish(),
+        // I2V-specific
+        imageTail: z.string().nullish(),
+        staticMask: z.string().nullish(),
+        dynamicMasks: z
+          .array(
+            z.object({
+              mask: z.string(),
+              trajectories: z.array(z.object({ x: z.number(), y: z.number() })),
+            }),
+          )
+          .nullish(),
+        // Motion-control-specific
+        videoUrl: z.string().nullish(),
+        characterOrientation: z.enum(['image', 'video']).nullish(),
+        keepOriginalSound: z.enum(['yes', 'no']).nullish(),
+        watermarkEnabled: z.boolean().nullish(),
       })
       .passthrough(),
   ),
 );
+
+/**
+ * Known provider option keys that are handled explicitly and should not be
+ * passed through to the API body.
+ */
+const HANDLED_PROVIDER_OPTIONS = new Set([
+  'mode',
+  'pollIntervalMs',
+  'pollTimeoutMs',
+  'negativePrompt',
+  'sound',
+  'cfgScale',
+  'cameraControl',
+  'imageTail',
+  'staticMask',
+  'dynamicMasks',
+  'videoUrl',
+  'characterOrientation',
+  'keepOriginalSound',
+  'watermarkEnabled',
+]);
 
 interface KlingAIVideoModelConfig {
   provider: string;
@@ -138,6 +290,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV3Warning[] = [];
+    const mode = detectMode(this.modelId);
 
     const klingaiOptions = (await parseProviderOptions({
       provider: 'klingai',
@@ -145,90 +298,22 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
       schema: klingaiVideoProviderOptionsSchema,
     })) as KlingAIVideoProviderOptions | undefined;
 
-    if (!klingaiOptions) {
-      throw new AISDKError({
-        name: 'KLINGAI_VIDEO_MISSING_OPTIONS',
-        message:
-          'KlingAI requires providerOptions.klingai with videoUrl, characterOrientation, and mode.',
-      });
+    let body: Record<string, unknown>;
+
+    if (mode === 'motion-control') {
+      body = this.buildMotionControlBody(options, klingaiOptions, warnings);
+    } else if (mode === 't2v') {
+      body = this.buildT2VBody(options, klingaiOptions, warnings);
+    } else {
+      body = this.buildI2VBody(options, klingaiOptions, warnings);
     }
 
-    // Build the request body for the KlingAI Motion Control endpoint
-    const body: Record<string, unknown> = {
-      video_url: klingaiOptions.videoUrl,
-      character_orientation: klingaiOptions.characterOrientation,
-      mode: klingaiOptions.mode,
-    };
-
-    // Map standard SDK prompt option
-    if (options.prompt != null) {
-      body.prompt = options.prompt;
-    }
-
-    // Map standard SDK image option to KlingAI's image_url
-    if (options.image != null) {
-      if (options.image.type === 'url') {
-        body.image_url = options.image.url;
-      } else {
-        // KlingAI accepts raw base64 without the data: prefix
-        const base64Data =
-          typeof options.image.data === 'string'
-            ? options.image.data
-            : convertUint8ArrayToBase64(options.image.data);
-        body.image_url = base64Data;
-      }
-    }
-
-    // Map KlingAI-specific options
-    if (
-      klingaiOptions.keepOriginalSound !== undefined &&
-      klingaiOptions.keepOriginalSound !== null
-    ) {
-      body.keep_original_sound = klingaiOptions.keepOriginalSound;
-    }
-
-    if (
-      klingaiOptions.watermarkEnabled !== undefined &&
-      klingaiOptions.watermarkEnabled !== null
-    ) {
-      body.watermark_info = { enabled: klingaiOptions.watermarkEnabled };
-    }
-
-    // Pass through any additional provider-specific options
-    for (const [key, value] of Object.entries(klingaiOptions)) {
-      if (
-        ![
-          'videoUrl',
-          'characterOrientation',
-          'mode',
-          'keepOriginalSound',
-          'watermarkEnabled',
-          'pollIntervalMs',
-          'pollTimeoutMs',
-        ].includes(key)
-      ) {
-        body[key] = value;
-      }
-    }
-
-    // Warn about unsupported standard options
-    if (options.aspectRatio) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'aspectRatio',
-        details:
-          'KlingAI Motion Control does not support aspectRatio. ' +
-          'The output dimensions are determined by the reference image/video.',
-      });
-    }
-
+    // Warn about universally unsupported standard options
     if (options.resolution) {
       warnings.push({
         type: 'unsupported',
         feature: 'resolution',
-        details:
-          'KlingAI Motion Control does not support resolution. ' +
-          'The output resolution is determined by the reference image/video.',
+        details: 'KlingAI video models do not support the resolution option.',
       });
     }
 
@@ -237,17 +322,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
         type: 'unsupported',
         feature: 'seed',
         details:
-          'KlingAI Motion Control does not support seed for deterministic generation.',
-      });
-    }
-
-    if (options.duration) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'duration',
-        details:
-          'KlingAI Motion Control does not support custom duration. ' +
-          'The output duration matches the reference video duration.',
+          'KlingAI video models do not support seed for deterministic generation.',
       });
     }
 
@@ -255,7 +330,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
       warnings.push({
         type: 'unsupported',
         feature: 'fps',
-        details: 'KlingAI Motion Control does not support custom FPS.',
+        details: 'KlingAI video models do not support custom FPS.',
       });
     }
 
@@ -264,13 +339,12 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
         type: 'unsupported',
         feature: 'n',
         details:
-          'KlingAI Motion Control does not support generating multiple videos per call. ' +
+          'KlingAI video models do not support generating multiple videos per call. ' +
           'Only 1 video will be generated.',
       });
     }
 
-    // Resolve the API endpoint path for this model
-    const endpointPath = getEndpointPath(this.modelId);
+    const endpointPath = modeEndpointMap[mode];
 
     // Step 1: Create the task
     const { value: createResponse, responseHeaders: createHeaders } =
@@ -298,8 +372,8 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
     }
 
     // Step 2: Poll for task completion
-    const pollIntervalMs = klingaiOptions.pollIntervalMs ?? 5000; // 5 seconds
-    const pollTimeoutMs = klingaiOptions.pollTimeoutMs ?? 600000; // 10 minutes
+    const pollIntervalMs = klingaiOptions?.pollIntervalMs ?? 5000; // 5 seconds
+    const pollTimeoutMs = klingaiOptions?.pollTimeoutMs ?? 600000; // 10 minutes
     const startTime = Date.now();
     let finalResponse: KlingAITaskResponse | undefined;
     let responseHeaders: Record<string, string> | undefined = createHeaders;
@@ -400,6 +474,230 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
         },
       },
     };
+  }
+
+  private buildT2VBody(
+    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+    klingaiOptions: KlingAIVideoProviderOptions | undefined,
+    warnings: SharedV3Warning[],
+  ): Record<string, unknown> {
+    const mode = 't2v' as const;
+    const body: Record<string, unknown> = {
+      model_name: getApiModelName(this.modelId, mode),
+    };
+
+    if (options.prompt != null) {
+      body.prompt = options.prompt;
+    }
+
+    if (klingaiOptions?.negativePrompt != null) {
+      body.negative_prompt = klingaiOptions.negativePrompt;
+    }
+
+    if (klingaiOptions?.sound != null) {
+      body.sound = klingaiOptions.sound;
+    }
+
+    if (klingaiOptions?.cfgScale != null) {
+      body.cfg_scale = klingaiOptions.cfgScale;
+    }
+
+    if (klingaiOptions?.mode != null) {
+      body.mode = klingaiOptions.mode;
+    }
+
+    if (klingaiOptions?.cameraControl != null) {
+      body.camera_control = klingaiOptions.cameraControl;
+    }
+
+    // Map standard SDK aspectRatio (same format as KlingAI API)
+    if (options.aspectRatio != null) {
+      body.aspect_ratio = options.aspectRatio;
+    }
+
+    // Map standard SDK duration (number → string)
+    if (options.duration != null) {
+      body.duration = String(options.duration);
+    }
+
+    // Image is not supported for T2V
+    if (options.image != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'image',
+        details:
+          'KlingAI text-to-video does not support image input. Use an image-to-video model instead.',
+      });
+    }
+
+    this.addPassthroughOptions(body, klingaiOptions);
+
+    return body;
+  }
+
+  private buildI2VBody(
+    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+    klingaiOptions: KlingAIVideoProviderOptions | undefined,
+    warnings: SharedV3Warning[],
+  ): Record<string, unknown> {
+    const mode = 'i2v' as const;
+    const body: Record<string, unknown> = {
+      model_name: getApiModelName(this.modelId, mode),
+    };
+
+    if (options.prompt != null) {
+      body.prompt = options.prompt;
+    }
+
+    // Map standard SDK image to KlingAI's image field (first/start frame)
+    if (options.image != null) {
+      if (options.image.type === 'url') {
+        body.image = options.image.url;
+      } else {
+        body.image =
+          typeof options.image.data === 'string'
+            ? options.image.data
+            : convertUint8ArrayToBase64(options.image.data);
+      }
+    }
+
+    // End frame image via provider options
+    if (klingaiOptions?.imageTail != null) {
+      body.image_tail = klingaiOptions.imageTail;
+    }
+
+    if (klingaiOptions?.negativePrompt != null) {
+      body.negative_prompt = klingaiOptions.negativePrompt;
+    }
+
+    if (klingaiOptions?.sound != null) {
+      body.sound = klingaiOptions.sound;
+    }
+
+    if (klingaiOptions?.cfgScale != null) {
+      body.cfg_scale = klingaiOptions.cfgScale;
+    }
+
+    if (klingaiOptions?.mode != null) {
+      body.mode = klingaiOptions.mode;
+    }
+
+    if (klingaiOptions?.cameraControl != null) {
+      body.camera_control = klingaiOptions.cameraControl;
+    }
+
+    if (klingaiOptions?.staticMask != null) {
+      body.static_mask = klingaiOptions.staticMask;
+    }
+
+    if (klingaiOptions?.dynamicMasks != null) {
+      body.dynamic_masks = klingaiOptions.dynamicMasks;
+    }
+
+    // Map standard SDK duration (number → string)
+    if (options.duration != null) {
+      body.duration = String(options.duration);
+    }
+
+    // aspectRatio is not supported for I2V (determined by input image)
+    if (options.aspectRatio != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'aspectRatio',
+        details:
+          'KlingAI image-to-video does not support aspectRatio. ' +
+          'The output dimensions are determined by the input image.',
+      });
+    }
+
+    this.addPassthroughOptions(body, klingaiOptions);
+
+    return body;
+  }
+
+  private buildMotionControlBody(
+    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+    klingaiOptions: KlingAIVideoProviderOptions | undefined,
+    warnings: SharedV3Warning[],
+  ): Record<string, unknown> {
+    if (
+      !klingaiOptions?.videoUrl ||
+      !klingaiOptions?.characterOrientation ||
+      !klingaiOptions?.mode
+    ) {
+      throw new AISDKError({
+        name: 'KLINGAI_VIDEO_MISSING_OPTIONS',
+        message:
+          'KlingAI Motion Control requires providerOptions.klingai with videoUrl, characterOrientation, and mode.',
+      });
+    }
+
+    const body: Record<string, unknown> = {
+      video_url: klingaiOptions.videoUrl,
+      character_orientation: klingaiOptions.characterOrientation,
+      mode: klingaiOptions.mode,
+    };
+
+    if (options.prompt != null) {
+      body.prompt = options.prompt;
+    }
+
+    // Map standard SDK image option to KlingAI's image_url
+    if (options.image != null) {
+      if (options.image.type === 'url') {
+        body.image_url = options.image.url;
+      } else {
+        body.image_url =
+          typeof options.image.data === 'string'
+            ? options.image.data
+            : convertUint8ArrayToBase64(options.image.data);
+      }
+    }
+
+    if (klingaiOptions.keepOriginalSound != null) {
+      body.keep_original_sound = klingaiOptions.keepOriginalSound;
+    }
+
+    if (klingaiOptions.watermarkEnabled != null) {
+      body.watermark_info = { enabled: klingaiOptions.watermarkEnabled };
+    }
+
+    // Warn about unsupported standard options for motion control
+    if (options.aspectRatio) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'aspectRatio',
+        details:
+          'KlingAI Motion Control does not support aspectRatio. ' +
+          'The output dimensions are determined by the reference image/video.',
+      });
+    }
+
+    if (options.duration) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'duration',
+        details:
+          'KlingAI Motion Control does not support custom duration. ' +
+          'The output duration matches the reference video duration.',
+      });
+    }
+
+    this.addPassthroughOptions(body, klingaiOptions);
+
+    return body;
+  }
+
+  private addPassthroughOptions(
+    body: Record<string, unknown>,
+    klingaiOptions: KlingAIVideoProviderOptions | undefined,
+  ): void {
+    if (!klingaiOptions) return;
+    for (const [key, value] of Object.entries(klingaiOptions)) {
+      if (!HANDLED_PROVIDER_OPTIONS.has(key)) {
+        body[key] = value;
+      }
+    }
   }
 }
 
