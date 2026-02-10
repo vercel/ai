@@ -1,5 +1,30 @@
 # @ai-sdk/anthropic
 
+## 2.0.61
+
+### Patch Changes
+
+- af58c05: feat(anthropic): add the new compaction feature
+
+## 2.0.60
+
+### Patch Changes
+
+- 368f270: feat(anthropic): add support for Opus 4.6 fast mode
+
+## 2.0.59
+
+### Patch Changes
+
+- ca1f53a: feat(anthropic): add support for Opus 4.6
+
+## 2.0.58
+
+### Patch Changes
+
+- 8479fe8: trigger for backport release
+- 008ce2f: fix `input_tokens` compatibility
+
 ## 2.0.57
 
 ### Patch Changes

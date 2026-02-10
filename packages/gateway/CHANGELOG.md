@@ -1,5 +1,44 @@
 # @ai-sdk/gateway
 
+## 2.0.35
+
+### Patch Changes
+
+- a207442: feat: report image generation usage info in Gateway
+
+## 2.0.34
+
+### Patch Changes
+
+- 7e6c81a: chore(provider/gateway): update gateway model settings files
+
+## 2.0.33
+
+### Patch Changes
+
+- db2e810: feat(anthropic): add support for Opus 4.6
+
+## 2.0.32
+
+### Patch Changes
+
+- beba89c: feat (provider/gateway): add parallel search tool
+
+## 2.0.31
+
+### Patch Changes
+
+- 8d8fdd2: chore(provider/gateway): update gateway model settings files
+
+## 2.0.30
+
+### Patch Changes
+
+- fad90dd: chore(provider/gateway): update gateway model settings files
+- 8479fe8: trigger for backport release
+- 0d3fc21: chore(provider/gateway): update gateway model settings files
+- 53e891c: chore(provider/gateway): update gateway model settings files
+
 ## 2.0.29
 
 ### Patch Changes

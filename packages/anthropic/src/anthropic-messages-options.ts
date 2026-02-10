@@ -19,6 +19,7 @@ export type AnthropicMessagesModelId =
   | 'claude-sonnet-4-20250514'
   | 'claude-sonnet-4-5-20250929'
   | 'claude-sonnet-4-5'
+  | 'claude-opus-4-6'
   | (string & {});
 
 /**
@@ -76,10 +77,20 @@ export const anthropicProviderOptions = z.object({
    * Requires a minimum budget of 1,024 tokens and counts towards the `max_tokens` limit.
    */
   thinking: z
-    .object({
-      type: z.union([z.literal('enabled'), z.literal('disabled')]),
-      budgetTokens: z.number().optional(),
-    })
+    .discriminatedUnion('type', [
+      z.object({
+        /** for Opus 4.6 and newer models */
+        type: z.literal('adaptive'),
+      }),
+      z.object({
+        /** for models before Opus 4.6 */
+        type: z.literal('enabled'),
+        budgetTokens: z.number().optional(),
+      }),
+      z.object({
+        type: z.literal('disabled'),
+      }),
+    ])
     .optional(),
 
   /**
@@ -122,7 +133,55 @@ export const anthropicProviderOptions = z.object({
   /**
    * @default 'high'
    */
-  effort: z.enum(['low', 'medium', 'high']).optional(),
+  effort: z.enum(['low', 'medium', 'high', 'max']).optional(),
+
+  /**
+   * Enable fast mode for faster inference (2.5x faster output token speeds).
+   * Only supported with claude-opus-4-6.
+   */
+  speed: z.literal('fast').optional(),
+
+  /**
+   * Context management configuration for automatic context window management.
+   * Enables features like automatic compaction and clearing of tool uses/thinking blocks.
+   */
+  contextManagement: z
+    .object({
+      edits: z.array(
+        z.discriminatedUnion('type', [
+          z.object({
+            type: z.literal('clear_01'),
+            trigger: z
+              .object({
+                type: z.literal('input_tokens'),
+                value: z.number(),
+              })
+              .optional(),
+            keep: z
+              .union([
+                z.literal('all'),
+                z.object({
+                  type: z.literal('thinking_turns'),
+                  value: z.number(),
+                }),
+              ])
+              .optional(),
+          }),
+          z.object({
+            type: z.literal('compact_20260112'),
+            trigger: z
+              .object({
+                type: z.literal('input_tokens'),
+                value: z.number(),
+              })
+              .optional(),
+            pauseAfterCompaction: z.boolean().optional(),
+            instructions: z.string().optional(),
+          }),
+        ]),
+      ),
+    })
+    .optional(),
 });
 
 export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;
