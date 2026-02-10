@@ -1,3 +1,4 @@
+// https://www.alibabacloud.com/help/en/model-studio/use-video-generation
 export type AlibabaVideoModelId =
   // Text-to-Video
   | 'wan2.6-t2v'

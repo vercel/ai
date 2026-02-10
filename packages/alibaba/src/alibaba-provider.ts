@@ -1,19 +1,19 @@
 import {
   type Experimental_VideoModelV3,
-  LanguageModelV3,
+  type LanguageModelV3,
   NoSuchModelError,
-  ProviderV3,
+  type ProviderV3,
 } from '@ai-sdk/provider';
 import {
   createJsonErrorResponseHandler,
-  FetchFunction,
+  type FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { AlibabaLanguageModel } from './alibaba-chat-language-model';
-import { AlibabaChatModelId } from './alibaba-chat-options';
+import type { AlibabaChatModelId } from './alibaba-chat-options';
 import { AlibabaVideoModel } from './alibaba-video-model';
 import type { AlibabaVideoModelId } from './alibaba-video-settings';
 import { VERSION } from './version';

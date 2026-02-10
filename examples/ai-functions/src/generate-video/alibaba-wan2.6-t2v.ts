@@ -10,8 +10,7 @@ run(async () => {
     () =>
       generateVideo({
         model: alibaba.video('wan2.6-t2v'),
-        prompt:
-          'A serene mountain lake at sunset with gentle ripples on the water and birds flying across the sky.',
+        prompt: 'A chicken flying into the sunset in the style of 90s anime.',
         resolution: '1280x720',
         duration: 5,
         providerOptions: {

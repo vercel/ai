@@ -10,16 +10,16 @@ run(async () => {
     () =>
       generateVideo({
         model: alibaba.video('wan2.6-r2v'),
-        prompt: 'character1 and character2 have a conversation in a cozy cafe',
+        prompt: 'comic cat and comic dog have a conversation in a cozy cafe',
         resolution: '1920x1080',
-        duration: 8,
+        duration: 4,
         providerOptions: {
           alibaba: {
             referenceUrls: [
-              'https://example.com/character1.jpg',
-              'https://example.com/character2.jpg',
+              'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-cat.png',
+              'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-dog.png',
             ],
-            shotType: 'multi',
+            shotType: 'single',
             pollTimeoutMs: 600000, // 10 minutes
           } satisfies AlibabaVideoProviderOptions,
         },

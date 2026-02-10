@@ -225,8 +225,9 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
         parameters.resolution =
           resolutionMap[options.resolution] || options.resolution;
       } else {
-        // T2V and R2V use "WIDTHxHEIGHT" format for the size parameter
-        parameters.size = options.resolution;
+        // T2V and R2V use "WIDTH*HEIGHT" format for the size parameter
+        // Convert "WIDTHxHEIGHT" (SDK standard) to "WIDTH*HEIGHT" (Alibaba API)
+        parameters.size = options.resolution.replace('x', '*');
       }
     }
 

@@ -13,7 +13,7 @@ run(async () => {
         prompt:
           'A bustling night market with colorful lanterns, steam rising from food stalls, and people walking through the crowd.',
         resolution: '1920x1080',
-        duration: 10,
+        duration: 5,
         providerOptions: {
           alibaba: {
             promptExtend: true,

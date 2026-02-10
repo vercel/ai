@@ -111,7 +111,7 @@ describe('AlibabaVideoModel', () => {
       });
     });
 
-    it('should send size parameter for T2V resolution', async () => {
+    it('should send size parameter for T2V resolution (x converted to *)', async () => {
       const model = createModel();
 
       await model.doGenerate({
@@ -121,7 +121,7 @@ describe('AlibabaVideoModel', () => {
 
       const body = await server.calls[0].requestBodyJson;
       expect(body).toMatchObject({
-        parameters: { size: '1920x1080' },
+        parameters: { size: '1920*1080' },
       });
     });
 
@@ -344,7 +344,7 @@ describe('AlibabaVideoModel', () => {
       });
     });
 
-    it('should send size parameter for R2V resolution', async () => {
+    it('should send size parameter for R2V resolution (x converted to *)', async () => {
       const model = createModel({ modelId: 'wan2.6-r2v' });
 
       await model.doGenerate({
@@ -354,7 +354,7 @@ describe('AlibabaVideoModel', () => {
 
       const body = await server.calls[0].requestBodyJson;
       expect(body).toMatchObject({
-        parameters: { size: '1280x720' },
+        parameters: { size: '1280*720' },
       });
     });
 
