@@ -140,6 +140,48 @@ export const anthropicProviderOptions = z.object({
    * Only supported with claude-opus-4-6.
    */
   speed: z.literal('fast').optional(),
+
+  /**
+   * Context management configuration for automatic context window management.
+   * Enables features like automatic compaction and clearing of tool uses/thinking blocks.
+   */
+  contextManagement: z
+    .object({
+      edits: z.array(
+        z.discriminatedUnion('type', [
+          z.object({
+            type: z.literal('clear_01'),
+            trigger: z
+              .object({
+                type: z.literal('input_tokens'),
+                value: z.number(),
+              })
+              .optional(),
+            keep: z
+              .union([
+                z.literal('all'),
+                z.object({
+                  type: z.literal('thinking_turns'),
+                  value: z.number(),
+                }),
+              ])
+              .optional(),
+          }),
+          z.object({
+            type: z.literal('compact_20260112'),
+            trigger: z
+              .object({
+                type: z.literal('input_tokens'),
+                value: z.number(),
+              })
+              .optional(),
+            pauseAfterCompaction: z.boolean().optional(),
+            instructions: z.string().optional(),
+          }),
+        ]),
+      ),
+    })
+    .optional(),
 });
 
 export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;
