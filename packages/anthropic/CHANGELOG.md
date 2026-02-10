@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.40
+
+### Patch Changes
+
+- 8c2b1e1: fix(provider/anthropic): include actual raw usage data for `response.usage.raw` when streaming
+
 ## 3.0.39
 
 ### Patch Changes
