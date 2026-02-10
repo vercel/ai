@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.50
+
+### Patch Changes
+
+- de16a00: fix(xai): add dummy usage data when response.usage is missing
+
 ## 3.0.49
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/alibaba
 
+## 1.0.2
+
+### Patch Changes
+
+- 4d8c6b9: feat (provider/alibaba): add video generation support
+
 ## 1.0.1
 
 ### Patch Changes
