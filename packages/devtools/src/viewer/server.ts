@@ -37,8 +37,9 @@ const broadcastToClients = (event: string, data: Record<string, unknown>) => {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Determine if we're running from source (tsx) or built (dist)
+// We're in dev mode if NOT running from the dist folder
 const isDevMode =
-  __dirname.includes('/src/') || process.env.NODE_ENV === 'development';
+  !__dirname.includes('/dist/') || process.env.NODE_ENV === 'development';
 const projectRoot = isDevMode
   ? path.resolve(__dirname, '../..')
   : path.resolve(__dirname, '../..');
@@ -237,17 +238,13 @@ app.get('*', async c => {
 });
 
 export const startViewer = (port = 4983) => {
-  const isDev =
-    process.env.NODE_ENV === 'development' ||
-    process.argv[1]?.includes('/src/');
-
   const server = serve(
     {
       fetch: app.fetch,
       port,
     },
     () => {
-      if (isDev) {
+      if (isDevMode) {
         console.log(`🔍 AI SDK DevTools API running on port ${port}`);
         console.log(`   Open http://localhost:5173 for the dev UI`);
       } else {
