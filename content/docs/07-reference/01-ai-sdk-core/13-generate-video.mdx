@@ -141,11 +141,11 @@ console.log(videos);
       description: 'Additional HTTP headers for the request.',
     },
     {
-      name: 'maxDownloadSize',
-      type: 'number',
+      name: 'download',
+      type: '(options: { url: URL; abortSignal?: AbortSignal }) => Promise<{ data: Uint8Array; mediaType: string | undefined }>',
       isOptional: true,
       description:
-        'Maximum allowed size in bytes when downloading generated videos from a URL. Prevents memory exhaustion from excessively large downloads. Default: 1 GiB.',
+        'Custom download function for fetching videos from URLs. Use `createDownload()` from `ai` to create a download function with custom size limits, e.g. `createDownload({ maxBytes: 50 * 1024 * 1024 })`. Default: built-in download with 1 GiB limit.',
     },
   ]}
 />

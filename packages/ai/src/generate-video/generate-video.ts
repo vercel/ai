@@ -25,7 +25,7 @@ import {
   imageMediaTypeSignatures,
   videoMediaTypeSignatures,
 } from '../util/detect-media-type';
-import { download } from '../util/download/download';
+import { createDownload } from '../util/download/create-download';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import type { GenerateVideoResult } from './generate-video-result';
@@ -57,6 +57,8 @@ export type GenerateVideoPrompt =
  *
  * @returns A result object that contains the generated videos.
  */
+const defaultDownload = createDownload();
+
 export async function experimental_generateVideo({
   model: modelArg,
   prompt: promptArg,
@@ -71,7 +73,7 @@ export async function experimental_generateVideo({
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
-  maxDownloadSize,
+  download: downloadFn = defaultDownload,
 }: {
   /**
    * The video model to use.
@@ -143,12 +145,15 @@ export async function experimental_generateVideo({
   headers?: Record<string, string>;
 
   /**
-   * Maximum allowed size for video URL downloads in bytes.
-   * Prevents memory exhaustion from excessively large downloads.
+   * Custom download function for fetching videos from URLs.
+   * Use `createDownload()` from `ai` to create a download function with custom size limits.
    *
-   * @default 1 GiB
+   * @default createDownload() (1 GiB limit)
    */
-  maxDownloadSize?: number;
+  download?: (options: {
+    url: URL;
+    abortSignal?: AbortSignal;
+  }) => Promise<{ data: Uint8Array; mediaType: string | undefined }>;
 }): Promise<GenerateVideoResult> {
   const model = resolveVideoModel(modelArg);
 
@@ -204,10 +209,9 @@ export async function experimental_generateVideo({
     for (const videoData of result.videos) {
       switch (videoData.type) {
         case 'url': {
-          const { data, mediaType: downloadedMediaType } = await download({
+          const { data, mediaType: downloadedMediaType } = await downloadFn({
             url: new URL(videoData.url),
             abortSignal,
-            maxBytes: maxDownloadSize,
           });
 
           // Filter out generic/unknown media types that should fall through to detection
