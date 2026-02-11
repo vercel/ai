@@ -392,6 +392,19 @@ export const xaiResponsesChunkSchema = z.union([
     output_index: z.number(),
     code: z.string(),
   }),
+  // Function call arguments streaming events (standard function tools)
+  z.object({
+    type: z.literal('response.function_call_arguments.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.function_call_arguments.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    arguments: z.string(),
+  }),
   z.object({
     type: z.literal('response.done'),
     response: xaiResponsesResponseSchema,
