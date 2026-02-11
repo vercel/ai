@@ -769,6 +769,7 @@ You can pass them as an options argument:
 
 ```ts
 import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { type AmazonBedrockEmbeddingModelOptions } from '@ai-sdk/amazon-bedrock';
 import { embed } from 'ai';
 
 const model = bedrock.embedding('amazon.titan-embed-text-v2:0');
@@ -780,7 +781,7 @@ const { embedding } = await embed({
     bedrock: {
       dimensions: 512, // optional, number of dimensions for the embedding
       normalize: true, // optional, normalize the output embeddings
-    },
+    } satisfies AmazonBedrockEmbeddingModelOptions,
   },
 });
 ```
@@ -801,6 +802,7 @@ Amazon Nova embedding models support additional provider options:
 
 ```ts
 import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { type AmazonBedrockEmbeddingModelOptions } from '@ai-sdk/amazon-bedrock';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
@@ -811,7 +813,7 @@ const { embedding } = await embed({
       embeddingDimension: 1024, // optional, number of dimensions
       embeddingPurpose: 'TEXT_RETRIEVAL', // optional, purpose of embedding
       truncate: 'END', // optional, truncation behavior
-    },
+    } satisfies AmazonBedrockEmbeddingModelOptions,
   },
 });
 ```
@@ -836,6 +838,7 @@ Cohere embedding models on Bedrock require an `inputType` and support truncation
 
 ```ts
 import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { type AmazonBedrockEmbeddingModelOptions } from '@ai-sdk/amazon-bedrock';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
@@ -845,7 +848,7 @@ const { embedding } = await embed({
     bedrock: {
       inputType: 'search_document', // required for Cohere
       truncate: 'END', // optional, truncation behavior
-    },
+    } satisfies AmazonBedrockEmbeddingModelOptions,
   },
 });
 ```
