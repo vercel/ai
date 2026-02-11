@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.40
+
+### Patch Changes
+
+- a2208a2: fix (provider/gateway): added custom error class and message for client side timeouts
+
 ## 3.0.39
 
 ### Patch Changes

@@ -14,8 +14,8 @@ export function convertXaiChatUsage(usage: XaiChatUsage): LanguageModelV3Usage {
       cacheWrite: undefined,
     },
     outputTokens: {
-      total: usage.completion_tokens,
-      text: usage.completion_tokens - reasoningTokens,
+      total: usage.completion_tokens + reasoningTokens,
+      text: usage.completion_tokens,
       reasoning: reasoningTokens,
     },
     raw: usage,

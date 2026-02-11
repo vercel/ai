@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.41
+
+### Patch Changes
+
+- c60b393: feat(anthropic): add the new compaction feature
+
 ## 3.0.40
 
 ### Patch Changes

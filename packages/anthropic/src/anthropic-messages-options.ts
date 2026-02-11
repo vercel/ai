@@ -221,6 +221,17 @@ export const anthropicProviderOptions = z.object({
               ])
               .optional(),
           }),
+          z.object({
+            type: z.literal('compact_20260112'),
+            trigger: z
+              .object({
+                type: z.literal('input_tokens'),
+                value: z.number(),
+              })
+              .optional(),
+            pauseAfterCompaction: z.boolean().optional(),
+            instructions: z.string().optional(),
+          }),
         ]),
       ),
     })
