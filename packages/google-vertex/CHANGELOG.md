@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 4.0.54
+
+### Patch Changes
+
+- a8835e9: fix (provider/google-vertex): pass mime type with i2v video generation
+
 ## 4.0.53
 
 ### Patch Changes
