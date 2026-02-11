@@ -1,9 +1,10 @@
 import { LanguageModelV3Prompt } from '@ai-sdk/provider';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
 import { createXai } from './xai-provider';
+import * as fs from 'node:fs';
 
 const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -26,6 +27,37 @@ const server = createTestServer({
   'https://api.x.ai/v1/chat/completions': {},
 });
 
+function prepareJsonFixtureResponse(
+  filename: string,
+  headers?: Record<string, string>,
+) {
+  server.urls['https://api.x.ai/v1/chat/completions'].response = {
+    type: 'json-value',
+    headers,
+    body: JSON.parse(
+      fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+    ),
+  };
+}
+
+function prepareChunksFixtureResponse(
+  filename: string,
+  headers?: Record<string, string>,
+) {
+  const chunks = fs
+    .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
+    .split('\n')
+    .filter(line => line.trim().length > 0)
+    .map(line => `data: ${line}\n\n`);
+  chunks.push('data: [DONE]\n\n');
+
+  server.urls['https://api.x.ai/v1/chat/completions'].response = {
+    type: 'stream-chunks',
+    headers,
+    chunks,
+  };
+}
+
 describe('XaiChatLanguageModel', () => {
   it('should be instantiated correctly', () => {
     expect(model.modelId).toBe('grok-beta');
@@ -40,72 +72,105 @@ describe('XaiChatLanguageModel', () => {
   });
 
   describe('doGenerate', () => {
-    function prepareJsonResponse({
-      content = '',
-      usage = {
-        prompt_tokens: 4,
-        total_tokens: 34,
-        completion_tokens: 30,
-      },
-      id = 'chatcmpl-test-id',
-      created = 1699472111,
-      model = 'grok-beta',
-      headers,
-    }: {
-      content?: string;
-      usage?: {
-        prompt_tokens: number;
-        total_tokens: number;
-        completion_tokens: number;
-      };
-      id?: string;
-      created?: number;
-      model?: string;
-      headers?: Record<string, string>;
-    }) {
-      server.urls['https://api.x.ai/v1/chat/completions'].response = {
-        type: 'json-value',
-        headers,
-        body: {
-          id,
-          object: 'chat.completion',
-          created,
-          model,
-          choices: [
-            {
-              index: 0,
-              message: {
-                role: 'assistant',
-                content,
-                tool_calls: null,
-              },
-              finish_reason: 'stop',
-            },
-          ],
-          usage,
-        },
-      };
-    }
+    describe('text', () => {
+      beforeEach(() => prepareJsonFixtureResponse('xai-text'));
 
-    it('should extract text content', async () => {
-      prepareJsonResponse({ content: 'Hello, World!' });
+      it('should extract text content', async () => {
+        const result = await model.doGenerate({ prompt: TEST_PROMPT });
+        expect(result).toMatchSnapshot();
+      });
+    });
 
-      const { content } = await model.doGenerate({
+    describe('tool call', () => {
+      beforeEach(() => prepareJsonFixtureResponse('xai-tool-call'));
+
+      it('should extract tool call content', async () => {
+        const result = await model.doGenerate({ prompt: TEST_PROMPT });
+        expect(result).toMatchSnapshot();
+      });
+    });
+
+    it('should extract usage', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      const { usage } = await model.doGenerate({
         prompt: TEST_PROMPT,
       });
 
-      expect(content).toMatchInlineSnapshot(`
-        [
-          {
-            "text": "Hello, World!",
-            "type": "text",
+      expect(usage).toMatchInlineSnapshot(`
+        {
+          "inputTokens": {
+            "cacheRead": 2,
+            "cacheWrite": undefined,
+            "noCache": 10,
+            "total": 12,
           },
-        ]
+          "outputTokens": {
+            "reasoning": 228,
+            "text": -227,
+            "total": 1,
+          },
+          "raw": {
+            "completion_tokens": 1,
+            "completion_tokens_details": {
+              "accepted_prediction_tokens": 0,
+              "audio_tokens": 0,
+              "reasoning_tokens": 228,
+              "rejected_prediction_tokens": 0,
+            },
+            "prompt_tokens": 12,
+            "prompt_tokens_details": {
+              "audio_tokens": 0,
+              "cached_tokens": 2,
+              "image_tokens": 0,
+              "text_tokens": 12,
+            },
+            "total_tokens": 241,
+          },
+        }
+      `);
+    });
+
+    it('should send additional response information', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect({
+        id: response?.id,
+        timestamp: response?.timestamp,
+        modelId: response?.modelId,
+      }).toMatchInlineSnapshot(`
+        {
+          "id": "2af5c888-e886-6dcb-7844-95f8fe010b00",
+          "modelId": "grok-3-mini",
+          "timestamp": 2026-02-11T01:40:46.000Z,
+        }
+      `);
+    });
+
+    it('should expose the raw response headers', async () => {
+      prepareJsonFixtureResponse('xai-text', {
+        'test-header': 'test-value',
+      });
+
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(response?.headers).toMatchInlineSnapshot(`
+        {
+          "content-length": "827",
+          "content-type": "application/json",
+          "test-header": "test-value",
+        }
       `);
     });
 
     it('should avoid duplication when there is a trailing assistant message', async () => {
-      prepareJsonResponse({ content: 'prefix and more content' });
+      prepareJsonFixtureResponse('xai-text');
 
       const { content } = await model.doGenerate({
         prompt: [
@@ -120,152 +185,41 @@ describe('XaiChatLanguageModel', () => {
       expect(content).toMatchInlineSnapshot(`
         [
           {
-            "text": "prefix and more content",
+            "text": "Hello",
             "type": "text",
           },
-        ]
-      `);
-    });
-
-    it('should extract tool call content', async () => {
-      server.urls['https://api.x.ai/v1/chat/completions'].response = {
-        type: 'json-value',
-        body: {
-          id: 'chatcmpl-test-tool-call',
-          object: 'chat.completion',
-          created: 1699472111,
-          model: 'grok-beta',
-          choices: [
-            {
-              index: 0,
-              message: {
-                role: 'assistant',
-                content: null,
-                tool_calls: [
-                  {
-                    id: 'call_test123',
-                    type: 'function',
-                    function: {
-                      name: 'weatherTool',
-                      arguments: '{"location": "paris"}',
-                    },
-                  },
-                ],
-              },
-              finish_reason: 'tool_calls',
-            },
-          ],
-          usage: {
-            prompt_tokens: 124,
-            total_tokens: 146,
-            completion_tokens: 22,
-          },
-        },
-      };
-
-      const { content } = await model.doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(content).toMatchInlineSnapshot(`
-        [
           {
-            "input": "{"location": "paris"}",
-            "toolCallId": "call_test123",
-            "toolName": "weatherTool",
-            "type": "tool-call",
+            "text": "First, the user said: "Say a single word." That's straightforward. They want me to respond with just one word.
+
+        Response: I'll go with "Hello" as it's a common greeting and keeps it simple.",
+            "type": "reasoning",
           },
         ]
       `);
-    });
-
-    it('should extract usage', async () => {
-      prepareJsonResponse({
-        usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
-      });
-
-      const { usage } = await model.doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(usage).toMatchInlineSnapshot(`
-        {
-          "inputTokens": {
-            "cacheRead": 0,
-            "cacheWrite": undefined,
-            "noCache": 20,
-            "total": 20,
-          },
-          "outputTokens": {
-            "reasoning": 0,
-            "text": 5,
-            "total": 5,
-          },
-          "raw": {
-            "completion_tokens": 5,
-            "prompt_tokens": 20,
-            "total_tokens": 25,
-          },
-        }
-      `);
-    });
-
-    it('should send additional response information', async () => {
-      prepareJsonResponse({
-        id: 'test-id',
-        created: 123,
-        model: 'test-model',
-      });
-
-      const { response } = await model.doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      expect({
-        id: response?.id,
-        timestamp: response?.timestamp,
-        modelId: response?.modelId,
-      }).toStrictEqual({
-        id: 'test-id',
-        timestamp: new Date(123 * 1000),
-        modelId: 'test-model',
-      });
-    });
-
-    it('should expose the raw response headers', async () => {
-      prepareJsonResponse({
-        headers: { 'test-header': 'test-value' },
-      });
-
-      const { response } = await model.doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(response?.headers).toStrictEqual({
-        // default headers:
-        'content-length': '271',
-        'content-type': 'application/json',
-
-        // custom header
-        'test-header': 'test-value',
-      });
     });
 
     it('should pass the model and the messages', async () => {
-      prepareJsonResponse({ content: '' });
+      prepareJsonFixtureResponse('xai-text');
 
       await model.doGenerate({
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-beta',
-        messages: [{ role: 'user', content: 'Hello' }],
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "grok-beta",
+        }
+      `);
     });
 
     it('should pass tools and toolChoice', async () => {
-      prepareJsonResponse({ content: '' });
+      prepareJsonFixtureResponse('xai-text');
 
       await model.doGenerate({
         tools: [
@@ -288,33 +242,48 @@ describe('XaiChatLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-beta',
-        messages: [{ role: 'user', content: 'Hello' }],
-        tools: [
-          {
-            type: 'function',
-            function: {
-              name: 'test-tool',
-              parameters: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
             },
+          ],
+          "model": "grok-beta",
+          "tool_choice": {
+            "function": {
+              "name": "test-tool",
+            },
+            "type": "function",
           },
-        ],
-        tool_choice: {
-          type: 'function',
-          function: { name: 'test-tool' },
-        },
-      });
+          "tools": [
+            {
+              "function": {
+                "name": "test-tool",
+                "parameters": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "value",
+                  ],
+                  "type": "object",
+                },
+              },
+              "type": "function",
+            },
+          ],
+        }
+      `);
     });
 
     it('should pass parallel_function_calling provider option', async () => {
-      prepareJsonResponse({ content: '' });
+      prepareJsonFixtureResponse('xai-text');
 
       await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -333,7 +302,7 @@ describe('XaiChatLanguageModel', () => {
     });
 
     it('should pass headers', async () => {
-      prepareJsonResponse({ content: '' });
+      prepareJsonFixtureResponse('xai-text');
 
       const modelWithHeaders = new XaiChatLanguageModel('grok-beta', {
         provider: 'xai.chat',
@@ -355,16 +324,18 @@ describe('XaiChatLanguageModel', () => {
 
       const requestHeaders = server.calls[0].requestHeaders;
 
-      expect(requestHeaders).toStrictEqual({
-        authorization: 'Bearer test-api-key',
-        'content-type': 'application/json',
-        'custom-provider-header': 'provider-header-value',
-        'custom-request-header': 'request-header-value',
-      });
+      expect(requestHeaders).toMatchInlineSnapshot(`
+        {
+          "authorization": "Bearer test-api-key",
+          "content-type": "application/json",
+          "custom-provider-header": "provider-header-value",
+          "custom-request-header": "request-header-value",
+        }
+      `);
     });
 
     it('should include provider user agent when using createXai', async () => {
-      prepareJsonResponse({ content: '' });
+      prepareJsonFixtureResponse('xai-text');
 
       const xai = createXai({
         apiKey: 'test-api-key',
@@ -384,7 +355,7 @@ describe('XaiChatLanguageModel', () => {
     });
 
     it('should send request body', async () => {
-      prepareJsonResponse({ content: '' });
+      prepareJsonFixtureResponse('xai-text');
 
       const { request } = await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -416,7 +387,7 @@ describe('XaiChatLanguageModel', () => {
     });
 
     it('should pass search parameters', async () => {
-      prepareJsonResponse({ content: '' });
+      prepareJsonFixtureResponse('xai-text');
 
       await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -433,21 +404,28 @@ describe('XaiChatLanguageModel', () => {
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-beta',
-        messages: [{ role: 'user', content: 'Hello' }],
-        search_parameters: {
-          mode: 'auto',
-          return_citations: true,
-          from_date: '2024-01-01',
-          to_date: '2024-12-31',
-          max_search_results: 10,
-        },
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "grok-beta",
+          "search_parameters": {
+            "from_date": "2024-01-01",
+            "max_search_results": 10,
+            "mode": "auto",
+            "return_citations": true,
+            "to_date": "2024-12-31",
+          },
+        }
+      `);
     });
 
     it('should pass search parameters with sources array', async () => {
-      prepareJsonResponse({ content: '' });
+      prepareJsonFixtureResponse('xai-text');
 
       await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -483,36 +461,51 @@ describe('XaiChatLanguageModel', () => {
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-beta',
-        messages: [{ role: 'user', content: 'Hello' }],
-        search_parameters: {
-          mode: 'on',
-          sources: [
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
             {
-              type: 'web',
-              country: 'US',
-              excluded_websites: ['example.com'],
-              safe_search: false,
-            },
-            {
-              type: 'x',
-              included_x_handles: ['grok'],
-              excluded_x_handles: ['openai'],
-              post_favorite_count: 5,
-              post_view_count: 50,
-            },
-            {
-              type: 'news',
-              country: 'GB',
-            },
-            {
-              type: 'rss',
-              links: ['https://status.x.ai/feed.xml'],
+              "content": "Hello",
+              "role": "user",
             },
           ],
-        },
-      });
+          "model": "grok-beta",
+          "search_parameters": {
+            "mode": "on",
+            "sources": [
+              {
+                "country": "US",
+                "excluded_websites": [
+                  "example.com",
+                ],
+                "safe_search": false,
+                "type": "web",
+              },
+              {
+                "excluded_x_handles": [
+                  "openai",
+                ],
+                "included_x_handles": [
+                  "grok",
+                ],
+                "post_favorite_count": 5,
+                "post_view_count": 50,
+                "type": "x",
+              },
+              {
+                "country": "GB",
+                "type": "news",
+              },
+              {
+                "links": [
+                  "https://status.x.ai/feed.xml",
+                ],
+                "type": "rss",
+              },
+            ],
+          },
+        }
+      `);
     });
 
     it('should extract content when message content is a content object', async () => {
@@ -614,9 +607,7 @@ describe('XaiChatLanguageModel', () => {
     });
 
     it('should handle complex search parameter combinations', async () => {
-      prepareJsonResponse({
-        content: 'Research results from multiple sources',
-      });
+      prepareJsonFixtureResponse('xai-text');
 
       await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -653,37 +644,54 @@ describe('XaiChatLanguageModel', () => {
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-beta',
-        messages: [{ role: 'user', content: 'Hello' }],
-        search_parameters: {
-          mode: 'on',
-          return_citations: true,
-          from_date: '2024-01-01',
-          to_date: '2024-12-31',
-          max_search_results: 15,
-          sources: [
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
             {
-              type: 'web',
-              country: 'US',
-              allowed_websites: ['arxiv.org', 'nature.com'],
-              safe_search: true,
-            },
-            {
-              type: 'news',
-              country: 'GB',
-              excluded_websites: ['tabloid.com'],
-            },
-            {
-              type: 'x',
-              included_x_handles: ['openai', 'deepmind'],
-              excluded_x_handles: ['grok'],
-              post_favorite_count: 10,
-              post_view_count: 100,
+              "content": "Hello",
+              "role": "user",
             },
           ],
-        },
-      });
+          "model": "grok-beta",
+          "search_parameters": {
+            "from_date": "2024-01-01",
+            "max_search_results": 15,
+            "mode": "on",
+            "return_citations": true,
+            "sources": [
+              {
+                "allowed_websites": [
+                  "arxiv.org",
+                  "nature.com",
+                ],
+                "country": "US",
+                "safe_search": true,
+                "type": "web",
+              },
+              {
+                "country": "GB",
+                "excluded_websites": [
+                  "tabloid.com",
+                ],
+                "type": "news",
+              },
+              {
+                "excluded_x_handles": [
+                  "grok",
+                ],
+                "included_x_handles": [
+                  "openai",
+                  "deepmind",
+                ],
+                "post_favorite_count": 10,
+                "post_view_count": 100,
+                "type": "x",
+              },
+            ],
+            "to_date": "2024-12-31",
+          },
+        }
+      `);
     });
 
     it('should handle empty citations array', async () => {
@@ -733,7 +741,7 @@ describe('XaiChatLanguageModel', () => {
     });
 
     it('should support json schema response format without warnings', async () => {
-      prepareJsonResponse({ content: '{"name":"john doe"}' });
+      prepareJsonFixtureResponse('xai-text');
 
       const { warnings } = await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -754,7 +762,7 @@ describe('XaiChatLanguageModel', () => {
     });
 
     it('should send json schema in response format', async () => {
-      prepareJsonResponse({ content: '{"name":"john"}' });
+      prepareJsonFixtureResponse('xai-text');
 
       await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -809,7 +817,6 @@ describe('XaiChatLanguageModel', () => {
               finish_reason: 'stop',
             },
           ],
-          // usage field is omitted
         },
       };
 
@@ -817,127 +824,73 @@ describe('XaiChatLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(usage).toStrictEqual({
-        inputTokens: {
-          total: 0,
-          noCache: 0,
-          cacheRead: 0,
-          cacheWrite: 0,
-        },
-        outputTokens: {
-          total: 0,
-          text: 0,
-          reasoning: 0,
-        },
-      });
+      expect(usage).toMatchInlineSnapshot(`
+        {
+          "inputTokens": {
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "noCache": 0,
+            "total": 0,
+          },
+          "outputTokens": {
+            "reasoning": 0,
+            "text": 0,
+            "total": 0,
+          },
+        }
+      `);
     });
   });
 
   describe('doStream', () => {
-    function prepareStreamResponse({
-      content,
-      headers,
-    }: {
-      content: string[];
-      headers?: Record<string, string>;
-    }) {
-      server.urls['https://api.x.ai/v1/chat/completions'].response = {
-        type: 'stream-chunks',
-        headers,
-        chunks: [
-          `data: {"id":"35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe","object":"chat.completion.chunk",` +
-            `"created":1750537778,"model":"grok-beta","choices":[{"index":0,` +
-            `"delta":{"role":"assistant","content":""},"finish_reason":null}],"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
-          ...content.map(text => {
-            return (
-              `data: {"id":"35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe","object":"chat.completion.chunk",` +
-              `"created":1750537778,"model":"grok-beta","choices":[{"index":0,` +
-              `"delta":{"role":"assistant","content":"${text}"},"finish_reason":null}],"system_fingerprint":"fp_13a6dc65a6"}\n\n`
-            );
-          }),
-          `data: {"id":"35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe","object":"chat.completion.chunk",` +
-            `"created":1750537778,"model":"grok-beta","choices":[{"index":0,` +
-            `"delta":{"content":""},"finish_reason":"stop"}],` +
-            `"usage":{"prompt_tokens":4,"total_tokens":36,"completion_tokens":32},"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
-          `data: [DONE]\n\n`,
-        ],
-      };
-    }
+    describe('text', () => {
+      beforeEach(() => prepareChunksFixtureResponse('xai-text'));
 
-    it('should stream text deltas', async () => {
-      prepareStreamResponse({ content: ['Hello', ', ', 'world!'] });
+      it('should stream text content', async () => {
+        const { stream } = await model.doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
 
-      const { stream } = await model.doStream({
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+      });
+    });
+
+    describe('tool call', () => {
+      beforeEach(() => prepareChunksFixtureResponse('xai-tool-call'));
+
+      it('should stream tool call content', async () => {
+        const { stream } = await model.doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+      });
+    });
+
+    it('should expose the raw response headers', async () => {
+      prepareChunksFixtureResponse('xai-text', {
+        'test-header': 'test-value',
+      });
+
+      const { response } = await model.doStream({
         prompt: TEST_PROMPT,
         includeRawChunks: false,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
-        [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "id": "35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
-            "modelId": "grok-beta",
-            "timestamp": 2025-06-21T20:29:38.000Z,
-            "type": "response-metadata",
-          },
-          {
-            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello",
-            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
-            "type": "text-delta",
-          },
-          {
-            "delta": ", ",
-            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
-            "type": "text-delta",
-          },
-          {
-            "delta": "world!",
-            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
-            "type": "text-delta",
-          },
-          {
-            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
-            "type": "text-end",
-          },
-          {
-            "finishReason": {
-              "raw": "stop",
-              "unified": "stop",
-            },
-            "type": "finish",
-            "usage": {
-              "inputTokens": {
-                "cacheRead": 0,
-                "cacheWrite": undefined,
-                "noCache": 4,
-                "total": 4,
-              },
-              "outputTokens": {
-                "reasoning": 0,
-                "text": 32,
-                "total": 32,
-              },
-              "raw": {
-                "completion_tokens": 32,
-                "prompt_tokens": 4,
-                "total_tokens": 36,
-              },
-            },
-          },
-        ]
+      expect(response?.headers).toMatchInlineSnapshot(`
+        {
+          "cache-control": "no-cache",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "test-header": "test-value",
+        }
       `);
     });
 
     it('should avoid duplication when there is a trailing assistant message', async () => {
-      prepareStreamResponse({ content: ['prefix', ' and', ' more content'] });
+      prepareChunksFixtureResponse('xai-text');
 
       const { stream } = await model.doStream({
         prompt: [
@@ -950,205 +903,45 @@ describe('XaiChatLanguageModel', () => {
         includeRawChunks: false,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      const chunks = await convertReadableStreamToArray(stream);
+      const textDeltas = chunks
+        .filter(chunk => chunk.type === 'text-delta')
+        .map(chunk => chunk.delta);
+
+      expect(textDeltas).toMatchInlineSnapshot(`
         [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "id": "35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
-            "modelId": "grok-beta",
-            "timestamp": 2025-06-21T20:29:38.000Z,
-            "type": "response-metadata",
-          },
-          {
-            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
-            "type": "text-start",
-          },
-          {
-            "delta": "prefix",
-            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
-            "type": "text-delta",
-          },
-          {
-            "delta": " and",
-            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
-            "type": "text-delta",
-          },
-          {
-            "delta": " more content",
-            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
-            "type": "text-delta",
-          },
-          {
-            "id": "text-35e18f56-4ec6-48e4-8ca0-c1c4cbeeebbe",
-            "type": "text-end",
-          },
-          {
-            "finishReason": {
-              "raw": "stop",
-              "unified": "stop",
-            },
-            "type": "finish",
-            "usage": {
-              "inputTokens": {
-                "cacheRead": 0,
-                "cacheWrite": undefined,
-                "noCache": 4,
-                "total": 4,
-              },
-              "outputTokens": {
-                "reasoning": 0,
-                "text": 32,
-                "total": 32,
-              },
-              "raw": {
-                "completion_tokens": 32,
-                "prompt_tokens": 4,
-                "total_tokens": 36,
-              },
-            },
-          },
+          "Hello",
         ]
       `);
-    });
-
-    it('should stream tool deltas', async () => {
-      server.urls['https://api.x.ai/v1/chat/completions'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          `data: {"id":"a9648117-740c-4270-9e07-6a8457f23b7a","object":"chat.completion.chunk","created":1750535985,"model":"grok-beta",` +
-            `"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}],"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
-          `data: {"id":"a9648117-740c-4270-9e07-6a8457f23b7a","object":"chat.completion.chunk","created":1750535985,"model":"grok-beta",` +
-            `"choices":[{"index":0,"delta":{"content":null,"tool_calls":[{"id":"call_yfBEybNYi","type":"function","function":{"name":"test-tool","arguments":` +
-            `"{\\"value\\":\\"Sparkle Day\\"}"` +
-            `}}]},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":183,"total_tokens":316,"completion_tokens":133},"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
-          'data: [DONE]\n\n',
-        ],
-      };
-
-      const { stream } = await model.doStream({
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            inputSchema: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-          },
-        ],
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-      });
-
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
-        [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "id": "a9648117-740c-4270-9e07-6a8457f23b7a",
-            "modelId": "grok-beta",
-            "timestamp": 2025-06-21T19:59:45.000Z,
-            "type": "response-metadata",
-          },
-          {
-            "id": "call_yfBEybNYi",
-            "toolName": "test-tool",
-            "type": "tool-input-start",
-          },
-          {
-            "delta": "{"value":"Sparkle Day"}",
-            "id": "call_yfBEybNYi",
-            "type": "tool-input-delta",
-          },
-          {
-            "id": "call_yfBEybNYi",
-            "type": "tool-input-end",
-          },
-          {
-            "input": "{"value":"Sparkle Day"}",
-            "toolCallId": "call_yfBEybNYi",
-            "toolName": "test-tool",
-            "type": "tool-call",
-          },
-          {
-            "finishReason": {
-              "raw": "tool_calls",
-              "unified": "tool-calls",
-            },
-            "type": "finish",
-            "usage": {
-              "inputTokens": {
-                "cacheRead": 0,
-                "cacheWrite": undefined,
-                "noCache": 183,
-                "total": 183,
-              },
-              "outputTokens": {
-                "reasoning": 0,
-                "text": 133,
-                "total": 133,
-              },
-              "raw": {
-                "completion_tokens": 133,
-                "prompt_tokens": 183,
-                "total_tokens": 316,
-              },
-            },
-          },
-        ]
-      `);
-    });
-
-    it('should expose the raw response headers', async () => {
-      prepareStreamResponse({
-        content: [],
-        headers: { 'test-header': 'test-value' },
-      });
-
-      const { response } = await model.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-      });
-
-      expect(response?.headers).toStrictEqual({
-        // default headers:
-        'content-type': 'text/event-stream',
-        'cache-control': 'no-cache',
-        connection: 'keep-alive',
-
-        // custom header
-        'test-header': 'test-value',
-      });
     });
 
     it('should pass the messages', async () => {
-      prepareStreamResponse({ content: [''] });
+      prepareChunksFixtureResponse('xai-text');
 
       await model.doStream({
         prompt: TEST_PROMPT,
         includeRawChunks: false,
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        stream: true,
-        model: 'grok-beta',
-        messages: [{ role: 'user', content: 'Hello' }],
-        stream_options: {
-          include_usage: true,
-        },
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "grok-beta",
+          "stream": true,
+          "stream_options": {
+            "include_usage": true,
+          },
+        }
+      `);
     });
 
     it('should pass headers', async () => {
-      prepareStreamResponse({ content: [] });
+      prepareChunksFixtureResponse('xai-text');
 
       const modelWithHeaders = new XaiChatLanguageModel('grok-beta', {
         provider: 'xai.chat',
@@ -1168,16 +961,18 @@ describe('XaiChatLanguageModel', () => {
         },
       });
 
-      expect(server.calls[0].requestHeaders).toStrictEqual({
-        authorization: 'Bearer test-api-key',
-        'content-type': 'application/json',
-        'custom-provider-header': 'provider-header-value',
-        'custom-request-header': 'request-header-value',
-      });
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "authorization": "Bearer test-api-key",
+          "content-type": "application/json",
+          "custom-provider-header": "provider-header-value",
+          "custom-request-header": "request-header-value",
+        }
+      `);
     });
 
     it('should send request body', async () => {
-      prepareStreamResponse({ content: [] });
+      prepareChunksFixtureResponse('xai-text');
 
       const { request } = await model.doStream({
         prompt: TEST_PROMPT,
@@ -1353,55 +1148,8 @@ describe('XaiChatLanguageModel', () => {
   describe('reasoning models', () => {
     const reasoningModel = new XaiChatLanguageModel('grok-3-mini', testConfig);
 
-    function prepareReasoningResponse({
-      content = 'The result is 303.',
-      reasoning_content = 'Let me calculate 101 multiplied by 3: 101 * 3 = 303.',
-      usage = {
-        prompt_tokens: 15,
-        total_tokens: 35,
-        completion_tokens: 20,
-        completion_tokens_details: {
-          reasoning_tokens: 10,
-        },
-      },
-    }: {
-      content?: string;
-      reasoning_content?: string;
-      usage?: {
-        prompt_tokens: number;
-        total_tokens: number;
-        completion_tokens: number;
-        completion_tokens_details?: {
-          reasoning_tokens?: number;
-        };
-      };
-    }) {
-      server.urls['https://api.x.ai/v1/chat/completions'].response = {
-        type: 'json-value',
-        body: {
-          id: 'chatcmpl-reasoning-test',
-          object: 'chat.completion',
-          created: 1699472111,
-          model: 'grok-3-mini',
-          choices: [
-            {
-              index: 0,
-              message: {
-                role: 'assistant',
-                content,
-                reasoning_content,
-                tool_calls: null,
-              },
-              finish_reason: 'stop',
-            },
-          ],
-          usage,
-        },
-      };
-    }
-
     it('should pass reasoning_effort parameter', async () => {
-      prepareReasoningResponse({});
+      prepareJsonFixtureResponse('xai-text');
 
       await reasoningModel.doGenerate({
         prompt: TEST_PROMPT,
@@ -1410,18 +1158,22 @@ describe('XaiChatLanguageModel', () => {
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-3-mini',
-        messages: [{ role: 'user', content: 'Hello' }],
-        reasoning_effort: 'high',
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "grok-3-mini",
+          "reasoning_effort": "high",
+        }
+      `);
     });
 
     it('should extract reasoning content', async () => {
-      prepareReasoningResponse({
-        content: 'The answer is 303.',
-        reasoning_content: 'Let me think: 101 * 3 = 303.',
-      });
+      prepareJsonFixtureResponse('xai-text');
 
       const { content } = await reasoningModel.doGenerate({
         prompt: TEST_PROMPT,
@@ -1433,11 +1185,13 @@ describe('XaiChatLanguageModel', () => {
       expect(content).toMatchInlineSnapshot(`
         [
           {
-            "text": "The answer is 303.",
+            "text": "Hello",
             "type": "text",
           },
           {
-            "text": "Let me think: 101 * 3 = 303.",
+            "text": "First, the user said: "Say a single word." That's straightforward. They want me to respond with just one word.
+
+        Response: I'll go with "Hello" as it's a common greeting and keeps it simple.",
             "type": "reasoning",
           },
         ]
@@ -1445,16 +1199,7 @@ describe('XaiChatLanguageModel', () => {
     });
 
     it('should extract reasoning tokens from usage', async () => {
-      prepareReasoningResponse({
-        usage: {
-          prompt_tokens: 15,
-          completion_tokens: 20,
-          total_tokens: 35,
-          completion_tokens_details: {
-            reasoning_tokens: 10,
-          },
-        },
-      });
+      prepareJsonFixtureResponse('xai-text');
 
       const { usage } = await reasoningModel.doGenerate({
         prompt: TEST_PROMPT,
@@ -1466,46 +1211,39 @@ describe('XaiChatLanguageModel', () => {
       expect(usage).toMatchInlineSnapshot(`
         {
           "inputTokens": {
-            "cacheRead": 0,
+            "cacheRead": 2,
             "cacheWrite": undefined,
-            "noCache": 15,
-            "total": 15,
+            "noCache": 10,
+            "total": 12,
           },
           "outputTokens": {
-            "reasoning": 10,
-            "text": 10,
-            "total": 20,
+            "reasoning": 228,
+            "text": -227,
+            "total": 1,
           },
           "raw": {
-            "completion_tokens": 20,
+            "completion_tokens": 1,
             "completion_tokens_details": {
-              "reasoning_tokens": 10,
+              "accepted_prediction_tokens": 0,
+              "audio_tokens": 0,
+              "reasoning_tokens": 228,
+              "rejected_prediction_tokens": 0,
             },
-            "prompt_tokens": 15,
-            "total_tokens": 35,
+            "prompt_tokens": 12,
+            "prompt_tokens_details": {
+              "audio_tokens": 0,
+              "cached_tokens": 2,
+              "image_tokens": 0,
+              "text_tokens": 12,
+            },
+            "total_tokens": 241,
           },
         }
       `);
     });
 
     it('should handle reasoning streaming', async () => {
-      server.urls['https://api.x.ai/v1/chat/completions'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          `data: {"id":"b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b","object":"chat.completion.chunk","created":1750538120,"model":"grok-3-mini",` +
-            `"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
-          `data: {"id":"b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b","object":"chat.completion.chunk","created":1750538120,"model":"grok-3-mini",` +
-            `"choices":[{"index":0,"delta":{"reasoning_content":"Let me calculate: "},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
-          `data: {"id":"b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b","object":"chat.completion.chunk","created":1750538120,"model":"grok-3-mini",` +
-            `"choices":[{"index":0,"delta":{"reasoning_content":"101 * 3 = 303"},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
-          `data: {"id":"b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b","object":"chat.completion.chunk","created":1750538120,"model":"grok-3-mini",` +
-            `"choices":[{"index":0,"delta":{"content":"The answer is 303."},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
-          `data: {"id":"b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b","object":"chat.completion.chunk","created":1750538120,"model":"grok-3-mini",` +
-            `"choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
-            `"usage":{"prompt_tokens":15,"total_tokens":35,"completion_tokens":20,"completion_tokens_details":{"reasoning_tokens":10}},"system_fingerprint":"fp_reasoning_v1"}\n\n`,
-          `data: [DONE]\n\n`,
-        ],
-      };
+      prepareChunksFixtureResponse('xai-text');
 
       const { stream } = await reasoningModel.doStream({
         prompt: TEST_PROMPT,
@@ -1515,77 +1253,18 @@ describe('XaiChatLanguageModel', () => {
         },
       });
 
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      const chunks = await convertReadableStreamToArray(stream);
+      const reasoningDeltas = chunks
+        .filter(chunk => chunk.type === 'reasoning-delta')
+        .map(chunk => chunk.delta);
+
+      expect(reasoningDeltas).toMatchInlineSnapshot(`
         [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "id": "b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
-            "modelId": "grok-3-mini",
-            "timestamp": 2025-06-21T20:35:20.000Z,
-            "type": "response-metadata",
-          },
-          {
-            "id": "reasoning-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
-            "type": "reasoning-start",
-          },
-          {
-            "delta": "Let me calculate: ",
-            "id": "reasoning-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
-            "type": "reasoning-delta",
-          },
-          {
-            "delta": "101 * 3 = 303",
-            "id": "reasoning-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
-            "type": "reasoning-delta",
-          },
-          {
-            "id": "reasoning-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
-            "type": "reasoning-end",
-          },
-          {
-            "id": "text-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
-            "type": "text-start",
-          },
-          {
-            "delta": "The answer is 303.",
-            "id": "text-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
-            "type": "text-delta",
-          },
-          {
-            "id": "text-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
-            "type": "text-end",
-          },
-          {
-            "finishReason": {
-              "raw": "stop",
-              "unified": "stop",
-            },
-            "type": "finish",
-            "usage": {
-              "inputTokens": {
-                "cacheRead": 0,
-                "cacheWrite": undefined,
-                "noCache": 15,
-                "total": 15,
-              },
-              "outputTokens": {
-                "reasoning": 10,
-                "text": 10,
-                "total": 20,
-              },
-              "raw": {
-                "completion_tokens": 20,
-                "completion_tokens_details": {
-                  "reasoning_tokens": 10,
-                },
-                "prompt_tokens": 15,
-                "total_tokens": 35,
-              },
-            },
-          },
+          "First",
+          ",",
+          " the",
+          " user",
+          " said",
         ]
       `);
     });
@@ -1596,14 +1275,12 @@ describe('XaiChatLanguageModel', () => {
         chunks: [
           `data: {"id":"grok-4-test","object":"chat.completion.chunk","created":1750538120,"model":"grok-4-0709",` +
             `"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
-          // Multiple identical "Thinking..." deltas (simulating Grok 4 issue)
           `data: {"id":"grok-4-test","object":"chat.completion.chunk","created":1750538120,"model":"grok-4-0709",` +
             `"choices":[{"index":0,"delta":{"reasoning_content":"Thinking... "},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
           `data: {"id":"grok-4-test","object":"chat.completion.chunk","created":1750538120,"model":"grok-4-0709",` +
             `"choices":[{"index":0,"delta":{"reasoning_content":"Thinking... "},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
           `data: {"id":"grok-4-test","object":"chat.completion.chunk","created":1750538120,"model":"grok-4-0709",` +
             `"choices":[{"index":0,"delta":{"reasoning_content":"Thinking... "},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
-          // Different reasoning content should still come through
           `data: {"id":"grok-4-test","object":"chat.completion.chunk","created":1750538120,"model":"grok-4-0709",` +
             `"choices":[{"index":0,"delta":{"reasoning_content":"Actually calculating now..."},"finish_reason":null}],"system_fingerprint":"fp_reasoning_v1"}\n\n`,
           `data: {"id":"grok-4-test","object":"chat.completion.chunk","created":1750538120,"model":"grok-4-0709",` +
