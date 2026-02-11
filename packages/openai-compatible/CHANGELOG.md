@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.29
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+
 ## 2.0.28
 
 ### Patch Changes

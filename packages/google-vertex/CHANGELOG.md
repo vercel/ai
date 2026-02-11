@@ -1,5 +1,14 @@
 # @ai-sdk/google-vertex
 
+## 4.0.52
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+- Updated dependencies [99fbed8]
+  - @ai-sdk/anthropic@3.0.42
+  - @ai-sdk/google@3.0.25
+
 ## 4.0.51
 
 ### Patch Changes

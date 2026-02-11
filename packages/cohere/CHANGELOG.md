@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 3.0.20
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+
 ## 3.0.19
 
 ### Patch Changes

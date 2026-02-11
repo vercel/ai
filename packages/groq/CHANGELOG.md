@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 3.0.23
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+
 ## 3.0.22
 
 ### Patch Changes
