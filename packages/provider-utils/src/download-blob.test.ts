@@ -139,7 +139,7 @@ describe('downloadBlob()', () => {
       createMockStreamResponse({
         body: new Uint8Array(10),
         headers: {
-          'content-length': `${2 * 1024 * 1024 * 1024}`,
+          'content-length': `${3 * 1024 * 1024 * 1024}`,
         },
       }),
     );

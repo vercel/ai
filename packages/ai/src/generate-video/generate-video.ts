@@ -148,7 +148,7 @@ export async function experimental_generateVideo({
    * Custom download function for fetching videos from URLs.
    * Use `createDownload()` from `ai` to create a download function with custom size limits.
    *
-   * @default createDownload() (1 GiB limit)
+   * @default createDownload() (2 GiB limit)
    */
   download?: (options: {
     url: URL;

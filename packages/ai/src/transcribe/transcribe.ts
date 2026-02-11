@@ -88,7 +88,7 @@ export async function transcribe({
    * Custom download function for fetching audio from URLs.
    * Use `createDownload()` from `ai` to create a download function with custom size limits.
    *
-   * @default createDownload() (1 GiB limit)
+   * @default createDownload() (2 GiB limit)
    */
   download?: (options: {
     url: URL;
