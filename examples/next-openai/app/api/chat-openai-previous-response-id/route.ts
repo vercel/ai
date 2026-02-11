@@ -1,7 +1,7 @@
 import {
   openai,
   OpenaiResponsesProviderMetadata,
-  OpenAIResponsesProviderOptions,
+  OpenAILanguageModelResponsesOptions,
 } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
             store: true,
             // Enable history lookup by passing the responseId from the previous call.
             previousResponseId,
-          } satisfies OpenAIResponsesProviderOptions,
+          } satisfies OpenAILanguageModelResponsesOptions,
         },
         onFinish: ({ providerMetadata }) => {
           if (!!providerMetadata) {

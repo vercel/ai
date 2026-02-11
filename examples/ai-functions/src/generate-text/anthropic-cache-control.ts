@@ -1,4 +1,4 @@
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import fs from 'node:fs';
 import { run } from '../lib/run';
@@ -22,7 +22,7 @@ run(async () => {
             providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral', ttl: '1h' },
-              } satisfies AnthropicProviderOptions,
+              } satisfies AnthropicLanguageModelOptions,
             },
           },
           {

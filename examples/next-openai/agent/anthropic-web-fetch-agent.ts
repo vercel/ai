@@ -1,4 +1,4 @@
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
 export const anthropicWebFetchAgent = new ToolLoopAgent({
@@ -9,7 +9,7 @@ export const anthropicWebFetchAgent = new ToolLoopAgent({
   providerOptions: {
     anthropic: {
       thinking: { type: 'enabled', budgetTokens: 12000 },
-    } satisfies AnthropicProviderOptions,
+    } satisfies AnthropicLanguageModelOptions,
   },
 });
 
