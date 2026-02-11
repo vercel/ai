@@ -1,4 +1,4 @@
-import { google, GoogleLanguageModelOptions } from '@ai-sdk/google';
+import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { stepCountIs, streamText } from 'ai';
 import { weatherTool } from '../tools/weather-tool';
 import { run } from '../lib/run';

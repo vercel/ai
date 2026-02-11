@@ -1,4 +1,7 @@
-import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import {
+  anthropic,
+  type AnthropicLanguageModelOptions,
+} from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import fs from 'node:fs';
 import { run } from '../lib/run';

@@ -1,4 +1,7 @@
-import { openai } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 export const maxDuration = 30;
@@ -13,7 +16,7 @@ export async function POST(req: Request) {
       openai: {
         reasoningEffort: 'low',
         reasoningSummary: 'auto',
-      },
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
   });
 

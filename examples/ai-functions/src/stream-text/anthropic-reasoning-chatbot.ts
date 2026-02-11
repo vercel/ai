@@ -1,5 +1,5 @@
 import {
-  AnthropicLanguageModelOptions,
+  type AnthropicLanguageModelOptions,
   createAnthropic,
 } from '@ai-sdk/anthropic';
 import { stepCountIs, ModelMessage, streamText, tool } from 'ai';

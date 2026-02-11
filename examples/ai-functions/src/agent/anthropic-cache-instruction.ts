@@ -1,4 +1,7 @@
-import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import {
+  anthropic,
+  type AnthropicLanguageModelOptions,
+} from '@ai-sdk/anthropic';
 import { ToolLoopAgent } from 'ai';
 import fs from 'node:fs';
 import { print } from '../lib/print';

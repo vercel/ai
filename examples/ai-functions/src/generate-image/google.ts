@@ -1,4 +1,4 @@
-import { google, GoogleGenerativeAIImageProviderOptions } from '@ai-sdk/google';
+import { google, type GoogleImageModelOptions } from '@ai-sdk/google';
 import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
@@ -11,7 +11,7 @@ run(async () => {
     providerOptions: {
       google: {
         personGeneration: 'dont_allow',
-      } satisfies GoogleGenerativeAIImageProviderOptions,
+      } satisfies GoogleImageModelOptions,
     },
   });
 

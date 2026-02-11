@@ -1,4 +1,7 @@
-import { openai } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 import { z } from 'zod';
 import { run } from '../lib/run';
@@ -25,7 +28,7 @@ run(async () => {
         metadata: {
           custom: 'value',
         },
-      },
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
   });
 

@@ -1,6 +1,6 @@
 import {
   createAnthropic,
-  AnthropicLanguageModelOptions,
+  type AnthropicLanguageModelOptions,
 } from '@ai-sdk/anthropic';
 import { ModelMessage, generateText, stepCountIs } from 'ai';
 import * as readline from 'node:readline/promises';

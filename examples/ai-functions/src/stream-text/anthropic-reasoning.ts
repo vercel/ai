@@ -1,4 +1,7 @@
-import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import {
+  anthropic,
+  type AnthropicLanguageModelOptions,
+} from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
 

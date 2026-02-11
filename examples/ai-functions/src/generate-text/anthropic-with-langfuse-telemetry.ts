@@ -1,5 +1,5 @@
 import {
-  AnthropicLanguageModelOptions,
+  type AnthropicLanguageModelOptions,
   anthropic,
   createAnthropic,
 } from '@ai-sdk/anthropic';

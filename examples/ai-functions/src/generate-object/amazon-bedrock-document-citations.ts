@@ -1,6 +1,6 @@
 import {
   bedrock,
-  AmazonBedrockLanguageModelOptions,
+  type AmazonBedrockLanguageModelOptions,
 } from '@ai-sdk/amazon-bedrock';
 import { generateObject } from 'ai';
 import { z } from 'zod';

@@ -1,7 +1,7 @@
 import {
   anthropic,
   AnthropicMessageMetadata,
-  AnthropicLanguageModelOptions,
+  type AnthropicLanguageModelOptions,
 } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { print } from '../lib/print';

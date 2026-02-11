@@ -1,4 +1,4 @@
-import { xai } from '@ai-sdk/xai';
+import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 
@@ -14,7 +14,7 @@ run(async () => {
     providerOptions: {
       xai: {
         include: ['file_search_call.results'],
-      },
+      } satisfies XaiLanguageModelResponsesOptions,
     },
     prompt: 'What documents do you have access to? Summarize the key findings.',
   });
