@@ -1,11 +1,42 @@
 import type {
   TelemetryConfig,
   TelemetryHandler,
-  TelemetryEventData,
   TelemetryAttributeValue,
+  StartDataMap,
+  ResultDataMap,
+  InjectedFields,
 } from './types';
 import { noopHandler } from './handlers/noop-handler';
 import { getActiveTrace } from './create-trace';
+
+/**
+ * Internal type representing the shape of data that can be policy-processed.
+ * Used internally for type-safe data stripping.
+ */
+type ProcessableData = {
+  prompt?: {
+    raw?: unknown;
+    messages?: unknown;
+    tools?: unknown[];
+    toolChoice?: unknown;
+  };
+  response?: {
+    id?: string;
+    model?: string;
+    timestamp?: string;
+    finishReason?: string;
+    text?: string;
+    reasoning?: string;
+    toolCalls?: unknown;
+    providerMetadata?: unknown;
+  };
+  toolCall?: {
+    name: string;
+    id: string;
+    args?: unknown;
+    result?: unknown;
+  };
+};
 
 /**
  * Internal class used by AI SDK core functions to emit telemetry events.
@@ -16,7 +47,7 @@ import { getActiveTrace } from './create-trace';
  * - Injecting functionId and metadata into event data
  *
  * Core functions create an instance and call its methods at lifecycle points,
- * passing structured TelemetryEventData objects.
+ * passing strongly-typed data objects that match the operation name.
  */
 export class TelemetryEmitter {
   private readonly handler: TelemetryHandler;
@@ -65,20 +96,20 @@ export class TelemetryEmitter {
    * 2. Config-level `parentOperationId` (from trace, for cross-call grouping)
    * 3. `undefined` (root of trace)
    */
-  startOperation({
+  startOperation<K extends keyof StartDataMap>({
     operationId,
     operationName,
     parentOperationId,
     data,
   }: {
     operationId: string;
-    operationName: string;
+    operationName: K;
     parentOperationId?: string;
-    data: TelemetryEventData;
+    data: StartDataMap[K];
   }): void {
     if (!this.isActive) return;
 
-    const processed = this.processData(data, { injectCommon: true });
+    const processed = this.processStartData(data);
 
     this.handler.onOperationStarted?.({
       type: 'operationStarted',
@@ -87,56 +118,52 @@ export class TelemetryEmitter {
       parentOperationId: parentOperationId ?? this.parentOperationId,
       startTime: Date.now(),
       data: processed,
-    });
+    } as Parameters<NonNullable<TelemetryHandler['onOperationStarted']>>[0]);
   }
 
   /**
    * Emit an operation-ended event.
    */
-  endOperation({
+  endOperation<K extends keyof StartDataMap>({
     operationId,
     operationName,
-    data,
   }: {
     operationId: string;
-    operationName: string;
-    data?: TelemetryEventData;
+    operationName: K;
   }): void {
     if (!this.isActive) return;
-
-    const processed = data ? this.processData(data) : {};
 
     this.handler.onOperationEnded?.({
       type: 'operationEnded',
       operationId,
       operationName,
       endTime: Date.now(),
-      data: processed,
-    });
+      data: {} as Record<string, never>,
+    } as Parameters<NonNullable<TelemetryHandler['onOperationEnded']>>[0]);
   }
 
   /**
    * Emit an operation-updated event (mid-operation data addition).
    */
-  updateOperation({
+  updateOperation<K extends keyof ResultDataMap>({
     operationId,
     operationName,
     data,
   }: {
     operationId: string;
-    operationName: string;
-    data: TelemetryEventData;
+    operationName: K;
+    data: ResultDataMap[K];
   }): void {
     if (!this.isActive) return;
 
-    const processed = this.processData(data);
+    const processed = this.processResultData(data);
 
     this.handler.onOperationUpdated?.({
       type: 'operationUpdated',
       operationId,
       operationName,
       data: processed,
-    });
+    } as Parameters<NonNullable<TelemetryHandler['onOperationUpdated']>>[0]);
   }
 
   /**
@@ -174,39 +201,34 @@ export class TelemetryEmitter {
   }
 
   /**
-   * Process event data: strip input/output fields based on policy,
-   * and optionally inject common fields (functionId, metadata).
+   * Process start event data: apply policy stripping and inject common fields.
    */
-  private processData(
-    data: TelemetryEventData,
-    options?: { injectCommon?: boolean },
-  ): TelemetryEventData {
+  private processStartData<D extends ProcessableData>(
+    data: D,
+  ): D & InjectedFields {
     let result = this.applyDataPolicy(data);
-
-    if (options?.injectCommon) {
-      result = this.injectCommonFields(result);
-    }
-
+    result = this.injectCommonFields(result);
     return result;
   }
 
   /**
-   * Strip input/output classified fields based on recordInputs/recordOutputs.
-   *
-   * Input fields: prompt, toolCall.args, embedding.value/values, ranking.documents
-   * Output fields: response, toolCall.result, embedding.result/results,
-   *                ranking.results, stream
+   * Process result event data: apply policy stripping only.
    */
-  private applyDataPolicy(data: TelemetryEventData): TelemetryEventData {
-    const result = { ...data };
+  private processResultData<D extends ProcessableData>(data: D): D {
+    return this.applyDataPolicy(data);
+  }
 
-    // Strip input content (keep structural markers like prompt.messages presence
-    // so handlers can still identify LLM call spans)
+  /**
+   * Strip input/output classified fields based on recordInputs/recordOutputs.
+   */
+  private applyDataPolicy<D extends ProcessableData>(data: D): D {
+    const result = { ...data } as ProcessableData;
+
+    // Strip input content
     if (!this.recordInputs) {
       if (result.prompt) {
         result.prompt = {
-          // Preserve the messages marker (empty array) so handlers know
-          // this is an LLM call span, but strip actual content
+          // we still preserve the messages marker
           messages: result.prompt.messages != null ? [] : undefined,
           raw: undefined,
           tools: undefined,
@@ -216,16 +238,6 @@ export class TelemetryEmitter {
 
       if (result.toolCall) {
         result.toolCall = { ...result.toolCall, args: undefined };
-      }
-      if (result.embedding) {
-        result.embedding = {
-          ...result.embedding,
-          value: undefined,
-          values: undefined,
-        };
-      }
-      if (result.ranking) {
-        result.ranking = { ...result.ranking, documents: undefined };
       }
     }
 
@@ -239,42 +251,36 @@ export class TelemetryEmitter {
           finishReason: result.response.finishReason,
           // Strip actual output content:
           text: undefined,
+          reasoning: undefined,
           toolCalls: undefined,
           providerMetadata: undefined,
         };
       }
-      delete result.stream;
 
       if (result.toolCall) {
         result.toolCall = { ...result.toolCall, result: undefined };
       }
-      if (result.embedding) {
-        result.embedding = {
-          ...result.embedding,
-          result: undefined,
-          results: undefined,
-        };
-      }
-      if (result.ranking) {
-        result.ranking = { ...result.ranking, results: undefined };
-      }
     }
 
-    return result;
+    return result as D;
   }
 
   /**
    * Inject functionId and metadata from the TelemetryConfig.
    */
-  private injectCommonFields(data: TelemetryEventData): TelemetryEventData {
-    const result = { ...data };
+  private injectCommonFields<D>(data: D): D & InjectedFields {
+    const result = { ...data } as D & InjectedFields;
 
     if (this.functionId != null) {
       result.functionId = this.functionId;
     }
 
     if (this.metadata != null) {
-      result.metadata = { ...result.metadata, ...this.metadata };
+      result.metadata = {
+        ...(result as { metadata?: Record<string, TelemetryAttributeValue> })
+          .metadata,
+        ...this.metadata,
+      };
     }
 
     return result;

@@ -1,4 +1,4 @@
-import type { TelemetryConfig, TelemetryEventData } from './types';
+import type { TelemetryConfig, InjectedFields } from './types';
 
 type ALS<T> = {
   getStore(): T | undefined;
@@ -17,10 +17,6 @@ try {
 
 /**
  * Returns the active trace from `AsyncLocalStorage`, if any.
- *
- * Used by `TelemetryEmitter` to resolve an ambient trace when no
- * explicit `telemetry` config is passed to an SDK function.
- *
  * @internal
  */
 export function getActiveTrace(): TelemetryTrace | undefined {
@@ -31,7 +27,6 @@ export function getActiveTrace(): TelemetryTrace | undefined {
  * A trace groups multiple SDK calls under a single parent operation.
  */
 export interface TelemetryTrace extends TelemetryConfig {
-  /** Unique ID of the trace's root operation. */
   readonly traceId: string;
 
   /**
@@ -48,64 +43,12 @@ export interface TelemetryTrace extends TelemetryConfig {
 
   /**
    * End the trace's root operation.
-   *
-   * Call this when using the trace in explicit (non-`run()`) mode.
-   * Safe to call multiple times — subsequent calls are no-ops.
    */
   end(): void;
 }
 
-/**
- * Creates a trace that groups multiple SDK calls under a single parent operation.
- *
- * The returned `TelemetryTrace` extends `TelemetryConfig`, so it can be passed
- * directly as `telemetry` to `generateText`, `streamText`, etc. All SDK calls
- * that share the trace will appear as children of the trace's root operation.
- *
- * @example Explicit passing:
- * ```ts
- * import { createTrace, otel } from 'ai';
- *
- * const trace = createTrace({ ...otel(), functionId: 'my-agent' });
- *
- * await generateText({ model, prompt: 'Hello', telemetry: trace });
- * await generateText({ model, prompt: 'Follow up', telemetry: trace });
- *
- * trace.end();
- * ```
- *
- * @example Implicit via AsyncLocalStorage:
- * ```ts
- * const trace = createTrace(otel());
- *
- * await trace.run(async () => {
- *   await generateText({ model, prompt: 'Hello' });
- *   await generateText({ model, prompt: 'Follow up' });
- * });
- * // trace.end() is called automatically
- * ```
- *
- * @example Per-call overrides (spread the trace, override fields):
- * ```ts
- * const trace = createTrace({ ...otel(), functionId: 'orchestrator' });
- *
- * await generateText({
- *   model, prompt, telemetry: trace,
- * });
- * await generateText({
- *   model, prompt,
- *   telemetry: { ...trace, functionId: 'sub-agent' },
- * });
- *
- * trace.end();
- * ```
- */
 export function createTrace(
   config: TelemetryConfig & {
-    /**
-     * Name for the trace's root operation.
-     * Defaults to `functionId` if provided, otherwise `'trace'`.
-     */
     name?: string;
   },
 ): TelemetryTrace {
@@ -113,7 +56,8 @@ export function createTrace(
   const traceName = config.name ?? config.functionId ?? 'trace';
   let ended = false;
 
-  const rootData: TelemetryEventData = {};
+  // Trace root data only contains injected fields (functionId, metadata)
+  const rootData: InjectedFields = {};
   if (config.functionId != null) {
     rootData.functionId = config.functionId;
   }
@@ -121,6 +65,7 @@ export function createTrace(
     rootData.metadata = config.metadata;
   }
 
+  // Traces use the fallback BaseStartedEvent<string, CommonStartData> variant
   config.handler.onOperationStarted?.({
     type: 'operationStarted',
     operationId: traceId,
@@ -160,12 +105,13 @@ export function createTrace(
       if (ended) return;
       ended = true;
 
+      // Traces use the fallback BaseEndedEvent<string> variant
       config.handler.onOperationEnded?.({
         type: 'operationEnded',
         operationId: traceId,
         operationName: traceName,
         endTime: Date.now(),
-        data: {},
+        data: {} as Record<string, never>,
       });
     },
   };

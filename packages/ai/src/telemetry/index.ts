@@ -2,7 +2,6 @@
 export type {
   TelemetryAttributeValue,
   TelemetryAttributes,
-  TelemetryEventData,
   TelemetryEvent,
   OperationStartedEvent,
   OperationEndedEvent,
@@ -10,6 +9,25 @@ export type {
   OperationErrorEvent,
   TelemetryHandler,
   TelemetryConfig,
+  ModelData,
+  CallSettingsData,
+  ResponseData,
+  UsageData,
+  GenerateTextStartData,
+  GenerateTextResultData,
+  DoGenerateStartData,
+  DoGenerateResultData,
+  ToolCallStartData,
+  ToolCallResultData,
+  StartDataMap,
+  ResultDataMap,
+  KnownOperationName,
+  CommonStartData,
+  CommonResultData,
+  InjectedFields,
+  BaseStartedEvent,
+  BaseUpdatedEvent,
+  BaseEndedEvent,
 } from './types';
 export { createTrace } from './create-trace';
 export type { TelemetryTrace } from './create-trace';

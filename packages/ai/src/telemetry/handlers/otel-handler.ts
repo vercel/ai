@@ -8,30 +8,47 @@ import {
 import type {
   TelemetryHandler,
   TelemetryAttributes,
-  TelemetryEventData,
+  TelemetryAttributeValue,
   OperationStartedEvent,
   OperationEndedEvent,
   OperationUpdatedEvent,
   OperationErrorEvent,
   TelemetryConfig,
+  ModelData,
+  CallSettingsData,
+  ResponseData,
+  UsageData,
+  InjectedFields,
 } from '../types';
 
-// ---------------------------------------------------------------------------
-// Flatten structured TelemetryEventData → flat OTel attributes
-// ---------------------------------------------------------------------------
+interface FlattenableEventData extends InjectedFields {
+  model?: ModelData;
+  settings?: Partial<CallSettingsData>;
+  headers?: Record<string, string>;
+  prompt?: {
+    raw?: unknown;
+    messages?: unknown;
+    tools?: unknown[];
+    toolChoice?: unknown;
+  };
+  response?: Partial<ResponseData>;
+  usage?: Partial<UsageData>;
+  toolCall?: {
+    name: string;
+    id: string;
+    args?: unknown;
+    result?: unknown;
+  };
+}
 
 /**
- * Converts structured TelemetryEventData into flat OTel attribute key-value pairs.
- *
- * This function owns ALL `ai.*` and `gen_ai.*` attribute key naming.
- * No other file in the SDK should reference these string keys.
+ * Converts structured event data into flat OTel attribute key-value pairs.
  */
 function flattenToOtelAttributes(
-  data: TelemetryEventData,
+  data: FlattenableEventData,
 ): TelemetryAttributes {
   const attrs: TelemetryAttributes = {};
 
-  // ---- Model ----
   if (data.model) {
     attrs['ai.model.provider'] = data.model.provider;
     attrs['ai.model.id'] = data.model.id;
@@ -41,7 +58,6 @@ function flattenToOtelAttributes(
     }
   }
 
-  // ---- Settings ----
   if (data.settings) {
     for (const [key, value] of Object.entries(data.settings)) {
       if (value == null) continue;
@@ -83,7 +99,6 @@ function flattenToOtelAttributes(
     }
   }
 
-  // ---- Headers ----
   if (data.headers) {
     for (const [key, value] of Object.entries(data.headers)) {
       if (value != null) {
@@ -92,7 +107,6 @@ function flattenToOtelAttributes(
     }
   }
 
-  // ---- Prompt (input) ----
   if (data.prompt) {
     if (data.prompt.raw != null) {
       attrs['ai.prompt'] = JSON.stringify(data.prompt.raw);
@@ -111,7 +125,6 @@ function flattenToOtelAttributes(
     }
   }
 
-  // ---- Response (output) ----
   if (data.response) {
     if (data.response.id != null) {
       attrs['ai.response.id'] = data.response.id;
@@ -153,7 +166,6 @@ function flattenToOtelAttributes(
     }
   }
 
-  // ---- Usage ----
   if (data.usage) {
     if (data.usage.inputTokens != null) {
       attrs['ai.usage.promptTokens'] = data.usage.inputTokens;
@@ -172,7 +184,6 @@ function flattenToOtelAttributes(
     }
   }
 
-  // ---- Tool call ----
   if (data.toolCall) {
     attrs['ai.toolCall.name'] = data.toolCall.name;
     attrs['ai.toolCall.id'] = data.toolCall.id;
@@ -184,57 +195,12 @@ function flattenToOtelAttributes(
     }
   }
 
-  // ---- Embedding ----
-  if (data.embedding) {
-    if (data.embedding.value != null) {
-      attrs['ai.value'] = JSON.stringify(data.embedding.value);
-    }
-    if (data.embedding.values != null) {
-      attrs['ai.values'] = JSON.stringify(data.embedding.values);
-    }
-    if (data.embedding.result != null) {
-      attrs['ai.embedding'] = JSON.stringify(data.embedding.result);
-    }
-    if (data.embedding.results != null) {
-      attrs['ai.embeddings'] = JSON.stringify(data.embedding.results);
-    }
-  }
-
-  // ---- Ranking ----
-  if (data.ranking) {
-    if (data.ranking.type != null) {
-      attrs['ai.ranking.type'] = data.ranking.type;
-    }
-    if (data.ranking.documents != null) {
-      attrs['ai.documents'] = JSON.stringify(data.ranking.documents);
-    }
-    if (data.ranking.results != null) {
-      attrs['ai.ranking'] = JSON.stringify(data.ranking.results);
-    }
-  }
-
-  // ---- Streaming metrics ----
-  if (data.stream) {
-    if (data.stream.msToFirstChunk != null) {
-      attrs['ai.response.msToFirstChunk'] = data.stream.msToFirstChunk;
-    }
-    if (data.stream.msToFinish != null) {
-      attrs['ai.response.msToFinish'] = data.stream.msToFinish;
-    }
-    if (data.stream.avgOutputTokensPerSecond != null) {
-      attrs['ai.response.avgOutputTokensPerSecond'] =
-        data.stream.avgOutputTokensPerSecond;
-    }
-  }
-
-  // ---- Metadata ----
   if (data.metadata) {
     for (const [key, value] of Object.entries(data.metadata)) {
       attrs[`ai.telemetry.metadata.${key}`] = value;
     }
   }
 
-  // ---- Function ID / operation name ----
   if (data.functionId != null) {
     attrs['ai.telemetry.functionId'] = data.functionId;
     attrs['resource.name'] = data.functionId;
@@ -243,18 +209,8 @@ function flattenToOtelAttributes(
   return attrs;
 }
 
-// ---------------------------------------------------------------------------
-// OTel handler implementation
-// ---------------------------------------------------------------------------
-
 /**
  * Creates a TelemetryHandler backed by OpenTelemetry.
- *
- * Translates structured TelemetryEventData into flat OTel span attributes:
- * - `operationStarted` → `tracer.startSpan()` with flattened attributes
- * - `operationEnded` → `span.setAttributes()` + `span.end()`
- * - `operationUpdated` → `span.setAttributes()`
- * - `operationError` → `span.recordException()` + `span.setStatus(ERROR)`
  *
  * Parent-child relationships are established via `parentOperationId`
  * using explicit parent context references.
@@ -266,20 +222,19 @@ function createOtelHandler(tracer: Tracer): TelemetryHandler {
 
   return {
     onOperationStarted(event: OperationStartedEvent) {
-      const otelAttrs = flattenToOtelAttributes(event.data);
+      const eventData = event.data as FlattenableEventData;
+      const otelAttrs = flattenToOtelAttributes(eventData);
 
-      // Operation name attribute
       otelAttrs['ai.operationId'] = event.operationName;
       otelAttrs['operation.name'] =
-        event.data.functionId != null
-          ? `${event.operationName} ${event.data.functionId}`
+        eventData.functionId != null
+          ? `${event.operationName} ${eventData.functionId}`
           : event.operationName;
 
-      if (event.data.prompt?.messages != null) {
+      if (eventData.prompt?.messages != null) {
         llmCallSpans.add(event.operationId);
       }
 
-      // Resolve parent context from parentOperationId
       let parentCtx = context.active();
       if (event.parentOperationId) {
         const parentSpan = spans.get(event.parentOperationId);
@@ -301,15 +256,6 @@ function createOtelHandler(tracer: Tracer): TelemetryHandler {
       const span = spans.get(event.operationId);
       if (!span) return;
 
-      const data = llmCallSpans.has(event.operationId)
-        ? { ...event.data, settings: {} }
-        : event.data;
-
-      const otelAttrs = flattenToOtelAttributes(data);
-      if (Object.keys(otelAttrs).length > 0) {
-        span.setAttributes(otelAttrs);
-      }
-
       span.end(event.endTime);
       spans.delete(event.operationId);
       llmCallSpans.delete(event.operationId);
@@ -319,9 +265,10 @@ function createOtelHandler(tracer: Tracer): TelemetryHandler {
       const span = spans.get(event.operationId);
       if (!span) return;
 
+      const eventData = event.data as FlattenableEventData;
       const data = llmCallSpans.has(event.operationId)
-        ? { ...event.data, settings: {} }
-        : event.data;
+        ? { ...eventData, settings: {} }
+        : eventData;
 
       span.setAttributes(flattenToOtelAttributes(data));
     },
@@ -347,40 +294,12 @@ function createOtelHandler(tracer: Tracer): TelemetryHandler {
  * Creates a telemetry config backed by OpenTelemetry.
  *
  * The OTel handler creates spans using the provided tracer (or the
- * global `trace.getTracer('ai')` if none is given). Spans carry both
- * AI SDK `ai.*` attributes and GenAI semantic convention `gen_ai.*` attributes.
- *
- * @example Basic usage:
- * ```ts
- * import { otel } from 'ai';
- *
- * await generateText({
- *   model: openai('gpt-4o'),
- *   prompt: 'Hello',
- *   telemetry: otel(),
- * });
- * ```
- *
- * @example With a custom tracer and settings:
- * ```ts
- * await generateText({
- *   model: openai('gpt-4o'),
- *   prompt: 'Hello',
- *   telemetry: {
- *     ...otel({ tracer: myCustomTracer }),
- *     functionId: 'my-chat',
- *     metadata: { environment: 'production' },
- *   },
- * });
- * ```
+ * global `trace.getTracer('ai')` if none is given)
  */
 export function otel(options?: {
-  /** A custom OTel tracer. Defaults to `trace.getTracer('ai')`. */
   tracer?: Tracer;
-  /** Identifier for grouping telemetry by function. */
   functionId?: string;
-  /** Custom metadata included in all events. */
-  metadata?: Record<string, string | number | boolean>;
+  metadata?: Record<string, TelemetryAttributeValue>;
 }): TelemetryConfig {
   const tracer = options?.tracer ?? trace.getTracer('ai');
   return {

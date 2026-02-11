@@ -1,7 +1,3 @@
-// ============================================================================
-// Telemetry Integration API Types
-// ============================================================================
-
 /**
  * Primitive values supported by telemetry attributes.
  *
@@ -26,212 +22,209 @@ export type TelemetryAttributes = Record<
   TelemetryAttributeValue | undefined
 >;
 
-// ============================================================================
-// Telemetry Event Data
-// ============================================================================
+export interface ModelData {
+  provider: string;
+  id: string;
+}
+
+export interface CallSettingsData {
+  maxRetries: number;
+  maxOutputTokens: number | undefined;
+  temperature: number | undefined;
+  topP: number | undefined;
+  topK: number | undefined;
+  frequencyPenalty: number | undefined;
+  presencePenalty: number | undefined;
+  stopSequences: string[] | undefined;
+  seed: number | undefined;
+}
+
+export interface ResponseData {
+  id?: string;
+  model?: string;
+  timestamp?: string;
+  finishReason: string;
+  text?: string;
+  reasoning?: string;
+  toolCalls?: unknown;
+  providerMetadata?: unknown;
+}
+
+export interface UsageData {
+  inputTokens: number | undefined;
+  outputTokens: number | undefined;
+}
+
+/** Data emitted when ai.generateText starts. */
+export interface GenerateTextStartData {
+  model: ModelData;
+  settings: CallSettingsData;
+  headers: Record<string, string>;
+  prompt: { raw: unknown };
+}
+
+/** Data emitted when ai.generateText.doGenerate starts. */
+export interface DoGenerateStartData {
+  model: ModelData;
+  settings: CallSettingsData;
+  headers: Record<string, string>;
+  prompt: {
+    messages: unknown;
+    tools: unknown[] | undefined;
+    toolChoice: unknown | undefined;
+  };
+}
+
+/** Data emitted when ai.toolCall starts. */
+export interface ToolCallStartData {
+  toolCall: {
+    name: string;
+    id: string;
+    args: unknown;
+  };
+}
+
+/** Data emitted when ai.generateText completes (update event). */
+export interface GenerateTextResultData {
+  response: Omit<ResponseData, 'id' | 'model' | 'timestamp'> & {
+    id?: undefined;
+    model?: undefined;
+    timestamp?: undefined;
+  };
+  usage: UsageData;
+}
+
+/** Data emitted when ai.generateText.doGenerate completes (update event). */
+export interface DoGenerateResultData {
+  response: ResponseData;
+  usage: UsageData;
+}
+
+/** Data emitted when ai.toolCall completes (update event). */
+export interface ToolCallResultData {
+  toolCall: {
+    name: string;
+    id: string;
+    result: unknown;
+  };
+}
+
+/** Maps operation names to their start event data types. */
+export interface StartDataMap {
+  'ai.generateText': GenerateTextStartData;
+  'ai.generateText.doGenerate': DoGenerateStartData;
+  'ai.toolCall': ToolCallStartData;
+}
+
+/** Maps operation names to their result (update) event data types. */
+export interface ResultDataMap {
+  'ai.generateText': GenerateTextResultData;
+  'ai.generateText.doGenerate': DoGenerateResultData;
+  'ai.toolCall': ToolCallResultData;
+}
+
+export type KnownOperationName = keyof StartDataMap;
 
 /**
- * Structured telemetry data carried by telemetry events.
- *
- * All fields are optional — only the relevant ones are populated
- * per operation. The emitter strips input/output fields based on
- * the `recordInputs`/`recordOutputs` settings before passing to handlers.
- *
- * Handlers (OTel, diagnostics_channel, custom) consume this structured
- * data and translate it into their backend-specific format.
+ * Minimal data for unknown or future operation types.
+ * Used as a fallback for extensibility.
  */
-export interface TelemetryEventData {
-  /** Model information. */
-  model?: {
-    provider: string;
-    id: string;
-  };
-
-  /** Call settings. */
-  settings?: {
-    maxRetries?: number;
-    maxOutputTokens?: number;
-    temperature?: number;
-    topP?: number;
-    topK?: number;
-    frequencyPenalty?: number;
-    presencePenalty?: number;
-    stopSequences?: string[];
-    seed?: number;
-    timeout?: unknown;
-    [key: string]: unknown;
-  };
-
-  /** Request headers. */
+export interface CommonStartData {
+  model?: ModelData;
+  settings?: Partial<CallSettingsData>;
   headers?: Record<string, string>;
-
-  /**
-   * Prompt data.
-   * Classified as INPUT — stripped when `recordInputs` is false.
-   */
   prompt?: {
-    /** The raw user-facing prompt (system/prompt/messages before standardization). */
     raw?: unknown;
-    /** Standardized messages sent to the model. */
     messages?: unknown;
-    /** Tool definitions sent to the model. */
     tools?: unknown[];
-    /** Tool choice configuration. */
     toolChoice?: unknown;
   };
-
-  /**
-   * Response data.
-   * Classified as OUTPUT — stripped when `recordOutputs` is false.
-   */
-  response?: {
-    id?: string;
-    model?: string;
-    timestamp?: string;
-    finishReason?: string;
-    text?: string;
-    reasoning?: string;
-    toolCalls?: unknown;
-    providerMetadata?: unknown;
-  };
-
-  /** Token usage. */
-  usage?: {
-    inputTokens?: number;
-    outputTokens?: number;
-  };
-
-  /**
-   * Tool call data (for `ai.toolCall` operations).
-   * `args` is classified as INPUT. `result` is classified as OUTPUT.
-   */
   toolCall?: {
     name: string;
     id: string;
-    /** Tool call arguments. Classified as INPUT. */
     args?: unknown;
-    /** Tool call result. Classified as OUTPUT. */
+  };
+}
+
+/**
+ * Minimal result data for unknown or future operation types.
+ */
+export interface CommonResultData {
+  response?: Partial<ResponseData>;
+  usage?: Partial<UsageData>;
+  toolCall?: {
+    name: string;
+    id: string;
     result?: unknown;
   };
+}
 
-  /**
-   * Embedding data (for `ai.embed` / `ai.embedMany` operations).
-   * `value`/`values` are INPUT. `result`/`results` are OUTPUT.
-   */
-  embedding?: {
-    value?: unknown;
-    values?: unknown[];
-    result?: unknown;
-    results?: unknown[];
-  };
-
-  /**
-   * Ranking data (for `ai.rerank` operations).
-   * `documents` is INPUT. `results` is OUTPUT.
-   */
-  ranking?: {
-    type?: string;
-    documents?: unknown;
-    results?: unknown;
-  };
-
-  /** User-provided metadata from TelemetryConfig. Injected by the emitter. */
+/** Fields injected by the emitter into event data. */
+export interface InjectedFields {
   metadata?: Record<string, TelemetryAttributeValue>;
-
-  /** Function ID from TelemetryConfig. Injected by the emitter. */
   functionId?: string;
-
-  /**
-   * Streaming-specific metrics.
-   * Classified as OUTPUT.
-   */
-  stream?: {
-    msToFirstChunk?: number;
-    msToFinish?: number;
-    avgOutputTokensPerSecond?: number;
-  };
 }
 
-// ============================================================================
-// Telemetry Events
-// ============================================================================
-
 /**
- * Emitted when an operation begins.
+ * Generic helper for started events.
+ * K is the operation name literal, D is the data type.
  */
-export interface OperationStartedEvent {
+export interface BaseStartedEvent<K extends string, D> {
   readonly type: 'operationStarted';
-
-  /** Unique ID for this operation instance. */
   readonly operationId: string;
-
-  /**
-   * Operation name, e.g. 'ai.generateText', 'ai.generateText.doGenerate',
-   * 'ai.toolCall', 'ai.streamText.doStream'.
-   */
-  readonly operationName: string;
-
-  /** Parent operation ID — establishes the operation tree. */
+  readonly operationName: K;
   readonly parentOperationId: string | undefined;
-
-  /** Epoch milliseconds when the operation started. */
   readonly startTime: number;
-
-  /** Structured telemetry data for this event. */
-  readonly data: TelemetryEventData;
+  readonly data: D & InjectedFields;
 }
 
-/**
- * Emitted when an operation completes successfully.
- */
-export interface OperationEndedEvent {
-  readonly type: 'operationEnded';
-
-  /** The operation that ended. */
-  readonly operationId: string;
-
-  /** Operation name (same as the corresponding start event). */
-  readonly operationName: string;
-
-  /** Epoch milliseconds when the operation ended. */
-  readonly endTime: number;
-
-  /** Structured telemetry data known after completion. */
-  readonly data: TelemetryEventData;
-}
-
-/**
- * Emitted when data is added to an in-progress operation.
- *
- * Used for mid-operation updates such as response data after
- * a model call returns, or streaming metrics.
- */
-export interface OperationUpdatedEvent {
+export interface BaseUpdatedEvent<K extends string, D> {
   readonly type: 'operationUpdated';
-
-  /** The operation being updated. */
   readonly operationId: string;
-
-  /** Operation name (same as the corresponding start event). */
-  readonly operationName: string;
-
-  /** Additional structured telemetry data. */
-  readonly data: TelemetryEventData;
+  readonly operationName: K;
+  readonly data: D;
 }
+
+export interface BaseEndedEvent<K extends string> {
+  readonly type: 'operationEnded';
+  readonly operationId: string;
+  readonly operationName: K;
+  readonly endTime: number;
+  readonly data: Record<string, never>;
+}
+
+/**
+ * Discriminated union of all started events.
+ * Discriminant is `operationName`.
+ */
+export type OperationStartedEvent =
+  | BaseStartedEvent<'ai.generateText', GenerateTextStartData>
+  | BaseStartedEvent<'ai.generateText.doGenerate', DoGenerateStartData>
+  | BaseStartedEvent<'ai.toolCall', ToolCallStartData>
+  | BaseStartedEvent<string, CommonStartData>; // fallback for future operations
+
+export type OperationUpdatedEvent =
+  | BaseUpdatedEvent<'ai.generateText', GenerateTextResultData>
+  | BaseUpdatedEvent<'ai.generateText.doGenerate', DoGenerateResultData>
+  | BaseUpdatedEvent<'ai.toolCall', ToolCallResultData>
+  | BaseUpdatedEvent<string, CommonResultData>; // fallback for future operations
+
+/**
+ * Emitted when an operation completes.
+ */
+export type OperationEndedEvent =
+  | BaseEndedEvent<'ai.generateText'>
+  | BaseEndedEvent<'ai.generateText.doGenerate'>
+  | BaseEndedEvent<'ai.toolCall'>
+  | BaseEndedEvent<string>; // fallback for future operations
 
 /**
  * Emitted when an operation encounters an error.
  */
 export interface OperationErrorEvent {
   readonly type: 'operationError';
-
-  /** The operation that errored. */
   readonly operationId: string;
-
-  /** Operation name (same as the corresponding start event). */
   readonly operationName: string;
-
-  /** Structured error information. */
   readonly error: {
     readonly name: string;
     readonly message: string;
@@ -240,7 +233,7 @@ export interface OperationErrorEvent {
 }
 
 /**
- * Discriminated union of all telemetry events the SDK can emit.
+ * union of all telemetry events the SDK can emit.
  */
 export type TelemetryEvent =
   | OperationStartedEvent
@@ -248,18 +241,12 @@ export type TelemetryEvent =
   | OperationUpdatedEvent
   | OperationErrorEvent;
 
-// ============================================================================
-// Telemetry Handler
-// ============================================================================
-
 /**
  * Interface that telemetry backends implement.
  *
  * The AI SDK calls these methods at lifecycle points.
  * Implementations translate the events into their native format
  * (e.g. OTel spans, diagnostics_channel publishes, etc.).
- *
- * All methods are optional — implement only the events you care about.
  */
 export interface TelemetryHandler {
   /** Called when an operation begins. */
@@ -278,40 +265,8 @@ export interface TelemetryHandler {
   shutdown?(): Promise<void>;
 }
 
-// ============================================================================
-// Telemetry Config
-// ============================================================================
-
 /**
  * Telemetry configuration passed to AI SDK functions.
- *
- * Contains the handler that receives telemetry events,
- * plus per-call settings that control what data is included.
- *
- * @example Simple usage:
- * ```ts
- * import { otel } from '@ai-sdk/otel';
- *
- * await generateText({
- *   model: openai('gpt-4o'),
- *   prompt: 'Hello',
- *   telemetry: otel(),
- * });
- * ```
- *
- * @example With per-call settings:
- * ```ts
- * await generateText({
- *   model: openai('gpt-4o'),
- *   prompt: 'Hello',
- *   telemetry: {
- *     ...otel(),
- *     functionId: 'my-chat',
- *     metadata: { environment: 'production' },
- *     recordInputs: false,
- *   },
- * });
- * ```
  */
 export interface TelemetryConfig {
   /** The handler that receives telemetry events. */
@@ -354,7 +309,7 @@ export interface TelemetryConfig {
    * this operation. Used by `createTrace` to group multiple SDK calls
    * under a single trace.
    *
-   * You typically don't set this directly — use `createTrace()` instead.
+   * used via `createTrace()`
    */
   parentOperationId?: string;
 }
