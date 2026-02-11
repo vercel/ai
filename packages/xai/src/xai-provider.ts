@@ -1,8 +1,4 @@
 import {
-  OpenAICompatibleImageModel,
-  ProviderErrorStructure,
-} from '@ai-sdk/openai-compatible';
-import {
   ImageModelV3,
   LanguageModelV3,
   NoSuchModelError,
@@ -17,17 +13,12 @@ import {
 } from '@ai-sdk/provider-utils';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
 import { XaiChatModelId } from './xai-chat-options';
-import { XaiErrorData, xaiErrorDataSchema } from './xai-error';
+import { XaiImageModel } from './xai-image-model';
 import { XaiImageModelId } from './xai-image-settings';
 import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
 import { XaiResponsesModelId } from './responses/xai-responses-options';
 import { xaiTools } from './tool';
 import { VERSION } from './version';
-
-const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
-  errorSchema: xaiErrorDataSchema,
-  errorToMessage: data => data.error.message,
-};
 
 export interface XaiProvider extends ProviderV3 {
   /**
@@ -132,12 +123,11 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   };
 
   const createImageModel = (modelId: XaiImageModelId) => {
-    return new OpenAICompatibleImageModel(modelId, {
+    return new XaiImageModel(modelId, {
       provider: 'xai.image',
-      url: ({ path }) => `${baseURL}${path}`,
+      baseURL,
       headers: getHeaders,
       fetch: options.fetch,
-      errorStructure: xaiErrorStructure,
     });
   };
 
