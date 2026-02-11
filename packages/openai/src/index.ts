@@ -1,6 +1,10 @@
 export { createOpenAI, openai } from './openai-provider';
 export type { OpenAIProvider, OpenAIProviderSettings } from './openai-provider';
-export type { OpenAILanguageModelResponsesOptions } from './responses/openai-responses-options';
+export type {
+  OpenAILanguageModelResponsesOptions,
+  /** @deprecated Use `OpenAILanguageModelResponsesOptions` instead. */
+  OpenAILanguageModelResponsesOptions as OpenAIResponsesProviderOptions,
+} from './responses/openai-responses-options';
 export type {
   OpenAILanguageModelChatOptions,
   /** @deprecated Use `OpenAILanguageModelChatOptions` instead. */
