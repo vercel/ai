@@ -1318,7 +1318,7 @@ describe('XaiChatLanguageModel', () => {
         {
           "cachedInputTokens": undefined,
           "inputTokens": 15,
-          "outputTokens": 20,
+          "outputTokens": 30,
           "reasoningTokens": 10,
           "totalTokens": 35,
         }
@@ -1401,7 +1401,7 @@ describe('XaiChatLanguageModel', () => {
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokens": 15,
-              "outputTokens": 20,
+              "outputTokens": 30,
               "reasoningTokens": 10,
               "totalTokens": 35,
             },
@@ -1492,7 +1492,7 @@ describe('XaiChatLanguageModel', () => {
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokens": 15,
-              "outputTokens": 20,
+              "outputTokens": 30,
               "reasoningTokens": 10,
               "totalTokens": 35,
             },
