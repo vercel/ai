@@ -1,5 +1,11 @@
 # @ai-sdk/deepseek
 
+## 2.0.19
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+
 ## 2.0.18
 
 ### Patch Changes

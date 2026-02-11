@@ -1,5 +1,13 @@
 # @ai-sdk/alibaba
 
+## 1.0.3
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+- Updated dependencies [99fbed8]
+  - @ai-sdk/openai-compatible@2.0.29
+
 ## 1.0.2
 
 ### Patch Changes

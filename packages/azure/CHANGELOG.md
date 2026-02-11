@@ -1,5 +1,13 @@
 # @ai-sdk/azure
 
+## 3.0.28
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+- Updated dependencies [99fbed8]
+  - @ai-sdk/openai@3.0.27
+
 ## 3.0.27
 
 ### Patch Changes

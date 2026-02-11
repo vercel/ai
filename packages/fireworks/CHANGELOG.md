@@ -1,5 +1,13 @@
 # @ai-sdk/fireworks
 
+## 2.0.33
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+- Updated dependencies [99fbed8]
+  - @ai-sdk/openai-compatible@2.0.29
+
 ## 2.0.32
 
 ### Patch Changes
