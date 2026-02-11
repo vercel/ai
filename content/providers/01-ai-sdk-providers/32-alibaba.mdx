@@ -123,7 +123,7 @@ The following optional provider options are available for Alibaba models:
 Alibaba's Qwen models support thinking/reasoning mode for complex problem-solving:
 
 ```ts
-import { alibaba } from '@ai-sdk/alibaba';
+import { alibaba, type AlibabaLanguageModelOptions } from '@ai-sdk/alibaba';
 import { generateText } from 'ai';
 
 const { text, reasoning } = await generateText({
@@ -132,7 +132,7 @@ const { text, reasoning } = await generateText({
     alibaba: {
       enableThinking: true,
       thinkingBudget: 2048,
-    },
+    } satisfies AlibabaLanguageModelOptions,
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
 });

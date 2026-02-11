@@ -267,6 +267,8 @@ const result = await generateText({
 You can use the `bedrock` provider options to utilize [Amazon Bedrock Guardrails](https://aws.amazon.com/bedrock/guardrails/):
 
 ```ts
+import { type AmazonBedrockLanguageModelOptions } from '@ai-sdk/amazon-bedrock';
+
 const result = await generateText({
   model: bedrock('anthropic.claude-3-sonnet-20240229-v1:0'),
   prompt: 'Write a story about space exploration.',
@@ -278,7 +280,7 @@ const result = await generateText({
         trace: 'enabled' as const,
         streamProcessingMode: 'async',
       },
-    },
+    } satisfies AmazonBedrockLanguageModelOptions,
   },
 });
 ```
@@ -457,7 +459,10 @@ Amazon Bedrock supports model creator-specific reasoning features:
 - Amazon (e.g. `us.amazon.nova-2-lite-v1:0`): enable via the `reasoningConfig` provider option and specifying a maximum reasoning effort level (`'low' | 'medium' | 'high'`).
 
 ```ts
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import {
+  bedrock,
+  type AmazonBedrockLanguageModelOptions,
+} from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
 // Anthropic example
@@ -467,7 +472,7 @@ const anthropicResult = await generateText({
   providerOptions: {
     bedrock: {
       reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
-    },
+    } satisfies AmazonBedrockLanguageModelOptions,
   },
 });
 
@@ -481,7 +486,7 @@ const amazonResult = await generateText({
   providerOptions: {
     bedrock: {
       reasoningConfig: { type: 'enabled', maxReasoningEffort: 'medium' },
-    },
+    } satisfies AmazonBedrockLanguageModelOptions,
   },
 });
 
@@ -497,7 +502,10 @@ on how to integrate reasoning into your chatbot.
 Claude Sonnet 4 models on Amazon Bedrock support an extended context window of up to 1 million tokens when using the `context-1m-2025-08-07` beta feature.
 
 ```ts
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import {
+  bedrock,
+  type AmazonBedrockLanguageModelOptions,
+} from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -506,7 +514,7 @@ const result = await generateText({
   providerOptions: {
     bedrock: {
       anthropicBeta: ['context-1m-2025-08-07'],
-    },
+    } satisfies AmazonBedrockLanguageModelOptions,
   },
 });
 ```

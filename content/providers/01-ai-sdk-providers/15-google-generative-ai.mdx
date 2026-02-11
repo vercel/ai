@@ -108,6 +108,8 @@ Google Generative AI also supports some model specific settings that are not par
 You can pass them as an options argument:
 
 ```ts
+import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
+
 const model = google('gemini-2.5-flash');
 
 await generateText({
@@ -120,7 +122,7 @@ await generateText({
           threshold: 'BLOCK_LOW_AND_ABOVE',
         },
       ],
-    },
+    } satisfies GoogleLanguageModelOptions,
   },
 });
 ```
@@ -435,7 +437,7 @@ console.log('Cached tokens:', providerMetadata.google);
 For guaranteed cost savings, you can still use explicit caching with Gemini 2.5 and 2.0 models. See the [models page](https://ai.google.dev/gemini-api/docs/models) to check if caching is supported for the used model:
 
 ```ts
-import { google } from '@ai-sdk/google';
+import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { GoogleGenAI } from '@google/genai';
 import { generateText } from 'ai';
 
@@ -465,7 +467,7 @@ const { text: veggieLasagnaRecipe } = await generateText({
   providerOptions: {
     google: {
       cachedContent: cache.name,
-    },
+    } satisfies GoogleLanguageModelOptions,
   },
 });
 
@@ -475,7 +477,7 @@ const { text: meatLasagnaRecipe } = await generateText({
   providerOptions: {
     google: {
       cachedContent: cache.name,
-    },
+    } satisfies GoogleLanguageModelOptions,
   },
 });
 ```
@@ -766,7 +768,7 @@ With [Google Maps grounding](https://ai.google.dev/gemini-api/docs/maps-groundin
 the model has access to Google Maps data for location-aware responses. This enables providing local data and geospatial context, such as finding nearby restaurants.
 
 ```ts highlight="7-16"
-import { google } from '@ai-sdk/google';
+import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
@@ -780,7 +782,7 @@ const { text, sources, providerMetadata } = await generateText({
       retrievalConfig: {
         latLng: { latitude: 34.090199, longitude: -117.881081 },
       },
-    },
+    } satisfies GoogleLanguageModelOptions,
   },
   prompt:
     'What are the best Italian restaurants within a 15-minute walk from here?',
@@ -1008,7 +1010,7 @@ const { object } = await generateObject({
   providerOptions: {
     google: {
       structuredOutputs: false,
-    },
+    } satisfies GoogleLanguageModelOptions,
   },
   schema: z.object({
     name: z.string(),
@@ -1099,7 +1101,7 @@ The Google Generative AI provider sends API calls to the right endpoint based on
 Google Generative AI embedding models support aditional settings. You can pass them as an options argument:
 
 ```ts
-import { google } from '@ai-sdk/google';
+import { google, type GoogleEmbeddingModelOptions } from '@ai-sdk/google';
 import { embed } from 'ai';
 
 const model = google.embedding('gemini-embedding-001');
@@ -1111,7 +1113,7 @@ const { embedding } = await embed({
     google: {
       outputDimensionality: 512, // optional, number of dimensions for the embedding
       taskType: 'SEMANTIC_SIMILARITY', // optional, specifies the task type for generating embeddings
-    },
+    } satisfies GoogleEmbeddingModelOptions,
   },
 });
 ```

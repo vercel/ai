@@ -268,6 +268,9 @@ of the [standard call settings](/docs/ai-sdk-core/settings). You can pass them a
 an options argument:
 
 ```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
+
 const model = vertex('gemini-1.5-pro');
 
 await generateText({
@@ -280,7 +283,7 @@ await generateText({
           threshold: 'BLOCK_LOW_AND_ABOVE',
         },
       ],
-    },
+    } satisfies GoogleLanguageModelOptions,
   },
 });
 ```
@@ -429,6 +432,7 @@ Google Maps grounding enables Gemini models to access Google Maps data for locat
 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
+import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -441,7 +445,7 @@ const result = await generateText({
       retrievalConfig: {
         latLng: { latitude: 34.090199, longitude: -117.881081 },
       },
-    },
+    } satisfies GoogleLanguageModelOptions,
   },
   prompt: 'What are the best Italian restaurants nearby?',
 });
@@ -631,6 +635,7 @@ Then use the cache with the AI SDK:
 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
+import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text: veggieLasagnaRecipe } = await generateText({
@@ -639,7 +644,7 @@ const { text: veggieLasagnaRecipe } = await generateText({
   providerOptions: {
     google: {
       cachedContent: cache.name,
-    },
+    } satisfies GoogleLanguageModelOptions,
   },
 });
 
@@ -649,7 +654,7 @@ const { text: meatLasagnaRecipe } = await generateText({
   providerOptions: {
     google: {
       cachedContent: cache.name,
-    },
+    } satisfies GoogleLanguageModelOptions,
   },
 });
 ```
@@ -718,7 +723,7 @@ const result = await generateObject({
   providerOptions: {
     google: {
       structuredOutputs: false,
-    },
+    } satisfies GoogleLanguageModelOptions,
   },
   schema: z.object({
     name: z.string(),
@@ -772,7 +777,10 @@ const model = vertex.embeddingModel('text-embedding-004');
 Google Vertex AI embedding models support additional settings. You can pass them as an options argument:
 
 ```ts
-import { vertex } from '@ai-sdk/google-vertex';
+import {
+  vertex,
+  type GoogleVertexEmbeddingModelOptions,
+} from '@ai-sdk/google-vertex';
 import { embed } from 'ai';
 
 const model = vertex.embeddingModel('text-embedding-004');
@@ -785,7 +793,7 @@ const { embedding } = await embed({
       outputDimensionality: 512, // optional, number of dimensions for the embedding
       taskType: 'SEMANTIC_SIMILARITY', // optional, specifies the task type for generating embeddings
       autoTruncate: false, // optional
-    },
+    } satisfies GoogleVertexEmbeddingModelOptions,
   },
 });
 ```
