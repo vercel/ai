@@ -7,26 +7,13 @@ import { run } from '../lib/run';
 run(async () => {
   const imageBuffer = readFileSync('data/comic-cat.png');
 
-  console.log('INPUT IMAGE:');
-  await presentImages([
-    {
-      uint8Array: new Uint8Array(imageBuffer),
-      base64: '',
-      mediaType: 'image/png',
-    },
-  ]);
-
-  const prompt = 'Turn the cat into a golden retriever dog';
-  console.log(`PROMPT: ${prompt}`);
-
   const { images } = await generateImage({
     model: xai.image('grok-imagine-image'),
     prompt: {
-      text: prompt,
+      text: 'Transform this into a pixel art golden retriever dog. Keep the exact same pixel art style, colors, and composition.',
       images: [imageBuffer],
     },
   });
 
-  console.log('OUTPUT IMAGE:');
   await presentImages(images);
 });
