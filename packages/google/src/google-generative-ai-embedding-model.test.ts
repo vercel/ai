@@ -62,7 +62,24 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
 
     const { embeddings } = await model.doEmbed({ values: testValues });
 
-    expect(embeddings).toStrictEqual(dummyEmbeddings);
+    expect(embeddings).toMatchInlineSnapshot(`
+      [
+        [
+          0.1,
+          0.2,
+          0.3,
+          0.4,
+          0.5,
+        ],
+        [
+          0.6,
+          0.7,
+          0.8,
+          0.9,
+          1,
+        ],
+      ]
+    `);
   });
 
   it('should expose the raw response', async () => {
@@ -74,14 +91,13 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
 
     const { response } = await model.doEmbed({ values: testValues });
 
-    expect(response?.headers).toStrictEqual({
-      // default headers:
-      'content-length': '80',
-      'content-type': 'application/json',
-
-      // custom header
-      'test-header': 'test-value',
-    });
+    expect(response?.headers).toMatchInlineSnapshot(`
+      {
+        "content-length": "80",
+        "content-type": "application/json",
+        "test-header": "test-value",
+      }
+    `);
     expect(response).toMatchSnapshot();
   });
 
@@ -90,12 +106,34 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
 
     await model.doEmbed({ values: testValues });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      requests: testValues.map(value => ({
-        model: 'models/gemini-embedding-001',
-        content: { role: 'user', parts: [{ text: value }] },
-      })),
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "requests": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "sunny day at the beach",
+                },
+              ],
+              "role": "user",
+            },
+            "model": "models/gemini-embedding-001",
+          },
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "rainy day in the city",
+                },
+              ],
+              "role": "user",
+            },
+            "model": "models/gemini-embedding-001",
+          },
+        ],
+      }
+    `);
   });
 
   it('should pass the outputDimensionality setting', async () => {
@@ -108,13 +146,36 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      requests: testValues.map(value => ({
-        model: 'models/gemini-embedding-001',
-        content: { role: 'user', parts: [{ text: value }] },
-        outputDimensionality: 64,
-      })),
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "requests": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "sunny day at the beach",
+                },
+              ],
+              "role": "user",
+            },
+            "model": "models/gemini-embedding-001",
+            "outputDimensionality": 64,
+          },
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "rainy day in the city",
+                },
+              ],
+              "role": "user",
+            },
+            "model": "models/gemini-embedding-001",
+            "outputDimensionality": 64,
+          },
+        ],
+      }
+    `);
   });
 
   it('should pass the taskType setting', async () => {
@@ -125,13 +186,36 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
       providerOptions: { google: { taskType: 'SEMANTIC_SIMILARITY' } },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      requests: testValues.map(value => ({
-        model: 'models/gemini-embedding-001',
-        content: { role: 'user', parts: [{ text: value }] },
-        taskType: 'SEMANTIC_SIMILARITY',
-      })),
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "requests": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "sunny day at the beach",
+                },
+              ],
+              "role": "user",
+            },
+            "model": "models/gemini-embedding-001",
+            "taskType": "SEMANTIC_SIMILARITY",
+          },
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "rainy day in the city",
+                },
+              ],
+              "role": "user",
+            },
+            "model": "models/gemini-embedding-001",
+            "taskType": "SEMANTIC_SIMILARITY",
+          },
+        ],
+      }
+    `);
   });
 
   it('should pass headers', async () => {
@@ -151,12 +235,14 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
       },
     });
 
-    expect(server.calls[0].requestHeaders).toStrictEqual({
-      'x-goog-api-key': 'test-api-key',
-      'content-type': 'application/json',
-      'custom-provider-header': 'provider-header-value',
-      'custom-request-header': 'request-header-value',
-    });
+    expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+      {
+        "content-type": "application/json",
+        "custom-provider-header": "provider-header-value",
+        "custom-request-header": "request-header-value",
+        "x-goog-api-key": "test-api-key",
+      }
+    `);
     expect(server.calls[0].requestUserAgent).toContain(
       `ai-sdk/google/0.0.0-test`,
     );

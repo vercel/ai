@@ -413,6 +413,24 @@ describe('doGenerate', () => {
 
       expect(usage).toMatchSnapshot();
     });
+
+    it('should send additional response information', async () => {
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect({
+        id: response?.id,
+        timestamp: response?.timestamp,
+        modelId: response?.modelId,
+      }).toMatchInlineSnapshot(`
+        {
+          "id": undefined,
+          "modelId": undefined,
+          "timestamp": undefined,
+        }
+      `);
+    });
   });
   it('should handle MALFORMED_FUNCTION_CALL finish reason and empty content object', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
@@ -515,11 +533,13 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(response?.headers).toStrictEqual({
-      'content-type': 'application/json',
-      'content-length': expect.any(String),
-      'test-header': 'test-value',
-    });
+    expect(response?.headers).toMatchInlineSnapshot(`
+      {
+        "content-length": "549",
+        "content-type": "application/json",
+        "test-header": "test-value",
+      }
+    `);
   });
 
   it('should pass the model, messages, and options', async () => {
@@ -534,19 +554,31 @@ describe('doGenerate', () => {
       temperature: 0.5,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: 'Hello' }],
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "generationConfig": {
+          "seed": 123,
+          "temperature": 0.5,
         },
-      ],
-      systemInstruction: { parts: [{ text: 'test system instruction' }] },
-      generationConfig: {
-        seed: 123,
-        temperature: 0.5,
-      },
-    });
+        "systemInstruction": {
+          "parts": [
+            {
+              "text": "test system instruction",
+            },
+          ],
+        },
+      }
+    `);
   });
 
   it('should only pass valid provider options', async () => {
@@ -564,20 +596,35 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: 'Hello' }],
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "generationConfig": {
+          "responseModalities": [
+            "TEXT",
+            "IMAGE",
+          ],
+          "seed": 123,
+          "temperature": 0.5,
         },
-      ],
-      systemInstruction: { parts: [{ text: 'test system instruction' }] },
-      generationConfig: {
-        seed: 123,
-        temperature: 0.5,
-        responseModalities: ['TEXT', 'IMAGE'],
-      },
-    });
+        "systemInstruction": {
+          "parts": [
+            {
+              "text": "test system instruction",
+            },
+          ],
+        },
+      }
+    `);
   });
 
   it('should pass tools and toolChoice', async () => {
@@ -604,31 +651,50 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      generationConfig: {},
-      contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
-      tools: [
-        {
-          functionDeclarations: [
-            {
-              name: 'test-tool',
-              description: '',
-              parameters: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
               },
-            },
-          ],
+            ],
+            "role": "user",
+          },
+        ],
+        "generationConfig": {},
+        "toolConfig": {
+          "functionCallingConfig": {
+            "allowedFunctionNames": [
+              "test-tool",
+            ],
+            "mode": "ANY",
+          },
         },
-      ],
-      toolConfig: {
-        functionCallingConfig: {
-          mode: 'ANY',
-          allowedFunctionNames: ['test-tool'],
-        },
-      },
-    });
+        "tools": [
+          {
+            "functionDeclarations": [
+              {
+                "description": "",
+                "name": "test-tool",
+                "parameters": {
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "value",
+                  ],
+                  "type": "object",
+                },
+              },
+            ],
+          },
+        ],
+      }
+    `);
   });
 
   it('should set response mime type with responseFormat', async () => {
@@ -645,25 +711,31 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: 'Hello' }],
-        },
-      ],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: 'object',
-          properties: {
-            location: {
-              type: 'string',
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "generationConfig": {
+          "responseMimeType": "application/json",
+          "responseSchema": {
+            "properties": {
+              "location": {
+                "type": "string",
+              },
             },
+            "type": "object",
           },
         },
-      },
-    });
+      }
+    `);
   });
 
   it('should pass specification with responseFormat and structuredOutputs = true (default)', async () => {
@@ -685,20 +757,38 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          properties: {
-            property1: { type: 'string' },
-            property2: { type: 'number' },
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
           },
-          required: ['property1', 'property2'],
-          type: 'object',
+        ],
+        "generationConfig": {
+          "responseMimeType": "application/json",
+          "responseSchema": {
+            "properties": {
+              "property1": {
+                "type": "string",
+              },
+              "property2": {
+                "type": "number",
+              },
+            },
+            "required": [
+              "property1",
+              "property2",
+            ],
+            "type": "object",
+          },
         },
-      },
-    });
+      }
+    `);
   });
 
   it('should not pass specification with responseFormat and structuredOutputs = false', async () => {
@@ -725,12 +815,23 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
-      generationConfig: {
-        responseMimeType: 'application/json',
-      },
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "generationConfig": {
+          "responseMimeType": "application/json",
+        },
+      }
+    `);
   });
 
   it('should pass tools and toolChoice', async () => {
@@ -756,29 +857,51 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
-      generationConfig: {},
-      toolConfig: { functionCallingConfig: { mode: 'ANY' } },
-      tools: [
-        {
-          functionDeclarations: [
-            {
-              name: 'test-tool',
-              description: '',
-              parameters: {
-                properties: {
-                  property1: { type: 'string' },
-                  property2: { type: 'number' },
-                },
-                required: ['property1', 'property2'],
-                type: 'object',
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
               },
-            },
-          ],
+            ],
+            "role": "user",
+          },
+        ],
+        "generationConfig": {},
+        "toolConfig": {
+          "functionCallingConfig": {
+            "mode": "ANY",
+          },
         },
-      ],
-    });
+        "tools": [
+          {
+            "functionDeclarations": [
+              {
+                "description": "",
+                "name": "test-tool",
+                "parameters": {
+                  "properties": {
+                    "property1": {
+                      "type": "string",
+                    },
+                    "property2": {
+                      "type": "number",
+                    },
+                  },
+                  "required": [
+                    "property1",
+                    "property2",
+                  ],
+                  "type": "object",
+                },
+              },
+            ],
+          },
+        ],
+      }
+    `);
   });
 
   it('should pass headers', async () => {
@@ -800,12 +923,14 @@ describe('doGenerate', () => {
 
     const requestHeaders = server.calls[0].requestHeaders;
 
-    expect(requestHeaders).toStrictEqual({
-      'content-type': 'application/json',
-      'custom-provider-header': 'provider-header-value',
-      'custom-request-header': 'request-header-value',
-      'x-goog-api-key': 'test-api-key',
-    });
+    expect(requestHeaders).toMatchInlineSnapshot(`
+      {
+        "content-type": "application/json",
+        "custom-provider-header": "provider-header-value",
+        "custom-request-header": "request-header-value",
+        "x-goog-api-key": "test-api-key",
+      }
+    `);
     expect(server.calls[0].requestUserAgent).toContain(
       `ai-sdk/google/0.0.0-test`,
     );
@@ -828,19 +953,34 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: 'object',
-          properties: {
-            text: { type: 'string' },
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
           },
-          required: ['text'],
+        ],
+        "generationConfig": {
+          "responseMimeType": "application/json",
+          "responseSchema": {
+            "properties": {
+              "text": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "text",
+            ],
+            "type": "object",
+          },
         },
-      },
-    });
+      }
+    `);
   });
 
   it('should send request body', async () => {
@@ -850,10 +990,21 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
-      generationConfig: {},
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "generationConfig": {},
+      }
+    `);
   });
 
   it('should extract sources from grounding metadata', async () => {
@@ -1225,12 +1376,14 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(server.calls[0].requestHeaders).toStrictEqual({
-        'content-type': 'application/json',
-        'x-async-config': 'async-config-value',
-        'x-sync-request': 'sync-request-value',
-        'x-common': 'request-value', // Request headers take precedence
-      });
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "content-type": "application/json",
+          "x-async-config": "async-config-value",
+          "x-common": "request-value",
+          "x-sync-request": "sync-request-value",
+        }
+      `);
     });
 
     it('handles Promise-based headers', async () => {
@@ -1270,10 +1423,12 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(server.calls[0].requestHeaders).toStrictEqual({
-        'content-type': 'application/json',
-        'x-promise-header': 'promise-value',
-      });
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "content-type": "application/json",
+          "x-promise-header": "promise-value",
+        }
+      `);
     });
 
     it('handles async function headers from config', async () => {
@@ -1291,10 +1446,12 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(server.calls[0].requestHeaders).toStrictEqual({
-        'content-type': 'application/json',
-        'x-async-header': 'async-value',
-      });
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "content-type": "application/json",
+          "x-async-header": "async-value",
+        }
+      `);
     });
   });
 
@@ -1330,16 +1487,18 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(providerMetadata?.google.safetyRatings).toStrictEqual([
-      {
-        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-        probability: 'NEGLIGIBLE',
-        probabilityScore: 0.1,
-        severity: 'LOW',
-        severityScore: 0.2,
-        blocked: false,
-      },
-    ]);
+    expect(providerMetadata?.google.safetyRatings).toMatchInlineSnapshot(`
+      [
+        {
+          "blocked": false,
+          "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+          "probability": "NEGLIGIBLE",
+          "probabilityScore": 0.1,
+          "severity": "LOW",
+          "severityScore": 0.2,
+        },
+      ]
+    `);
   });
 
   it('should expose PromptFeedback in provider metadata', async () => {
@@ -1365,10 +1524,29 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(providerMetadata?.google.promptFeedback).toStrictEqual({
-      blockReason: 'SAFETY',
-      safetyRatings: SAFETY_RATINGS,
-    });
+    expect(providerMetadata?.google.promptFeedback).toMatchInlineSnapshot(`
+      {
+        "blockReason": "SAFETY",
+        "safetyRatings": [
+          {
+            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            "probability": "NEGLIGIBLE",
+          },
+          {
+            "category": "HARM_CATEGORY_HATE_SPEECH",
+            "probability": "NEGLIGIBLE",
+          },
+          {
+            "category": "HARM_CATEGORY_HARASSMENT",
+            "probability": "NEGLIGIBLE",
+          },
+          {
+            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+            "probability": "NEGLIGIBLE",
+          },
+        ],
+      }
+    `);
   });
 
   it('should expose grounding metadata in provider metadata', async () => {
@@ -1408,34 +1586,42 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(providerMetadata?.google.groundingMetadata).toStrictEqual({
-      webSearchQueries: ["What's the weather in Chicago this weekend?"],
-      searchEntryPoint: {
-        renderedContent: 'Sample rendered content for search results',
-      },
-      groundingChunks: [
-        {
-          web: {
-            uri: 'https://example.com/weather',
-            title: 'Chicago Weather Forecast',
+    expect(providerMetadata?.google.groundingMetadata).toMatchInlineSnapshot(`
+      {
+        "groundingChunks": [
+          {
+            "web": {
+              "title": "Chicago Weather Forecast",
+              "uri": "https://example.com/weather",
+            },
           },
-        },
-      ],
-      groundingSupports: [
-        {
-          segment: {
-            startIndex: 0,
-            endIndex: 65,
-            text: 'Chicago weather changes rapidly, so layers let you adjust easily.',
+        ],
+        "groundingSupports": [
+          {
+            "confidenceScores": [
+              0.99,
+            ],
+            "groundingChunkIndices": [
+              0,
+            ],
+            "segment": {
+              "endIndex": 65,
+              "startIndex": 0,
+              "text": "Chicago weather changes rapidly, so layers let you adjust easily.",
+            },
           },
-          groundingChunkIndices: [0],
-          confidenceScores: [0.99],
+        ],
+        "retrievalMetadata": {
+          "webDynamicRetrievalScore": 0.96879,
         },
-      ],
-      retrievalMetadata: {
-        webDynamicRetrievalScore: 0.96879,
-      },
-    });
+        "searchEntryPoint": {
+          "renderedContent": "Sample rendered content for search results",
+        },
+        "webSearchQueries": [
+          "What's the weather in Chicago this weekend?",
+        ],
+      }
+    `);
   });
 
   it('should handle code execution tool calls', async () => {
@@ -2912,6 +3098,26 @@ describe('doStream', () => {
 
       expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
     });
+
+    it('should expose the raw response headers', async () => {
+      prepareChunksFixtureResponse('google-text', {
+        headers: { 'test-header': 'test-value' },
+      });
+
+      const { response } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(response?.headers).toMatchInlineSnapshot(`
+        {
+          "cache-control": "no-cache",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "test-header": "test-value",
+        }
+      `);
+    });
   });
 
   describe('tool-call', () => {
@@ -3031,34 +3237,42 @@ describe('doStream', () => {
     expect(
       finishEvent?.type === 'finish' &&
         finishEvent.providerMetadata?.google.groundingMetadata,
-    ).toStrictEqual({
-      webSearchQueries: ["What's the weather in Chicago this weekend?"],
-      searchEntryPoint: {
-        renderedContent: 'Sample rendered content for search results',
-      },
-      groundingChunks: [
-        {
-          web: {
-            uri: 'https://example.com/weather',
-            title: 'Chicago Weather Forecast',
+    ).toMatchInlineSnapshot(`
+      {
+        "groundingChunks": [
+          {
+            "web": {
+              "title": "Chicago Weather Forecast",
+              "uri": "https://example.com/weather",
+            },
           },
-        },
-      ],
-      groundingSupports: [
-        {
-          segment: {
-            startIndex: 0,
-            endIndex: 65,
-            text: 'Chicago weather changes rapidly, so layers let you adjust easily.',
+        ],
+        "groundingSupports": [
+          {
+            "confidenceScores": [
+              0.99,
+            ],
+            "groundingChunkIndices": [
+              0,
+            ],
+            "segment": {
+              "endIndex": 65,
+              "startIndex": 0,
+              "text": "Chicago weather changes rapidly, so layers let you adjust easily.",
+            },
           },
-          groundingChunkIndices: [0],
-          confidenceScores: [0.99],
+        ],
+        "retrievalMetadata": {
+          "webDynamicRetrievalScore": 0.96879,
         },
-      ],
-      retrievalMetadata: {
-        webDynamicRetrievalScore: 0.96879,
-      },
-    });
+        "searchEntryPoint": {
+          "renderedContent": "Sample rendered content for search results",
+        },
+        "webSearchQueries": [
+          "What's the weather in Chicago this weekend?",
+        ],
+      }
+    `);
   });
 
   it('should expose url context metadata in provider metadata on finish', async () => {
@@ -3085,14 +3299,16 @@ describe('doStream', () => {
     expect(
       finishEvent?.type === 'finish' &&
         finishEvent.providerMetadata?.google.urlContextMetadata,
-    ).toStrictEqual({
-      urlMetadata: [
-        {
-          retrievedUrl: 'https://example.com/weather',
-          urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
-        },
-      ],
-    });
+    ).toMatchInlineSnapshot(`
+      {
+        "urlMetadata": [
+          {
+            "retrievedUrl": "https://example.com/weather",
+            "urlRetrievalStatus": "URL_RETRIEVAL_STATUS_SUCCESS",
+          },
+        ],
+      }
+    `);
   });
 
   it('should expose safety ratings in provider metadata on finish', async () => {
@@ -3117,16 +3333,18 @@ describe('doStream', () => {
     expect(
       finishEvent?.type === 'finish' &&
         finishEvent.providerMetadata?.google.safetyRatings,
-    ).toStrictEqual([
-      {
-        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-        probability: 'NEGLIGIBLE',
-        probabilityScore: 0.1,
-        severity: 'LOW',
-        severityScore: 0.2,
-        blocked: false,
-      },
-    ]);
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "blocked": false,
+          "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+          "probability": "NEGLIGIBLE",
+          "probabilityScore": 0.1,
+          "severity": "LOW",
+          "severityScore": 0.2,
+        },
+      ]
+    `);
   });
 
   it('should expose PromptFeedback in provider metadata on finish', async () => {
@@ -3153,10 +3371,29 @@ describe('doStream', () => {
     expect(
       finishEvent?.type === 'finish' &&
         finishEvent.providerMetadata?.google.promptFeedback,
-    ).toStrictEqual({
-      blockReason: 'PROHIBITED_CONTENT',
-      safetyRatings: SAFETY_RATINGS,
-    });
+    ).toMatchInlineSnapshot(`
+      {
+        "blockReason": "PROHIBITED_CONTENT",
+        "safetyRatings": [
+          {
+            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            "probability": "NEGLIGIBLE",
+          },
+          {
+            "category": "HARM_CATEGORY_HATE_SPEECH",
+            "probability": "NEGLIGIBLE",
+          },
+          {
+            "category": "HARM_CATEGORY_HARASSMENT",
+            "probability": "NEGLIGIBLE",
+          },
+          {
+            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+            "probability": "NEGLIGIBLE",
+          },
+        ],
+      }
+    `);
   });
 
   it('should stream code execution tool calls and results', async () => {
