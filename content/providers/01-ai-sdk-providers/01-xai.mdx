@@ -783,8 +783,60 @@ const { image } = await generateImage({
 ```
 
 <Note>
-  The xAI image model does not currently support the `aspectRatio` or `size`
-  parameters. Image size defaults to 1024x768.
+  The xAI image model does not support the `size` parameter. Use `aspectRatio`
+  instead. Supported aspect ratios: `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`,
+  `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, and `auto`.
+</Note>
+
+### Image Editing
+
+xAI supports image editing through the `grok-2-image` and `grok-imagine-image` models. Pass input images via `prompt.images` to transform or edit existing images.
+
+<Note>
+  xAI image editing does not support masks. Editing is prompt-driven - describe
+  what you want to change in the text prompt.
+</Note>
+
+#### Basic Image Editing
+
+Transform an existing image using text prompts:
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { generateImage } from 'ai';
+import { readFileSync } from 'fs';
+
+const imageBuffer = readFileSync('./input-image.png');
+
+const { images } = await generateImage({
+  model: xai.image('grok-2-image'),
+  prompt: {
+    text: 'Turn the cat into a golden retriever dog',
+    images: [imageBuffer],
+  },
+});
+```
+
+#### Style Transfer
+
+Apply artistic styles to an image:
+
+```ts
+const imageBuffer = readFileSync('./input-image.png');
+
+const { images } = await generateImage({
+  model: xai.image('grok-2-image'),
+  prompt: {
+    text: 'Transform this into a watercolor painting style',
+    images: [imageBuffer],
+  },
+  aspectRatio: '1:1',
+});
+```
+
+<Note>
+  Input images can be provided as `Buffer`, `ArrayBuffer`, `Uint8Array`, or
+  base64-encoded strings. xAI only supports a single input image per request.
 </Note>
 
 ### Model-specific options
@@ -798,13 +850,14 @@ import { generateImage } from 'ai';
 const { images } = await generateImage({
   model: xai.image('grok-2-image'),
   prompt: 'A futuristic cityscape at sunset',
-  maxImagesPerCall: 5, // Default is 10
-  n: 2, // Generate 2 images
+  aspectRatio: '16:9',
+  n: 2,
 });
 ```
 
 ### Model Capabilities
 
-| Model          | Sizes              | Notes                                                                                                                                                                                                    |
-| -------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `grok-2-image` | 1024x768 (default) | xAI's text-to-image generation model, designed to create high-quality images from text prompts. It's trained on a diverse dataset and can generate images across various styles, subjects, and settings. |
+| Model                | Aspect Ratios                                                                                               | Image Editing       |
+| -------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------- |
+| `grok-2-image`       | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check size={18} /> |
+| `grok-imagine-image` | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check size={18} /> |

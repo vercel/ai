@@ -1,5 +1,6 @@
 export type { XaiProviderOptions } from './xai-chat-options';
 export type { XaiErrorData } from './xai-error';
+export type { XaiImageProviderOptions } from './xai-image-options';
 export type { XaiResponsesProviderOptions } from './responses/xai-responses-options';
 export { createXai, xai } from './xai-provider';
 export type { XaiProvider, XaiProviderSettings } from './xai-provider';
