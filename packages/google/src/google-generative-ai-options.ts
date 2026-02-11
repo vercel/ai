@@ -29,6 +29,7 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-2.5-flash-lite-preview-09-2025'
   | 'gemini-2.5-flash-preview-04-17'
   | 'gemini-2.5-flash-preview-09-2025'
+  | 'gemini-3.1-pro-preview'
   | 'gemini-3-pro-preview'
   | 'gemini-3-pro-image-preview'
   | 'gemini-3-flash-preview'

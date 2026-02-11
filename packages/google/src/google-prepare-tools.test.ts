@@ -196,7 +196,7 @@ it('should correctly prepare file search tool for gemini-3 models', () => {
         },
       },
     ],
-    modelId: 'gemini-3-pro-preview',
+    modelId: 'gemini-3.1-pro-preview',
   });
 
   expect(result.tools).toEqual([
@@ -391,7 +391,7 @@ it('should handle gemini-3 modelId for provider-defined tools correctly', () => 
         args: {},
       },
     ],
-    modelId: 'gemini-3-pro-preview',
+    modelId: 'gemini-3.1-pro-preview',
   });
   expect(result.tools).toEqual([{ googleSearch: {} }]);
   expect(result.toolConfig).toBeUndefined();

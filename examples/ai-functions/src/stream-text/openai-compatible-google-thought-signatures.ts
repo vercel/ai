@@ -12,7 +12,7 @@ run(async () => {
     },
   });
 
-  const model = googleOpenAI.chatModel('gemini-3-pro-preview');
+  const model = googleOpenAI.chatModel('gemini-3.1-pro-preview');
 
   const turn1 = streamText({
     model,

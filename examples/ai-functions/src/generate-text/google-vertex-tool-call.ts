@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const { text } = await generateText({
-    model: vertex('gemini-3-pro-preview'),
+    model: vertex('gemini-3.1-pro-preview'),
     prompt: 'What is the weather in New York City? ',
     tools: {
       weather: tool({
