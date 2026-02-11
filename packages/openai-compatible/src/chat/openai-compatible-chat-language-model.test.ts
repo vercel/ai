@@ -177,7 +177,7 @@ describe('doGenerate', () => {
 
   describe('text (fixture)', () => {
     beforeEach(() => {
-      prepareJsonFixtureResponse('openai-compatible-text');
+      prepareJsonFixtureResponse('xai-text');
     });
 
     it('should extract text content', async () => {
@@ -191,7 +191,7 @@ describe('doGenerate', () => {
 
   describe('tool call (fixture)', () => {
     beforeEach(() => {
-      prepareJsonFixtureResponse('openai-compatible-tool-call');
+      prepareJsonFixtureResponse('xai-tool-call');
     });
 
     it('should extract tool call content', async () => {
@@ -204,7 +204,7 @@ describe('doGenerate', () => {
   });
 
   it('should extract usage', async () => {
-    prepareJsonFixtureResponse('openai-compatible-text');
+    prepareJsonFixtureResponse('xai-text');
 
     const { usage } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -243,7 +243,7 @@ describe('doGenerate', () => {
   });
 
   it('should send additional response information', async () => {
-    prepareJsonFixtureResponse('openai-compatible-text');
+    prepareJsonFixtureResponse('xai-text');
 
     const { response } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -259,7 +259,7 @@ describe('doGenerate', () => {
   });
 
   it('should expose the raw response headers', async () => {
-    prepareJsonFixtureResponse('openai-compatible-text', {
+    prepareJsonFixtureResponse('xai-text', {
       headers: { 'test-header': 'test-value' },
     });
 
@@ -1499,7 +1499,7 @@ describe('doStream', () => {
 
   describe('text (fixture)', () => {
     beforeEach(() => {
-      prepareChunksFixtureResponse('openai-compatible-text');
+      prepareChunksFixtureResponse('xai-text');
     });
 
     it('should stream text content', async () => {
@@ -1514,7 +1514,7 @@ describe('doStream', () => {
 
   describe('tool call (fixture)', () => {
     beforeEach(() => {
-      prepareChunksFixtureResponse('openai-compatible-tool-call');
+      prepareChunksFixtureResponse('xai-tool-call');
     });
 
     it('should stream tool call content', async () => {
@@ -1528,7 +1528,7 @@ describe('doStream', () => {
   });
 
   it('should expose the raw response headers', async () => {
-    prepareChunksFixtureResponse('openai-compatible-text', {
+    prepareChunksFixtureResponse('xai-text', {
       headers: { 'test-header': 'test-value' },
     });
 
