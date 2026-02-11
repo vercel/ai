@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.52
+
+### Patch Changes
+
+- c781168: feat(provider/xai): add dedicated XaiImageModel with JSON-based image editing
+
 ## 3.0.51
 
 ### Patch Changes
