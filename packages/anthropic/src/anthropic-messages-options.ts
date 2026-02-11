@@ -99,6 +99,24 @@ export const anthropicProviderOptions = z.object({
     .optional(),
 
   /**
+   * An object describing metadata about the request.
+   */
+  metadata: z
+    .object({
+      /**
+       * An external identifier for the user who is associated with the request.
+       *
+       * This should be a uuid, hash value, or other opaque identifier.
+       * Anthropic may use this id to help detect abuse. Do not include any
+       * identifying information such as name, email address, or phone number.
+       *
+       * Max length: 256 characters.
+       */
+      userId: z.string().optional(),
+    })
+    .optional(),
+
+  /**
    * Whether to disable parallel function calling during tool use. Default is false.
    * When set to true, Claude will use at most one tool per response.
    */

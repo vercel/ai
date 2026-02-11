@@ -354,6 +354,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         speed: anthropicOptions.speed,
       }),
 
+      // metadata:
+      ...(anthropicOptions?.metadata && {
+        metadata: {
+          user_id: anthropicOptions.metadata.userId,
+        },
+      }),
+
       // structured output:
       ...(useStructuredOutput &&
         responseFormat?.type === 'json' &&

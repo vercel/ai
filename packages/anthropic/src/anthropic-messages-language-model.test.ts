@@ -1410,6 +1410,41 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    it('should pass metadata with user_id', async () => {
+      prepareJsonResponse({});
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            metadata: {
+              userId: 'test-user-id',
+            },
+          } satisfies AnthropicProviderOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        metadata: {
+          user_id: 'test-user-id',
+        },
+      });
+    });
+
+    it('should not send metadata when not provided', async () => {
+      prepareJsonResponse({});
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {} satisfies AnthropicProviderOptions,
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('metadata');
+    });
+
     it('should pass headers', async () => {
       prepareJsonResponse({ content: [] });
 
@@ -8041,6 +8076,29 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(await server.calls[0].requestBodyJson).toMatchObject({
           tool_choice: { type: 'auto', disable_parallel_tool_use: true },
+        });
+      });
+
+      it('should accept metadata with custom provider name key', async () => {
+        prepareCustomJsonResponse();
+
+        const customModel = createCustomModel('my-custom-anthropic');
+
+        await customModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            'my-custom-anthropic': {
+              metadata: {
+                userId: 'custom-user-id',
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          metadata: {
+            user_id: 'custom-user-id',
+          },
         });
       });
     });
