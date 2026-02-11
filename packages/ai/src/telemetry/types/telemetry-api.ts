@@ -1,16 +1,9 @@
+import type { JSONValue } from '../../types/json-value';
+
 /**
- * Primitive values supported by telemetry attributes.
- *
- * This type is independent of any specific telemetry backend
- * (OpenTelemetry, diagnostics_channel, etc.).
+ * JSON serializable values supported by telemetry attributes.
  */
-export type TelemetryAttributeValue =
-  | string
-  | number
-  | boolean
-  | string[]
-  | number[]
-  | boolean[];
+export type TelemetryAttributeValue = JSONValue;
 
 /**
  * A bag of telemetry attributes (key-value pairs).

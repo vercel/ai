@@ -4,10 +4,10 @@ import {
   SpanStatusCode,
   context,
   trace,
+  type Attributes,
 } from '@opentelemetry/api';
 import type {
   TelemetryHandler,
-  TelemetryAttributes,
   TelemetryAttributeValue,
   OperationStartedEvent,
   OperationEndedEvent,
@@ -42,12 +42,32 @@ interface FlattenableEventData extends InjectedFields {
 }
 
 /**
- * Converts structured event data into flat OTel attribute key-value pairs.
+ * Checks if a value is an OTel-compatible array (homogeneous primitives).
  */
-function flattenToOtelAttributes(
-  data: FlattenableEventData,
-): TelemetryAttributes {
-  const attrs: TelemetryAttributes = {};
+function isOtelCompatibleArray(value: unknown): value is OtelArray {
+  if (!Array.isArray(value) || value.length === 0) {
+    return Array.isArray(value);
+  }
+  const firstType = typeof value[0];
+  if (
+    firstType !== 'string' &&
+    firstType !== 'number' &&
+    firstType !== 'boolean'
+  ) {
+    return false;
+  }
+  return value.every(item => typeof item === firstType);
+}
+
+type OtelArray = string[] | number[] | boolean[];
+
+/**
+ * Converts structured event data into flat OTel attribute key-value pairs.
+ *
+ * Returns OTel-native Attributes
+ */
+function flattenToOtelAttributes(data: FlattenableEventData): Attributes {
+  const attrs: Attributes = {};
 
   if (data.model) {
     attrs['ai.model.provider'] = data.model.provider;
@@ -197,7 +217,20 @@ function flattenToOtelAttributes(
 
   if (data.metadata) {
     for (const [key, value] of Object.entries(data.metadata)) {
-      attrs[`ai.telemetry.metadata.${key}`] = value;
+      if (value == null) continue;
+
+      // Serialize objects/nested arrays to JSON strings for OTel compatibility
+      if (typeof value === 'object' && !isOtelCompatibleArray(value)) {
+        attrs[`ai.telemetry.metadata.${key}`] = JSON.stringify(value);
+      } else {
+        attrs[`ai.telemetry.metadata.${key}`] = value as
+          | string
+          | number
+          | boolean
+          | string[]
+          | number[]
+          | boolean[];
+      }
     }
   }
 
