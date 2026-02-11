@@ -146,6 +146,73 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should expose the raw response headers', async () => {
+    prepareJsonFixtureResponse('perplexity-text', {
+      headers: { 'test-header': 'test-value' },
+    });
+
+    const { response } = await perplexityModel.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response?.headers).toMatchInlineSnapshot(`
+      {
+        "content-length": "2786",
+        "content-type": "application/json",
+        "test-header": "test-value",
+      }
+    `);
+  });
+
+  it('should extract usage', async () => {
+    prepareJsonFixtureResponse('perplexity-text');
+
+    const { usage } = await perplexityModel.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "inputTokens": {
+          "cacheRead": undefined,
+          "cacheWrite": undefined,
+          "noCache": 11,
+          "total": 11,
+        },
+        "outputTokens": {
+          "reasoning": 0,
+          "text": 392,
+          "total": 392,
+        },
+        "raw": {
+          "completion_tokens": 392,
+          "prompt_tokens": 11,
+          "total_tokens": 403,
+        },
+      }
+    `);
+  });
+
+  it('should send additional response information', async () => {
+    prepareJsonFixtureResponse('perplexity-text');
+
+    const { response } = await perplexityModel.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect({
+      id: response?.id,
+      timestamp: response?.timestamp,
+      modelId: response?.modelId,
+    }).toMatchInlineSnapshot(`
+      {
+        "id": "aec30d94-c6a5-4d30-935e-97dbe8de9f85",
+        "modelId": "sonar",
+        "timestamp": 2026-02-11T00:03:40.000Z,
+      }
+    `);
+  });
+
   it('should handle PDF files with base64 encoding', async () => {
     prepareJsonFixtureResponse('perplexity-text');
 
@@ -344,7 +411,10 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
-  function prepareChunksFixtureResponse(filename: string) {
+  function prepareChunksFixtureResponse(
+    filename: string,
+    { headers }: { headers?: Record<string, string> } = {},
+  ) {
     const chunks = fs
       .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
       .split('\n')
@@ -354,6 +424,7 @@ describe('doStream', () => {
 
     server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'stream-chunks',
+      headers,
       chunks,
     };
   }
@@ -434,6 +505,25 @@ describe('doStream', () => {
         "content-type": "application/json",
         "custom-provider-header": "provider-header-value",
         "custom-request-header": "request-header-value",
+      }
+    `);
+  });
+
+  it('should expose the raw response headers', async () => {
+    prepareChunksFixtureResponse('perplexity-text', {
+      headers: { 'test-header': 'test-value' },
+    });
+
+    const { response } = await perplexityModel.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response?.headers).toMatchInlineSnapshot(`
+      {
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream",
+        "test-header": "test-value",
       }
     `);
   });
@@ -639,7 +729,7 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "id": "id-49",
+          "id": "id-67",
           "sourceType": "url",
           "type": "source",
           "url": "https://example.com",
