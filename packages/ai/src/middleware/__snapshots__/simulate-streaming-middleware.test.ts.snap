@@ -13,6 +13,7 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
   {
     "finishReason": "stop",
     "providerMetadata": undefined,
+    "rawFinishReason": "stop",
     "response": {
       "headers": undefined,
       "id": "id-6",
@@ -40,6 +41,7 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
   },
   {
     "finishReason": "stop",
+    "rawFinishReason": "stop",
     "totalUsage": {
       "cachedInputTokens": 0,
       "inputTokenDetails": {

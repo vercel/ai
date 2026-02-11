@@ -6,6 +6,7 @@ import {
   AIMessageChunk,
   BaseMessageChunk,
   ToolCallChunk,
+  type ContentBlock,
   type ToolCall,
 } from '@langchain/core/messages';
 import {
@@ -94,6 +95,37 @@ export function convertAssistantContent(content: AssistantContent): AIMessage {
 }
 
 /**
+ * Helper to generate a default filename from mediaType
+ */
+function getDefaultFilename(
+  mediaType: string,
+  prefix: string = 'file',
+): string {
+  const ext = mediaType.split('/')[1] || 'bin';
+  return `${prefix}.${ext}`;
+}
+
+/**
+ * OpenAI-native content block type for images.
+ * This format is passed through directly by ChatOpenAI to OpenAI's API.
+ */
+type OpenAIImageBlock = {
+  type: 'image_url';
+  image_url: {
+    url: string;
+    detail?: 'auto' | 'low' | 'high';
+  };
+};
+
+/**
+ * Content block type for HumanMessage that supports both text and OpenAI images.
+ */
+type HumanMessageContentBlock =
+  | { type: 'text'; text: string }
+  | OpenAIImageBlock
+  | ContentBlock;
+
+/**
  * Converts UserContent to LangChain HumanMessage
  * @param content - The UserContent to convert.
  * @returns The converted HumanMessage.
@@ -103,13 +135,217 @@ export function convertUserContent(content: UserContent): HumanMessage {
     return new HumanMessage({ content });
   }
 
-  const textParts = content
-    .filter(
-      (part): part is { type: 'text'; text: string } => part.type === 'text',
-    )
-    .map(part => part.text);
+  const contentBlocks: HumanMessageContentBlock[] = [];
 
-  return new HumanMessage({ content: textParts.join('') });
+  for (const part of content) {
+    if (part.type === 'text') {
+      contentBlocks.push({ type: 'text', text: part.text });
+    } else if (part.type === 'image') {
+      const imagePart = part as {
+        type: 'image';
+        image: string | Uint8Array | URL | ArrayBuffer;
+        mediaType?: string;
+      };
+
+      /**
+       * Use OpenAI's native image_url format which is passed through directly
+       * handle URL objects
+       */
+      if (imagePart.image instanceof URL) {
+        contentBlocks.push({
+          type: 'image_url',
+          image_url: { url: imagePart.image.toString() },
+        });
+      } else if (typeof imagePart.image === 'string') {
+        /**
+         * Handle string (could be URL or base64)
+         */
+        /**
+         * Check if it's a URL (including data: URLs)
+         */
+        if (
+          imagePart.image.startsWith('http://') ||
+          imagePart.image.startsWith('https://') ||
+          imagePart.image.startsWith('data:')
+        ) {
+          /**
+           * OpenAI accepts both http URLs and data URLs directly
+           */
+          contentBlocks.push({
+            type: 'image_url',
+            image_url: { url: imagePart.image },
+          });
+        } else {
+          /**
+           * Assume base64 encoded data - wrap in data URL
+           */
+          const mimeType = imagePart.mediaType || 'image/png';
+          contentBlocks.push({
+            type: 'image_url',
+            image_url: { url: `data:${mimeType};base64,${imagePart.image}` },
+          });
+        }
+      } else if (
+        /**
+         * Handle Uint8Array or ArrayBuffer (binary data)
+         */
+        imagePart.image instanceof Uint8Array ||
+        imagePart.image instanceof ArrayBuffer
+      ) {
+        const bytes =
+          imagePart.image instanceof ArrayBuffer
+            ? new Uint8Array(imagePart.image)
+            : imagePart.image;
+        /**
+         * Convert to base64 data URL
+         */
+        const base64 = btoa(String.fromCharCode(...bytes));
+        const mimeType = imagePart.mediaType || 'image/png';
+        contentBlocks.push({
+          type: 'image_url',
+          image_url: { url: `data:${mimeType};base64,${base64}` },
+        });
+      }
+    } else if (part.type === 'file') {
+      const filePart = part as {
+        type: 'file';
+        data: string | Uint8Array | URL | ArrayBuffer;
+        mediaType: string;
+        filename?: string;
+      };
+
+      /**
+       * Check if this is an image file - if so, use OpenAI's image_url format
+       */
+      const isImage = filePart.mediaType?.startsWith('image/');
+
+      if (isImage) {
+        /**
+         * Handle image files using OpenAI's native image_url format
+         */
+        if (filePart.data instanceof URL) {
+          contentBlocks.push({
+            type: 'image_url',
+            image_url: { url: filePart.data.toString() },
+          });
+        } else if (typeof filePart.data === 'string') {
+          /**
+           * URLs (including data URLs) can be passed directly
+           */
+          if (
+            filePart.data.startsWith('http://') ||
+            filePart.data.startsWith('https://') ||
+            filePart.data.startsWith('data:')
+          ) {
+            contentBlocks.push({
+              type: 'image_url',
+              image_url: { url: filePart.data },
+            });
+          } else {
+            /**
+             * Assume base64 - wrap in data URL
+             */
+            contentBlocks.push({
+              type: 'image_url',
+              image_url: {
+                url: `data:${filePart.mediaType};base64,${filePart.data}`,
+              },
+            });
+          }
+        } else if (
+          filePart.data instanceof Uint8Array ||
+          filePart.data instanceof ArrayBuffer
+        ) {
+          const bytes =
+            filePart.data instanceof ArrayBuffer
+              ? new Uint8Array(filePart.data)
+              : filePart.data;
+          const base64 = btoa(String.fromCharCode(...bytes));
+          contentBlocks.push({
+            type: 'image_url',
+            image_url: { url: `data:${filePart.mediaType};base64,${base64}` },
+          });
+        }
+      } else {
+        // Handle non-image files using LangChain's ContentBlock format
+        const filename =
+          filePart.filename || getDefaultFilename(filePart.mediaType, 'file');
+
+        if (filePart.data instanceof URL) {
+          contentBlocks.push({
+            type: 'file',
+            url: filePart.data.toString(),
+            mimeType: filePart.mediaType,
+            filename,
+          });
+        } else if (typeof filePart.data === 'string') {
+          if (
+            filePart.data.startsWith('http://') ||
+            filePart.data.startsWith('https://')
+          ) {
+            contentBlocks.push({
+              type: 'file',
+              url: filePart.data,
+              mimeType: filePart.mediaType,
+              filename,
+            });
+          } else if (filePart.data.startsWith('data:')) {
+            const matches = filePart.data.match(/^data:([^;]+);base64,(.+)$/);
+            if (matches) {
+              contentBlocks.push({
+                type: 'file',
+                data: matches[2],
+                mimeType: matches[1],
+                filename,
+              });
+            } else {
+              contentBlocks.push({
+                type: 'file',
+                url: filePart.data,
+                mimeType: filePart.mediaType,
+                filename,
+              });
+            }
+          } else {
+            contentBlocks.push({
+              type: 'file',
+              data: filePart.data,
+              mimeType: filePart.mediaType,
+              filename,
+            });
+          }
+        } else if (
+          filePart.data instanceof Uint8Array ||
+          filePart.data instanceof ArrayBuffer
+        ) {
+          const bytes =
+            filePart.data instanceof ArrayBuffer
+              ? new Uint8Array(filePart.data)
+              : filePart.data;
+          const base64 = btoa(String.fromCharCode(...bytes));
+          contentBlocks.push({
+            type: 'file',
+            data: base64,
+            mimeType: filePart.mediaType,
+            filename,
+          });
+        }
+      }
+    }
+  }
+
+  /**
+   * If we only have text parts, join them as a simple string for efficiency
+   */
+  if (contentBlocks.every(block => block.type === 'text')) {
+    return new HumanMessage({
+      content: contentBlocks
+        .map(block => (block as unknown as { text: string }).text)
+        .join(''),
+    });
+  }
+
+  return new HumanMessage({ content: contentBlocks });
 }
 
 /**
@@ -139,14 +375,55 @@ export function processModelChunk(
     messageId: string;
     reasoningStarted?: boolean;
     textStarted?: boolean;
+    /** Track the ID used for reasoning-start to ensure reasoning-end uses the same ID */
+    reasoningMessageId?: string | null;
+    /** Track the ID used for text-start to ensure text-end uses the same ID */
+    textMessageId?: string | null;
+    emittedImages?: Set<string>;
   },
   controller: ReadableStreamDefaultController<UIMessageChunk>,
 ): void {
+  /**
+   * Initialize emittedImages set if not present
+   */
+  if (!state.emittedImages) {
+    state.emittedImages = new Set<string>();
+  }
+
   /**
    * Get the message ID from the chunk if available
    */
   if (chunk.id) {
     state.messageId = chunk.id;
+  }
+
+  /**
+   * Handle image generation outputs from additional_kwargs.tool_outputs
+   */
+  const chunkObj = chunk as unknown as Record<string, unknown>;
+  const additionalKwargs = chunkObj.additional_kwargs as
+    | Record<string, unknown>
+    | undefined;
+  const imageOutputs = extractImageOutputs(additionalKwargs);
+
+  for (const imageOutput of imageOutputs) {
+    /**
+     * Only emit if we have image data and haven't emitted this image yet
+     */
+    if (imageOutput.result && !state.emittedImages.has(imageOutput.id)) {
+      state.emittedImages.add(imageOutput.id);
+
+      /**
+       * Emit as a file part using proper AI SDK multimodal format
+       */
+      const mediaType = `image/${imageOutput.output_format || 'png'}`;
+      controller.enqueue({
+        type: 'file',
+        mediaType,
+        url: `data:${mediaType};base64,${imageOutput.result}`,
+      });
+      state.started = true;
+    }
   }
 
   /**
@@ -159,6 +436,8 @@ export function processModelChunk(
     extractReasoningFromValuesMessage(chunk);
   if (reasoning) {
     if (!state.reasoningStarted) {
+      // Track the ID used for reasoning-start to ensure subsequent chunks use the same ID
+      state.reasoningMessageId = state.messageId;
       controller.enqueue({ type: 'reasoning-start', id: state.messageId });
       state.reasoningStarted = true;
       state.started = true;
@@ -166,7 +445,7 @@ export function processModelChunk(
     controller.enqueue({
       type: 'reasoning-delta',
       delta: reasoning,
-      id: state.messageId,
+      id: state.reasoningMessageId ?? state.messageId,
     });
   }
 
@@ -194,11 +473,16 @@ export function processModelChunk(
      * If reasoning was streamed before text, close reasoning first
      */
     if (state.reasoningStarted && !state.textStarted) {
-      controller.enqueue({ type: 'reasoning-end', id: state.messageId });
+      controller.enqueue({
+        type: 'reasoning-end',
+        id: state.reasoningMessageId ?? state.messageId,
+      });
       state.reasoningStarted = false;
     }
 
     if (!state.textStarted) {
+      // Track the ID used for text-start to ensure subsequent chunks use the same ID
+      state.textMessageId = state.messageId;
       controller.enqueue({ type: 'text-start', id: state.messageId });
       state.textStarted = true;
       state.started = true;
@@ -206,7 +490,7 @@ export function processModelChunk(
     controller.enqueue({
       type: 'text-delta',
       delta: text,
-      id: state.messageId,
+      id: state.textMessageId ?? state.messageId,
     });
   }
 }
@@ -316,9 +600,13 @@ export function isToolMessageType(
    */
   if (isPlainMessageObject(msg)) {
     const obj = msg as Record<string, unknown>;
-    // Direct type === 'tool' (RemoteGraph format)
+    /**
+     * Direct type === 'tool' (RemoteGraph format)
+     */
     if ('type' in obj && obj.type === 'tool') return true;
-    // Serialized LangChain message format
+    /**
+     * Serialized LangChain message format
+     */
     if (
       obj.type === 'constructor' &&
       Array.isArray(obj.id) &&
@@ -675,9 +963,34 @@ export function processLangGraphEvent(
 
   switch (type) {
     case 'custom': {
+      /**
+       * Extract custom event type from the data's 'type' field if present.
+       * This allows users to emit custom events like:
+       *   writer({ type: 'progress', value: 50 })  -> { type: 'data-progress', data: {...} }
+       *   writer({ type: 'status', message: '...' }) -> { type: 'data-status', data: {...} }
+       *   writer({ key: 'value' })                  -> { type: 'data-custom', data: {...} } (fallback)
+       *
+       * The 'id' field can be used to make parts persistent and updateable.
+       * Parts with an 'id' are NOT transient (added to message.parts).
+       * Parts without an 'id' are transient (only passed to onData callback).
+       */
+      let customTypeName = 'custom';
+      let partId: string | undefined;
+
+      if (data != null && typeof data === 'object' && !Array.isArray(data)) {
+        const dataObj = data as Record<string, unknown>;
+        if (typeof dataObj.type === 'string' && dataObj.type) {
+          customTypeName = dataObj.type;
+        }
+        if (typeof dataObj.id === 'string' && dataObj.id) {
+          partId = dataObj.id;
+        }
+      }
+
       controller.enqueue({
-        type: `data-${type}` as 'data-custom',
-        transient: true,
+        type: `data-${customTypeName}` as `data-${string}`,
+        id: partId,
+        transient: partId == null,
         data,
       });
       break;
@@ -991,6 +1304,35 @@ export function processLangGraphEvent(
       if (data != null && typeof data === 'object' && 'messages' in data) {
         const messages = (data as { messages?: unknown[] }).messages;
         if (Array.isArray(messages)) {
+          /**
+           * First pass: Collect all tool call IDs that have been responded to by ToolMessages.
+           * These are historical tool calls that are already complete.
+           */
+          const completedToolCallIds = new Set<string>();
+          for (const msg of messages) {
+            if (!msg || typeof msg !== 'object') continue;
+
+            if (isToolMessageType(msg)) {
+              // Handle both direct properties and serialized messages (kwargs)
+              const msgObj = msg as unknown as Record<string, unknown>;
+              const dataSource =
+                msgObj.type === 'constructor' &&
+                msgObj.kwargs &&
+                typeof msgObj.kwargs === 'object'
+                  ? (msgObj.kwargs as Record<string, unknown>)
+                  : msgObj;
+
+              const toolCallId = dataSource.tool_call_id as string | undefined;
+              if (toolCallId) {
+                completedToolCallIds.add(toolCallId);
+              }
+            }
+          }
+
+          /**
+           * Second pass: Process messages and emit tool events only for NEW tool calls
+           * (those not already completed by a ToolMessage in the history)
+           */
           for (const msg of messages) {
             if (!msg || typeof msg !== 'object') continue;
 
@@ -1075,12 +1417,30 @@ export function processLangGraphEvent(
               for (const toolCall of toolCalls) {
                 /**
                  * Only emit if we haven't already processed this tool call
+                 * AND if it's not a historical tool call that already has a ToolMessage response.
+                 * Historical completed tool calls should not be re-emitted as this would create
+                 * orphaned tool parts in the UI without corresponding outputs.
                  */
-                if (toolCall.id && !emittedToolCalls.has(toolCall.id)) {
+                if (
+                  toolCall.id &&
+                  !emittedToolCalls.has(toolCall.id) &&
+                  !completedToolCallIds.has(toolCall.id)
+                ) {
                   emittedToolCalls.add(toolCall.id);
                   // Store mapping for HITL interrupt lookup
                   const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
                   emittedToolCallsByKey.set(toolCallKey, toolCall.id);
+                  /**
+                   * Emit tool-input-start first to ensure proper lifecycle.
+                   * Tool calls that weren't streamed (no tool_call_chunks) need
+                   * the start event before tool-input-available.
+                   */
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    toolCallId: toolCall.id,
+                    toolName: toolCall.name,
+                    dynamic: true,
+                  });
                   controller.enqueue({
                     type: 'tool-input-available',
                     toolCallId: toolCall.id,
@@ -1187,11 +1547,18 @@ export function processLangGraphEvent(
                 `hitl-${toolName}-${Date.now()}`;
 
               /**
-               * First emit tool-input-available so the UI knows what tool is being called
+               * First emit tool-input-start then tool-input-available
+               * so the UI knows what tool is being called with proper lifecycle
                */
               if (!emittedToolCalls.has(toolCallId)) {
                 emittedToolCalls.add(toolCallId);
                 emittedToolCallsByKey.set(toolCallKey, toolCallId);
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  toolCallId,
+                  toolName,
+                  dynamic: true,
+                });
                 controller.enqueue({
                   type: 'tool-input-available',
                   toolCallId,

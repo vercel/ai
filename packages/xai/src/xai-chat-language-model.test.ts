@@ -789,6 +789,48 @@ describe('XaiChatLanguageModel', () => {
         },
       });
     });
+
+    it('should handle missing usage in response', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'no-usage-test',
+          object: 'chat.completion',
+          created: 1699472111,
+          model: 'grok-beta',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: 'Hello',
+                tool_calls: null,
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          // usage field is omitted
+        },
+      };
+
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage).toStrictEqual({
+        inputTokens: {
+          total: 0,
+          noCache: 0,
+          cacheRead: 0,
+          cacheWrite: 0,
+        },
+        outputTokens: {
+          total: 0,
+          text: 0,
+          reasoning: 0,
+        },
+      });
+    });
   });
 
   describe('doStream', () => {
@@ -866,7 +908,10 @@ describe('XaiChatLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
               "inputTokens": {
@@ -941,7 +986,10 @@ describe('XaiChatLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
               "inputTokens": {
@@ -1031,7 +1079,10 @@ describe('XaiChatLanguageModel', () => {
             "type": "tool-call",
           },
           {
-            "finishReason": "tool-calls",
+            "finishReason": {
+              "raw": "tool_calls",
+              "unified": "tool-calls",
+            },
             "type": "finish",
             "usage": {
               "inputTokens": {
@@ -1162,6 +1213,47 @@ describe('XaiChatLanguageModel', () => {
       `);
     });
 
+    it('should handle missing usage in streaming response', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"no-usage-test","object":"chat.completion.chunk","created":1750537778,"model":"grok-beta","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+          `data: {"id":"no-usage-test","object":"chat.completion.chunk","created":1750537778,"model":"grok-beta","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"no-usage-test","object":"chat.completion.chunk","created":1750537778,"model":"grok-beta","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+          `data: [DONE]\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+      const finishChunk = chunks.find(chunk => chunk.type === 'finish');
+
+      expect(finishChunk).toMatchObject({
+        type: 'finish',
+        finishReason: {
+          unified: 'stop',
+          raw: 'stop',
+        },
+        usage: {
+          inputTokens: {
+            total: 0,
+            noCache: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+          outputTokens: {
+            total: 0,
+            text: 0,
+            reasoning: 0,
+          },
+        },
+      });
+    });
+
     it('should stream citations as sources', async () => {
       server.urls['https://api.x.ai/v1/chat/completions'].response = {
         type: 'stream-chunks',
@@ -1229,7 +1321,10 @@ describe('XaiChatLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
               "inputTokens": {
@@ -1447,6 +1542,10 @@ describe('XaiChatLanguageModel', () => {
             "type": "reasoning-delta",
           },
           {
+            "id": "reasoning-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
+            "type": "reasoning-end",
+          },
+          {
             "id": "text-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
             "type": "text-start",
           },
@@ -1456,15 +1555,14 @@ describe('XaiChatLanguageModel', () => {
             "type": "text-delta",
           },
           {
-            "id": "reasoning-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
-            "type": "reasoning-end",
-          },
-          {
             "id": "text-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
               "inputTokens": {
@@ -1552,6 +1650,10 @@ describe('XaiChatLanguageModel', () => {
             "type": "reasoning-delta",
           },
           {
+            "id": "reasoning-grok-4-test",
+            "type": "reasoning-end",
+          },
+          {
             "id": "text-grok-4-test",
             "type": "text-start",
           },
@@ -1561,15 +1663,14 @@ describe('XaiChatLanguageModel', () => {
             "type": "text-delta",
           },
           {
-            "id": "reasoning-grok-4-test",
-            "type": "reasoning-end",
-          },
-          {
             "id": "text-grok-4-test",
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
               "inputTokens": {
@@ -1727,7 +1828,10 @@ describe('doStream with raw chunks', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1750,5 +1854,35 @@ describe('doStream with raw chunks', () => {
         },
       ]
     `);
+  });
+
+  describe('error handling', () => {
+    it('should throw APICallError when xai returns error with 200 status (doGenerate)', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          code: 'The service is currently unavailable',
+          error: 'Timed out waiting for first token',
+        },
+      };
+
+      await expect(model.doGenerate({ prompt: TEST_PROMPT })).rejects.toThrow(
+        'Timed out waiting for first token',
+      );
+    });
+
+    it('should throw APICallError when xai returns error with 200 status (doStream)', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          code: 'The service is currently unavailable',
+          error: 'Timed out waiting for first token',
+        },
+      };
+
+      await expect(model.doStream({ prompt: TEST_PROMPT })).rejects.toThrow(
+        'Timed out waiting for first token',
+      );
+    });
   });
 });

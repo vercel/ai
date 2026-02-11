@@ -74,16 +74,6 @@ export async function prepareTools({
 
   // Handle Anthropic provider-defined tools for Anthropic models on Bedrock
   if (usingAnthropicTools) {
-    if (functionTools.length > 0) {
-      toolWarnings.push({
-        type: 'unsupported',
-        feature:
-          'mixing Anthropic provider-defined tools and standard function tools',
-        details:
-          'Mixed Anthropic provider-defined tools and standard function tools are not supported in a single call to Bedrock. Only Anthropic tools will be used.',
-      });
-    }
-
     const {
       toolChoice: preparedAnthropicToolChoice,
       toolWarnings: anthropicToolWarnings,

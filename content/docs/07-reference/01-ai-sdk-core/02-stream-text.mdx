@@ -437,18 +437,18 @@ To see `streamText` in action, check out [these examples](#examples).
         'An optional abort signal that can be used to cancel the call.',
     },
     {
+      name: 'timeout',
+      type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number }',
+      isOptional: true,
+      description:
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, and/or chunkMs properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call), useful for multi-step generations. chunkMs sets the timeout between stream chunks - the call will abort if no new chunk is received within this duration, useful for detecting stalled streams. Can be used alongside abortSignal.',
+    },
+    {
       name: 'headers',
-      type: 'Record<string, string>',
+      type: 'Record<string, string | undefined>',
       isOptional: true,
       description:
         'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
-    },
-    {
-      name: 'experimental_generateMessageId',
-      type: '() => string',
-      isOptional: true,
-      description:
-        'Function used to generate a unique ID for each message. This is an experimental feature.',
     },
     {
       name: 'experimental_telemetry',
@@ -662,6 +662,13 @@ To see `streamText` in action, check out [these examples](#examples).
               description:
                 'Context that is passed into tool execution. Experimental. Changing the context will affect the context in this step and all subsequent steps.',
             },
+            {
+              name: 'providerOptions',
+              type: 'ProviderOptions',
+              isOptional: true,
+              description:
+                'Additional provider-specific options for this step. Can be used to pass provider-specific configuration such as container IDs for Anthropic code execution.',
+            },
           ],
         },
       ],
@@ -679,6 +686,27 @@ To see `streamText` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         'Custom download function to control how URLs are fetched when they appear in prompts. By default, files are downloaded if the model does not support the URL for the given media type. Experimental feature. Return null to pass the URL directly to the model (when supported), or return downloaded content with data and media type.',
+    },
+    {
+      name: 'experimental_include',
+      type: '{ requestBody?: boolean }',
+      isOptional: true,
+      description:
+        'Controls inclusion of request body in step results. By default, the body is included. When processing many large payloads (e.g., images), set requestBody to false to reduce memory usage. Experimental feature.',
+      properties: [
+        {
+          type: 'Object',
+          parameters: [
+            {
+              name: 'requestBody',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to include the request body in step results. The request body can be large when sending images or files. Default: true.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'experimental_repairToolCall',
@@ -1086,9 +1114,15 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown"',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
               description:
-                'The reason the model finished generating the text for the step.',
+                'The unified finish reason why the generation finished.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'usage',
@@ -1293,7 +1327,7 @@ To see `streamText` in action, check out [these examples](#examples).
                         'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
                     },
                     {
-                      name: 'model',
+                      name: 'modelId',
                       type: 'string',
                       description:
                         'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
@@ -1343,8 +1377,15 @@ To see `streamText` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown"',
-              description: 'The reason the model finished generating the text.',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
+              description:
+                'The unified finish reason why the generation finished.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'usage',
@@ -1641,7 +1682,7 @@ To see `streamText` in action, check out [these examples](#examples).
                         'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
                     },
                     {
-                      name: 'model',
+                      name: 'modelId',
                       type: 'string',
                       description:
                         'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
@@ -1716,9 +1757,15 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'finishReason',
-      type: "Promise<'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'>",
+      type: "PromiseLike<'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'>",
       description:
         'The reason why the generation finished. Automatically consumes the stream.',
+    },
+    {
+      name: 'rawFinishReason',
+      type: 'PromiseLike<string | undefined>',
+      description:
+        'The raw reason why the generation finished (from the provider).',
     },
     {
       name: 'usage',
@@ -1977,6 +2024,26 @@ To see `streamText` in action, check out [these examples](#examples).
         'The tool results that have been generated. Resolved when the all tool executions are finished.',
     },
     {
+      name: 'staticToolCalls',
+      type: 'PromiseLike<Array<StaticToolCall<TOOLS>>>',
+      description: 'The static tool calls that have been executed in the last step.',
+    },
+    {
+      name: 'dynamicToolCalls',
+      type: 'PromiseLike<Array<DynamicToolCall>>',
+      description: 'The dynamic tool calls that have been executed in the last step.',
+    },
+    {
+      name: 'staticToolResults',
+      type: 'PromiseLike<Array<StaticToolResult<TOOLS>>>',
+      description: 'The static tool results that have been generated in the last step.',
+    },
+    {
+      name: 'dynamicToolResults',
+      type: 'PromiseLike<Array<DynamicToolResult>>',
+      description: 'The dynamic tool results that have been generated in the last step.',
+    },
+    {
       name: 'request',
       type: 'Promise<LanguageModelRequestMetadata>',
       description: 'Additional request information from the last step.',
@@ -2009,7 +2076,7 @@ To see `streamText` in action, check out [these examples](#examples).
                 'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
             },
             {
-              name: 'model',
+              name: 'modelId',
               type: 'string',
               description:
                 'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
@@ -2149,8 +2216,14 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
               description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'usage',
@@ -2274,7 +2347,7 @@ To see `streamText` in action, check out [these examples](#examples).
                         'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
                     },
                     {
-                      name: 'model',
+                      name: 'modelId',
                       type: 'string',
                       description:
                         'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
@@ -2622,7 +2695,7 @@ To see `streamText` in action, check out [these examples](#examples).
                         'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
                     },
                     {
-                      name: 'model',
+                      name: 'modelId',
                       type: 'string',
                       description:
                         'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
@@ -2731,8 +2804,14 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
               description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'providerMetadata',
@@ -2763,15 +2842,21 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
               description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'totalUsage',
               type: 'LanguageModelUsage',
               description: 'The total token usage of the generated text.',
               properties: [
-          {
+                {
                   type: 'LanguageModelUsage',
                   parameters: [
                     {
@@ -2889,6 +2974,13 @@ To see `streamText` in action, check out [these examples](#examples).
               type: "'abort'",
               description: 'The type to identify the object as abort.',
             },
+            {
+              name: 'reason',
+              type: 'unknown',
+              isOptional: true,
+              description:
+                'Optional abort reason (from AbortSignal.reason) when the stream is aborted.',
+            },
           ],
         },
       ],
@@ -2898,6 +2990,12 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'AsyncIterableStream<PARTIAL_OUTPUT>',
       description:
         'A stream of partial parsed outputs. It uses the `output` specification. AsyncIterableStream is defined as AsyncIterable<T> & ReadableStream<T>.',
+    },
+    {
+      name: 'elementStream',
+      type: 'AsyncIterableStream<ELEMENT_OUTPUT>',
+      description:
+        'A stream of individual array elements as they complete. Only available when using `output: Output.array()`. Each element is complete and validated against the element schema. AsyncIterableStream is defined as AsyncIterable<T> & ReadableStream<T>.',
     },
     {
       name: 'output',

@@ -225,7 +225,7 @@ describe('convertUserContent', () => {
     expect(result.content).toBe('Part 1 Part 2');
   });
 
-  it('should filter out non-text parts', () => {
+  it('should include image parts with binary data using OpenAI image_url format', () => {
     const content: UserContent = [
       { type: 'text', text: 'Describe this image' },
       {
@@ -237,7 +237,117 @@ describe('convertUserContent', () => {
 
     const result = convertUserContent(content);
 
-    expect(result.content).toBe('Describe this image');
+    expect(result.content).toEqual([
+      { type: 'text', text: 'Describe this image' },
+      {
+        type: 'image_url',
+        image_url: { url: 'data:image/png;base64,AQID' }, // base64 of [1, 2, 3]
+      },
+    ]);
+  });
+
+  it('should include image parts with URL using OpenAI image_url format', () => {
+    const content: UserContent = [
+      { type: 'text', text: 'What is in this image?' },
+      {
+        type: 'image',
+        image: 'https://example.com/image.jpg',
+      },
+    ];
+
+    const result = convertUserContent(content);
+
+    expect(result.content).toEqual([
+      { type: 'text', text: 'What is in this image?' },
+      {
+        type: 'image_url',
+        image_url: { url: 'https://example.com/image.jpg' },
+      },
+    ]);
+  });
+
+  it('should include non-image file parts using file format', () => {
+    const content: UserContent = [
+      { type: 'text', text: 'Summarize this document' },
+      {
+        type: 'file',
+        data: 'https://example.com/doc.pdf',
+        mediaType: 'application/pdf',
+      },
+    ];
+
+    const result = convertUserContent(content);
+
+    expect(result.content).toEqual([
+      { type: 'text', text: 'Summarize this document' },
+      {
+        type: 'file',
+        url: 'https://example.com/doc.pdf',
+        mimeType: 'application/pdf',
+        filename: 'file.pdf',
+      },
+    ]);
+  });
+
+  it('should handle URL objects for images using OpenAI image_url format', () => {
+    const content: UserContent = [
+      { type: 'text', text: 'Describe' },
+      {
+        type: 'image',
+        image: new URL('https://example.com/photo.png'),
+      },
+    ];
+
+    const result = convertUserContent(content);
+
+    expect(result.content).toEqual([
+      { type: 'text', text: 'Describe' },
+      {
+        type: 'image_url',
+        image_url: { url: 'https://example.com/photo.png' },
+      },
+    ]);
+  });
+
+  it('should handle data URLs for images using OpenAI image_url format', () => {
+    const content: UserContent = [
+      { type: 'text', text: 'Analyze' },
+      {
+        type: 'image',
+        image: 'data:image/png;base64,abc123',
+      },
+    ];
+
+    const result = convertUserContent(content);
+
+    expect(result.content).toEqual([
+      { type: 'text', text: 'Analyze' },
+      {
+        type: 'image_url',
+        image_url: { url: 'data:image/png;base64,abc123' },
+      },
+    ]);
+  });
+
+  it('should handle image files (file type with image mediaType) using OpenAI image_url format', () => {
+    const content: UserContent = [
+      { type: 'text', text: 'What is this?' },
+      {
+        type: 'file',
+        data: 'https://example.com/photo.jpg',
+        mediaType: 'image/jpeg',
+      },
+    ];
+
+    const result = convertUserContent(content);
+
+    expect(result.content).toEqual([
+      { type: 'text', text: 'What is this?' },
+      {
+        type: 'image_url',
+        image_url: { url: 'https://example.com/photo.jpg' },
+      },
+    ]);
   });
 });
 
@@ -542,6 +652,102 @@ describe('processModelChunk', () => {
     expect(state.reasoningStarted).toBe(false);
     expect(state.textStarted).toBe(true);
   });
+
+  it('should maintain consistent IDs when chunk.id changes during reasoning-to-text transition', () => {
+    // This test reproduces the bug where the message ID changes between chunks,
+    // which would cause the client to fail to look up activeReasoningParts or activeTextParts
+    // because the ID used for *-start doesn't match the ID used for *-delta and *-end.
+    //
+    const state = {
+      started: false,
+      messageId: 'default',
+      reasoningStarted: false,
+      textStarted: false,
+      reasoningMessageId: null as string | null,
+      textMessageId: null as string | null,
+    };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    // First reasoning chunk arrives with id "run-abc123"
+    const reasoningChunk1 = new AIMessageChunk({
+      content: '',
+      id: 'run-abc123',
+    });
+    Object.defineProperty(reasoningChunk1, 'contentBlocks', {
+      get: () => [{ type: 'reasoning', reasoning: 'Let me think...' }],
+    });
+    processModelChunk(reasoningChunk1, state, controller);
+
+    const reasoningChunk2 = new AIMessageChunk({
+      content: '',
+      id: 'msg-xyz789',
+    });
+    Object.defineProperty(reasoningChunk2, 'contentBlocks', {
+      get: () => [{ type: 'reasoning', reasoning: ' about this.' }],
+    });
+    processModelChunk(reasoningChunk2, state, controller);
+
+    // Text chunk arrives with the new id "msg-xyz789"
+    const textChunk = new AIMessageChunk({
+      content: 'Here is my answer.',
+      id: 'msg-xyz789',
+    });
+    processModelChunk(textChunk, state, controller);
+
+    // Verify all reasoning chunks use the same id that was used for reasoning-start
+    // and all text chunks use the same id that was used for text-start
+    expect(chunks).toEqual([
+      { type: 'reasoning-start', id: 'run-abc123' },
+      { type: 'reasoning-delta', delta: 'Let me think...', id: 'run-abc123' },
+      { type: 'reasoning-delta', delta: ' about this.', id: 'run-abc123' },
+      { type: 'reasoning-end', id: 'run-abc123' },
+      { type: 'text-start', id: 'msg-xyz789' },
+      { type: 'text-delta', delta: 'Here is my answer.', id: 'msg-xyz789' },
+    ]);
+
+    expect(state.reasoningMessageId).toBe('run-abc123');
+    expect(state.textMessageId).toBe('msg-xyz789');
+    expect(state.messageId).toBe('msg-xyz789');
+  });
+
+  it('should maintain consistent text IDs when chunk.id changes during text streaming', () => {
+    // Similar bug can occur with text-only streaming if the ID changes between chunks
+
+    const state = {
+      started: false,
+      messageId: 'default',
+      reasoningStarted: false,
+      textStarted: false,
+      reasoningMessageId: null as string | null,
+      textMessageId: null as string | null,
+    };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    // First text chunk arrives with id "run-abc123"
+    const textChunk1 = new AIMessageChunk({
+      content: 'Hello',
+      id: 'run-abc123',
+    });
+    processModelChunk(textChunk1, state, controller);
+
+    const textChunk2 = new AIMessageChunk({
+      content: ' world!',
+      id: 'msg-xyz789',
+    });
+    processModelChunk(textChunk2, state, controller);
+
+    // Verify all text chunks use the same id that was used for text-start
+    expect(chunks).toEqual([
+      { type: 'text-start', id: 'run-abc123' },
+      { type: 'text-delta', delta: 'Hello', id: 'run-abc123' },
+      { type: 'text-delta', delta: ' world!', id: 'run-abc123' },
+    ]);
+
+    expect(state.textMessageId).toBe('run-abc123');
+    expect(state.messageId).toBe('msg-xyz789');
+  });
 });
 
 describe('isPlainMessageObject', () => {
@@ -734,7 +940,7 @@ describe('processLangGraphEvent', () => {
     emittedToolCallsByKey: new Map<string, string>(),
   });
 
-  it('should handle custom events', () => {
+  it('should handle custom events without type field (fallback to data-custom)', () => {
     const state = createMockState();
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
@@ -742,7 +948,97 @@ describe('processLangGraphEvent', () => {
     processLangGraphEvent(['custom', { data: 'value' }], state, controller);
 
     expect(chunks).toEqual([
-      { type: 'data-custom', transient: true, data: { data: 'value' } },
+      {
+        type: 'data-custom',
+        id: undefined,
+        transient: true,
+        data: { data: 'value' },
+      },
+    ]);
+  });
+
+  it('should handle custom events with type field (data-{type})', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      ['custom', { type: 'progress', value: 50, message: 'Processing...' }],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'data-progress',
+        id: undefined,
+        transient: true,
+        data: { type: 'progress', value: 50, message: 'Processing...' },
+      },
+    ]);
+  });
+
+  it('should handle custom events with id field (persistent, not transient)', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      [
+        'custom',
+        { type: 'progress', id: 'progress-1', value: 50, message: 'Half done' },
+      ],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'data-progress',
+        id: 'progress-1',
+        transient: false, // Has id, so NOT transient
+        data: {
+          type: 'progress',
+          id: 'progress-1',
+          value: 50,
+          message: 'Half done',
+        },
+      },
+    ]);
+  });
+
+  it('should handle custom events with different type names', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    // Test status event
+    processLangGraphEvent(
+      ['custom', { type: 'status', step: 'fetching', complete: false }],
+      state,
+      controller,
+    );
+
+    // Test analytics event
+    processLangGraphEvent(
+      ['custom', { type: 'analytics', event: 'tool_called', tool: 'weather' }],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'data-status',
+        id: undefined,
+        transient: true,
+        data: { type: 'status', step: 'fetching', complete: false },
+      },
+      {
+        type: 'data-analytics',
+        id: undefined,
+        transient: true,
+        data: { type: 'analytics', event: 'tool_called', tool: 'weather' },
+      },
     ]);
   });
 
@@ -758,7 +1054,71 @@ describe('processLangGraphEvent', () => {
     );
 
     expect(chunks).toEqual([
-      { type: 'data-custom', transient: true, data: { data: 'value' } },
+      {
+        type: 'data-custom',
+        id: undefined,
+        transient: true,
+        data: { data: 'value' },
+      },
+    ]);
+  });
+
+  it('should handle three-element arrays with namespace and type field', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      ['namespace', 'custom', { type: 'progress', value: 75 }],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'data-progress',
+        id: undefined,
+        transient: true,
+        data: { type: 'progress', value: 75 },
+      },
+    ]);
+  });
+
+  it('should handle custom events with string data (fallback to data-custom)', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(['custom', 'simple string data'], state, controller);
+
+    expect(chunks).toEqual([
+      {
+        type: 'data-custom',
+        id: undefined,
+        transient: true,
+        data: 'simple string data',
+      },
+    ]);
+  });
+
+  it('should handle custom events with array data (fallback to data-custom)', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      ['custom', [1, 2, 3, { type: 'ignored' }]],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'data-custom',
+        id: undefined,
+        transient: true,
+        data: [1, 2, 3, { type: 'ignored' }],
+      },
     ]);
   });
 
@@ -875,6 +1235,13 @@ describe('processLangGraphEvent', () => {
 
     processLangGraphEvent(['values', valuesData], state, controller);
 
+    // Should emit tool-input-start before tool-input-available for non-streamed tool calls
+    expect(chunks).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-1',
+      toolName: 'get_weather',
+      dynamic: true,
+    });
     expect(chunks).toContainEqual({
       type: 'tool-input-available',
       toolCallId: 'call-1',
@@ -1025,6 +1392,13 @@ describe('processLangGraphEvent', () => {
 
     processLangGraphEvent(['values', valuesData], state, controller);
 
+    // Should emit tool-input-start before tool-input-available for non-streamed tool calls
+    expect(chunks).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-1',
+      toolName: 'get_weather',
+      dynamic: true,
+    });
     expect(chunks).toContainEqual({
       type: 'tool-input-available',
       toolCallId: 'call-1',
@@ -1305,6 +1679,13 @@ describe('processLangGraphEvent', () => {
 
     processLangGraphEvent(['values', valuesWithInterrupt], state, controller);
 
+    // Should emit tool-input-start before tool-input-available for HITL tools
+    expect(chunks).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-hitl-1',
+      toolName: 'send_email',
+      dynamic: true,
+    });
     expect(chunks).toContainEqual({
       type: 'tool-input-available',
       toolCallId: 'call-hitl-1',
@@ -1367,6 +1748,21 @@ describe('processLangGraphEvent', () => {
       controller,
     );
 
+    // Check both tool starts
+    expect(chunks).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-email-1',
+      toolName: 'send_email',
+      dynamic: true,
+    });
+
+    expect(chunks).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-delete-1',
+      toolName: 'delete_file',
+      dynamic: true,
+    });
+
     // Check both tool inputs
     expect(chunks).toContainEqual({
       type: 'tool-input-available',
@@ -1427,7 +1823,19 @@ describe('processLangGraphEvent', () => {
       controller,
     );
 
-    // Should have generated a fallback ID
+    // Should have generated a fallback ID and emit tool-input-start first
+    const toolStartChunk = chunks.find(
+      (
+        c,
+      ): c is {
+        type: 'tool-input-start';
+        toolCallId: string;
+        toolName: string;
+      } => (c as { type: string }).type === 'tool-input-start',
+    );
+    expect(toolStartChunk).toBeDefined();
+    expect(toolStartChunk?.toolCallId).toMatch(/^hitl-send_email-/);
+
     const toolInputChunk = chunks.find(
       (
         c,
@@ -1440,6 +1848,7 @@ describe('processLangGraphEvent', () => {
     );
     expect(toolInputChunk).toBeDefined();
     expect(toolInputChunk?.toolCallId).toMatch(/^hitl-send_email-/);
+    expect(toolInputChunk?.toolCallId).toBe(toolStartChunk?.toolCallId);
 
     const approvalChunk = chunks.find(
       (
@@ -1487,6 +1896,14 @@ describe('processLangGraphEvent', () => {
     };
 
     processLangGraphEvent(['values', valuesWithInterrupt], state, controller);
+
+    // Should emit tool-input-start before tool-input-available
+    expect(chunks).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: expect.stringMatching(/^hitl-send_email-/),
+      toolName: 'send_email',
+      dynamic: true,
+    });
 
     expect(chunks).toContainEqual({
       type: 'tool-input-available',
@@ -1546,10 +1963,12 @@ describe('processLangGraphEvent', () => {
 
     processLangGraphEvent(['values', valuesWithInterrupt], state, controller);
 
-    // Should NOT emit another tool-input-available (already emitted)
+    // Should NOT emit tool-input-start or tool-input-available (already emitted)
     expect(
       chunks.filter(
-        c => (c as { type: string }).type === 'tool-input-available',
+        c =>
+          (c as { type: string }).type === 'tool-input-start' ||
+          (c as { type: string }).type === 'tool-input-available',
       ),
     ).toHaveLength(0);
 

@@ -3,6 +3,12 @@
     "type": "start"
   },
   {
+    "type": "tool-input-start",
+    "toolCallId": "call_LOd3dMxgYxmNLWZVWXra9xWQ",
+    "toolName": "delete_file",
+    "dynamic": true
+  },
+  {
     "type": "tool-input-available",
     "toolCallId": "call_LOd3dMxgYxmNLWZVWXra9xWQ",
     "toolName": "delete_file",
@@ -157,5 +163,11 @@
   {
     "type": "text-end",
     "id": "run-019b259a-78a0-7000-8000-09024ac88660"
+  },
+  {
+    "type": "finish-step"
+  },
+  {
+    "type": "finish"
   }
 ]

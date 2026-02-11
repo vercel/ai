@@ -2,9 +2,12 @@ import {
   APICallError,
   InvalidResponseDataError,
   LanguageModelV3,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
   SharedV3ProviderMetadata,
   SharedV3Warning,
 } from '@ai-sdk/provider';
@@ -55,6 +58,13 @@ export type OpenAICompatibleChatConfig = {
    * The supported URLs for the model.
    */
   supportedUrls?: () => LanguageModelV3['supportedUrls'];
+
+  /**
+   * Optional function to transform the request body before sending it to the API.
+   * This is useful for proxy providers that may require a different request format
+   * than the official OpenAI API.
+   */
+  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
 };
 
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
@@ -97,6 +107,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     return this.config.supportedUrls?.() ?? {};
   }
 
+  private transformRequestBody(args: Record<string, any>): Record<string, any> {
+    return this.config.transformRequestBody?.(args) ?? args;
+  }
+
   private async getArgs({
     prompt,
     maxOutputTokens,
@@ -111,13 +125,27 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     seed,
     toolChoice,
     tools,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+  }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
 
-    // Parse provider options
+    // Parse provider options - check for deprecated 'openai-compatible' key
+    const deprecatedOptions = await parseProviderOptions({
+      provider: 'openai-compatible',
+      providerOptions,
+      schema: openaiCompatibleProviderOptions,
+    });
+
+    if (deprecatedOptions != null) {
+      warnings.push({
+        type: 'other',
+        message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
+      });
+    }
+
     const compatibleOptions = Object.assign(
+      deprecatedOptions ?? {},
       (await parseProviderOptions({
-        provider: 'openai-compatible',
+        provider: 'openaiCompatible',
         providerOptions,
         schema: openaiCompatibleProviderOptions,
       })) ?? {},
@@ -127,6 +155,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         schema: openaiCompatibleProviderOptions,
       })) ?? {},
     );
+
+    const strictJsonSchema = compatibleOptions?.strictJsonSchema ?? true;
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -176,6 +206,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
                   type: 'json_schema',
                   json_schema: {
                     schema: responseFormat.schema,
+                    strict: strictJsonSchema,
                     name: responseFormat.name ?? 'response',
                     description: responseFormat.description,
                   },
@@ -209,11 +240,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const { args, warnings } = await this.getArgs({ ...options });
 
-    const body = JSON.stringify(args);
+    const transformedBody = this.transformRequestBody(args);
+    const body = JSON.stringify(transformedBody);
 
     const {
       responseHeaders,
@@ -225,7 +257,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: args,
+      body: transformedBody,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         OpenAICompatibleChatResponseSchema,
@@ -256,11 +288,20 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     // tool calls:
     if (choice.message.tool_calls != null) {
       for (const toolCall of choice.message.tool_calls) {
+        const thoughtSignature =
+          toolCall.extra_content?.google?.thought_signature;
         content.push({
           type: 'tool-call',
           toolCallId: toolCall.id ?? generateId(),
           toolName: toolCall.function.name,
           input: toolCall.function.arguments!,
+          ...(thoughtSignature
+            ? {
+                providerMetadata: {
+                  [this.providerOptionsName]: { thoughtSignature },
+                },
+              }
+            : {}),
         });
       }
     }
@@ -285,7 +326,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapOpenAICompatibleFinishReason(choice.finish_reason),
+      finishReason: {
+        unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
+        raw: choice.finish_reason ?? undefined,
+      },
       usage: convertOpenAICompatibleChatUsage(responseBody.usage),
       providerMetadata,
       request: { body },
@@ -299,11 +343,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const { args, warnings } = await this.getArgs({ ...options });
 
-    const body = {
+    const body = this.transformRequestBody({
       ...args,
       stream: true,
 
@@ -311,7 +355,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       stream_options: this.config.includeUsage
         ? { include_usage: true }
         : undefined,
-    };
+    });
 
     const metadataExtractor =
       this.config.metadataExtractor?.createStreamExtractor();
@@ -339,9 +383,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         arguments: string;
       };
       hasFinished: boolean;
+      thoughtSignature?: string;
     }> = [];
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     let usage: z.infer<typeof openaiCompatibleTokenUsageSchema> | undefined =
       undefined;
     let isFirstChunk = true;
@@ -367,7 +415,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -376,7 +424,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
 
             // handle error chunks:
             if ('error' in chunk.value) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({
                 type: 'error',
                 error: chunk.value.error.message,
@@ -404,9 +452,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
             const choice = value.choices[0];
 
             if (choice?.finish_reason != null) {
-              finishReason = mapOpenAICompatibleFinishReason(
-                choice.finish_reason,
-              );
+              finishReason = {
+                unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
+                raw: choice.finish_reason ?? undefined,
+              };
             }
 
             if (choice?.delta == null) {
@@ -434,6 +483,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
             }
 
             if (delta.content) {
+              // end active reasoning block before text starts
+              if (isActiveReasoning) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: 'reasoning-0',
+                });
+                isActiveReasoning = false;
+              }
+
               if (!isActiveText) {
                 controller.enqueue({ type: 'text-start', id: 'txt-0' });
                 isActiveText = true;
@@ -447,8 +505,17 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
             }
 
             if (delta.tool_calls != null) {
+              // end active reasoning block before tool calls start
+              if (isActiveReasoning) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: 'reasoning-0',
+                });
+                isActiveReasoning = false;
+              }
+
               for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index;
+                const index = toolCallDelta.index ?? toolCalls.length;
 
                 if (toolCalls[index] == null) {
                   if (toolCallDelta.id == null) {
@@ -479,6 +546,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
                       arguments: toolCallDelta.function.arguments ?? '',
                     },
                     hasFinished: false,
+                    thoughtSignature:
+                      toolCallDelta.extra_content?.google?.thought_signature ??
+                      undefined,
                   };
 
                   const toolCall = toolCalls[index];
@@ -509,6 +579,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
                         toolCallId: toolCall.id ?? generateId(),
                         toolName: toolCall.function.name,
                         input: toolCall.function.arguments,
+                        ...(toolCall.thoughtSignature
+                          ? {
+                              providerMetadata: {
+                                [providerOptionsName]: {
+                                  thoughtSignature: toolCall.thoughtSignature,
+                                },
+                              },
+                            }
+                          : {}),
                       });
                       toolCall.hasFinished = true;
                     }
@@ -552,6 +631,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
                     toolCallId: toolCall.id ?? generateId(),
                     toolName: toolCall.function.name,
                     input: toolCall.function.arguments,
+                    ...(toolCall.thoughtSignature
+                      ? {
+                          providerMetadata: {
+                            [providerOptionsName]: {
+                              thoughtSignature: toolCall.thoughtSignature,
+                            },
+                          },
+                        }
+                      : {}),
                   });
                   toolCall.hasFinished = true;
                 }
@@ -582,6 +670,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
                 toolCallId: toolCall.id ?? generateId(),
                 toolName: toolCall.function.name,
                 input: toolCall.function.arguments,
+                ...(toolCall.thoughtSignature
+                  ? {
+                      providerMetadata: {
+                        [providerOptionsName]: {
+                          thoughtSignature: toolCall.thoughtSignature,
+                        },
+                      },
+                    }
+                  : {}),
               });
             }
 
@@ -620,7 +717,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
 }
 
 const openaiCompatibleTokenUsageSchema = z
-  .object({
+  .looseObject({
     prompt_tokens: z.number().nullish(),
     completion_tokens: z.number().nullish(),
     total_tokens: z.number().nullish(),
@@ -641,7 +738,7 @@ const openaiCompatibleTokenUsageSchema = z
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const OpenAICompatibleChatResponseSchema = z.object({
+const OpenAICompatibleChatResponseSchema = z.looseObject({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
@@ -660,6 +757,16 @@ const OpenAICompatibleChatResponseSchema = z.object({
                 name: z.string(),
                 arguments: z.string(),
               }),
+              // Support for Google Gemini thought signatures via OpenAI compatibility
+              extra_content: z
+                .object({
+                  google: z
+                    .object({
+                      thought_signature: z.string().nullish(),
+                    })
+                    .nullish(),
+                })
+                .nullish(),
             }),
           )
           .nullish(),
@@ -670,7 +777,7 @@ const OpenAICompatibleChatResponseSchema = z.object({
   usage: openaiCompatibleTokenUsageSchema,
 });
 
-const chunkBaseSchema = z.object({
+const chunkBaseSchema = z.looseObject({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
@@ -687,12 +794,22 @@ const chunkBaseSchema = z.object({
           tool_calls: z
             .array(
               z.object({
-                index: z.number(),
+                index: z.number().nullish(), //google does not send index
                 id: z.string().nullish(),
                 function: z.object({
                   name: z.string().nullish(),
                   arguments: z.string().nullish(),
                 }),
+                // Support for Google Gemini thought signatures via OpenAI compatibility
+                extra_content: z
+                  .object({
+                    google: z
+                      .object({
+                        thought_signature: z.string().nullish(),
+                      })
+                      .nullish(),
+                  })
+                  .nullish(),
               }),
             )
             .nullish(),

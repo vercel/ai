@@ -29,15 +29,15 @@ import {
 } from './ui-messages';
 
 /**
-Converts an array of UI messages from useChat into an array of ModelMessages that can be used
-with the AI functions (e.g. `streamText`, `generateText`).
-
-@param messages - The UI messages to convert.
-@param options.tools - The tools to use.
-@param options.ignoreIncompleteToolCalls - Whether to ignore incomplete tool calls. Default is `false`.
-@param options.convertDataPart - Optional function to convert data parts to text or file model message parts. Returns `undefined` if the part should be ignored.
-
-@returns An array of ModelMessages.
+ * Converts an array of UI messages from useChat into an array of ModelMessages that can be used
+ * with the AI functions (e.g. `streamText`, `generateText`).
+ *
+ * @param messages - The UI messages to convert.
+ * @param options.tools - The tools to use.
+ * @param options.ignoreIncompleteToolCalls - Whether to ignore incomplete tool calls. Default is `false`.
+ * @param options.convertDataPart - Optional function to convert data parts to text or file model message parts. Returns `undefined` if the part should be ignored.
+ *
+ * @returns An array of ModelMessages.
  */
 export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
   messages: Array<Omit<UI_MESSAGE, 'id'>>,
@@ -198,6 +198,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 
                   if (
                     part.providerExecuted === true &&
+                    part.state !== 'approval-responded' &&
                     (part.state === 'output-available' ||
                       part.state === 'output-error')
                   ) {
@@ -242,8 +243,12 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
             });
 
             // check if there are tool invocations with results in the block
+            // Include non-provider-executed tools, OR provider-executed tools with approval responses
             const toolParts = block.filter(
-              part => isToolUIPart(part) && part.providerExecuted !== true,
+              part =>
+                isToolUIPart(part) &&
+                (part.providerExecuted !== true ||
+                  part.approval?.approved != null),
             ) as (
               | ToolUIPart<InferUIMessageTools<UI_MESSAGE>>
               | DynamicToolUIPart
@@ -262,7 +267,15 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       approvalId: toolPart.approval.id,
                       approved: toolPart.approval.approved,
                       reason: toolPart.approval.reason,
+                      providerExecuted: toolPart.providerExecuted,
                     });
+                  }
+
+                  // For provider-executed tools, the tool result is already in the
+                  // assistant content. Skip adding to tool message to avoid duplicates
+                  // (which would create orphaned function_call_output entries).
+                  if (toolPart.providerExecuted === true) {
+                    continue;
                   }
 
                   switch (toolPart.state) {
@@ -311,10 +324,12 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   }
                 }
 
-                modelMessages.push({
-                  role: 'tool',
-                  content,
-                });
+                if (content.length > 0) {
+                  modelMessages.push({
+                    role: 'tool',
+                    content,
+                  });
+                }
               }
             }
 

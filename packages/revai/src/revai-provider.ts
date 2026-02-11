@@ -21,7 +21,7 @@ export interface RevaiProvider extends ProviderV3 {
   };
 
   /**
-Creates a model for transcription.
+   * Creates a model for transcription.
    */
   transcription(modelId: RevaiTranscriptionModelId): TranscriptionModelV3;
 
@@ -33,24 +33,24 @@ Creates a model for transcription.
 
 export interface RevaiProviderSettings {
   /**
-API key for authenticating requests.
-     */
+   * API key for authenticating requests.
+   */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 /**
-Create a Rev.ai provider instance.
+ * Create a Rev.ai provider instance.
  */
 export function createRevai(
   options: RevaiProviderSettings = {},
@@ -115,6 +115,6 @@ export function createRevai(
 }
 
 /**
-Default Rev.ai provider instance.
+ * Default Rev.ai provider instance.
  */
 export const revai = createRevai();

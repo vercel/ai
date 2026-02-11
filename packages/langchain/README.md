@@ -16,6 +16,7 @@ npm install @ai-sdk/langchain @langchain/core
 - Transform LangChain/LangGraph streams to AI SDK `UIMessageStream`
 - `ChatTransport` implementation for LangSmith deployments
 - Full support for text, tool calls, and tool results
+- Custom data streaming with typed events (`data-{type}`)
 
 ## Usage
 
@@ -54,6 +55,86 @@ return createUIMessageStreamResponse({
   stream: toUIMessageStream(langchainStream),
 });
 ```
+
+### Streaming with `streamEvents`
+
+You can also use `toUIMessageStream` with `streamEvents()` for more granular event handling:
+
+```ts
+import { toBaseMessages, toUIMessageStream } from '@ai-sdk/langchain';
+import { createUIMessageStreamResponse } from 'ai';
+
+// Using streamEvents with an agent
+const langchainMessages = await toBaseMessages(uiMessages);
+const streamEvents = agent.streamEvents(
+  { messages: langchainMessages },
+  { version: 'v2' },
+);
+
+// Convert to UI message stream response
+return createUIMessageStreamResponse({
+  stream: toUIMessageStream(streamEvents),
+});
+```
+
+The adapter automatically detects the stream type and handles:
+
+- `on_chat_model_stream` events for text streaming
+- `on_tool_start` and `on_tool_end` events for tool calls
+- Reasoning content from contentBlocks
+
+### Custom Data Streaming
+
+LangChain tools can emit custom data events using `config.writer()`. The adapter converts these to typed `data-{type}` parts:
+
+```ts
+import { tool, type ToolRuntime } from 'langchain';
+
+const analyzeDataTool = tool(
+  async ({ query }, config: ToolRuntime) => {
+    // Emit progress updates - becomes 'data-progress' in the UI
+    config.writer?.({
+      type: 'progress',
+      id: 'analysis-1', // Include 'id' to persist in message.parts
+      step: 'fetching',
+      message: 'Fetching data...',
+      progress: 50,
+    });
+
+    // ... perform analysis ...
+
+    // Emit status update - becomes 'data-status' in the UI
+    config.writer?.({
+      type: 'status',
+      id: 'analysis-1-status',
+      status: 'complete',
+      message: 'Analysis finished',
+    });
+
+    return 'Analysis complete';
+  },
+  {
+    name: 'analyze_data',
+    description: 'Analyze data with progress updates',
+    schema: z.object({ query: z.string() }),
+  },
+);
+```
+
+Enable the `custom` stream mode to receive these events:
+
+```ts
+const stream = await graph.stream(
+  { messages: langchainMessages },
+  { streamMode: ['values', 'messages', 'custom'] },
+);
+```
+
+**Custom data behavior:**
+
+- Data with an `id` field is **persistent** (added to `message.parts` for rendering)
+- Data without an `id` is **transient** (only delivered via the `onData` callback)
+- The `type` field determines the event name: `{ type: 'progress' }` → `data-progress`
 
 ### LangSmith Deployment Transport
 
@@ -120,15 +201,27 @@ Converts a LangChain/LangGraph stream to an AI SDK `UIMessageStream`.
 
 **Parameters:**
 
-- `stream`: `ReadableStream` - LangGraph stream with `streamMode: ['values', 'messages']`
+- `stream`: `AsyncIterable | ReadableStream` - A stream from LangChain `model.stream()`, LangGraph `graph.stream()`, or `streamEvents()`
 
 **Returns:** `ReadableStream<UIMessageChunk>`
 
-**Supported stream events:**
+**Supported stream types:**
+
+- **Model streams** - Direct `AIMessageChunk` streams from `model.stream()`
+- **LangGraph streams** - Streams with `streamMode: ['values', 'messages']`
+- **streamEvents** - Event streams from `agent.streamEvents()` or `model.streamEvents()`
+
+**Supported LangGraph stream events:**
 
 - `messages` - Streaming message chunks (text, tool calls)
 - `values` - State updates that finalize pending message chunks
-- `custom` - Custom data events
+- `custom` - Custom data events (emitted as `data-{type}` chunks)
+
+**Supported streamEvents events:**
+
+- `on_chat_model_stream` - Token streaming from chat models
+- `on_tool_start` - Tool execution start
+- `on_tool_end` - Tool execution end with output
 
 ### `LangSmithDeploymentTransport`
 

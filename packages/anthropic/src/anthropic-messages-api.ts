@@ -40,7 +40,14 @@ export interface AnthropicAssistantMessage {
     | AnthropicTextEditorCodeExecutionToolResultContent
     | AnthropicMcpToolUseContent
     | AnthropicMcpToolResultContent
+    | AnthropicCompactionContent
   >;
+}
+
+export interface AnthropicCompactionContent {
+  type: 'compaction';
+  content: string;
+  cache_control?: AnthropicCacheControl;
 }
 
 export interface AnthropicTextContent {
@@ -97,11 +104,29 @@ export interface AnthropicDocumentContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+/**
+ * The caller information for programmatic tool calling.
+ * Present when a tool is called from within code execution.
+ */
+export type AnthropicToolCallCaller =
+  | {
+      type: 'code_execution_20250825';
+      tool_id: string;
+    }
+  | {
+      type: 'direct';
+    };
+
 export interface AnthropicToolCallContent {
   type: 'tool_use';
   id: string;
   name: string;
   input: unknown;
+  /**
+   * Present when this tool call was triggered by a server-executed tool
+   * (e.g., code execution calling a user-defined tool programmatically).
+   */
+  caller?: AnthropicToolCallCaller;
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -146,6 +171,11 @@ type AnthropicNestedDocumentContent = Omit<
   cache_control?: never;
 };
 
+export interface AnthropicToolReferenceContent {
+  type: 'tool_reference';
+  tool_name: string;
+}
+
 export interface AnthropicToolResultContent {
   type: 'tool_result';
   tool_use_id: string;
@@ -155,6 +185,7 @@ export interface AnthropicToolResultContent {
         | AnthropicNestedTextContent
         | AnthropicNestedImageContent
         | AnthropicNestedDocumentContent
+        | AnthropicToolReferenceContent
       >;
   is_error: boolean | undefined;
   cache_control: AnthropicCacheControl | undefined;
@@ -195,12 +226,18 @@ export interface AnthropicToolSearchToolResultContent {
 export interface AnthropicCodeExecutionToolResultContent {
   type: 'code_execution_tool_result';
   tool_use_id: string;
-  content: {
-    type: 'code_execution_result';
-    stdout: string;
-    stderr: string;
-    return_code: number;
-  };
+  content:
+    | {
+        type: 'code_execution_result';
+        stdout: string;
+        stderr: string;
+        return_code: number;
+        content: Array<{ type: 'code_execution_output'; file_id: string }>;
+      }
+    | {
+        type: 'code_execution_tool_result_error';
+        error_code: string;
+      };
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -261,22 +298,26 @@ export interface AnthropicBashCodeExecutionToolResultContent {
 export interface AnthropicWebFetchToolResultContent {
   type: 'web_fetch_tool_result';
   tool_use_id: string;
-  content: {
-    type: 'web_fetch_result';
-    url: string;
-    retrieved_at: string | null;
-    content: {
-      type: 'document';
-      title: string | null;
-      citations?: { enabled: boolean };
-      source:
-        | { type: 'base64'; media_type: 'application/pdf'; data: string }
-        | { type: 'text'; media_type: 'text/plain'; data: string };
-    };
-  };
+  content:
+    | {
+        type: 'web_fetch_result';
+        url: string;
+        retrieved_at: string | null;
+        content: {
+          type: 'document';
+          title: string | null;
+          citations?: { enabled: boolean };
+          source:
+            | { type: 'base64'; media_type: 'application/pdf'; data: string }
+            | { type: 'text'; media_type: 'text/plain'; data: string };
+        };
+      }
+    | {
+        type: 'web_fetch_tool_result_error';
+        error_code: string;
+      };
   cache_control: AnthropicCacheControl | undefined;
 }
-
 export interface AnthropicMcpToolUseContent {
   type: 'mcp_tool_use';
   id: string;
@@ -306,6 +347,14 @@ export type AnthropicTool =
        * discovered via the tool search tool.
        */
       defer_loading?: boolean;
+      /**
+       * Programmatic tool calling: specifies which server-executed tools
+       * are allowed to call this tool. When set, only the specified callers
+       * can invoke this tool programmatically.
+       *
+       * @example ['code_execution_20250825']
+       */
+      allowed_callers?: Array<'code_execution_20250825'>;
     }
   | {
       type: 'code_execution_20250522';
@@ -322,6 +371,15 @@ export type AnthropicTool =
       display_width_px: number;
       display_height_px: number;
       display_number: number;
+      cache_control: AnthropicCacheControl | undefined;
+    }
+  | {
+      name: string;
+      type: 'computer_20251124';
+      display_width_px: number;
+      display_height_px: number;
+      display_number: number;
+      enable_zoom?: boolean;
       cache_control: AnthropicCacheControl | undefined;
     }
   | {
@@ -428,9 +486,17 @@ export type AnthropicClearThinkingBlockEdit = {
   keep?: 'all' | { type: 'thinking_turns'; value: number };
 };
 
+export type AnthropicCompactEdit = {
+  type: 'compact_20260112';
+  trigger?: AnthropicInputTokensTrigger;
+  pause_after_compaction?: boolean;
+  instructions?: string;
+};
+
 export type AnthropicContextManagementEdit =
   | AnthropicClearToolUsesEdit
-  | AnthropicClearThinkingBlockEdit;
+  | AnthropicClearThinkingBlockEdit
+  | AnthropicCompactEdit;
 
 export type AnthropicContextManagementConfig = {
   edits: AnthropicContextManagementEdit[];
@@ -448,9 +514,14 @@ export type AnthropicResponseClearThinkingBlockEdit = {
   cleared_input_tokens: number;
 };
 
+export type AnthropicResponseCompactEdit = {
+  type: 'compact_20260112';
+};
+
 export type AnthropicResponseContextManagementEdit =
   | AnthropicResponseClearToolUsesEdit
-  | AnthropicResponseClearThinkingBlockEdit;
+  | AnthropicResponseClearThinkingBlockEdit
+  | AnthropicResponseCompactEdit;
 
 export type AnthropicResponseContextManagement = {
   applied_edits: AnthropicResponseContextManagementEdit[];
@@ -509,10 +580,26 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
             data: z.string(),
           }),
           z.object({
+            type: z.literal('compaction'),
+            content: z.string(),
+          }),
+          z.object({
             type: z.literal('tool_use'),
             id: z.string(),
             name: z.string(),
             input: z.unknown(),
+            // Programmatic tool calling: caller info when triggered from code execution
+            caller: z
+              .union([
+                z.object({
+                  type: z.literal('code_execution_20250825'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('direct'),
+                }),
+              ])
+              .optional(),
           }),
           z.object({
             type: z.literal('server_tool_use'),
@@ -599,6 +686,15 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
                 stdout: z.string(),
                 stderr: z.string(),
                 return_code: z.number(),
+                content: z
+                  .array(
+                    z.object({
+                      type: z.literal('code_execution_output'),
+                      file_id: z.string(),
+                    }),
+                  )
+                  .optional()
+                  .default([]),
               }),
               z.object({
                 type: z.literal('code_execution_tool_result_error'),
@@ -691,6 +787,15 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
         output_tokens: z.number(),
         cache_creation_input_tokens: z.number().nullish(),
         cache_read_input_tokens: z.number().nullish(),
+        iterations: z
+          .array(
+            z.object({
+              type: z.union([z.literal('compaction'), z.literal('message')]),
+              input_tokens: z.number(),
+              output_tokens: z.number(),
+            }),
+          )
+          .nullish(),
       }),
       container: z
         .object({
@@ -721,6 +826,9 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
                 cleared_thinking_turns: z.number(),
                 cleared_input_tokens: z.number(),
               }),
+              z.object({
+                type: z.literal('compact_20260112'),
+              }),
             ]),
           ),
         })
@@ -739,11 +847,43 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
         message: z.object({
           id: z.string().nullish(),
           model: z.string().nullish(),
+          role: z.string().nullish(),
           usage: z.looseObject({
             input_tokens: z.number(),
             cache_creation_input_tokens: z.number().nullish(),
             cache_read_input_tokens: z.number().nullish(),
           }),
+          // Programmatic tool calling: content may be pre-populated for deferred tool calls
+          content: z
+            .array(
+              z.discriminatedUnion('type', [
+                z.object({
+                  type: z.literal('tool_use'),
+                  id: z.string(),
+                  name: z.string(),
+                  input: z.unknown(),
+                  caller: z
+                    .union([
+                      z.object({
+                        type: z.literal('code_execution_20250825'),
+                        tool_id: z.string(),
+                      }),
+                      z.object({
+                        type: z.literal('direct'),
+                      }),
+                    ])
+                    .optional(),
+                }),
+              ]),
+            )
+            .nullish(),
+          stop_reason: z.string().nullish(),
+          container: z
+            .object({
+              expires_at: z.string(),
+              id: z.string(),
+            })
+            .nullish(),
         }),
       }),
       z.object({
@@ -762,10 +902,28 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             type: z.literal('tool_use'),
             id: z.string(),
             name: z.string(),
+            // Programmatic tool calling: input may be present directly for deferred tool calls
+            input: z.record(z.string(), z.unknown()).optional(),
+            // Programmatic tool calling: caller info when triggered from code execution
+            caller: z
+              .union([
+                z.object({
+                  type: z.literal('code_execution_20250825'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('direct'),
+                }),
+              ])
+              .optional(),
           }),
           z.object({
             type: z.literal('redacted_thinking'),
             data: z.string(),
+          }),
+          z.object({
+            type: z.literal('compaction'),
+            content: z.string().nullish(),
           }),
           z.object({
             type: z.literal('server_tool_use'),
@@ -852,6 +1010,15 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                 stdout: z.string(),
                 stderr: z.string(),
                 return_code: z.number(),
+                content: z
+                  .array(
+                    z.object({
+                      type: z.literal('code_execution_output'),
+                      file_id: z.string(),
+                    }),
+                  )
+                  .optional()
+                  .default([]),
               }),
               z.object({
                 type: z.literal('code_execution_tool_result_error'),
@@ -958,6 +1125,10 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             signature: z.string(),
           }),
           z.object({
+            type: z.literal('compaction_delta'),
+            content: z.string(),
+          }),
+          z.object({
             type: z.literal('citations_delta'),
             citation: z.discriminatedUnion('type', [
               z.object({
@@ -1021,29 +1192,43 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                 .nullish(),
             })
             .nullish(),
-          context_management: z
-            .object({
-              applied_edits: z.array(
-                z.union([
-                  z.object({
-                    type: z.literal('clear_tool_uses_20250919'),
-                    cleared_tool_uses: z.number(),
-                    cleared_input_tokens: z.number(),
-                  }),
-                  z.object({
-                    type: z.literal('clear_thinking_20251015'),
-                    cleared_thinking_turns: z.number(),
-                    cleared_input_tokens: z.number(),
-                  }),
-                ]),
-              ),
-            })
-            .nullish(),
         }),
         usage: z.looseObject({
+          input_tokens: z.number().nullish(),
           output_tokens: z.number(),
           cache_creation_input_tokens: z.number().nullish(),
+          cache_read_input_tokens: z.number().nullish(),
+          iterations: z
+            .array(
+              z.object({
+                type: z.union([z.literal('compaction'), z.literal('message')]),
+                input_tokens: z.number(),
+                output_tokens: z.number(),
+              }),
+            )
+            .nullish(),
         }),
+        context_management: z
+          .object({
+            applied_edits: z.array(
+              z.union([
+                z.object({
+                  type: z.literal('clear_tool_uses_20250919'),
+                  cleared_tool_uses: z.number(),
+                  cleared_input_tokens: z.number(),
+                }),
+                z.object({
+                  type: z.literal('clear_thinking_20251015'),
+                  cleared_thinking_turns: z.number(),
+                  cleared_input_tokens: z.number(),
+                }),
+                z.object({
+                  type: z.literal('compact_20260112'),
+                }),
+              ]),
+            ),
+          })
+          .nullish(),
       }),
       z.object({
         type: z.literal('message_stop'),

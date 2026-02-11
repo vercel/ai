@@ -9,7 +9,7 @@ import { InvalidDataContentError } from './invalid-data-content-error';
 import { splitDataUrl } from './split-data-url';
 
 /**
-@internal
+ * @internal
  */
 export const dataContentSchema: z.ZodType<DataContent> = z.union([
   z.string(),
@@ -69,11 +69,11 @@ export function convertToLanguageModelV3DataContent(
 }
 
 /**
-Converts data content to a base64-encoded string.
-
-@param content - Data content to convert.
-@returns Base64-encoded string.
-*/
+ * Converts data content to a base64-encoded string.
+ *
+ * @param content - Data content to convert.
+ * @returns Base64-encoded string.
+ */
 export function convertDataContentToBase64String(content: DataContent): string {
   if (typeof content === 'string') {
     return content;
@@ -87,10 +87,10 @@ export function convertDataContentToBase64String(content: DataContent): string {
 }
 
 /**
-Converts data content to a Uint8Array.
-
-@param content - Data content to convert.
-@returns Uint8Array.
+ * Converts data content to a Uint8Array.
+ *
+ * @param content - Data content to convert.
+ * @returns Uint8Array.
  */
 export function convertDataContentToUint8Array(
   content: DataContent,

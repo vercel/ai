@@ -76,6 +76,7 @@ const factory = createProviderToolFactoryWithOutputSchema<
   id: 'anthropic.tool_search_regex_20251119',
   inputSchema: toolSearchRegex_20251119InputSchema,
   outputSchema: toolSearchRegex_20251119OutputSchema,
+  supportsDeferredResults: true,
 });
 
 /**

@@ -80,7 +80,7 @@ For more on image generation with the AI SDK see [generateImage()](/docs/referen
 
 ```ts
 import { fal } from '@ai-sdk/fal';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import fs from 'fs';
 
 const { image, providerMetadata } = await generateImage({
@@ -101,7 +101,7 @@ Here are some examples of properties that may be set for each image
 providerMetadata.fal.images[0].nsfw; // boolean, image is not safe for work
 providerMetadata.fal.images[0].width; // number, image width
 providerMetadata.fal.images[0].height; // number, image height
-providerMetadata.fal.images[0].content_type; // string, mime type of the image
+providerMetadata.fal.images[0].contentType; // string, mime type of the image
 ```
 
 ### Model Capabilities
@@ -146,15 +146,27 @@ Key features of Fal models include:
 Transform existing images using text prompts.
 
 ```ts
-// Example: Modify existing image
 await generateImage({
-  model: fal.image('fal-ai/flux-pro/kontext'),
-  prompt: 'Put a donut next to the flour.',
-  providerOptions: {
-    fal: {
-      imageUrl:
-        'https://v3.fal.media/files/rabbit/rmgBxhwGYb2d3pl3x9sKf_output.png',
-    },
+  model: fal.image('fal-ai/flux-pro/kontext/max'),
+  prompt: {
+    text: 'Put a donut next to the flour.',
+    images: [
+      'https://v3.fal.media/files/rabbit/rmgBxhwGYb2d3pl3x9sKf_output.png',
+    ],
+  },
+});
+```
+
+Images can also be passed as base64-encoded string, a `Uint8Array`, an `ArrayBuffer`, or a `Buffer`.
+A mask can be passed as well
+
+```ts
+await generateImage({
+  model: fal.image('fal-ai/flux-pro/kontext/max'),
+  prompt: {
+    text: 'Put a donut next to the flour.',
+    images: [imageBuffer],
+    mask: maskBuffer,
   },
 });
 ```
@@ -163,7 +175,7 @@ await generateImage({
 
 Fal image models support flexible provider options through the `providerOptions.fal` object. You can pass any parameters supported by the specific Fal model's API. Common options include:
 
-- **imageUrl** - Reference image URL for image-to-image generation
+- **imageUrl** - Reference image URL for image-to-image generation (deprecated, use `prompt.images` instead)
 - **strength** - Controls how much the output differs from the input image
 - **guidanceScale** - Controls adherence to the prompt (range: 1-20)
 - **numInferenceSteps** - Number of denoising steps (range: 1-50)
@@ -172,10 +184,11 @@ Fal image models support flexible provider options through the `providerOptions.
 - **syncMode** - Wait for completion before returning response
 - **acceleration** - Speed of generation: 'none', 'regular', or 'high'
 - **safetyTolerance** - Content safety filtering level (1-6, where 1 is strictest)
+- **useMultipleImages** - When true, converts multiple input images to `image_urls` array for models that support multiple images (e.g., fal-ai/flux-2/edit)
 
 <Note type="warning">
   **Deprecation Notice**: snake_case parameter names (e.g., `image_url`,
-  `guidance_scale`) are deprecated and will be removed in `@ai-sdk/fal` v2.0.
+  `guidance_scale`) are deprecated and will be removed in a future version.
   Please use camelCase names (e.g., `imageUrl`, `guidanceScale`) instead.
 </Note>
 
@@ -220,7 +233,7 @@ const result = await transcribe({
 The following provider options are available:
 
 - **language** _string_
-  Language of the audio file. If set to null, the language will be automatically detected.
+  Language of the audio file. Defaults to 'en'. If set to null, the language will be automatically detected.
   Accepts ISO language codes like 'en', 'fr', 'zh', etc.
   Optional.
 

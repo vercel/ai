@@ -62,115 +62,114 @@ import { validateObjectGenerationInput } from './validate-object-generation-inpu
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
 /**
-Callback that is set using the `onError` option.
-
-@param event - The event that is passed to the callback.
+ * Callback that is set using the `onError` option.
+ *
+ * @param event - The event that is passed to the callback.
  */
 export type StreamObjectOnErrorCallback = (event: {
   error: unknown;
 }) => Promise<void> | void;
 
 /**
-Callback that is set using the `onFinish` option.
-
-@param event - The event that is passed to the callback.
+ * Callback that is set using the `onFinish` option.
+ *
+ * @param event - The event that is passed to the callback.
  */
 export type StreamObjectOnFinishCallback<RESULT> = (event: {
   /**
-The token usage of the generated response.
-*/
+   * The token usage of the generated response.
+   */
   usage: LanguageModelUsage;
 
   /**
-The generated object. Can be undefined if the final object does not match the schema.
-*/
+   * The generated object. Can be undefined if the final object does not match the schema.
+   */
   object: RESULT | undefined;
 
   /**
-Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema.
-*/
+   * Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema.
+   */
   error: unknown | undefined;
 
   /**
-Response metadata.
- */
+   * Response metadata.
+   */
   response: LanguageModelResponseMetadata;
 
   /**
-Warnings from the model provider (e.g. unsupported settings).
-*/
+   * Warnings from the model provider (e.g. unsupported settings).
+   */
   warnings?: CallWarning[];
 
   /**
-Additional provider-specific metadata. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
-*/
+   * Additional provider-specific metadata. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
   providerMetadata: ProviderMetadata | undefined;
 }) => Promise<void> | void;
 
 /**
-Generate a structured, typed object for a given prompt and schema using a language model.
-
-This function streams the output. If you do not want to stream the output, use `generateObject` instead.
-
-@param model - The language model to use.
-@param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
-
-@param system - A system message that will be part of the prompt.
-@param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
-@param messages - A list of messages. You can either use `prompt` or `messages` but not both.
-
-@param maxOutputTokens - Maximum number of tokens to generate.
-@param temperature - Temperature setting.
-The value is passed through to the provider. The range depends on the provider and model.
-It is recommended to set either `temperature` or `topP`, but not both.
-@param topP - Nucleus sampling.
-The value is passed through to the provider. The range depends on the provider and model.
-It is recommended to set either `temperature` or `topP`, but not both.
-@param topK - Only sample from the top K options for each subsequent token.
-Used to remove "long tail" low probability responses.
-Recommended for advanced use cases only. You usually only need to use temperature.
-@param presencePenalty - Presence penalty setting.
-It affects the likelihood of the model to repeat information that is already in the prompt.
-The value is passed through to the provider. The range depends on the provider and model.
-@param frequencyPenalty - Frequency penalty setting.
-It affects the likelihood of the model to repeatedly use the same words or phrases.
-The value is passed through to the provider. The range depends on the provider and model.
-@param stopSequences - Stop sequences.
-If set, the model will stop generating text when one of the stop sequences is generated.
-@param seed - The seed (integer) to use for random sampling.
-If set and supported by the model, calls will generate deterministic results.
-
-@param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
-@param abortSignal - An optional abort signal that can be used to cancel the call.
-@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
-
-@param schema - The schema of the object that the model should generate.
-@param schemaName - Optional name of the output that should be generated.
-Used by some providers for additional LLM guidance, e.g.
-via tool or schema name.
-@param schemaDescription - Optional description of the output that should be generated.
-Used by some providers for additional LLM guidance, e.g.
-via tool or schema description.
-
-@param output - The type of the output.
-
-- 'object': The output is an object.
-- 'array': The output is an array.
-- 'enum': The output is an enum.
-- 'no-schema': The output is not a schema.
-
-@param experimental_telemetry - Optional telemetry configuration (experimental).
-
-@param providerOptions - Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
-
-@returns
-A result object for accessing the partial object stream and additional information.
-
-@deprecated Use `streamText` with an `output` setting instead.
+ * Generate a structured, typed object for a given prompt and schema using a language model.
+ *
+ * This function streams the output. If you do not want to stream the output, use `generateObject` instead.
+ *
+ * @param model - The language model to use.
+ *
+ * @param system - A system message that will be part of the prompt.
+ * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
+ * @param messages - A list of messages. You can either use `prompt` or `messages` but not both.
+ *
+ * @param maxOutputTokens - Maximum number of tokens to generate.
+ * @param temperature - Temperature setting.
+ * The value is passed through to the provider. The range depends on the provider and model.
+ * It is recommended to set either `temperature` or `topP`, but not both.
+ * @param topP - Nucleus sampling.
+ * The value is passed through to the provider. The range depends on the provider and model.
+ * It is recommended to set either `temperature` or `topP`, but not both.
+ * @param topK - Only sample from the top K options for each subsequent token.
+ * Used to remove "long tail" low probability responses.
+ * Recommended for advanced use cases only. You usually only need to use temperature.
+ * @param presencePenalty - Presence penalty setting.
+ * It affects the likelihood of the model to repeat information that is already in the prompt.
+ * The value is passed through to the provider. The range depends on the provider and model.
+ * @param frequencyPenalty - Frequency penalty setting.
+ * It affects the likelihood of the model to repeatedly use the same words or phrases.
+ * The value is passed through to the provider. The range depends on the provider and model.
+ * @param stopSequences - Stop sequences.
+ * If set, the model will stop generating text when one of the stop sequences is generated.
+ * @param seed - The seed (integer) to use for random sampling.
+ * If set and supported by the model, calls will generate deterministic results.
+ *
+ * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+ * @param abortSignal - An optional abort signal that can be used to cancel the call.
+ * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+ *
+ * @param schema - The schema of the object that the model should generate.
+ * @param schemaName - Optional name of the output that should be generated.
+ * Used by some providers for additional LLM guidance, e.g.
+ * via tool or schema name.
+ * @param schemaDescription - Optional description of the output that should be generated.
+ * Used by some providers for additional LLM guidance, e.g.
+ * via tool or schema description.
+ *
+ * @param output - The type of the output.
+ *
+ * - 'object': The output is an object.
+ * - 'array': The output is an array.
+ * - 'enum': The output is an enum.
+ * - 'no-schema': The output is not a schema.
+ *
+ * @param experimental_telemetry - Optional telemetry configuration (experimental).
+ *
+ * @param providerOptions - Additional provider-specific options. They are passed through
+ * to the provider from the AI SDK and enable provider-specific
+ * functionality that can be fully encapsulated in the provider.
+ *
+ * @returns
+ * A result object for accessing the partial object stream and additional information.
+ *
+ * @deprecated Use `streamText` with an `output` setting instead.
  */
 export function streamObject<
   SCHEMA extends FlexibleSchema<unknown> = FlexibleSchema<JSONValue>,
@@ -188,8 +187,8 @@ export function streamObject<
     (OUTPUT extends 'enum'
       ? {
           /**
-The enum values that the model should use.
-        */
+           * The enum values that the model should use.
+           */
           enum: Array<RESULT>;
           output: 'enum';
         }
@@ -197,67 +196,67 @@ The enum values that the model should use.
         ? {}
         : {
             /**
-The schema of the object that the model should generate.
-      */
+             * The schema of the object that the model should generate.
+             */
             schema: SCHEMA;
 
             /**
-Optional name of the output that should be generated.
-Used by some providers for additional LLM guidance, e.g.
-via tool or schema name.
-      */
+             * Optional name of the output that should be generated.
+             * Used by some providers for additional LLM guidance, e.g.
+             * via tool or schema name.
+             */
             schemaName?: string;
 
             /**
-Optional description of the output that should be generated.
-Used by some providers for additional LLM guidance, e.g.
-via tool or schema description.
-      */
+             * Optional description of the output that should be generated.
+             * Used by some providers for additional LLM guidance, e.g.
+             * via tool or schema description.
+             */
             schemaDescription?: string;
           }) & {
       output?: OUTPUT;
 
       /**
-The language model to use.
-     */
+       * The language model to use.
+       */
       model: LanguageModel;
 
       /**
-A function that attempts to repair the raw output of the model
-to enable JSON parsing.
+       * A function that attempts to repair the raw output of the model
+       * to enable JSON parsing.
        */
       experimental_repairText?: RepairTextFunction;
 
       /**
-Optional telemetry configuration (experimental).
+       * Optional telemetry configuration (experimental).
        */
 
       experimental_telemetry?: TelemetrySettings;
 
       /**
-  Custom download function to use for URLs.
-
-  By default, files are downloaded if the model does not support the URL for the given media type.
+       * Custom download function to use for URLs.
+       *
+       * By default, files are downloaded if the model does not support the URL for the given media type.
        */
       experimental_download?: DownloadFunction | undefined;
 
       /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
+       * Additional provider-specific options. They are passed through
+       * to the provider from the AI SDK and enable provider-specific
+       * functionality that can be fully encapsulated in the provider.
+       */
       providerOptions?: ProviderOptions;
 
       /**
-Callback that is invoked when an error occurs during streaming.
-You can use it to log errors.
-The stream processing will pause until the callback promise is resolved.
-     */
+       * Callback that is invoked when an error occurs during streaming.
+       * You can use it to log errors.
+       * The stream processing will pause until the callback promise is resolved.
+       */
       onError?: StreamObjectOnErrorCallback;
 
       /**
-Callback that is called when the LLM response and the final object validation are finished.
-*/
+       * Callback that is called when the LLM response and the final object validation are finished.
+       */
       onFinish?: StreamObjectOnFinishCallback<RESULT>;
 
       /**
@@ -573,7 +572,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         // store information for onFinish callback:
         let warnings: SharedV3Warning[] | undefined;
         let usage: LanguageModelUsage = createNullLanguageModelUsage();
-        let finishReason: LanguageModelV3FinishReason | undefined;
+        let finishReason: FinishReason | undefined;
         let providerMetadata: ProviderMetadata | undefined;
         let object: RESULT | undefined;
         let error: unknown | undefined;
@@ -696,7 +695,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     }
 
                     // store finish reason for telemetry:
-                    finishReason = chunk.finishReason;
+                    finishReason = chunk.finishReason.unified;
 
                     // store usage and metadata for promises and onFinish callback:
                     usage = asLanguageModelUsage(chunk.usage);
@@ -704,6 +703,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
                     controller.enqueue({
                       ...chunk,
+                      finishReason: chunk.finishReason.unified,
                       usage,
                       response: fullResponse,
                     });
@@ -723,7 +723,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                       ...fullResponse,
                       headers: response?.headers,
                     });
-                    self._finishReason.resolve(finishReason ?? 'unknown');
+                    self._finishReason.resolve(finishReason ?? 'other');
 
                     try {
                       object = await parseAndValidateObjectResultWithRepair(

@@ -1,9 +1,11 @@
 import type {
   ImageModelV3,
+  ImageModelV3File,
   ImageModelV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertUint8ArrayToBase64,
   createJsonResponseHandler,
   createJsonErrorResponseHandler,
   postJsonToApi,
@@ -38,6 +40,8 @@ export class GatewayImageModel implements ImageModelV3 {
     size,
     aspectRatio,
     seed,
+    files,
+    mask,
     providerOptions,
     headers,
     abortSignal,
@@ -65,6 +69,10 @@ export class GatewayImageModel implements ImageModelV3 {
           ...(aspectRatio && { aspectRatio }),
           ...(seed && { seed }),
           ...(providerOptions && { providerOptions }),
+          ...(files && {
+            files: files.map(file => maybeEncodeImageFile(file)),
+          }),
+          ...(mask && { mask: maybeEncodeImageFile(mask) }),
         },
         successfulResponseHandler: createJsonResponseHandler(
           gatewayImageResponseSchema,
@@ -87,6 +95,13 @@ export class GatewayImageModel implements ImageModelV3 {
           modelId: this.modelId,
           headers: responseHeaders,
         },
+        ...(responseBody.usage != null && {
+          usage: {
+            inputTokens: responseBody.usage.inputTokens ?? undefined,
+            outputTokens: responseBody.usage.outputTokens ?? undefined,
+            totalTokens: responseBody.usage.totalTokens ?? undefined,
+          },
+        }),
       };
     } catch (error) {
       throw asGatewayError(error, await parseAuthMethod(resolvedHeaders));
@@ -99,10 +114,20 @@ export class GatewayImageModel implements ImageModelV3 {
 
   private getModelConfigHeaders() {
     return {
-      'ai-image-model-specification-version': '2',
+      'ai-image-model-specification-version': '3',
       'ai-model-id': this.modelId,
     };
   }
+}
+
+function maybeEncodeImageFile(file: ImageModelV3File) {
+  if (file.type === 'file' && file.data instanceof Uint8Array) {
+    return {
+      ...file,
+      data: convertUint8ArrayToBase64(file.data),
+    };
+  }
+  return file;
 }
 
 const providerMetadataEntrySchema = z
@@ -111,17 +136,34 @@ const providerMetadataEntrySchema = z
   })
   .catchall(z.unknown());
 
+const gatewayImageWarningSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('unsupported'),
+    feature: z.string(),
+    details: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('compatibility'),
+    feature: z.string(),
+    details: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('other'),
+    message: z.string(),
+  }),
+]);
+
+const gatewayImageUsageSchema = z.object({
+  inputTokens: z.number().nullish(),
+  outputTokens: z.number().nullish(),
+  totalTokens: z.number().nullish(),
+});
+
 const gatewayImageResponseSchema = z.object({
   images: z.array(z.string()), // Always base64 strings over the wire
-  warnings: z
-    .array(
-      z.object({
-        type: z.literal('other'),
-        message: z.string(),
-      }),
-    )
-    .optional(),
+  warnings: z.array(gatewayImageWarningSchema).optional(),
   providerMetadata: z
     .record(z.string(), providerMetadataEntrySchema)
     .optional(),
+  usage: gatewayImageUsageSchema.optional(),
 });

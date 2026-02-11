@@ -1,24 +1,27 @@
 import {
   LanguageModelV3,
-  SharedV3Warning,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
   LanguageModelV3Source,
   LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
   SharedV3ProviderMetadata,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  InferSchema,
-  ParseResult,
-  Resolvable,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  FetchFunction,
   generateId,
+  InferSchema,
   lazySchema,
   parseProviderOptions,
+  ParseResult,
   postJsonToApi,
+  Resolvable,
   resolve,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -31,11 +34,11 @@ import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-opena
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
 import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
-import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
 import {
   GoogleGenerativeAIModelId,
   googleGenerativeAIProviderOptions,
 } from './google-generative-ai-options';
+import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
 
@@ -91,7 +94,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     providerOptions,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+  }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
 
     const providerOptionsName = this.config.provider.includes('vertex')
@@ -132,7 +135,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
     const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
       prompt,
-      { isGemmaModel },
+      { isGemmaModel, providerOptionsName },
     );
 
     const {
@@ -203,8 +206,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const { args, warnings, providerOptionsName } = await this.getArgs(options);
 
     const mergedHeaders = combineHeaders(
@@ -260,23 +263,32 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           toolName: 'code_execution',
           result: {
             outcome: part.codeExecutionResult.outcome,
-            output: part.codeExecutionResult.output,
+            output: part.codeExecutionResult.output ?? '',
           },
         });
         // Clear the ID after use to avoid accidental reuse.
         lastCodeExecutionToolCallId = undefined;
-      } else if ('text' in part && part.text != null && part.text.length > 0) {
-        content.push({
-          type: part.thought === true ? 'reasoning' : 'text',
-          text: part.text,
-          providerMetadata: part.thoughtSignature
-            ? {
-                [providerOptionsName]: {
-                  thoughtSignature: part.thoughtSignature,
-                },
-              }
-            : undefined,
-        });
+      } else if ('text' in part && part.text != null) {
+        const thoughtSignatureMetadata = part.thoughtSignature
+          ? {
+              [providerOptionsName]: {
+                thoughtSignature: part.thoughtSignature,
+              },
+            }
+          : undefined;
+
+        if (part.text.length === 0) {
+          if (thoughtSignatureMetadata != null && content.length > 0) {
+            const lastContent = content[content.length - 1];
+            lastContent.providerMetadata = thoughtSignatureMetadata;
+          }
+        } else {
+          content.push({
+            type: part.thought === true ? 'reasoning' : 'text',
+            text: part.text,
+            providerMetadata: thoughtSignatureMetadata,
+          });
+        }
       } else if ('functionCall' in part) {
         content.push({
           type: 'tool-call' as const,
@@ -318,10 +330,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapGoogleGenerativeAIFinishReason({
-        finishReason: candidate.finishReason,
-        hasToolCalls: content.some(part => part.type === 'tool-call'),
-      }),
+      finishReason: {
+        unified: mapGoogleGenerativeAIFinishReason({
+          finishReason: candidate.finishReason,
+          // Only count client-executed tool calls for finish reason determination.
+          hasToolCalls: content.some(
+            part => part.type === 'tool-call' && !part.providerExecuted,
+          ),
+        }),
+        raw: candidate.finishReason ?? undefined,
+      },
       usage: convertGoogleGenerativeAIUsage(usageMetadata),
       warnings,
       providerMetadata: {
@@ -343,8 +361,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const { args, warnings, providerOptionsName } = await this.getArgs(options);
 
     const headers = combineHeaders(
@@ -364,7 +382,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     let usage: GoogleGenerativeAIUsageMetadata | undefined = undefined;
     let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
 
@@ -450,8 +471,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                     input: JSON.stringify(part.executableCode),
                     providerExecuted: true,
                   });
-
-                  hasToolCalls = true;
                 } else if (
                   'codeExecutionResult' in part &&
                   part.codeExecutionResult
@@ -466,18 +485,34 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       toolName: 'code_execution',
                       result: {
                         outcome: part.codeExecutionResult.outcome,
-                        output: part.codeExecutionResult.output,
+                        output: part.codeExecutionResult.output ?? '',
                       },
                     });
                     // Clear the ID after use.
                     lastCodeExecutionToolCallId = undefined;
                   }
-                } else if (
-                  'text' in part &&
-                  part.text != null &&
-                  part.text.length > 0
-                ) {
-                  if (part.thought === true) {
+                } else if ('text' in part && part.text != null) {
+                  const thoughtSignatureMetadata = part.thoughtSignature
+                    ? {
+                        [providerOptionsName]: {
+                          thoughtSignature: part.thoughtSignature,
+                        },
+                      }
+                    : undefined;
+
+                  if (part.text.length === 0) {
+                    if (
+                      thoughtSignatureMetadata != null &&
+                      currentTextBlockId !== null
+                    ) {
+                      controller.enqueue({
+                        type: 'text-delta',
+                        id: currentTextBlockId,
+                        delta: '',
+                        providerMetadata: thoughtSignatureMetadata,
+                      });
+                    }
+                  } else if (part.thought === true) {
                     // End any active text block before starting reasoning
                     if (currentTextBlockId !== null) {
                       controller.enqueue({
@@ -493,13 +528,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       controller.enqueue({
                         type: 'reasoning-start',
                         id: currentReasoningBlockId,
-                        providerMetadata: part.thoughtSignature
-                          ? {
-                              [providerOptionsName]: {
-                                thoughtSignature: part.thoughtSignature,
-                              },
-                            }
-                          : undefined,
+                        providerMetadata: thoughtSignatureMetadata,
                       });
                     }
 
@@ -507,16 +536,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       type: 'reasoning-delta',
                       id: currentReasoningBlockId,
                       delta: part.text,
-                      providerMetadata: part.thoughtSignature
-                        ? {
-                            [providerOptionsName]: {
-                              thoughtSignature: part.thoughtSignature,
-                            },
-                          }
-                        : undefined,
+                      providerMetadata: thoughtSignatureMetadata,
                     });
                   } else {
-                    // End any active reasoning block before starting text
                     if (currentReasoningBlockId !== null) {
                       controller.enqueue({
                         type: 'reasoning-end',
@@ -525,19 +547,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       currentReasoningBlockId = null;
                     }
 
-                    // Start new text block if not already active
                     if (currentTextBlockId === null) {
                       currentTextBlockId = String(blockCounter++);
                       controller.enqueue({
                         type: 'text-start',
                         id: currentTextBlockId,
-                        providerMetadata: part.thoughtSignature
-                          ? {
-                              [providerOptionsName]: {
-                                thoughtSignature: part.thoughtSignature,
-                              },
-                            }
-                          : undefined,
+                        providerMetadata: thoughtSignatureMetadata,
                       });
                     }
 
@@ -545,13 +560,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       type: 'text-delta',
                       id: currentTextBlockId,
                       delta: part.text,
-                      providerMetadata: part.thoughtSignature
-                        ? {
-                            [providerOptionsName]: {
-                              thoughtSignature: part.thoughtSignature,
-                            },
-                          }
-                        : undefined,
+                      providerMetadata: thoughtSignatureMetadata,
                     });
                   }
                 } else if ('inlineData' in part) {
@@ -606,10 +615,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             }
 
             if (candidate.finishReason != null) {
-              finishReason = mapGoogleGenerativeAIFinishReason({
-                finishReason: candidate.finishReason,
-                hasToolCalls,
-              });
+              finishReason = {
+                unified: mapGoogleGenerativeAIFinishReason({
+                  finishReason: candidate.finishReason,
+                  hasToolCalls,
+                }),
+                raw: candidate.finishReason,
+              };
 
               providerMetadata = {
                 [providerOptionsName]: {
@@ -631,7 +643,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           },
 
           flush(controller) {
-            // Close any open blocks before finishing
             if (currentTextBlockId !== null) {
               controller.enqueue({
                 type: 'text-end',
@@ -827,11 +838,13 @@ export const getGroundingMetadataSchema = () =>
     groundingSupports: z
       .array(
         z.object({
-          segment: z.object({
-            startIndex: z.number().nullish(),
-            endIndex: z.number().nullish(),
-            text: z.string().nullish(),
-          }),
+          segment: z
+            .object({
+              startIndex: z.number().nullish(),
+              endIndex: z.number().nullish(),
+              text: z.string().nullish(),
+            })
+            .nullish(),
           segment_text: z.string().nullish(),
           groundingChunkIndices: z.array(z.number()).nullish(),
           supportChunkIndices: z.array(z.number()).nullish(),
@@ -880,7 +893,7 @@ const getContentSchema = () =>
             codeExecutionResult: z
               .object({
                 outcome: z.string(),
-                output: z.string(),
+                output: z.string().nullish(),
               })
               .nullish(),
             text: z.string().nullish(),
