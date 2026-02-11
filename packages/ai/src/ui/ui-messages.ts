@@ -287,6 +287,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       rawInput?: unknown; // TODO AI SDK 6: remove this field, input should be unknown
       output?: never;
       errorText: string;
+      errorCode?: string;
       callProviderMetadata?: ProviderMetadata;
       approval?: {
         id: string;
@@ -391,6 +392,7 @@ export type DynamicToolUIPart = {
       input: unknown;
       output?: never;
       errorText: string;
+      errorCode?: string;
       callProviderMetadata?: ProviderMetadata;
       approval?: {
         id: string;

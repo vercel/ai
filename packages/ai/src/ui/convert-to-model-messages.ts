@@ -216,6 +216,10 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                         tool: options?.tools?.[toolName],
                         errorMode:
                           part.state === 'output-error' ? 'json' : 'none',
+                        errorCode:
+                          part.state === 'output-error'
+                            ? part.errorCode
+                            : undefined,
                       }),
                       ...(part.callProviderMetadata != null
                         ? { providerOptions: part.callProviderMetadata }

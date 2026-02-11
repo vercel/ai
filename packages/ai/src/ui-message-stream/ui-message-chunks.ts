@@ -88,6 +88,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         type: z.literal('tool-output-error'),
         toolCallId: z.string(),
         errorText: z.string(),
+        errorCode: z.string().optional(),
         providerExecuted: z.boolean().optional(),
         dynamic: z.boolean().optional(),
       }),
@@ -266,6 +267,7 @@ export type UIMessageChunk<
       type: 'tool-output-error';
       toolCallId: string;
       errorText: string;
+      errorCode?: string;
       providerExecuted?: boolean;
       dynamic?: boolean;
     }
