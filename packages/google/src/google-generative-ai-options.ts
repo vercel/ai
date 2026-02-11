@@ -45,7 +45,7 @@ export type GoogleGenerativeAIModelId =
   | 'gemma-3-27b-it'
   | (string & {});
 
-export const googleGenerativeAIProviderOptions = lazySchema(() =>
+export const googleLanguageModelOptions = lazySchema(() =>
   zodSchema(
     z.object({
       responseModalities: z.array(z.enum(['TEXT', 'IMAGE'])).optional(),
@@ -189,5 +189,5 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
 );
 
 export type GoogleLanguageModelOptions = InferSchema<
-  typeof googleGenerativeAIProviderOptions
+  typeof googleLanguageModelOptions
 >;

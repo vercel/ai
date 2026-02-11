@@ -77,7 +77,7 @@ export class ReplicateImageModel implements ImageModelV3 {
     const replicateOptions = await parseProviderOptions({
       provider: 'replicate',
       providerOptions,
-      schema: replicateImageProviderOptionsSchema,
+      schema: replicateImageModelOptionsSchema,
     });
 
     // Handle image input from files
@@ -214,7 +214,7 @@ const replicateImageResponseSchema = z.object({
  * This schema includes common parameters, but you can pass any
  * model-specific parameters through the passthrough.
  */
-export const replicateImageProviderOptionsSchema = lazySchema(() =>
+export const replicateImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
@@ -264,5 +264,5 @@ export const replicateImageProviderOptionsSchema = lazySchema(() =>
 );
 
 export type ReplicateImageModelOptions = InferSchema<
-  typeof replicateImageProviderOptionsSchema
+  typeof replicateImageModelOptionsSchema
 >;

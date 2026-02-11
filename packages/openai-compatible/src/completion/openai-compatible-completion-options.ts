@@ -2,7 +2,7 @@ import { z } from 'zod/v4';
 
 export type OpenAICompatibleCompletionModelId = string;
 
-export const openaiCompatibleCompletionProviderOptions = z.object({
+export const openaiCompatibleLanguageModelCompletionOptions = z.object({
   /**
    * Echo back the prompt in addition to the completion.
    */
@@ -29,5 +29,5 @@ export const openaiCompatibleCompletionProviderOptions = z.object({
 });
 
 export type OpenAICompatibleLanguageModelCompletionOptions = z.infer<
-  typeof openaiCompatibleCompletionProviderOptions
+  typeof openaiCompatibleLanguageModelCompletionOptions
 >;

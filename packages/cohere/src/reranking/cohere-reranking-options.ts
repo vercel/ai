@@ -24,7 +24,7 @@ export type CohereRerankingModelOptions = {
   priority?: number;
 };
 
-export const cohereRerankingOptionsSchema: FlexibleSchema<CohereRerankingModelOptions> =
+export const cohereRerankingModelOptionsSchema: FlexibleSchema<CohereRerankingModelOptions> =
   lazySchema(() =>
     zodSchema(
       z.object({

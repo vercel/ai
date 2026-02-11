@@ -17,7 +17,7 @@ export type TogetherAIRerankingModelOptions = {
   rankFields?: string[];
 };
 
-export const togetheraiRerankingOptionsSchema: FlexibleSchema<TogetherAIRerankingModelOptions> =
+export const togetheraiRerankingModelOptionsSchema: FlexibleSchema<TogetherAIRerankingModelOptions> =
   lazySchema(() =>
     zodSchema(
       z.object({

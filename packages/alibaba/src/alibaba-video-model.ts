@@ -47,7 +47,7 @@ export type AlibabaVideoModelOptions = {
   [key: string]: unknown;
 };
 
-const alibabaVideoProviderOptionsSchema = lazySchema(() =>
+const alibabaVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
@@ -156,7 +156,7 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
     const alibabaOptions = (await parseProviderOptions({
       provider: 'alibaba',
       providerOptions: options.providerOptions,
-      schema: alibabaVideoProviderOptionsSchema,
+      schema: alibabaVideoModelOptionsSchema,
     })) as AlibabaVideoModelOptions | undefined;
 
     // Build input object

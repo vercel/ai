@@ -2,7 +2,7 @@ import { z } from 'zod/v4';
 
 export type OpenAICompatibleChatModelId = string;
 
-export const openaiCompatibleProviderOptions = z.object({
+export const openaiCompatibleLanguageModelChatOptions = z.object({
   /**
    * A unique identifier representing your end-user, which can help the provider to
    * monitor and detect abuse.
@@ -30,5 +30,5 @@ export const openaiCompatibleProviderOptions = z.object({
 });
 
 export type OpenAICompatibleLanguageModelChatOptions = z.infer<
-  typeof openaiCompatibleProviderOptions
+  typeof openaiCompatibleLanguageModelChatOptions
 >;

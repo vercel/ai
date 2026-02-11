@@ -8,7 +8,7 @@ export type OpenAITranscriptionModelId =
   | (string & {});
 
 // https://platform.openai.com/docs/api-reference/audio/createTranscription
-export const openAITranscriptionProviderOptions = lazySchema(() =>
+export const openAITranscriptionModelOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -46,5 +46,5 @@ export const openAITranscriptionProviderOptions = lazySchema(() =>
 );
 
 export type OpenAITranscriptionModelOptions = InferSchema<
-  typeof openAITranscriptionProviderOptions
+  typeof openAITranscriptionModelOptions
 >;

@@ -10,7 +10,7 @@ export type CohereEmbeddingModelId =
   | 'embed-multilingual-v2.0'
   | (string & {});
 
-export const cohereEmbeddingOptions = z.object({
+export const cohereEmbeddingModelOptions = z.object({
   /**
    * Specifies the type of input passed to the model. Default is `search_query`.
    *
@@ -46,5 +46,5 @@ export const cohereEmbeddingOptions = z.object({
 });
 
 export type CohereEmbeddingModelOptions = z.infer<
-  typeof cohereEmbeddingOptions
+  typeof cohereEmbeddingModelOptions
 >;

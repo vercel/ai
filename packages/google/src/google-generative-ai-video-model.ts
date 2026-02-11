@@ -76,7 +76,7 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
     const googleOptions = (await parseProviderOptions({
       provider: 'google',
       providerOptions: options.providerOptions,
-      schema: googleVideoProviderOptionsSchema,
+      schema: googleVideoModelOptionsSchema,
     })) as GoogleVideoModelOptions | undefined;
 
     const instances: Array<Record<string, unknown>> = [{}];
@@ -350,7 +350,7 @@ const googleOperationSchema = z.object({
     .nullish(),
 });
 
-const googleVideoProviderOptionsSchema = lazySchema(() =>
+const googleVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({

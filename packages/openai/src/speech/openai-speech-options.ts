@@ -8,7 +8,7 @@ export type OpenAISpeechModelId =
   | (string & {});
 
 // https://platform.openai.com/docs/api-reference/audio/createSpeech
-export const openaiSpeechProviderOptionsSchema = lazySchema(() =>
+export const openaiSpeechModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       instructions: z.string().nullish(),
@@ -18,5 +18,5 @@ export const openaiSpeechProviderOptionsSchema = lazySchema(() =>
 );
 
 export type OpenAISpeechModelOptions = InferSchema<
-  typeof openaiSpeechProviderOptionsSchema
+  typeof openaiSpeechModelOptionsSchema
 >;

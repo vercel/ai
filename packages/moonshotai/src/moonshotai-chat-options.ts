@@ -12,7 +12,7 @@ export type MoonshotAIChatModelId =
   | 'kimi-k2.5'
   | (string & {});
 
-export const moonshotaiProviderOptions = z.object({
+export const moonshotaiLanguageModelOptions = z.object({
   thinking: z
     .object({
       type: z.enum(['enabled', 'disabled']).optional(),
@@ -24,5 +24,5 @@ export const moonshotaiProviderOptions = z.object({
 });
 
 export type MoonshotAILanguageModelOptions = z.infer<
-  typeof moonshotaiProviderOptions
+  typeof moonshotaiLanguageModelOptions
 >;

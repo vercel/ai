@@ -31,7 +31,7 @@ import {
 } from './xai-responses-api';
 import {
   XaiResponsesModelId,
-  xaiResponsesProviderOptions,
+  xaiLanguageModelResponsesOptions,
 } from './xai-responses-options';
 import { prepareResponsesTools } from './xai-responses-prepare-tools';
 
@@ -81,7 +81,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       (await parseProviderOptions({
         provider: 'xai',
         providerOptions,
-        schema: xaiResponsesProviderOptions,
+        schema: xaiLanguageModelResponsesOptions,
       })) ?? {};
 
     if (stopSequences != null) {

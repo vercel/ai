@@ -14,7 +14,7 @@ import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-optio
 import { ElevenLabsTranscriptionAPITypes } from './elevenlabs-api-types';
 
 // https://elevenlabs.io/docs/api-reference/speech-to-text/convert
-const elevenLabsProviderOptionsSchema = z.object({
+const elevenLabsTranscriptionModelOptionsSchema = z.object({
   languageCode: z.string().nullish(),
   tagAudioEvents: z.boolean().nullish().default(true),
   numSpeakers: z.number().int().min(1).max(32).nullish(),
@@ -27,7 +27,7 @@ const elevenLabsProviderOptionsSchema = z.object({
 });
 
 export type ElevenLabsTranscriptionModelOptions = z.infer<
-  typeof elevenLabsProviderOptionsSchema
+  typeof elevenLabsTranscriptionModelOptionsSchema
 >;
 
 interface ElevenLabsTranscriptionModelConfig extends ElevenLabsConfig {
@@ -59,7 +59,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV3 {
     const elevenlabsOptions = await parseProviderOptions({
       provider: 'elevenlabs',
       providerOptions,
-      schema: elevenLabsProviderOptionsSchema,
+      schema: elevenLabsTranscriptionModelOptionsSchema,
     });
 
     // Create form data with base fields

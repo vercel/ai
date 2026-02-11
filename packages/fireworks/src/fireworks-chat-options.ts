@@ -24,7 +24,7 @@ export type FireworksChatModelId =
   | 'accounts/fireworks/models/minimax-m2'
   | (string & {});
 
-export const fireworksProviderOptions = z.object({
+export const fireworksLanguageModelOptions = z.object({
   thinking: z
     .object({
       type: z.enum(['enabled', 'disabled']).optional(),
@@ -36,5 +36,5 @@ export const fireworksProviderOptions = z.object({
 });
 
 export type FireworksLanguageModelOptions = z.infer<
-  typeof fireworksProviderOptions
+  typeof fireworksLanguageModelOptions
 >;

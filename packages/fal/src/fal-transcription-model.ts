@@ -20,7 +20,7 @@ import { FalTranscriptionModelId } from './fal-transcription-options';
 import { FalTranscriptionAPITypes } from './fal-api-types';
 
 // https://fal.ai/models/fal-ai/whisper/api?platform=http
-const falProviderOptionsSchema = z.object({
+const falTranscriptionModelOptionsSchema = z.object({
   /**
    * Language of the audio file. If set to null, the language will be automatically detected. Defaults to null.
    *
@@ -58,7 +58,7 @@ const falProviderOptionsSchema = z.object({
 });
 
 export type FalTranscriptionModelOptions = z.infer<
-  typeof falProviderOptionsSchema
+  typeof falTranscriptionModelOptionsSchema
 >;
 
 interface FalTranscriptionModelConfig extends FalConfig {
@@ -88,7 +88,7 @@ export class FalTranscriptionModel implements TranscriptionModelV3 {
     const falOptions = await parseProviderOptions({
       provider: 'fal',
       providerOptions,
-      schema: falProviderOptionsSchema,
+      schema: falTranscriptionModelOptionsSchema,
     });
 
     // Create form data with base fields

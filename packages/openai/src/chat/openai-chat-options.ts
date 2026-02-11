@@ -47,7 +47,7 @@ export type OpenAIChatModelId =
   | 'gpt-5.2-pro'
   | (string & {});
 
-export const openaiChatLanguageModelOptions = lazySchema(() =>
+export const openaiLanguageModelChatOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -182,5 +182,5 @@ export const openaiChatLanguageModelOptions = lazySchema(() =>
 );
 
 export type OpenAILanguageModelChatOptions = InferSchema<
-  typeof openaiChatLanguageModelOptions
+  typeof openaiLanguageModelChatOptions
 >;

@@ -32,7 +32,7 @@ export type FalVideoModelOptions = {
 };
 
 // Provider options schema for FAL video generation
-export const falVideoProviderOptionsSchema = lazySchema(() =>
+export const falVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
@@ -89,7 +89,7 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
     const falOptions = (await parseProviderOptions({
       provider: 'fal',
       providerOptions: options.providerOptions,
-      schema: falVideoProviderOptionsSchema,
+      schema: falVideoModelOptionsSchema,
     })) as FalVideoModelOptions | undefined;
 
     const body: Record<string, unknown> = {};

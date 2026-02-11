@@ -58,7 +58,7 @@ export type AnthropicFilePartProviderOptions = z.infer<
   typeof anthropicFilePartProviderOptions
 >;
 
-export const anthropicProviderOptions = z.object({
+export const anthropicLanguageModelOptions = z.object({
   /**
    * Whether to send reasoning to the model.
    *
@@ -239,5 +239,5 @@ export const anthropicProviderOptions = z.object({
 });
 
 export type AnthropicLanguageModelOptions = z.infer<
-  typeof anthropicProviderOptions
+  typeof anthropicLanguageModelOptions
 >;

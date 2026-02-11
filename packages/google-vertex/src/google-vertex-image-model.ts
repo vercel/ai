@@ -69,7 +69,7 @@ export class GoogleVertexImageModel implements ImageModelV3 {
     const vertexImageOptions = await parseProviderOptions({
       provider: 'vertex',
       providerOptions,
-      schema: vertexImageProviderOptionsSchema,
+      schema: googleVertexImageModelOptionsSchema,
     });
 
     // Extract edit-specific options from provider options
@@ -196,7 +196,7 @@ const vertexImageResponseSchema = z.object({
     .nullish(),
 });
 
-const vertexImageProviderOptionsSchema = z.object({
+const googleVertexImageModelOptionsSchema = z.object({
   negativePrompt: z.string().nullish(),
   personGeneration: z
     .enum(['dont_allow', 'allow_adult', 'allow_all'])
@@ -266,7 +266,7 @@ const vertexImageProviderOptionsSchema = z.object({
     .nullish(),
 });
 export type GoogleVertexImageModelOptions = z.infer<
-  typeof vertexImageProviderOptionsSchema
+  typeof googleVertexImageModelOptionsSchema
 >;
 
 /**

@@ -188,7 +188,7 @@ export type KlingAIVideoModelOptions = {
   [key: string]: unknown; // For passthrough
 };
 
-const klingaiVideoProviderOptionsSchema = lazySchema(() =>
+const klingaiVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
@@ -295,7 +295,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
     const klingaiOptions = (await parseProviderOptions({
       provider: 'klingai',
       providerOptions: options.providerOptions,
-      schema: klingaiVideoProviderOptionsSchema,
+      schema: klingaiVideoModelOptionsSchema,
     })) as KlingAIVideoModelOptions | undefined;
 
     let body: Record<string, unknown>;

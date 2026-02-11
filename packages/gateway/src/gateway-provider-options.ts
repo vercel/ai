@@ -2,7 +2,7 @@ import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // https://vercel.com/docs/ai-gateway/provider-options
-const gatewayProviderOptions = lazySchema(() =>
+const gatewayLanguageModelOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -64,5 +64,5 @@ const gatewayProviderOptions = lazySchema(() =>
 );
 
 export type GatewayLanguageModelOptions = InferSchema<
-  typeof gatewayProviderOptions
+  typeof gatewayLanguageModelOptions
 >;

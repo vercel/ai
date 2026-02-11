@@ -31,7 +31,7 @@ import {
 } from './bedrock-api-types';
 import {
   BedrockChatModelId,
-  bedrockProviderOptions,
+  amazonBedrockLanguageModelOptions,
 } from './bedrock-chat-options';
 import { BedrockErrorSchema } from './bedrock-error';
 import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
@@ -82,7 +82,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       (await parseProviderOptions({
         provider: 'bedrock',
         providerOptions,
-        schema: bedrockProviderOptions,
+        schema: amazonBedrockLanguageModelOptions,
       })) ?? {};
 
     const warnings: SharedV3Warning[] = [];

@@ -19,7 +19,7 @@ export type AmazonBedrockRerankingModelOptions = {
   additionalModelRequestFields?: Record<string, unknown>;
 };
 
-export const bedrockRerankingOptionsSchema = lazySchema(() =>
+export const amazonBedrockRerankingModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       /**

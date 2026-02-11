@@ -10,7 +10,7 @@ export type GoogleGenerativeAIEmbeddingModelId =
   | 'text-embedding-004'
   | (string & {});
 
-export const googleGenerativeAIEmbeddingProviderOptions = lazySchema(() =>
+export const googleEmbeddingModelOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -48,5 +48,5 @@ export const googleGenerativeAIEmbeddingProviderOptions = lazySchema(() =>
 );
 
 export type GoogleEmbeddingModelOptions = InferSchema<
-  typeof googleGenerativeAIEmbeddingProviderOptions
+  typeof googleEmbeddingModelOptions
 >;

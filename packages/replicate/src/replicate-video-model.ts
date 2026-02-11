@@ -77,7 +77,7 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
     const replicateOptions = (await parseProviderOptions({
       provider: 'replicate',
       providerOptions: options.providerOptions,
-      schema: replicateVideoProviderOptionsSchema,
+      schema: replicateVideoModelOptionsSchema,
     })) as ReplicateVideoModelOptions | undefined;
 
     const [modelId, version] = this.modelId.split(':');
@@ -320,7 +320,7 @@ const replicatePredictionSchema = z.object({
     .nullish(),
 });
 
-const replicateVideoProviderOptionsSchema = lazySchema(() =>
+const replicateVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({

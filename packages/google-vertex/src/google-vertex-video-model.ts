@@ -79,7 +79,7 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
     const vertexOptions = (await parseProviderOptions({
       provider: 'vertex',
       providerOptions: options.providerOptions,
-      schema: vertexVideoProviderOptionsSchema,
+      schema: googleVertexVideoModelOptionsSchema,
     })) as GoogleVertexVideoModelOptions | undefined;
 
     const instances: Array<Record<string, unknown>> = [{}];
@@ -348,7 +348,7 @@ const vertexOperationSchema = z.object({
     .nullish(),
 });
 
-const vertexVideoProviderOptionsSchema = lazySchema(() =>
+const googleVertexVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
