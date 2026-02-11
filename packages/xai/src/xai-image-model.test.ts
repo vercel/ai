@@ -8,7 +8,6 @@ const imageUrl = 'https://api.example.com/images/generated.png';
 
 function createModel({
   headers,
-  fetch,
   currentDate,
 }: {
   headers?: () => Record<string, string>;
@@ -18,7 +17,6 @@ function createModel({
     provider: 'xai.image',
     baseURL: 'https://api.example.com',
     headers: headers ?? (() => ({ 'api-key': 'test-key' })),
-    fetch,
     _internal: {
       currentDate,
     },
