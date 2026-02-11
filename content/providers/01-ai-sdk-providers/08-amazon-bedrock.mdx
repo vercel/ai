@@ -449,6 +449,21 @@ console.log(
 // }
 ```
 
+### Provider Metadata
+
+The following Bedrock-specific metadata may be returned in `providerMetadata.bedrock`:
+
+- **trace** _(optional)_
+  Guardrail tracing information (when tracing is enabled).
+- **performanceConfig** _(optional)_
+  Performance configuration, e.g. `{ latency: 'optimized' }`.
+- **serviceTier** _(optional)_
+  Service tier information, e.g. `{ type: 'on-demand' }`.
+- **usage** _(optional)_
+  Cache token usage details including `cacheWriteInputTokens` and `cacheDetails`.
+- **stopSequence** _string | null_
+  The stop sequence that triggered the stop, if any.
+
 ## Reasoning
 
 Amazon Bedrock supports model creator-specific reasoning features:
