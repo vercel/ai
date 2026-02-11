@@ -5,5 +5,6 @@ export type {
   /** @deprecated Use `GroqLanguageModelOptions` instead. */
   GroqLanguageModelOptions as GroqProviderOptions,
 } from './groq-chat-options';
+export type { GroqTranscriptionModelOptions } from './groq-transcription-options';
 export { browserSearch } from './tool/browser-search';
 export { VERSION } from './version';
