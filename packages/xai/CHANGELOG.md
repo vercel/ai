@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.58
+
+### Patch Changes
+
+- 2be480e: fix(provider/xai): correct usage token calculation for reasoning models
+
 ## 2.0.57
 
 ### Patch Changes
