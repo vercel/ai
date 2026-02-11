@@ -305,7 +305,9 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
       finishReason: mapXaiFinishReason(choice.finish_reason),
       usage: {
         inputTokens: response.usage?.prompt_tokens,
-        outputTokens: response.usage?.completion_tokens,
+        outputTokens:
+          (response.usage?.completion_tokens ?? 0) +
+          (response.usage?.completion_tokens_details?.reasoning_tokens ?? 0),
         totalTokens: response.usage?.total_tokens,
         reasoningTokens:
           response.usage?.completion_tokens_details?.reasoning_tokens ??
@@ -452,7 +454,9 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
             // update usage if present
             if (value.usage != null) {
               usage.inputTokens = value.usage.prompt_tokens;
-              usage.outputTokens = value.usage.completion_tokens;
+              usage.outputTokens =
+                (value.usage.completion_tokens ?? 0) +
+                (value.usage.completion_tokens_details?.reasoning_tokens ?? 0);
               usage.totalTokens = value.usage.total_tokens;
               usage.reasoningTokens =
                 value.usage.completion_tokens_details?.reasoning_tokens ??
