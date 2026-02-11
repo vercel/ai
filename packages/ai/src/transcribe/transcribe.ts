@@ -36,6 +36,7 @@ export async function transcribe({
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
+  maxDownloadSize,
 }: {
   /**
    * The transcription model to use.
@@ -80,6 +81,14 @@ export async function transcribe({
    * Only applicable for HTTP-based providers.
    */
   headers?: Record<string, string>;
+
+  /**
+   * Maximum allowed size for audio URL downloads in bytes.
+   * Prevents memory exhaustion from excessively large downloads.
+   *
+   * @default 2 GiB
+   */
+  maxDownloadSize?: number;
 }): Promise<TranscriptionResult> {
   const resolvedModel = resolveTranscriptionModel(model);
   if (!resolvedModel) {
@@ -98,7 +107,8 @@ export async function transcribe({
 
   const audioData =
     audio instanceof URL
-      ? (await download({ url: audio })).data
+      ? (await download({ url: audio, abortSignal, maxBytes: maxDownloadSize }))
+          .data
       : convertDataContentToUint8Array(audio);
 
   const result = await retry(() =>

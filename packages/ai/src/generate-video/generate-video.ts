@@ -71,6 +71,7 @@ export async function experimental_generateVideo({
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
+  maxDownloadSize,
 }: {
   /**
    * The video model to use.
@@ -140,6 +141,14 @@ export async function experimental_generateVideo({
    * Only applicable for HTTP-based providers.
    */
   headers?: Record<string, string>;
+
+  /**
+   * Maximum allowed size for video URL downloads in bytes.
+   * Prevents memory exhaustion from excessively large downloads.
+   *
+   * @default 2 GiB
+   */
+  maxDownloadSize?: number;
 }): Promise<GenerateVideoResult> {
   const model = resolveVideoModel(modelArg);
 
@@ -197,6 +206,8 @@ export async function experimental_generateVideo({
         case 'url': {
           const { data, mediaType: downloadedMediaType } = await download({
             url: new URL(videoData.url),
+            abortSignal,
+            maxBytes: maxDownloadSize,
           });
 
           // Filter out generic/unknown media types that should fall through to detection
