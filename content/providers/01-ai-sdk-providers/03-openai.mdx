@@ -135,10 +135,10 @@ const model = openai('gpt-5');
 ```
 
 Further configuration can be done using OpenAI provider options.
-You can validate the provider options using the `OpenAIResponsesProviderOptions` type.
+You can validate the provider options using the `OpenAILanguageModelResponsesOptions` type.
 
 ```ts
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -149,7 +149,7 @@ const result = await generateText({
       store: false,
       user: 'user_123',
       // ...
-    } satisfies OpenAIResponsesProviderOptions,
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
   // ...
 });
@@ -439,7 +439,7 @@ const result = await generateText({
     openai: {
       // optional: include results
       include: ['file_search_call.results'],
-    } satisfies OpenAIResponsesProviderOptions,
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
 });
 ```
@@ -1014,7 +1014,7 @@ This metadata includes the following fields:
 import {
   openai,
   type OpenaiResponsesReasoningProviderMetadata,
-  type OpenAIResponsesProviderOptions,
+  type OpenAILanguageModelResponsesOptions,
 } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
@@ -1025,7 +1025,7 @@ const result = await generateText({
     openai: {
       store: false,
       include: ['reasoning.encrypted_content'],
-    } satisfies OpenAIResponsesProviderOptions,
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
 });
 
@@ -1130,7 +1130,7 @@ OpenAI chat models support also some model specific provider options that are no
 You can pass them in the `providerOptions` argument:
 
 ```ts
-import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
+import { openai, type OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
 
 const model = openai.chat('gpt-5');
 
@@ -1143,7 +1143,7 @@ await generateText({
         '50256': -100,
       },
       user: 'test-user', // optional unique user identifier
-    } satisfies OpenAIChatLanguageModelOptions,
+    } satisfies OpenAILanguageModelChatOptions,
   },
 });
 ```
@@ -1327,7 +1327,7 @@ Strict structured outputs are enabled by default.
 You can disable them by setting the `strictJsonSchema` option to `false`.
 
 ```ts highlight="7"
-import { openai, OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 
@@ -1336,7 +1336,7 @@ const result = await generateObject({
   providerOptions: {
     openai: {
       strictJsonSchema: false,
-    } satisfies OpenAIChatLanguageModelOptions,
+    } satisfies OpenAILanguageModelChatOptions,
   },
   schemaName: 'recipe',
   schemaDescription: 'A recipe for lasagna.',

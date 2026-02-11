@@ -3095,7 +3095,10 @@ In AI SDK 4.0, you could set the `strictSchemas` option on Responses models (whi
 ```tsx filename="AI SDK 4.0"
 import { z } from 'zod';
 import { generateObject } from 'ai';
-import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 
 const result = await generateObject({
   model: openai.responses('gpt-4.1'),
@@ -3105,7 +3108,7 @@ const result = await generateObject({
   providerOptions: {
     openai: {
       strictSchemas: true, // default behavior in AI SDK 4
-    } satisfies OpenAIResponsesProviderOptions,
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
 });
 ```
@@ -3113,7 +3116,10 @@ const result = await generateObject({
 ```tsx filename="AI SDK 5.0"
 import { z } from 'zod';
 import { generateObject } from 'ai';
-import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 
 const result = await generateObject({
   model: openai('gpt-4.1-2024'), // uses Responses API
@@ -3123,12 +3129,12 @@ const result = await generateObject({
   providerOptions: {
     openai: {
       strictJsonSchema: true, // defaults to false, opt back in to the AI SDK 4 strict behavior
-    } satisfies OpenAIResponsesProviderOptions,
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
 });
 ```
 
-If you call `openai.chat(...)` to use the Chat Completions API directly, you can type it with `OpenAIChatLanguageModelOptions`. AI SDK 5 adds the same `strictJsonSchema` option there as well.
+If you call `openai.chat(...)` to use the Chat Completions API directly, you can type it with `OpenAILanguageModelChatOptions`. AI SDK 5 adds the same `strictJsonSchema` option there as well.
 
 #### Structured Outputs
 
@@ -3148,7 +3154,7 @@ const result = await generateObject({
 ```tsx filename="AI SDK 5.0 (Chat Completions API)"
 import { z } from 'zod';
 import { generateObject } from 'ai';
-import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
+import { openai, type OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
 
 const result = await generateObject({
   model: openai.chat('gpt-4.1'), // use Chat Completions API
@@ -3156,7 +3162,7 @@ const result = await generateObject({
   providerOptions: {
     openai: {
       structuredOutputs: true,
-    } satisfies OpenAIChatLanguageModelOptions,
+    } satisfies OpenAILanguageModelChatOptions,
   },
 });
 ```

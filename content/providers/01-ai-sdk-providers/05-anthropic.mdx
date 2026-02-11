@@ -175,7 +175,7 @@ const result = streamText({
 Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT).
 
 ```ts highlight="8-10"
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text, usage } = await generateText({
@@ -184,7 +184,7 @@ const { text, usage } = await generateText({
   providerOptions: {
     anthropic: {
       effort: 'low',
-    } satisfies AnthropicProviderOptions,
+    } satisfies AnthropicLanguageModelOptions,
   },
 });
 
@@ -200,7 +200,7 @@ You can enable it using the `thinking` provider option
 and specifying a thinking budget in tokens.
 
 ```ts highlight="4,8-10"
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text, reasoningText, reasoning } = await generateText({
@@ -209,7 +209,7 @@ const { text, reasoningText, reasoning } = await generateText({
   providerOptions: {
     anthropic: {
       thinking: { type: 'enabled', budgetTokens: 12000 },
-    } satisfies AnthropicProviderOptions,
+    } satisfies AnthropicLanguageModelOptions,
   },
 });
 
@@ -228,7 +228,7 @@ Anthropic's Context Management feature allows you to automatically manage conver
 You can configure context management using the `contextManagement` provider option:
 
 ```ts highlight="7-20"
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -248,7 +248,7 @@ const result = await generateText({
           },
         ],
       },
-    } satisfies AnthropicProviderOptions,
+    } satisfies AnthropicLanguageModelOptions,
   },
 });
 
@@ -285,7 +285,7 @@ const result = await generateText({
           },
         ],
       },
-    } satisfies AnthropicProviderOptions,
+    } satisfies AnthropicLanguageModelOptions,
   },
 });
 ```
@@ -295,7 +295,7 @@ const result = await generateText({
 The `compact_20260112` edit type automatically summarizes earlier conversation context when token limits are reached. This is useful for long-running conversations where you want to preserve the essence of earlier exchanges while staying within token limits.
 
 ```ts highlight="7-19"
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 
 const result = streamText({
@@ -317,7 +317,7 @@ const result = streamText({
           },
         ],
       },
-    } satisfies AnthropicProviderOptions,
+    } satisfies AnthropicLanguageModelOptions,
   },
 });
 ```
@@ -898,7 +898,7 @@ Anthropic supports connecting to [MCP servers](https://docs.claude.com/en/docs/a
 You can enable this feature with the `mcpServers` provider option:
 
 ```ts
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -920,7 +920,7 @@ const result = await generateText({
           },
         },
       ],
-    } satisfies AnthropicProviderOptions,
+    } satisfies AnthropicLanguageModelOptions,
   },
 });
 ```
@@ -1150,7 +1150,7 @@ To use skills, you need to:
 2. Specify the container with skills in `providerOptions`
 
 ```ts highlight="4,9-17,19-23"
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -1170,7 +1170,7 @@ const result = await generateText({
           },
         ],
       },
-    } satisfies AnthropicProviderOptions,
+    } satisfies AnthropicLanguageModelOptions,
   },
 });
 ```
@@ -1197,7 +1197,7 @@ const result = await generateText({
           },
         ],
       },
-    } satisfies AnthropicProviderOptions,
+    } satisfies AnthropicLanguageModelOptions,
   },
 });
 ```

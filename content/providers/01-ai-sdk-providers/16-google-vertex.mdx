@@ -457,7 +457,7 @@ To enable thinking tokens for compatible Gemini models via Vertex, set `includeT
 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
-import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'; // Note: importing from @ai-sdk/google
+import { GoogleLanguageModelOptions } from '@ai-sdk/google'; // Note: importing from @ai-sdk/google
 import { generateText, streamText } from 'ai';
 
 // For generateText:
@@ -470,7 +470,7 @@ const { text, reasoningText, reasoning } = await generateText({
         includeThoughts: true,
         // thinkingBudget: 2048, // Optional
       },
-    } satisfies GoogleGenerativeAIProviderOptions,
+    } satisfies GoogleLanguageModelOptions,
   },
   prompt: 'Explain quantum computing in simple terms.',
 });
@@ -489,7 +489,7 @@ const result = streamText({
         includeThoughts: true,
         // thinkingBudget: 2048, // Optional
       },
-    } satisfies GoogleGenerativeAIProviderOptions,
+    } satisfies GoogleLanguageModelOptions,
   },
   prompt: 'Explain quantum computing in simple terms.',
 });
@@ -844,11 +844,11 @@ const { image } = await generateImage({
 });
 ```
 
-Further configuration can be done using Google Vertex provider options. You can validate the provider options using the `GoogleVertexImageProviderOptions` type.
+Further configuration can be done using Google Vertex provider options. You can validate the provider options using the `GoogleVertexImageModelOptions` type.
 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
-import { GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
+import { GoogleVertexImageModelOptions } from '@ai-sdk/google-vertex';
 import { generateImage } from 'ai';
 
 const { image } = await generateImage({
@@ -856,7 +856,7 @@ const { image } = await generateImage({
   providerOptions: {
     vertex: {
       negativePrompt: 'pixelated, blurry, low-quality',
-    } satisfies GoogleVertexImageProviderOptions,
+    } satisfies GoogleVertexImageModelOptions,
   },
   // ...
 });
@@ -888,7 +888,7 @@ Additional information about the images can be retrieved using Google Vertex met
 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
-import { GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
+import { GoogleVertexImageModelOptions } from '@ai-sdk/google-vertex';
 import { generateImage } from 'ai';
 
 const { image, providerMetadata } = await generateImage({
@@ -916,10 +916,7 @@ Google Vertex Imagen models support image editing through inpainting, outpaintin
 Insert or replace objects in specific areas using a mask:
 
 ```ts
-import {
-  vertex,
-  GoogleVertexImageProviderOptions,
-} from '@ai-sdk/google-vertex';
+import { vertex, GoogleVertexImageModelOptions } from '@ai-sdk/google-vertex';
 import { generateImage } from 'ai';
 import fs from 'fs';
 
@@ -941,7 +938,7 @@ const { images } = await generateImage({
         maskMode: 'MASK_MODE_USER_PROVIDED',
         maskDilation: 0.01,
       },
-    } satisfies GoogleVertexImageProviderOptions,
+    } satisfies GoogleVertexImageModelOptions,
   },
 });
 ```
@@ -951,10 +948,7 @@ const { images } = await generateImage({
 Extend an image beyond its original boundaries:
 
 ```ts
-import {
-  vertex,
-  GoogleVertexImageProviderOptions,
-} from '@ai-sdk/google-vertex';
+import { vertex, GoogleVertexImageModelOptions } from '@ai-sdk/google-vertex';
 import { generateImage } from 'ai';
 import fs from 'fs';
 
@@ -975,7 +969,7 @@ const { images } = await generateImage({
         mode: 'EDIT_MODE_OUTPAINT',
         maskMode: 'MASK_MODE_USER_PROVIDED',
       },
-    } satisfies GoogleVertexImageProviderOptions,
+    } satisfies GoogleVertexImageModelOptions,
   },
 });
 ```
@@ -1056,11 +1050,11 @@ const { video } = await generateVideo({
 
 #### Provider Options
 
-Further configuration can be done using Google Vertex provider options. You can validate the provider options using the `GoogleVertexVideoProviderOptions` type.
+Further configuration can be done using Google Vertex provider options. You can validate the provider options using the `GoogleVertexVideoModelOptions` type.
 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
-import { GoogleVertexVideoProviderOptions } from '@ai-sdk/google-vertex';
+import { GoogleVertexVideoModelOptions } from '@ai-sdk/google-vertex';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
@@ -1071,7 +1065,7 @@ const { video } = await generateVideo({
     vertex: {
       generateAudio: true,
       personGeneration: 'allow_adult',
-    } satisfies GoogleVertexVideoProviderOptions,
+    } satisfies GoogleVertexVideoModelOptions,
   },
 });
 ```
