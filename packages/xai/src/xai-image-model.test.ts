@@ -425,7 +425,12 @@ describe('XaiImageModel', () => {
       server.urls['https://api.example.com/images/generations'].response = {
         type: 'error',
         status: 400,
-        body: 'Bad Request',
+        body: JSON.stringify({
+          error: {
+            message: 'Invalid prompt',
+            type: 'invalid_request_error',
+          },
+        }),
       };
 
       const model = createModel();
@@ -441,7 +446,7 @@ describe('XaiImageModel', () => {
           providerOptions: {},
         }),
       ).rejects.toMatchObject({
-        message: 'Bad Request',
+        message: 'Invalid prompt',
         statusCode: 400,
       });
     });

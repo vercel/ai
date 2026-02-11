@@ -11,6 +11,7 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { xaiFailedResponseHandler } from './xai-error';
 import { xaiImageProviderOptions } from './xai-image-options';
 import { XaiImageModelId } from './xai-image-settings';
 
@@ -132,7 +133,7 @@ export class XaiImageModel implements ImageModelV3 {
       url: `${baseURL}${endpoint}`,
       headers: combineHeaders(this.config.headers(), headers),
       body,
-      failedResponseHandler: createStatusCodeErrorResponseHandler(),
+      failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         xaiImageResponseSchema,
       ),
