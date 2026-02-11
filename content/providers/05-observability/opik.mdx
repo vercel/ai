@@ -22,7 +22,7 @@ const result = await generateText({
 To forward spans to Opik, install the exporter and set up your credentials.
 
 ```bash
-npm install opik @vercel/otel @opentelemetry/api-logs @opentelemetry/instrumentation @opentelemetry/sdk-logs
+npm install opik @vercel/otel @opentelemetry/api-logs @opentelemetry/instrumentation @opentelemetry/sdk-logs @opentelemetry/sdk-node @opentelemetry/auto-instrumentations-node
 ```
 
 Set your Opik environment variables (or pass them directly to the exporter constructor):
@@ -42,7 +42,7 @@ Register the exporter with OpenTelemetry.
 
 Next.js supports OpenTelemetry instrumentation at the framework level. Learn more in the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry).
 
-```ts filename="instrumentation.ts" highlight="6"
+```ts filename="instrumentation.ts" highlight="7"
 import { registerOTel } from '@vercel/otel';
 import { OpikExporter } from 'opik/vercel';
 
@@ -57,7 +57,7 @@ export function register() {
 </Tab>
 <Tab>
 
-```ts highlight="6, 9, 28"
+```ts highlight="5, 8, 19"
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { NodeSDK } from '@opentelemetry/sdk-node';
