@@ -183,6 +183,73 @@ describe('doGenerate', () => {
     );
   });
 
+  it('should expose the raw response headers', async () => {
+    prepareJsonFixtureResponse('mistral-text', {
+      headers: { 'test-header': 'test-value' },
+    });
+
+    const { response } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response?.headers).toMatchInlineSnapshot(`
+      {
+        "content-length": "2287",
+        "content-type": "application/json",
+        "test-header": "test-value",
+      }
+    `);
+  });
+
+  it('should extract usage', async () => {
+    prepareJsonFixtureResponse('mistral-text');
+
+    const { usage } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "inputTokens": {
+          "cacheRead": undefined,
+          "cacheWrite": undefined,
+          "noCache": 13,
+          "total": 13,
+        },
+        "outputTokens": {
+          "reasoning": undefined,
+          "text": 434,
+          "total": 434,
+        },
+        "raw": {
+          "completion_tokens": 434,
+          "prompt_tokens": 13,
+          "total_tokens": 447,
+        },
+      }
+    `);
+  });
+
+  it('should send additional response information', async () => {
+    prepareJsonFixtureResponse('mistral-text');
+
+    const { response } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect({
+      id: response?.id,
+      timestamp: response?.timestamp,
+      modelId: response?.modelId,
+    }).toMatchInlineSnapshot(`
+      {
+        "id": "5319bd0299614c679a0068a4f2c8ffd0",
+        "modelId": "mistral-small-latest",
+        "timestamp": 2026-01-22T13:32:00.000Z,
+      }
+    `);
+  });
+
   it('should send request body', async () => {
     prepareJsonFixtureResponse('mistral-text');
 
@@ -620,7 +687,10 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
-  function prepareChunksFixtureResponse(filename: string) {
+  function prepareChunksFixtureResponse(
+    filename: string,
+    { headers }: { headers?: Record<string, string> } = {},
+  ) {
     const chunks = fs
       .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
       .split('\n')
@@ -630,6 +700,7 @@ describe('doStream', () => {
 
     server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'stream-chunks',
+      headers,
       chunks,
     };
   }
@@ -722,6 +793,25 @@ describe('doStream', () => {
     expect(server.calls[0].requestUserAgent).toContain(
       `ai-sdk/mistral/0.0.0-test`,
     );
+  });
+
+  it('should expose the raw response headers', async () => {
+    prepareChunksFixtureResponse('mistral-text', {
+      headers: { 'test-header': 'test-value' },
+    });
+
+    const { response } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response?.headers).toMatchInlineSnapshot(`
+      {
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream",
+        "test-header": "test-value",
+      }
+    `);
   });
 
   it('should send request body', async () => {
