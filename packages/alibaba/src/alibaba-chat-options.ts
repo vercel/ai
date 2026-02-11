@@ -50,4 +50,6 @@ export const alibabaProviderOptions = z.object({
   parallelToolCalls: z.boolean().optional(),
 });
 
-export type AlibabaProviderOptions = z.infer<typeof alibabaProviderOptions>;
+export type AlibabaLanguageModelOptions = z.infer<
+  typeof alibabaProviderOptions
+>;

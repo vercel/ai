@@ -26,7 +26,7 @@ const elevenLabsProviderOptionsSchema = z.object({
   fileFormat: z.enum(['pcm_s16le_16', 'other']).nullish().default('other'),
 });
 
-export type ElevenLabsTranscriptionCallOptions = z.infer<
+export type ElevenLabsTranscriptionModelOptions = z.infer<
   typeof elevenLabsProviderOptionsSchema
 >;
 

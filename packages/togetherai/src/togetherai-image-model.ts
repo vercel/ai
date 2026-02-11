@@ -183,6 +183,6 @@ export const togetheraiImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type TogetherAIImageProviderOptions = InferSchema<
+export type TogetherAIImageModelOptions = InferSchema<
   typeof togetheraiImageProviderOptionsSchema
 >;

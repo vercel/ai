@@ -7,7 +7,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import { XaiResponsesLanguageModel } from './xai-responses-language-model';
-import { XaiResponsesProviderOptions } from './xai-responses-options';
+import { XaiLanguageModelResponsesOptions } from './xai-responses-options';
 
 const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'hello' }] },
@@ -370,7 +370,7 @@ describe('XaiResponsesLanguageModel', () => {
             providerOptions: {
               xai: {
                 reasoningEffort: 'high',
-              } satisfies XaiResponsesProviderOptions,
+              } satisfies XaiLanguageModelResponsesOptions,
             },
           });
 
@@ -393,7 +393,7 @@ describe('XaiResponsesLanguageModel', () => {
             providerOptions: {
               xai: {
                 store: true,
-              } satisfies XaiResponsesProviderOptions,
+              } satisfies XaiLanguageModelResponsesOptions,
             },
           });
 
@@ -417,7 +417,7 @@ describe('XaiResponsesLanguageModel', () => {
             providerOptions: {
               xai: {
                 store: false,
-              } satisfies XaiResponsesProviderOptions,
+              } satisfies XaiLanguageModelResponsesOptions,
             },
           });
 
@@ -443,7 +443,7 @@ describe('XaiResponsesLanguageModel', () => {
             providerOptions: {
               xai: {
                 previousResponseId: 'resp_456',
-              } satisfies XaiResponsesProviderOptions,
+              } satisfies XaiLanguageModelResponsesOptions,
             },
           });
 
@@ -466,7 +466,7 @@ describe('XaiResponsesLanguageModel', () => {
             providerOptions: {
               xai: {
                 include: ['file_search_call.results'],
-              } satisfies XaiResponsesProviderOptions,
+              } satisfies XaiLanguageModelResponsesOptions,
             },
           });
 
@@ -492,7 +492,7 @@ describe('XaiResponsesLanguageModel', () => {
               xai: {
                 include: ['file_search_call.results'],
                 store: false,
-              } satisfies XaiResponsesProviderOptions,
+              } satisfies XaiLanguageModelResponsesOptions,
             },
           });
 

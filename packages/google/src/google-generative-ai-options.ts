@@ -188,6 +188,6 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
   ),
 );
 
-export type GoogleGenerativeAIProviderOptions = InferSchema<
+export type GoogleLanguageModelOptions = InferSchema<
   typeof googleGenerativeAIProviderOptions
 >;

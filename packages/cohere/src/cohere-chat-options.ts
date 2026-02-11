@@ -33,4 +33,4 @@ export const cohereChatModelOptions = z.object({
     .optional(),
 });
 
-export type CohereChatModelOptions = z.infer<typeof cohereChatModelOptions>;
+export type CohereLanguageModelOptions = z.infer<typeof cohereChatModelOptions>;

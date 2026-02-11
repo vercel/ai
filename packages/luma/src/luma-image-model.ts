@@ -436,6 +436,6 @@ export const lumaImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type LumaImageProviderOptions = InferSchema<
+export type LumaImageModelOptions = InferSchema<
   typeof lumaImageProviderOptionsSchema
 >;

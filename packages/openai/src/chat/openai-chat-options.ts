@@ -181,6 +181,6 @@ export const openaiChatLanguageModelOptions = lazySchema(() =>
   ),
 );
 
-export type OpenAIChatLanguageModelOptions = InferSchema<
+export type OpenAILanguageModelChatOptions = InferSchema<
   typeof openaiChatLanguageModelOptions
 >;

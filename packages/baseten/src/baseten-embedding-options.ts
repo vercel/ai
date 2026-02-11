@@ -7,6 +7,6 @@ export type BasetenEmbeddingModelId = string & {};
 
 export const basetenEmbeddingProviderOptions = z.object({});
 
-export type BasetenEmbeddingProviderOptions = z.infer<
+export type BasetenEmbeddingModelOptions = z.infer<
   typeof basetenEmbeddingProviderOptions
 >;

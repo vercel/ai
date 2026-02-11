@@ -25,6 +25,6 @@ export const openaiEmbeddingProviderOptions = lazySchema(() =>
   ),
 );
 
-export type OpenAIEmbeddingProviderOptions = InferSchema<
+export type OpenAIEmbeddingModelOptions = InferSchema<
   typeof openaiEmbeddingProviderOptions
 >;

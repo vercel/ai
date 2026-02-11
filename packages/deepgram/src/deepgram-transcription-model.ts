@@ -51,7 +51,7 @@ const deepgramProviderOptionsSchema = z.object({
   fillerWords: z.boolean().nullish(),
 });
 
-export type DeepgramTranscriptionCallOptions = z.infer<
+export type DeepgramTranscriptionModelOptions = z.infer<
   typeof deepgramProviderOptionsSchema
 >;
 

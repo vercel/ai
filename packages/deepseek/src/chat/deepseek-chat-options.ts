@@ -17,4 +17,4 @@ export const deepseekChatOptions = z.object({
     .optional(),
 });
 
-export type DeepSeekChatOptions = z.infer<typeof deepseekChatOptions>;
+export type DeepSeekLanguageModelOptions = z.infer<typeof deepseekChatOptions>;

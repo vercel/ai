@@ -35,4 +35,6 @@ export const fireworksProviderOptions = z.object({
   reasoningHistory: z.enum(['disabled', 'interleaved', 'preserved']).optional(),
 });
 
-export type FireworksProviderOptions = z.infer<typeof fireworksProviderOptions>;
+export type FireworksLanguageModelOptions = z.infer<
+  typeof fireworksProviderOptions
+>;

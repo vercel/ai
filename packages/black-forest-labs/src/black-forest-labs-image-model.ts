@@ -374,7 +374,7 @@ export const blackForestLabsImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type BlackForestLabsImageProviderOptions = InferSchema<
+export type BlackForestLabsImageModelOptions = InferSchema<
   typeof blackForestLabsImageProviderOptionsSchema
 >;
 

@@ -28,6 +28,6 @@ export const openaiCompatibleCompletionProviderOptions = z.object({
   user: z.string().optional(),
 });
 
-export type OpenAICompatibleCompletionProviderOptions = z.infer<
+export type OpenAICompatibleLanguageModelCompletionOptions = z.infer<
   typeof openaiCompatibleCompletionProviderOptions
 >;

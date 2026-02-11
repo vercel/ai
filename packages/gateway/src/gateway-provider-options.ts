@@ -63,4 +63,6 @@ const gatewayProviderOptions = lazySchema(() =>
   ),
 );
 
-export type GatewayProviderOptions = InferSchema<typeof gatewayProviderOptions>;
+export type GatewayLanguageModelOptions = InferSchema<
+  typeof gatewayProviderOptions
+>;

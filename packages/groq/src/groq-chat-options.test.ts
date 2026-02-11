@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { groqProviderOptions, GroqProviderOptions } from './groq-chat-options';
+import {
+  groqProviderOptions,
+  GroqLanguageModelOptions,
+} from './groq-chat-options';
 
 describe('groqProviderOptions', () => {
   describe('reasoningEffort', () => {
@@ -97,8 +100,8 @@ describe('groqProviderOptions', () => {
   });
 
   describe('type inference', () => {
-    it('infers GroqProviderOptions type correctly', () => {
-      const options: GroqProviderOptions = {
+    it('infers GroqLanguageModelOptions type correctly', () => {
+      const options: GroqLanguageModelOptions = {
         reasoningEffort: 'medium',
         parallelToolCalls: false,
       };

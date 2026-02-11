@@ -16,6 +16,6 @@ export const openaiCompatibleEmbeddingProviderOptions = z.object({
   user: z.string().optional(),
 });
 
-export type OpenAICompatibleEmbeddingProviderOptions = z.infer<
+export type OpenAICompatibleEmbeddingModelOptions = z.infer<
   typeof openaiCompatibleEmbeddingProviderOptions
 >;

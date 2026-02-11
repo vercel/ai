@@ -57,7 +57,7 @@ const falProviderOptionsSchema = z.object({
   numSpeakers: z.number().nullable().nullish(),
 });
 
-export type FalTranscriptionCallOptions = z.infer<
+export type FalTranscriptionModelOptions = z.infer<
   typeof falProviderOptionsSchema
 >;
 

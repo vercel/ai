@@ -21,7 +21,7 @@ import { z } from 'zod/v4';
 import { replicateFailedResponseHandler } from './replicate-error';
 import type { ReplicateVideoModelId } from './replicate-video-settings';
 
-export type ReplicateVideoProviderOptions = {
+export type ReplicateVideoModelOptions = {
   // Polling configuration
   pollIntervalMs?: number | null;
   pollTimeoutMs?: number | null;
@@ -78,7 +78,7 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
       provider: 'replicate',
       providerOptions: options.providerOptions,
       schema: replicateVideoProviderOptionsSchema,
-    })) as ReplicateVideoProviderOptions | undefined;
+    })) as ReplicateVideoModelOptions | undefined;
 
     const [modelId, version] = this.modelId.split(':');
     const input: Record<string, unknown> = {};

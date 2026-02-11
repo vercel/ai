@@ -17,6 +17,6 @@ export const openaiSpeechProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type OpenAISpeechCallOptions = InferSchema<
+export type OpenAISpeechModelOptions = InferSchema<
   typeof openaiSpeechProviderOptionsSchema
 >;

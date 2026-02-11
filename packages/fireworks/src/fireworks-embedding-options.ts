@@ -7,6 +7,6 @@ export type FireworksEmbeddingModelId =
 
 export const fireworksEmbeddingProviderOptions = z.object({});
 
-export type FireworksEmbeddingProviderOptions = z.infer<
+export type FireworksEmbeddingModelOptions = z.infer<
   typeof fireworksEmbeddingProviderOptions
 >;

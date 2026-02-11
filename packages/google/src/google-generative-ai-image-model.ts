@@ -179,6 +179,6 @@ const googleImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type GoogleGenerativeAIImageProviderOptions = InferSchema<
+export type GoogleImageModelOptions = InferSchema<
   typeof googleImageProviderOptionsSchema
 >;

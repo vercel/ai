@@ -238,4 +238,6 @@ export const anthropicProviderOptions = z.object({
     .optional(),
 });
 
-export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;
+export type AnthropicLanguageModelOptions = z.infer<
+  typeof anthropicProviderOptions
+>;

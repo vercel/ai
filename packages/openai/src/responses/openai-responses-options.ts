@@ -307,6 +307,6 @@ export const openaiResponsesProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type OpenAIResponsesProviderOptions = InferSchema<
+export type OpenAILanguageModelResponsesOptions = InferSchema<
   typeof openaiResponsesProviderOptionsSchema
 >;

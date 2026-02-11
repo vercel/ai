@@ -23,6 +23,6 @@ export const moonshotaiProviderOptions = z.object({
   reasoningHistory: z.enum(['disabled', 'interleaved', 'preserved']).optional(),
 });
 
-export type MoonshotAIProviderOptions = z.infer<
+export type MoonshotAILanguageModelOptions = z.infer<
   typeof moonshotaiProviderOptions
 >;

@@ -53,6 +53,6 @@ export const openaiCompletionProviderOptions = lazySchema(() =>
   ),
 );
 
-export type OpenAICompletionProviderOptions = InferSchema<
+export type OpenAILanguageModelCompletionOptions = InferSchema<
   typeof openaiCompletionProviderOptions
 >;

@@ -265,7 +265,7 @@ const vertexImageProviderOptionsSchema = z.object({
     })
     .nullish(),
 });
-export type GoogleVertexImageProviderOptions = z.infer<
+export type GoogleVertexImageModelOptions = z.infer<
   typeof vertexImageProviderOptionsSchema
 >;
 

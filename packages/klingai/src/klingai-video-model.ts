@@ -65,7 +65,7 @@ function getApiModelName(modelId: string, mode: KlingAIVideoMode): string {
  * motion control). See the KlingAI capability map for detailed compatibility:
  * https://app.klingai.com/global/dev/document-api/apiReference/model/skillsMap
  */
-export type KlingAIVideoProviderOptions = {
+export type KlingAIVideoModelOptions = {
   /**
    * Video generation mode.
    *
@@ -296,7 +296,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
       provider: 'klingai',
       providerOptions: options.providerOptions,
       schema: klingaiVideoProviderOptionsSchema,
-    })) as KlingAIVideoProviderOptions | undefined;
+    })) as KlingAIVideoModelOptions | undefined;
 
     let body: Record<string, unknown>;
 
@@ -478,7 +478,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
 
   private buildT2VBody(
     options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-    klingaiOptions: KlingAIVideoProviderOptions | undefined,
+    klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV3Warning[],
   ): Record<string, unknown> {
     const mode = 't2v' as const;
@@ -537,7 +537,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
 
   private buildI2VBody(
     options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-    klingaiOptions: KlingAIVideoProviderOptions | undefined,
+    klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV3Warning[],
   ): Record<string, unknown> {
     const mode = 'i2v' as const;
@@ -617,7 +617,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
 
   private buildMotionControlBody(
     options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-    klingaiOptions: KlingAIVideoProviderOptions | undefined,
+    klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV3Warning[],
   ): Record<string, unknown> {
     if (
@@ -690,7 +690,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
 
   private addPassthroughOptions(
     body: Record<string, unknown>,
-    klingaiOptions: KlingAIVideoProviderOptions | undefined,
+    klingaiOptions: KlingAIVideoModelOptions | undefined,
   ): void {
     if (!klingaiOptions) return;
     for (const [key, value] of Object.entries(klingaiOptions)) {

@@ -263,6 +263,6 @@ export const replicateImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type ReplicateImageProviderOptions = InferSchema<
+export type ReplicateImageModelOptions = InferSchema<
   typeof replicateImageProviderOptionsSchema
 >;

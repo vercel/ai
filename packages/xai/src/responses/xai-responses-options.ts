@@ -33,6 +33,6 @@ export const xaiResponsesProviderOptions = z.object({
   include: z.array(z.enum(['file_search_call.results'])).nullish(),
 });
 
-export type XaiResponsesProviderOptions = z.infer<
+export type XaiLanguageModelResponsesOptions = z.infer<
   typeof xaiResponsesProviderOptions
 >;

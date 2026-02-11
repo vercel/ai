@@ -31,7 +31,7 @@ const falSpeechProviderOptionsSchema = z.looseObject({
   pronunciation_dict: z.record(z.string(), z.string()).nullish(),
 });
 
-export type FalSpeechCallOptions = z.infer<
+export type FalSpeechModelOptions = z.infer<
   typeof falSpeechProviderOptionsSchema
 >;
 

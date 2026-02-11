@@ -47,6 +47,6 @@ export const googleGenerativeAIEmbeddingProviderOptions = lazySchema(() =>
   ),
 );
 
-export type GoogleGenerativeAIEmbeddingProviderOptions = InferSchema<
+export type GoogleEmbeddingModelOptions = InferSchema<
   typeof googleGenerativeAIEmbeddingProviderOptions
 >;

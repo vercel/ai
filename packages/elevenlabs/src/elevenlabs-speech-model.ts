@@ -44,7 +44,7 @@ const ElevenLabsProviderOptionsSchema = z.object({
   enableLogging: z.boolean().optional(),
 });
 
-export type ElevenLabsSpeechCallOptions = z.infer<
+export type ElevenLabsSpeechModelOptions = z.infer<
   typeof ElevenLabsProviderOptionsSchema
 >;
 

@@ -75,4 +75,4 @@ export const groqProviderOptions = z.object({
   serviceTier: z.enum(['on_demand', 'flex', 'auto']).optional(),
 });
 
-export type GroqProviderOptions = z.infer<typeof groqProviderOptions>;
+export type GroqLanguageModelOptions = z.infer<typeof groqProviderOptions>;

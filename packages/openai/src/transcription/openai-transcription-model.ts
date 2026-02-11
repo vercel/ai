@@ -17,7 +17,7 @@ import { openaiTranscriptionResponseSchema } from './openai-transcription-api';
 import {
   OpenAITranscriptionModelId,
   openAITranscriptionProviderOptions,
-  OpenAITranscriptionProviderOptions,
+  OpenAITranscriptionModelOptions,
 } from './openai-transcription-options';
 
 export type OpenAITranscriptionCallOptions = Omit<
@@ -25,7 +25,7 @@ export type OpenAITranscriptionCallOptions = Omit<
   'providerOptions'
 > & {
   providerOptions?: {
-    openai?: OpenAITranscriptionProviderOptions;
+    openai?: OpenAITranscriptionModelOptions;
   };
 };
 

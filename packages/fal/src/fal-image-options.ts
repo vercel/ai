@@ -124,6 +124,6 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type FalImageProviderOptions = InferSchema<
+export type FalImageModelOptions = InferSchema<
   typeof falImageProviderOptionsSchema
 >;

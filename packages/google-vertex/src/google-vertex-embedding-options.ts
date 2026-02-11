@@ -58,6 +58,6 @@ export const googleVertexEmbeddingProviderOptions = z.object({
   autoTruncate: z.boolean().optional(),
 });
 
-export type GoogleVertexEmbeddingProviderOptions = z.infer<
+export type GoogleVertexEmbeddingModelOptions = z.infer<
   typeof googleVertexEmbeddingProviderOptions
 >;

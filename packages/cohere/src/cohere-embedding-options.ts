@@ -45,4 +45,6 @@ export const cohereEmbeddingOptions = z.object({
     .optional(),
 });
 
-export type CohereEmbeddingOptions = z.infer<typeof cohereEmbeddingOptions>;
+export type CohereEmbeddingModelOptions = z.infer<
+  typeof cohereEmbeddingOptions
+>;

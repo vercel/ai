@@ -219,7 +219,7 @@ export const prodiaImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type ProdiaImageProviderOptions = InferSchema<
+export type ProdiaImageModelOptions = InferSchema<
   typeof prodiaImageProviderOptionsSchema
 >;
 

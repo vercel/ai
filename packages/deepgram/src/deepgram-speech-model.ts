@@ -30,7 +30,7 @@ const deepgramSpeechProviderOptionsSchema = z.object({
   tag: z.union([z.string(), z.array(z.string())]).nullish(),
 });
 
-export type DeepgramSpeechCallOptions = z.infer<
+export type DeepgramSpeechModelOptions = z.infer<
   typeof deepgramSpeechProviderOptionsSchema
 >;
 

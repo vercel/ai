@@ -45,6 +45,6 @@ export const openAITranscriptionProviderOptions = lazySchema(() =>
   ),
 );
 
-export type OpenAITranscriptionProviderOptions = InferSchema<
+export type OpenAITranscriptionModelOptions = InferSchema<
   typeof openAITranscriptionProviderOptions
 >;

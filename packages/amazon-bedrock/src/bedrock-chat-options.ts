@@ -117,4 +117,6 @@ export const bedrockProviderOptions = z.object({
   anthropicBeta: z.array(z.string()).optional(),
 });
 
-export type BedrockProviderOptions = z.infer<typeof bedrockProviderOptions>;
+export type AmazonBedrockLanguageModelOptions = z.infer<
+  typeof bedrockProviderOptions
+>;

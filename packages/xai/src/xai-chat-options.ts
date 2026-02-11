@@ -127,4 +127,4 @@ export const xaiProviderOptions = z.object({
     .optional(),
 });
 
-export type XaiProviderOptions = z.infer<typeof xaiProviderOptions>;
+export type XaiLanguageModelChatOptions = z.infer<typeof xaiProviderOptions>;
