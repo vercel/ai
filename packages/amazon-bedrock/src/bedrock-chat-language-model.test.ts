@@ -224,6 +224,58 @@ describe('doStream', () => {
     mockOptions = { ...mockOptions, ...options };
   }
 
+  describe('text', () => {
+    beforeEach(() => {
+      setupMockEventStreamHandler();
+      prepareChunksFixtureResponse('bedrock-text');
+    });
+
+    it('should stream text deltas', async () => {
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+
+    it('should expose the raw response headers', async () => {
+      prepareChunksFixtureResponse('bedrock-text', {
+        headers: { 'test-header': 'test-value' },
+      });
+
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(result.response?.headers).toMatchInlineSnapshot(`
+        {
+          "cache-control": "no-cache",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "test-header": "test-value",
+        }
+      `);
+    });
+  });
+
+  describe('reasoning', () => {
+    beforeEach(() => {
+      setupMockEventStreamHandler();
+      prepareChunksFixtureResponse('bedrock-reasoning');
+    });
+
+    it('should stream reasoning and text parts', async () => {
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+  });
+
   it('should stream text deltas with metadata and usage', async () => {
     setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
@@ -1228,27 +1280,6 @@ describe('doStream', () => {
       'x-amzn-requestid': 'test-request-id',
       'x-amzn-trace-id': 'test-trace-id',
     });
-  });
-
-  it('should expose the raw response headers', async () => {
-    setupMockEventStreamHandler();
-    prepareChunksFixtureResponse('bedrock-tool-call.1', {
-      headers: { 'test-header': 'test-value' },
-    });
-
-    const result = await model.doStream({
-      prompt: TEST_PROMPT,
-      includeRawChunks: false,
-    });
-
-    expect(result.response?.headers).toMatchInlineSnapshot(`
-      {
-        "cache-control": "no-cache",
-        "connection": "keep-alive",
-        "content-type": "text/event-stream",
-        "test-header": "test-value",
-      }
-    `);
   });
 
   it('should properly combine headers from all sources', async () => {
@@ -2736,6 +2767,99 @@ describe('doGenerate', () => {
     };
   }
 
+  describe('text', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('bedrock-text');
+    });
+
+    it('should extract text response', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should extract usage', async () => {
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage).toMatchInlineSnapshot(`
+        {
+          "inputTokens": {
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "noCache": 22,
+            "total": 22,
+          },
+          "outputTokens": {
+            "reasoning": undefined,
+            "text": 57,
+            "total": 57,
+          },
+          "raw": {
+            "cacheReadInputTokens": 0,
+            "cacheWriteInputTokens": 0,
+            "inputTokens": 22,
+            "outputTokens": 57,
+            "totalTokens": 79,
+          },
+        }
+      `);
+    });
+
+    it('should send additional response information', async () => {
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect({
+        id: response?.id,
+        timestamp: response?.timestamp,
+        modelId: response?.modelId,
+      }).toMatchInlineSnapshot(`
+        {
+          "id": undefined,
+          "modelId": undefined,
+          "timestamp": undefined,
+        }
+      `);
+    });
+
+    it('should expose the raw response headers', async () => {
+      prepareJsonFixtureResponse('bedrock-text', {
+        headers: { 'test-header': 'test-value' },
+      });
+
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(response?.headers).toMatchInlineSnapshot(`
+        {
+          "content-length": "435",
+          "content-type": "application/json",
+          "test-header": "test-value",
+        }
+      `);
+    });
+  });
+
+  describe('reasoning', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('bedrock-reasoning');
+    });
+
+    it('should extract reasoning and text response', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+  });
+
   it('should extract text response', async () => {
     prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
 
@@ -3080,44 +3204,6 @@ describe('doGenerate', () => {
       'content-type': 'application/json',
       'content-length': '164',
     });
-  });
-
-  it('should send additional response information', async () => {
-    prepareJsonFixtureResponse('bedrock-tool-call.1');
-
-    const { response } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect({
-      id: response?.id,
-      timestamp: response?.timestamp,
-      modelId: response?.modelId,
-    }).toMatchInlineSnapshot(`
-      {
-        "id": undefined,
-        "modelId": undefined,
-        "timestamp": undefined,
-      }
-    `);
-  });
-
-  it('should expose the raw response headers', async () => {
-    prepareJsonFixtureResponse('bedrock-tool-call.1', {
-      headers: { 'test-header': 'test-value' },
-    });
-
-    const { response } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(response?.headers).toMatchInlineSnapshot(`
-      {
-        "content-length": "223",
-        "content-type": "application/json",
-        "test-header": "test-value",
-      }
-    `);
   });
 
   it('should pass tools and tool choice correctly', async () => {
