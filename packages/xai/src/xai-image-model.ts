@@ -98,7 +98,7 @@ export class XaiImageModel implements ImageModelV3 {
       }
     }
 
-    const endpoint = '/images/generations';
+    const endpoint = hasFiles ? '/images/edits' : '/images/generations';
 
     const body: Record<string, unknown> = {
       model: this.modelId,
@@ -124,7 +124,7 @@ export class XaiImageModel implements ImageModelV3 {
     }
 
     if (imageUrl != null) {
-      body.image_url = imageUrl;
+      body.image = { url: imageUrl, type: 'image_url' };
     }
 
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';

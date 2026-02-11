@@ -33,6 +33,14 @@ describe('XaiImageModel', () => {
         },
       },
     },
+    'https://api.example.com/images/edits': {
+      response: {
+        type: 'json-value',
+        body: {
+          data: [{ url: imageUrl }],
+        },
+      },
+    },
     [imageUrl]: {
       response: {
         type: 'binary',
@@ -102,14 +110,17 @@ describe('XaiImageModel', () => {
       });
 
       expect(server.calls[0].requestUrl).toBe(
-        'https://api.example.com/images/generations',
+        'https://api.example.com/images/edits',
       );
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'grok-2-image',
         prompt: 'Turn the cat into a dog',
         n: 1,
         response_format: 'url',
-        image_url: 'data:image/png;base64,iVBORw==',
+        image: {
+          url: 'data:image/png;base64,iVBORw==',
+          type: 'image_url',
+        },
       });
     });
 
@@ -137,7 +148,10 @@ describe('XaiImageModel', () => {
         prompt: 'Edit this image',
         n: 1,
         response_format: 'url',
-        image_url: 'https://example.com/input.png',
+        image: {
+          url: 'https://example.com/input.png',
+          type: 'image_url',
+        },
       });
     });
 
@@ -166,7 +180,10 @@ describe('XaiImageModel', () => {
         prompt: 'Edit this image',
         n: 1,
         response_format: 'url',
-        image_url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAE=',
+        image: {
+          url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAE=',
+          type: 'image_url',
+        },
       });
     });
 
