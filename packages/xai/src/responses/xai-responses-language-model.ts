@@ -391,6 +391,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
 
+    // Track ongoing function calls by output_index so we can stream
+    // arguments via response.function_call_arguments.delta events.
+    const ongoingToolCalls: Record<
+      number,
+      { toolName: string; toolCallId: string } | undefined
+    > = {};
+
     const activeReasoning: Record<
       string,
       { encryptedContent?: string | null }
@@ -581,6 +588,23 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
 
               return;
             }
+            // Function call arguments streaming (standard function tools)
+            if (event.type === 'response.function_call_arguments.delta') {
+              const toolCall = ongoingToolCalls[event.output_index];
+              if (toolCall != null) {
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: toolCall.toolCallId,
+                  delta: event.delta,
+                });
+              }
+              return;
+            }
+            if (event.type === 'response.function_call_arguments.done') {
+              // Arguments are fully received; output_item.done will
+              // emit tool-input-end and tool-call with the final arguments.
+              return;
+            }
 
             if (
               event.type === 'response.output_item.added' ||
@@ -743,20 +767,21 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
                   }
                 }
               } else if (part.type === 'function_call') {
-                if (!seenToolCalls.has(part.call_id)) {
-                  seenToolCalls.add(part.call_id);
+                if (event.type === 'response.output_item.added') {
+                  // Track the call so function_call_arguments.delta events
+                  // can stream the arguments incrementally.
+                  ongoingToolCalls[event.output_index] = {
+                    toolName: part.name,
+                    toolCallId: part.call_id,
+                  };
 
                   controller.enqueue({
                     type: 'tool-input-start',
                     id: part.call_id,
                     toolName: part.name,
                   });
-
-                  controller.enqueue({
-                    type: 'tool-input-delta',
-                    id: part.call_id,
-                    delta: part.arguments,
-                  });
+                } else if (event.type === 'response.output_item.done') {
+                  ongoingToolCalls[event.output_index] = undefined;
 
                   controller.enqueue({
                     type: 'tool-input-end',
