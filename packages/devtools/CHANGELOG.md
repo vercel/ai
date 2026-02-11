@@ -1,5 +1,11 @@
 # @ai-sdk/devtools
 
+## 0.0.14
+
+### Patch Changes
+
+- d14f0aa: chore (devtools): include skill instructions in readme
+
 ## 0.0.13
 
 ### Patch Changes
