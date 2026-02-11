@@ -105,6 +105,7 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
 
         instance.image = {
           bytesBase64Encoded: base64Data,
+          mimeType: options.image.mediaType,
         };
       }
     }
