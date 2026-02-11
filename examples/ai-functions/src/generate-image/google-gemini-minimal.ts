@@ -1,6 +1,7 @@
 import { google } from '@ai-sdk/google';
 import { generateImage } from 'ai';
 import { run } from '../lib/run';
+import { presentImages } from '../lib/present-image';
 
 run(async () => {
   const { images } = await generateImage({
@@ -8,5 +9,5 @@ run(async () => {
     prompt: 'A nano banana in a fancy restaurant',
   });
 
-  console.log(`Generated ${images.length} image(s)`);
+  presentImages(images);
 });

@@ -2,6 +2,7 @@ import { google } from '@ai-sdk/google';
 import { generateImage } from 'ai';
 import fs from 'node:fs';
 import { run } from '../lib/run';
+import { presentImages } from '../lib/present-image';
 
 run(async () => {
   console.log('Generating base cat image...');
@@ -31,11 +32,5 @@ run(async () => {
     },
   });
 
-  for (const image of editResult.images) {
-    await fs.promises.writeFile(
-      `output/cat-wizard-${timestamp}.png`,
-      image.uint8Array,
-    );
-    console.log(`Saved edited image: output/cat-wizard-${timestamp}.png`);
-  }
+  presentImages(editResult.images);
 });

@@ -2,6 +2,7 @@ import { google } from '@ai-sdk/google';
 import { generateImage } from 'ai';
 import fs from 'node:fs';
 import { run } from '../lib/run';
+import { presentImages } from '../lib/present-image';
 
 run(async () => {
   const editResult = await generateImage({
@@ -14,14 +15,5 @@ run(async () => {
     },
   });
 
-  const timestamp = Date.now();
-  fs.mkdirSync('output', { recursive: true });
-
-  for (const image of editResult.images) {
-    await fs.promises.writeFile(
-      `output/edited-${timestamp}.png`,
-      image.uint8Array,
-    );
-    console.log(`Saved edited image: output/edited-${timestamp}.png`);
-  }
+  presentImages(editResult.images);
 });
