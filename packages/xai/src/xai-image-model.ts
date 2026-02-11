@@ -144,8 +144,6 @@ export class XaiImageModel implements ImageModelV3 {
       response.data.map(image => this.downloadImage(image.url, abortSignal)),
     );
 
-    const revisedPrompt = response.data[0]?.revised_prompt;
-
     return {
       images: downloadedImages,
       warnings,
@@ -154,7 +152,15 @@ export class XaiImageModel implements ImageModelV3 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata: revisedPrompt ? { xai: { revisedPrompt } } : undefined,
+      providerMetadata: {
+        xai: {
+          images: response.data.map(item => ({
+            ...(item.revised_prompt
+              ? { revisedPrompt: item.revised_prompt }
+              : {}),
+          })),
+        },
+      },
     };
   }
 

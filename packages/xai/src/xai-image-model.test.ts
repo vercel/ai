@@ -198,7 +198,7 @@ describe('XaiImageModel', () => {
 
       expect(result.images).toHaveLength(1);
       expect(result.images[0]).toBeInstanceOf(Uint8Array);
-      expect(Buffer.from(result.images[0]).toString()).toBe(
+      expect(Buffer.from(result.images[0] as Uint8Array).toString()).toBe(
         'test-binary-content',
       );
     });
@@ -282,7 +282,9 @@ describe('XaiImageModel', () => {
       });
 
       expect(result.providerMetadata).toStrictEqual({
-        xai: { revisedPrompt: 'A revised prompt' },
+        xai: {
+          images: [{ revisedPrompt: 'A revised prompt' }],
+        },
       });
     });
 
