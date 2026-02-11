@@ -145,14 +145,27 @@ export class OpenAITranscriptionModel implements TranscriptionModelV3 {
         prompt: openAIOptions.prompt,
         // https://platform.openai.com/docs/api-reference/audio/createTranscription#audio_createtranscription-response_format
         // prefer verbose_json to get segments for models that support it
-        response_format: [
-          'gpt-4o-transcribe',
-          'gpt-4o-mini-transcribe',
-        ].includes(this.modelId)
-          ? 'json'
-          : 'verbose_json',
+        response_format:
+          this.modelId === 'gpt-4o-transcribe-diarize'
+            ? 'diarized_json'
+            : ['gpt-4o-transcribe', 'gpt-4o-mini-transcribe'].includes(
+                  this.modelId,
+                )
+              ? 'json'
+              : 'verbose_json',
         temperature: openAIOptions.temperature,
         timestamp_granularities: openAIOptions.timestampGranularities,
+        chunking_strategy:
+          typeof openAIOptions.chunkingStrategy === 'object'
+            ? {
+                type: openAIOptions.chunkingStrategy.type,
+                prefix_padding_ms:
+                  openAIOptions.chunkingStrategy.prefixPaddingMs,
+                silence_duration_ms:
+                  openAIOptions.chunkingStrategy.silenceDurationMs,
+                threshold: openAIOptions.chunkingStrategy.threshold,
+              }
+            : openAIOptions.chunkingStrategy,
       };
 
       for (const [key, value] of Object.entries(transcriptionModelOptions)) {
@@ -161,6 +174,8 @@ export class OpenAITranscriptionModel implements TranscriptionModelV3 {
             for (const item of value) {
               formData.append(`${key}[]`, String(item));
             }
+          } else if (typeof value === 'object') {
+            formData.append(key, JSON.stringify(value));
           } else {
             formData.append(key, String(value));
           }

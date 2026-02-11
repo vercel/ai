@@ -504,4 +504,156 @@ describe('doGenerate', () => {
     expect(result.language).toBeUndefined();
     expect(result.durationInSeconds).toBeUndefined();
   });
+
+  it('should set response_format to "diarized_json" when model is "gpt-4o-transcribe-diarize"', async () => {
+    prepareJsonResponse();
+
+    const model = provider.transcription('gpt-4o-transcribe-diarize');
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: {
+          chunkingStrategy: 'auto',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+      {
+        "chunking_strategy": "auto",
+        "file": File {
+          Symbol(kHandle): Blob {},
+          Symbol(kLength): 40169,
+          Symbol(kType): "audio/wav",
+        },
+        "model": "gpt-4o-transcribe-diarize",
+        "response_format": "diarized_json",
+        "temperature": "0",
+        "timestamp_granularities[]": "segment",
+      }
+    `);
+  });
+
+  it('should pass chunking_strategy object when specified', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: {
+          chunkingStrategy: {
+            type: 'server_vad',
+            prefixPaddingMs: 500,
+            silenceDurationMs: 300,
+            threshold: 0.6,
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+      {
+        "chunking_strategy": "{"type":"server_vad","prefix_padding_ms":500,"silence_duration_ms":300,"threshold":0.6}",
+        "file": File {
+          Symbol(kHandle): Blob {},
+          Symbol(kLength): 40169,
+          Symbol(kType): "audio/wav",
+        },
+        "model": "whisper-1",
+        "response_format": "verbose_json",
+        "temperature": "0",
+        "timestamp_granularities[]": "segment",
+      }
+    `);
+  });
+
+  it('should parse segments from diarized_json response', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        task: 'transcribe',
+        duration: 10.0,
+        text: 'Speaker A: Hello. Speaker B: Hi there.',
+        segments: [
+          {
+            type: 'transcript.text.segment',
+            id: 'seg_001',
+            start: 0.0,
+            end: 5.0,
+            text: 'Hello.',
+            speaker: 'A',
+          },
+          {
+            type: 'transcript.text.segment',
+            id: 'seg_002',
+            start: 5.0,
+            end: 10.0,
+            text: 'Hi there.',
+            speaker: 'B',
+          },
+        ],
+        usage: {
+          type: 'duration',
+          seconds: 10,
+        },
+      },
+    };
+
+    const model = provider.transcription('gpt-4o-transcribe-diarize');
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: {
+          chunkingStrategy: 'auto',
+        },
+      },
+    });
+
+    expect(result.segments).toMatchInlineSnapshot(`
+      [
+        {
+          "endSecond": 5,
+          "startSecond": 0,
+          "text": "Hello.",
+        },
+        {
+          "endSecond": 10,
+          "startSecond": 5,
+          "text": "Hi there.",
+        },
+      ]
+    `);
+
+    // Also verify that we can access the raw response to see speaker info if needed
+    expect(result.response.body).toEqual({
+      task: 'transcribe',
+      duration: 10.0,
+      text: 'Speaker A: Hello. Speaker B: Hi there.',
+      segments: [
+        {
+          type: 'transcript.text.segment',
+          id: 'seg_001',
+          start: 0.0,
+          end: 5.0,
+          text: 'Hello.',
+          speaker: 'A',
+        },
+        {
+          type: 'transcript.text.segment',
+          id: 'seg_002',
+          start: 5.0,
+          end: 10.0,
+          text: 'Hi there.',
+          speaker: 'B',
+        },
+      ],
+      usage: {
+        type: 'duration',
+        seconds: 10,
+      },
+    });
+  });
 });

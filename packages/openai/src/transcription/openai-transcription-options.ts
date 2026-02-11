@@ -5,6 +5,7 @@ export type OpenAITranscriptionModelId =
   | 'whisper-1'
   | 'gpt-4o-mini-transcribe'
   | 'gpt-4o-transcribe'
+  | 'gpt-4o-transcribe-diarize'
   | (string & {});
 
 // https://platform.openai.com/docs/api-reference/audio/createTranscription
@@ -40,6 +41,22 @@ export const openAITranscriptionProviderOptions = lazySchema(() =>
       timestampGranularities: z
         .array(z.enum(['word', 'segment']))
         .default(['segment'])
+        .optional(),
+
+      /**
+       * The chunking strategy to use for the transcription.
+       * Required for gpt-4o-transcribe-diarize if the audio is longer than 30 seconds.
+       */
+      chunkingStrategy: z
+        .union([
+          z.literal('auto'),
+          z.object({
+            type: z.literal('server_vad'),
+            prefixPaddingMs: z.number().int().optional(),
+            silenceDurationMs: z.number().int().optional(),
+            threshold: z.number().min(0).max(1).optional(),
+          }),
+        ])
         .optional(),
     }),
   ),
