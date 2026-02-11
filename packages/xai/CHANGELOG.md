@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.54
+
+### Patch Changes
+
+- 902e93b: Add support for `response.function_call_arguments.delta` and `response.function_call_arguments.done` streaming events in the xAI Responses API provider. Previously, xAI Grok models using function tools would fail with `AI_TypeValidationError` because these standard Responses API events were missing from the Zod schema and stream handler.
+
 ## 3.0.53
 
 ### Patch Changes
