@@ -1,10 +1,8 @@
 name: Prettier on Auto-merge
 
 on:
-  pull_request_target:
-    types: [auto_merge_enabled]
-  check_run:
-    types: [completed]
+  pull_request:
+    types: [opened, synchronize]
   workflow_dispatch: {}
 
 permissions:
