@@ -511,7 +511,12 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       },
       usage: convertBedrockUsage(response.usage),
       response: {
-        // TODO add id, timestamp, etc
+        id: responseHeaders?.['x-amzn-requestid'] ?? undefined,
+        timestamp:
+          responseHeaders?.['date'] != null
+            ? new Date(responseHeaders['date'])
+            : undefined,
+        modelId: this.modelId,
         headers: responseHeaders,
       },
       warnings,
@@ -527,8 +532,9 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       warnings,
       usesJsonResponseTool,
     } = await this.getArgs(options);
-    const isMistral = isMistralModel(this.modelId);
-    const url = `${this.getUrl(this.modelId)}/converse-stream`;
+    const modelId = this.modelId;
+    const isMistral = isMistralModel(modelId);
+    const url = `${this.getUrl(modelId)}/converse-stream`;
 
     const { value: response, responseHeaders } = await postJsonToApi({
       url,
@@ -573,6 +579,15 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
+            controller.enqueue({
+              type: 'response-metadata',
+              id: responseHeaders?.['x-amzn-requestid'] ?? undefined,
+              timestamp:
+                responseHeaders?.['date'] != null
+                  ? new Date(responseHeaders['date'])
+                  : undefined,
+              modelId,
+            });
           },
 
           transform(chunk, controller) {
