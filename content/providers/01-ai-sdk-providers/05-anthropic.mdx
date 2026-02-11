@@ -141,6 +141,12 @@ The following optional provider options are available for Anthropic models:
   - `"jsonTool"`: Use a special `"json"` tool to specify the structured output format.
   - `"auto"`: Use `"outputFormat"` when supported, otherwise fall back to `"jsonTool"` (default).
 
+- `metadata` _object_
+
+  Optional. An object describing metadata about the request.
+
+  - `userId` _string_ - An external identifier for the user associated with the request. Should be a uuid, hash value, or other opaque identifier. Do not include identifying information such as name, email, or phone number. Max 256 characters.
+
 ### Structured Outputs and Tool Input Streaming
 
 Tool call streaming is enabled by default. You can opt out by setting the
