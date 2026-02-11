@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.81
+
+### Patch Changes
+
+- ee4beee: feat(ai): add onStepFinish callback to createUIMessageStream
+
 ## 6.0.80
 
 ### Patch Changes
