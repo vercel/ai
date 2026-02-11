@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "3.0.27",
-    "@modelcontextprotocol/sdk": "^1.24.0",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "ai": "6.0.81",
     "dotenv": "16.4.5",
     "express": "5.0.1",
