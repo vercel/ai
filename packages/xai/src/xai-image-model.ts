@@ -98,7 +98,7 @@ export class XaiImageModel implements ImageModelV3 {
       }
     }
 
-    const endpoint = hasFiles ? '/images/edits' : '/images/generations';
+    const endpoint = '/images/generations';
 
     const body: Record<string, unknown> = {
       model: this.modelId,

@@ -35,14 +35,6 @@ describe('XaiImageModel', () => {
         },
       },
     },
-    'https://api.example.com/images/edits': {
-      response: {
-        type: 'json-value',
-        body: {
-          data: [{ url: imageUrl }],
-        },
-      },
-    },
     [imageUrl]: {
       response: {
         type: 'binary',
@@ -112,7 +104,7 @@ describe('XaiImageModel', () => {
       });
 
       expect(server.calls[0].requestUrl).toBe(
-        'https://api.example.com/images/edits',
+        'https://api.example.com/images/generations',
       );
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'grok-2-image',
