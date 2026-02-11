@@ -622,7 +622,7 @@ const resultNoStrict = await generateObject({
   providerOptions: {
     openai: {
       strictJsonSchema: false,
-    } satisfies OpenAILanguageModelResponsesOptions,
+    } satisfies OpenAIResponsesProviderOptions,
   },
 });
 ```
@@ -734,7 +734,7 @@ const result = await generateObject({
     anthropic: {
       // Explicitly set the structured output mode (optional)
       structuredOutputMode: 'outputFormat',
-    } satisfies AnthropicLanguageModelOptions,
+    } satisfies AnthropicProviderOptions,
   },
 });
 ```
