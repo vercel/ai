@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`GoogleGenerativeAIEmbeddingModel > should expose the raw response 1`] = `
+exports[`GoogleGenerativeAIEmbeddingModel > should expose the raw response 2`] = `
 {
   "body": {
     "embeddings": [
