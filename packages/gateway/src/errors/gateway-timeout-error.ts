@@ -17,14 +17,12 @@ export class GatewayTimeoutError extends GatewayError {
     message = 'Request timed out',
     statusCode = 408,
     cause,
-    generationId,
   }: {
     message?: string;
     statusCode?: number;
     cause?: unknown;
-    generationId?: string;
   } = {}) {
-    super({ message, statusCode, cause, generationId });
+    super({ message, statusCode, cause });
   }
 
   static isInstance(error: unknown): error is GatewayTimeoutError {
@@ -38,12 +36,10 @@ export class GatewayTimeoutError extends GatewayError {
     originalMessage,
     statusCode = 408,
     cause,
-    generationId,
   }: {
     originalMessage: string;
     statusCode?: number;
     cause?: unknown;
-    generationId?: string;
   }): GatewayTimeoutError {
     const message = `Gateway request timed out: ${originalMessage}
 
@@ -53,7 +49,6 @@ export class GatewayTimeoutError extends GatewayError {
       message,
       statusCode,
       cause,
-      generationId,
     });
   }
 }
