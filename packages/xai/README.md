@@ -11,6 +11,14 @@ The xAI Grok provider is available in the `@ai-sdk/xai` module. You can install 
 npm i @ai-sdk/xai
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 You can import the default provider instance `xai` from `@ai-sdk/xai`:

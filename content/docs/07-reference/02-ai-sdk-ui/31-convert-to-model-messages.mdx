@@ -8,15 +8,15 @@ description: Convert useChat messages to ModelMessages for AI functions (API Ref
 The `convertToModelMessages` function is used to transform an array of UI messages from the `useChat` hook into an array of `ModelMessage` objects. These `ModelMessage` objects are compatible with AI core functions like `streamText`.
 
 ```ts filename="app/api/chat/route.ts"
-import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText } from 'ai';
+__PROVIDER_IMPORT__;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
-    messages: convertToModelMessages(messages),
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();
@@ -41,23 +41,24 @@ export async function POST(req: Request) {
     },
     {
       name: 'options',
-      type: '{ tools?: ToolSet, convertDataPart?: (part: DataUIPart) => TextPart | FilePart | null }',
+      type: '{ tools?: ToolSet, ignoreIncompleteToolCalls?: boolean, convertDataPart?: (part: DataUIPart) => TextPart | FilePart | undefined }',
       description:
-        'Optional configuration object. Provide tools to enable multi-modal tool responses, and convertDataPart to transform custom data parts into model-compatible content.',
+        'Optional configuration object. Provide tools to enable multi-modal tool responses. Set ignoreIncompleteToolCalls to true to skip tool calls without results (default: false). Use convertDataPart to transform custom data parts into model-compatible content.',
     },
   ]}
 />
 
 ### Returns
 
-An array of [`ModelMessage`](/docs/reference/ai-sdk-core/model-message) objects.
+A Promise that resolves to an array of [`ModelMessage`](/docs/reference/ai-sdk-core/model-message) objects.
 
 <PropertiesTable
   content={[
     {
-      name: 'ModelMessage[]',
-      type: 'Array',
-      description: 'An array of ModelMessage objects',
+      name: 'Promise<ModelMessage[]>',
+      type: 'Promise',
+      description:
+        'A Promise that resolves to an array of ModelMessage objects',
     },
   ]}
 />
@@ -68,16 +69,17 @@ The `convertToModelMessages` function supports tools that can return multi-modal
 
 ```ts
 import { tool } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const screenshotTool = tool({
-  parameters: z.object({}),
+  inputSchema: z.object({}),
   execute: async () => 'imgbase64',
-  toModelOutput: result => [{ type: 'image', data: result }],
+  toModelOutput: ({ output }) => [{ type: 'image', data: output }],
 });
 
 const result = streamText({
-  model: openai('gpt-4'),
+  model: __MODEL__,
   messages: convertToModelMessages(messages, {
     tools: {
       screenshot: screenshotTool,
@@ -97,7 +99,6 @@ The `convertToModelMessages` function supports converting custom data parts atta
 By default, data parts in user messages are filtered out during conversion. To include them, provide a `convertDataPart` callback that transforms data parts into text or file parts that the model can understand:
 
 ```ts filename="app/api/chat/route.ts"
-import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText } from 'ai';
 
 type CustomUIMessage = UIMessage<
@@ -112,7 +113,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: __MODEL__,
     messages: convertToModelMessages<CustomUIMessage>(messages, {
       convertDataPart: part => {
         // Convert URL attachments to text
@@ -224,7 +225,7 @@ convertToModelMessages<MyUIMessage>(messages, {
       // part.data is typed as { url: string; content: string }
       return { type: 'text', text: part.data.url };
     }
-    return null;
+    // Return undefined to skip this part
   },
 });
 ```

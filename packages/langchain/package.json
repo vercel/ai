@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/langchain",
-  "version": "2.0.0-beta.94",
+  "version": "2.0.84",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,12 +8,18 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "CHANGELOG.md"
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
+    "CHANGELOG.md",
+    "README.md"
   ],
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch",
-    "clean": "rm -rf dist *.tsbuildinfo",
+    "clean": "del-cli dist *.tsbuildinfo",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -35,10 +41,22 @@
     "ai": "workspace:*"
   },
   "devDependencies": {
+    "@ai-sdk/provider-utils": "workspace:*",
+    "@langchain/core": "^1.1.5",
+    "@langchain/langgraph": "^1.0.5",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
     "typescript": "5.8.3"
+  },
+  "peerDependencies": {
+    "@langchain/core": ">=1.0.0",
+    "@langchain/langgraph": ">=0.2.0"
+  },
+  "peerDependenciesMeta": {
+    "@langchain/langgraph": {
+      "optional": true
+    }
   },
   "engines": {
     "node": ">=18"

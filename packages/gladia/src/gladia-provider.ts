@@ -17,31 +17,36 @@ export interface GladiaProvider extends ProviderV3 {
   };
 
   /**
-Creates a model for transcription.
+   * Creates a model for transcription.
    */
   transcription(): TranscriptionModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface GladiaProviderSettings {
   /**
-API key for authenticating requests.
-     */
+   * API key for authenticating requests.
+   */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 /**
-Create a Gladia provider instance.
+ * Create a Gladia provider instance.
  */
 export function createGladia(
   options: GladiaProviderSettings = {},
@@ -78,25 +83,26 @@ export function createGladia(
   provider.transcriptionModel = createTranscriptionModel;
 
   // Required ProviderV3 methods that are not supported
-  provider.languageModel = () => {
+  provider.languageModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
+      modelId,
       modelType: 'languageModel',
       message: 'Gladia does not provide language models',
     });
   };
 
-  provider.textEmbeddingModel = () => {
+  provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'textEmbeddingModel',
-      message: 'Gladia does not provide text embedding models',
+      modelId,
+      modelType: 'embeddingModel',
+      message: 'Gladia does not provide embedding models',
     });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
 
-  provider.imageModel = () => {
+  provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
+      modelId,
       modelType: 'imageModel',
       message: 'Gladia does not provide image models',
     });
@@ -106,6 +112,6 @@ export function createGladia(
 }
 
 /**
-Default Gladia provider instance.
+ * Default Gladia provider instance.
  */
 export const gladia = createGladia();

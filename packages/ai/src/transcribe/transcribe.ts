@@ -4,10 +4,7 @@ import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-err
 import { logWarnings } from '../logger/log-warnings';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
-import {
-  TranscriptionWarning,
-  TranscriptionModel,
-} from '../types/transcription-model';
+import { TranscriptionModel } from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import {
   audioMediaTypeSignatures,
@@ -18,18 +15,19 @@ import { prepareRetries } from '../util/prepare-retries';
 import { TranscriptionResult } from './transcribe-result';
 import { VERSION } from '../version';
 import { resolveTranscriptionModel } from '../model/resolve-model';
+import { Warning } from '../types';
 /**
-Generates transcripts using a transcription model.
-
-@param model - The transcription model to use.
-@param audio - The audio data to transcribe as DataContent (string | Uint8Array | ArrayBuffer | Buffer) or a URL.
-@param providerOptions - Additional provider-specific options that are passed through to the provider
-as body parameters.
-@param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
-@param abortSignal - An optional abort signal that can be used to cancel the call.
-@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
-
-@returns A result object that contains the generated transcript.
+ * Generates transcripts using a transcription model.
+ *
+ * @param model - The transcription model to use.
+ * @param audio - The audio data to transcribe as DataContent (string | Uint8Array | ArrayBuffer | Buffer) or a URL.
+ * @param providerOptions - Additional provider-specific options that are passed through to the provider
+ * as body parameters.
+ * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+ * @param abortSignal - An optional abort signal that can be used to cancel the call.
+ * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+ *
+ * @returns A result object that contains the generated transcript.
  */
 export async function transcribe({
   model,
@@ -40,47 +38,47 @@ export async function transcribe({
   headers,
 }: {
   /**
-The transcription model to use.
-     */
+   * The transcription model to use.
+   */
   model: TranscriptionModel;
 
   /**
-The audio data to transcribe.
+   * The audio data to transcribe.
    */
   audio: DataContent | URL;
 
   /**
-Additional provider-specific options that are passed through to the provider
-as body parameters.
-
-The outer record is keyed by the provider name, and the inner
-record is keyed by the provider-specific metadata key.
-```ts
-{
-  "openai": {
-    "temperature": 0
-  }
-}
-```
-     */
+   * Additional provider-specific options that are passed through to the provider
+   * as body parameters.
+   *
+   * The outer record is keyed by the provider name, and the inner
+   * record is keyed by the provider-specific metadata key.
+   * ```ts
+   * {
+   *   "openai": {
+   *     "temperature": 0
+   *   }
+   * }
+   * ```
+   */
   providerOptions?: ProviderOptions;
 
   /**
-Maximum number of retries per transcript model call. Set to 0 to disable retries.
-
-@default 2
+   * Maximum number of retries per transcript model call. Set to 0 to disable retries.
+   *
+   * @default 2
    */
   maxRetries?: number;
 
   /**
-Abort signal.
- */
+   * Abort signal.
+   */
   abortSignal?: AbortSignal;
 
   /**
-Additional headers to include in the request.
-Only applicable for HTTP-based providers.
- */
+   * Additional headers to include in the request.
+   * Only applicable for HTTP-based providers.
+   */
   headers?: Record<string, string>;
 }): Promise<TranscriptionResult> {
   const resolvedModel = resolveTranscriptionModel(model);
@@ -147,7 +145,7 @@ class DefaultTranscriptionResult implements TranscriptionResult {
   }>;
   readonly language: string | undefined;
   readonly durationInSeconds: number | undefined;
-  readonly warnings: Array<TranscriptionWarning>;
+  readonly warnings: Array<Warning>;
   readonly responses: Array<TranscriptionModelResponseMetadata>;
   readonly providerMetadata: Record<string, JSONObject>;
 
@@ -160,7 +158,7 @@ class DefaultTranscriptionResult implements TranscriptionResult {
     }>;
     language: string | undefined;
     durationInSeconds: number | undefined;
-    warnings: Array<TranscriptionWarning>;
+    warnings: Array<Warning>;
     responses: Array<TranscriptionModelResponseMetadata>;
     providerMetadata: Record<string, JSONObject> | undefined;
   }) {

@@ -27,6 +27,55 @@ describe('validateUIMessages', () => {
         [AI_InvalidArgumentError: Invalid argument for parameter messages: messages parameter must be provided]
       `);
     });
+
+    it('should throw TypeValidationError when messages array is empty', async () => {
+      await expect(
+        validateUIMessages({
+          messages: [],
+        }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`
+        [AI_TypeValidationError: Type validation failed: Value: [].
+        Error message: [
+          {
+            "origin": "array",
+            "code": "too_small",
+            "minimum": 1,
+            "inclusive": true,
+            "path": [],
+            "message": "Messages array must not be empty"
+          }
+        ]]
+      `);
+    });
+
+    it('should throw TypeValidationError when message has empty parts array', async () => {
+      await expect(
+        validateUIMessages({
+          messages: [
+            {
+              id: '1',
+              role: 'user',
+              parts: [],
+            },
+          ],
+        }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`
+        [AI_TypeValidationError: Type validation failed: Value: [{"id":"1","role":"user","parts":[]}].
+        Error message: [
+          {
+            "origin": "array",
+            "code": "too_small",
+            "minimum": 1,
+            "inclusive": true,
+            "path": [
+              0,
+              "parts"
+            ],
+            "message": "Message must contain at least one part"
+          }
+        ]]
+      `);
+    });
   });
 
   describe('metadata', () => {
@@ -123,7 +172,7 @@ describe('validateUIMessages', () => {
           }),
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
-        [AI_TypeValidationError: Type validation failed: Value: {"foo":123}.
+        [AI_TypeValidationError: Type validation failed for messages[0].metadata (id: "1"): Value: {"foo":123}.
         Error message: [
           {
             "expected": "string",
@@ -463,7 +512,7 @@ describe('validateUIMessages', () => {
           },
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
-        [AI_TypeValidationError: Type validation failed: Value: {"foo":123}.
+        [AI_TypeValidationError: Type validation failed for messages[0].parts[0].data (foo): Value: {"foo":123}.
         Error message: [
           {
             "expected": "string",
@@ -492,7 +541,7 @@ describe('validateUIMessages', () => {
           },
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
-        [AI_TypeValidationError: Type validation failed: Value: {"foo":"bar"}.
+        [AI_TypeValidationError: Type validation failed for messages[0].parts[0].data (bar): Value: {"foo":"bar"}.
         Error message: No data schema found for data part bar]
       `);
     });
@@ -951,7 +1000,7 @@ describe('validateUIMessages', () => {
       `);
     });
 
-    it('should validate tool input when state is output-error', async () => {
+    it('should validate tool input when state is output-error and there is input', async () => {
       const messages = await validateUIMessages<TestMessage>({
         messages: [
           {
@@ -997,6 +1046,79 @@ describe('validateUIMessages', () => {
       `);
     });
 
+    it('should skip tool input validation when state is output-error and there is no input', async () => {
+      const messages = await validateUIMessages<TestMessage>({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'output-error',
+                input: undefined,
+                errorText: 'Tool input validation failed',
+                providerExecuted: false,
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "errorText": "Tool input validation failed",
+                "input": undefined,
+                "providerExecuted": false,
+                "state": "output-error",
+                "toolCallId": "1",
+                "type": "tool-foo",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should preserve rawInput when state is output-error', async () => {
+      const inputMessages = [
+        {
+          id: '1',
+          role: 'assistant' as const,
+          parts: [
+            {
+              type: 'tool-foo' as const,
+              toolCallId: '1',
+              state: 'output-error' as const,
+              input: undefined,
+              rawInput: { foo: 'bar' },
+              errorText: 'Tool input validation failed',
+              providerExecuted: false,
+            },
+          ],
+        },
+      ];
+
+      const result = await validateUIMessages<TestMessage>({
+        messages: inputMessages,
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(result).toEqual(inputMessages);
+    });
+
     it('should throw error when no tool schema is found', async () => {
       await expect(
         validateUIMessages<TestMessage>({
@@ -1020,7 +1142,7 @@ describe('validateUIMessages', () => {
           },
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
-        [AI_TypeValidationError: Type validation failed: Value: {"foo":"bar"}.
+        [AI_TypeValidationError: Type validation failed for messages[0].parts[0].input (bar, id: "1"): Value: {"foo":"bar"}.
         Error message: No tool schema found for tool part bar]
       `);
     });
@@ -1048,7 +1170,7 @@ describe('validateUIMessages', () => {
           },
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
-        [AI_TypeValidationError: Type validation failed: Value: {"foo":123}.
+        [AI_TypeValidationError: Type validation failed for messages[0].parts[0].input (foo, id: "1"): Value: {"foo":123}.
         Error message: [
           {
             "expected": "string",
@@ -1086,7 +1208,7 @@ describe('validateUIMessages', () => {
           },
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
-        [AI_TypeValidationError: Type validation failed: Value: {"result":123}.
+        [AI_TypeValidationError: Type validation failed for messages[0].parts[0].output (foo, id: "1"): Value: {"result":123}.
         Error message: [
           {
             "expected": "string",
@@ -1192,6 +1314,33 @@ describe('safeValidateUIMessages', () => {
     expect(result.error.message).toBe(
       'Invalid argument for parameter messages: messages parameter must be provided',
     );
+  });
+
+  it('should return failure result when messages array is empty', async () => {
+    const result = await safeValidateUIMessages({
+      messages: [],
+    });
+
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_TypeValidationError');
+    expect(result.error.message).toContain('Type validation failed');
+    expect(result.error.message).toContain('Messages array must not be empty');
+  });
+
+  it('should return failure result when message has empty parts array', async () => {
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          id: '1',
+          role: 'user',
+          parts: [],
+        },
+      ],
+    });
+
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_TypeValidationError');
+    expect(result.error.message).toContain('Type validation failed');
   });
 
   it('should return failure result when metadata validation fails', async () => {

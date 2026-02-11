@@ -1,7 +1,4 @@
-import {
-  TranscriptionModelV3,
-  TranscriptionModelV3CallWarning,
-} from '@ai-sdk/provider';
+import { TranscriptionModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -52,7 +49,7 @@ export class GroqTranscriptionModel implements TranscriptionModelV3 {
     mediaType,
     providerOptions,
   }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
-    const warnings: TranscriptionModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // Parse provider options
     const groqOptions = await parseProviderOptions({
@@ -96,7 +93,13 @@ export class GroqTranscriptionModel implements TranscriptionModelV3 {
             key as keyof Omit<GroqTranscriptionAPITypes, 'model'>
           ];
         if (value !== undefined) {
-          formData.append(key, String(value));
+          if (Array.isArray(value)) {
+            for (const item of value) {
+              formData.append(`${key}[]`, String(item));
+            }
+          } else {
+            formData.append(key, String(value));
+          }
         }
       }
     }

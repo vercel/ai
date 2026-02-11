@@ -4,6 +4,7 @@ import {
   IdGenerator,
   InferSchema,
 } from '@ai-sdk/provider-utils';
+import { FinishReason } from '../types/language-model';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
 import { SerialJobExecutor } from '../util/serial-job-executor';
@@ -17,7 +18,7 @@ import {
 } from './process-ui-message-stream';
 import {
   InferUIMessageToolCall,
-  isToolOrDynamicToolUIPart,
+  isToolUIPart,
   UIMessagePart,
   UITools,
   type DataUIPart,
@@ -49,12 +50,12 @@ export type InferUIDataParts<T extends UIDataPartSchemas> = {
 
 export type ChatRequestOptions = {
   /**
-  Additional headers that should be to be passed to the API endpoint.
+   * Additional headers that should be to be passed to the API endpoint.
    */
   headers?: Record<string, string> | Headers;
 
   /**
-  Additional body JSON properties that should be sent to the API endpoint.
+   * Additional body JSON properties that should be sent to the API endpoint.
    */
   body?: object; // TODO JSONStringifyable
 
@@ -122,6 +123,7 @@ export type ChatOnDataCallback<UI_MESSAGE extends UIMessage> = (
  * @param isAbort Indicates whether the request has been aborted.
  * @param isDisconnect Indicates whether the request has been ended by a network error.
  * @param isError Indicates whether the request has been ended by an error.
+ * @param finishReason The reason why the generation finished.
  */
 export type ChatOnFinishCallback<UI_MESSAGE extends UIMessage> = (options: {
   message: UI_MESSAGE;
@@ -129,6 +131,7 @@ export type ChatOnFinishCallback<UI_MESSAGE extends UIMessage> = (options: {
   isAbort: boolean;
   isDisconnect: boolean;
   isError: boolean;
+  finishReason?: FinishReason;
 }) => void;
 
 export interface ChatInit<UI_MESSAGE extends UIMessage> {
@@ -157,12 +160,12 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   onError?: ChatOnErrorCallback;
 
   /**
-  Optional callback function that is invoked when a tool call is received.
-  Intended for automatic client-side tool execution.
-
-  You can optionally return a result for the tool call,
-  either synchronously or asynchronously.
-     */
+   * Optional callback function that is invoked when a tool call is received.
+   * Intended for automatic client-side tool execution.
+   *
+   * You can optionally return a result for the tool call,
+   * either synchronously or asynchronously.
+   */
   onToolCall?: ChatOnToolCallCallback<UI_MESSAGE>;
 
   /**
@@ -438,7 +441,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const updatePart = (
         part: UIMessagePart<UIDataTypes, UITools>,
       ): UIMessagePart<UIDataTypes, UITools> =>
-        isToolOrDynamicToolUIPart(part) &&
+        isToolUIPart(part) &&
         part.state === 'approval-requested' &&
         part.approval.id === id
           ? {
@@ -464,12 +467,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       if (
         this.status !== 'streaming' &&
         this.status !== 'submitted' &&
-        this.sendAutomaticallyWhen?.({ messages: this.state.messages })
+        this.sendAutomaticallyWhen
       ) {
-        // no await to avoid deadlocking
-        this.makeRequest({
-          trigger: 'submit-message',
-          messageId: this.lastMessage?.id,
+        this.shouldSendAutomatically().then(shouldSend => {
+          if (shouldSend) {
+            // no await to avoid deadlocking
+            this.makeRequest({
+              trigger: 'submit-message',
+              messageId: this.lastMessage?.id,
+            });
+          }
         });
       }
     });
@@ -502,7 +509,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const updatePart = (
         part: UIMessagePart<UIDataTypes, UITools>,
       ): UIMessagePart<UIDataTypes, UITools> =>
-        isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
+        isToolUIPart(part) && part.toolCallId === toolCallId
           ? ({ ...part, state, output, errorText } as typeof part)
           : part;
 
@@ -522,12 +529,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       if (
         this.status !== 'streaming' &&
         this.status !== 'submitted' &&
-        this.sendAutomaticallyWhen?.({ messages: this.state.messages })
+        this.sendAutomaticallyWhen
       ) {
-        // no await to avoid deadlocking
-        this.makeRequest({
-          trigger: 'submit-message',
-          messageId: this.lastMessage?.id,
+        this.shouldSendAutomatically().then(shouldSend => {
+          if (shouldSend) {
+            // no await to avoid deadlocking
+            this.makeRequest({
+              trigger: 'submit-message',
+              messageId: this.lastMessage?.id,
+            });
+          }
         });
       }
     });
@@ -545,6 +556,21 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       this.activeResponse.abortController.abort();
     }
   };
+
+  private async shouldSendAutomatically(): Promise<boolean> {
+    if (!this.sendAutomaticallyWhen) return false;
+
+    const result = this.sendAutomaticallyWhen({
+      messages: this.state.messages,
+    });
+
+    // Check if result is a promise
+    if (result && typeof result === 'object' && 'then' in result) {
+      return await result;
+    }
+
+    return result as boolean;
+  }
 
   private async makeRequest({
     trigger,
@@ -687,6 +713,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           isAbort,
           isDisconnect,
           isError,
+          finishReason: this.activeResponse?.state.finishReason,
         });
       } catch (err) {
         console.error(err);
@@ -696,10 +723,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     // automatically send the message if the sendAutomaticallyWhen function returns true
-    if (
-      this.sendAutomaticallyWhen?.({ messages: this.state.messages }) &&
-      !isError
-    ) {
+    if (!isError && (await this.shouldSendAutomatically())) {
       await this.makeRequest({
         trigger: 'submit-message',
         messageId: this.lastMessage?.id,

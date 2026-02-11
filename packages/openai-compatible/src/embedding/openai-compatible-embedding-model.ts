@@ -1,5 +1,6 @@
 import {
   EmbeddingModelV3,
+  SharedV3Warning,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -22,13 +23,13 @@ import {
 
 type OpenAICompatibleEmbeddingConfig = {
   /**
-Override the maximum number of embeddings per call.
+   * Override the maximum number of embeddings per call.
    */
   maxEmbeddingsPerCall?: number;
 
   /**
-Override the parallelism of embedding calls.
-  */
+   * Override the parallelism of embedding calls.
+   */
   supportsParallelCalls?: boolean;
 
   provider: string;
@@ -38,9 +39,7 @@ Override the parallelism of embedding calls.
   errorStructure?: ProviderErrorStructure<any>;
 };
 
-export class OpenAICompatibleEmbeddingModel
-  implements EmbeddingModelV3<string>
-{
+export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV3 {
   readonly specificationVersion = 'v3';
   readonly modelId: OpenAICompatibleEmbeddingModelId;
 
@@ -75,12 +74,29 @@ export class OpenAICompatibleEmbeddingModel
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>
+  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
   > {
+    const warnings: SharedV3Warning[] = [];
+
+    // Parse provider options - check for deprecated 'openai-compatible' key
+    const deprecatedOptions = await parseProviderOptions({
+      provider: 'openai-compatible',
+      providerOptions,
+      schema: openaiCompatibleEmbeddingProviderOptions,
+    });
+
+    if (deprecatedOptions != null) {
+      warnings.push({
+        type: 'other',
+        message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
+      });
+    }
+
     const compatibleOptions = Object.assign(
+      deprecatedOptions ?? {},
       (await parseProviderOptions({
-        provider: 'openai-compatible',
+        provider: 'openaiCompatible',
         providerOptions,
         schema: openaiCompatibleEmbeddingProviderOptions,
       })) ?? {},
@@ -128,6 +144,7 @@ export class OpenAICompatibleEmbeddingModel
     });
 
     return {
+      warnings,
       embeddings: response.data.map(item => item.embedding),
       usage: response.usage
         ? { tokens: response.usage.prompt_tokens }

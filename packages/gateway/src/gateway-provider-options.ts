@@ -37,6 +37,28 @@ const gatewayProviderOptions = lazySchema(() =>
        * Example: `['openai/gpt-5-nano', 'zai/glm-4.6']` will try `openai/gpt-5-nano` first, then `zai/glm-4.6` as fallback.
        */
       models: z.array(z.string()).optional(),
+      /**
+       * Request-scoped BYOK credentials to use instead of cached credentials.
+       *
+       * When provided, cached BYOK credentials are ignored entirely.
+       *
+       * Each provider can have multiple credentials (tried in order).
+       *
+       * Examples:
+       * - Simple: `{ 'anthropic': [{ apiKey: 'sk-ant-...' }] }`
+       * - Multiple: `{ 'vertex': [{ projectId: 'proj-1', privateKey: '...' }, { projectId: 'proj-2', privateKey: '...' }] }`
+       * - Multi-provider: `{ 'anthropic': [{ apiKey: '...' }], 'bedrock': [{ accessKeyId: '...', secretAccessKey: '...' }] }`
+       */
+      byok: z
+        .record(z.string(), z.array(z.record(z.string(), z.unknown())))
+        .optional(),
+      /**
+       * Whether to filter by only providers that state they have zero data
+       * retention with Vercel AI Gateway. When enabled, only providers that
+       * have agreements with Vercel AI Gateway for zero data retention will be
+       * used.
+       */
+      zeroDataRetention: z.boolean().optional(),
     }),
   ),
 );

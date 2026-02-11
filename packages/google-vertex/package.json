@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google-vertex",
-  "version": "4.0.0-beta.59",
+  "version": "4.0.51",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,15 +8,27 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
+    "docs/**/*",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
     "CHANGELOG.md",
+    "README.md",
     "edge.d.ts",
     "anthropic/edge.d.ts",
     "anthropic/index.d.ts"
   ],
+  "directories": {
+    "doc": "./docs"
+  },
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch",
-    "clean": "rm -rf dist *.tsbuildinfo",
+    "clean": "del-cli dist docs *.tsbuildinfo",
+    "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/16-google-vertex.mdx ./docs/",
+    "postpack": "del-cli docs",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -54,7 +66,7 @@
     "@ai-sdk/google": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "google-auth-library": "^9.15.0"
+    "google-auth-library": "^10.5.0"
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",

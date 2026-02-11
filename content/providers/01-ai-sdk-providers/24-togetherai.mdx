@@ -112,20 +112,20 @@ const { text } = await generateText({
 Together.ai language models can also be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
-The Together.ai provider also supports [completion models](https://docs.together.ai/docs/serverless-models#language-models) via (following the above example code) `togetherai.completion()` and [embedding models](https://docs.together.ai/docs/serverless-models#embedding-models) via `togetherai.textEmbedding()`.
+The Together.ai provider also supports [completion models](https://docs.together.ai/docs/serverless-models#language-models) via (following the above example code) `togetherai.completionModel()` and [embedding models](https://docs.together.ai/docs/serverless-models#embedding-models) via `togetherai.embeddingModel()`.
 
 ## Model Capabilities
 
-| Model                                          | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ---------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `meta-llama/Meta-Llama-3.3-70B-Instruct-Turbo` | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo`  | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `mistralai/Mixtral-8x22B-Instruct-v0.1`        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `mistralai/Mistral-7B-Instruct-v0.3`           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `deepseek-ai/DeepSeek-V3`                      | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `google/gemma-2b-it`                           | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `Qwen/Qwen2.5-72B-Instruct-Turbo`              | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `databricks/dbrx-instruct`                     | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model                                         | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| --------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `meta-llama/Llama-3.3-70B-Instruct-Turbo`     | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo` | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `mistralai/Mixtral-8x22B-Instruct-v0.1`       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `mistralai/Mistral-7B-Instruct-v0.3`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-ai/DeepSeek-V3`                     | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `google/gemma-2b-it`                          | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `Qwen/Qwen2.5-72B-Instruct-Turbo`             | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `databricks/dbrx-instruct`                    | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [Together.ai
@@ -141,7 +141,7 @@ For more on image generation with the AI SDK see [generateImage()](/docs/referen
 
 ```ts
 import { togetherai } from '@ai-sdk/togetherai';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { images } = await generateImage({
   model: togetherai.image('black-forest-labs/FLUX.1-dev'),
@@ -153,7 +153,7 @@ You can pass optional provider-specific request parameters using the `providerOp
 
 ```ts
 import { togetherai } from '@ai-sdk/togetherai';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { images } = await generateImage({
   model: togetherai.image('black-forest-labs/FLUX.1-dev'),
@@ -168,7 +168,90 @@ const { images } = await generateImage({
 });
 ```
 
-For a complete list of available provider-specific options, see the [Together.ai Image Generation API Reference](https://docs.together.ai/reference/post_images-generations).
+The following provider options are available:
+
+- **steps** _number_
+
+  Number of generation steps. Higher values can improve quality.
+
+- **guidance** _number_
+
+  Guidance scale for image generation.
+
+- **negative_prompt** _string_
+
+  Negative prompt to guide what to avoid.
+
+- **disable_safety_checker** _boolean_
+
+  Disable the safety checker for image generation.
+  When true, the API will not reject images flagged as potentially NSFW.
+  Not available for Flux Schnell Free and Flux Pro models.
+
+### Image Editing
+
+Together AI supports image editing through FLUX Kontext models. Pass input images via `prompt.images` to transform or edit existing images.
+
+<Note>
+  Together AI does not support mask-based inpainting. Instead, use descriptive
+  prompts to specify what you want to change in the image.
+</Note>
+
+#### Basic Image Editing
+
+Transform an existing image using text prompts:
+
+```ts
+const imageBuffer = readFileSync('./input-image.png');
+
+const { images } = await generateImage({
+  model: togetherai.image('black-forest-labs/FLUX.1-kontext-pro'),
+  prompt: {
+    text: 'Turn the cat into a golden retriever dog',
+    images: [imageBuffer],
+  },
+  size: '1024x1024',
+  providerOptions: {
+    togetherai: {
+      steps: 28,
+    },
+  },
+});
+```
+
+#### Editing with URL Reference
+
+You can also pass image URLs directly:
+
+```ts
+const { images } = await generateImage({
+  model: togetherai.image('black-forest-labs/FLUX.1-kontext-pro'),
+  prompt: {
+    text: 'Make the background a lush rainforest',
+    images: ['https://example.com/photo.png'],
+  },
+  size: '1024x1024',
+  providerOptions: {
+    togetherai: {
+      steps: 28,
+    },
+  },
+});
+```
+
+<Note>
+  Input images can be provided as `Buffer`, `ArrayBuffer`, `Uint8Array`,
+  base64-encoded strings, or URLs. Together AI only supports a single input
+  image per request.
+</Note>
+
+#### Supported Image Editing Models
+
+| Model                                  | Description                        |
+| -------------------------------------- | ---------------------------------- |
+| `black-forest-labs/FLUX.1-kontext-pro` | Production quality, balanced speed |
+| `black-forest-labs/FLUX.1-kontext-max` | Maximum image fidelity             |
+| `black-forest-labs/FLUX.1-kontext-dev` | Development and experimentation    |
 
 ### Model Capabilities
 
@@ -186,6 +269,9 @@ Together.ai image models support various image dimensions that vary by model. Co
 | `black-forest-labs/FLUX.1.1-pro`           |
 | `black-forest-labs/FLUX.1-pro`             |
 | `black-forest-labs/FLUX.1-schnell-Free`    |
+| `black-forest-labs/FLUX.1-kontext-pro`     |
+| `black-forest-labs/FLUX.1-kontext-max`     |
+| `black-forest-labs/FLUX.1-kontext-dev`     |
 
 <Note>
   Please see the [Together.ai models
@@ -195,7 +281,7 @@ Together.ai image models support various image dimensions that vary by model. Co
 
 ## Embedding Models
 
-You can create Together.ai embedding models using the `.textEmbedding()` factory method.
+You can create Together.ai embedding models using the `.embeddingModel()` factory method.
 For more on embedding models with the AI SDK see [embed()](/docs/reference/ai-sdk-core/embed).
 
 ```ts
@@ -203,7 +289,7 @@ import { togetherai } from '@ai-sdk/togetherai';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: togetherai.textEmbedding('togethercomputer/m2-bert-80M-2k-retrieval'),
+  model: togetherai.embeddingModel('togethercomputer/m2-bert-80M-2k-retrieval'),
   value: 'sunny day at the beach',
 });
 ```

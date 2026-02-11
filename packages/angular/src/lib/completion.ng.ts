@@ -5,6 +5,7 @@ import {
   type CompletionRequestOptions,
   type UseCompletionOptions,
 } from 'ai';
+import { normalizeHeaders } from '@ai-sdk/provider-utils';
 
 export type CompletionOptions = Readonly<UseCompletionOptions>;
 
@@ -91,7 +92,10 @@ export class Completion {
       api: this.api,
       prompt,
       credentials: this.#options.credentials,
-      headers: { ...this.#options.headers, ...options?.headers },
+      headers: {
+        ...normalizeHeaders(this.#options.headers),
+        ...normalizeHeaders(options?.headers),
+      },
       body: {
         ...this.#options.body,
         ...options?.body,

@@ -28,6 +28,8 @@ import {
 import { convertToLanguageModelV3DataContent } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { StandardizedPrompt } from './standardize-prompt';
+import { asArray } from '../util/as-array';
+import { MissingToolResultsError } from '../error/missing-tool-result-error';
 
 export async function convertToLanguageModelPrompt({
   prompt,
@@ -44,9 +46,47 @@ export async function convertToLanguageModelPrompt({
     supportedUrls,
   );
 
+  const approvalIdToToolCallId = new Map<string, string>();
+  for (const message of prompt.messages) {
+    if (message.role === 'assistant' && Array.isArray(message.content)) {
+      for (const part of message.content) {
+        if (
+          part.type === 'tool-approval-request' &&
+          'approvalId' in part &&
+          'toolCallId' in part
+        ) {
+          approvalIdToToolCallId.set(
+            part.approvalId as string,
+            part.toolCallId as string,
+          );
+        }
+      }
+    }
+  }
+
+  const approvedToolCallIds = new Set<string>();
+  for (const message of prompt.messages) {
+    if (message.role === 'tool') {
+      for (const part of message.content) {
+        if (part.type === 'tool-approval-response') {
+          const toolCallId = approvalIdToToolCallId.get(part.approvalId);
+          if (toolCallId) {
+            approvedToolCallIds.add(toolCallId);
+          }
+        }
+      }
+    }
+  }
+
   const messages = [
     ...(prompt.system != null
-      ? [{ role: 'system' as const, content: prompt.system }]
+      ? typeof prompt.system === 'string'
+        ? [{ role: 'system' as const, content: prompt.system }]
+        : asArray(prompt.system).map(message => ({
+            role: 'system' as const,
+            content: message.content,
+            providerOptions: message.providerOptions,
+          }))
       : []),
     ...prompt.messages.map(message =>
       convertToLanguageModelMessage({ message, downloadedAssets }),
@@ -69,15 +109,66 @@ export async function convertToLanguageModelPrompt({
     }
   }
 
-  return combinedMessages;
+  const toolCallIds = new Set<string>();
+
+  for (const message of combinedMessages) {
+    switch (message.role) {
+      case 'assistant': {
+        for (const content of message.content) {
+          if (content.type === 'tool-call' && !content.providerExecuted) {
+            toolCallIds.add(content.toolCallId);
+          }
+        }
+        break;
+      }
+      case 'tool': {
+        for (const content of message.content) {
+          if (content.type === 'tool-result') {
+            toolCallIds.delete(content.toolCallId);
+          }
+        }
+        break;
+      }
+      case 'user':
+      case 'system':
+        // remove approved tool calls from the set before checking:
+        for (const id of approvedToolCallIds) {
+          toolCallIds.delete(id);
+        }
+
+        if (toolCallIds.size > 0) {
+          throw new MissingToolResultsError({
+            toolCallIds: Array.from(toolCallIds),
+          });
+        }
+        break;
+    }
+  }
+
+  // remove approved tool calls from the set before checking:
+  for (const id of approvedToolCallIds) {
+    toolCallIds.delete(id);
+  }
+
+  if (toolCallIds.size > 0) {
+    throw new MissingToolResultsError({ toolCallIds: Array.from(toolCallIds) });
+  }
+
+  return combinedMessages.filter(
+    // Filter out empty tool messages (e.g. if they only contained
+    // tool-approval-response parts that were removed).
+    // This prevents sending invalid empty messages to the provider.
+    // Note: provider-executed tool-approval-response parts are preserved.
+    message => message.role !== 'tool' || message.content.length > 0,
+  );
 }
 
 /**
  * Convert a ModelMessage to a LanguageModelV3Message.
  *
- * @param message The ModelMessage to convert.
- * @param downloadedAssets A map of URLs to their downloaded data. Only
- *   available if the model does not support URLs, null otherwise.
+ * @param message - The ModelMessage to convert.
+ * @param downloadedAssets - A map of URLs to their downloaded data. Only
+ * available if the model does not support URLs, null otherwise.
  */
 export function convertToLanguageModelMessage({
   message,
@@ -206,14 +297,32 @@ export function convertToLanguageModelMessage({
       return {
         role: 'tool',
         content: message.content
-          .filter(part => part.type !== 'tool-approval-response')
-          .map(part => ({
-            type: 'tool-result' as const,
-            toolCallId: part.toolCallId,
-            toolName: part.toolName,
-            output: mapToolResultOutput(part.output),
-            providerOptions: part.providerOptions,
-          })),
+          .filter(
+            // Only include tool-approval-response for provider-executed tools
+            part =>
+              part.type !== 'tool-approval-response' || part.providerExecuted,
+          )
+          .map(part => {
+            switch (part.type) {
+              case 'tool-result': {
+                return {
+                  type: 'tool-result' as const,
+                  toolCallId: part.toolCallId,
+                  toolName: part.toolName,
+                  output: mapToolResultOutput(part.output),
+                  providerOptions: part.providerOptions,
+                };
+              }
+              case 'tool-approval-response': {
+                return {
+                  type: 'tool-approval-response' as const,
+                  approvalId: part.approvalId,
+                  approved: part.approved,
+                  reason: part.reason,
+                };
+              }
+            }
+          }),
         providerOptions: message.providerOptions,
       };
     }
@@ -294,10 +403,10 @@ async function downloadAssets(
 
 /**
  * Convert part of a message to a LanguageModelV3Part.
- * @param part The part to convert.
- * @param downloadedAssets A map of URLs to their downloaded data. Only
- *  available if the model does not support URLs, null otherwise.
  *
+ * @param part - The part to convert.
+ * @param downloadedAssets - A map of URLs to their downloaded data. Only
+ * available if the model does not support URLs, null otherwise.
  * @returns The converted part.
  */
 function convertPartToLanguageModelPart(

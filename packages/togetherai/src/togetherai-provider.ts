@@ -27,60 +27,63 @@ import { VERSION } from './version';
 
 export interface TogetherAIProviderSettings {
   /**
-TogetherAI API key.
-*/
+   * TogetherAI API key.
+   */
   apiKey?: string;
   /**
-Base URL for the API calls.
-*/
+   * Base URL for the API calls.
+   */
   baseURL?: string;
   /**
-Custom headers to include in the requests.
-*/
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-*/
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 export interface TogetherAIProvider extends ProviderV3 {
   /**
-Creates a model for text generation.
-*/
+   * Creates a model for text generation.
+   */
   (modelId: TogetherAIChatModelId): LanguageModelV3;
 
   /**
-Creates a chat model for text generation.
-*/
+   * Creates a chat model for text generation.
+   */
   chatModel(modelId: TogetherAIChatModelId): LanguageModelV3;
 
   /**
-Creates a chat model for text generation.
-*/
+   * Creates a chat model for text generation.
+   */
   languageModel(modelId: TogetherAIChatModelId): LanguageModelV3;
 
   /**
-Creates a completion model for text generation.
-*/
+   * Creates a completion model for text generation.
+   */
   completionModel(modelId: TogetherAICompletionModelId): LanguageModelV3;
 
   /**
-Creates a text embedding model for text generation.
-*/
-  textEmbeddingModel(
-    modelId: TogetherAIEmbeddingModelId,
-  ): EmbeddingModelV3<string>;
+   * Creates a text embedding model for text generation.
+   */
+  embeddingModel(modelId: TogetherAIEmbeddingModelId): EmbeddingModelV3;
 
   /**
-Creates a model for image generation.
-*/
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: TogetherAIEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * Creates a model for image generation.
+   */
   image(modelId: TogetherAIImageModelId): ImageModelV3;
 
   /**
-Creates a model for image generation.
-*/
+   * Creates a model for image generation.
+   */
   imageModel(modelId: TogetherAIImageModelId): ImageModelV3;
 
   /**
@@ -140,7 +143,7 @@ export function createTogetherAI(
       getCommonModelConfig('completion'),
     );
 
-  const createTextEmbeddingModel = (modelId: TogetherAIEmbeddingModelId) =>
+  const createEmbeddingModel = (modelId: TogetherAIEmbeddingModelId) =>
     new OpenAICompatibleEmbeddingModel(
       modelId,
       getCommonModelConfig('embedding'),
@@ -164,7 +167,8 @@ export function createTogetherAI(
   provider.completionModel = createCompletionModel;
   provider.languageModel = createChatModel;
   provider.chatModel = createChatModel;
-  provider.textEmbeddingModel = createTextEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
   provider.reranking = createRerankingModel;

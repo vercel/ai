@@ -9,6 +9,8 @@ export type OpenAIChatModelId =
   | 'o3-mini-2025-01-31'
   | 'o3'
   | 'o3-2025-04-16'
+  | 'o4-mini'
+  | 'o4-mini-2025-04-16'
   | 'gpt-4.1'
   | 'gpt-4.1-2025-04-14'
   | 'gpt-4.1-mini'
@@ -38,6 +40,11 @@ export type OpenAIChatModelId =
   | 'gpt-5-nano'
   | 'gpt-5-nano-2025-08-07'
   | 'gpt-5-chat-latest'
+  | 'gpt-5.1'
+  | 'gpt-5.1-chat-latest'
+  | 'gpt-5.2'
+  | 'gpt-5.2-chat-latest'
+  | 'gpt-5.2-pro'
   | (string & {});
 
 export const openaiChatLanguageModelOptions = lazySchema(() =>
@@ -76,7 +83,9 @@ export const openaiChatLanguageModelOptions = lazySchema(() =>
       /**
        * Reasoning effort for reasoning models. Defaults to `medium`.
        */
-      reasoningEffort: z.enum(['minimal', 'low', 'medium', 'high']).optional(),
+      reasoningEffort: z
+        .enum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh'])
+        .optional(),
 
       /**
        * Maximum number of completion tokens to generate. Useful for reasoning models.
@@ -99,13 +108,6 @@ export const openaiChatLanguageModelOptions = lazySchema(() =>
       prediction: z.record(z.string(), z.any()).optional(),
 
       /**
-       * Whether to use structured outputs.
-       *
-       * @default true
-       */
-      structuredOutputs: z.boolean().optional(),
-
-      /**
        * Service tier for the request.
        * - 'auto': Default service tier. The request will be processed with the service tier configured in the
        *           Project settings. Unless otherwise configured, the Project will use 'default'.
@@ -120,7 +122,7 @@ export const openaiChatLanguageModelOptions = lazySchema(() =>
       /**
        * Whether to use strict JSON schema validation.
        *
-       * @default false
+       * @default true
        */
       strictJsonSchema: z.boolean().optional(),
 
@@ -137,6 +139,16 @@ export const openaiChatLanguageModelOptions = lazySchema(() =>
       promptCacheKey: z.string().optional(),
 
       /**
+       * The retention policy for the prompt cache.
+       * - 'in_memory': Default. Standard prompt caching behavior.
+       * - '24h': Extended prompt caching that keeps cached prefixes active for up to 24 hours.
+       *          Currently only available for 5.1 series models.
+       *
+       * @default 'in_memory'
+       */
+      promptCacheRetention: z.enum(['in_memory', '24h']).optional(),
+
+      /**
        * A stable identifier used to help detect users of your application
        * that may be violating OpenAI's usage policies. The IDs should be a
        * string that uniquely identifies each user. We recommend hashing their
@@ -144,6 +156,27 @@ export const openaiChatLanguageModelOptions = lazySchema(() =>
        * information.
        */
       safetyIdentifier: z.string().optional(),
+
+      /**
+       * Override the system message mode for this model.
+       * - 'system': Use the 'system' role for system messages (default for most models)
+       * - 'developer': Use the 'developer' role for system messages (used by reasoning models)
+       * - 'remove': Remove system messages entirely
+       *
+       * If not specified, the mode is automatically determined based on the model.
+       */
+      systemMessageMode: z.enum(['system', 'developer', 'remove']).optional(),
+
+      /**
+       * Force treating this model as a reasoning model.
+       *
+       * This is useful for "stealth" reasoning models (e.g. via a custom baseURL)
+       * where the model ID is not recognized by the SDK's allowlist.
+       *
+       * When enabled, the SDK applies reasoning-model parameter compatibility rules
+       * and defaults `systemMessageMode` to `developer` unless overridden.
+       */
+      forceReasoning: z.boolean().optional(),
     }),
   ),
 );

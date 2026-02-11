@@ -1,0 +1,153 @@
+name: Update Gateway Model Settings
+
+on:
+  schedule:
+    # Run every weekday at 8:00 AM Pacific Time (4:00 PM UTC)
+    - cron: '0 16 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-models:
+    name: Update Gateway Model Settings
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.repository_owner == 'vercel'
+
+    steps:
+      - name: Create access token for GitHub App
+        uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.VERCEL_AI_SDK_GITHUB_APP_CLIENT_ID }}
+          private-key: ${{ secrets.VERCEL_AI_SDK_GITHUB_APP_PRIVATE_KEY_PKCS8 }}
+
+      - name: Get GitHub App User ID
+        id: app-user-id
+        run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Configure git user for GitHub App
+        run: |
+          git config --global user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
+          git config --global user.email '${{ steps.app-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
+
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate model settings
+        run: |
+          cd packages/gateway
+          pnpm generate-model-settings
+
+      - name: Check for changes
+        id: check-changes
+        run: |
+          if git diff --quiet packages/gateway/src/gateway-*-model-settings.ts; then
+            echo "has-changes=false" >> "$GITHUB_OUTPUT"
+            echo "No changes detected in model settings"
+          else
+            echo "has-changes=true" >> "$GITHUB_OUTPUT"
+            echo "Changes detected in model settings"
+            git diff --stat packages/gateway/src/gateway-*-model-settings.ts
+          fi
+
+      - name: Create changeset
+        if: steps.check-changes.outputs.has-changes == 'true'
+        run: |
+          # Generate a random changeset filename with three random lowercase strings
+          # Format: xxxxx-yyyyy-zzzzz.md
+          WORD1=$(tr -dc 'a-z' < /dev/urandom | head -c 5)
+          WORD2=$(tr -dc 'a-z' < /dev/urandom | head -c 5)
+          WORD3=$(tr -dc 'a-z' < /dev/urandom | head -c 5)
+          CHANGESET_FILE=".changeset/${WORD1}-${WORD2}-${WORD3}.md"
+
+          cat > "$CHANGESET_FILE" << 'EOF'
+          ---
+          '@ai-sdk/gateway': patch
+          ---
+
+          chore(provider/gateway): update gateway model settings files
+          EOF
+
+          echo "Created changeset: $CHANGESET_FILE"
+          cat "$CHANGESET_FILE"
+
+      - name: Create branch and commit changes
+        if: steps.check-changes.outputs.has-changes == 'true'
+        id: create-branch
+        run: |
+          BRANCH_NAME="update-gateway-models-$(date +%Y%m%d-%H%M)"
+          git checkout -b "$BRANCH_NAME"
+          git add .
+          git commit -m "chore(provider/gateway): update gateway model settings files"
+          git push origin "$BRANCH_NAME"
+          echo "branch-name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Create Pull Request
+        if: steps.check-changes.outputs.has-changes == 'true'
+        id: create-pr
+        run: |
+          PR_TITLE="chore(provider/gateway): update gateway model settings files"
+
+          PR_URL=$(gh pr create \
+            --title "$PR_TITLE" \
+            --body "This is an automated update of the gateway model settings files." \
+            --base main \
+            --head "${{ steps.create-branch.outputs.branch-name }}" \
+            --label backport \
+            --reviewer R-Taneja \
+            --reviewer sylviezhang37)
+
+          PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+          echo "pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
+          echo "pr-number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "pr-title=$PR_TITLE" >> "$GITHUB_OUTPUT"
+          echo "Changes updated, PR: $PR_URL"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: No changes
+        if: steps.check-changes.outputs.has-changes == 'false'
+        run: |
+          echo "No changes. Model settings are already up to date."
+
+      - name: Send Slack notification
+        if: always()
+        run: |
+          if [ "$HAS_CHANGES" == "true" ]; then
+            curl "$SLACK_PULL_REQUEST_REVIEW_URL" -X POST -H "Content-Type: application/json" \
+              -d "{\"channel_id\": \"$CHANNEL_ID\", \"title\": \"$TITLE\", \"reviewer\": \"$REVIEWER\", \"url\": \"$URL\"}"
+          else
+            curl "$SLACK_PULL_REQUEST_REVIEW_URL" -X POST -H "Content-Type: application/json" \
+              -d "{\"channel_id\": \"$CHANNEL_ID\", \"title\": \"Gateway model settings update completed. No changes detected.\", \"reviewer\": \"$REVIEWER\"}"
+          fi
+        env:
+          SLACK_PULL_REQUEST_REVIEW_URL: ${{ secrets.SLACK_PULL_REQUEST_REVIEW_URL }}
+          HAS_CHANGES: ${{ steps.check-changes.outputs.has-changes }}
+          TITLE: ${{ steps.create-pr.outputs.pr-title }}
+          URL: ${{ steps.create-pr.outputs.pr-url }}
+          CHANNEL_ID: "C099VQB75TP"
+          REVIEWER: "U0A54KMV02E"

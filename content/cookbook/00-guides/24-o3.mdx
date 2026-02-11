@@ -153,7 +153,7 @@ With four main hooks — [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`useC
 
 Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK, and OpenAI o3-mini:
 
-In a new Next.js application, first install the AI SDK and the DeepSeek provider:
+In a new Next.js application, first install the AI SDK and the OpenAI provider:
 
 <Snippet text="pnpm install ai @ai-sdk/openai @ai-sdk/react" />
 
@@ -171,7 +171,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: openai('o3-mini'),
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();

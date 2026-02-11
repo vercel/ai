@@ -13,7 +13,7 @@ import type {
 } from 'ai';
 */
 
-import { experimental_createMCPClient, auth } from '@ai-sdk/mcp';
+import { createMCPClient, auth } from '@ai-sdk/mcp';
 import 'dotenv/config';
 import type {
   OAuthClientProvider,
@@ -188,7 +188,7 @@ async function main() {
     waitForAuthorizationCode(Number(8090)),
   );
 
-  const mcpClient = await experimental_createMCPClient({
+  const mcpClient = await createMCPClient({
     transport: { type: 'http', url: serverUrl, authProvider },
   });
   const tools = await mcpClient.tools();

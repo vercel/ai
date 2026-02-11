@@ -7,7 +7,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.web_search',
             name: 'web_search',
             args: {},
@@ -35,7 +35,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.web_search',
             name: 'web_search',
             args: {
@@ -64,7 +64,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.web_search',
             name: 'web_search',
             args: {
@@ -92,7 +92,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.web_search',
             name: 'web_search',
             args: {
@@ -120,7 +120,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.x_search',
             name: 'x_search',
             args: {},
@@ -147,7 +147,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.x_search',
             name: 'x_search',
             args: {
@@ -179,7 +179,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.x_search',
             name: 'x_search',
             args: {
@@ -209,7 +209,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.x_search',
             name: 'x_search',
             args: {
@@ -241,7 +241,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.code_execution',
             name: 'code_execution',
             args: {},
@@ -264,7 +264,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.view_image',
             name: 'view_image',
             args: {},
@@ -281,7 +281,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.view_x_video',
             name: 'view_x_video',
             args: {},
@@ -290,6 +290,96 @@ describe('prepareResponsesTools', () => {
       });
 
       expect(result.tools).toEqual([{ type: 'view_x_video' }]);
+    });
+  });
+
+  describe('file_search', () => {
+    it('should prepare file_search tool with vector store IDs', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.file_search',
+            name: 'file_search',
+            args: {
+              vectorStoreIds: ['collection_1', 'collection_2'],
+            },
+          },
+        ],
+      });
+
+      expect(result.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "max_num_results": undefined,
+            "type": "file_search",
+            "vector_store_ids": [
+              "collection_1",
+              "collection_2",
+            ],
+          },
+        ]
+      `);
+    });
+
+    it('should prepare file_search tool with max num results', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.file_search',
+            name: 'file_search',
+            args: {
+              vectorStoreIds: ['collection_1'],
+              maxNumResults: 10,
+            },
+          },
+        ],
+      });
+
+      expect(result.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "max_num_results": 10,
+            "type": "file_search",
+            "vector_store_ids": [
+              "collection_1",
+            ],
+          },
+        ]
+      `);
+    });
+
+    it('should handle multiple tools including file_search', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.web_search',
+            name: 'web_search',
+            args: {},
+          },
+          {
+            type: 'provider',
+            id: 'xai.file_search',
+            name: 'file_search',
+            args: {
+              vectorStoreIds: ['collection_1'],
+            },
+          },
+          {
+            type: 'function',
+            name: 'calculator',
+            description: 'calculate numbers',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+      });
+
+      expect(result.tools).toHaveLength(3);
+      expect(result.tools?.[0].type).toBe('web_search');
+      expect(result.tools?.[1].type).toBe('file_search');
+      expect(result.tools?.[2].type).toBe('function');
     });
   });
 
@@ -315,20 +405,18 @@ describe('prepareResponsesTools', () => {
       expect(result.tools).toMatchInlineSnapshot(`
         [
           {
-            "function": {
-              "description": "get weather information",
-              "name": "weather",
-              "parameters": {
-                "properties": {
-                  "location": {
-                    "type": "string",
-                  },
+            "description": "get weather information",
+            "name": "weather",
+            "parameters": {
+              "properties": {
+                "location": {
+                  "type": "string",
                 },
-                "required": [
-                  "location",
-                ],
-                "type": "object",
               },
+              "required": [
+                "location",
+              ],
+              "type": "object",
             },
             "type": "function",
           },
@@ -342,7 +430,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.web_search',
             name: 'web_search',
             args: {},
@@ -358,7 +446,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.web_search',
             name: 'web_search',
             args: {},
@@ -374,7 +462,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.web_search',
             name: 'web_search',
             args: {},
@@ -405,11 +493,11 @@ describe('prepareResponsesTools', () => {
       });
     });
 
-    it('should handle provider-defined tool choice mapping', async () => {
+    it('should warn when trying to force server-side tool via toolChoice', async () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.web_search',
             name: 'web_search',
             args: {},
@@ -418,7 +506,11 @@ describe('prepareResponsesTools', () => {
         toolChoice: { type: 'tool', toolName: 'web_search' },
       });
 
-      expect(result.toolChoice).toEqual({ type: 'web_search' });
+      expect(result.toolChoice).toBeUndefined();
+      expect(result.toolWarnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'toolChoice for server-side tool "web_search"',
+      });
     });
   });
 
@@ -433,13 +525,13 @@ describe('prepareResponsesTools', () => {
             inputSchema: { type: 'object', properties: {} },
           },
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.web_search',
             name: 'web_search',
             args: {},
           },
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.x_search',
             name: 'x_search',
             args: {},
@@ -478,7 +570,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'unsupported.tool',
             name: 'unsupported',
             args: {},
@@ -486,8 +578,141 @@ describe('prepareResponsesTools', () => {
         ],
       });
 
-      expect(result.toolWarnings).toHaveLength(1);
-      expect(result.toolWarnings[0].type).toBe('unsupported-tool');
+      expect(result.toolWarnings).toMatchInlineSnapshot(`
+        [
+          {
+            "feature": "provider-defined tool unsupported",
+            "type": "unsupported",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('mcp', () => {
+    it('should prepare mcp tool with required args only', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.mcp',
+            name: 'mcp',
+            args: {
+              serverUrl: 'https://example.com/mcp',
+              serverLabel: 'test-server',
+            },
+          },
+        ],
+      });
+
+      expect(result.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "allowed_tools": undefined,
+            "authorization": undefined,
+            "headers": undefined,
+            "server_description": undefined,
+            "server_label": "test-server",
+            "server_url": "https://example.com/mcp",
+            "type": "mcp",
+          },
+        ]
+      `);
+    });
+
+    it('should prepare mcp tool with all optional args', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.mcp',
+            name: 'mcp',
+            args: {
+              serverUrl: 'https://example.com/mcp',
+              serverLabel: 'test-server',
+              serverDescription: 'A test MCP server',
+              allowedTools: ['tool1', 'tool2'],
+              headers: { 'X-Custom': 'value' },
+              authorization: 'Bearer token123',
+            },
+          },
+        ],
+      });
+
+      expect(result.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "allowed_tools": [
+              "tool1",
+              "tool2",
+            ],
+            "authorization": "Bearer token123",
+            "headers": {
+              "X-Custom": "value",
+            },
+            "server_description": "A test MCP server",
+            "server_label": "test-server",
+            "server_url": "https://example.com/mcp",
+            "type": "mcp",
+          },
+        ]
+      `);
+    });
+
+    it('should warn when trying to force mcp tool via toolChoice', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.mcp',
+            name: 'mcp',
+            args: {
+              serverUrl: 'https://example.com/mcp',
+              serverLabel: 'test-server',
+            },
+          },
+        ],
+        toolChoice: { type: 'tool', toolName: 'mcp' },
+      });
+
+      expect(result.toolChoice).toBeUndefined();
+      expect(result.toolWarnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'toolChoice for server-side tool "mcp"',
+      });
+    });
+
+    it('should handle multiple tools including mcp', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.web_search',
+            name: 'web_search',
+            args: {},
+          },
+          {
+            type: 'provider',
+            id: 'xai.mcp',
+            name: 'mcp',
+            args: {
+              serverUrl: 'https://example.com/mcp',
+              serverLabel: 'test-server',
+            },
+          },
+          {
+            type: 'function',
+            name: 'calculator',
+            description: 'calculate numbers',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+      });
+
+      expect(result.tools).toHaveLength(3);
+      expect(result.tools?.[0].type).toBe('web_search');
+      expect(result.tools?.[1].type).toBe('mcp');
+      expect(result.tools?.[2].type).toBe('function');
     });
   });
 });

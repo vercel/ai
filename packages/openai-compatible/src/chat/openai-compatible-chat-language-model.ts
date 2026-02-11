@@ -2,11 +2,14 @@ import {
   APICallError,
   InvalidResponseDataError,
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
   SharedV3ProviderMetadata,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -22,18 +25,18 @@ import {
   ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import {
+  defaultOpenAICompatibleErrorStructure,
+  ProviderErrorStructure,
+} from '../openai-compatible-error';
+import { convertOpenAICompatibleChatUsage } from './convert-openai-compatible-chat-usage';
 import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
   OpenAICompatibleChatModelId,
   openaiCompatibleProviderOptions,
-  OpenAICompatibleProviderOptions,
 } from './openai-compatible-chat-options';
-import {
-  defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
-} from '../openai-compatible-error';
 import { MetadataExtractor } from './openai-compatible-metadata-extractor';
 import { prepareTools } from './openai-compatible-prepare-tools';
 
@@ -55,6 +58,13 @@ export type OpenAICompatibleChatConfig = {
    * The supported URLs for the model.
    */
   supportedUrls?: () => LanguageModelV3['supportedUrls'];
+
+  /**
+   * Optional function to transform the request body before sending it to the API.
+   * This is useful for proxy providers that may require a different request format
+   * than the official OpenAI API.
+   */
+  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
 };
 
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
@@ -97,6 +107,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     return this.config.supportedUrls?.() ?? {};
   }
 
+  private transformRequestBody(args: Record<string, any>): Record<string, any> {
+    return this.config.transformRequestBody?.(args) ?? args;
+  }
+
   private async getArgs({
     prompt,
     maxOutputTokens,
@@ -111,13 +125,27 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     seed,
     toolChoice,
     tools,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+  }: LanguageModelV3CallOptions) {
+    const warnings: SharedV3Warning[] = [];
 
-    // Parse provider options
+    // Parse provider options - check for deprecated 'openai-compatible' key
+    const deprecatedOptions = await parseProviderOptions({
+      provider: 'openai-compatible',
+      providerOptions,
+      schema: openaiCompatibleProviderOptions,
+    });
+
+    if (deprecatedOptions != null) {
+      warnings.push({
+        type: 'other',
+        message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
+      });
+    }
+
     const compatibleOptions = Object.assign(
+      deprecatedOptions ?? {},
       (await parseProviderOptions({
-        provider: 'openai-compatible',
+        provider: 'openaiCompatible',
         providerOptions,
         schema: openaiCompatibleProviderOptions,
       })) ?? {},
@@ -128,8 +156,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       })) ?? {},
     );
 
+    const strictJsonSchema = compatibleOptions?.strictJsonSchema ?? true;
+
     if (topK != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'topK' });
+      warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (
@@ -138,8 +168,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       !this.supportsStructuredOutputs
     ) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'responseFormat',
+        type: 'unsupported',
+        feature: 'responseFormat',
         details:
           'JSON response format schema is only supported with structuredOutputs',
       });
@@ -176,6 +206,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
                   type: 'json_schema',
                   json_schema: {
                     schema: responseFormat.schema,
+                    strict: strictJsonSchema,
                     name: responseFormat.name ?? 'response',
                     description: responseFormat.description,
                   },
@@ -209,11 +240,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const { args, warnings } = await this.getArgs({ ...options });
 
-    const body = JSON.stringify(args);
+    const transformedBody = this.transformRequestBody(args);
+    const body = JSON.stringify(transformedBody);
 
     const {
       responseHeaders,
@@ -225,7 +257,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: args,
+      body: transformedBody,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         OpenAICompatibleChatResponseSchema,
@@ -256,11 +288,20 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     // tool calls:
     if (choice.message.tool_calls != null) {
       for (const toolCall of choice.message.tool_calls) {
+        const thoughtSignature =
+          toolCall.extra_content?.google?.thought_signature;
         content.push({
           type: 'tool-call',
           toolCallId: toolCall.id ?? generateId(),
           toolName: toolCall.function.name,
           input: toolCall.function.arguments!,
+          ...(thoughtSignature
+            ? {
+                providerMetadata: {
+                  [this.providerOptionsName]: { thoughtSignature },
+                },
+              }
+            : {}),
         });
       }
     }
@@ -285,17 +326,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapOpenAICompatibleFinishReason(choice.finish_reason),
-      usage: {
-        inputTokens: responseBody.usage?.prompt_tokens ?? undefined,
-        outputTokens: responseBody.usage?.completion_tokens ?? undefined,
-        totalTokens: responseBody.usage?.total_tokens ?? undefined,
-        reasoningTokens:
-          responseBody.usage?.completion_tokens_details?.reasoning_tokens ??
-          undefined,
-        cachedInputTokens:
-          responseBody.usage?.prompt_tokens_details?.cached_tokens ?? undefined,
+      finishReason: {
+        unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
+        raw: choice.finish_reason ?? undefined,
       },
+      usage: convertOpenAICompatibleChatUsage(responseBody.usage),
       providerMetadata,
       request: { body },
       response: {
@@ -308,11 +343,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const { args, warnings } = await this.getArgs({ ...options });
 
-    const body = {
+    const body = this.transformRequestBody({
       ...args,
       stream: true,
 
@@ -320,7 +355,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       stream_options: this.config.includeUsage
         ? { include_usage: true }
         : undefined,
-    };
+    });
 
     const metadataExtractor =
       this.config.metadataExtractor?.createStreamExtractor();
@@ -348,34 +383,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         arguments: string;
       };
       hasFinished: boolean;
+      thoughtSignature?: string;
     }> = [];
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: {
-      completionTokens: number | undefined;
-      completionTokensDetails: {
-        reasoningTokens: number | undefined;
-        acceptedPredictionTokens: number | undefined;
-        rejectedPredictionTokens: number | undefined;
-      };
-      promptTokens: number | undefined;
-      promptTokensDetails: {
-        cachedTokens: number | undefined;
-      };
-      totalTokens: number | undefined;
-    } = {
-      completionTokens: undefined,
-      completionTokensDetails: {
-        reasoningTokens: undefined,
-        acceptedPredictionTokens: undefined,
-        rejectedPredictionTokens: undefined,
-      },
-      promptTokens: undefined,
-      promptTokensDetails: {
-        cachedTokens: undefined,
-      },
-      totalTokens: undefined,
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
     };
+    let usage: z.infer<typeof openaiCompatibleTokenUsageSchema> | undefined =
+      undefined;
     let isFirstChunk = true;
     const providerOptionsName = this.providerOptionsName;
     let isActiveReasoning = false;
@@ -391,7 +407,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
-          // TODO we lost type safety on Chunk, most likely due to the error schema. MUST FIX
           transform(chunk, controller) {
             // Emit raw chunk if requested (before anything else)
             if (options.includeRawChunks) {
@@ -400,20 +415,26 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
-            const value = chunk.value;
 
             metadataExtractor?.processChunk(chunk.rawValue);
 
             // handle error chunks:
-            if ('error' in value) {
-              finishReason = 'error';
-              controller.enqueue({ type: 'error', error: value.error.message });
+            if ('error' in chunk.value) {
+              finishReason = { unified: 'error', raw: undefined };
+              controller.enqueue({
+                type: 'error',
+                error: chunk.value.error.message,
+              });
               return;
             }
+
+            // TODO we lost type safety on Chunk, most likely due to the error schema. MUST FIX
+            // remove this workaround when the issue is fixed
+            const value = chunk.value as z.infer<typeof chunkBaseSchema>;
 
             if (isFirstChunk) {
               isFirstChunk = false;
@@ -425,45 +446,16 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
             }
 
             if (value.usage != null) {
-              const {
-                prompt_tokens,
-                completion_tokens,
-                total_tokens,
-                prompt_tokens_details,
-                completion_tokens_details,
-              } = value.usage;
-
-              usage.promptTokens = prompt_tokens ?? undefined;
-              usage.completionTokens = completion_tokens ?? undefined;
-              usage.totalTokens = total_tokens ?? undefined;
-              if (completion_tokens_details?.reasoning_tokens != null) {
-                usage.completionTokensDetails.reasoningTokens =
-                  completion_tokens_details?.reasoning_tokens;
-              }
-              if (
-                completion_tokens_details?.accepted_prediction_tokens != null
-              ) {
-                usage.completionTokensDetails.acceptedPredictionTokens =
-                  completion_tokens_details?.accepted_prediction_tokens;
-              }
-              if (
-                completion_tokens_details?.rejected_prediction_tokens != null
-              ) {
-                usage.completionTokensDetails.rejectedPredictionTokens =
-                  completion_tokens_details?.rejected_prediction_tokens;
-              }
-              if (prompt_tokens_details?.cached_tokens != null) {
-                usage.promptTokensDetails.cachedTokens =
-                  prompt_tokens_details?.cached_tokens;
-              }
+              usage = value.usage;
             }
 
             const choice = value.choices[0];
 
             if (choice?.finish_reason != null) {
-              finishReason = mapOpenAICompatibleFinishReason(
-                choice.finish_reason,
-              );
+              finishReason = {
+                unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
+                raw: choice.finish_reason ?? undefined,
+              };
             }
 
             if (choice?.delta == null) {
@@ -491,6 +483,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
             }
 
             if (delta.content) {
+              // end active reasoning block before text starts
+              if (isActiveReasoning) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: 'reasoning-0',
+                });
+                isActiveReasoning = false;
+              }
+
               if (!isActiveText) {
                 controller.enqueue({ type: 'text-start', id: 'txt-0' });
                 isActiveText = true;
@@ -504,8 +505,17 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
             }
 
             if (delta.tool_calls != null) {
+              // end active reasoning block before tool calls start
+              if (isActiveReasoning) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: 'reasoning-0',
+                });
+                isActiveReasoning = false;
+              }
+
               for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index;
+                const index = toolCallDelta.index ?? toolCalls.length;
 
                 if (toolCalls[index] == null) {
                   if (toolCallDelta.id == null) {
@@ -536,6 +546,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
                       arguments: toolCallDelta.function.arguments ?? '',
                     },
                     hasFinished: false,
+                    thoughtSignature:
+                      toolCallDelta.extra_content?.google?.thought_signature ??
+                      undefined,
                   };
 
                   const toolCall = toolCalls[index];
@@ -566,6 +579,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
                         toolCallId: toolCall.id ?? generateId(),
                         toolName: toolCall.function.name,
                         input: toolCall.function.arguments,
+                        ...(toolCall.thoughtSignature
+                          ? {
+                              providerMetadata: {
+                                [providerOptionsName]: {
+                                  thoughtSignature: toolCall.thoughtSignature,
+                                },
+                              },
+                            }
+                          : {}),
                       });
                       toolCall.hasFinished = true;
                     }
@@ -609,6 +631,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
                     toolCallId: toolCall.id ?? generateId(),
                     toolName: toolCall.function.name,
                     input: toolCall.function.arguments,
+                    ...(toolCall.thoughtSignature
+                      ? {
+                          providerMetadata: {
+                            [providerOptionsName]: {
+                              thoughtSignature: toolCall.thoughtSignature,
+                            },
+                          },
+                        }
+                      : {}),
                   });
                   toolCall.hasFinished = true;
                 }
@@ -639,6 +670,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
                 toolCallId: toolCall.id ?? generateId(),
                 toolName: toolCall.function.name,
                 input: toolCall.function.arguments,
+                ...(toolCall.thoughtSignature
+                  ? {
+                      providerMetadata: {
+                        [providerOptionsName]: {
+                          thoughtSignature: toolCall.thoughtSignature,
+                        },
+                      },
+                    }
+                  : {}),
               });
             }
 
@@ -647,30 +687,24 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               ...metadataExtractor?.buildMetadata(),
             };
             if (
-              usage.completionTokensDetails.acceptedPredictionTokens != null
+              usage?.completion_tokens_details?.accepted_prediction_tokens !=
+              null
             ) {
               providerMetadata[providerOptionsName].acceptedPredictionTokens =
-                usage.completionTokensDetails.acceptedPredictionTokens;
+                usage?.completion_tokens_details?.accepted_prediction_tokens;
             }
             if (
-              usage.completionTokensDetails.rejectedPredictionTokens != null
+              usage?.completion_tokens_details?.rejected_prediction_tokens !=
+              null
             ) {
               providerMetadata[providerOptionsName].rejectedPredictionTokens =
-                usage.completionTokensDetails.rejectedPredictionTokens;
+                usage?.completion_tokens_details?.rejected_prediction_tokens;
             }
 
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage: {
-                inputTokens: usage.promptTokens ?? undefined,
-                outputTokens: usage.completionTokens ?? undefined,
-                totalTokens: usage.totalTokens ?? undefined,
-                reasoningTokens:
-                  usage.completionTokensDetails.reasoningTokens ?? undefined,
-                cachedInputTokens:
-                  usage.promptTokensDetails.cachedTokens ?? undefined,
-              },
+              usage: convertOpenAICompatibleChatUsage(usage),
               providerMetadata,
             });
           },
@@ -683,7 +717,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
 }
 
 const openaiCompatibleTokenUsageSchema = z
-  .object({
+  .looseObject({
     prompt_tokens: z.number().nullish(),
     completion_tokens: z.number().nullish(),
     total_tokens: z.number().nullish(),
@@ -704,7 +738,7 @@ const openaiCompatibleTokenUsageSchema = z
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const OpenAICompatibleChatResponseSchema = z.object({
+const OpenAICompatibleChatResponseSchema = z.looseObject({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
@@ -723,10 +757,64 @@ const OpenAICompatibleChatResponseSchema = z.object({
                 name: z.string(),
                 arguments: z.string(),
               }),
+              // Support for Google Gemini thought signatures via OpenAI compatibility
+              extra_content: z
+                .object({
+                  google: z
+                    .object({
+                      thought_signature: z.string().nullish(),
+                    })
+                    .nullish(),
+                })
+                .nullish(),
             }),
           )
           .nullish(),
       }),
+      finish_reason: z.string().nullish(),
+    }),
+  ),
+  usage: openaiCompatibleTokenUsageSchema,
+});
+
+const chunkBaseSchema = z.looseObject({
+  id: z.string().nullish(),
+  created: z.number().nullish(),
+  model: z.string().nullish(),
+  choices: z.array(
+    z.object({
+      delta: z
+        .object({
+          role: z.enum(['assistant']).nullish(),
+          content: z.string().nullish(),
+          // Most openai-compatible models set `reasoning_content`, but some
+          // providers serving `gpt-oss` set `reasoning`. See #7866
+          reasoning_content: z.string().nullish(),
+          reasoning: z.string().nullish(),
+          tool_calls: z
+            .array(
+              z.object({
+                index: z.number().nullish(), //google does not send index
+                id: z.string().nullish(),
+                function: z.object({
+                  name: z.string().nullish(),
+                  arguments: z.string().nullish(),
+                }),
+                // Support for Google Gemini thought signatures via OpenAI compatibility
+                extra_content: z
+                  .object({
+                    google: z
+                      .object({
+                        thought_signature: z.string().nullish(),
+                      })
+                      .nullish(),
+                  })
+                  .nullish(),
+              }),
+            )
+            .nullish(),
+        })
+        .nullish(),
       finish_reason: z.string().nullish(),
     }),
   ),
@@ -739,40 +827,4 @@ const createOpenAICompatibleChatChunkSchema = <
   ERROR_SCHEMA extends z.core.$ZodType,
 >(
   errorSchema: ERROR_SCHEMA,
-) =>
-  z.union([
-    z.object({
-      id: z.string().nullish(),
-      created: z.number().nullish(),
-      model: z.string().nullish(),
-      choices: z.array(
-        z.object({
-          delta: z
-            .object({
-              role: z.enum(['assistant']).nullish(),
-              content: z.string().nullish(),
-              // Most openai-compatible models set `reasoning_content`, but some
-              // providers serving `gpt-oss` set `reasoning`. See #7866
-              reasoning_content: z.string().nullish(),
-              reasoning: z.string().nullish(),
-              tool_calls: z
-                .array(
-                  z.object({
-                    index: z.number(),
-                    id: z.string().nullish(),
-                    function: z.object({
-                      name: z.string().nullish(),
-                      arguments: z.string().nullish(),
-                    }),
-                  }),
-                )
-                .nullish(),
-            })
-            .nullish(),
-          finish_reason: z.string().nullish(),
-        }),
-      ),
-      usage: openaiCompatibleTokenUsageSchema,
-    }),
-    errorSchema,
-  ]);
+) => z.union([chunkBaseSchema, errorSchema]);

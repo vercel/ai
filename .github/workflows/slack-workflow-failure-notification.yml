@@ -1,0 +1,26 @@
+name: Slack Workflow Failure Notification
+
+on:
+  workflow_run:
+    workflows:
+      - 'Auto-merge Release PRs'
+      - 'Backport'
+      - 'Release'
+      - 'Validate NPM Token'
+    types:
+      - completed
+
+jobs:
+  notify-on-failure:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+
+    steps:
+      - name: Send Slack notification
+        run: |
+          curl ${{ env.SLACK_WORKFLOW_FAILURE_URL }} -X POST -H "Content-Type: application/json" -d '{"channel_id": "${{ env.CHANNEL_ID }}", "workflow_name": "${{ env.WORKFLOW_NAME }}", "workflow_url": "${{ env.WORKFLOW_URL }}"}'
+        env:
+          SLACK_WORKFLOW_FAILURE_URL: ${{ secrets.SLACK_WORKFLOW_FAILURE_URL }}
+          CHANNEL_ID: 'C050WU03V3N'
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          WORKFLOW_URL: ${{ github.event.workflow_run.html_url }}

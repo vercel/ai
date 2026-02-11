@@ -148,7 +148,7 @@ describe('OpenAICompatibleProvider', () => {
     it('should create embedding model with correct configuration', () => {
       const provider = createOpenAICompatible(defaultOptions);
 
-      provider.textEmbeddingModel('embedding-model');
+      provider.embeddingModel('embedding-model');
 
       const constructorCall = OpenAICompatibleEmbeddingModelMock.mock.calls[0];
       const config = constructorCall[1];
@@ -309,7 +309,7 @@ describe('OpenAICompatibleProvider', () => {
         completionModelConfigArg.supportsStructuredOutputs,
       ).toBe(undefined);
 
-      provider.textEmbeddingModel('embedding-model');
+      provider.embeddingModel('embedding-model');
       const embeddingModelConfigArg =
         OpenAICompatibleEmbeddingModelMock.mock.calls[0][1];
       expect(
@@ -324,6 +324,31 @@ describe('OpenAICompatibleProvider', () => {
         // @ts-expect-error - testing
         imageModelConfigArg.supportsStructuredOutputs,
       ).toBe(undefined);
+    });
+  });
+
+  describe('metadataExtractor setting', () => {
+    it('should pass metadataExtractor to chat model', () => {
+      const mockExtractor = {
+        extractMetadata: async () => undefined,
+        createStreamExtractor: () => ({
+          processChunk: () => {},
+          buildMetadata: () => undefined,
+        }),
+      };
+
+      const provider = createOpenAICompatible({
+        baseURL: 'https://api.example.com',
+        name: 'test-provider',
+        metadataExtractor: mockExtractor,
+      });
+
+      provider.chatModel('chat-model');
+
+      expect(
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0][1]
+          .metadataExtractor,
+      ).toBe(mockExtractor);
     });
   });
 });

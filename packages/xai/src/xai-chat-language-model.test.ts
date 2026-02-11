@@ -190,10 +190,22 @@ describe('XaiChatLanguageModel', () => {
 
       expect(usage).toMatchInlineSnapshot(`
         {
-          "inputTokens": 20,
-          "outputTokens": 5,
-          "reasoningTokens": undefined,
-          "totalTokens": 25,
+          "inputTokens": {
+            "cacheRead": 0,
+            "cacheWrite": undefined,
+            "noCache": 20,
+            "total": 20,
+          },
+          "outputTokens": {
+            "reasoning": 0,
+            "text": 5,
+            "total": 5,
+          },
+          "raw": {
+            "completion_tokens": 5,
+            "prompt_tokens": 20,
+            "total_tokens": 25,
+          },
         }
       `);
     });
@@ -381,7 +393,7 @@ describe('XaiChatLanguageModel', () => {
       expect(request).toMatchInlineSnapshot(`
         {
           "body": {
-            "max_tokens": undefined,
+            "max_completion_tokens": undefined,
             "messages": [
               {
                 "content": "Hello",
@@ -719,6 +731,106 @@ describe('XaiChatLanguageModel', () => {
         ]
       `);
     });
+
+    it('should support json schema response format without warnings', async () => {
+      prepareJsonResponse({ content: '{"name":"john doe"}' });
+
+      const { warnings } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      expect(warnings).toEqual([]);
+    });
+
+    it('should send json schema in response format', async () => {
+      prepareJsonResponse({ content: '{"name":"john"}' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          name: 'person',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'grok-beta',
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'person',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+            },
+            strict: true,
+          },
+        },
+      });
+    });
+
+    it('should handle missing usage in response', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'no-usage-test',
+          object: 'chat.completion',
+          created: 1699472111,
+          model: 'grok-beta',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: 'Hello',
+                tool_calls: null,
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          // usage field is omitted
+        },
+      };
+
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage).toStrictEqual({
+        inputTokens: {
+          total: 0,
+          noCache: 0,
+          cacheRead: 0,
+          cacheWrite: 0,
+        },
+        outputTokens: {
+          total: 0,
+          text: 0,
+          reasoning: 0,
+        },
+      });
+    });
   });
 
   describe('doStream', () => {
@@ -796,13 +908,28 @@ describe('XaiChatLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
-              "inputTokens": 4,
-              "outputTokens": 32,
-              "reasoningTokens": undefined,
-              "totalTokens": 36,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 4,
+                "total": 4,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 32,
+                "total": 32,
+              },
+              "raw": {
+                "completion_tokens": 32,
+                "prompt_tokens": 4,
+                "total_tokens": 36,
+              },
             },
           },
         ]
@@ -859,13 +986,28 @@ describe('XaiChatLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
-              "inputTokens": 4,
-              "outputTokens": 32,
-              "reasoningTokens": undefined,
-              "totalTokens": 36,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 4,
+                "total": 4,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 32,
+                "total": 32,
+              },
+              "raw": {
+                "completion_tokens": 32,
+                "prompt_tokens": 4,
+                "total_tokens": 36,
+              },
             },
           },
         ]
@@ -937,13 +1079,28 @@ describe('XaiChatLanguageModel', () => {
             "type": "tool-call",
           },
           {
-            "finishReason": "tool-calls",
+            "finishReason": {
+              "raw": "tool_calls",
+              "unified": "tool-calls",
+            },
             "type": "finish",
             "usage": {
-              "inputTokens": 183,
-              "outputTokens": 133,
-              "reasoningTokens": undefined,
-              "totalTokens": 316,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 183,
+                "total": 183,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 133,
+                "total": 133,
+              },
+              "raw": {
+                "completion_tokens": 133,
+                "prompt_tokens": 183,
+                "total_tokens": 316,
+              },
             },
           },
         ]
@@ -1030,7 +1187,7 @@ describe('XaiChatLanguageModel', () => {
       expect(request).toMatchInlineSnapshot(`
         {
           "body": {
-            "max_tokens": undefined,
+            "max_completion_tokens": undefined,
             "messages": [
               {
                 "content": "Hello",
@@ -1054,6 +1211,47 @@ describe('XaiChatLanguageModel', () => {
           },
         }
       `);
+    });
+
+    it('should handle missing usage in streaming response', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"no-usage-test","object":"chat.completion.chunk","created":1750537778,"model":"grok-beta","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+          `data: {"id":"no-usage-test","object":"chat.completion.chunk","created":1750537778,"model":"grok-beta","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"no-usage-test","object":"chat.completion.chunk","created":1750537778,"model":"grok-beta","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+          `data: [DONE]\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+      const finishChunk = chunks.find(chunk => chunk.type === 'finish');
+
+      expect(finishChunk).toMatchObject({
+        type: 'finish',
+        finishReason: {
+          unified: 'stop',
+          raw: 'stop',
+        },
+        usage: {
+          inputTokens: {
+            total: 0,
+            noCache: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+          outputTokens: {
+            total: 0,
+            text: 0,
+            reasoning: 0,
+          },
+        },
+      });
     });
 
     it('should stream citations as sources', async () => {
@@ -1123,13 +1321,28 @@ describe('XaiChatLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
-              "inputTokens": 4,
-              "outputTokens": 30,
-              "reasoningTokens": undefined,
-              "totalTokens": 34,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 4,
+                "total": 4,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 30,
+                "total": 30,
+              },
+              "raw": {
+                "completion_tokens": 30,
+                "prompt_tokens": 4,
+                "total_tokens": 34,
+              },
             },
           },
         ]
@@ -1252,10 +1465,25 @@ describe('XaiChatLanguageModel', () => {
 
       expect(usage).toMatchInlineSnapshot(`
         {
-          "inputTokens": 15,
-          "outputTokens": 20,
-          "reasoningTokens": 10,
-          "totalTokens": 35,
+          "inputTokens": {
+            "cacheRead": 0,
+            "cacheWrite": undefined,
+            "noCache": 15,
+            "total": 15,
+          },
+          "outputTokens": {
+            "reasoning": 10,
+            "text": 10,
+            "total": 20,
+          },
+          "raw": {
+            "completion_tokens": 20,
+            "completion_tokens_details": {
+              "reasoning_tokens": 10,
+            },
+            "prompt_tokens": 15,
+            "total_tokens": 35,
+          },
         }
       `);
     });
@@ -1314,6 +1542,10 @@ describe('XaiChatLanguageModel', () => {
             "type": "reasoning-delta",
           },
           {
+            "id": "reasoning-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
+            "type": "reasoning-end",
+          },
+          {
             "id": "text-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
             "type": "text-start",
           },
@@ -1323,21 +1555,35 @@ describe('XaiChatLanguageModel', () => {
             "type": "text-delta",
           },
           {
-            "id": "reasoning-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
-            "type": "reasoning-end",
-          },
-          {
             "id": "text-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
-              "inputTokens": 15,
-              "outputTokens": 20,
-              "reasoningTokens": 10,
-              "totalTokens": 35,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 15,
+                "total": 15,
+              },
+              "outputTokens": {
+                "reasoning": 10,
+                "text": 10,
+                "total": 20,
+              },
+              "raw": {
+                "completion_tokens": 20,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 10,
+                },
+                "prompt_tokens": 15,
+                "total_tokens": 35,
+              },
             },
           },
         ]
@@ -1404,6 +1650,10 @@ describe('XaiChatLanguageModel', () => {
             "type": "reasoning-delta",
           },
           {
+            "id": "reasoning-grok-4-test",
+            "type": "reasoning-end",
+          },
+          {
             "id": "text-grok-4-test",
             "type": "text-start",
           },
@@ -1413,21 +1663,35 @@ describe('XaiChatLanguageModel', () => {
             "type": "text-delta",
           },
           {
-            "id": "reasoning-grok-4-test",
-            "type": "reasoning-end",
-          },
-          {
             "id": "text-grok-4-test",
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
-              "inputTokens": 15,
-              "outputTokens": 20,
-              "reasoningTokens": 10,
-              "totalTokens": 35,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 15,
+                "total": 15,
+              },
+              "outputTokens": {
+                "reasoning": 10,
+                "text": 10,
+                "total": 20,
+              },
+              "raw": {
+                "completion_tokens": 20,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 10,
+                },
+                "prompt_tokens": 15,
+                "total_tokens": 35,
+              },
             },
           },
         ]
@@ -1564,16 +1828,61 @@ describe('doStream with raw chunks', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
-            "inputTokens": 10,
-            "outputTokens": 5,
-            "reasoningTokens": undefined,
-            "totalTokens": 15,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 10,
+              "total": 10,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 5,
+              "total": 5,
+            },
+            "raw": {
+              "completion_tokens": 5,
+              "prompt_tokens": 10,
+              "total_tokens": 15,
+            },
           },
         },
       ]
     `);
+  });
+
+  describe('error handling', () => {
+    it('should throw APICallError when xai returns error with 200 status (doGenerate)', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          code: 'The service is currently unavailable',
+          error: 'Timed out waiting for first token',
+        },
+      };
+
+      await expect(model.doGenerate({ prompt: TEST_PROMPT })).rejects.toThrow(
+        'Timed out waiting for first token',
+      );
+    });
+
+    it('should throw APICallError when xai returns error with 200 status (doStream)', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          code: 'The service is currently unavailable',
+          error: 'Timed out waiting for first token',
+        },
+      };
+
+      await expect(model.doStream({ prompt: TEST_PROMPT })).rejects.toThrow(
+        'Timed out waiting for first token',
+      );
+    });
   });
 });

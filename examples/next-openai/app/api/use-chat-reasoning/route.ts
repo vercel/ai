@@ -9,7 +9,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: openai('gpt-5-nano'),
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
     providerOptions: {
       openai: {
         reasoningSummary: 'detailed', // 'auto' for condensed or 'detailed' for comprehensive

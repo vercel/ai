@@ -25,7 +25,6 @@ npm install react-markdown marked
 On the server, you use a simple route handler that streams the response from the language model.
 
 ```tsx filename='app/api/chat/route.ts'
-import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, type UIMessage } from 'ai';
 
 export async function POST(req: Request) {
@@ -34,8 +33,8 @@ export async function POST(req: Request) {
   const result = streamText({
     system:
       'You are a helpful assistant. Respond to the user in Markdown format.',
-    model: openai('gpt-4o'),
-    messages: convertToModelMessages(messages),
+    model: 'openai/gpt-4o',
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();

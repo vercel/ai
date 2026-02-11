@@ -1,9 +1,9 @@
-import { isToolOrDynamicToolUIPart, type UIMessage } from './ui-messages';
+import { isToolUIPart, type UIMessage } from './ui-messages';
 
 /**
-Check if the message is an assistant message with completed tool calls.
-The last step of the message must have at least one tool invocation and
-all tool invocations must have a result.
+ * Check if the last message is an assistant message with completed tool calls.
+ * The last step of the message must have at least one tool invocation and
+ * all tool invocations must have a result.
  */
 export function lastAssistantMessageIsCompleteWithToolCalls({
   messages,
@@ -26,7 +26,7 @@ export function lastAssistantMessageIsCompleteWithToolCalls({
 
   const lastStepToolInvocations = message.parts
     .slice(lastStepStartIndex + 1)
-    .filter(isToolOrDynamicToolUIPart)
+    .filter(isToolUIPart)
     .filter(part => !part.providerExecuted);
 
   return (

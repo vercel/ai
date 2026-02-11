@@ -38,7 +38,7 @@ The release of AI SDK 3.1 introduces several new features that improve the way y
 
 Prior to AI SDK Core, you had to use a model provider's SDK to query their models.
 
-In the following Route Handler, you use the OpenAI SDK to query their model. You then pipe that response into the [`OpenAIStream`](/docs/reference/stream-helpers/openai-stream) function which returns a [`ReadableStream`](https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream) that you can pass to the client using a new [`StreamingTextResponse`](/docs/reference/stream-helpers/streaming-text-response).
+In the following Route Handler, you use the OpenAI SDK to query their model. You then pipe that response into the `OpenAIStream` function which returns a [`ReadableStream`](https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream) that you can pass to the client using a new `StreamingTextResponse`.
 
 ```tsx
 import OpenAI from 'openai';
@@ -70,12 +70,13 @@ Let’s take a look at the example above, but refactored to utilize the AI SDK C
 ```tsx
 import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
+__PROVIDER_IMPORT__;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = await streamText({
-    model: openai('gpt-4.1'),
+    model: __MODEL__,
     messages,
   });
 
@@ -141,7 +142,7 @@ async function submitMessage(userInput = 'What is the weather in SF?') {
   'use server';
 
   const result = await streamUI({
-    model: openai('gpt-4.1'),
+    model: __MODEL__,
     system: 'You are a helpful assistant',
     messages: [{ role: 'user', content: userInput }],
     text: ({ content }) => <p>{content}</p>,

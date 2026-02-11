@@ -5,7 +5,7 @@ description: Learn how to use DeepSeek's models with the AI SDK.
 
 # DeepSeek Provider
 
-The [DeepSeek](https://www.deepseek.com) provider offers access to powerful language models through the DeepSeek API, including their [DeepSeek-V3 model](https://github.com/deepseek-ai/DeepSeek-V3).
+The [DeepSeek](https://www.deepseek.com) provider offers access to powerful language models through the DeepSeek API.
 
 API keys can be obtained from the [DeepSeek Platform](https://platform.deepseek.com/api_keys).
 
@@ -23,7 +23,6 @@ The DeepSeek provider is available via the `@ai-sdk/deepseek` module. You can in
   <Tab>
     <Snippet text="yarn add @ai-sdk/deepseek" dark />
   </Tab>
-
   <Tab>
     <Snippet text="bun add @ai-sdk/deepseek" dark />
   </Tab>
@@ -52,7 +51,7 @@ You can use the following optional settings to customize the DeepSeek provider i
 - **baseURL** _string_
 
   Use a different URL prefix for API calls.
-  The default prefix is `https://api.deepseek.com/v1`.
+  The default prefix is `https://api.deepseek.com`.
 
 - **apiKey** _string_
 
@@ -91,6 +90,29 @@ const model = deepseek.languageModel('deepseek-chat');
 
 DeepSeek language models can be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
+
+The following optional provider options are available for DeepSeek models:
+
+- `thinking` _object_
+
+  Optional. Controls thinking mode (chain-of-thought reasoning). You can enable thinking mode either by using the `deepseek-reasoner` model or by setting this option.
+
+  - `type`: `'enabled' | 'disabled'` - Enable or disable thinking mode.
+
+```ts highlight="7-11"
+import { deepseek } from '@ai-sdk/deepseek';
+import { generateText } from 'ai';
+
+const { text, reasoning } = await generateText({
+  model: deepseek('deepseek-chat'),
+  prompt: 'How many "r"s are in the word "strawberry"?',
+  providerOptions: {
+    deepseek: {
+      thinking: { type: 'enabled' },
+    },
+  },
+});
+```
 
 ### Reasoning
 
@@ -151,10 +173,11 @@ The metrics include:
 | Model               | Text Generation     | Object Generation   | Image Input         | Tool Usage          | Tool Streaming      |
 | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `deepseek-chat`     | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `deepseek-reasoner` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `deepseek-reasoner` | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
-  Please see the [DeepSeek docs](https://api-docs.deepseek.com) for a full list
-  of available models. You can also pass any available provider model ID as a
+  Please see the [DeepSeek
+  docs](https://api-docs.deepseek.com/quick_start/pricing) for a full list of
+  available models. You can also pass any available provider model ID as a
   string if needed.
 </Note>

@@ -7,9 +7,9 @@
     "build:packages": "turbo build --filter=@ai-sdk/* --filter=ai",
     "changeset": "changeset",
     "clean": "turbo clean",
-    "dev": "turbo dev --no-cache --concurrency 16 --continue",
+    "dev": "turbo dev --cache=local:r,remote:r --concurrency 25 --continue",
     "lint": "turbo lint",
-    "prepare": "husky install",
+    "prepare": "husky",
     "update-references": "update-ts-references",
     "prettier-check": "prettier --check \"**/*.{js,ts,tsx,md,mdx,svelte}\"",
     "type-check": "tsc --build",
@@ -28,14 +28,14 @@
     ]
   },
   "devDependencies": {
-    "update-ts-references": "^3.6.0",
     "@changesets/cli": "2.27.10",
     "@playwright/test": "^1.44.1",
+    "del-cli": "^5.1.0",
     "eslint": "8.57.1",
     "eslint-config-vercel-ai": "workspace:*",
-    "husky": "^8.0.0",
+    "husky": "^9.1.7",
     "lint-staged": "15.2.10",
-    "next": "15.0.0-canary.23",
+    "next": "15.0.7",
     "playwright": "^1.44.1",
     "prettier": "3.5.3",
     "prettier-plugin-svelte": "^3.3.3",
@@ -44,6 +44,7 @@
     "react-dom": "19.0.0-rc-cc1ec60d0d-20240607",
     "turbo": "2.4.4",
     "typescript": "5.8.3",
+    "update-ts-references": "^3.6.0",
     "vitest": "2.1.4"
   },
   "engines": {

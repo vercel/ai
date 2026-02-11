@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
   return createAgentUIStreamResponse({
     agent: anthropicCodeExecutionAgent,
-    messages,
+    uiMessages: messages,
     messageMetadata({ part }) {
       // store the anthropic container id if a container was used
       if (part.type === 'finish-step') {

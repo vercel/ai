@@ -7,7 +7,7 @@ import {
   createUIMessageStreamResponse,
 } from 'ai';
 import {
-  experimental_createMCPClient,
+  createMCPClient,
   auth,
   type OAuthClientInformation,
   type OAuthClientMetadata,
@@ -230,7 +230,7 @@ export async function POST(req: Request) {
           });
         }
 
-        const mcpClient = await experimental_createMCPClient({
+        const mcpClient = await createMCPClient({
           transport: { type: 'http', url: serverUrl, authProvider },
         });
 
@@ -243,7 +243,7 @@ export async function POST(req: Request) {
             stopWhen: stepCountIs(10),
             system:
               'You are a helpful assistant with access to protected tools.',
-            messages: convertToModelMessages(messages),
+            messages: await convertToModelMessages(messages),
           });
 
           writer.merge(

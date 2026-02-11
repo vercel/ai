@@ -1,9 +1,9 @@
-import { createVertexAnthropic } from './google-vertex-anthropic-provider';
-import { NoSuchModelError } from '@ai-sdk/provider';
 import {
-  AnthropicMessagesLanguageModel,
-  anthropicTools,
-} from '@ai-sdk/anthropic/internal';
+  createVertexAnthropic,
+  vertexAnthropicTools,
+} from './google-vertex-anthropic-provider';
+import { NoSuchModelError } from '@ai-sdk/provider';
+import { AnthropicMessagesLanguageModel } from '@ai-sdk/anthropic/internal';
 import { vi, describe, beforeEach, it, expect } from 'vitest';
 
 // Mock the imported modules
@@ -13,8 +13,8 @@ vi.mock('@ai-sdk/provider-utils', () => ({
     .mockImplementation(({ settingValue }) => settingValue),
   withoutTrailingSlash: vi.fn().mockImplementation(url => url),
   createJsonErrorResponseHandler: vi.fn(),
-  createProviderDefinedToolFactory: vi.fn(),
-  createProviderDefinedToolFactoryWithOutputSchema: vi.fn(),
+  createProviderToolFactory: vi.fn(),
+  createProviderToolFactoryWithOutputSchema: vi.fn(),
   lazySchema: vi.fn(),
   zodSchema: vi.fn(),
 }));
@@ -82,15 +82,24 @@ describe('google-vertex-anthropic-provider', () => {
   it('should throw NoSuchModelError for textEmbeddingModel', () => {
     const provider = createVertexAnthropic({ project: 'test-project' });
 
-    expect(() => provider.textEmbeddingModel('invalid-model-id')).toThrow(
+    expect(() => provider.embeddingModel('invalid-model-id')).toThrow(
       NoSuchModelError,
     );
   });
 
-  it('should include anthropicTools', () => {
+  it('should include vertexAnthropicTools (subset of anthropicTools)', () => {
     const provider = createVertexAnthropic({ project: 'test-project' });
 
-    expect(provider.tools).toBe(anthropicTools);
+    expect(provider.tools).toBe(vertexAnthropicTools);
+    expect(provider.tools).toHaveProperty('bash_20241022');
+    expect(provider.tools).toHaveProperty('bash_20250124');
+    expect(provider.tools).toHaveProperty('textEditor_20241022');
+    expect(provider.tools).toHaveProperty('textEditor_20250124');
+    expect(provider.tools).toHaveProperty('textEditor_20250429');
+    expect(provider.tools).toHaveProperty('textEditor_20250728');
+    expect(provider.tools).toHaveProperty('computer_20241022');
+    expect(provider.tools).toHaveProperty('webSearch_20250305');
+    expect(provider.tools).not.toHaveProperty('codeExecution_20250825');
   });
 
   it('should pass custom headers to the model constructor', () => {
@@ -173,6 +182,25 @@ describe('google-vertex-anthropic-provider', () => {
       expect.objectContaining({
         baseURL:
           'https://us-east5-aiplatform.googleapis.com/v1/projects/test-project/locations/us-east5/publishers/anthropic/models',
+        provider: 'vertex.anthropic.messages',
+      }),
+    );
+  });
+
+  it('should support combining tools with structured outputs (inherited from Anthropic)', () => {
+    const provider = createVertexAnthropic({
+      project: 'test-project',
+      location: 'us-east5',
+    });
+
+    // Create a model instance
+    const model = provider('claude-3-5-sonnet-v2@20241022');
+
+    // Verify the model was created using AnthropicMessagesLanguageModel
+    // which already supports combining tools with structured outputs
+    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+      'claude-3-5-sonnet-v2@20241022',
+      expect.objectContaining({
         provider: 'vertex.anthropic.messages',
       }),
     );

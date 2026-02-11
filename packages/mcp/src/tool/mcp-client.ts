@@ -1,10 +1,15 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
+import { JSONSchema7, JSONValue } from '@ai-sdk/provider';
 import {
+  asSchema,
   dynamicTool,
+  FlexibleSchema,
   jsonSchema,
+  safeParseJSON,
+  safeValidateTypes,
   Tool,
   tool,
-  ToolCallOptions,
+  ToolExecutionOptions,
+  ToolResultOutput,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { MCPClientError } from '../error/mcp-client-error';
@@ -23,7 +28,12 @@ import {
 import {
   CallToolResult,
   CallToolResultSchema,
+  ClientCapabilities,
   Configuration as ClientConfiguration,
+  ElicitationRequest,
+  ElicitationRequestSchema,
+  ElicitResult,
+  ElicitResultSchema,
   InitializeResultSchema,
   LATEST_PROTOCOL_VERSION,
   ListResourceTemplatesResult,
@@ -46,9 +56,42 @@ import {
   ServerCapabilities,
   SUPPORTED_PROTOCOL_VERSIONS,
   ToolSchemas,
+  ToolMeta,
 } from './types';
 
 const CLIENT_VERSION = '1.0.0';
+
+function mcpToModelOutput({
+  output,
+}: {
+  toolCallId: string;
+  input: unknown;
+  output: unknown;
+}): ToolResultOutput {
+  const result = output as CallToolResult;
+
+  if (!('content' in result) || !Array.isArray(result.content)) {
+    return { type: 'json', value: result as JSONValue };
+  }
+
+  const convertedContent = result.content.map(
+    (part: { type: string; [key: string]: unknown }) => {
+      if (part.type === 'text' && 'text' in part) {
+        return { type: 'text' as const, text: part.text as string };
+      }
+      if (part.type === 'image' && 'data' in part && 'mimeType' in part) {
+        return {
+          type: 'image-data' as const,
+          data: part.data as string,
+          mediaType: part.mimeType as string,
+        };
+      }
+      return { type: 'text' as const, text: JSON.stringify(part) };
+    },
+  );
+
+  return { type: 'content', value: convertedContent };
+}
 
 export interface MCPClientConfig {
   /** Transport configuration for connecting to the MCP server */
@@ -57,6 +100,14 @@ export interface MCPClientConfig {
   onUncaughtError?: (error: unknown) => void;
   /** Optional client name, defaults to 'ai-sdk-mcp-client' */
   name?: string;
+  /** Optional client version, defaults to '1.0.0' */
+  version?: string;
+  /**
+   * Optional client capabilities to advertise during initialization
+   *
+   * NOTE: It is up to the client application to handle the requests properly. This parameter just helps surface the request from the server
+   */
+  capabilities?: ClientCapabilities;
 }
 
 export async function createMCPClient(
@@ -86,16 +137,23 @@ export interface MCPClient {
     options?: RequestOptions;
   }): Promise<ListResourceTemplatesResult>;
 
-  listPrompts(options?: {
+  experimental_listPrompts(options?: {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   }): Promise<ListPromptsResult>;
 
-  getPrompt(args: {
+  experimental_getPrompt(args: {
     name: string;
     arguments?: Record<string, unknown>;
     options?: RequestOptions;
   }): Promise<GetPromptResult>;
+
+  onElicitationRequest(
+    schema: typeof ElicitationRequestSchema,
+    handler: (
+      request: ElicitationRequest,
+    ) => Promise<ElicitResult> | ElicitResult,
+  ): void;
 
   close: () => Promise<void>;
 }
@@ -112,7 +170,6 @@ export interface MCPClient {
  * This client is meant to be used to communicate with a single server. To communicate and fetch tools across multiple servers, it's recommended to create a new client instance per server.
  *
  * Not supported:
- * - Client options (e.g. sampling, roots) as they are not needed for tool conversion
  * - Accepting notifications
  * - Session management (when passing a sessionId to an instance of the Streamable HTTP transport)
  * - Resumable SSE streams
@@ -121,6 +178,7 @@ class DefaultMCPClient implements MCPClient {
   private transport: MCPTransport;
   private onUncaughtError?: (error: unknown) => void;
   private clientInfo: ClientConfiguration;
+  private clientCapabilities: ClientCapabilities;
   private requestMessageId = 0;
   private responseHandlers: Map<
     number,
@@ -128,13 +186,19 @@ class DefaultMCPClient implements MCPClient {
   > = new Map();
   private serverCapabilities: ServerCapabilities = {};
   private isClosed = true;
+  private elicitationRequestHandler?: (
+    request: ElicitationRequest,
+  ) => Promise<ElicitResult> | ElicitResult;
 
   constructor({
     transport: transportConfig,
     name = 'ai-sdk-mcp-client',
+    version = CLIENT_VERSION,
     onUncaughtError,
+    capabilities,
   }: MCPClientConfig) {
     this.onUncaughtError = onUncaughtError;
+    this.clientCapabilities = capabilities ?? {};
 
     if (isCustomMcpTransport(transportConfig)) {
       this.transport = transportConfig;
@@ -146,14 +210,15 @@ class DefaultMCPClient implements MCPClient {
     this.transport.onerror = (error: Error) => this.onError(error);
     this.transport.onmessage = message => {
       if ('method' in message) {
-        // This lightweight client implementation does not support
-        // receiving notifications or requests from server.
-        // If we get an unsupported message, we can safely ignore it and pass to the onError handler:
-        this.onError(
-          new MCPClientError({
-            message: 'Unsupported message type',
-          }),
-        );
+        if ('id' in message) {
+          this.onRequestMessage(message);
+        } else {
+          this.onError(
+            new MCPClientError({
+              message: 'Unsupported message type',
+            }),
+          );
+        }
         return;
       }
 
@@ -162,7 +227,7 @@ class DefaultMCPClient implements MCPClient {
 
     this.clientInfo = {
       name,
-      version: CLIENT_VERSION,
+      version,
     };
   }
 
@@ -176,7 +241,7 @@ class DefaultMCPClient implements MCPClient {
           method: 'initialize',
           params: {
             protocolVersion: LATEST_PROTOCOL_VERSION,
-            capabilities: {},
+            capabilities: this.clientCapabilities,
             clientInfo: this.clientInfo,
           },
         },
@@ -343,7 +408,7 @@ class DefaultMCPClient implements MCPClient {
   }: {
     name: string;
     args: Record<string, unknown>;
-    options?: ToolCallOptions;
+    options?: ToolExecutionOptions;
   }): Promise<CallToolResult> {
     try {
       return this.request({
@@ -465,57 +530,119 @@ class DefaultMCPClient implements MCPClient {
   }: {
     schemas?: TOOL_SCHEMAS;
   } = {}): Promise<McpToolSet<TOOL_SCHEMAS>> {
-    const tools: Record<string, Tool> = {};
+    const tools: Record<string, Tool & { _meta?: ToolMeta }> = {};
 
     try {
       const listToolsResult = await this.listTools();
       for (const {
         name,
+        title,
         description,
         inputSchema,
         annotations,
+        _meta,
       } of listToolsResult.tools) {
-        const title = annotations?.title;
+        const resolvedTitle = title ?? annotations?.title;
         if (schemas !== 'automatic' && !(name in schemas)) {
           continue;
         }
 
         const self = this;
+        const outputSchema =
+          schemas !== 'automatic' ? schemas[name]?.outputSchema : undefined;
 
         const execute = async (
           args: any,
-          options: ToolCallOptions,
-        ): Promise<CallToolResult> => {
+          options: ToolExecutionOptions,
+        ): Promise<unknown> => {
           options?.abortSignal?.throwIfAborted();
-          return self.callTool({ name, args, options });
+          const result = await self.callTool({ name, args, options });
+
+          if (outputSchema != null) {
+            return self.extractStructuredContent(result, outputSchema, name);
+          }
+
+          return result;
         };
 
         const toolWithExecute =
           schemas === 'automatic'
             ? dynamicTool({
                 description,
-                title,
+                title: resolvedTitle,
                 inputSchema: jsonSchema({
                   ...inputSchema,
                   properties: inputSchema.properties ?? {},
                   additionalProperties: false,
                 } as JSONSchema7),
                 execute,
+                toModelOutput: mcpToModelOutput,
               })
             : tool({
                 description,
-                title,
+                title: resolvedTitle,
                 inputSchema: schemas[name].inputSchema,
+                ...(outputSchema != null ? { outputSchema } : {}),
                 execute,
+                toModelOutput: mcpToModelOutput,
               });
 
-        tools[name] = toolWithExecute;
+        tools[name] = { ...toolWithExecute, _meta };
       }
 
       return tools as McpToolSet<TOOL_SCHEMAS>;
     } catch (error) {
       throw error;
     }
+  }
+
+  /**
+   * Extracts and validates structuredContent from a tool result.
+   */
+  private async extractStructuredContent(
+    result: CallToolResult,
+    outputSchema: FlexibleSchema<unknown>,
+    toolName: string,
+  ): Promise<unknown> {
+    if ('structuredContent' in result && result.structuredContent != null) {
+      const validationResult = await safeValidateTypes({
+        value: result.structuredContent,
+        schema: asSchema(outputSchema),
+      });
+
+      if (!validationResult.success) {
+        throw new MCPClientError({
+          message: `Tool "${toolName}" returned structuredContent that does not match the expected outputSchema`,
+          cause: validationResult.error,
+        });
+      }
+
+      return validationResult.value;
+    }
+
+    // Fallback
+    if ('content' in result && Array.isArray(result.content)) {
+      const textContent = result.content.find(c => c.type === 'text');
+      if (textContent && 'text' in textContent) {
+        const parseResult = await safeParseJSON({
+          text: textContent.text,
+          schema: outputSchema,
+        });
+
+        if (!parseResult.success) {
+          throw new MCPClientError({
+            message: `Tool "${toolName}" returned content that does not match the expected outputSchema`,
+            cause: parseResult.error,
+          });
+        }
+
+        return parseResult.value;
+      }
+    }
+
+    throw new MCPClientError({
+      message: `Tool "${toolName}" did not return structuredContent or parseable text content`,
+    });
   }
 
   listResources({
@@ -546,7 +673,7 @@ class DefaultMCPClient implements MCPClient {
     return this.listResourceTemplatesInternal({ options });
   }
 
-  listPrompts({
+  experimental_listPrompts({
     params,
     options,
   }: {
@@ -556,7 +683,7 @@ class DefaultMCPClient implements MCPClient {
     return this.listPromptsInternal({ params, options });
   }
 
-  getPrompt({
+  experimental_getPrompt({
     name,
     arguments: args,
     options,
@@ -566,6 +693,94 @@ class DefaultMCPClient implements MCPClient {
     options?: RequestOptions;
   }): Promise<GetPromptResult> {
     return this.getPromptInternal({ name, args, options });
+  }
+
+  onElicitationRequest(
+    schema: typeof ElicitationRequestSchema,
+    handler: (
+      request: ElicitationRequest,
+    ) => Promise<ElicitResult> | ElicitResult,
+  ): void {
+    if (schema !== ElicitationRequestSchema) {
+      throw new MCPClientError({
+        message:
+          'Unsupported request schema. Only ElicitationRequestSchema is supported.',
+      });
+    }
+
+    this.elicitationRequestHandler = handler;
+  }
+
+  private async onRequestMessage(request: JSONRPCRequest): Promise<void> {
+    try {
+      if (request.method !== 'elicitation/create') {
+        await this.transport.send({
+          jsonrpc: '2.0',
+          id: request.id,
+          error: {
+            code: -32601,
+            message: `Unsupported request method: ${request.method}`,
+          },
+        });
+        return;
+      }
+
+      if (!this.elicitationRequestHandler) {
+        await this.transport.send({
+          jsonrpc: '2.0',
+          id: request.id,
+          error: {
+            code: -32601,
+            message: 'No elicitation handler registered on client',
+          },
+        });
+        return;
+      }
+
+      const parsedRequest = ElicitationRequestSchema.safeParse({
+        method: request.method,
+        params: request.params,
+      });
+
+      if (!parsedRequest.success) {
+        await this.transport.send({
+          jsonrpc: '2.0',
+          id: request.id,
+          error: {
+            code: -32602,
+            message: `Invalid elicitation request: ${parsedRequest.error.message}`,
+            data: parsedRequest.error.issues,
+          },
+        });
+        return;
+      }
+
+      try {
+        const result = await this.elicitationRequestHandler(parsedRequest.data);
+        const validatedResult = ElicitResultSchema.parse(result);
+
+        await this.transport.send({
+          jsonrpc: '2.0',
+          id: request.id,
+          result: validatedResult,
+        });
+      } catch (error) {
+        await this.transport.send({
+          jsonrpc: '2.0',
+          id: request.id,
+          error: {
+            code: -32603,
+            message:
+              error instanceof Error
+                ? error.message
+                : 'Failed to handle elicitation request',
+          },
+        });
+        this.onError(error);
+      }
+    } catch (error) {
+      this.onError(error);
+    }
   }
 
   private onClose(): void {

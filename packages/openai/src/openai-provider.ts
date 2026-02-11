@@ -34,106 +34,111 @@ export interface OpenAIProvider extends ProviderV3 {
   (modelId: OpenAIResponsesModelId): LanguageModelV3;
 
   /**
-Creates an OpenAI model for text generation.
+   * Creates an OpenAI model for text generation.
    */
   languageModel(modelId: OpenAIResponsesModelId): LanguageModelV3;
 
   /**
-Creates an OpenAI chat model for text generation.
+   * Creates an OpenAI chat model for text generation.
    */
   chat(modelId: OpenAIChatModelId): LanguageModelV3;
 
   /**
-Creates an OpenAI responses API model for text generation.
+   * Creates an OpenAI responses API model for text generation.
    */
   responses(modelId: OpenAIResponsesModelId): LanguageModelV3;
 
   /**
-Creates an OpenAI completion model for text generation.
+   * Creates an OpenAI completion model for text generation.
    */
   completion(modelId: OpenAICompletionModelId): LanguageModelV3;
 
   /**
-Creates a model for text embeddings.
+   * Creates a model for text embeddings.
    */
-  embedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3<string>;
+  embedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3;
 
   /**
-Creates a model for text embeddings.
+   * Creates a model for text embeddings.
    */
-  textEmbedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3<string>;
+  embeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3;
 
   /**
-Creates a model for text embeddings.
+   * @deprecated Use `embedding` instead.
    */
-  textEmbeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3<string>;
+  textEmbedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3;
 
   /**
-Creates a model for image generation.
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * Creates a model for image generation.
    */
   image(modelId: OpenAIImageModelId): ImageModelV3;
 
   /**
-Creates a model for image generation.
+   * Creates a model for image generation.
    */
   imageModel(modelId: OpenAIImageModelId): ImageModelV3;
 
   /**
-Creates a model for transcription.
+   * Creates a model for transcription.
    */
   transcription(modelId: OpenAITranscriptionModelId): TranscriptionModelV3;
 
   /**
-Creates a model for speech generation.
+   * Creates a model for speech generation.
    */
   speech(modelId: OpenAISpeechModelId): SpeechModelV3;
 
   /**
-OpenAI-specific tools.
+   * OpenAI-specific tools.
    */
   tools: typeof openaiTools;
 }
 
 export interface OpenAIProviderSettings {
   /**
-Base URL for the OpenAI API calls.
-     */
+   * Base URL for the OpenAI API calls.
+   */
   baseURL?: string;
 
   /**
-API key for authenticating requests.
-     */
+   * API key for authenticating requests.
+   */
   apiKey?: string;
 
   /**
-OpenAI Organization.
-     */
+   * OpenAI Organization.
+   */
   organization?: string;
 
   /**
-OpenAI project.
-     */
+   * OpenAI project.
+   */
   project?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Provider name. Overrides the `openai` default name for 3rd party providers.
+   * Provider name. Overrides the `openai` default name for 3rd party providers.
    */
   name?: string;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 /**
-Create an OpenAI provider instance.
+ * Create an OpenAI provider instance.
  */
 export function createOpenAI(
   options: OpenAIProviderSettings = {},
@@ -241,6 +246,7 @@ export function createOpenAI(
   provider.completion = createCompletionModel;
   provider.responses = createResponsesModel;
   provider.embedding = createEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
 
@@ -259,6 +265,6 @@ export function createOpenAI(
 }
 
 /**
-Default OpenAI provider instance.
+ * Default OpenAI provider instance.
  */
 export const openai = createOpenAI();

@@ -8,12 +8,12 @@ import {
   FetchFunction,
   withoutTrailingSlash,
   withUserAgentSuffix,
-  getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
 import {
   OpenAICompatibleChatConfig,
   OpenAICompatibleChatLanguageModel,
 } from './chat/openai-compatible-chat-language-model';
+import { MetadataExtractor } from './chat/openai-compatible-metadata-extractor';
 import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
 import { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
 import { OpenAICompatibleImageModel } from './image/openai-compatible-image-model';
@@ -36,48 +36,53 @@ export interface OpenAICompatibleProvider<
 
   completionModel(modelId: COMPLETION_MODEL_IDS): LanguageModelV3;
 
-  textEmbeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV3<string>;
+  embeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV3;
 
   imageModel(modelId: IMAGE_MODEL_IDS): ImageModelV3;
 }
 
 export interface OpenAICompatibleProviderSettings {
   /**
-Base URL for the API calls.
+   * Base URL for the API calls.
    */
   baseURL: string;
 
   /**
-Provider name.
+   * Provider name.
    */
   name: string;
 
   /**
-API key for authenticating requests. If specified, adds an `Authorization`
-header to request headers with the value `Bearer <apiKey>`. This will be added
-before any headers potentially specified in the `headers` option.
+   * API key for authenticating requests. If specified, adds an `Authorization`
+   * header to request headers with the value `Bearer <apiKey>`. This will be added
+   * before any headers potentially specified in the `headers` option.
    */
   apiKey?: string;
 
   /**
-Optional custom headers to include in requests. These will be added to request headers
-after any headers potentially added by use of the `apiKey` option.
+   * Optional custom headers to include in requests. These will be added to request headers
+   * after any headers potentially added by use of the `apiKey` option.
    */
   headers?: Record<string, string>;
 
   /**
-Optional custom url query parameters to include in request urls.
+   * Optional custom url query parameters to include in request urls.
    */
   queryParams?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
 
   /**
-Include usage information in streaming responses.
+   * Include usage information in streaming responses.
    */
   includeUsage?: boolean;
 
@@ -85,10 +90,24 @@ Include usage information in streaming responses.
    * Whether the provider supports structured outputs in chat models.
    */
   supportsStructuredOutputs?: boolean;
+
+  /**
+   * Optional function to transform the request body before sending it to the API.
+   * This is useful for proxy providers that may require a different request format
+   * than the official OpenAI API.
+   */
+  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+
+  /**
+   * Optional metadata extractor to capture provider-specific metadata from API responses.
+   * This is useful for extracting non-standard fields, experimental features,
+   * or provider-specific metrics from both streaming and non-streaming responses.
+   */
+  metadataExtractor?: MetadataExtractor;
 }
 
 /**
-Create an OpenAICompatible provider instance.
+ * Create an OpenAICompatible provider instance.
  */
 export function createOpenAICompatible<
   CHAT_MODEL_IDS extends string,
@@ -142,6 +161,8 @@ export function createOpenAICompatible<
       ...getCommonModelConfig('chat'),
       includeUsage: options.includeUsage,
       supportsStructuredOutputs: options.supportsStructuredOutputs,
+      transformRequestBody: options.transformRequestBody,
+      metadataExtractor: options.metadataExtractor,
     });
 
   const createCompletionModel = (modelId: COMPLETION_MODEL_IDS) =>
@@ -164,6 +185,7 @@ export function createOpenAICompatible<
   provider.languageModel = createLanguageModel;
   provider.chatModel = createChatModel;
   provider.completionModel = createCompletionModel;
+  provider.embeddingModel = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.imageModel = createImageModel;
 

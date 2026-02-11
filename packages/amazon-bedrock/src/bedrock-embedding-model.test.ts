@@ -16,6 +16,14 @@ const embedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encode
   'amazon.titan-embed-text-v2:0',
 )}/invoke`;
 
+const cohereEmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encodeURIComponent(
+  'cohere.embed-english-v3',
+)}/invoke`;
+
+const cohereV4EmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encodeURIComponent(
+  'cohere.embed-v4:0',
+)}/invoke`;
+
 describe('doEmbed', () => {
   const mockConfigHeaders = {
     'config-header': 'config-value',
@@ -33,6 +41,32 @@ describe('doEmbed', () => {
           JSON.stringify({
             embedding: mockEmbeddings[0],
             inputTextTokenCount: 8,
+          }),
+        ),
+      },
+    },
+    [cohereEmbedUrl]: {
+      response: {
+        type: 'binary',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: Buffer.from(
+          JSON.stringify({
+            embeddings: [mockEmbeddings[0]],
+          }),
+        ),
+      },
+    },
+    [cohereV4EmbedUrl]: {
+      response: {
+        type: 'binary',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: Buffer.from(
+          JSON.stringify({
+            embeddings: { float: [mockEmbeddings[0]] },
           }),
         ),
       },
@@ -85,6 +119,82 @@ describe('doEmbed', () => {
     });
 
     expect(usage?.tokens).toStrictEqual(8);
+  });
+
+  it('should support Cohere embedding models', async () => {
+    const cohereModel = new BedrockEmbeddingModel('cohere.embed-english-v3', {
+      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: mockConfigHeaders,
+      fetch: fakeFetchWithAuth,
+    });
+
+    const { embeddings, usage } = await cohereModel.doEmbed({
+      values: [testValues[0]],
+    });
+
+    expect(embeddings.length).toBe(1);
+    expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
+    expect(Number.isNaN(usage?.tokens)).toBe(true);
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).toEqual({
+      input_type: 'search_query',
+      texts: [testValues[0]],
+      truncate: undefined,
+      output_dimension: undefined,
+    });
+  });
+
+  it('should support Cohere v4 embedding models', async () => {
+    const cohereV4Model = new BedrockEmbeddingModel('cohere.embed-v4:0', {
+      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: mockConfigHeaders,
+      fetch: fakeFetchWithAuth,
+    });
+
+    const { embeddings, usage } = await cohereV4Model.doEmbed({
+      values: [testValues[0]],
+    });
+
+    expect(embeddings.length).toBe(1);
+    expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
+    expect(Number.isNaN(usage?.tokens)).toBe(true);
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).toEqual({
+      input_type: 'search_query',
+      texts: [testValues[0]],
+      truncate: undefined,
+      output_dimension: undefined,
+    });
+  });
+
+  it('should pass outputDimension for Cohere v4 embedding models', async () => {
+    const cohereV4Model = new BedrockEmbeddingModel('cohere.embed-v4:0', {
+      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: mockConfigHeaders,
+      fetch: fakeFetchWithAuth,
+    });
+
+    const { embeddings } = await cohereV4Model.doEmbed({
+      values: [testValues[0]],
+      providerOptions: {
+        bedrock: {
+          outputDimension: 256,
+        },
+      },
+    });
+
+    expect(embeddings.length).toBe(1);
+    expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).toEqual({
+      input_type: 'search_query',
+      texts: [testValues[0]],
+      truncate: undefined,
+      output_dimension: 256,
+    });
   });
 
   it('should properly combine headers from all sources', async () => {
@@ -144,5 +254,89 @@ describe('doEmbed', () => {
     expect(requestHeaders['model-header']).toBe('model-value');
     expect(requestHeaders['signed-header']).toBe('signed-value');
     expect(requestHeaders['authorization']).toBe('AWS4-HMAC-SHA256...');
+  });
+});
+
+describe('should support Nova embeddings', () => {
+  const novaModelId = 'amazon.nova-2-multimodal-embeddings-v1:0';
+  const novaEmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encodeURIComponent(
+    novaModelId,
+  )}/invoke`;
+
+  const server = createTestServer({
+    [novaEmbedUrl]: {
+      response: {
+        type: 'binary',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: Buffer.from(
+          JSON.stringify({
+            embeddings: [
+              {
+                embeddingType: 'TEXT',
+                embedding: mockEmbeddings[0],
+              },
+            ],
+            inputTokenCount: 8,
+          }),
+        ),
+      },
+    },
+  });
+
+  const model = new BedrockEmbeddingModel(novaModelId, {
+    baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+    headers: {
+      'config-header': 'config-value',
+    },
+    fetch: fakeFetchWithAuth,
+  });
+
+  it('should send SINGLE_EMBEDDING payload for Nova embeddings', async () => {
+    const { embeddings } = await model.doEmbed({
+      values: [testValues[0]],
+    });
+
+    expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).toEqual({
+      taskType: 'SINGLE_EMBEDDING',
+      singleEmbeddingParams: {
+        embeddingPurpose: 'GENERIC_INDEX',
+        embeddingDimension: 1024,
+        text: {
+          truncationMode: 'END',
+          value: testValues[0],
+        },
+      },
+    });
+  });
+
+  it('should pass embeddingDimension for Nova embeddings', async () => {
+    const { embeddings } = await model.doEmbed({
+      values: [testValues[0]],
+      providerOptions: {
+        bedrock: {
+          embeddingDimension: 256,
+        },
+      },
+    });
+
+    expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).toEqual({
+      taskType: 'SINGLE_EMBEDDING',
+      singleEmbeddingParams: {
+        embeddingPurpose: 'GENERIC_INDEX',
+        embeddingDimension: 256,
+        text: {
+          truncationMode: 'END',
+          value: testValues[0],
+        },
+      },
+    });
   });
 });
