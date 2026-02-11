@@ -104,6 +104,8 @@ xAI chat models support additional provider options that are not part of
 the [standard call settings](/docs/ai-sdk-core/settings). You can pass them in the `providerOptions` argument:
 
 ```ts
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
+
 const model = xai('grok-3-mini');
 
 await generateText({
@@ -111,7 +113,7 @@ await generateText({
   providerOptions: {
     xai: {
       reasoningEffort: 'high',
-    },
+    } satisfies XaiLanguageModelChatOptions,
   },
 });
 ```
@@ -342,7 +344,7 @@ const { text } = await generateText({
 The file search tool enables searching through documents stored in xAI vector stores (collections):
 
 ```ts
-import { xai } from '@ai-sdk/xai';
+import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 
 const result = streamText({
@@ -357,7 +359,7 @@ const result = streamText({
   providerOptions: {
     xai: {
       include: ['file_search_call.results'],
-    },
+    } satisfies XaiLanguageModelResponsesOptions,
   },
 });
 ```
@@ -423,7 +425,7 @@ for await (const part of fullStream) {
 The Responses API supports the following provider options:
 
 ```ts
-import { xai } from '@ai-sdk/xai';
+import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -431,7 +433,7 @@ const result = await generateText({
   providerOptions: {
     xai: {
       reasoningEffort: 'high',
-    },
+    } satisfies XaiLanguageModelResponsesOptions,
   },
   // ...
 });
@@ -469,7 +471,7 @@ xAI models support Live Search functionality, allowing them to query real-time d
 To enable search, specify `searchParameters` with a search mode:
 
 ```ts
-import { xai } from '@ai-sdk/xai';
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
@@ -482,7 +484,7 @@ const { text, sources } = await generateText({
         returnCitations: true,
         maxSearchResults: 5,
       },
-    },
+    } satisfies XaiLanguageModelChatOptions,
   },
 });
 
@@ -529,6 +531,8 @@ You can specify different types of data sources for search:
 #### Web Search
 
 ```ts
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
+
 const result = await generateText({
   model: xai('grok-3-latest'),
   prompt: 'Best ski resorts in Switzerland',
@@ -545,7 +549,7 @@ const result = await generateText({
           },
         ],
       },
-    },
+    } satisfies XaiLanguageModelChatOptions,
   },
 });
 ```
@@ -560,6 +564,8 @@ const result = await generateText({
 #### X (Twitter) Search
 
 ```ts
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
+
 const result = await generateText({
   model: xai('grok-3-latest'),
   prompt: 'Latest updates on Grok AI',
@@ -577,7 +583,7 @@ const result = await generateText({
           },
         ],
       },
-    },
+    } satisfies XaiLanguageModelChatOptions,
   },
 });
 ```
@@ -592,6 +598,8 @@ const result = await generateText({
 #### News Search
 
 ```ts
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
+
 const result = await generateText({
   model: xai('grok-3-latest'),
   prompt: 'Recent tech industry news',
@@ -608,7 +616,7 @@ const result = await generateText({
           },
         ],
       },
-    },
+    } satisfies XaiLanguageModelChatOptions,
   },
 });
 ```
@@ -622,6 +630,8 @@ const result = await generateText({
 #### RSS Feed Search
 
 ```ts
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
+
 const result = await generateText({
   model: xai('grok-3-latest'),
   prompt: 'Latest status updates',
@@ -636,7 +646,7 @@ const result = await generateText({
           },
         ],
       },
-    },
+    } satisfies XaiLanguageModelChatOptions,
   },
 });
 ```
@@ -650,6 +660,8 @@ const result = await generateText({
 You can combine multiple data sources in a single search:
 
 ```ts
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
+
 const result = await generateText({
   model: xai('grok-3-latest'),
   prompt: 'Comprehensive overview of recent AI breakthroughs',
@@ -674,7 +686,7 @@ const result = await generateText({
           },
         ],
       },
-    },
+    } satisfies XaiLanguageModelChatOptions,
   },
 });
 ```
@@ -684,6 +696,8 @@ const result = await generateText({
 When search is enabled with `returnCitations: true`, the response includes sources that were used to generate the answer:
 
 ```ts
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
+
 const { text, sources } = await generateText({
   model: xai('grok-3-latest'),
   prompt: 'What are the latest developments in AI?',
@@ -693,7 +707,7 @@ const { text, sources } = await generateText({
         mode: 'auto',
         returnCitations: true,
       },
-    },
+    } satisfies XaiLanguageModelChatOptions,
   },
 });
 
@@ -710,6 +724,7 @@ for (const source of sources) {
 Live Search works with streaming responses. Citations are included when the stream completes:
 
 ```ts
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 
 const result = streamText({
@@ -721,7 +736,7 @@ const result = streamText({
         mode: 'auto',
         returnCitations: true,
       },
-    },
+    } satisfies XaiLanguageModelChatOptions,
   },
 });
 

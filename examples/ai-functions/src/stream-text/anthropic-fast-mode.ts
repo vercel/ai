@@ -1,4 +1,7 @@
-import { anthropic } from '@ai-sdk/anthropic';
+import {
+  anthropic,
+  type AnthropicLanguageModelOptions,
+} from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 import { print } from '../lib/print';
 import { printFullStream } from '../lib/print-full-stream';
@@ -11,7 +14,7 @@ run(async () => {
     providerOptions: {
       anthropic: {
         speed: 'fast',
-      },
+      } satisfies AnthropicLanguageModelOptions,
     },
   });
 

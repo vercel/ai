@@ -12,7 +12,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
-import { xaiImageProviderOptions } from './xai-image-options';
+import { xaiImageModelOptions } from './xai-image-options';
 import { XaiImageModelId } from './xai-image-settings';
 
 interface XaiImageModelConfig {
@@ -80,7 +80,7 @@ export class XaiImageModel implements ImageModelV3 {
     const xaiOptions = await parseProviderOptions({
       provider: 'xai',
       providerOptions,
-      schema: xaiImageProviderOptions,
+      schema: xaiImageModelOptions,
     });
 
     const hasFiles = files != null && files.length > 0;

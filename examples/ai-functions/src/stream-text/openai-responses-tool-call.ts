@@ -1,4 +1,4 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { weatherTool } from '../tools/weather-tool';
 import { stepCountIs, streamText, tool } from 'ai';
 import { z } from 'zod';
@@ -25,7 +25,7 @@ run(async () => {
     providerOptions: {
       openai: {
         parallelToolCalls: false,
-      } satisfies OpenAIResponsesProviderOptions,
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
   });
 

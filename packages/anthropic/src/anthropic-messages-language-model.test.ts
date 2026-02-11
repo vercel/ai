@@ -14,7 +14,7 @@ import {
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AnthropicProviderOptions } from './anthropic-messages-options';
+import { AnthropicLanguageModelOptions } from './anthropic-messages-options';
 import { anthropic, createAnthropic } from './anthropic-provider';
 import { Citation } from './anthropic-messages-api';
 
@@ -123,7 +123,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           providerOptions: {
             anthropic: {
               thinking: { type: 'enabled', budgetTokens: 1000 },
-            } satisfies AnthropicProviderOptions,
+            } satisfies AnthropicLanguageModelOptions,
           },
         });
 
@@ -215,7 +215,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           providerOptions: {
             anthropic: {
               thinking: { type: 'enabled' },
-            } satisfies AnthropicProviderOptions,
+            } satisfies AnthropicLanguageModelOptions,
           },
         });
 
@@ -246,7 +246,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           providerOptions: {
             anthropic: {
               thinking: { type: 'adaptive' },
-            } satisfies AnthropicProviderOptions,
+            } satisfies AnthropicLanguageModelOptions,
           },
         });
 
@@ -360,7 +360,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           providerOptions: {
             anthropic: {
               structuredOutputMode: 'jsonTool',
-            } satisfies AnthropicProviderOptions,
+            } satisfies AnthropicLanguageModelOptions,
           },
           responseFormat: {
             type: 'json',
@@ -659,7 +659,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           providerOptions: {
             anthropic: {
               structuredOutputMode: 'outputFormat',
-            } satisfies AnthropicProviderOptions,
+            } satisfies AnthropicLanguageModelOptions,
           },
           responseFormat: {
             type: 'json',
@@ -936,7 +936,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           providerOptions: {
             anthropic: {
               structuredOutputMode: 'jsonTool',
-            } satisfies AnthropicProviderOptions,
+            } satisfies AnthropicLanguageModelOptions,
           },
           responseFormat: {
             type: 'json',
@@ -1291,7 +1291,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         providerOptions: {
           anthropic: {
             thinking: { type: 'enabled' },
-          } satisfies AnthropicProviderOptions,
+          } satisfies AnthropicLanguageModelOptions,
         },
       });
 
@@ -1458,7 +1458,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral' },
-              } satisfies AnthropicProviderOptions,
+              } satisfies AnthropicLanguageModelOptions,
             },
           },
         ],
@@ -1612,7 +1612,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral', ttl: '1h' },
-              } satisfies AnthropicProviderOptions,
+              } satisfies AnthropicLanguageModelOptions,
             },
           },
         ],
@@ -3194,7 +3194,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   url: 'https://echo.mcp.inevitable.fyi/mcp',
                 },
               ],
-            } satisfies AnthropicProviderOptions,
+            } satisfies AnthropicLanguageModelOptions,
           },
         });
 
@@ -3247,7 +3247,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   url: 'https://echo.mcp.inevitable.fyi/mcp',
                 },
               ],
-            } satisfies AnthropicProviderOptions,
+            } satisfies AnthropicLanguageModelOptions,
           },
         });
 
@@ -3288,7 +3288,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   },
                 ],
               },
-            } satisfies AnthropicProviderOptions,
+            } satisfies AnthropicLanguageModelOptions,
           },
         });
 
@@ -3358,7 +3358,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   },
                 ],
               },
-            } satisfies AnthropicProviderOptions,
+            } satisfies AnthropicLanguageModelOptions,
           },
         });
 
@@ -3431,7 +3431,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   },
                 ],
               },
-            } satisfies AnthropicProviderOptions,
+            } satisfies AnthropicLanguageModelOptions,
           },
         });
 
@@ -3471,7 +3471,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   },
                 ],
               },
-            } satisfies AnthropicProviderOptions,
+            } satisfies AnthropicLanguageModelOptions,
           },
         });
 
@@ -4026,7 +4026,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         providerOptions: {
           anthropic: {
             effort: 'medium',
-          } satisfies AnthropicProviderOptions,
+          } satisfies AnthropicLanguageModelOptions,
         },
       });
 
@@ -4070,7 +4070,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         providerOptions: {
           anthropic: {
             speed: 'fast',
-          } satisfies AnthropicProviderOptions,
+          } satisfies AnthropicLanguageModelOptions,
         },
       });
 
@@ -6660,7 +6660,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   url: 'https://echo.mcp.inevitable.fyi/mcp',
                 },
               ],
-            } satisfies AnthropicProviderOptions,
+            } satisfies AnthropicLanguageModelOptions,
           },
         });
         expect(
@@ -6690,7 +6690,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               container: {
                 skills: [{ type: 'anthropic', skillId: 'pptx' }],
               },
-            } satisfies AnthropicProviderOptions,
+            } satisfies AnthropicLanguageModelOptions,
           },
         });
 

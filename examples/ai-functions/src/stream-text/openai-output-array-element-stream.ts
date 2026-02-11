@@ -1,4 +1,4 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { Output, stepCountIs, streamText } from 'ai';
 import { z } from 'zod';
 import { run } from '../lib/run';
@@ -10,7 +10,7 @@ run(async () => {
     providerOptions: {
       openai: {
         strictJsonSchema: true,
-      } satisfies OpenAIResponsesProviderOptions,
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
     tools: {
       weather: weatherTool,

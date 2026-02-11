@@ -28,7 +28,7 @@ export type AlibabaChatModelId =
   | 'qwen3-coder-flash'
   | (string & {});
 
-export const alibabaProviderOptions = z.object({
+export const alibabaLanguageModelOptions = z.object({
   /**
    * Enable thinking/reasoning mode for supported models.
    * When enabled, the model generates reasoning content before the response.
@@ -50,4 +50,6 @@ export const alibabaProviderOptions = z.object({
   parallelToolCalls: z.boolean().optional(),
 });
 
-export type AlibabaProviderOptions = z.infer<typeof alibabaProviderOptions>;
+export type AlibabaLanguageModelOptions = z.infer<
+  typeof alibabaLanguageModelOptions
+>;

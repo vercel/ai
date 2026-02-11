@@ -99,7 +99,7 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
     const googleOptions = await parseProviderOptions({
       provider: 'google',
       providerOptions,
-      schema: googleImageProviderOptionsSchema,
+      schema: googleImageModelOptionsSchema,
     });
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
@@ -168,7 +168,7 @@ const googleImageResponseSchema = lazySchema(() =>
 
 // Note: For the initial GA launch of Imagen 3, safety filters are not configurable.
 // https://ai.google.dev/gemini-api/docs/imagen#imagen-model
-const googleImageProviderOptionsSchema = lazySchema(() =>
+const googleImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       personGeneration: z
@@ -179,6 +179,6 @@ const googleImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type GoogleGenerativeAIImageProviderOptions = InferSchema<
-  typeof googleImageProviderOptionsSchema
+export type GoogleImageModelOptions = InferSchema<
+  typeof googleImageModelOptionsSchema
 >;

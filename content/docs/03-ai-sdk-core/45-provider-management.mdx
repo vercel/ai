@@ -233,13 +233,13 @@ Here is an example that implements the following concepts:
 - setup an OpenAI-compatible provider with custom api key and base URL (here: `custom > *`)
 - setup model name aliases (here: `anthropic > fast`, `anthropic > writing`, `anthropic > reasoning`)
 - pre-configure model settings (here: `anthropic > reasoning`)
-- validate the provider-specific options (here: `AnthropicProviderOptions`)
+- validate the provider-specific options (here: `AnthropicLanguageModelOptions`)
 - use a fallback provider (here: `anthropic > *`)
 - limit a provider to certain models without a fallback (here: `groq > gemma2-9b-it`, `groq > qwen-qwq-32b`)
 - define a custom separator for the provider registry (here: `>`)
 
 ```ts
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { xai } from '@ai-sdk/xai';
 import { groq } from '@ai-sdk/groq';
@@ -286,7 +286,7 @@ export const registry = createProviderRegistry(
                     type: 'enabled',
                     budgetTokens: 32000,
                   },
-                } satisfies AnthropicProviderOptions,
+                } satisfies AnthropicLanguageModelOptions,
               },
             },
           }),

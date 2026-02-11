@@ -1,4 +1,8 @@
-import { createAnthropic, anthropic } from '@ai-sdk/anthropic';
+import {
+  createAnthropic,
+  anthropic,
+  type AnthropicLanguageModelOptions,
+} from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 import { print } from '../lib/print';
@@ -16,7 +20,7 @@ run(async () => {
     providerOptions: {
       anthropic: {
         thinking: { type: 'enabled', budgetTokens: 5000 },
-      },
+      } satisfies AnthropicLanguageModelOptions,
     },
   });
   print('Result 1 - Content:', result1.text);
@@ -60,7 +64,7 @@ run(async () => {
     providerOptions: {
       anthropic: {
         thinking: { type: 'enabled', budgetTokens: 5000 },
-      },
+      } satisfies AnthropicLanguageModelOptions,
     },
   });
   print('Result 5 - Content:', result5.text);

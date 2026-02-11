@@ -1,4 +1,4 @@
-import { groq } from '@ai-sdk/groq';
+import { groq, type GroqLanguageModelOptions } from '@ai-sdk/groq';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 
@@ -6,7 +6,7 @@ run(async () => {
   const result = await generateText({
     model: groq('qwen-qwq-32b'),
     providerOptions: {
-      groq: { reasoningFormat: 'parsed' },
+      groq: { reasoningFormat: 'parsed' } satisfies GroqLanguageModelOptions,
     },
     prompt: 'How many "r"s are in the word "strawberry"?',
   });

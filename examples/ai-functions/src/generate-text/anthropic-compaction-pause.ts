@@ -1,4 +1,7 @@
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import {
+  anthropic,
+  type AnthropicLanguageModelOptions,
+} from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
@@ -257,7 +260,7 @@ run(async () => {
             },
           ],
         },
-      } satisfies AnthropicProviderOptions,
+      } satisfies AnthropicLanguageModelOptions,
     },
   });
 
@@ -296,7 +299,7 @@ run(async () => {
                 },
               ],
             },
-          } satisfies AnthropicProviderOptions,
+          } satisfies AnthropicLanguageModelOptions,
         },
       });
 

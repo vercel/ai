@@ -90,7 +90,7 @@ This provider currently supports three video generation modes: text-to-video, im
 Generate videos from text prompts:
 
 ```ts
-import { klingai, type KlingAIVideoProviderOptions } from '@ai-sdk/klingai';
+import { klingai, type KlingAIVideoModelOptions } from '@ai-sdk/klingai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { videos } = await generateVideo({
@@ -101,7 +101,7 @@ const { videos } = await generateVideo({
   providerOptions: {
     klingai: {
       mode: 'std',
-    } satisfies KlingAIVideoProviderOptions,
+    } satisfies KlingAIVideoModelOptions,
   },
 });
 ```
@@ -111,7 +111,7 @@ const { videos } = await generateVideo({
 Generate videos from a start frame image with an optional text prompt. The popular start+end frame feature is available via the `imageTail` option:
 
 ```ts
-import { klingai, type KlingAIVideoProviderOptions } from '@ai-sdk/klingai';
+import { klingai, type KlingAIVideoModelOptions } from '@ai-sdk/klingai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { videos } = await generateVideo({
@@ -127,7 +127,7 @@ const { videos } = await generateVideo({
       mode: 'pro',
       // Optional: end frame image
       imageTail: 'https://example.com/end-frame.png',
-    } satisfies KlingAIVideoProviderOptions,
+    } satisfies KlingAIVideoModelOptions,
   },
 });
 ```
@@ -137,7 +137,7 @@ const { videos } = await generateVideo({
 Generate video by transferring motion from a reference video to a character image:
 
 ```ts
-import { klingai, type KlingAIVideoProviderOptions } from '@ai-sdk/klingai';
+import { klingai, type KlingAIVideoModelOptions } from '@ai-sdk/klingai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { videos } = await generateVideo({
@@ -151,7 +151,7 @@ const { videos } = await generateVideo({
       videoUrl: 'https://example.com/reference-motion.mp4',
       characterOrientation: 'image',
       mode: 'std',
-    } satisfies KlingAIVideoProviderOptions,
+    } satisfies KlingAIVideoModelOptions,
   },
 });
 ```

@@ -20,7 +20,7 @@ import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
 import type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
 
-export type GoogleVertexVideoProviderOptions = {
+export type GoogleVertexVideoModelOptions = {
   // Polling configuration
   pollIntervalMs?: number | null;
   pollTimeoutMs?: number | null;
@@ -79,8 +79,8 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
     const vertexOptions = (await parseProviderOptions({
       provider: 'vertex',
       providerOptions: options.providerOptions,
-      schema: vertexVideoProviderOptionsSchema,
-    })) as GoogleVertexVideoProviderOptions | undefined;
+      schema: googleVertexVideoModelOptionsSchema,
+    })) as GoogleVertexVideoModelOptions | undefined;
 
     const instances: Array<Record<string, unknown>> = [{}];
     const instance = instances[0];
@@ -348,7 +348,7 @@ const vertexOperationSchema = z.object({
     .nullish(),
 });
 
-const vertexVideoProviderOptionsSchema = lazySchema(() =>
+const googleVertexVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({

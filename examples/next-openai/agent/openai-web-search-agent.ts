@@ -1,4 +1,4 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
 export const openaiWebSearchAgent = new ToolLoopAgent({
@@ -19,7 +19,7 @@ export const openaiWebSearchAgent = new ToolLoopAgent({
       reasoningEffort: 'medium',
       reasoningSummary: 'detailed',
       // store: false,
-    } satisfies OpenAIResponsesProviderOptions,
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
   onStepFinish: ({ request }) => {
     console.dir(request.body, { depth: Infinity });

@@ -6,7 +6,7 @@ export type DeepSeekChatModelId =
   | 'deepseek-reasoner'
   | (string & {});
 
-export const deepseekChatOptions = z.object({
+export const deepseekLanguageModelOptions = z.object({
   /**
    * Type of thinking to use. Defaults to `enabled`.
    */
@@ -17,4 +17,6 @@ export const deepseekChatOptions = z.object({
     .optional(),
 });
 
-export type DeepSeekChatOptions = z.infer<typeof deepseekChatOptions>;
+export type DeepSeekLanguageModelOptions = z.infer<
+  typeof deepseekLanguageModelOptions
+>;

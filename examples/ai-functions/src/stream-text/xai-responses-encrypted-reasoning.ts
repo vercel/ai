@@ -1,4 +1,4 @@
-import { xai } from '@ai-sdk/xai';
+import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
 
@@ -14,7 +14,7 @@ run(async () => {
       providerOptions: {
         xai: {
           store: false,
-        },
+        } satisfies XaiLanguageModelResponsesOptions,
       },
     });
 

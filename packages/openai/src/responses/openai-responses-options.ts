@@ -129,7 +129,7 @@ export type OpenAIResponsesModelId =
   | (string & {});
 
 // TODO AI SDK 6: use optional here instead of nullish
-export const openaiResponsesProviderOptionsSchema = lazySchema(() =>
+export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -307,6 +307,6 @@ export const openaiResponsesProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type OpenAIResponsesProviderOptions = InferSchema<
-  typeof openaiResponsesProviderOptionsSchema
+export type OpenAILanguageModelResponsesOptions = InferSchema<
+  typeof openaiLanguageModelResponsesOptionsSchema
 >;

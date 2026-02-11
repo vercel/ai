@@ -1,4 +1,4 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { LanguageModel, ToolLoopAgent } from 'ai';
 import { z } from 'zod';
 import { print } from '../lib/print';
@@ -23,7 +23,7 @@ const agent = new ToolLoopAgent({
       openai: {
         reasoningEffort: options?.reasoningEffort ?? 'medium',
         reasoningSummary: 'detailed',
-      } satisfies OpenAIResponsesProviderOptions,
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
     tools: {
       web_search: openai.tools.webSearch({
