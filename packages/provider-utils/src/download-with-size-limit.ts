@@ -78,7 +78,11 @@ export async function readResponseWithSizeLimit({
       chunks.push(value);
     }
   } finally {
-    reader.releaseLock();
+    try {
+      await reader.cancel();
+    } finally {
+      reader.releaseLock();
+    }
   }
 
   // Concatenate chunks into a single Uint8Array
