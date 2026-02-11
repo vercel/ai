@@ -12,7 +12,6 @@ async function main() {
       groq: {
         language: 'en',
         timestampGranularities: ['word', 'segment'],
-        responseFormat: 'verbose_json', // this is required for timestamp granularities
       },
     },
   });
@@ -20,9 +19,9 @@ async function main() {
   console.log('Text:', result.text);
   console.log('Duration:', result.durationInSeconds);
   console.log('Language:', result.language);
-  console.log('Segments:', result.segments);
+  console.log('Segments:', result.segments); // Read just the segments
   console.log('Warnings:', result.warnings);
-  console.log('Responses:', result.responses);
+  console.log('Responses:', result.responses); // Read the full response including words and segments
 }
 
 main().catch(console.error);

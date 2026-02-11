@@ -449,13 +449,10 @@ The following provider options are available:
   The granularity of the timestamps in the transcription.
   Defaults to `['segment']`.
   Possible values are `['word']`, `['segment']`, and `['word', 'segment']`.
-  Note: There is no additional latency for segment timestamps, but generating word timestamps incurs additional latency.
-  **Important:** Requires `responseFormat` to be set to `'verbose_json'`.
+  Notes:
 
-- **responseFormat** _string_
-  The format of the response. Set to `'verbose_json'` to receive timestamps for audio segments and enable `timestampGranularities`.
-  Set to `'text'` to return only the transcribed text.
-  Optional.
+  - There is no additional latency for segment timestamps, but generating word timestamps incurs additional latency.
+  - The AI SDK prioritizes the Groq API's segments over words when populating the SDK's [`segments`](https://ai-sdk.dev/docs/ai-sdk-core/transcription) property. To read both segments and words, use the full responses property.
 
 - **language** _string_
   The language of the input audio. Supplying the input language in ISO-639-1 format (e.g. 'en') will improve accuracy and latency.
