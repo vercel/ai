@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const { image } = await generateImage({
-    model: xai.image('grok-2-image'),
+    model: xai.image('grok-2-image-1212'),
     prompt: 'A salamander at dusk in a forest pond surrounded by fireflies.',
   });
 

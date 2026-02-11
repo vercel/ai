@@ -319,8 +319,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         toolNameMapping,
       });
 
-    const isThinking = anthropicOptions?.thinking?.type === 'enabled';
-    let thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
+    const thinkingType = anthropicOptions?.thinking?.type;
+    const isThinking =
+      thinkingType === 'enabled' || thinkingType === 'adaptive';
+    let thinkingBudget =
+      thinkingType === 'enabled'
+        ? anthropicOptions?.thinking?.budgetTokens
+        : undefined;
 
     const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
 
@@ -337,10 +342,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
       // provider specific settings:
       ...(isThinking && {
-        thinking: { type: 'enabled', budget_tokens: thinkingBudget },
+        thinking: {
+          type: thinkingType,
+          ...(thinkingBudget != null && { budget_tokens: thinkingBudget }),
+        },
       }),
       ...(anthropicOptions?.effort && {
         output_config: { effort: anthropicOptions.effort },
+      }),
+      ...(anthropicOptions?.speed && {
+        speed: anthropicOptions.speed,
       }),
 
       // structured output:
@@ -422,6 +433,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     ...(edit.keep !== undefined && { keep: edit.keep }),
                   };
 
+                case 'compact_20260112':
+                  return {
+                    type: edit.type,
+                    ...(edit.trigger !== undefined && {
+                      trigger: edit.trigger,
+                    }),
+                    ...(edit.pauseAfterCompaction !== undefined && {
+                      pause_after_compaction: edit.pauseAfterCompaction,
+                    }),
+                    ...(edit.instructions !== undefined && {
+                      instructions: edit.instructions,
+                    }),
+                  };
+
                 default:
                   warnings.push({
                     type: 'other',
@@ -436,7 +461,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     };
 
     if (isThinking) {
-      if (thinkingBudget == null) {
+      if (thinkingType === 'enabled' && thinkingBudget == null) {
         warnings.push({
           type: 'compatibility',
           feature: 'extended thinking',
@@ -517,6 +542,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     if (contextManagement) {
       betas.add('context-management-2025-06-27');
+
+      // Add compaction beta if compact edit is present
+      if (contextManagement.edits.some(e => e.type === 'compact_20260112')) {
+        betas.add('compact-2026-01-12');
+      }
     }
 
     if (
@@ -544,6 +574,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     if (anthropicOptions?.effort) {
       betas.add('effort-2025-11-24');
+    }
+
+    if (anthropicOptions?.speed) {
+      betas.add('fast-mode-2026-02-01');
     }
 
     // only when streaming: enable fine-grained tool streaming
@@ -777,6 +811,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               anthropic: {
                 redactedData: part.data,
               } satisfies AnthropicReasoningMetadata,
+            },
+          });
+          break;
+        }
+        case 'compaction': {
+          content.push({
+            type: 'text',
+            text: part.content,
+            providerMetadata: {
+              anthropic: {
+                type: 'compaction',
+              },
             },
           });
           break;
@@ -1083,7 +1129,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         }),
         raw: response.stop_reason ?? undefined,
       },
-      usage: convertAnthropicMessagesUsage(response.usage),
+      usage: convertAnthropicMessagesUsage({ usage: response.usage }),
       request: { body: args },
       response: {
         id: response.id ?? undefined,
@@ -1098,6 +1144,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
           stopSequence: response.stop_sequence ?? null,
+
+          iterations: response.usage.iterations
+            ? response.usage.iterations.map(iter => ({
+                type: iter.type,
+                inputTokens: iter.input_tokens,
+                outputTokens: iter.output_tokens,
+              }))
+            : null,
           container: response.container
             ? {
                 expiresAt: response.container.expires_at,
@@ -1173,6 +1227,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       output_tokens: 0,
       cache_creation_input_tokens: 0,
       cache_read_input_tokens: 0,
+      iterations: null,
     };
 
     const contentBlocks: Record<
@@ -1218,6 +1273,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       | 'tool_search_tool_result'
       | 'mcp_tool_use'
       | 'mcp_tool_result'
+      | 'compaction'
       | undefined = undefined;
 
     const generateId = this.generateId;
@@ -1287,6 +1343,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       anthropic: {
                         redactedData: part.data,
                       } satisfies AnthropicReasoningMetadata,
+                    },
+                  });
+                  return;
+                }
+
+                case 'compaction': {
+                  contentBlocks[value.index] = { type: 'text' };
+                  controller.enqueue({
+                    type: 'text-start',
+                    id: String(value.index),
+                    providerMetadata: {
+                      anthropic: {
+                        type: 'compaction',
+                      },
                     },
                   });
                   return;
@@ -1769,6 +1839,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   return;
                 }
 
+                case 'compaction_delta': {
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: String(value.index),
+                    delta: value.delta.content,
+                  });
+
+                  return;
+                }
+
                 case 'input_json_delta': {
                   const contentBlock = contentBlocks[value.index];
                   let delta = value.delta.partial_json;
@@ -1957,6 +2037,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 cacheCreationInputTokens =
                   value.usage.cache_creation_input_tokens;
               }
+              if (value.usage.iterations != null) {
+                usage.iterations = value.usage.iterations;
+              }
 
               finishReason = {
                 unified: mapAnthropicStopReason({
@@ -2000,6 +2083,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 usage: (rawUsage as JSONObject) ?? null,
                 cacheCreationInputTokens,
                 stopSequence,
+                iterations: usage.iterations
+                  ? usage.iterations.map(iter => ({
+                      type: iter.type,
+                      inputTokens: iter.input_tokens,
+                      outputTokens: iter.output_tokens,
+                    }))
+                  : null,
                 container,
                 contextManagement,
               } satisfies AnthropicMessageMetadata;
@@ -2018,7 +2108,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               controller.enqueue({
                 type: 'finish',
                 finishReason,
-                usage: convertAnthropicMessagesUsage(usage),
+                usage: convertAnthropicMessagesUsage({ usage, rawUsage }),
                 providerMetadata,
               });
               return;
@@ -2092,7 +2182,13 @@ function getModelCapabilities(modelId: string): {
   supportsStructuredOutput: boolean;
   isKnownModel: boolean;
 } {
-  if (
+  if (modelId.includes('claude-opus-4-6')) {
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      isKnownModel: true,
+    };
+  } else if (
     modelId.includes('claude-sonnet-4-5') ||
     modelId.includes('claude-opus-4-5') ||
     modelId.includes('claude-haiku-4-5')
@@ -2166,6 +2262,11 @@ function mapAnthropicResponseContextManagement(
                   type: edit.type,
                   clearedThinkingTurns: edit.cleared_thinking_turns,
                   clearedInputTokens: edit.cleared_input_tokens,
+                };
+
+              case 'compact_20260112':
+                return {
+                  type: edit.type,
                 };
             }
           })
