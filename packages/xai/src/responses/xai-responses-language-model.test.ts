@@ -1798,7 +1798,6 @@ describe('XaiResponsesLanguageModel', () => {
           input: '{"location":"sf"}',
         });
       });
-
     });
 
     describe('tool name mapping by type in streaming', () => {
