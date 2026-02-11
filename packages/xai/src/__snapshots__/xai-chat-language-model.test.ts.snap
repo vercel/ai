@@ -97,8 +97,8 @@ Response: I'll go with "Hello" as it's a common greeting and keeps it simple.",
     },
     "outputTokens": {
       "reasoning": 228,
-      "text": -227,
-      "total": 1,
+      "text": 1,
+      "total": 229,
     },
     "raw": {
       "completion_tokens": 1,
@@ -235,8 +235,8 @@ I should call this function to advance the user's request.",
     },
     "outputTokens": {
       "reasoning": 189,
-      "text": -163,
-      "total": 26,
+      "text": 26,
+      "total": 215,
     },
     "raw": {
       "completion_tokens": 26,
@@ -333,8 +333,8 @@ exports[`XaiChatLanguageModel > doStream > text > should stream text content 1`]
       },
       "outputTokens": {
         "reasoning": 290,
-        "text": -289,
-        "total": 1,
+        "text": 1,
+        "total": 291,
       },
       "raw": {
         "completion_tokens": 1,
@@ -438,8 +438,8 @@ exports[`XaiChatLanguageModel > doStream > tool call > should stream tool call c
       },
       "outputTokens": {
         "reasoning": 196,
-        "text": -170,
-        "total": 26,
+        "text": 26,
+        "total": 222,
       },
       "raw": {
         "completion_tokens": 26,
