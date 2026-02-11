@@ -1,6 +1,5 @@
-import { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { XaiImageModel } from './xai-image-model';
 
 const prompt = 'A cute baby sea otter';
@@ -13,7 +12,6 @@ function createModel({
   currentDate,
 }: {
   headers?: () => Record<string, string>;
-  fetch?: FetchFunction;
   currentDate?: () => Date;
 } = {}) {
   return new XaiImageModel('grok-2-image', {
