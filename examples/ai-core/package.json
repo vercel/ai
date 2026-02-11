@@ -9,6 +9,7 @@
     "@ai-sdk/assemblyai": "workspace:*",
     "@ai-sdk/azure": "workspace:*",
     "@ai-sdk/baseten": "workspace:*",
+    "@ai-sdk/black-forest-labs": "workspace:*",
     "@ai-sdk/cerebras": "workspace:*",
     "@ai-sdk/cohere": "workspace:*",
     "@ai-sdk/deepgram": "workspace:*",
@@ -49,6 +50,7 @@
     "mathjs": "14.0.0",
     "sharp": "^0.33.5",
     "terminal-image": "^2.0.0",
+    "undici": "^7.21.0",
     "zod": "3.25.76",
     "valibot": "^1.0.0-rc.0 || ^1.0.0"
   },
