@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.24
+
+### Patch Changes
+
+- 3b3e32f: fix(google): handle thoughtSignature on empty-text parts in doGenerate and doStream
+
 ## 3.0.23
 
 ### Patch Changes

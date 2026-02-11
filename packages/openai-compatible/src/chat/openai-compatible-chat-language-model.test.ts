@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import fs from 'fs';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
@@ -25,6 +26,37 @@ const model = provider('grok-beta');
 const server = createTestServer({
   'https://my.api.com/v1/chat/completions': {},
 });
+
+function prepareJsonFixtureResponse(
+  filename: string,
+  { headers }: { headers?: Record<string, string> } = {},
+) {
+  server.urls['https://my.api.com/v1/chat/completions'].response = {
+    type: 'json-value',
+    headers,
+    body: JSON.parse(
+      fs.readFileSync(`src/chat/__fixtures__/${filename}.json`, 'utf8'),
+    ),
+  };
+}
+
+function prepareChunksFixtureResponse(
+  filename: string,
+  { headers }: { headers?: Record<string, string> } = {},
+) {
+  const chunks = fs
+    .readFileSync(`src/chat/__fixtures__/${filename}.chunks.txt`, 'utf8')
+    .split('\n')
+    .filter(line => line.trim().length > 0)
+    .map(line => `data: ${line}\n\n`);
+  chunks.push('data: [DONE]\n\n');
+
+  server.urls['https://my.api.com/v1/chat/completions'].response = {
+    type: 'stream-chunks',
+    headers,
+    chunks,
+  };
+}
 
 describe('config', () => {
   it('should extract base name from provider string', () => {
@@ -143,6 +175,107 @@ describe('doGenerate', () => {
     };
   }
 
+  describe('text (fixture)', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('xai-text');
+    });
+
+    it('should extract text content', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+  });
+
+  describe('tool call (fixture)', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('xai-tool-call');
+    });
+
+    it('should extract tool call content', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+  });
+
+  it('should extract usage', async () => {
+    prepareJsonFixtureResponse('xai-text');
+
+    const { usage } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "inputTokens": {
+          "cacheRead": 2,
+          "cacheWrite": undefined,
+          "noCache": 10,
+          "total": 12,
+        },
+        "outputTokens": {
+          "reasoning": 320,
+          "text": -318,
+          "total": 2,
+        },
+        "raw": {
+          "completion_tokens": 2,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": 0,
+            "reasoning_tokens": 320,
+            "rejected_prediction_tokens": 0,
+          },
+          "cost_in_usd_ticks": 1641500,
+          "num_sources_used": 0,
+          "prompt_tokens": 12,
+          "prompt_tokens_details": {
+            "cached_tokens": 2,
+          },
+          "total_tokens": 334,
+        },
+      }
+    `);
+  });
+
+  it('should send additional response information', async () => {
+    prepareJsonFixtureResponse('xai-text');
+
+    const { response } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response?.id).toMatchInlineSnapshot(
+      `"edea4703-19aa-6d74-fedb-dc1c213543e0"`,
+    );
+    expect(response?.timestamp).toMatchInlineSnapshot(
+      `2026-02-11T01:08:10.000Z`,
+    );
+    expect(response?.modelId).toMatchInlineSnapshot(`"grok-3-mini"`);
+  });
+
+  it('should expose the raw response headers', async () => {
+    prepareJsonFixtureResponse('xai-text', {
+      headers: { 'test-header': 'test-value' },
+    });
+
+    const { response } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response?.headers).toMatchInlineSnapshot(`
+      {
+        "content-length": "2053",
+        "content-type": "application/json",
+        "test-header": "test-value",
+      }
+    `);
+  });
+
   it('should pass user setting to requests', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
     const modelWithUser = provider('grok-beta');
@@ -164,47 +297,6 @@ describe('doGenerate', () => {
         ],
         "model": "grok-beta",
       }
-    `);
-  });
-
-  it('should extract text response', async () => {
-    prepareJsonResponse({ content: 'Hello, World!' });
-
-    const { content } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(content).toMatchInlineSnapshot(`
-      [
-        {
-          "text": "Hello, World!",
-          "type": "text",
-        },
-      ]
-    `);
-  });
-
-  it('should extract reasoning content', async () => {
-    prepareJsonResponse({
-      content: 'Hello, World!',
-      reasoning_content: 'This is the reasoning behind the response',
-    });
-
-    const { content } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(content).toMatchInlineSnapshot(`
-      [
-        {
-          "text": "Hello, World!",
-          "type": "text",
-        },
-        {
-          "text": "This is the reasoning behind the response",
-          "type": "reasoning",
-        },
-      ]
     `);
   });
 
@@ -253,85 +345,6 @@ describe('doGenerate', () => {
     `);
   });
 
-  it('should extract usage', async () => {
-    prepareJsonResponse({
-      usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
-    });
-
-    const { usage } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(usage).toMatchInlineSnapshot(`
-      {
-        "inputTokens": {
-          "cacheRead": 0,
-          "cacheWrite": undefined,
-          "noCache": 20,
-          "total": 20,
-        },
-        "outputTokens": {
-          "reasoning": 0,
-          "text": 5,
-          "total": 5,
-        },
-        "raw": {
-          "completion_tokens": 5,
-          "prompt_tokens": 20,
-          "total_tokens": 25,
-        },
-      }
-    `);
-  });
-
-  it('should send additional response information', async () => {
-    prepareJsonResponse({
-      id: 'test-id',
-      created: 123,
-      model: 'test-model',
-    });
-
-    const { response } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(response).toMatchInlineSnapshot(`
-      {
-        "body": {
-          "choices": [
-            {
-              "finish_reason": "stop",
-              "index": 0,
-              "message": {
-                "content": "",
-                "reasoning": "",
-                "reasoning_content": "",
-                "role": "assistant",
-              },
-            },
-          ],
-          "created": 123,
-          "id": "test-id",
-          "model": "test-model",
-          "object": "chat.completion",
-          "system_fingerprint": "fp_3bc1b5746c",
-          "usage": {
-            "completion_tokens": 30,
-            "prompt_tokens": 4,
-            "total_tokens": 34,
-          },
-        },
-        "headers": {
-          "content-length": "313",
-          "content-type": "application/json",
-        },
-        "id": "test-id",
-        "modelId": "test-model",
-        "timestamp": 1970-01-01T00:02:03.000Z,
-      }
-    `);
-  });
-
   it('should support partial usage', async () => {
     prepareJsonResponse({
       usage: { prompt_tokens: 20, total_tokens: 20 },
@@ -362,23 +375,6 @@ describe('doGenerate', () => {
     `);
   });
 
-  it('should extract finish reason', async () => {
-    prepareJsonResponse({
-      finish_reason: 'stop',
-    });
-
-    const response = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(response.finishReason).toMatchInlineSnapshot(`
-      {
-        "raw": "stop",
-        "unified": "stop",
-      }
-    `);
-  });
-
   it('should support unknown finish reason', async () => {
     prepareJsonResponse({
       finish_reason: 'eos',
@@ -396,25 +392,6 @@ describe('doGenerate', () => {
         `);
   });
 
-  it('should expose the raw response headers', async () => {
-    prepareJsonResponse({
-      headers: { 'test-header': 'test-value' },
-    });
-
-    const { response } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(response?.headers).toStrictEqual({
-      // default headers:
-      'content-length': '350',
-      'content-type': 'application/json',
-
-      // custom header
-      'test-header': 'test-value',
-    });
-  });
-
   it('should pass the model and the messages', async () => {
     prepareJsonResponse({ content: '' });
 
@@ -422,10 +399,17 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'grok-beta',
-      messages: [{ role: 'user', content: 'Hello' }],
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "grok-beta",
+      }
+    `);
   });
 
   it('should pass settings', async () => {
@@ -440,11 +424,18 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'grok-beta',
-      messages: [{ role: 'user', content: 'Hello' }],
-      user: 'test-user-id',
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "grok-beta",
+        "user": "test-user-id",
+      }
+    `);
   });
 
   it('should pass settings with deprecated openai-compatible key and emit warning', async () => {
@@ -459,11 +450,18 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'grok-beta',
-      messages: [{ role: 'user', content: 'Hello' }],
-      user: 'test-user-id',
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "grok-beta",
+        "user": "test-user-id",
+      }
+    `);
 
     expect(result.warnings).toContainEqual({
       type: 'other',
@@ -483,11 +481,18 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'grok-beta',
-      messages: [{ role: 'user', content: 'Hello' }],
-      someCustomOption: 'test-value',
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "grok-beta",
+        "someCustomOption": "test-value",
+      }
+    `);
   });
 
   it('should not include provider-specific options for different provider', async () => {
@@ -502,10 +507,17 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'grok-beta',
-      messages: [{ role: 'user', content: 'Hello' }],
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "grok-beta",
+      }
+    `);
   });
 
   it('should pass tools and toolChoice', async () => {
@@ -532,29 +544,44 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'grok-beta',
-      messages: [{ role: 'user', content: 'Hello' }],
-      tools: [
-        {
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
           },
+        ],
+        "model": "grok-beta",
+        "tool_choice": {
+          "function": {
+            "name": "test-tool",
+          },
+          "type": "function",
         },
-      ],
-      tool_choice: {
-        type: 'function',
-        function: { name: 'test-tool' },
-      },
-    });
+        "tools": [
+          {
+            "function": {
+              "name": "test-tool",
+              "parameters": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+            },
+            "type": "function",
+          },
+        ],
+      }
+    `);
   });
 
   it('should pass headers', async () => {
@@ -576,58 +603,13 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(server.calls[0].requestHeaders).toStrictEqual({
-      authorization: 'Bearer test-api-key',
-      'content-type': 'application/json',
-      'custom-provider-header': 'provider-header-value',
-      'custom-request-header': 'request-header-value',
-    });
-  });
-
-  it('should parse tool results', async () => {
-    prepareJsonResponse({
-      tool_calls: [
-        {
-          id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            arguments: '{"value":"Spark"}',
-          },
-        },
-      ],
-    });
-
-    const result = await model.doGenerate({
-      tools: [
-        {
-          type: 'function',
-          name: 'test-tool',
-          inputSchema: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
-          },
-        },
-      ],
-      toolChoice: {
-        type: 'tool',
-        toolName: 'test-tool',
-      },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(result.content).toMatchInlineSnapshot(`
-      [
-        {
-          "input": "{"value":"Spark"}",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolName": "test-tool",
-          "type": "tool-call",
-        },
-      ]
+    expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+      {
+        "authorization": "Bearer test-api-key",
+        "content-type": "application/json",
+        "custom-provider-header": "provider-header-value",
+        "custom-request-header": "request-header-value",
+      }
     `);
   });
 
@@ -814,10 +796,17 @@ describe('doGenerate', () => {
         responseFormat: { type: 'text' },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "gpt-4o-2024-08-06",
+        }
+      `);
     });
 
     it('should forward json response format as "json_object" without schema', async () => {
@@ -830,11 +819,20 @@ describe('doGenerate', () => {
         responseFormat: { type: 'json' },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: { type: 'json_object' },
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "type": "json_object",
+          },
+        }
+      `);
     });
 
     it('should forward json response format as "json_object" and omit schema when structuredOutputs are disabled', async () => {
@@ -861,11 +859,20 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: { type: 'json_object' },
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "type": "json_object",
+          },
+        }
+      `);
 
       expect(warnings).toMatchInlineSnapshot(`
         [
@@ -902,24 +909,37 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            strict: true,
-            name: 'response',
-            schema: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
             },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "json_schema": {
+              "name": "response",
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "strict": true,
+            },
+            "type": "json_schema",
           },
-        },
-      });
+        }
+      `);
 
       expect(warnings).toEqual([]);
     });
@@ -940,11 +960,18 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-5',
-        messages: [{ role: 'user', content: 'Hello' }],
-        reasoning_effort: 'high',
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "gpt-5",
+          "reasoning_effort": "high",
+        }
+      `);
     });
 
     it('should not duplicate reasoningEffort in request body', async () => {
@@ -989,11 +1016,18 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-5',
-        messages: [{ role: 'user', content: 'Hello' }],
-        verbosity: 'low',
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "gpt-5",
+          "verbosity": "low",
+        }
+      `);
     });
 
     it('should not duplicate textVerbosity in request body', async () => {
@@ -1046,24 +1080,37 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            strict: true,
-            name: 'response',
-            schema: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
             },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "json_schema": {
+              "name": "response",
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "strict": true,
+            },
+            "type": "json_schema",
           },
-        },
-      });
+        }
+      `);
     });
 
     it('should set name & description with responseFormat json when structuredOutputs are enabled', async () => {
@@ -1092,25 +1139,38 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            strict: true,
-            name: 'test-name',
-            description: 'test description',
-            schema: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
             },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "json_schema": {
+              "description": "test description",
+              "name": "test-name",
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "strict": true,
+            },
+            "type": "json_schema",
           },
-        },
-      });
+        }
+      `);
     });
 
     it('should send strict: false when strictJsonSchema is explicitly disabled', async () => {
@@ -1144,25 +1204,38 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            strict: false,
-            name: 'test-name',
-            description: 'test description',
-            schema: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
             },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "json_schema": {
+              "description": "test description",
+              "name": "test-name",
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "strict": false,
+            },
+            "type": "json_schema",
           },
-        },
-      });
+        }
+      `);
     });
 
     it('should allow for undefined schema with responseFormat json when structuredOutputs are enabled', async () => {
@@ -1184,13 +1257,20 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: {
-          type: 'json_object',
-        },
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "type": "json_object",
+          },
+        }
+      `);
     });
   });
 
@@ -1201,9 +1281,11 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(request).toStrictEqual({
-      body: '{"model":"grok-beta","messages":[{"role":"user","content":"Hello"}]}',
-    });
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": "{"model":"grok-beta","messages":[{"role":"user","content":"Hello"}]}",
+      }
+    `);
   });
 
   describe('usage details', () => {
@@ -1279,7 +1361,9 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(result.providerMetadata!['test-provider']).toStrictEqual({});
+      expect(result.providerMetadata!['test-provider']).toMatchInlineSnapshot(
+        `{}`,
+      );
     });
 
     it('should handle partial token details', async () => {
@@ -1413,6 +1497,56 @@ describe('doStream', () => {
     };
   }
 
+  describe('text (fixture)', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('xai-text');
+    });
+
+    it('should stream text content', async () => {
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+  });
+
+  describe('tool call (fixture)', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('xai-tool-call');
+    });
+
+    it('should stream tool call content', async () => {
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+  });
+
+  it('should expose the raw response headers', async () => {
+    prepareChunksFixtureResponse('xai-text', {
+      headers: { 'test-header': 'test-value' },
+    });
+
+    const { response } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(response?.headers).toMatchInlineSnapshot(`
+      {
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream",
+        "test-header": "test-value",
+      }
+    `);
+  });
+
   it('should respect the includeUsage option', async () => {
     prepareStreamResponse({
       content: ['Hello', ', ', 'World!'],
@@ -1434,89 +1568,10 @@ describe('doStream', () => {
     const body = await server.calls[0].requestBodyJson;
 
     expect(body.stream).toBe(true);
-    expect(body.stream_options).toStrictEqual({ include_usage: true });
-  });
-
-  it('should stream text deltas', async () => {
-    prepareStreamResponse({
-      content: ['Hello', ', ', 'World!'],
-      finish_reason: 'stop',
-    });
-
-    const { stream } = await model.doStream({
-      prompt: TEST_PROMPT,
-      includeRawChunks: false,
-    });
-
-    // note: space moved to last chunk bc of trimming
-    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
-      [
-        {
-          "type": "stream-start",
-          "warnings": [],
-        },
-        {
-          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
-          "timestamp": 2023-12-15T16:17:00.000Z,
-          "type": "response-metadata",
-        },
-        {
-          "id": "txt-0",
-          "type": "text-start",
-        },
-        {
-          "delta": "Hello",
-          "id": "txt-0",
-          "type": "text-delta",
-        },
-        {
-          "delta": ", ",
-          "id": "txt-0",
-          "type": "text-delta",
-        },
-        {
-          "delta": "World!",
-          "id": "txt-0",
-          "type": "text-delta",
-        },
-        {
-          "id": "txt-0",
-          "type": "text-end",
-        },
-        {
-          "finishReason": {
-            "raw": "stop",
-            "unified": "stop",
-          },
-          "providerMetadata": {
-            "test-provider": {},
-          },
-          "type": "finish",
-          "usage": {
-            "inputTokens": {
-              "cacheRead": 0,
-              "cacheWrite": undefined,
-              "noCache": 18,
-              "total": 18,
-            },
-            "outputTokens": {
-              "reasoning": 0,
-              "text": 439,
-              "total": 439,
-            },
-            "raw": {
-              "completion_time": 0.798181818,
-              "completion_tokens": 439,
-              "prompt_time": 0.000211569,
-              "prompt_tokens": 18,
-              "queue_time": 0.061348671,
-              "total_time": 0.798393387,
-              "total_tokens": 457,
-            },
-          },
-        },
-      ]
+    expect(body.stream_options).toMatchInlineSnapshot(`
+      {
+        "include_usage": true,
+      }
     `);
   });
 
@@ -2712,27 +2767,6 @@ describe('doStream', () => {
     },
   );
 
-  it('should expose the raw response headers', async () => {
-    prepareStreamResponse({
-      headers: { 'test-header': 'test-value' },
-    });
-
-    const { response } = await model.doStream({
-      prompt: TEST_PROMPT,
-      includeRawChunks: false,
-    });
-
-    expect(response?.headers).toStrictEqual({
-      // default headers:
-      'content-type': 'text/event-stream',
-      'cache-control': 'no-cache',
-      connection: 'keep-alive',
-
-      // custom header
-      'test-header': 'test-value',
-    });
-  });
-
   it('should pass the messages and the model', async () => {
     prepareStreamResponse({ content: [] });
 
@@ -2741,11 +2775,18 @@ describe('doStream', () => {
       includeRawChunks: false,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      stream: true,
-      model: 'grok-beta',
-      messages: [{ role: 'user', content: 'Hello' }],
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "grok-beta",
+        "stream": true,
+      }
+    `);
   });
 
   it('should pass headers', async () => {
@@ -2768,12 +2809,14 @@ describe('doStream', () => {
       },
     });
 
-    expect(await server.calls[0].requestHeaders).toStrictEqual({
-      authorization: 'Bearer test-api-key',
-      'content-type': 'application/json',
-      'custom-provider-header': 'provider-header-value',
-      'custom-request-header': 'request-header-value',
-    });
+    expect(await server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+      {
+        "authorization": "Bearer test-api-key",
+        "content-type": "application/json",
+        "custom-provider-header": "provider-header-value",
+        "custom-request-header": "request-header-value",
+      }
+    `);
   });
 
   it('should include provider-specific options', async () => {
@@ -2789,12 +2832,19 @@ describe('doStream', () => {
       includeRawChunks: false,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      stream: true,
-      model: 'grok-beta',
-      messages: [{ role: 'user', content: 'Hello' }],
-      someCustomOption: 'test-value',
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "grok-beta",
+        "someCustomOption": "test-value",
+        "stream": true,
+      }
+    `);
   });
 
   it('should not include provider-specific options for different provider', async () => {
@@ -2810,11 +2860,18 @@ describe('doStream', () => {
       includeRawChunks: false,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      stream: true,
-      model: 'grok-beta',
-      messages: [{ role: 'user', content: 'Hello' }],
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "grok-beta",
+        "stream": true,
+      }
+    `);
   });
 
   it('should send request body', async () => {
@@ -2941,7 +2998,9 @@ describe('doStream', () => {
       const parts = await convertReadableStreamToArray(stream);
       const finishPart = parts.find(part => part.type === 'finish');
 
-      expect(finishPart?.providerMetadata!['test-provider']).toStrictEqual({});
+      expect(
+        finishPart?.providerMetadata!['test-provider'],
+      ).toMatchInlineSnapshot(`{}`);
     });
 
     it('should handle partial token details in stream', async () => {
@@ -3088,10 +3147,17 @@ describe('metadata extraction', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'gpt-4',
-      messages: [{ role: 'user', content: 'Hello' }],
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gpt-4",
+      }
+    `);
   });
 
   it('should process metadata from streaming response', async () => {
@@ -3125,11 +3191,18 @@ describe('metadata extraction', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'gpt-4',
-      messages: [{ role: 'user', content: 'Hello' }],
-      stream: true,
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gpt-4",
+        "stream": true,
+      }
+    `);
   });
 });
 

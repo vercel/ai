@@ -9,6 +9,7 @@ export type {
   /** @deprecated Use `XaiLanguageModelResponsesOptions` instead. */
   XaiLanguageModelResponsesOptions as XaiResponsesProviderOptions,
 } from './responses/xai-responses-options';
+export type { XaiImageProviderOptions } from './xai-image-options';
 export { createXai, xai } from './xai-provider';
 export type { XaiProvider, XaiProviderSettings } from './xai-provider';
 export {

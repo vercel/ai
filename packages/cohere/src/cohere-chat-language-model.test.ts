@@ -612,6 +612,54 @@ describe('doGenerate', () => {
         }
       `);
     });
+
+    it('should extract usage', async () => {
+      prepareJsonFixtureResponse('cohere-text');
+
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage).toMatchInlineSnapshot(`
+        {
+          "inputTokens": {
+            "cacheRead": undefined,
+            "cacheWrite": undefined,
+            "noCache": 507,
+            "total": 507,
+          },
+          "outputTokens": {
+            "reasoning": undefined,
+            "text": 10,
+            "total": 10,
+          },
+          "raw": {
+            "input_tokens": 507,
+            "output_tokens": 10,
+          },
+        }
+      `);
+    });
+
+    it('should send additional response information', async () => {
+      prepareJsonFixtureResponse('cohere-text');
+
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect({
+        id: response?.id,
+        timestamp: response?.timestamp,
+        modelId: response?.modelId,
+      }).toMatchInlineSnapshot(`
+        {
+          "id": undefined,
+          "modelId": undefined,
+          "timestamp": undefined,
+        }
+      `);
+    });
   });
 });
 
