@@ -634,6 +634,7 @@ describe('handleUIMessageStreamFinish', () => {
 
     it('should provide deep-cloned messages in onStepFinish to prevent mutation', async () => {
       const onStepFinishCallback = vi.fn();
+      const onFinishCallback = vi.fn();
       const inputChunks: UIMessageChunk[] = [
         { type: 'start', messageId: 'msg-clone' },
         { type: 'text-start', id: 'text-1' },
@@ -650,21 +651,24 @@ describe('handleUIMessageStreamFinish', () => {
         messageId: 'msg-clone',
         originalMessages: [],
         onError: mockErrorHandler,
-        onStepFinish: onStepFinishCallback,
+        onStepFinish: event => {
+          // Mutate the message in the callback
+          event.responseMessage.parts.push({ type: 'text', text: 'MUTATION!' });
+          onStepFinishCallback(event);
+        },
+        onFinish: onFinishCallback,
       });
 
       await convertReadableStreamToArray(resultStream);
 
-      // Get the response message from the first call
-      const firstCallMessage =
-        onStepFinishCallback.mock.calls[0][0].responseMessage;
+      // Verify onStepFinish was called and received the mutated message
+      expect(onStepFinishCallback).toHaveBeenCalledTimes(1);
+      const stepMessage = onStepFinishCallback.mock.calls[0][0].responseMessage;
+      expect(stepMessage.parts).toHaveLength(2); // Original + mutation
 
-      // Mutate the response message
-      firstCallMessage.parts.push({ type: 'text', text: 'Mutated!' });
-
-      // The mutation should not affect future state
-      // (This test validates that structuredClone is being used)
-      expect(firstCallMessage.parts).toHaveLength(2);
+      // onFinish should NOT see the mutation from onStepFinish
+      const finishMessage = onFinishCallback.mock.calls[0][0].responseMessage;
+      expect(finishMessage.parts).toHaveLength(1);
     });
 
     it('should not process stream when neither onFinish nor onStepFinish is provided', async () => {
