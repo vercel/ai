@@ -1,4 +1,7 @@
-import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
+import {
+  type AnthropicLanguageModelOptions,
+  createAnthropic,
+} from '@ai-sdk/anthropic';
 import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
@@ -51,7 +54,7 @@ run(async () => {
       providerOptions: {
         anthropic: {
           thinking: { type: 'enabled', budgetTokens: 12000 },
-        } satisfies AnthropicProviderOptions,
+        } satisfies AnthropicLanguageModelOptions,
       },
       onError: error => {
         console.error(error);

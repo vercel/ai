@@ -1,5 +1,19 @@
 # @ai-sdk/luma
 
+## 2.0.19
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+
+## 2.0.18
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/provider-utils@4.0.14
+
 ## 2.0.17
 
 ### Patch Changes

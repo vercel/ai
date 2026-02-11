@@ -4,7 +4,7 @@ import { z } from 'zod/v4';
 // https://platform.openai.com/docs/models
 export type OpenAICompletionModelId = 'gpt-3.5-turbo-instruct' | (string & {});
 
-export const openaiCompletionProviderOptions = lazySchema(() =>
+export const openaiLanguageModelCompletionOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -53,6 +53,6 @@ export const openaiCompletionProviderOptions = lazySchema(() =>
   ),
 );
 
-export type OpenAICompletionProviderOptions = InferSchema<
-  typeof openaiCompletionProviderOptions
+export type OpenAILanguageModelCompletionOptions = InferSchema<
+  typeof openaiLanguageModelCompletionOptions
 >;

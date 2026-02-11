@@ -1,4 +1,5 @@
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
+import { type AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 import 'dotenv/config';
 import { run } from '../lib/run';
@@ -12,7 +13,9 @@ run(async () => {
         content:
           'You are a helpful assistant that specializes in TypeScript and JavaScript development. You provide clear, concise explanations with code examples when appropriate.',
         providerOptions: {
-          anthropic: { cacheControl: { type: 'ephemeral' } },
+          anthropic: {
+            cacheControl: { type: 'ephemeral' },
+          } satisfies AnthropicLanguageModelOptions,
         },
       },
       {

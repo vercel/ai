@@ -53,6 +53,12 @@ You can use the following optional settings to customize the Alibaba provider in
   Use a different URL prefix for API calls, e.g. to use proxy servers or regional endpoints.
   The default prefix is `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`.
 
+- **videoBaseURL** _string_
+
+  Use a different URL prefix for video generation API calls. The video API uses the DashScope
+  native endpoint (not the OpenAI-compatible endpoint).
+  The default prefix is `https://dashscope-intl.aliyuncs.com`.
+
 - **apiKey** _string_
 
   API key that is being sent using the `Authorization` header. It defaults to
@@ -117,7 +123,7 @@ The following optional provider options are available for Alibaba models:
 Alibaba's Qwen models support thinking/reasoning mode for complex problem-solving:
 
 ```ts
-import { alibaba } from '@ai-sdk/alibaba';
+import { alibaba, type AlibabaLanguageModelOptions } from '@ai-sdk/alibaba';
 import { generateText } from 'ai';
 
 const { text, reasoning } = await generateText({
@@ -126,7 +132,7 @@ const { text, reasoning } = await generateText({
     alibaba: {
       enableThinking: true,
       thinkingBudget: 2048,
-    },
+    } satisfies AlibabaLanguageModelOptions,
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
 });
@@ -193,6 +199,155 @@ const { text, usage } = await generateText({
   ],
 });
 ```
+
+## Video Models
+
+You can create [Wan](https://www.alibabacloud.com/help/en/model-studio/use-video-generation) video models that call the Alibaba Cloud DashScope API
+using the `.video()` factory method. For more on video generation with the AI SDK see [generateVideo()](/docs/reference/ai-sdk-core/generate-video).
+
+Alibaba supports three video generation modes: text-to-video, image-to-video (first frame), and reference-to-video.
+
+### Text-to-Video
+
+Generate videos from text prompts:
+
+```ts
+import { alibaba, type AlibabaVideoModelOptions } from '@ai-sdk/alibaba';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: alibaba.video('wan2.6-t2v'),
+  prompt: 'A serene mountain lake at sunset with gentle ripples on the water.',
+  resolution: '1280x720',
+  duration: 5,
+  providerOptions: {
+    alibaba: {
+      promptExtend: true,
+      pollTimeoutMs: 600000, // 10 minutes
+    } satisfies AlibabaVideoModelOptions,
+  },
+});
+```
+
+### Image-to-Video
+
+Generate videos from a first-frame image and optional text prompt:
+
+```ts
+import { alibaba, type AlibabaVideoModelOptions } from '@ai-sdk/alibaba';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: alibaba.video('wan2.6-i2v'),
+  prompt: {
+    image: 'https://example.com/landscape.jpg',
+    text: 'Camera slowly pans across the landscape',
+  },
+  duration: 5,
+  providerOptions: {
+    alibaba: {
+      pollTimeoutMs: 600000, // 10 minutes
+    } satisfies AlibabaVideoModelOptions,
+  },
+});
+```
+
+### Reference-to-Video
+
+Generate videos using reference images and/or videos for character consistency. Use character identifiers
+(`character1`, `character2`, etc.) in your prompt to reference them:
+
+```ts
+import { alibaba, type AlibabaVideoModelOptions } from '@ai-sdk/alibaba';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: alibaba.video('wan2.6-r2v-flash'),
+  prompt: 'character1 walks through a beautiful garden and waves at the camera',
+  resolution: '1280x720',
+  duration: 5,
+  providerOptions: {
+    alibaba: {
+      referenceUrls: ['https://example.com/character-reference.jpg'],
+      pollTimeoutMs: 600000, // 10 minutes
+    } satisfies AlibabaVideoModelOptions,
+  },
+});
+```
+
+### Video Provider Options
+
+The following provider options are available via `providerOptions.alibaba`:
+
+- **negativePrompt** _string_
+
+  A description of what to avoid in the generated video (max 500 characters).
+
+- **audioUrl** _string_
+
+  URL to an audio file for audio-video sync (WAV/MP3, 3-30 seconds, max 15MB).
+
+- **promptExtend** _boolean_
+
+  Enable prompt extension/rewriting for better generation quality. Defaults to `true`.
+
+- **shotType** `'single'` | `'multi'`
+
+  Shot type for video generation. `'multi'` enables multi-shot cinematic narrative (wan2.6 models only).
+
+- **watermark** _boolean_
+
+  Whether to add a watermark to the generated video. Defaults to `false`.
+
+- **audio** _boolean_
+
+  Whether to generate audio (for I2V and R2V models that support it).
+
+- **referenceUrls** _string[]_
+
+  Array of reference image/video URLs for reference-to-video mode. Supports 0-5 images and 0-3 videos, max 5 total.
+
+- **pollIntervalMs** _number_
+
+  Polling interval in milliseconds for checking task status. Defaults to 5000.
+
+- **pollTimeoutMs** _number_
+
+  Maximum wait time in milliseconds for video generation. Defaults to 600000 (10 minutes).
+
+<Note>
+  Video generation is an asynchronous process that can take several minutes.
+  Consider setting `pollTimeoutMs` to at least 10 minutes (600000ms) for
+  reliable operation.
+</Note>
+
+### Video Model Capabilities
+
+#### Text-to-Video
+
+| Model                | Audio | Resolution        | Duration |
+| -------------------- | ----- | ----------------- | -------- |
+| `wan2.6-t2v`         | Yes   | 720P, 1080P       | 2-15s    |
+| `wan2.5-t2v-preview` | Yes   | 480P, 720P, 1080P | 5s, 10s  |
+
+#### Image-to-Video (First Frame)
+
+| Model              | Audio    | Resolution  | Duration |
+| ------------------ | -------- | ----------- | -------- |
+| `wan2.6-i2v-flash` | Optional | 720P, 1080P | 2-15s    |
+| `wan2.6-i2v`       | Yes      | 720P, 1080P | 2-15s    |
+
+#### Reference-to-Video
+
+| Model              | Audio    | Resolution  | Duration |
+| ------------------ | -------- | ----------- | -------- |
+| `wan2.6-r2v-flash` | Optional | 720P, 1080P | 2-10s    |
+| `wan2.6-r2v`       | Yes      | 720P, 1080P | 2-10s    |
+
+<Note>
+  The tables above list models available in the Singapore International region.
+  You can also pass any available provider model ID as a string if needed.
+</Note>
 
 ## Model Capabilities
 

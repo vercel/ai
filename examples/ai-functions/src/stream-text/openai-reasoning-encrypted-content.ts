@@ -2,7 +2,7 @@ import { streamText } from 'ai';
 import { run } from '../lib/run';
 import {
   openai,
-  OpenAIResponsesProviderOptions,
+  OpenAILanguageModelResponsesOptions,
   OpenaiResponsesReasoningProviderMetadata,
 } from '@ai-sdk/openai';
 
@@ -16,7 +16,7 @@ run(async () => {
         reasoningSummary: 'detailed',
         store: false,
         include: ['reasoning.encrypted_content'], // Use encrypted reasoning items
-      } satisfies OpenAIResponsesProviderOptions,
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
   });
 

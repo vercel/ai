@@ -1,4 +1,7 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import {
+  bedrock,
+  type AmazonBedrockLanguageModelOptions,
+} from '@ai-sdk/amazon-bedrock';
 import { ModelMessage, generateText, stepCountIs } from 'ai';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
@@ -25,7 +28,7 @@ run(async () => {
       providerOptions: {
         bedrock: {
           reasoningConfig: { type: 'enabled', budgetTokens: 2048 },
-        },
+        } satisfies AmazonBedrockLanguageModelOptions,
       },
     });
 

@@ -2,21 +2,13 @@ import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { createXai } from './xai-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
-import { OpenAICompatibleImageModel } from '@ai-sdk/openai-compatible';
+import { XaiImageModel } from './xai-image-model';
 
 const XaiChatLanguageModelMock = XaiChatLanguageModel as unknown as Mock;
-const OpenAICompatibleImageModelMock =
-  OpenAICompatibleImageModel as unknown as Mock;
+const XaiImageModelMock = XaiImageModel as unknown as Mock;
 
 vi.mock('./xai-chat-language-model', () => ({
   XaiChatLanguageModel: vi.fn(),
-}));
-
-vi.mock('@ai-sdk/openai-compatible', () => ({
-  OpenAICompatibleChatLanguageModel: vi.fn(),
-  OpenAICompatibleCompletionLanguageModel: vi.fn(),
-  OpenAICompatibleEmbeddingModel: vi.fn(),
-  OpenAICompatibleImageModel: vi.fn(),
 }));
 
 vi.mock('./xai-image-model', () => ({
@@ -121,16 +113,14 @@ describe('xAIProvider', () => {
 
       const model = provider.imageModel(modelId);
 
-      expect(model).toBeInstanceOf(OpenAICompatibleImageModel);
+      expect(model).toBeInstanceOf(XaiImageModel);
 
-      const constructorCall = OpenAICompatibleImageModelMock.mock.calls[0];
+      const constructorCall = XaiImageModelMock.mock.calls[0];
       expect(constructorCall[0]).toBe(modelId);
 
       const config = constructorCall[1];
       expect(config.provider).toBe('xai.image');
-      expect(config.url({ path: '/test-path' })).toBe(
-        'https://api.x.ai/v1/test-path',
-      );
+      expect(config.baseURL).toBe('https://api.x.ai/v1');
     });
 
     it('should use custom baseURL for image model', () => {
@@ -140,11 +130,9 @@ describe('xAIProvider', () => {
 
       provider.imageModel(modelId);
 
-      const constructorCall = OpenAICompatibleImageModelMock.mock.calls[0];
+      const constructorCall = XaiImageModelMock.mock.calls[0];
       const config = constructorCall[1];
-      expect(config.url({ path: '/test-path' })).toBe(
-        `${customBaseURL}/test-path`,
-      );
+      expect(config.baseURL).toBe(customBaseURL);
     });
 
     it('should pass custom headers to image model', () => {
@@ -153,7 +141,7 @@ describe('xAIProvider', () => {
 
       provider.imageModel('grok-2-image');
 
-      const constructorCall = OpenAICompatibleImageModelMock.mock.calls[0];
+      const constructorCall = XaiImageModelMock.mock.calls[0];
       const config = constructorCall[1];
       const headers = config.headers();
 

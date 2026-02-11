@@ -1,3 +1,4 @@
+import { type GatewayLanguageModelOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 
@@ -10,7 +11,7 @@ run(async () => {
         byok: {
           anthropic: [{ apiKey: process.env.ANTHROPIC_API_KEY }],
         },
-      },
+      } satisfies GatewayLanguageModelOptions,
     },
   });
 

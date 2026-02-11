@@ -1,39 +1,38 @@
 import {
+  getResponseMetadata,
+  mapOpenAICompatibleFinishReason,
+  prepareTools,
+} from '@ai-sdk/openai-compatible/internal';
+import {
   InvalidResponseDataError,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3Warning,
+  type LanguageModelV3,
+  type LanguageModelV3CallOptions,
+  type LanguageModelV3Content,
+  type LanguageModelV3FinishReason,
+  type LanguageModelV3GenerateResult,
+  type LanguageModelV3StreamPart,
+  type LanguageModelV3StreamResult,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   generateId,
   isParsableJson,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  getResponseMetadata,
-  mapOpenAICompatibleFinishReason,
-  prepareTools,
-} from '@ai-sdk/openai-compatible/internal';
-import { AlibabaConfig } from './alibaba-config';
-import {
-  AlibabaChatModelId,
-  alibabaProviderOptions,
+  alibabaLanguageModelOptions,
+  type AlibabaChatModelId,
 } from './alibaba-chat-options';
+import type { AlibabaConfig } from './alibaba-config';
 import { alibabaFailedResponseHandler } from './alibaba-provider';
-import { convertToAlibabaChatMessages } from './convert-to-alibaba-chat-messages';
 import { convertAlibabaUsage } from './convert-alibaba-usage';
+import { convertToAlibabaChatMessages } from './convert-to-alibaba-chat-messages';
 import { CacheControlValidator } from './get-cache-control';
 
 /**
@@ -90,7 +89,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
     const alibabaOptions = await parseProviderOptions({
       provider: 'alibaba',
       providerOptions,
-      schema: alibabaProviderOptions,
+      schema: alibabaLanguageModelOptions,
     });
 
     // Warn about unsupported features

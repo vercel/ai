@@ -1,4 +1,4 @@
-import { alibaba } from '@ai-sdk/alibaba';
+import { alibaba, type AlibabaLanguageModelOptions } from '@ai-sdk/alibaba';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
 
@@ -9,7 +9,7 @@ run(async () => {
     providerOptions: {
       alibaba: {
         enableThinking: true,
-      },
+      } satisfies AlibabaLanguageModelOptions,
     },
   });
 

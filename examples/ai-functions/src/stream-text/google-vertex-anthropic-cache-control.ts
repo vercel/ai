@@ -1,3 +1,4 @@
+import { type AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { streamText } from 'ai';
 import fs from 'node:fs';
@@ -22,7 +23,7 @@ run(async () => {
             providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral' },
-              },
+              } satisfies AnthropicLanguageModelOptions,
             },
           },
           {

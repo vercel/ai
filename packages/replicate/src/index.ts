@@ -3,7 +3,15 @@ export type {
   ReplicateProvider,
   ReplicateProviderSettings,
 } from './replicate-provider';
-export type { ReplicateImageProviderOptions } from './replicate-image-model';
-export type { ReplicateVideoProviderOptions } from './replicate-video-model';
+export type {
+  ReplicateImageModelOptions,
+  /** @deprecated Use `ReplicateImageModelOptions` instead. */
+  ReplicateImageModelOptions as ReplicateImageProviderOptions,
+} from './replicate-image-model';
+export type {
+  ReplicateVideoModelOptions,
+  /** @deprecated Use `ReplicateVideoModelOptions` instead. */
+  ReplicateVideoModelOptions as ReplicateVideoProviderOptions,
+} from './replicate-video-model';
 export type { ReplicateVideoModelId } from './replicate-video-settings';
 export { VERSION } from './version';

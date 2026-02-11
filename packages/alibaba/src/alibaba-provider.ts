@@ -1,18 +1,21 @@
 import {
-  LanguageModelV3,
+  type Experimental_VideoModelV3,
+  type LanguageModelV3,
   NoSuchModelError,
-  ProviderV3,
+  type ProviderV3,
 } from '@ai-sdk/provider';
 import {
   createJsonErrorResponseHandler,
-  FetchFunction,
+  type FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { AlibabaLanguageModel } from './alibaba-chat-language-model';
-import { AlibabaChatModelId } from './alibaba-chat-options';
+import type { AlibabaChatModelId } from './alibaba-chat-options';
+import { AlibabaVideoModel } from './alibaba-video-model';
+import type { AlibabaVideoModelId } from './alibaba-video-settings';
 import { VERSION } from './version';
 
 export type AlibabaErrorData = z.infer<typeof alibabaErrorDataSchema>;
@@ -42,6 +45,16 @@ export interface AlibabaProvider extends ProviderV3 {
    * Creates a chat model for text generation.
    */
   chatModel(modelId: AlibabaChatModelId): LanguageModelV3;
+
+  /**
+   * Creates a model for video generation.
+   */
+  video(modelId: AlibabaVideoModelId): Experimental_VideoModelV3;
+
+  /**
+   * Creates a model for video generation.
+   */
+  videoModel(modelId: AlibabaVideoModelId): Experimental_VideoModelV3;
 }
 
 export interface AlibabaProviderSettings {
@@ -50,6 +63,13 @@ export interface AlibabaProviderSettings {
    * The default prefix is `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`.
    */
   baseURL?: string;
+
+  /**
+   * Use a different URL prefix for video generation API calls.
+   * The video API uses the DashScope native endpoint (not the OpenAI-compatible endpoint).
+   * The default prefix is `https://dashscope-intl.aliyuncs.com`.
+   */
+  videoBaseURL?: string;
 
   /**
    * API key that is being sent using the `Authorization` header.
@@ -87,6 +107,10 @@ export function createAlibaba(
     withoutTrailingSlash(options.baseURL) ??
     'https://dashscope-intl.aliyuncs.com/compatible-mode/v1';
 
+  const videoBaseURL =
+    withoutTrailingSlash(options.videoBaseURL) ??
+    'https://dashscope-intl.aliyuncs.com';
+
   const getHeaders = () =>
     withUserAgentSuffix(
       {
@@ -109,6 +133,14 @@ export function createAlibaba(
       includeUsage: options.includeUsage ?? true,
     });
 
+  const createVideoModel = (modelId: AlibabaVideoModelId) =>
+    new AlibabaVideoModel(modelId, {
+      provider: 'alibaba.video',
+      baseURL: videoBaseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (modelId: AlibabaChatModelId) {
     if (new.target) {
       throw new Error(
@@ -122,6 +154,8 @@ export function createAlibaba(
   provider.specificationVersion = 'v3' as const;
   provider.languageModel = createLanguageModel;
   provider.chatModel = createLanguageModel;
+  provider.video = createVideoModel;
+  provider.videoModel = createVideoModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
