@@ -992,7 +992,22 @@ export async function convertToAnthropicMessagesPrompt({
           }
         }
 
-        messages.push({ role: 'assistant', content: anthropicContent });
+        // Ensure thinking blocks come first in assistant messages as required by Anthropic API
+        // when extended thinking is enabled
+        const thinkingBlocks = anthropicContent.filter(
+          part => part.type === 'thinking' || part.type === 'redacted_thinking',
+        );
+        const nonThinkingBlocks = anthropicContent.filter(
+          part => part.type !== 'thinking' && part.type !== 'redacted_thinking',
+        );
+
+        // If there are thinking blocks, reorder content to place them first
+        const orderedContent =
+          thinkingBlocks.length > 0
+            ? [...thinkingBlocks, ...nonThinkingBlocks]
+            : anthropicContent;
+
+        messages.push({ role: 'assistant', content: orderedContent });
 
         break;
       }

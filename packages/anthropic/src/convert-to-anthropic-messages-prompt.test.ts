@@ -1961,6 +1961,247 @@ describe('assistant messages', () => {
       `);
     });
   });
+
+  describe('thinking blocks with tool use', () => {
+    it('should place thinking block before tool_use in assistant message', async () => {
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Let me use a tool.',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'get_weather',
+                input: { location: 'San Francisco' },
+              },
+              {
+                type: 'reasoning',
+                text: 'I should use the weather tool to answer this.',
+                providerOptions: {
+                  anthropic: {
+                    signature: 'sig-123',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result).toEqual({
+        prompt: {
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'thinking',
+                  thinking: 'I should use the weather tool to answer this.',
+                  signature: 'sig-123',
+                },
+                {
+                  type: 'text',
+                  text: 'Let me use a tool.',
+                },
+                {
+                  type: 'tool_use',
+                  id: 'call_123',
+                  name: 'get_weather',
+                  input: { location: 'San Francisco' },
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
+      });
+    });
+
+    it('should place redacted_thinking block before tool_use in assistant message', async () => {
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_456',
+                toolName: 'search',
+                input: { query: 'weather' },
+              },
+              {
+                type: 'reasoning',
+                text: 'redacted content',
+                providerOptions: {
+                  anthropic: {
+                    redactedData: 'encrypted-data-123',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result).toEqual({
+        prompt: {
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'redacted_thinking',
+                  data: 'encrypted-data-123',
+                },
+                {
+                  type: 'tool_use',
+                  id: 'call_456',
+                  name: 'search',
+                  input: { query: 'weather' },
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
+      });
+    });
+
+    it('should preserve order when no thinking blocks present', async () => {
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Using a tool.',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_789',
+                toolName: 'calculator',
+                input: { expression: '2+2' },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result).toEqual({
+        prompt: {
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Using a tool.',
+                },
+                {
+                  type: 'tool_use',
+                  id: 'call_789',
+                  name: 'calculator',
+                  input: { expression: '2+2' },
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
+      });
+    });
+
+    it('should handle multiple thinking blocks before other content', async () => {
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Result:',
+              },
+              {
+                type: 'reasoning',
+                text: 'First thought',
+                providerOptions: {
+                  anthropic: {
+                    signature: 'sig-1',
+                  },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_multi',
+                toolName: 'tool1',
+                input: {},
+              },
+              {
+                type: 'reasoning',
+                text: 'Second thought',
+                providerOptions: {
+                  anthropic: {
+                    signature: 'sig-2',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result).toEqual({
+        prompt: {
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'thinking',
+                  thinking: 'First thought',
+                  signature: 'sig-1',
+                },
+                {
+                  type: 'thinking',
+                  thinking: 'Second thought',
+                  signature: 'sig-2',
+                },
+                {
+                  type: 'text',
+                  text: 'Result:',
+                },
+                {
+                  type: 'tool_use',
+                  id: 'call_multi',
+                  name: 'tool1',
+                  input: {},
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
+      });
+    });
+  });
 });
 
 describe('cache control', () => {
