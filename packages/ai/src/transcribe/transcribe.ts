@@ -86,7 +86,7 @@ export async function transcribe({
    * Maximum allowed size for audio URL downloads in bytes.
    * Prevents memory exhaustion from excessively large downloads.
    *
-   * @default 2 GiB
+   * @default 1 GiB
    */
   maxDownloadSize?: number;
 }): Promise<TranscriptionResult> {

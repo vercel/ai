@@ -69,12 +69,12 @@ describe('download', () => {
   });
 
   it('should abort when response exceeds default size limit', async () => {
-    // Create a response that claims to be larger than 2 GiB
+    // Create a response that claims to be larger than 1 GiB
     server.urls['http://example.com/large'].response = {
       type: 'binary',
       headers: {
         'content-type': 'application/octet-stream',
-        'content-length': `${3 * 1024 * 1024 * 1024}`,
+        'content-length': `${2 * 1024 * 1024 * 1024}`,
       },
       body: Buffer.from(new Uint8Array(10)),
     };

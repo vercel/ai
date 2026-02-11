@@ -146,7 +146,7 @@ export async function experimental_generateVideo({
    * Maximum allowed size for video URL downloads in bytes.
    * Prevents memory exhaustion from excessively large downloads.
    *
-   * @default 2 GiB
+   * @default 1 GiB
    */
   maxDownloadSize?: number;
 }): Promise<GenerateVideoResult> {

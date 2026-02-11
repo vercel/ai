@@ -69,6 +69,13 @@ console.log(transcript);
       isOptional: true,
       description: 'Additional HTTP headers for the request.',
     },
+    {
+      name: 'maxDownloadSize',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum allowed size in bytes when downloading audio from a URL. Prevents memory exhaustion from excessively large downloads. Default: 1 GiB.',
+    },
   ]}
 />
 

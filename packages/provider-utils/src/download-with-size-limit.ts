@@ -1,18 +1,17 @@
 import { DownloadError } from './download-error';
 
 /**
- * Default maximum download size: 2 GiB.
+ * Default maximum download size: 1 GiB.
  *
- * This is the largest size that a standard Node.js process can handle without
- * crashing. `fetch().arrayBuffer()` has ~2x peak memory overhead (undici
- * buffers the body internally, then creates the JS ArrayBuffer), so a download
- * larger than 2 GiB would exceed the default V8 heap limit (~4 GB on 64-bit)
- * and terminate the process with an out-of-memory error.
+ * `fetch().arrayBuffer()` has ~2x peak memory overhead (undici buffers the
+ * body internally, then creates the JS ArrayBuffer), so a download larger
+ * than ~1 GiB risks exceeding the default V8 heap limit on 64-bit systems
+ * and terminating the process with an out-of-memory error.
  *
  * Setting this limit converts an unrecoverable OOM crash into a catchable
  * `DownloadError`.
  */
-export const DEFAULT_MAX_DOWNLOAD_SIZE = 2 * 1024 * 1024 * 1024;
+export const DEFAULT_MAX_DOWNLOAD_SIZE = 1024 * 1024 * 1024;
 
 /**
  * Reads a fetch Response body with a size limit to prevent memory exhaustion.
