@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { readResponseWithSizeLimit } from './download-with-size-limit';
-import { DownloadError } from './download-error';
+import { readResponseWithSizeLimit } from './read-response-with-size-limit';
+import { DownloadError } from '@ai-sdk/provider-utils';
 
 function createMockResponse({
   body,

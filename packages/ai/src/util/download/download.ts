@@ -1,12 +1,12 @@
 import {
   DownloadError,
-  readResponseWithSizeLimit,
-  DEFAULT_MAX_DOWNLOAD_SIZE,
-} from '@ai-sdk/provider-utils';
-import {
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
+import {
+  readResponseWithSizeLimit,
+  DEFAULT_MAX_DOWNLOAD_SIZE,
+} from './read-response-with-size-limit';
 import { VERSION } from '../../version';
 
 /**
