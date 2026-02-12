@@ -40,8 +40,13 @@ export type GatewayModelId =
   | 'deepseek/deepseek-v3'
   | 'deepseek/deepseek-v3.1'
   | 'deepseek/deepseek-v3.1-terminus'
+<<<<<<< HEAD
   | 'deepseek/deepseek-v3.2-exp'
   | 'deepseek/deepseek-v3.2-exp-thinking'
+=======
+  | 'deepseek/deepseek-v3.2'
+  | 'deepseek/deepseek-v3.2-thinking'
+>>>>>>> b424e50bb (chore(provider/gateway): update gateway model settings files (#12489))
   | 'google/gemini-2.0-flash'
   | 'google/gemini-2.0-flash-lite'
   | 'google/gemini-2.5-flash'
@@ -66,6 +71,12 @@ export type GatewayModelId =
   | 'meta/llama-4-maverick'
   | 'meta/llama-4-scout'
   | 'minimax/minimax-m2'
+<<<<<<< HEAD
+=======
+  | 'minimax/minimax-m2.1'
+  | 'minimax/minimax-m2.1-lightning'
+  | 'minimax/minimax-m2.5'
+>>>>>>> b424e50bb (chore(provider/gateway): update gateway model settings files (#12489))
   | 'mistral/codestral'
   | 'mistral/devstral-small'
   | 'mistral/magistral-medium'
@@ -146,4 +157,5 @@ export type GatewayModelId =
   | 'zai/glm-4.6v-flash'
   | 'zai/glm-4.7'
   | 'zai/glm-4.7-flashx'
+  | 'zai/glm-5'
   | (string & {});
