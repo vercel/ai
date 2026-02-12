@@ -43,11 +43,14 @@ const createSearchGroundedModel = (
     model: vertex(modelId),
     middleware: defaultSettingsMiddleware({
       settings: {
-        providerOptions: {
-          google: {
-            useSearchGrounding: true,
+        tools: [
+          {
+            type: 'provider',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {},
           },
-        },
+        ],
       },
     }),
   }),
