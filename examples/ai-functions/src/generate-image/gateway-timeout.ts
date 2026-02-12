@@ -46,7 +46,7 @@ run(async () => {
     );
 
     const { image } = await generateImage({
-      model: gateway.imageModel('black-forest-labs/flux-1.1-pro'),
+      model: gateway.imageModel('bfl/flux-2-pro'),
       prompt: 'A serene mountain landscape at sunset',
     });
 
