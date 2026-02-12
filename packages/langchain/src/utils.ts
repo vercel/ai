@@ -34,9 +34,7 @@ import {
 export function parseLangGraphEvent(
   event: unknown[],
 ): [type: unknown, data: unknown] {
-  return event.length === 3
-    ? [event[1], event[2]]
-    : [event[0], event[1]];
+  return event.length === 3 ? [event[1], event[2]] : [event[0], event[1]];
 }
 
 /**

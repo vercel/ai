@@ -2068,7 +2068,10 @@ describe('toUIMessageStream callbacks', () => {
       toUIMessageStream(inputStream, { onFinish }),
     );
 
-    expect(onFinish).toHaveBeenCalledWith({ messages: [{ id: 'ai-1' }], step: 2 });
+    expect(onFinish).toHaveBeenCalledWith({
+      messages: [{ id: 'ai-1' }],
+      step: 2,
+    });
   });
 
   it('should call onFinish with undefined for model streams', async () => {
@@ -2116,7 +2119,9 @@ describe('toUIMessageStream callbacks', () => {
       }),
     );
 
-    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: 'Stream failed' }));
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Stream failed' }),
+    );
     expect(onFinish).not.toHaveBeenCalled();
   });
 
@@ -2158,7 +2163,9 @@ describe('toUIMessageStream callbacks', () => {
     const inputStream = convertArrayToReadableStream([
       ['values', { messages: [] }],
     ]);
-    await convertReadableStreamToArray(toUIMessageStream(inputStream, callbacks));
+    await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, callbacks),
+    );
 
     expect(callOrder).toEqual(['onFinal', 'onFinish']);
   });

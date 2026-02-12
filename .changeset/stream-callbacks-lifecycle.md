@@ -1,5 +1,5 @@
 ---
-"@ai-sdk/langchain": patch
+'@ai-sdk/langchain': patch
 ---
 
 Add `onFinish`, `onError`, and `onAbort` callbacks to `StreamCallbacks` for `toUIMessageStream`.
