@@ -286,8 +286,12 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   ) {}
 
   async doGenerate(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
+    options: Parameters<
+      NonNullable<Experimental_VideoModelV3['doGenerate']>
+    >[0],
+  ): Promise<
+    Awaited<ReturnType<NonNullable<Experimental_VideoModelV3['doGenerate']>>>
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV3Warning[] = [];
     const mode = detectMode(this.modelId);
@@ -477,7 +481,9 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   private buildT2VBody(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+    options: Parameters<
+      NonNullable<Experimental_VideoModelV3['doGenerate']>
+    >[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV3Warning[],
   ): Record<string, unknown> {
@@ -536,7 +542,9 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   private buildI2VBody(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+    options: Parameters<
+      NonNullable<Experimental_VideoModelV3['doGenerate']>
+    >[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV3Warning[],
   ): Record<string, unknown> {
@@ -616,7 +624,9 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   private buildMotionControlBody(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+    options: Parameters<
+      NonNullable<Experimental_VideoModelV3['doGenerate']>
+    >[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV3Warning[],
   ): Record<string, unknown> {
