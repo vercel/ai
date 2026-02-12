@@ -13,7 +13,7 @@ export type XaiChatUsage = {
 };
 
 export function convertXaiChatUsage(
-  usage: XaiChatUsage | undefined,
+  usage: XaiChatUsage | undefined | null,
 ): LanguageModelV2Usage {
   if (usage == null) {
     return {
