@@ -36,7 +36,11 @@ const server = createTestServer({
 });
 
 function prepareJsonFixtureResponse(
-  url: string,
+  url:
+    | typeof GENERATE_URL
+    | typeof IMAGEN4_URL
+    | typeof IMAGEN4_FAST_URL
+    | typeof IMAGEN4_ULTRA_URL,
   filename: string,
   headers?: Record<string, string>,
 ) {
