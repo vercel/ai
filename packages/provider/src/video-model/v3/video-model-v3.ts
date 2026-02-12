@@ -1,6 +1,8 @@
 import type { VideoModelV3CallOptions } from './video-model-v3-call-options';
 import type { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
 import type { SharedV3Warning } from '../../shared/v3/shared-v3-warning';
+import type { VideoModelV3StartResult } from './video-model-v3-start-result';
+import type { VideoModelV3StatusResult } from './video-model-v3-status-result';
 
 type GetMaxVideosPerCallFunction = (options: {
   modelId: string;
@@ -71,8 +73,11 @@ export type VideoModelV3 = {
 
   /**
    * Generates an array of videos.
+   *
+   * Optional when `doStart` and `doStatus` are provided to support
+   * the asynchronous start/status flow.
    */
-  doGenerate(options: VideoModelV3CallOptions): PromiseLike<{
+  doGenerate?(options: VideoModelV3CallOptions): PromiseLike<{
     /**
      * Generated videos as URLs, base64 strings, or binary data.
      *
@@ -129,4 +134,46 @@ export type VideoModelV3 = {
       headers: Record<string, string> | undefined;
     };
   }>;
+
+  /**
+   * Starts an asynchronous video generation and returns an opaque operation
+   * reference that can be passed to `doStatus` to poll for completion.
+   *
+   * When both `doStart` and `doStatus` are implemented, the SDK core can
+   * orchestrate polling or webhook-based completion instead of requiring
+   * the provider to implement its own polling loop in `doGenerate`.
+   */
+  doStart?(
+    options: VideoModelV3CallOptions & {
+      /**
+       * When provided, the provider should register this URL to receive
+       * a webhook notification when the video generation completes.
+       */
+      webhookUrl?: string;
+    },
+  ): PromiseLike<VideoModelV3StartResult>;
+
+  /**
+   * Checks the status of an asynchronous video generation that was
+   * started with `doStart`.
+   *
+   * Returns either a `pending` status or a `completed` status with the
+   * generated videos.
+   */
+  doStatus?(options: {
+    /**
+     * The opaque operation reference returned by `doStart`.
+     */
+    operation: unknown;
+
+    /**
+     * Abort signal for cancelling the operation.
+     */
+    abortSignal?: AbortSignal;
+
+    /**
+     * Additional HTTP headers.
+     */
+    headers?: Record<string, string | undefined>;
+  }): PromiseLike<VideoModelV3StatusResult>;
 };
