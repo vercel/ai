@@ -1587,6 +1587,143 @@ describe('doStream', () => {
     `);
   });
 
+  it('should include performanceConfig in providerMetadata', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          metadata: {
+            usage: {
+              inputTokens: 4,
+              outputTokens: 34,
+            },
+            performanceConfig: { latency: 'optimized' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: { stopReason: 'end_turn' },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const finish = parts.find(p => p.type === 'finish');
+    expect(finish?.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "performanceConfig": {
+            "latency": "optimized",
+          },
+        },
+      }
+    `);
+  });
+
+  it('should include serviceTier in providerMetadata', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          metadata: {
+            usage: {
+              inputTokens: 4,
+              outputTokens: 34,
+            },
+            serviceTier: { type: 'on-demand' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: { stopReason: 'end_turn' },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const finish = parts.find(p => p.type === 'finish');
+    expect(finish?.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "serviceTier": {
+            "type": "on-demand",
+          },
+        },
+      }
+    `);
+  });
+
+  it('should include cacheDetails in providerMetadata', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          metadata: {
+            usage: {
+              inputTokens: 4,
+              outputTokens: 34,
+              cacheDetails: [{ inputTokens: 100, ttl: 'T5M' }],
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: { stopReason: 'end_turn' },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const finish = parts.find(p => p.type === 'finish');
+    expect(finish?.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "usage": {
+            "cacheDetails": [
+              {
+                "inputTokens": 100,
+                "ttl": "T5M",
+              },
+            ],
+          },
+        },
+      }
+    `);
+  });
+
   it('should handle system messages with cache points', async () => {
     setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
@@ -3872,6 +4009,113 @@ describe('doGenerate', () => {
           "inputTokens": 4,
           "outputTokens": 34,
           "totalTokens": 38,
+        },
+      }
+    `);
+  });
+
+  it('should include performanceConfig in providerMetadata', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+        },
+        usage: {
+          inputTokens: 4,
+          outputTokens: 34,
+          totalTokens: 38,
+        },
+        stopReason: 'end_turn',
+        performanceConfig: { latency: 'optimized' },
+      },
+    };
+
+    const response = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(response.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "performanceConfig": {
+            "latency": "optimized",
+          },
+          "stopSequence": null,
+        },
+      }
+    `);
+  });
+
+  it('should include serviceTier in providerMetadata', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+        },
+        usage: {
+          inputTokens: 4,
+          outputTokens: 34,
+          totalTokens: 38,
+        },
+        stopReason: 'end_turn',
+        serviceTier: { type: 'on-demand' },
+      },
+    };
+
+    const response = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(response.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "serviceTier": {
+            "type": "on-demand",
+          },
+          "stopSequence": null,
+        },
+      }
+    `);
+  });
+
+  it('should include cacheDetails in providerMetadata', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+        },
+        usage: {
+          inputTokens: 4,
+          outputTokens: 34,
+          totalTokens: 38,
+          cacheDetails: [{ inputTokens: 100, ttl: 'T5M' }],
+        },
+        stopReason: 'end_turn',
+      },
+    };
+
+    const response = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(response.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "stopSequence": null,
+          "usage": {
+            "cacheDetails": [
+              {
+                "inputTokens": 100,
+                "ttl": "T5M",
+              },
+            ],
+          },
         },
       }
     `);
