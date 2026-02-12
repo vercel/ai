@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 4.0.56
+
+### Patch Changes
+
+- 5a307f5: feat(provider/google-vertex): allow using Gemini image models with `generateImage`
+- Updated dependencies [5a307f5]
+  - @ai-sdk/google@3.0.28
+
 ## 4.0.55
 
 ### Patch Changes
