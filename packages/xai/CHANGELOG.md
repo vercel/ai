@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.61
+
+### Patch Changes
+
+- c80d906: fix(provider/xai): handle inconsistent cached token reporting
+
 ## 2.0.60
 
 ### Patch Changes
