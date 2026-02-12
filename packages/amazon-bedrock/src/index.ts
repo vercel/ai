@@ -5,6 +5,7 @@ export type {
   /** @deprecated Use `AmazonBedrockLanguageModelOptions` instead. */
   AmazonBedrockLanguageModelOptions as BedrockProviderOptions,
 } from './bedrock-chat-options';
+export type { AmazonBedrockImageModelOptions } from './bedrock-image-settings';
 export { bedrock, createAmazonBedrock } from './bedrock-provider';
 export type {
   AmazonBedrockProvider,
