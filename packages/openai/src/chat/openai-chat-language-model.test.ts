@@ -2087,81 +2087,19 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
-  function prepareStreamResponse({
-    content = [],
-    usage = {
-      prompt_tokens: 17,
-      total_tokens: 244,
-      completion_tokens: 227,
-    },
-    logprobs = null,
-    finish_reason = 'stop',
-    model = 'gpt-3.5-turbo-0613',
-    headers,
-  }: {
-    content?: string[];
-    usage?: {
-      prompt_tokens: number;
-      total_tokens: number;
-      completion_tokens: number;
-      prompt_tokens_details?: {
-        cached_tokens?: number;
-      };
-      completion_tokens_details?: {
-        reasoning_tokens?: number;
-        accepted_prediction_tokens?: number;
-        rejected_prediction_tokens?: number;
-      };
-    };
-    logprobs?: {
-      content:
-        | {
-            token: string;
-            logprob: number;
-            top_logprobs: { token: string; logprob: number }[];
-          }[]
-        | null;
-    } | null;
-    finish_reason?: string;
-    model?: string;
-    headers?: Record<string, string>;
-  }) {
+  it('should stream text deltas', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
-      headers,
       chunks: [
-        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"${model}",` +
-          `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
-        ...content.map(text => {
-          return (
-            `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"${model}",` +
-            `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"${text}"},"finish_reason":null}]}\n\n`
-          );
-        }),
-        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"${model}",` +
-          `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}","logprobs":${JSON.stringify(
-            logprobs,
-          )}}]}\n\n`,
-        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"${model}",` +
-          `"system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":${JSON.stringify(
-            usage,
-          )}}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":1,"delta":{"content":", "},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"World!"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":${JSON.stringify(TEST_LOGPROBS)}}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":17,"total_tokens":244,"completion_tokens":227}}\n\n`,
         'data: [DONE]\n\n',
       ],
     };
-  }
-
-  it('should stream text deltas', async () => {
-    prepareStreamResponse({
-      content: ['Hello', ', ', 'World!'],
-      finish_reason: 'stop',
-      usage: {
-        prompt_tokens: 17,
-        total_tokens: 244,
-        completion_tokens: 227,
-      },
-      logprobs: TEST_LOGPROBS,
-    });
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
@@ -3055,7 +2993,7 @@ describe('doStream', () => {
   );
 
   it('should send request body', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareChunksFixtureResponse('openai-text');
 
     const { request } = await model.doStream({
       prompt: TEST_PROMPT,
@@ -3107,9 +3045,16 @@ describe('doStream', () => {
   });
 
   it('should expose the raw response headers', async () => {
-    prepareStreamResponse({
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
       headers: { 'test-header': 'test-value' },
-    });
+      chunks: [
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":17,"total_tokens":244,"completion_tokens":227}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
 
     const { response } = await model.doStream({
       prompt: TEST_PROMPT,
@@ -3128,7 +3073,7 @@ describe('doStream', () => {
   });
 
   it('should pass the messages and the model', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareChunksFixtureResponse('openai-text');
 
     await model.doStream({
       prompt: TEST_PROMPT,
@@ -3144,7 +3089,7 @@ describe('doStream', () => {
   });
 
   it('should pass headers', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareChunksFixtureResponse('openai-text');
 
     const provider = createOpenAI({
       apiKey: 'test-api-key',
@@ -3174,17 +3119,15 @@ describe('doStream', () => {
   });
 
   it('should return cached tokens in providerMetadata', async () => {
-    prepareStreamResponse({
-      content: [],
-      usage: {
-        prompt_tokens: 15,
-        completion_tokens: 20,
-        total_tokens: 35,
-        prompt_tokens_details: {
-          cached_tokens: 1152,
-        },
-      },
-    });
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":15,"completion_tokens":20,"total_tokens":35,"prompt_tokens_details":{"cached_tokens":1152}}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
@@ -3235,18 +3178,15 @@ describe('doStream', () => {
   });
 
   it('should return accepted_prediction_tokens and rejected_prediction_tokens in providerMetadata', async () => {
-    prepareStreamResponse({
-      content: [],
-      usage: {
-        prompt_tokens: 15,
-        completion_tokens: 20,
-        total_tokens: 35,
-        completion_tokens_details: {
-          accepted_prediction_tokens: 123,
-          rejected_prediction_tokens: 456,
-        },
-      },
-    });
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":15,"completion_tokens":20,"total_tokens":35,"completion_tokens_details":{"accepted_prediction_tokens":123,"rejected_prediction_tokens":456}}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
@@ -3301,7 +3241,7 @@ describe('doStream', () => {
   });
 
   it('should send store extension setting', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareChunksFixtureResponse('openai-text');
 
     await model.doStream({
       prompt: TEST_PROMPT,
@@ -3323,7 +3263,7 @@ describe('doStream', () => {
   });
 
   it('should send metadata extension values', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareChunksFixtureResponse('openai-text');
 
     await model.doStream({
       prompt: TEST_PROMPT,
@@ -3349,7 +3289,7 @@ describe('doStream', () => {
   });
 
   it('should send serviceTier flex processing setting in streaming', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareChunksFixtureResponse('openai-text');
 
     const model = provider.chat('o4-mini');
 
@@ -3382,7 +3322,7 @@ describe('doStream', () => {
   });
 
   it('should send serviceTier priority processing setting in streaming', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareChunksFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-4o-mini');
 
@@ -3426,10 +3366,16 @@ describe('doStream', () => {
 
   describe('reasoning models', () => {
     it('should stream text delta', async () => {
-      prepareStreamResponse({
-        content: ['Hello, World!'],
-        model: 'o4-mini',
-      });
+      server.urls['https://api.openai.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"o4-mini","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"o4-mini","system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Hello, World!"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"o4-mini","system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"o4-mini","system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":17,"total_tokens":244,"completion_tokens":227}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
 
       const model = provider.chat('o4-mini');
 
@@ -3501,18 +3447,16 @@ describe('doStream', () => {
     });
 
     it('should send reasoning tokens', async () => {
-      prepareStreamResponse({
-        content: ['Hello, World!'],
-        model: 'o4-mini',
-        usage: {
-          prompt_tokens: 15,
-          completion_tokens: 20,
-          total_tokens: 35,
-          completion_tokens_details: {
-            reasoning_tokens: 10,
-          },
-        },
-      });
+      server.urls['https://api.openai.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"o4-mini","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"o4-mini","system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Hello, World!"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"o4-mini","system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"o4-mini","system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":15,"completion_tokens":20,"total_tokens":35,"completion_tokens_details":{"reasoning_tokens":10}}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
 
       const model = provider.chat('o4-mini');
 
@@ -3589,9 +3533,17 @@ describe('doStream', () => {
 
   describe('raw chunks', () => {
     it('should include raw chunks when includeRawChunks is enabled', async () => {
-      prepareStreamResponse({
-        content: ['Hello', ' World!'],
-      });
+      server.urls['https://api.openai.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":1,"delta":{"content":" World!"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":17,"total_tokens":244,"completion_tokens":227}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
@@ -3700,9 +3652,17 @@ describe('doStream', () => {
     });
 
     it('should not include raw chunks when includeRawChunks is false', async () => {
-      prepareStreamResponse({
-        content: ['Hello', ' World!'],
-      });
+      server.urls['https://api.openai.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":1,"delta":{"content":" World!"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":17,"total_tokens":244,"completion_tokens":227}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
