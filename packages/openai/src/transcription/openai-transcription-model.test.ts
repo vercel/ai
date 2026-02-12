@@ -204,19 +204,19 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+    // @ts-ignore - Property 'file' does not exist on type 'Record<string, any> | null'
+    const { file, ...rest } = await server.calls[0].requestBodyMultipart;
+    expect(rest).toMatchInlineSnapshot(`
       {
-        "file": File {
-          Symbol(kHandle): Blob {},
-          Symbol(kLength): 40169,
-          Symbol(kType): "audio/wav",
-        },
         "model": "whisper-1",
         "response_format": "verbose_json",
         "temperature": "0",
         "timestamp_granularities[]": "word",
       }
     `);
+    expect(file).toBeInstanceOf(File);
+    expect(file.type).toEqual('audio/wav');
+    expect(file.name).toEqual('audio.wav');
   });
 
   it('should not set pass response_format to "verbose_json" when model is "gpt-4o-transcribe"', async () => {
@@ -233,19 +233,19 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+    // @ts-ignore - Property 'file' does not exist on type 'Record<string, any> | null'
+    const { file, ...rest } = await server.calls[0].requestBodyMultipart;
+    expect(rest).toMatchInlineSnapshot(`
       {
-        "file": File {
-          Symbol(kHandle): Blob {},
-          Symbol(kLength): 40169,
-          Symbol(kType): "audio/wav",
-        },
         "model": "gpt-4o-transcribe",
         "response_format": "json",
         "temperature": "0",
         "timestamp_granularities[]": "word",
       }
     `);
+    expect(file).toBeInstanceOf(File);
+    expect(file.type).toEqual('audio/wav');
+    expect(file.name).toEqual('audio.wav');
   });
 
   it('should pass timestamp_granularities when specified', async () => {
@@ -261,19 +261,19 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+    // @ts-ignore - Property 'file' does not exist on type 'Record<string, any> | null'
+    const { file, ...rest } = await server.calls[0].requestBodyMultipart;
+    expect(rest).toMatchInlineSnapshot(`
       {
-        "file": File {
-          Symbol(kHandle): Blob {},
-          Symbol(kLength): 40169,
-          Symbol(kType): "audio/wav",
-        },
         "model": "whisper-1",
         "response_format": "verbose_json",
         "temperature": "0",
         "timestamp_granularities[]": "segment",
       }
     `);
+    expect(file).toBeInstanceOf(File);
+    expect(file.type).toEqual('audio/wav');
+    expect(file.name).toEqual('audio.wav');
   });
 
   it('should work when no words, language, or duration are returned', async () => {
