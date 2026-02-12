@@ -40,6 +40,9 @@ There are 3 r's.",
       "content-length": "865",
       "content-type": "application/json",
     },
+    "id": undefined,
+    "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+    "timestamp": undefined,
   },
   "usage": {
     "inputTokens": {
@@ -94,6 +97,9 @@ There are **3** "r"s in "strawberry."",
       "content-length": "435",
       "content-type": "application/json",
     },
+    "id": undefined,
+    "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+    "timestamp": undefined,
   },
   "usage": {
     "inputTokens": {
@@ -124,6 +130,12 @@ exports[`doStream > reasoning > should stream reasoning and text parts 1`] = `
   {
     "type": "stream-start",
     "warnings": [],
+  },
+  {
+    "id": undefined,
+    "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+    "timestamp": undefined,
+    "type": "response-metadata",
   },
   {
     "id": "0",
@@ -288,6 +300,12 @@ exports[`doStream > text > should stream text deltas 1`] = `
   {
     "type": "stream-start",
     "warnings": [],
+  },
+  {
+    "id": undefined,
+    "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+    "timestamp": undefined,
+    "type": "response-metadata",
   },
   {
     "id": "0",

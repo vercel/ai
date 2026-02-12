@@ -1,4 +1,5 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { type AmazonBedrockEmbeddingModelOptions } from '@ai-sdk/amazon-bedrock';
 import { embed } from 'ai';
 import { run } from '../lib/run';
 
@@ -12,7 +13,7 @@ run(async () => {
         embeddingDimension: 256,
         embeddingPurpose: 'TEXT_RETRIEVAL',
         truncate: 'END',
-      },
+      } satisfies AmazonBedrockEmbeddingModelOptions,
     },
   });
 

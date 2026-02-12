@@ -14,7 +14,7 @@ import { AssemblyAITranscriptionModelId } from './assemblyai-transcription-setti
 import { AssemblyAITranscriptionAPITypes } from './assemblyai-api-types';
 
 // https://www.assemblyai.com/docs/api-reference/transcripts/submit
-const assemblyaiProviderOptionsSchema = z.object({
+const assemblyaiTranscriptionModelOptionsSchema = z.object({
   /**
    * End time of the audio in milliseconds.
    */
@@ -161,8 +161,8 @@ const assemblyaiProviderOptionsSchema = z.object({
   wordBoost: z.array(z.string()).nullish(),
 });
 
-export type AssemblyAITranscriptionCallOptions = z.infer<
-  typeof assemblyaiProviderOptionsSchema
+export type AssemblyAITranscriptionModelOptions = z.infer<
+  typeof assemblyaiTranscriptionModelOptionsSchema
 >;
 
 interface AssemblyAITranscriptionModelConfig extends AssemblyAIConfig {
@@ -197,7 +197,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
     const assemblyaiOptions = await parseProviderOptions({
       provider: 'assemblyai',
       providerOptions,
-      schema: assemblyaiProviderOptionsSchema,
+      schema: assemblyaiTranscriptionModelOptionsSchema,
     });
 
     const body: Omit<AssemblyAITranscriptionAPITypes, 'audio_url'> = {
