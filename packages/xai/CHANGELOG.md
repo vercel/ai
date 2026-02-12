@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.56
+
+### Patch Changes
+
+- 7ccb902: fix(provider/xai): handle inconsistent cached token reporting
+
 ## 3.0.55
 
 ### Patch Changes
