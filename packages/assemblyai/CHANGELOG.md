@@ -1,5 +1,11 @@
 # @ai-sdk/assemblyai
 
+## 2.0.19
+
+### Patch Changes
+
+- 242696c: feat: normalize and export provider specific model options type names for existing schemas
+
 ## 2.0.18
 
 ### Patch Changes
