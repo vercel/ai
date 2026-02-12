@@ -21,6 +21,8 @@ const IMAGEN4_FAST_URL =
   'https://api.example.com/models/imagen-4.0-fast-generate-preview-06-06:predict';
 const IMAGEN4_ULTRA_URL =
   'https://api.example.com/models/imagen-4.0-ultra-generate-preview-06-06:predict';
+const GEMINI_IMAGE_URL =
+  'https://api.example.com/models/gemini-2.5-flash-image:generateContent';
 
 const model = new GoogleVertexImageModel('imagen-3.0-generate-002', {
   provider: 'google-vertex',
@@ -33,6 +35,7 @@ const server = createTestServer({
   [IMAGEN4_URL]: {},
   [IMAGEN4_FAST_URL]: {},
   [IMAGEN4_ULTRA_URL]: {},
+  [GEMINI_IMAGE_URL]: {},
 });
 
 function prepareJsonFixtureResponse(
@@ -894,6 +897,307 @@ describe('GoogleVertexImageModel', () => {
           }
         `);
       });
+    });
+  });
+});
+
+describe('GoogleVertexImageModel (Gemini)', () => {
+  const geminiModel = new GoogleVertexImageModel('gemini-2.5-flash-image', {
+    provider: 'google.vertex.image',
+    baseURL: 'https://api.example.com',
+    headers: { 'api-key': 'test-key' },
+  });
+
+  function prepareGeminiJsonResponse({
+    images = [{ mimeType: 'image/png', data: 'base64-generated-image' }],
+    usage = {
+      promptTokenCount: 10,
+      candidatesTokenCount: 100,
+      totalTokenCount: 110,
+    },
+    headers,
+  }: {
+    images?: Array<{ mimeType: string; data: string }>;
+    usage?: {
+      promptTokenCount: number;
+      candidatesTokenCount: number;
+      totalTokenCount: number;
+    };
+    headers?: Record<string, string>;
+  } = {}) {
+    server.urls[GEMINI_IMAGE_URL].response = {
+      type: 'json-value',
+      headers,
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: images.map(img => ({
+                inlineData: {
+                  mimeType: img.mimeType,
+                  data: img.data,
+                },
+              })),
+              role: 'model',
+            },
+            finishReason: 'STOP',
+          },
+        ],
+        usageMetadata: usage,
+      },
+    };
+  }
+
+  describe('maxImagesPerCall', () => {
+    it('should return 10 for Gemini image models', () => {
+      expect(geminiModel.maxImagesPerCall).toBe(10);
+    });
+
+    it('should return 4 for Imagen models', () => {
+      const imagenModel = new GoogleVertexImageModel(
+        'imagen-3.0-generate-002',
+        {
+          provider: 'google.vertex.image',
+          baseURL: 'https://api.example.com',
+          headers: { 'api-key': 'test-key' },
+        },
+      );
+      expect(imagenModel.maxImagesPerCall).toBe(4);
+    });
+  });
+
+  describe('doGenerate', () => {
+    it('should extract the generated image', async () => {
+      prepareGeminiJsonResponse();
+
+      const result = await geminiModel.doGenerate({
+        prompt: 'A beautiful sunset',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toStrictEqual(['base64-generated-image']);
+    });
+
+    it('should send correct request body with responseModalities', async () => {
+      prepareGeminiJsonResponse();
+
+      await geminiModel.doGenerate({
+        prompt: 'A beautiful sunset',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.generationConfig.responseModalities).toStrictEqual([
+        'IMAGE',
+      ]);
+      expect(requestBody.contents).toStrictEqual([
+        {
+          role: 'user',
+          parts: [{ text: 'A beautiful sunset' }],
+        },
+      ]);
+    });
+
+    it('should pass aspectRatio via imageConfig', async () => {
+      prepareGeminiJsonResponse();
+
+      await geminiModel.doGenerate({
+        prompt: 'A beautiful sunset',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: '16:9',
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.generationConfig.imageConfig).toStrictEqual({
+        aspectRatio: '16:9',
+      });
+    });
+
+    it('should pass seed in generationConfig', async () => {
+      prepareGeminiJsonResponse();
+
+      await geminiModel.doGenerate({
+        prompt: 'A beautiful sunset',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: 12345,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.generationConfig.seed).toBe(12345);
+    });
+
+    it('should include usage in response', async () => {
+      prepareGeminiJsonResponse({
+        usage: {
+          promptTokenCount: 20,
+          candidatesTokenCount: 200,
+          totalTokenCount: 220,
+        },
+      });
+
+      const result = await geminiModel.doGenerate({
+        prompt: 'A beautiful sunset',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.usage).toStrictEqual({
+        inputTokens: 20,
+        outputTokens: 200,
+        totalTokens: 220,
+      });
+    });
+
+    it('should return warning for unsupported size option', async () => {
+      prepareGeminiJsonResponse();
+
+      const result = await geminiModel.doGenerate({
+        prompt: 'A beautiful sunset',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'size',
+        details:
+          'This model does not support the `size` option. Use `aspectRatio` instead.',
+      });
+    });
+  });
+
+  describe('image editing', () => {
+    it('should include input images in request for editing', async () => {
+      prepareGeminiJsonResponse();
+
+      await geminiModel.doGenerate({
+        prompt: 'Add a hat to this cat',
+        files: [
+          {
+            type: 'file',
+            data: 'base64-source-image',
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.contents[0].parts).toHaveLength(2);
+      expect(requestBody.contents[0].parts[0]).toStrictEqual({
+        text: 'Add a hat to this cat',
+      });
+      expect(requestBody.contents[0].parts[1]).toStrictEqual({
+        inlineData: {
+          mimeType: 'image/png',
+          data: 'base64-source-image',
+        },
+      });
+    });
+
+    it('should handle URL-based input images', async () => {
+      prepareGeminiJsonResponse();
+
+      await geminiModel.doGenerate({
+        prompt: 'Add a hat to this cat',
+        files: [
+          {
+            type: 'url',
+            url: 'https://example.com/cat.png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.contents[0].parts[1]).toStrictEqual({
+        fileData: {
+          mimeType: 'image/jpeg',
+          fileUri: 'https://example.com/cat.png',
+        },
+      });
+    });
+  });
+
+  describe('unsupported options', () => {
+    it('should throw error when n > 1', async () => {
+      await expect(
+        geminiModel.doGenerate({
+          prompt: 'A beautiful sunset',
+          files: undefined,
+          mask: undefined,
+          n: 2,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow(
+        'Gemini image models do not support generating a set number of images per call.',
+      );
+    });
+
+    it('should throw error when mask is provided', async () => {
+      await expect(
+        geminiModel.doGenerate({
+          prompt: 'Edit this image',
+          files: undefined,
+          mask: {
+            type: 'file',
+            data: 'base64-mask-image',
+            mediaType: 'image/png',
+          },
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow(
+        'Gemini image models do not support mask-based image editing.',
+      );
     });
   });
 });
