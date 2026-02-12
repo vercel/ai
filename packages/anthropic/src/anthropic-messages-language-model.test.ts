@@ -1112,7 +1112,7 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     it('should send the model id and settings', async () => {
-      prepareJsonResponse({});
+      prepareJsonFixtureResponse('anthropic-text');
 
       const { warnings } = await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -1159,7 +1159,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('temperature and topP mutual exclusivity', () => {
       it('should only send temperature when both temperature and topP are provided', async () => {
-        prepareJsonResponse({});
+        prepareJsonFixtureResponse('anthropic-text');
 
         const { warnings } = await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -1179,7 +1179,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should send temperature when only temperature is provided', async () => {
-        prepareJsonResponse({});
+        prepareJsonFixtureResponse('anthropic-text');
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -1192,7 +1192,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should send topP when only topP is provided', async () => {
-        prepareJsonResponse({});
+        prepareJsonFixtureResponse('anthropic-text');
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -1205,7 +1205,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should not send temperature or topP when neither is provided', async () => {
-        prepareJsonResponse({});
+        prepareJsonFixtureResponse('anthropic-text');
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -1218,7 +1218,7 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     it('should limit max output tokens to the model max and warn', async () => {
-      prepareJsonResponse({});
+      prepareJsonFixtureResponse('anthropic-text');
 
       const { warnings } = await provider('claude-haiku-4-5').doGenerate({
         prompt: TEST_PROMPT,
@@ -1255,7 +1255,7 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     it('should not limit max output tokens for unknown models', async () => {
-      prepareJsonResponse({});
+      prepareJsonFixtureResponse('anthropic-text');
 
       const { warnings } = await provider('future-model').doGenerate({
         prompt: TEST_PROMPT,
@@ -1284,7 +1284,7 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     it('should use default thinking budget when it is not set', async () => {
-      prepareJsonResponse({});
+      prepareJsonFixtureResponse('anthropic-text');
 
       const { warnings } = await provider('claude-haiku-4-5').doGenerate({
         prompt: TEST_PROMPT,
@@ -1329,7 +1329,7 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     it('should pass tools and toolChoice', async () => {
-      prepareJsonResponse({});
+      prepareJsonFixtureResponse('anthropic-text');
 
       await model.doGenerate({
         tools: [
@@ -1378,7 +1378,7 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     it('should pass disableParallelToolUse', async () => {
-      prepareJsonResponse({});
+      prepareJsonFixtureResponse('anthropic-text');
 
       await model.doGenerate({
         tools: [
@@ -3960,7 +3960,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('temperature clamping', () => {
       it('should clamp temperature above 1 to 1 and add warning', async () => {
-        prepareJsonResponse({});
+        prepareJsonFixtureResponse('anthropic-text');
 
         const result = await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -3982,7 +3982,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should clamp temperature below 0 to 0 and add warning', async () => {
-        prepareJsonResponse({});
+        prepareJsonFixtureResponse('anthropic-text');
 
         const result = await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -4004,7 +4004,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should not clamp valid temperature between 0 and 1', async () => {
-        prepareJsonResponse({});
+        prepareJsonFixtureResponse('anthropic-text');
 
         const result = await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -4019,7 +4019,7 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     it('should set effort', async () => {
-      prepareJsonResponse({});
+      prepareJsonFixtureResponse('anthropic-text');
 
       const result = await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -4063,7 +4063,7 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     it('should set speed and fast-mode beta header', async () => {
-      prepareJsonResponse({});
+      prepareJsonFixtureResponse('anthropic-text');
 
       const result = await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -4106,7 +4106,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('context management', () => {
       it('should send context_management in request body', async () => {
-        prepareJsonResponse({});
+        prepareJsonFixtureResponse('anthropic-text');
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -4127,7 +4127,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should add context-management beta header', async () => {
-        prepareJsonResponse({});
+        prepareJsonFixtureResponse('anthropic-text');
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -4185,7 +4185,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should map clear_tool_uses_20250919 with all options to request body', async () => {
-        prepareJsonResponse({});
+        prepareJsonFixtureResponse('anthropic-text');
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -4224,7 +4224,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should map clear_thinking_20251015 with keep option to request body', async () => {
-        prepareJsonResponse({});
+        prepareJsonFixtureResponse('anthropic-text');
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -4255,7 +4255,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should map multiple context management edits to request body', async () => {
-        prepareJsonResponse({});
+        prepareJsonFixtureResponse('anthropic-text');
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -4282,7 +4282,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should map compact_20260112 to request body', async () => {
-        prepareJsonResponse({});
+        prepareJsonFixtureResponse('anthropic-text');
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -4313,7 +4313,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should map compact_20260112 with all options to request body', async () => {
-        prepareJsonResponse({});
+        prepareJsonFixtureResponse('anthropic-text');
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -4348,7 +4348,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should add compact beta header when using compact edit', async () => {
-        prepareJsonResponse({});
+        prepareJsonFixtureResponse('anthropic-text');
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
