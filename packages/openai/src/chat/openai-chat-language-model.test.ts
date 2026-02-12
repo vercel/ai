@@ -126,6 +126,7 @@ function prepareChunksFixtureResponse(filename: string) {
   const chunks = fs
     .readFileSync(`src/chat/__fixtures__/${filename}.chunks.txt`, 'utf8')
     .split('\n')
+    .filter(line => line.trim().length > 0)
     .map(line => `data: ${line}\n\n`);
   chunks.push('data: [DONE]\n\n');
 
