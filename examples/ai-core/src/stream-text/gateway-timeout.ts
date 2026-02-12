@@ -17,8 +17,9 @@ import { run } from '../lib/run';
 
 run(async () => {
   try {
-    // Create an undici Agent with very short timeouts
-    // bodyTimeout applies to receiving the entire response body
+    // Create an undici Agent with extremely short timeouts
+    // Using 1ms to ensure timeout before response arrives
+    // For streaming, bodyTimeout will trigger while reading the stream
     const agent = new Agent({
       headersTimeout: 1, // 1ms - will timeout waiting for headers
       bodyTimeout: 1, // 1ms - will timeout reading response body
