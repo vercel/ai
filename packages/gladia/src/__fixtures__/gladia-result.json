@@ -1,0 +1,64 @@
+{
+  "id": "45463597-20b7-4af7-b3b3-f5fb778203ab",
+  "request_id": "G-45463597",
+  "version": 2,
+  "status": "done",
+  "created_at": "2023-12-28T09:04:17.210Z",
+  "completed_at": "2023-12-28T09:04:37.210Z",
+  "custom_metadata": {},
+  "error_code": null,
+  "kind": "pre-recorded",
+  "file": {
+    "id": "test-id",
+    "filename": "test-file.mp3",
+    "source": "upload",
+    "audio_duration": 60,
+    "number_of_channels": 2
+  },
+  "request_params": {
+    "audio_url": "https://storage.gladia.io/mock-upload-url"
+  },
+  "result": {
+    "metadata": {
+      "audio_duration": 60,
+      "number_of_distinct_channels": 2,
+      "billing_time": 60,
+      "transcription_time": 20
+    },
+    "transcription": {
+      "full_transcript": "Smoke from hundreds of wildfires.",
+      "languages": ["en"],
+      "utterances": [
+        {
+          "language": "en",
+          "start": 0,
+          "end": 3,
+          "confidence": 0.95,
+          "channel": 1,
+          "speaker": 1,
+          "words": [
+            {
+              "word": "Smoke",
+              "start": 0,
+              "end": 1,
+              "confidence": 0.95
+            },
+            {
+              "word": "from",
+              "start": 1,
+              "end": 2,
+              "confidence": 0.95
+            },
+            {
+              "word": "hundreds",
+              "start": 2,
+              "end": 3,
+              "confidence": 0.95
+            }
+          ],
+          "text": "Smoke from hundreds of wildfires."
+        }
+      ]
+    }
+  }
+}

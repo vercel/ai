@@ -1,0 +1,11 @@
+{
+  "audio_url": "https://storage.gladia.io/mock-upload-url",
+  "audio_metadata": {
+    "id": "test-id",
+    "filename": "test-file.mp3",
+    "extension": "mp3",
+    "size": 1024,
+    "audio_duration": 60,
+    "number_of_channels": 2
+  }
+}
