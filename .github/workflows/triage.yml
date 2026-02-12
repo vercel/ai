@@ -49,11 +49,15 @@ jobs:
       - name: Get changed file paths
         id: get-changed-files
         run: |
-          files=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...${{ github.event.pull_request.head.sha }})
-          echo "files=$files"
+          files=$(gh api \
+            /repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files \
+            --jq '.[].filename')
+
           echo "files<<EOF" >> $GITHUB_OUTPUT
           echo "$files" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Determine appropriate labels
         id: classify-issue
