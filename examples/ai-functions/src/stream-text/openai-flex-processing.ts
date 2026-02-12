@@ -1,4 +1,7 @@
-import { openai } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
 
@@ -11,7 +14,7 @@ run(async () => {
     providerOptions: {
       openai: {
         serviceTier: 'flex', // 50% cheaper processing with increased latency
-      },
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
   });
 

@@ -281,3 +281,4 @@ When uncertain about expected artifacts, ask for clarification.
 - Change public APIs without updating documentation
 - Use `require()` for imports
 - Add new dependencies without running `pnpm update-references`
+- Modify `content/docs/08-migration-guides` or `packages/codemod` as part of broader codebase changes

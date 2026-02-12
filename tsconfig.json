@@ -2,6 +2,7 @@
   "references": [
     { "path": "packages/ai" },
     { "path": "packages/mcp" },
+    { "path": "packages/alibaba" },
     { "path": "packages/amazon-bedrock" },
     { "path": "packages/angular" },
     { "path": "packages/anthropic" },
@@ -25,6 +26,7 @@
     { "path": "packages/groq" },
     { "path": "packages/huggingface" },
     { "path": "packages/hume" },
+    { "path": "packages/klingai" },
     { "path": "packages/langchain" },
     { "path": "packages/llamaindex" },
     { "path": "packages/lmnt" },

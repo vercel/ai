@@ -46,7 +46,7 @@ console.log(text);
 Gemini 3 models can use enhanced reasoning through thinking mode, which improves their ability to solve complex problems. You can control the thinking level using the `thinkingLevel` provider option:
 
 ```ts
-import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import { google, GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
@@ -58,7 +58,7 @@ const { text } = await generateText({
         includeThoughts: true,
         thinkingLevel: 'low',
       },
-    } satisfies GoogleGenerativeAIProviderOptions,
+    } satisfies GoogleLanguageModelOptions,
   },
 });
 

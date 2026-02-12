@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { openai, type OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { setTimeout } from 'node:timers/promises';
 import { performance } from 'node:perf_hooks';
@@ -145,7 +145,9 @@ const runCompletion = async () =>
       },
     ],
     providerOptions: {
-      openai: { maxCompletionTokens: 100 },
+      openai: {
+        maxCompletionTokens: 100,
+      } satisfies OpenAILanguageModelChatOptions,
     },
   });
 

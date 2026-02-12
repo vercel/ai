@@ -43,11 +43,6 @@ export interface GoogleGenerativeAIProvider extends ProviderV3 {
   ): ImageModelV3;
 
   /**
-   * Creates a model for video generation.
-   */
-  video(modelId: GoogleGenerativeAIVideoModelId): Experimental_VideoModelV3;
-
-  /**
    * @deprecated Use `chat()` instead.
    */
   generativeAI(modelId: GoogleGenerativeAIModelId): LanguageModelV3;
@@ -73,6 +68,18 @@ export interface GoogleGenerativeAIProvider extends ProviderV3 {
   textEmbeddingModel(
     modelId: GoogleGenerativeAIEmbeddingModelId,
   ): EmbeddingModelV3;
+
+  /**
+   * Creates a model for video generation.
+   */
+  video(modelId: GoogleGenerativeAIVideoModelId): Experimental_VideoModelV3;
+
+  /**
+   * Creates a model for video generation.
+   */
+  videoModel(
+    modelId: GoogleGenerativeAIVideoModelId,
+  ): Experimental_VideoModelV3;
 
   tools: typeof googleTools;
 }
@@ -208,6 +215,7 @@ export function createGoogleGenerativeAI(
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
   provider.video = createVideoModel;
+  provider.videoModel = createVideoModel;
   provider.tools = googleTools;
 
   return provider as GoogleGenerativeAIProvider;
