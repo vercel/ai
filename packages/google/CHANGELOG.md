@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.27
+
+### Patch Changes
+
+- 051361b: fix(vertex): add fallback for providerOptions keyname
+
 ## 3.0.26
 
 ### Patch Changes
