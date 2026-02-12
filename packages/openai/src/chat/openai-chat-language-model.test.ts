@@ -135,6 +135,15 @@ function prepareChunksFixtureResponse(filename: string) {
   };
 }
 
+function prepareJsonFixtureResponse(filename: string) {
+  server.urls['https://api.openai.com/v1/chat/completions'].response = {
+    type: 'json-value',
+    body: JSON.parse(
+      fs.readFileSync(`src/chat/__fixtures__/${filename}.json`, 'utf8'),
+    ),
+  };
+}
+
 describe('doGenerate', () => {
   function prepareJsonResponse({
     content = '',
