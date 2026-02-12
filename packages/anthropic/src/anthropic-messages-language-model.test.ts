@@ -3733,26 +3733,22 @@ describe('AnthropicMessagesLanguageModel', () => {
         },
       ];
 
-      function prepareJsonResponse(body: any) {
+      it('should enable server-side code execution when using anthropic.tools.codeExecution_20250522', async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
           type: 'json-value',
-          body,
+          body: {
+            type: 'message',
+            id: 'msg_test',
+            content: [
+              {
+                type: 'text',
+                text: 'Here is a Python function to calculate factorial',
+              },
+            ],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 10, output_tokens: 20 },
+          },
         };
-      }
-
-      it('should enable server-side code execution when using anthropic.tools.codeExecution_20250522', async () => {
-        prepareJsonResponse({
-          type: 'message',
-          id: 'msg_test',
-          content: [
-            {
-              type: 'text',
-              text: 'Here is a Python function to calculate factorial',
-            },
-          ],
-          stop_reason: 'end_turn',
-          usage: { input_tokens: 10, output_tokens: 20 },
-        });
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -3801,38 +3797,41 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should handle server-side code execution results', async () => {
-        prepareJsonResponse({
-          type: 'message',
-          id: 'msg_test',
-          content: [
-            {
-              type: 'server_tool_use',
-              id: 'tool_1',
-              name: 'code_execution',
-              input: { code: 'print("Hello, World!")' },
-            },
-            {
-              type: 'code_execution_tool_result',
-              tool_use_id: 'tool_1',
-              content: {
-                type: 'code_execution_result',
-                stdout: 'Hello, World!\n',
-                stderr: '',
-                return_code: 0,
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_test',
+            content: [
+              {
+                type: 'server_tool_use',
+                id: 'tool_1',
+                name: 'code_execution',
+                input: { code: 'print("Hello, World!")' },
               },
+              {
+                type: 'code_execution_tool_result',
+                tool_use_id: 'tool_1',
+                content: {
+                  type: 'code_execution_result',
+                  stdout: 'Hello, World!\n',
+                  stderr: '',
+                  return_code: 0,
+                },
+              },
+              {
+                type: 'text',
+                text: 'The code executed successfully with output: Hello, World!',
+              },
+            ],
+            stop_reason: 'end_turn',
+            usage: {
+              input_tokens: 15,
+              output_tokens: 25,
+              server_tool_use: { code_execution_requests: 1 },
             },
-            {
-              type: 'text',
-              text: 'The code executed successfully with output: Hello, World!',
-            },
-          ],
-          stop_reason: 'end_turn',
-          usage: {
-            input_tokens: 15,
-            output_tokens: 25,
-            server_tool_use: { code_execution_requests: 1 },
           },
-        });
+        };
 
         const result = await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -3877,26 +3876,29 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should handle server-side code execution errors', async () => {
-        prepareJsonResponse({
-          type: 'message',
-          id: 'msg_test',
-          content: [
-            {
-              type: 'code_execution_tool_result',
-              tool_use_id: 'tool_1',
-              content: {
-                type: 'code_execution_tool_result_error',
-                error_code: 'unavailable',
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_test',
+            content: [
+              {
+                type: 'code_execution_tool_result',
+                tool_use_id: 'tool_1',
+                content: {
+                  type: 'code_execution_tool_result_error',
+                  error_code: 'unavailable',
+                },
               },
-            },
-            {
-              type: 'text',
-              text: 'The code execution service is currently unavailable.',
-            },
-          ],
-          stop_reason: 'end_turn',
-          usage: { input_tokens: 10, output_tokens: 20 },
-        });
+              {
+                type: 'text',
+                text: 'The code execution service is currently unavailable.',
+              },
+            ],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 10, output_tokens: 20 },
+          },
+        };
 
         const result = await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -3931,15 +3933,18 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should work alongside regular client-side tools', async () => {
-        prepareJsonResponse({
-          type: 'message',
-          id: 'msg_test',
-          content: [
-            { type: 'text', text: 'I can execute code and calculate.' },
-          ],
-          stop_reason: 'end_turn',
-          usage: { input_tokens: 10, output_tokens: 20 },
-        });
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_test',
+            content: [
+              { type: 'text', text: 'I can execute code and calculate.' },
+            ],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 10, output_tokens: 20 },
+          },
+        };
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
