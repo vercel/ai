@@ -6,6 +6,7 @@ import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 import { TimeoutConfiguration } from '../prompt/call-settings';
 import type {
+  ToolLoopAgentOnAbortCallback,
   ToolLoopAgentOnFinishCallback,
   ToolLoopAgentOnStartCallback,
   ToolLoopAgentOnStepFinishCallback,
@@ -110,6 +111,11 @@ export type AgentStreamParameters<
   experimental_transform?:
     | StreamTextTransform<TOOLS>
     | Array<StreamTextTransform<TOOLS>>;
+
+  /**
+   * Callback that is called when the stream is aborted, either through the `abortSignal` or due to a timeout.
+   */
+  onAbort?: ToolLoopAgentOnAbortCallback<TOOLS>;
 };
 
 /**

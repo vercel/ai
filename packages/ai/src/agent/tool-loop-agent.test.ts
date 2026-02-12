@@ -12,6 +12,7 @@ import type {
   ToolLoopAgentOnToolCallFinishCallback,
   ToolLoopAgentOnToolCallStartCallback,
 } from './tool-loop-agent-settings';
+import type { StepResult } from '../generate-text';
 
 describe('ToolLoopAgent', () => {
   describe('generate', () => {
@@ -344,19 +345,40 @@ describe('ToolLoopAgent', () => {
 
     it('should pass abortSignal to streamText', async () => {
       const abortController = new AbortController();
+      const onAbortCalls: { name: string; steps: readonly StepResult<{}>[] }[] =
+        [];
 
       const agent = new ToolLoopAgent({
         model: mockModel,
+        onAbort: async ({ steps }) => {
+          onAbortCalls.push({ name: 'constructor', steps });
+        },
       });
 
       const result = await agent.stream({
         prompt: 'Hello, world!',
         abortSignal: abortController.signal,
+        onAbort: async ({ steps }) => {
+          onAbortCalls.push({ name: 'method', steps });
+        },
       });
 
+      abortController.abort();
       await result.consumeStream();
 
       expect(doStreamOptions?.abortSignal).toBe(abortController.signal);
+      expect(onAbortCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "name": "constructor",
+            "steps": [],
+          },
+          {
+            "name": "method",
+            "steps": [],
+          },
+        ]
+      `);
     });
 
     it('should pass timeout to streamText', async () => {

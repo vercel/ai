@@ -8,7 +8,10 @@ import { InferUITools, UIMessage } from '../ui/ui-messages';
 import { validateUIMessages } from '../ui/validate-ui-messages';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { Agent } from './agent';
-import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settings';
+import type {
+  ToolLoopAgentOnAbortCallback,
+  ToolLoopAgentOnStepFinishCallback,
+} from './tool-loop-agent-settings';
 
 /**
  * Runs the agent and stream the output as a UI message stream.
@@ -19,6 +22,7 @@ import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settin
  * @param timeout - Timeout in milliseconds. Optional.
  * @param options - The options for the agent.
  * @param experimental_transform - The stream transformations. Optional.
+ * @param onAbort - Callback that is called when the stream is aborted. Optional.
  * @param onStepFinish - Callback that is called when each step is finished. Optional.
  *
  * @returns The UI message stream.
@@ -35,6 +39,7 @@ export async function createAgentUIStream<
   abortSignal,
   timeout,
   experimental_transform,
+  onAbort,
   onStepFinish,
   ...uiMessageStreamOptions
 }: {
@@ -46,6 +51,7 @@ export async function createAgentUIStream<
   experimental_transform?:
     | StreamTextTransform<TOOLS>
     | Array<StreamTextTransform<TOOLS>>;
+  onAbort?: ToolLoopAgentOnAbortCallback<TOOLS>;
   onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
   // TODO `originalMessages` is part of this for bc, omit in v7
 } & UIMessageStreamOptions<
@@ -72,6 +78,7 @@ export async function createAgentUIStream<
     abortSignal,
     timeout,
     experimental_transform,
+    onAbort,
     onStepFinish,
   });
 
