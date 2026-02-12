@@ -3189,7 +3189,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass the model and the messages', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3220,7 +3220,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass settings', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3241,7 +3241,7 @@ describe('doGenerate', () => {
   });
 
   it('should support guardrails', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3493,7 +3493,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass tools and tool choice correctly', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       tools: [
@@ -3542,7 +3542,7 @@ describe('doGenerate', () => {
   });
 
   it('should omit empty tool descriptions to avoid Bedrock validation errors', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       tools: [
@@ -3835,7 +3835,7 @@ describe('doGenerate', () => {
   });
 
   it('should properly combine headers from all sources', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const optionsHeaders = {
       'options-header': 'options-value',
@@ -3872,7 +3872,7 @@ describe('doGenerate', () => {
   });
 
   it('should work with partial headers', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const model = new BedrockChatLanguageModel(modelId, {
       baseUrl: () => baseUrl,
@@ -3898,9 +3898,7 @@ describe('doGenerate', () => {
   });
 
   it('should include providerOptions in the request for generate calls', async () => {
-    prepareJsonResponse({
-      content: [{ type: 'text', text: 'Test generation' }],
-    });
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3911,7 +3909,6 @@ describe('doGenerate', () => {
       },
     });
 
-    // Verify that the outgoing request body includes "foo" at its top level.
     const body = await server.calls[0].requestBodyJson;
     expect(body).toMatchObject({ foo: 'bar' });
   });
@@ -4074,7 +4071,7 @@ describe('doGenerate', () => {
   });
 
   it('should handle system messages with cache points', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: [
@@ -4094,7 +4091,7 @@ describe('doGenerate', () => {
   });
 
   it('should transform reasoningConfig to thinking in additionalModelRequestFields', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4129,7 +4126,7 @@ describe('doGenerate', () => {
   });
 
   it('merges user additionalModelRequestFields with derived thinking (generate)', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4223,7 +4220,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass maxReasoningEffort as output_config.effort for Anthropic models (generate)', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4413,7 +4410,7 @@ describe('doGenerate', () => {
   });
 
   it('should omit toolConfig and filter tool content when conversation has tool calls but no active tools', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const conversationWithToolCalls: LanguageModelV3Prompt = [
       {
@@ -4702,7 +4699,7 @@ describe('doGenerate', () => {
   });
 
   it('should handle unsupported response format types', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4721,7 +4718,7 @@ describe('doGenerate', () => {
   });
 
   it('should omit toolConfig when conversation has tool calls but toolChoice is none', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const conversationWithToolCalls: LanguageModelV3Prompt = [
       {
@@ -4783,7 +4780,7 @@ describe('doGenerate', () => {
   });
 
   it('should clamp temperature above 1 to 1 and add warning', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4805,7 +4802,7 @@ describe('doGenerate', () => {
   });
 
   it('should clamp temperature below 0 to 0 and add warning', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4827,7 +4824,7 @@ describe('doGenerate', () => {
   });
 
   it('should not clamp valid temperature between 0 and 1', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
