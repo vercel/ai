@@ -145,103 +145,32 @@ function prepareJsonFixtureResponse(filename: string) {
 }
 
 describe('doGenerate', () => {
-  function prepareJsonResponse({
-    content = '',
-    tool_calls,
-    function_call,
-    annotations,
-    usage = {
-      prompt_tokens: 4,
-      total_tokens: 34,
-      completion_tokens: 30,
-    },
-    finish_reason = 'stop',
-    id = 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-    created = 1711115037,
-    model = 'gpt-3.5-turbo-0125',
-    logprobs = null,
-    headers,
-  }: {
-    content?: string;
-    tool_calls?: Array<{
-      id: string;
-      type: 'function';
-      function: {
-        name: string;
-        arguments: string;
-      };
-    }>;
-    function_call?: {
-      name: string;
-      arguments: string;
-    };
-    annotations?: Array<{
-      type: 'url_citation';
-      url_citation: {
-        start_index: number;
-        end_index: number;
-        url: string;
-        title: string;
-      };
-    }>;
-    logprobs?: {
-      content:
-        | {
-            token: string;
-            logprob: number;
-            top_logprobs: { token: string; logprob: number }[];
-          }[]
-        | null;
-    } | null;
-    usage?: {
-      prompt_tokens?: number;
-      total_tokens?: number;
-      completion_tokens?: number;
-      completion_tokens_details?: {
-        reasoning_tokens?: number;
-        accepted_prediction_tokens?: number;
-        rejected_prediction_tokens?: number;
-      };
-      prompt_tokens_details?: {
-        cached_tokens?: number;
-      };
-    };
-    finish_reason?: string;
-    created?: number;
-    id?: string;
-    model?: string;
-    headers?: Record<string, string>;
-  } = {}) {
+  it('should extract text response', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'json-value',
-      headers,
       body: {
-        id,
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
         object: 'chat.completion',
-        created,
-        model,
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
         choices: [
           {
             index: 0,
             message: {
               role: 'assistant',
-              content,
-              tool_calls,
-              function_call,
-              annotations,
+              content: 'Hello, World!',
             },
-            ...(logprobs ? { logprobs } : {}),
-            finish_reason,
+            finish_reason: 'stop',
           },
         ],
-        usage,
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+        },
         system_fingerprint: 'fp_3bc1b5746c',
       },
     };
-  }
-
-  it('should extract text response', async () => {
-    prepareJsonResponse({ content: 'Hello, World!' });
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -258,9 +187,24 @@ describe('doGenerate', () => {
   });
 
   it('should extract usage', async () => {
-    prepareJsonResponse({
-      usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
-    });
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const { usage } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -289,7 +233,7 @@ describe('doGenerate', () => {
   });
 
   it('should send request body', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('openai-text');
 
     const { request } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -336,11 +280,28 @@ describe('doGenerate', () => {
   });
 
   it('should send additional response information', async () => {
-    prepareJsonResponse({
-      id: 'test-id',
-      created: 123,
-      model: 'test-model',
-    });
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'test-id',
+        object: 'chat.completion',
+        created: 123,
+        model: 'test-model',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+        },
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const { response } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -382,9 +343,24 @@ describe('doGenerate', () => {
   });
 
   it('should support partial usage', async () => {
-    prepareJsonResponse({
-      usage: { prompt_tokens: 20, total_tokens: 20 },
-    });
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 20, total_tokens: 20 },
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const { usage } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -412,9 +388,29 @@ describe('doGenerate', () => {
   });
 
   it('should extract logprobs', async () => {
-    prepareJsonResponse({
-      logprobs: TEST_LOGPROBS,
-    });
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            logprobs: TEST_LOGPROBS,
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+        },
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const response = await provider.chat('gpt-3.5-turbo').doGenerate({
       prompt: TEST_PROMPT,
@@ -430,9 +426,28 @@ describe('doGenerate', () => {
   });
 
   it('should extract finish reason', async () => {
-    prepareJsonResponse({
-      finish_reason: 'stop',
-    });
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+        },
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const response = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -447,9 +462,28 @@ describe('doGenerate', () => {
   });
 
   it('should support unknown finish reason', async () => {
-    prepareJsonResponse({
-      finish_reason: 'eos',
-    });
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'eos',
+          },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+        },
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const response = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -464,9 +498,29 @@ describe('doGenerate', () => {
   });
 
   it('should expose the raw response headers', async () => {
-    prepareJsonResponse({
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
       headers: { 'test-header': 'test-value' },
-    });
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+        },
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const { response } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -482,7 +536,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass the model and the messages', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -495,7 +549,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass settings', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     await provider.chat('gpt-3.5-turbo').doGenerate({
       prompt: TEST_PROMPT,
@@ -527,7 +581,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass reasoningEffort setting from provider metadata', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('o4-mini');
 
@@ -546,7 +600,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass reasoningEffort setting from settings', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('o4-mini');
 
@@ -565,7 +619,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass reasoningEffort xhigh setting', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-5.1-codex-max');
 
@@ -584,7 +638,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass textVerbosity setting from provider options', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-4o');
 
@@ -603,7 +657,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass tools and toolChoice', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     await model.doGenerate({
       tools: [
@@ -667,7 +721,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass headers', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     const provider = createOpenAI({
       apiKey: 'test-api-key',
@@ -699,18 +753,41 @@ describe('doGenerate', () => {
   });
 
   it('should parse tool results', async () => {
-    prepareJsonResponse({
-      tool_calls: [
-        {
-          id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            arguments: '{"value":"Spark"}',
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: '',
+              tool_calls: [
+                {
+                  id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                  type: 'function',
+                  function: {
+                    name: 'test-tool',
+                    arguments: '{"value":"Spark"}',
+                  },
+                },
+              ],
+            },
+            finish_reason: 'stop',
           },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
         },
-      ],
-    });
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const result = await model.doGenerate({
       tools: [
@@ -746,20 +823,43 @@ describe('doGenerate', () => {
   });
 
   it('should parse annotations/citations', async () => {
-    prepareJsonResponse({
-      content: 'Based on the search results [doc1], I found information.',
-      annotations: [
-        {
-          type: 'url_citation',
-          url_citation: {
-            start_index: 24,
-            end_index: 29,
-            url: 'https://example.com/doc1.pdf',
-            title: 'Document 1',
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content:
+                'Based on the search results [doc1], I found information.',
+              annotations: [
+                {
+                  type: 'url_citation',
+                  url_citation: {
+                    start_index: 24,
+                    end_index: 29,
+                    url: 'https://example.com/doc1.pdf',
+                    title: 'Document 1',
+                  },
+                },
+              ],
+            },
+            finish_reason: 'stop',
           },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
         },
-      ],
-    });
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -782,7 +882,7 @@ describe('doGenerate', () => {
 
   describe('response format', () => {
     it('should not send a response_format when response format is text', async () => {
-      prepareJsonResponse({ content: '{"value":"Spark"}' });
+      prepareJsonFixtureResponse('openai-text');
 
       const model = provider.chat('gpt-4o-2024-08-06');
 
@@ -798,7 +898,7 @@ describe('doGenerate', () => {
     });
 
     it('should forward json response format as "json_object" without schema', async () => {
-      prepareJsonResponse({ content: '{"value":"Spark"}' });
+      prepareJsonFixtureResponse('openai-text');
 
       const model = provider.chat('gpt-4o-2024-08-06');
 
@@ -815,7 +915,7 @@ describe('doGenerate', () => {
     });
 
     it('should forward json response format as "json_object" and include schema', async () => {
-      prepareJsonResponse({ content: '{"value":"Spark"}' });
+      prepareJsonFixtureResponse('openai-text');
 
       const model = provider.chat('gpt-4o-2024-08-06');
 
@@ -869,7 +969,7 @@ describe('doGenerate', () => {
     });
 
     it('should use json_schema & strict with responseFormat json', async () => {
-      prepareJsonResponse({ content: '{"value":"Spark"}' });
+      prepareJsonFixtureResponse('openai-text');
 
       const model = provider.chat('gpt-4o-2024-08-06');
 
@@ -921,7 +1021,7 @@ describe('doGenerate', () => {
     });
 
     it('should set name & description with responseFormat json', async () => {
-      prepareJsonResponse({ content: '{"value":"Spark"}' });
+      prepareJsonFixtureResponse('openai-text');
 
       const model = provider.chat('gpt-4o-2024-08-06');
 
@@ -976,7 +1076,7 @@ describe('doGenerate', () => {
     });
 
     it('should allow for undefined schema with responseFormat json when structuredOutputs are enabled', async () => {
-      prepareJsonResponse({ content: '{"value":"Spark"}' });
+      prepareJsonFixtureResponse('openai-text');
 
       const model = provider.chat('gpt-4o-2024-08-06');
 
@@ -999,18 +1099,41 @@ describe('doGenerate', () => {
     });
 
     it('should set strict with tool call', async () => {
-      prepareJsonResponse({
-        tool_calls: [
-          {
-            id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-            type: 'function',
-            function: {
-              name: 'test-tool',
-              arguments: '{"value":"Spark"}',
+      server.urls['https://api.openai.com/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+          object: 'chat.completion',
+          created: 1711115037,
+          model: 'gpt-3.5-turbo-0125',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: '',
+                tool_calls: [
+                  {
+                    id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                    type: 'function',
+                    function: {
+                      name: 'test-tool',
+                      arguments: '{"value":"Spark"}',
+                    },
+                  },
+                ],
+              },
+              finish_reason: 'stop',
             },
+          ],
+          usage: {
+            prompt_tokens: 4,
+            total_tokens: 34,
+            completion_tokens: 30,
           },
-        ],
-      });
+          system_fingerprint: 'fp_3bc1b5746c',
+        },
+      };
 
       const model = provider.chat('gpt-4o-2024-08-06');
 
@@ -1082,18 +1205,41 @@ describe('doGenerate', () => {
   });
 
   it('should set strict for tool usage', async () => {
-    prepareJsonResponse({
-      tool_calls: [
-        {
-          id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            arguments: '{"value":"Spark"}',
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: '',
+              tool_calls: [
+                {
+                  id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                  type: 'function',
+                  function: {
+                    name: 'test-tool',
+                    arguments: '{"value":"Spark"}',
+                  },
+                },
+              ],
+            },
+            finish_reason: 'stop',
           },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
         },
-      ],
-    });
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const model = provider.chat('gpt-4o-2024-08-06');
 
@@ -1170,16 +1316,31 @@ describe('doGenerate', () => {
   });
 
   it('should return cached_tokens in prompt_details_tokens', async () => {
-    prepareJsonResponse({
-      usage: {
-        prompt_tokens: 15,
-        completion_tokens: 20,
-        total_tokens: 35,
-        prompt_tokens_details: {
-          cached_tokens: 1152,
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 15,
+          completion_tokens: 20,
+          total_tokens: 35,
+          prompt_tokens_details: {
+            cached_tokens: 1152,
+          },
         },
+        system_fingerprint: 'fp_3bc1b5746c',
       },
-    });
+    };
 
     const model = provider.chat('gpt-4o-mini');
 
@@ -1213,17 +1374,32 @@ describe('doGenerate', () => {
   });
 
   it('should return accepted_prediction_tokens and rejected_prediction_tokens in completion_details_tokens', async () => {
-    prepareJsonResponse({
-      usage: {
-        prompt_tokens: 15,
-        completion_tokens: 20,
-        total_tokens: 35,
-        completion_tokens_details: {
-          accepted_prediction_tokens: 123,
-          rejected_prediction_tokens: 456,
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 15,
+          completion_tokens: 20,
+          total_tokens: 35,
+          completion_tokens_details: {
+            accepted_prediction_tokens: 123,
+            rejected_prediction_tokens: 456,
+          },
         },
+        system_fingerprint: 'fp_3bc1b5746c',
       },
-    });
+    };
 
     const model = provider.chat('gpt-4o-mini');
 
@@ -1241,7 +1417,7 @@ describe('doGenerate', () => {
 
   describe('reasoning models', () => {
     it('should clear out temperature, top_p, frequency_penalty, presence_penalty and return warnings', async () => {
-      prepareJsonResponse();
+      prepareJsonFixtureResponse('openai-text');
 
       const model = provider.chat('o4-mini');
 
@@ -1285,7 +1461,7 @@ describe('doGenerate', () => {
     });
 
     it('should convert maxOutputTokens to max_completion_tokens', async () => {
-      prepareJsonResponse();
+      prepareJsonFixtureResponse('openai-text');
 
       const model = provider.chat('o4-mini');
 
@@ -1303,7 +1479,7 @@ describe('doGenerate', () => {
   });
 
   it('should allow forcing reasoning behavior for unrecognized model IDs via providerOptions', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('stealth-reasoning-model');
 
@@ -1340,7 +1516,7 @@ describe('doGenerate', () => {
   });
 
   it('should default systemMessageMode to developer when forcing reasoning', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('stealth-reasoning-model');
 
@@ -1368,7 +1544,7 @@ describe('doGenerate', () => {
   });
 
   it('should use developer messages for o1', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('o1');
 
@@ -1391,7 +1567,7 @@ describe('doGenerate', () => {
   });
 
   it('should allow overriding systemMessageMode via providerOptions', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-4o');
 
@@ -1419,7 +1595,7 @@ describe('doGenerate', () => {
   });
 
   it('should use default systemMessageMode when not overridden', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-4o');
 
@@ -1442,16 +1618,31 @@ describe('doGenerate', () => {
   });
 
   it('should return the reasoning tokens in the provider metadata', async () => {
-    prepareJsonResponse({
-      usage: {
-        prompt_tokens: 15,
-        completion_tokens: 20,
-        total_tokens: 35,
-        completion_tokens_details: {
-          reasoning_tokens: 10,
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 15,
+          completion_tokens: 20,
+          total_tokens: 35,
+          completion_tokens_details: {
+            reasoning_tokens: 10,
+          },
         },
+        system_fingerprint: 'fp_3bc1b5746c',
       },
-    });
+    };
 
     const model = provider.chat('o4-mini');
 
@@ -1485,7 +1676,28 @@ describe('doGenerate', () => {
   });
 
   it('should send max_completion_tokens extension setting', async () => {
-    prepareJsonResponse({ model: 'o4-mini' });
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'o4-mini',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+        },
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const model = provider.chat('o4-mini');
 
@@ -1506,7 +1718,7 @@ describe('doGenerate', () => {
   });
 
   it('should send prediction extension setting', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1531,7 +1743,7 @@ describe('doGenerate', () => {
   });
 
   it('should send store extension setting', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1550,7 +1762,7 @@ describe('doGenerate', () => {
   });
 
   it('should send metadata extension values', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1573,7 +1785,7 @@ describe('doGenerate', () => {
   });
 
   it('should send promptCacheKey extension value', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1592,7 +1804,7 @@ describe('doGenerate', () => {
   });
 
   it('should send promptCacheRetention extension value', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1611,7 +1823,7 @@ describe('doGenerate', () => {
   });
 
   it('should send safetyIdentifier extension value', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1630,7 +1842,7 @@ describe('doGenerate', () => {
   });
 
   it('should remove temperature setting for gpt-4o-search-preview and add warning', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-4o-search-preview');
 
@@ -1655,7 +1867,7 @@ describe('doGenerate', () => {
   });
 
   it('should remove temperature setting for gpt-4o-mini-search-preview and add warning', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-4o-mini-search-preview');
 
@@ -1680,7 +1892,7 @@ describe('doGenerate', () => {
   });
 
   it('should remove temperature setting for gpt-4o-mini-search-preview-2025-03-11 and add warning', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-4o-mini-search-preview-2025-03-11');
 
@@ -1705,7 +1917,7 @@ describe('doGenerate', () => {
   });
 
   it('should send serviceTier flex processing setting', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('o4-mini');
 
@@ -1733,7 +1945,7 @@ describe('doGenerate', () => {
   });
 
   it('should show warning when using flex processing with unsupported model', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-4o-mini');
 
@@ -1761,7 +1973,7 @@ describe('doGenerate', () => {
   });
 
   it('should allow flex processing with o4-mini model without warnings', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('o4-mini');
 
@@ -1780,7 +1992,7 @@ describe('doGenerate', () => {
   });
 
   it('should send serviceTier priority processing setting', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-4o-mini');
 
@@ -1808,7 +2020,7 @@ describe('doGenerate', () => {
   });
 
   it('should show warning when using priority processing with unsupported model', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-3.5-turbo');
 
@@ -1836,7 +2048,7 @@ describe('doGenerate', () => {
   });
 
   it('should allow priority processing with gpt-4o model without warnings', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-4o');
 
@@ -1855,7 +2067,7 @@ describe('doGenerate', () => {
   });
 
   it('should allow priority processing with o3 model without warnings', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('o4-mini');
 
