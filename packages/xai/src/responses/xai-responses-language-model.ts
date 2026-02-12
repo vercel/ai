@@ -16,6 +16,7 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
 import { getResponseMetadata } from '../get-response-metadata';
 import {
   xaiResponsesChunkSchema,
@@ -329,21 +330,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
     return {
       content,
       finishReason: mapXaiResponsesFinishReason(response.status),
-      usage: response.usage
-        ? {
-            inputTokens: response.usage.input_tokens,
-            outputTokens: response.usage.output_tokens,
-            totalTokens: response.usage.total_tokens,
-            reasoningTokens:
-              response.usage.output_tokens_details?.reasoning_tokens,
-            cachedInputTokens:
-              response.usage.input_tokens_details?.cached_tokens,
-          }
-        : {
-            inputTokens: 0,
-            outputTokens: 0,
-            totalTokens: 0,
-          },
+      usage: convertXaiResponsesUsage(response.usage),
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -573,13 +560,12 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
               const response = event.response;
 
               if (response.usage) {
-                usage.inputTokens = response.usage.input_tokens;
-                usage.cachedInputTokens =
-                  response.usage.input_tokens_details?.cached_tokens;
-                usage.outputTokens = response.usage.output_tokens;
-                usage.totalTokens = response.usage.total_tokens;
-                usage.reasoningTokens =
-                  response.usage.output_tokens_details?.reasoning_tokens;
+                const converted = convertXaiResponsesUsage(response.usage);
+                usage.inputTokens = converted.inputTokens;
+                usage.outputTokens = converted.outputTokens;
+                usage.totalTokens = converted.totalTokens;
+                usage.reasoningTokens = converted.reasoningTokens;
+                usage.cachedInputTokens = converted.cachedInputTokens;
               }
 
               if (response.status) {
