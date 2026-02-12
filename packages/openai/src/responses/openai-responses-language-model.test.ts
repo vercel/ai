@@ -93,72 +93,68 @@ describe('OpenAIResponsesLanguageModel', () => {
   }
 
   describe('doGenerate', () => {
-    function prepareJsonResponse(body: any) {
-      server.urls['https://api.openai.com/v1/responses'].response = {
-        type: 'json-value',
-        body,
-      };
-    }
-
     describe('basic text response', () => {
       beforeEach(() => {
-        prepareJsonResponse({
-          id: 'resp_67c97c0203188190a025beb4a75242bc',
-          object: 'response',
-          created_at: 1741257730,
-          status: 'completed',
-          error: null,
-          incomplete_details: null,
-          input: [],
-          instructions: null,
-          max_output_tokens: null,
-          model: 'gpt-4o-2024-07-18',
-          output: [
-            {
-              id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
-              type: 'message',
-              status: 'completed',
-              role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: 'answer text',
-                  annotations: [],
-                },
-              ],
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_67c97c0203188190a025beb4a75242bc',
+            object: 'response',
+            created_at: 1741257730,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            input: [],
+            instructions: null,
+            max_output_tokens: null,
+            model: 'gpt-4o-2024-07-18',
+            output: [
+              {
+                id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+                type: 'message',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'answer text',
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+            parallel_tool_calls: true,
+            previous_response_id: null,
+            reasoning: {
+              effort: null,
+              summary: null,
             },
-          ],
-          parallel_tool_calls: true,
-          previous_response_id: null,
-          reasoning: {
-            effort: null,
-            summary: null,
+            store: true,
+            temperature: 1,
+            text: {
+              format: {
+                type: 'text',
+              },
+            },
+            tool_choice: 'auto',
+            tools: [],
+            top_p: 1,
+            truncation: 'disabled',
+            usage: {
+              input_tokens: 345,
+              input_tokens_details: {
+                cached_tokens: 234,
+              },
+              output_tokens: 538,
+              output_tokens_details: {
+                reasoning_tokens: 123,
+              },
+              total_tokens: 572,
+            },
+            user: null,
+            metadata: {},
           },
-          store: true,
-          temperature: 1,
-          text: {
-            format: {
-              type: 'text',
-            },
-          },
-          tool_choice: 'auto',
-          tools: [],
-          top_p: 1,
-          truncation: 'disabled',
-          usage: {
-            input_tokens: 345,
-            input_tokens_details: {
-              cached_tokens: 234,
-            },
-            output_tokens: 538,
-            output_tokens_details: {
-              reasoning_tokens: 123,
-            },
-            total_tokens: 572,
-          },
-          user: null,
-          metadata: {},
-        });
+        };
       });
 
       it('should generate text', async () => {
@@ -1311,89 +1307,92 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should extract logprobs in providerMetadata', async () => {
-        prepareJsonResponse({
-          id: 'resp_67c97c0203188190a025beb4a75242bc',
-          object: 'response',
-          created_at: 1741257730,
-          status: 'completed',
-          error: null,
-          incomplete_details: null,
-          input: [],
-          instructions: null,
-          max_output_tokens: null,
-          model: 'gpt-4o-2024-07-18',
-          output: [
-            {
-              id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
-              type: 'message',
-              status: 'completed',
-              role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: 'answer text',
-                  annotations: [],
-                  logprobs: [
-                    {
-                      token: 'Hello',
-                      logprob: -0.0009994634,
-                      top_logprobs: [
-                        {
-                          token: 'Hello',
-                          logprob: -0.0009994634,
-                        },
-                        {
-                          token: 'Hi',
-                          logprob: -0.2,
-                        },
-                      ],
-                    },
-                    {
-                      token: '!',
-                      logprob: -0.13410144,
-                      top_logprobs: [
-                        {
-                          token: '!',
-                          logprob: -0.13410144,
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_67c97c0203188190a025beb4a75242bc',
+            object: 'response',
+            created_at: 1741257730,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            input: [],
+            instructions: null,
+            max_output_tokens: null,
+            model: 'gpt-4o-2024-07-18',
+            output: [
+              {
+                id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+                type: 'message',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'answer text',
+                    annotations: [],
+                    logprobs: [
+                      {
+                        token: 'Hello',
+                        logprob: -0.0009994634,
+                        top_logprobs: [
+                          {
+                            token: 'Hello',
+                            logprob: -0.0009994634,
+                          },
+                          {
+                            token: 'Hi',
+                            logprob: -0.2,
+                          },
+                        ],
+                      },
+                      {
+                        token: '!',
+                        logprob: -0.13410144,
+                        top_logprobs: [
+                          {
+                            token: '!',
+                            logprob: -0.13410144,
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+            parallel_tool_calls: true,
+            previous_response_id: null,
+            reasoning: {
+              effort: null,
+              summary: null,
             },
-          ],
-          parallel_tool_calls: true,
-          previous_response_id: null,
-          reasoning: {
-            effort: null,
-            summary: null,
+            store: true,
+            temperature: 1,
+            text: {
+              format: {
+                type: 'text',
+              },
+            },
+            tool_choice: 'auto',
+            tools: [],
+            top_p: 1,
+            truncation: 'disabled',
+            usage: {
+              input_tokens: 345,
+              input_tokens_details: {
+                cached_tokens: 234,
+              },
+              output_tokens: 538,
+              output_tokens_details: {
+                reasoning_tokens: 123,
+              },
+              total_tokens: 572,
+            },
+            user: null,
+            metadata: {},
           },
-          store: true,
-          temperature: 1,
-          text: {
-            format: {
-              type: 'text',
-            },
-          },
-          tool_choice: 'auto',
-          tools: [],
-          top_p: 1,
-          truncation: 'disabled',
-          usage: {
-            input_tokens: 345,
-            input_tokens_details: {
-              cached_tokens: 234,
-            },
-            output_tokens: 538,
-            output_tokens_details: {
-              reasoning_tokens: 123,
-            },
-            total_tokens: 572,
-          },
-          user: null,
-          metadata: {},
-        });
+        };
 
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
@@ -3110,44 +3109,41 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     it('should handle computer use tool calls', async () => {
-      function prepareJsonResponse(body: any) {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'json-value',
-          body,
-        };
-      }
-      prepareJsonResponse({
-        id: 'resp_computer_test',
-        object: 'response',
-        created_at: 1741630255,
-        status: 'completed',
-        error: null,
-        incomplete_details: null,
-        instructions: null,
-        max_output_tokens: null,
-        model: 'gpt-4o-mini',
-        output: [
-          {
-            type: 'computer_call',
-            id: 'computer_67cf2b3051e88190b006770db6fdb13d',
-            status: 'completed',
-          },
-          {
-            type: 'message',
-            id: 'msg_computer_test',
-            status: 'completed',
-            role: 'assistant',
-            content: [
-              {
-                type: 'output_text',
-                text: "I've completed the computer task.",
-                annotations: [],
-              },
-            ],
-          },
-        ],
-        usage: { input_tokens: 100, output_tokens: 50 },
-      });
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_computer_test',
+          object: 'response',
+          created_at: 1741630255,
+          status: 'completed',
+          error: null,
+          incomplete_details: null,
+          instructions: null,
+          max_output_tokens: null,
+          model: 'gpt-4o-mini',
+          output: [
+            {
+              type: 'computer_call',
+              id: 'computer_67cf2b3051e88190b006770db6fdb13d',
+              status: 'completed',
+            },
+            {
+              type: 'message',
+              id: 'msg_computer_test',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: "I've completed the computer task.",
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: { input_tokens: 100, output_tokens: 50 },
+        },
+      };
 
       const result = await createModel('gpt-4o-mini').doGenerate({
         prompt: [
@@ -3203,66 +3199,69 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     it('should handle mixed url_citation and file_citation annotations', async () => {
-      prepareJsonResponse({
-        id: 'resp_123',
-        object: 'response',
-        created_at: 1234567890,
-        status: 'completed',
-        error: null,
-        incomplete_details: null,
-        input: [],
-        instructions: null,
-        max_output_tokens: null,
-        model: 'gpt-4o',
-        output: [
-          {
-            id: 'msg_123',
-            type: 'message',
-            status: 'completed',
-            role: 'assistant',
-            content: [
-              {
-                type: 'output_text',
-                text: 'Based on web search and file content.',
-                annotations: [
-                  {
-                    type: 'url_citation',
-                    start_index: 0,
-                    end_index: 10,
-                    url: 'https://example.com',
-                    title: 'Example URL',
-                  },
-                  {
-                    type: 'file_citation',
-                    file_id: 'file-abc123',
-                    filename: 'resource1.json',
-                    index: 123,
-                  },
-                ],
-              },
-            ],
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_123',
+          object: 'response',
+          created_at: 1234567890,
+          status: 'completed',
+          error: null,
+          incomplete_details: null,
+          input: [],
+          instructions: null,
+          max_output_tokens: null,
+          model: 'gpt-4o',
+          output: [
+            {
+              id: 'msg_123',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Based on web search and file content.',
+                  annotations: [
+                    {
+                      type: 'url_citation',
+                      start_index: 0,
+                      end_index: 10,
+                      url: 'https://example.com',
+                      title: 'Example URL',
+                    },
+                    {
+                      type: 'file_citation',
+                      file_id: 'file-abc123',
+                      filename: 'resource1.json',
+                      index: 123,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          parallel_tool_calls: true,
+          previous_response_id: null,
+          reasoning: { effort: null, summary: null },
+          store: true,
+          temperature: 0,
+          text: { format: { type: 'text' } },
+          tool_choice: 'auto',
+          tools: [],
+          top_p: 1,
+          truncation: 'disabled',
+          usage: {
+            input_tokens: 100,
+            input_tokens_details: { cached_tokens: 0 },
+            output_tokens: 50,
+            output_tokens_details: { reasoning_tokens: 0 },
+            total_tokens: 150,
           },
-        ],
-        parallel_tool_calls: true,
-        previous_response_id: null,
-        reasoning: { effort: null, summary: null },
-        store: true,
-        temperature: 0,
-        text: { format: { type: 'text' } },
-        tool_choice: 'auto',
-        tools: [],
-        top_p: 1,
-        truncation: 'disabled',
-        usage: {
-          input_tokens: 100,
-          input_tokens_details: { cached_tokens: 0 },
-          output_tokens: 50,
-          output_tokens_details: { reasoning_tokens: 0 },
-          total_tokens: 150,
+          user: null,
+          metadata: {},
         },
-        user: null,
-        metadata: {},
-      });
+      };
 
       const result = await createModel('gpt-4o').doGenerate({
         prompt: TEST_PROMPT,
@@ -3321,59 +3320,62 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     it('should handle file_citation annotations only', async () => {
-      prepareJsonResponse({
-        id: 'resp_456',
-        object: 'response',
-        created_at: 1234567890,
-        status: 'completed',
-        error: null,
-        incomplete_details: null,
-        input: [],
-        instructions: null,
-        max_output_tokens: null,
-        model: 'gpt-4o',
-        output: [
-          {
-            id: 'msg_456',
-            type: 'message',
-            status: 'completed',
-            role: 'assistant',
-            content: [
-              {
-                type: 'output_text',
-                text: 'Based on the file content.',
-                annotations: [
-                  {
-                    type: 'file_citation',
-                    file_id: 'file-xyz789',
-                    filename: 'resource1.json',
-                    index: 123,
-                  },
-                ],
-              },
-            ],
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_456',
+          object: 'response',
+          created_at: 1234567890,
+          status: 'completed',
+          error: null,
+          incomplete_details: null,
+          input: [],
+          instructions: null,
+          max_output_tokens: null,
+          model: 'gpt-4o',
+          output: [
+            {
+              id: 'msg_456',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Based on the file content.',
+                  annotations: [
+                    {
+                      type: 'file_citation',
+                      file_id: 'file-xyz789',
+                      filename: 'resource1.json',
+                      index: 123,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          parallel_tool_calls: true,
+          previous_response_id: null,
+          reasoning: { effort: null, summary: null },
+          store: true,
+          temperature: 0,
+          text: { format: { type: 'text' } },
+          tool_choice: 'auto',
+          tools: [],
+          top_p: 1,
+          truncation: 'disabled',
+          usage: {
+            input_tokens: 50,
+            input_tokens_details: { cached_tokens: 0 },
+            output_tokens: 25,
+            output_tokens_details: { reasoning_tokens: 0 },
+            total_tokens: 75,
           },
-        ],
-        parallel_tool_calls: true,
-        previous_response_id: null,
-        reasoning: { effort: null, summary: null },
-        store: true,
-        temperature: 0,
-        text: { format: { type: 'text' } },
-        tool_choice: 'auto',
-        tools: [],
-        top_p: 1,
-        truncation: 'disabled',
-        usage: {
-          input_tokens: 50,
-          input_tokens_details: { cached_tokens: 0 },
-          output_tokens: 25,
-          output_tokens_details: { reasoning_tokens: 0 },
-          total_tokens: 75,
+          user: null,
+          metadata: {},
         },
-        user: null,
-        metadata: {},
-      });
+      };
 
       const result = await createModel('gpt-4o').doGenerate({
         prompt: TEST_PROMPT,
@@ -3418,65 +3420,68 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     it('should handle file_citation annotations without optional fields', async () => {
-      prepareJsonResponse({
-        id: 'resp_789',
-        object: 'response',
-        created_at: 1234567890,
-        status: 'completed',
-        error: null,
-        incomplete_details: null,
-        input: [],
-        instructions: null,
-        max_output_tokens: null,
-        model: 'gpt-5',
-        output: [
-          {
-            id: 'msg_789',
-            type: 'message',
-            status: 'completed',
-            role: 'assistant',
-            content: [
-              {
-                type: 'output_text',
-                text: 'Answer for the specified years....',
-                annotations: [
-                  {
-                    type: 'file_citation',
-                    file_id: 'file-YRcoCqn3Fo2K4JgraG',
-                    filename: 'resource1.json',
-                    index: 145,
-                  },
-                  {
-                    type: 'file_citation',
-                    file_id: 'file-YRcoCqn3Fo2K4JgraG',
-                    filename: 'resource1.json',
-                    index: 192,
-                  },
-                ],
-              },
-            ],
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_789',
+          object: 'response',
+          created_at: 1234567890,
+          status: 'completed',
+          error: null,
+          incomplete_details: null,
+          input: [],
+          instructions: null,
+          max_output_tokens: null,
+          model: 'gpt-5',
+          output: [
+            {
+              id: 'msg_789',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Answer for the specified years....',
+                  annotations: [
+                    {
+                      type: 'file_citation',
+                      file_id: 'file-YRcoCqn3Fo2K4JgraG',
+                      filename: 'resource1.json',
+                      index: 145,
+                    },
+                    {
+                      type: 'file_citation',
+                      file_id: 'file-YRcoCqn3Fo2K4JgraG',
+                      filename: 'resource1.json',
+                      index: 192,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          parallel_tool_calls: true,
+          previous_response_id: null,
+          reasoning: { effort: null, summary: null },
+          store: true,
+          temperature: 0,
+          text: { format: { type: 'text' } },
+          tool_choice: 'auto',
+          tools: [],
+          top_p: 1,
+          truncation: 'disabled',
+          usage: {
+            input_tokens: 50,
+            input_tokens_details: { cached_tokens: 0 },
+            output_tokens: 25,
+            output_tokens_details: { reasoning_tokens: 0 },
+            total_tokens: 75,
           },
-        ],
-        parallel_tool_calls: true,
-        previous_response_id: null,
-        reasoning: { effort: null, summary: null },
-        store: true,
-        temperature: 0,
-        text: { format: { type: 'text' } },
-        tool_choice: 'auto',
-        tools: [],
-        top_p: 1,
-        truncation: 'disabled',
-        usage: {
-          input_tokens: 50,
-          input_tokens_details: { cached_tokens: 0 },
-          output_tokens: 25,
-          output_tokens_details: { reasoning_tokens: 0 },
-          total_tokens: 75,
+          user: null,
+          metadata: {},
         },
-        user: null,
-        metadata: {},
-      });
+      };
 
       const result = await createModel('gpt-5').doGenerate({
         prompt: TEST_PROMPT,
@@ -3542,62 +3547,65 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     it('should handle container_file_citation annotations', async () => {
-      prepareJsonResponse({
-        id: 'resp_container',
-        object: 'response',
-        created_at: 1234567890,
-        status: 'completed',
-        error: null,
-        incomplete_details: null,
-        input: [],
-        instructions: null,
-        max_output_tokens: null,
-        model: 'gpt-5',
-        output: [
-          {
-            id: 'msg_container',
-            type: 'message',
-            status: 'completed',
-            role: 'assistant',
-            content: [
-              {
-                type: 'output_text',
-                text: 'Generated with container file.',
-                annotations: [
-                  {
-                    type: 'container_file_citation',
-                    container_id: 'cntr_test',
-                    file_id: 'file-container',
-                    filename: 'data.csv',
-                    start_index: 0,
-                    end_index: 10,
-                    index: 2,
-                  },
-                ],
-              },
-            ],
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_container',
+          object: 'response',
+          created_at: 1234567890,
+          status: 'completed',
+          error: null,
+          incomplete_details: null,
+          input: [],
+          instructions: null,
+          max_output_tokens: null,
+          model: 'gpt-5',
+          output: [
+            {
+              id: 'msg_container',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Generated with container file.',
+                  annotations: [
+                    {
+                      type: 'container_file_citation',
+                      container_id: 'cntr_test',
+                      file_id: 'file-container',
+                      filename: 'data.csv',
+                      start_index: 0,
+                      end_index: 10,
+                      index: 2,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          parallel_tool_calls: true,
+          previous_response_id: null,
+          reasoning: { effort: null, summary: null },
+          store: true,
+          temperature: 0,
+          text: { format: { type: 'text' } },
+          tool_choice: 'auto',
+          tools: [],
+          top_p: 1,
+          truncation: 'disabled',
+          usage: {
+            input_tokens: 10,
+            input_tokens_details: { cached_tokens: 0 },
+            output_tokens: 5,
+            output_tokens_details: { reasoning_tokens: 0 },
+            total_tokens: 15,
           },
-        ],
-        parallel_tool_calls: true,
-        previous_response_id: null,
-        reasoning: { effort: null, summary: null },
-        store: true,
-        temperature: 0,
-        text: { format: { type: 'text' } },
-        tool_choice: 'auto',
-        tools: [],
-        top_p: 1,
-        truncation: 'disabled',
-        usage: {
-          input_tokens: 10,
-          input_tokens_details: { cached_tokens: 0 },
-          output_tokens: 5,
-          output_tokens_details: { reasoning_tokens: 0 },
-          total_tokens: 15,
+          user: null,
+          metadata: {},
         },
-        user: null,
-        metadata: {},
-      });
+      };
 
       const result = await createModel('gpt-5').doGenerate({
         prompt: TEST_PROMPT,
@@ -3644,58 +3652,61 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     it('should handle file_path annotations', async () => {
-      prepareJsonResponse({
-        id: 'resp_file_path',
-        object: 'response',
-        created_at: 1234567890,
-        status: 'completed',
-        error: null,
-        incomplete_details: null,
-        input: [],
-        instructions: null,
-        max_output_tokens: null,
-        model: 'gpt-4o',
-        output: [
-          {
-            id: 'msg_file_path',
-            type: 'message',
-            status: 'completed',
-            role: 'assistant',
-            content: [
-              {
-                type: 'output_text',
-                text: 'Output written to file.',
-                annotations: [
-                  {
-                    type: 'file_path',
-                    file_id: 'file-path-123',
-                    index: 0,
-                  },
-                ],
-              },
-            ],
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_file_path',
+          object: 'response',
+          created_at: 1234567890,
+          status: 'completed',
+          error: null,
+          incomplete_details: null,
+          input: [],
+          instructions: null,
+          max_output_tokens: null,
+          model: 'gpt-4o',
+          output: [
+            {
+              id: 'msg_file_path',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Output written to file.',
+                  annotations: [
+                    {
+                      type: 'file_path',
+                      file_id: 'file-path-123',
+                      index: 0,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          parallel_tool_calls: true,
+          previous_response_id: null,
+          reasoning: { effort: null, summary: null },
+          store: true,
+          temperature: 0,
+          text: { format: { type: 'text' } },
+          tool_choice: 'auto',
+          tools: [],
+          top_p: 1,
+          truncation: 'disabled',
+          usage: {
+            input_tokens: 10,
+            input_tokens_details: { cached_tokens: 0 },
+            output_tokens: 5,
+            output_tokens_details: { reasoning_tokens: 0 },
+            total_tokens: 15,
           },
-        ],
-        parallel_tool_calls: true,
-        previous_response_id: null,
-        reasoning: { effort: null, summary: null },
-        store: true,
-        temperature: 0,
-        text: { format: { type: 'text' } },
-        tool_choice: 'auto',
-        tools: [],
-        top_p: 1,
-        truncation: 'disabled',
-        usage: {
-          input_tokens: 10,
-          input_tokens_details: { cached_tokens: 0 },
-          output_tokens: 5,
-          output_tokens_details: { reasoning_tokens: 0 },
-          total_tokens: 15,
+          user: null,
+          metadata: {},
         },
-        user: null,
-        metadata: {},
-      });
+      };
 
       const result = await createModel('gpt-4o').doGenerate({
         prompt: TEST_PROMPT,
@@ -3772,25 +3783,28 @@ describe('OpenAIResponsesLanguageModel', () => {
       };
 
       it('should use "azure" as providerMetadata key when provider includes "azure"', async () => {
-        prepareJsonResponse({
-          ...baseResponseBody,
-          id: 'resp_provider_metadata_azure',
-          output: [
-            {
-              id: 'msg_azure_text',
-              type: 'message',
-              status: 'completed',
-              role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: 'Hello from Azure!',
-                  annotations: [],
-                },
-              ],
-            },
-          ],
-        });
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            ...baseResponseBody,
+            id: 'resp_provider_metadata_azure',
+            output: [
+              {
+                id: 'msg_azure_text',
+                type: 'message',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'Hello from Azure!',
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+          },
+        };
 
         const model = new OpenAIResponsesLanguageModel('gpt-4o', {
           provider: 'azure.responses',
@@ -3811,25 +3825,28 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should use "openai" as providerMetadata key when provider does not include "azure"', async () => {
-        prepareJsonResponse({
-          ...baseResponseBody,
-          id: 'resp_provider_metadata_openai',
-          output: [
-            {
-              id: 'msg_openai_text',
-              type: 'message',
-              status: 'completed',
-              role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: 'Hello from OpenAI!',
-                  annotations: [],
-                },
-              ],
-            },
-          ],
-        });
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            ...baseResponseBody,
+            id: 'resp_provider_metadata_openai',
+            output: [
+              {
+                id: 'msg_openai_text',
+                type: 'message',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'Hello from OpenAI!',
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+          },
+        };
 
         const { providerMetadata } = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
@@ -3843,20 +3860,23 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should use "azure" as providerMetadata key in tool call content when provider includes "azure"', async () => {
-        prepareJsonResponse({
-          ...baseResponseBody,
-          id: 'resp_provider_metadata_tool_call',
-          output: [
-            {
-              id: 'fc_azure',
-              type: 'function_call',
-              status: 'completed',
-              call_id: 'call_azure',
-              name: 'weather',
-              arguments: '{"location":"Seattle"}',
-            },
-          ],
-        });
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            ...baseResponseBody,
+            id: 'resp_provider_metadata_tool_call',
+            output: [
+              {
+                id: 'fc_azure',
+                type: 'function_call',
+                status: 'completed',
+                call_id: 'call_azure',
+                name: 'weather',
+                arguments: '{"location":"Seattle"}',
+              },
+            ],
+          },
+        };
 
         const model = new OpenAIResponsesLanguageModel('gpt-4o', {
           provider: 'azure.responses',
