@@ -4,10 +4,6 @@ import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { beforeEach, describe, expect, vi, it } from 'vitest';
 import { injectFetchHeaders } from './inject-fetch-headers';
-import {
-  BedrockReasoningContentBlock,
-  BedrockRedactedReasoningContentBlock,
-} from './bedrock-api-types';
 import { anthropicTools, prepareTools } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
 import fs from 'node:fs';
@@ -3009,62 +3005,6 @@ describe('doStream', () => {
 });
 
 describe('doGenerate', () => {
-  function prepareJsonResponse({
-    content = [{ type: 'text', text: 'Hello, World!' }],
-    usage = {
-      inputTokens: 4,
-      outputTokens: 34,
-      totalTokens: 38,
-      cacheReadInputTokens: undefined,
-      cacheWriteInputTokens: undefined,
-    },
-    stopReason = 'stop_sequence',
-    trace,
-  }: {
-    content?: Array<
-      | { type: 'text'; text: string }
-      | { type: 'thinking'; thinking: string; signature: string }
-      | { type: 'tool_use'; id: string; name: string; input: unknown }
-      | BedrockReasoningContentBlock
-      | BedrockRedactedReasoningContentBlock
-    >;
-    toolCalls?: Array<{
-      id?: string;
-      name: string;
-      args: Record<string, unknown>;
-    }>;
-    usage?: {
-      inputTokens: number;
-      outputTokens: number;
-      totalTokens: number;
-      cacheReadInputTokens?: number;
-      cacheWriteInputTokens?: number;
-    };
-    stopReason?: string;
-    trace?: typeof mockTrace;
-    reasoningContent?:
-      | BedrockReasoningContentBlock
-      | BedrockRedactedReasoningContentBlock
-      | Array<
-          BedrockReasoningContentBlock | BedrockRedactedReasoningContentBlock
-        >;
-  }) {
-    server.urls[generateUrl].response = {
-      type: 'json-value',
-      body: {
-        output: {
-          message: {
-            role: 'assistant',
-            content,
-          },
-        },
-        usage,
-        stopReason,
-        ...(trace ? { trace } : {}),
-      },
-    };
-  }
-
   describe('text', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('bedrock-text');
@@ -3158,56 +3098,20 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should extract text response', async () => {
-    prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
-
-    const result = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(result.content).toMatchInlineSnapshot(`
-      [
-        {
-          "text": "Hello, World!",
-          "type": "text",
-        },
-      ]
-    `);
-  });
-
-  it('should extract usage', async () => {
-    prepareJsonResponse({
-      usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
-    });
-
-    const { usage } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(usage).toMatchInlineSnapshot(`
-      {
-        "inputTokens": {
-          "cacheRead": 0,
-          "cacheWrite": 0,
-          "noCache": 4,
-          "total": 4,
-        },
-        "outputTokens": {
-          "reasoning": undefined,
-          "text": 34,
-          "total": 34,
-        },
-        "raw": {
-          "inputTokens": 4,
-          "outputTokens": 34,
-          "totalTokens": 38,
-        },
-      }
-    `);
-  });
-
   it('should extract finish reason', async () => {
-    prepareJsonResponse({ stopReason: 'stop_sequence' });
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello, World!' }],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
 
     const { finishReason } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3222,7 +3126,19 @@ describe('doGenerate', () => {
   });
 
   it('should support unknown finish reason', async () => {
-    prepareJsonResponse({ stopReason: 'eos' });
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello, World!' }],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'eos',
+      },
+    };
 
     const { finishReason } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3237,7 +3153,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass the model and the messages', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3268,7 +3184,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass settings', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3289,7 +3205,7 @@ describe('doGenerate', () => {
   });
 
   it('should support guardrails', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3314,7 +3230,20 @@ describe('doGenerate', () => {
   });
 
   it('should include trace information in providerMetadata', async () => {
-    prepareJsonResponse({ trace: mockTrace });
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello, World!' }],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+        trace: mockTrace,
+      },
+    };
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3541,7 +3470,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass tools and tool choice correctly', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       tools: [
@@ -3590,7 +3519,7 @@ describe('doGenerate', () => {
   });
 
   it('should omit empty tool descriptions to avoid Bedrock validation errors', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       tools: [
@@ -3883,7 +3812,7 @@ describe('doGenerate', () => {
   });
 
   it('should properly combine headers from all sources', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const optionsHeaders = {
       'options-header': 'options-value',
@@ -3920,7 +3849,7 @@ describe('doGenerate', () => {
   });
 
   it('should work with partial headers', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const model = new BedrockChatLanguageModel(modelId, {
       baseUrl: () => baseUrl,
@@ -3946,9 +3875,7 @@ describe('doGenerate', () => {
   });
 
   it('should include providerOptions in the request for generate calls', async () => {
-    prepareJsonResponse({
-      content: [{ type: 'text', text: 'Test generation' }],
-    });
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3959,22 +3886,30 @@ describe('doGenerate', () => {
       },
     });
 
-    // Verify that the outgoing request body includes "foo" at its top level.
     const body = await server.calls[0].requestBodyJson;
     expect(body).toMatchObject({ foo: 'bar' });
   });
 
   it('should include cache token usage in providerMetadata', async () => {
-    prepareJsonResponse({
-      content: [{ type: 'text', text: 'Testing' }],
-      usage: {
-        inputTokens: 4,
-        outputTokens: 34,
-        totalTokens: 38,
-        cacheReadInputTokens: 2,
-        cacheWriteInputTokens: 3,
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Testing' }],
+          },
+        },
+        usage: {
+          inputTokens: 4,
+          outputTokens: 34,
+          totalTokens: 38,
+          cacheReadInputTokens: 2,
+          cacheWriteInputTokens: 3,
+        },
+        stopReason: 'stop_sequence',
       },
-    });
+    };
 
     const response = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4122,7 +4057,7 @@ describe('doGenerate', () => {
   });
 
   it('should handle system messages with cache points', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: [
@@ -4142,7 +4077,7 @@ describe('doGenerate', () => {
   });
 
   it('should transform reasoningConfig to thinking in additionalModelRequestFields', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4177,7 +4112,7 @@ describe('doGenerate', () => {
   });
 
   it('merges user additionalModelRequestFields with derived thinking (generate)', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4271,7 +4206,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass maxReasoningEffort as output_config.effort for Anthropic models (generate)', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4295,22 +4230,29 @@ describe('doGenerate', () => {
   });
 
   it('should extract reasoning text with signature', async () => {
-    const reasoningText = 'I need to think about this problem carefully...';
-    const signature = 'abc123signature';
-
-    prepareJsonResponse({
-      content: [
-        {
-          reasoningContent: {
-            reasoningText: {
-              text: reasoningText,
-              signature,
-            },
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                reasoningContent: {
+                  reasoningText: {
+                    text: 'I need to think about this problem carefully...',
+                    signature: 'abc123signature',
+                  },
+                },
+              },
+              { type: 'text', text: 'The answer is 42.' },
+            ],
           },
         },
-        { type: 'text', text: 'The answer is 42.' },
-      ],
-    });
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4336,20 +4278,28 @@ describe('doGenerate', () => {
   });
 
   it('should extract reasoning text without signature', async () => {
-    const reasoningText = 'I need to think about this problem carefully...';
-
-    prepareJsonResponse({
-      content: [
-        {
-          reasoningContent: {
-            reasoningText: {
-              text: reasoningText,
-            },
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                reasoningContent: {
+                  reasoningText: {
+                    text: 'I need to think about this problem carefully...',
+                  },
+                },
+              },
+              { type: 'text', text: 'The answer is 42.' },
+            ],
           },
         },
-        { type: 'text', text: 'The answer is 42.' },
-      ],
-    });
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4370,18 +4320,28 @@ describe('doGenerate', () => {
   });
 
   it('should extract redacted reasoning', async () => {
-    prepareJsonResponse({
-      content: [
-        {
-          reasoningContent: {
-            redactedReasoning: {
-              data: 'redacted-reasoning-data',
-            },
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                reasoningContent: {
+                  redactedReasoning: {
+                    data: 'redacted-reasoning-data',
+                  },
+                },
+              },
+              { type: 'text', text: 'The answer is 42.' },
+            ],
           },
         },
-        { type: 'text', text: 'The answer is 42.' },
-      ],
-    });
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4407,26 +4367,36 @@ describe('doGenerate', () => {
   });
 
   it('should handle multiple reasoning blocks', async () => {
-    prepareJsonResponse({
-      content: [
-        {
-          reasoningContent: {
-            reasoningText: {
-              text: 'First reasoning block',
-              signature: 'sig1',
-            },
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                reasoningContent: {
+                  reasoningText: {
+                    text: 'First reasoning block',
+                    signature: 'sig1',
+                  },
+                },
+              },
+              {
+                reasoningContent: {
+                  redactedReasoning: {
+                    data: 'redacted-data',
+                  },
+                },
+              },
+              { type: 'text', text: 'The answer is 42.' },
+            ],
           },
         },
-        {
-          reasoningContent: {
-            redactedReasoning: {
-              data: 'redacted-data',
-            },
-          },
-        },
-        { type: 'text', text: 'The answer is 42.' },
-      ],
-    });
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4461,7 +4431,7 @@ describe('doGenerate', () => {
   });
 
   it('should omit toolConfig and filter tool content when conversation has tool calls but no active tools', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const conversationWithToolCalls: LanguageModelV3Prompt = [
       {
@@ -4536,20 +4506,32 @@ describe('doGenerate', () => {
   });
 
   it('should handle JSON response format with schema', async () => {
-    prepareJsonResponse({
-      content: [
-        {
-          toolUse: {
-            toolUseId: 'json-tool-id',
-            name: 'json',
-            input: {
-              recipe: { name: 'Lasagna', ingredients: ['pasta', 'cheese'] },
-            },
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: {
+                    recipe: {
+                      name: 'Lasagna',
+                      ingredients: ['pasta', 'cheese'],
+                    },
+                  },
+                },
+              },
+            ],
           },
-        } as any,
-      ],
-      stopReason: 'tool_use',
-    });
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'tool_use',
+      },
+    };
 
     const result = await model.doGenerate({
       prompt: [
@@ -4750,7 +4732,7 @@ describe('doGenerate', () => {
   });
 
   it('should handle unsupported response format types', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4769,7 +4751,7 @@ describe('doGenerate', () => {
   });
 
   it('should omit toolConfig when conversation has tool calls but toolChoice is none', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const conversationWithToolCalls: LanguageModelV3Prompt = [
       {
@@ -4831,7 +4813,7 @@ describe('doGenerate', () => {
   });
 
   it('should clamp temperature above 1 to 1 and add warning', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4853,7 +4835,7 @@ describe('doGenerate', () => {
   });
 
   it('should clamp temperature below 0 to 0 and add warning', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4875,7 +4857,7 @@ describe('doGenerate', () => {
   });
 
   it('should not clamp valid temperature between 0 and 1', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
