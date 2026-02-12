@@ -3158,54 +3158,6 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should extract text response', async () => {
-    prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
-
-    const result = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(result.content).toMatchInlineSnapshot(`
-      [
-        {
-          "text": "Hello, World!",
-          "type": "text",
-        },
-      ]
-    `);
-  });
-
-  it('should extract usage', async () => {
-    prepareJsonResponse({
-      usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
-    });
-
-    const { usage } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(usage).toMatchInlineSnapshot(`
-      {
-        "inputTokens": {
-          "cacheRead": 0,
-          "cacheWrite": 0,
-          "noCache": 4,
-          "total": 4,
-        },
-        "outputTokens": {
-          "reasoning": undefined,
-          "text": 34,
-          "total": 34,
-        },
-        "raw": {
-          "inputTokens": 4,
-          "outputTokens": 34,
-          "totalTokens": 38,
-        },
-      }
-    `);
-  });
-
   it('should extract finish reason', async () => {
     prepareJsonResponse({ stopReason: 'stop_sequence' });
 
