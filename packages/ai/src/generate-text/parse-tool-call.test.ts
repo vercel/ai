@@ -83,6 +83,47 @@ describe('parseToolCall', () => {
     `);
   });
 
+  it('should default providerExecuted to true for provider tools', async () => {
+    const result = await parseToolCall({
+      toolCall: {
+        type: 'tool-call',
+        toolName: 'perplexity_search',
+        toolCallId: '123',
+        input: '{"query":"typescript"}',
+      },
+      tools: {
+        perplexity_search: tool({
+          type: 'provider',
+          id: 'gateway.perplexity_search',
+          args: {},
+          inputSchema: z.object({
+            query: z.string(),
+          }),
+          outputSchema: z.object({
+            results: z.array(z.object({ title: z.string() })),
+          }),
+        }),
+      } as const,
+      repairToolCall: undefined,
+      messages: [],
+      system: undefined,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "input": {
+          "query": "typescript",
+        },
+        "providerExecuted": true,
+        "providerMetadata": undefined,
+        "title": undefined,
+        "toolCallId": "123",
+        "toolName": "perplexity_search",
+        "type": "tool-call",
+      }
+    `);
+  });
+
   it('should successfully parse a valid tool call with provider metadata', async () => {
     const result = await parseToolCall({
       toolCall: {
@@ -302,6 +343,60 @@ describe('parseToolCall', () => {
         "title": undefined,
         "toolCallId": "123",
         "toolName": "testTool",
+        "type": "tool-call",
+      }
+    `);
+  });
+
+  it('should default providerExecuted to true for invalid provider tools', async () => {
+    const result = await parseToolCall({
+      toolCall: {
+        type: 'tool-call',
+        toolName: 'perplexity_search',
+        toolCallId: '123',
+        input: '{"wrong":"shape"}',
+      },
+      tools: {
+        perplexity_search: tool({
+          type: 'provider',
+          id: 'gateway.perplexity_search',
+          args: {},
+          inputSchema: z.object({
+            query: z.string(),
+          }),
+          outputSchema: z.object({
+            results: z.array(z.object({ title: z.string() })),
+          }),
+        }),
+      } as const,
+      repairToolCall: undefined,
+      messages: [],
+      system: undefined,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "dynamic": true,
+        "error": [AI_InvalidToolInputError: Invalid input for tool perplexity_search: Type validation failed: Value: {"wrong":"shape"}.
+      Error message: [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": [
+            "query"
+          ],
+          "message": "Invalid input: expected string, received undefined"
+        }
+      ]],
+        "input": {
+          "wrong": "shape",
+        },
+        "invalid": true,
+        "providerExecuted": true,
+        "providerMetadata": undefined,
+        "title": undefined,
+        "toolCallId": "123",
+        "toolName": "perplexity_search",
         "type": "tool-call",
       }
     `);
