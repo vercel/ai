@@ -2,7 +2,7 @@ import { DownloadError } from './download-error';
 import {
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
-} from './download-with-size-limit';
+} from './read-response-with-size-limit';
 
 /**
  * Download a file from a URL and return it as a Blob.
