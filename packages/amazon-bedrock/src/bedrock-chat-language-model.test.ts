@@ -3159,7 +3159,19 @@ describe('doGenerate', () => {
   });
 
   it('should extract finish reason', async () => {
-    prepareJsonResponse({ stopReason: 'stop_sequence' });
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello, World!' }],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
 
     const { finishReason } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3174,7 +3186,19 @@ describe('doGenerate', () => {
   });
 
   it('should support unknown finish reason', async () => {
-    prepareJsonResponse({ stopReason: 'eos' });
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello, World!' }],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'eos',
+      },
+    };
 
     const { finishReason } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3266,7 +3290,20 @@ describe('doGenerate', () => {
   });
 
   it('should include trace information in providerMetadata', async () => {
-    prepareJsonResponse({ trace: mockTrace });
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello, World!' }],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+        trace: mockTrace,
+      },
+    };
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3914,16 +3951,25 @@ describe('doGenerate', () => {
   });
 
   it('should include cache token usage in providerMetadata', async () => {
-    prepareJsonResponse({
-      content: [{ type: 'text', text: 'Testing' }],
-      usage: {
-        inputTokens: 4,
-        outputTokens: 34,
-        totalTokens: 38,
-        cacheReadInputTokens: 2,
-        cacheWriteInputTokens: 3,
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Testing' }],
+          },
+        },
+        usage: {
+          inputTokens: 4,
+          outputTokens: 34,
+          totalTokens: 38,
+          cacheReadInputTokens: 2,
+          cacheWriteInputTokens: 3,
+        },
+        stopReason: 'stop_sequence',
       },
-    });
+    };
 
     const response = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4244,22 +4290,29 @@ describe('doGenerate', () => {
   });
 
   it('should extract reasoning text with signature', async () => {
-    const reasoningText = 'I need to think about this problem carefully...';
-    const signature = 'abc123signature';
-
-    prepareJsonResponse({
-      content: [
-        {
-          reasoningContent: {
-            reasoningText: {
-              text: reasoningText,
-              signature,
-            },
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                reasoningContent: {
+                  reasoningText: {
+                    text: 'I need to think about this problem carefully...',
+                    signature: 'abc123signature',
+                  },
+                },
+              },
+              { type: 'text', text: 'The answer is 42.' },
+            ],
           },
         },
-        { type: 'text', text: 'The answer is 42.' },
-      ],
-    });
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4285,20 +4338,28 @@ describe('doGenerate', () => {
   });
 
   it('should extract reasoning text without signature', async () => {
-    const reasoningText = 'I need to think about this problem carefully...';
-
-    prepareJsonResponse({
-      content: [
-        {
-          reasoningContent: {
-            reasoningText: {
-              text: reasoningText,
-            },
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                reasoningContent: {
+                  reasoningText: {
+                    text: 'I need to think about this problem carefully...',
+                  },
+                },
+              },
+              { type: 'text', text: 'The answer is 42.' },
+            ],
           },
         },
-        { type: 'text', text: 'The answer is 42.' },
-      ],
-    });
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4319,18 +4380,28 @@ describe('doGenerate', () => {
   });
 
   it('should extract redacted reasoning', async () => {
-    prepareJsonResponse({
-      content: [
-        {
-          reasoningContent: {
-            redactedReasoning: {
-              data: 'redacted-reasoning-data',
-            },
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                reasoningContent: {
+                  redactedReasoning: {
+                    data: 'redacted-reasoning-data',
+                  },
+                },
+              },
+              { type: 'text', text: 'The answer is 42.' },
+            ],
           },
         },
-        { type: 'text', text: 'The answer is 42.' },
-      ],
-    });
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4356,26 +4427,36 @@ describe('doGenerate', () => {
   });
 
   it('should handle multiple reasoning blocks', async () => {
-    prepareJsonResponse({
-      content: [
-        {
-          reasoningContent: {
-            reasoningText: {
-              text: 'First reasoning block',
-              signature: 'sig1',
-            },
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                reasoningContent: {
+                  reasoningText: {
+                    text: 'First reasoning block',
+                    signature: 'sig1',
+                  },
+                },
+              },
+              {
+                reasoningContent: {
+                  redactedReasoning: {
+                    data: 'redacted-data',
+                  },
+                },
+              },
+              { type: 'text', text: 'The answer is 42.' },
+            ],
           },
         },
-        {
-          reasoningContent: {
-            redactedReasoning: {
-              data: 'redacted-data',
-            },
-          },
-        },
-        { type: 'text', text: 'The answer is 42.' },
-      ],
-    });
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4485,20 +4566,32 @@ describe('doGenerate', () => {
   });
 
   it('should handle JSON response format with schema', async () => {
-    prepareJsonResponse({
-      content: [
-        {
-          toolUse: {
-            toolUseId: 'json-tool-id',
-            name: 'json',
-            input: {
-              recipe: { name: 'Lasagna', ingredients: ['pasta', 'cheese'] },
-            },
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: {
+                    recipe: {
+                      name: 'Lasagna',
+                      ingredients: ['pasta', 'cheese'],
+                    },
+                  },
+                },
+              },
+            ],
           },
-        } as any,
-      ],
-      stopReason: 'tool_use',
-    });
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'tool_use',
+      },
+    };
 
     const result = await model.doGenerate({
       prompt: [
