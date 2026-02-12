@@ -4,10 +4,6 @@ import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { beforeEach, describe, expect, vi, it } from 'vitest';
 import { injectFetchHeaders } from './inject-fetch-headers';
-import {
-  BedrockReasoningContentBlock,
-  BedrockRedactedReasoningContentBlock,
-} from './bedrock-api-types';
 import { anthropicTools, prepareTools } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
 import fs from 'node:fs';
@@ -3009,62 +3005,6 @@ describe('doStream', () => {
 });
 
 describe('doGenerate', () => {
-  function prepareJsonResponse({
-    content = [{ type: 'text', text: 'Hello, World!' }],
-    usage = {
-      inputTokens: 4,
-      outputTokens: 34,
-      totalTokens: 38,
-      cacheReadInputTokens: undefined,
-      cacheWriteInputTokens: undefined,
-    },
-    stopReason = 'stop_sequence',
-    trace,
-  }: {
-    content?: Array<
-      | { type: 'text'; text: string }
-      | { type: 'thinking'; thinking: string; signature: string }
-      | { type: 'tool_use'; id: string; name: string; input: unknown }
-      | BedrockReasoningContentBlock
-      | BedrockRedactedReasoningContentBlock
-    >;
-    toolCalls?: Array<{
-      id?: string;
-      name: string;
-      args: Record<string, unknown>;
-    }>;
-    usage?: {
-      inputTokens: number;
-      outputTokens: number;
-      totalTokens: number;
-      cacheReadInputTokens?: number;
-      cacheWriteInputTokens?: number;
-    };
-    stopReason?: string;
-    trace?: typeof mockTrace;
-    reasoningContent?:
-      | BedrockReasoningContentBlock
-      | BedrockRedactedReasoningContentBlock
-      | Array<
-          BedrockReasoningContentBlock | BedrockRedactedReasoningContentBlock
-        >;
-  }) {
-    server.urls[generateUrl].response = {
-      type: 'json-value',
-      body: {
-        output: {
-          message: {
-            role: 'assistant',
-            content,
-          },
-        },
-        usage,
-        stopReason,
-        ...(trace ? { trace } : {}),
-      },
-    };
-  }
-
   describe('text', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('bedrock-text');
