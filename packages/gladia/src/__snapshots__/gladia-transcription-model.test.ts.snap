@@ -1,0 +1,48 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`doGenerate > transcription > should generate full response 1`] = `
+{
+  "durationInSeconds": 60,
+  "language": "en",
+  "providerMetadata": {
+    "gladia": {
+      "result": {
+        "metadata": {
+          "audio_duration": 60,
+        },
+        "transcription": {
+          "full_transcript": "Smoke from hundreds of wildfires.",
+          "languages": [
+            "en",
+          ],
+          "utterances": [
+            {
+              "end": 3,
+              "start": 0,
+              "text": "Smoke from hundreds of wildfires.",
+            },
+          ],
+        },
+      },
+      "status": "done",
+    },
+  },
+  "response": {
+    "headers": {
+      "content-length": "945",
+      "content-type": "application/json",
+    },
+    "modelId": "default",
+    "timestamp": 1970-01-01T00:00:00.000Z,
+  },
+  "segments": [
+    {
+      "endSecond": 3,
+      "startSecond": 0,
+      "text": "Smoke from hundreds of wildfires.",
+    },
+  ],
+  "text": "Smoke from hundreds of wildfires.",
+  "warnings": [],
+}
+`;
