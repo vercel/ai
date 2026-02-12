@@ -1,5 +1,6 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { describe, expect, it, vi } from 'vitest';
+import * as fs from 'node:fs';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
   GoogleVertexImageModel,
   GoogleVertexImageModelOptions,
@@ -12,6 +13,17 @@ vi.mock('./version', () => ({
 
 const prompt = 'A cute baby sea otter';
 
+const GENERATE_URL =
+  'https://api.example.com/models/imagen-3.0-generate-002:predict';
+const IMAGEN4_URL =
+  'https://api.example.com/models/imagen-4.0-generate-preview-06-06:predict';
+const IMAGEN4_FAST_URL =
+  'https://api.example.com/models/imagen-4.0-fast-generate-preview-06-06:predict';
+const IMAGEN4_ULTRA_URL =
+  'https://api.example.com/models/imagen-4.0-ultra-generate-preview-06-06:predict';
+const GEMINI_IMAGE_URL =
+  'https://api.example.com/models/gemini-2.5-flash-image:generateContent';
+
 const model = new GoogleVertexImageModel('imagen-3.0-generate-002', {
   provider: 'google-vertex',
   baseURL: 'https://api.example.com',
@@ -19,50 +31,38 @@ const model = new GoogleVertexImageModel('imagen-3.0-generate-002', {
 });
 
 const server = createTestServer({
-  'https://api.example.com/models/imagen-3.0-generate-002:predict': {},
-  'https://api.example.com/models/imagen-4.0-generate-preview-06-06:predict':
-    {},
-  'https://api.example.com/models/imagen-4.0-fast-generate-preview-06-06:predict':
-    {},
-  'https://api.example.com/models/imagen-4.0-ultra-generate-preview-06-06:predict':
-    {},
-  'https://api.example.com/models/gemini-2.5-flash-image:generateContent': {},
+  [GENERATE_URL]: {},
+  [IMAGEN4_URL]: {},
+  [IMAGEN4_FAST_URL]: {},
+  [IMAGEN4_ULTRA_URL]: {},
+  [GEMINI_IMAGE_URL]: {},
 });
+
+function prepareJsonFixtureResponse(
+  url:
+    | typeof GENERATE_URL
+    | typeof IMAGEN4_URL
+    | typeof IMAGEN4_FAST_URL
+    | typeof IMAGEN4_ULTRA_URL,
+  filename: string,
+  headers?: Record<string, string>,
+) {
+  server.urls[url].response = {
+    type: 'json-value',
+    headers,
+    body: JSON.parse(
+      fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+    ),
+  };
+}
 
 describe('GoogleVertexImageModel', () => {
   describe('doGenerate', () => {
-    function prepareJsonResponse({
-      headers,
-    }: {
-      headers?: Record<string, string>;
-    } = {}) {
-      server.urls[
-        'https://api.example.com/models/imagen-3.0-generate-002:predict'
-      ].response = {
-        type: 'json-value',
-        headers,
-        body: {
-          predictions: [
-            {
-              mimeType: 'image/png',
-              prompt: 'revised prompt 1',
-              bytesBase64Encoded: 'base64-image-1',
-            },
-            {
-              mimeType: 'image/png',
-              prompt: 'revised prompt 2',
-              bytesBase64Encoded: 'base64-image-2',
-              someFutureField: 'some future value',
-            },
-          ],
-        },
-      };
-    }
+    beforeEach(() => {
+      prepareJsonFixtureResponse(GENERATE_URL, 'google-vertex-image');
+    });
 
-    // changed test to go through the provider `createVertex`
     it('should pass headers', async () => {
-      prepareJsonResponse();
-
       const provider = createVertex({
         project: 'test-project',
         location: 'us-central1',
@@ -82,11 +82,13 @@ describe('GoogleVertexImageModel', () => {
         headers: { 'Custom-Request-Header': 'request-header-value' },
       });
 
-      expect(server.calls[0].requestHeaders).toStrictEqual({
-        'content-type': 'application/json',
-        'custom-provider-header': 'provider-header-value',
-        'custom-request-header': 'request-header-value',
-      });
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "content-type": "application/json",
+          "custom-provider-header": "provider-header-value",
+          "custom-request-header": "request-header-value",
+        }
+      `);
       expect(server.calls[0].requestUserAgent).toContain(
         `ai-sdk/google-vertex/0.0.0-test`,
       );
@@ -106,8 +108,6 @@ describe('GoogleVertexImageModel', () => {
     });
 
     it('should extract the generated images', async () => {
-      prepareJsonResponse();
-
       const result = await model.doGenerate({
         prompt,
         files: undefined,
@@ -119,12 +119,41 @@ describe('GoogleVertexImageModel', () => {
         providerOptions: {},
       });
 
-      expect(result.images).toStrictEqual(['base64-image-1', 'base64-image-2']);
+      expect(result.images).toMatchInlineSnapshot(`
+        [
+          "iVBORw0KGgoAAAANSUhEUgAABAAAAAQACAIAAADwf7zUAAAAg3pUWHRSYXcgcHJvZmlsZSB0eXBlIGlwdGMAAAiZTYs7DsIwEAV7",
+          "iVBORw0KGgoAAAANSUhEUgAABAAAAAQACAIAAADwf7zUAAAAg3pUWHRSYXcgcHJvZmlsZSB0eXBlIGlwdGMAAAiZTYs7DsIwEAV7",
+        ]
+      `);
+    });
+
+    it('should return full result snapshot', async () => {
+      const testDate = new Date('2024-03-15T12:00:00Z');
+      const customModel = new GoogleVertexImageModel(
+        'imagen-3.0-generate-002',
+        {
+          provider: 'google-vertex',
+          baseURL: 'https://api.example.com',
+          headers: { 'api-key': 'test-key' },
+          _internal: { currentDate: () => testDate },
+        },
+      );
+
+      const result = await customModel.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 2,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result).toMatchSnapshot();
     });
 
     it('sends aspect ratio in the request', async () => {
-      prepareJsonResponse();
-
       await model.doGenerate({
         prompt: 'test prompt',
         files: undefined,
@@ -152,8 +181,6 @@ describe('GoogleVertexImageModel', () => {
     });
 
     it('should pass aspect ratio directly when specified', async () => {
-      prepareJsonResponse();
-
       await model.doGenerate({
         prompt: 'test prompt',
         files: undefined,
@@ -181,8 +208,6 @@ describe('GoogleVertexImageModel', () => {
     });
 
     it('should pass seed directly when specified', async () => {
-      prepareJsonResponse();
-
       await model.doGenerate({
         prompt: 'test prompt',
         files: undefined,
@@ -210,8 +235,6 @@ describe('GoogleVertexImageModel', () => {
     });
 
     it('should combine aspectRatio, seed and provider options', async () => {
-      prepareJsonResponse();
-
       await model.doGenerate({
         prompt: 'test prompt',
         files: undefined,
@@ -245,8 +268,6 @@ describe('GoogleVertexImageModel', () => {
     });
 
     it('should return warnings for unsupported settings', async () => {
-      prepareJsonResponse();
-
       const result = await model.doGenerate({
         prompt,
         files: undefined,
@@ -269,80 +290,7 @@ describe('GoogleVertexImageModel', () => {
       `);
     });
 
-    it('should include response data with timestamp, modelId and headers', async () => {
-      prepareJsonResponse({
-        headers: {
-          'request-id': 'test-request-id',
-          'x-goog-quota-remaining': '123',
-        },
-      });
-
-      const testDate = new Date('2024-03-15T12:00:00Z');
-
-      const customModel = new GoogleVertexImageModel(
-        'imagen-3.0-generate-002',
-        {
-          provider: 'google-vertex',
-          baseURL: 'https://api.example.com',
-          headers: { 'api-key': 'test-key' },
-          _internal: {
-            currentDate: () => testDate,
-          },
-        },
-      );
-
-      const result = await customModel.doGenerate({
-        prompt,
-        files: undefined,
-        mask: undefined,
-        n: 1,
-        size: undefined,
-        aspectRatio: undefined,
-        seed: undefined,
-        providerOptions: {},
-      });
-
-      expect(result.response).toStrictEqual({
-        timestamp: testDate,
-        modelId: 'imagen-3.0-generate-002',
-        headers: {
-          'content-length': '237',
-          'content-type': 'application/json',
-          'request-id': 'test-request-id',
-          'x-goog-quota-remaining': '123',
-        },
-      });
-    });
-
-    it('should use real date when no custom date provider is specified', async () => {
-      prepareJsonResponse();
-      const beforeDate = new Date();
-
-      const result = await model.doGenerate({
-        prompt,
-        files: undefined,
-        mask: undefined,
-        n: 2,
-        size: undefined,
-        aspectRatio: undefined,
-        seed: undefined,
-        providerOptions: {},
-      });
-
-      const afterDate = new Date();
-
-      expect(result.response.timestamp.getTime()).toBeGreaterThanOrEqual(
-        beforeDate.getTime(),
-      );
-      expect(result.response.timestamp.getTime()).toBeLessThanOrEqual(
-        afterDate.getTime(),
-      );
-      expect(result.response.modelId).toBe('imagen-3.0-generate-002');
-    });
-
     it('should only pass valid provider options', async () => {
-      prepareJsonResponse();
-
       await model.doGenerate({
         prompt,
         files: undefined,
@@ -383,7 +331,80 @@ describe('GoogleVertexImageModel', () => {
     });
 
     it('should return image meta data', async () => {
-      prepareJsonResponse();
+      const result = await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 2,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.providerMetadata?.vertex).toMatchInlineSnapshot(`
+        {
+          "images": [
+            {
+              "revisedPrompt": "A minimalist image featuring a perfectly circular, solid red disk centrally positioned on a clean, bright white background. The red is a vibrant, primary hue. The edges of the circle are sharp and well-defined. The lighting is even and soft, with no harsh shadows or reflections, creating a flat, graphic quality.",
+            },
+            {
+              "revisedPrompt": "A minimalist, bold image featuring a perfect red circle centrally positioned on a pristine white background. The circle has sharp, clean edges and a uniform, vibrant red color, providing a strong contrast against the pure white. The lighting is even and soft, with no harsh shadows or reflections, allowing the circle's shape and color to be the sole focus. The image has a clean, modern aesthetic.",
+            },
+          ],
+        }
+      `);
+    });
+  });
+
+  describe('response headers', () => {
+    it('should include response headers', async () => {
+      prepareJsonFixtureResponse(GENERATE_URL, 'google-vertex-image', {
+        'request-id': 'test-request-id',
+        'x-goog-quota-remaining': '123',
+      });
+
+      const testDate = new Date('2024-03-15T12:00:00Z');
+      const customModel = new GoogleVertexImageModel(
+        'imagen-3.0-generate-002',
+        {
+          provider: 'google-vertex',
+          baseURL: 'https://api.example.com',
+          headers: { 'api-key': 'test-key' },
+          _internal: { currentDate: () => testDate },
+        },
+      );
+
+      const result = await customModel.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.response).toMatchInlineSnapshot(`
+        {
+          "headers": {
+            "content-length": "1050",
+            "content-type": "application/json",
+            "request-id": "test-request-id",
+            "x-goog-quota-remaining": "123",
+          },
+          "modelId": "imagen-3.0-generate-002",
+          "timestamp": 2024-03-15T12:00:00.000Z,
+        }
+      `);
+    });
+  });
+
+  describe('response metadata', () => {
+    it('should use real date when no custom date provider is specified', async () => {
+      prepareJsonFixtureResponse(GENERATE_URL, 'google-vertex-image');
+      const beforeDate = new Date();
 
       const result = await model.doGenerate({
         prompt,
@@ -396,45 +417,24 @@ describe('GoogleVertexImageModel', () => {
         providerOptions: {},
       });
 
-      expect(result.providerMetadata?.vertex).toStrictEqual({
-        images: [
-          {
-            revisedPrompt: 'revised prompt 1',
-          },
-          {
-            revisedPrompt: 'revised prompt 2',
-          },
-        ],
-      });
+      const afterDate = new Date();
+
+      expect(result.response.timestamp.getTime()).toBeGreaterThanOrEqual(
+        beforeDate.getTime(),
+      );
+      expect(result.response.timestamp.getTime()).toBeLessThanOrEqual(
+        afterDate.getTime(),
+      );
+      expect(result.response.modelId).toBe('imagen-3.0-generate-002');
     });
   });
 
   describe('Image Editing', () => {
-    function prepareJsonResponse({
-      headers,
-    }: {
-      headers?: Record<string, string>;
-    } = {}) {
-      server.urls[
-        'https://api.example.com/models/imagen-3.0-generate-002:predict'
-      ].response = {
-        type: 'json-value',
-        headers,
-        body: {
-          predictions: [
-            {
-              mimeType: 'image/png',
-              bytesBase64Encoded: 'edited-base64-image',
-            },
-          ],
-        },
-      };
-    }
+    beforeEach(() => {
+      prepareJsonFixtureResponse(GENERATE_URL, 'google-vertex-image-edit');
+    });
 
     it('should send edit request with files and mask', async () => {
-      prepareJsonResponse();
-
-      // Create test image data (base64 encoded)
       const imageData = 'base64-source-image';
       const maskData = 'base64-mask-image';
 
@@ -494,9 +494,6 @@ describe('GoogleVertexImageModel', () => {
     });
 
     it('should send edit request with Uint8Array data', async () => {
-      prepareJsonResponse();
-
-      // Create test Uint8Array data (represents 'hello' in bytes)
       const imageUint8Array = new Uint8Array([104, 101, 108, 108, 111]);
       const maskUint8Array = new Uint8Array([119, 111, 114, 108, 100]);
 
@@ -522,20 +519,17 @@ describe('GoogleVertexImageModel', () => {
       });
 
       const requestBody = await server.calls[0].requestBodyJson;
-      // Check that the data was converted to base64
       expect(
         requestBody.instances[0].referenceImages[0].referenceImage
           .bytesBase64Encoded,
-      ).toBe('aGVsbG8='); // 'hello' in base64
+      ).toMatchInlineSnapshot(`"aGVsbG8="`);
       expect(
         requestBody.instances[0].referenceImages[1].referenceImage
           .bytesBase64Encoded,
-      ).toBe('d29ybGQ='); // 'world' in base64
+      ).toMatchInlineSnapshot(`"d29ybGQ="`);
     });
 
     it('should send edit request with custom edit options', async () => {
-      prepareJsonResponse();
-
       await model.doGenerate({
         prompt: 'Remove the object',
         files: [
@@ -605,8 +599,6 @@ describe('GoogleVertexImageModel', () => {
     });
 
     it('should extract the edited images', async () => {
-      prepareJsonResponse();
-
       const result = await model.doGenerate({
         prompt: 'Edit this image',
         files: [
@@ -628,12 +620,14 @@ describe('GoogleVertexImageModel', () => {
         providerOptions: {},
       });
 
-      expect(result.images).toStrictEqual(['edited-base64-image']);
+      expect(result.images).toMatchInlineSnapshot(`
+        [
+          "iVBORw0KGgoAAAANSUhEUgAABAAAAAQACAIAAADwf7zUAAAAg3pUWHRSYXcgcHJvZmlsZSB0eXBlIGlwdGMAAAiZTYs7DsIwEAV7",
+        ]
+      `);
     });
 
     it('should send edit request without mask (for operations that do not require mask)', async () => {
-      prepareJsonResponse();
-
       await model.doGenerate({
         prompt: 'Upscale this image',
         files: [
@@ -691,26 +685,11 @@ describe('GoogleVertexImageModel', () => {
         },
       );
 
-      function prepareImagen4Response() {
-        server.urls[
-          'https://api.example.com/models/imagen-4.0-generate-preview-06-06:predict'
-        ].response = {
-          type: 'json-value',
-          body: {
-            predictions: [
-              {
-                mimeType: 'image/png',
-                prompt: 'revised imagen 4 prompt',
-                bytesBase64Encoded: 'base64-imagen4-image',
-              },
-            ],
-          },
-        };
-      }
+      beforeEach(() => {
+        prepareJsonFixtureResponse(IMAGEN4_URL, 'google-vertex-image');
+      });
 
       it('should generate images with Imagen 4', async () => {
-        prepareImagen4Response();
-
         const result = await imagen4Model.doGenerate({
           prompt: 'A beautiful sunset over mountains',
           files: undefined,
@@ -726,19 +705,27 @@ describe('GoogleVertexImageModel', () => {
           },
         });
 
-        expect(result.images).toStrictEqual(['base64-imagen4-image']);
-        expect(result.providerMetadata?.vertex).toStrictEqual({
-          images: [
-            {
-              revisedPrompt: 'revised imagen 4 prompt',
-            },
-          ],
-        });
+        expect(result.images).toMatchInlineSnapshot(`
+          [
+            "iVBORw0KGgoAAAANSUhEUgAABAAAAAQACAIAAADwf7zUAAAAg3pUWHRSYXcgcHJvZmlsZSB0eXBlIGlwdGMAAAiZTYs7DsIwEAV7",
+            "iVBORw0KGgoAAAANSUhEUgAABAAAAAQACAIAAADwf7zUAAAAg3pUWHRSYXcgcHJvZmlsZSB0eXBlIGlwdGMAAAiZTYs7DsIwEAV7",
+          ]
+        `);
+        expect(result.providerMetadata?.vertex).toMatchInlineSnapshot(`
+          {
+            "images": [
+              {
+                "revisedPrompt": "A minimalist image featuring a perfectly circular, solid red disk centrally positioned on a clean, bright white background. The red is a vibrant, primary hue. The edges of the circle are sharp and well-defined. The lighting is even and soft, with no harsh shadows or reflections, creating a flat, graphic quality.",
+              },
+              {
+                "revisedPrompt": "A minimalist, bold image featuring a perfect red circle centrally positioned on a pristine white background. The circle has sharp, clean edges and a uniform, vibrant red color, providing a strong contrast against the pure white. The lighting is even and soft, with no harsh shadows or reflections, allowing the circle's shape and color to be the sole focus. The image has a clean, modern aesthetic.",
+              },
+            ],
+          }
+        `);
       });
 
       it('should send correct request parameters for Imagen 4', async () => {
-        prepareImagen4Response();
-
         await imagen4Model.doGenerate({
           prompt: 'test imagen 4 prompt',
           files: undefined,
@@ -784,26 +771,11 @@ describe('GoogleVertexImageModel', () => {
         },
       );
 
-      function prepareImagen4FastResponse() {
-        server.urls[
-          'https://api.example.com/models/imagen-4.0-fast-generate-preview-06-06:predict'
-        ].response = {
-          type: 'json-value',
-          body: {
-            predictions: [
-              {
-                mimeType: 'image/png',
-                prompt: 'revised imagen 4 fast prompt',
-                bytesBase64Encoded: 'base64-imagen4-fast-image',
-              },
-            ],
-          },
-        };
-      }
+      beforeEach(() => {
+        prepareJsonFixtureResponse(IMAGEN4_FAST_URL, 'google-vertex-image');
+      });
 
       it('should generate images with Imagen 4 Fast', async () => {
-        prepareImagen4FastResponse();
-
         const result = await imagen4FastModel.doGenerate({
           prompt: 'A quick sketch of a cat',
           files: undefined,
@@ -815,14 +787,24 @@ describe('GoogleVertexImageModel', () => {
           providerOptions: {},
         });
 
-        expect(result.images).toStrictEqual(['base64-imagen4-fast-image']);
-        expect(result.providerMetadata?.vertex).toStrictEqual({
-          images: [
-            {
-              revisedPrompt: 'revised imagen 4 fast prompt',
-            },
-          ],
-        });
+        expect(result.images).toMatchInlineSnapshot(`
+          [
+            "iVBORw0KGgoAAAANSUhEUgAABAAAAAQACAIAAADwf7zUAAAAg3pUWHRSYXcgcHJvZmlsZSB0eXBlIGlwdGMAAAiZTYs7DsIwEAV7",
+            "iVBORw0KGgoAAAANSUhEUgAABAAAAAQACAIAAADwf7zUAAAAg3pUWHRSYXcgcHJvZmlsZSB0eXBlIGlwdGMAAAiZTYs7DsIwEAV7",
+          ]
+        `);
+        expect(result.providerMetadata?.vertex).toMatchInlineSnapshot(`
+          {
+            "images": [
+              {
+                "revisedPrompt": "A minimalist image featuring a perfectly circular, solid red disk centrally positioned on a clean, bright white background. The red is a vibrant, primary hue. The edges of the circle are sharp and well-defined. The lighting is even and soft, with no harsh shadows or reflections, creating a flat, graphic quality.",
+              },
+              {
+                "revisedPrompt": "A minimalist, bold image featuring a perfect red circle centrally positioned on a pristine white background. The circle has sharp, clean edges and a uniform, vibrant red color, providing a strong contrast against the pure white. The lighting is even and soft, with no harsh shadows or reflections, allowing the circle's shape and color to be the sole focus. The image has a clean, modern aesthetic.",
+              },
+            ],
+          }
+        `);
       });
     });
 
@@ -836,26 +818,11 @@ describe('GoogleVertexImageModel', () => {
         },
       );
 
-      function prepareImagen4UltraResponse() {
-        server.urls[
-          'https://api.example.com/models/imagen-4.0-ultra-generate-preview-06-06:predict'
-        ].response = {
-          type: 'json-value',
-          body: {
-            predictions: [
-              {
-                mimeType: 'image/png',
-                prompt: 'revised imagen 4 ultra prompt',
-                bytesBase64Encoded: 'base64-imagen4-ultra-image',
-              },
-            ],
-          },
-        };
-      }
+      beforeEach(() => {
+        prepareJsonFixtureResponse(IMAGEN4_ULTRA_URL, 'google-vertex-image');
+      });
 
       it('should generate images with Imagen 4 Ultra', async () => {
-        prepareImagen4UltraResponse();
-
         const result = await imagen4UltraModel.doGenerate({
           prompt: 'A highly detailed photorealistic portrait',
           files: undefined,
@@ -872,19 +839,27 @@ describe('GoogleVertexImageModel', () => {
           },
         });
 
-        expect(result.images).toStrictEqual(['base64-imagen4-ultra-image']);
-        expect(result.providerMetadata?.vertex).toStrictEqual({
-          images: [
-            {
-              revisedPrompt: 'revised imagen 4 ultra prompt',
-            },
-          ],
-        });
+        expect(result.images).toMatchInlineSnapshot(`
+          [
+            "iVBORw0KGgoAAAANSUhEUgAABAAAAAQACAIAAADwf7zUAAAAg3pUWHRSYXcgcHJvZmlsZSB0eXBlIGlwdGMAAAiZTYs7DsIwEAV7",
+            "iVBORw0KGgoAAAANSUhEUgAABAAAAAQACAIAAADwf7zUAAAAg3pUWHRSYXcgcHJvZmlsZSB0eXBlIGlwdGMAAAiZTYs7DsIwEAV7",
+          ]
+        `);
+        expect(result.providerMetadata?.vertex).toMatchInlineSnapshot(`
+          {
+            "images": [
+              {
+                "revisedPrompt": "A minimalist image featuring a perfectly circular, solid red disk centrally positioned on a clean, bright white background. The red is a vibrant, primary hue. The edges of the circle are sharp and well-defined. The lighting is even and soft, with no harsh shadows or reflections, creating a flat, graphic quality.",
+              },
+              {
+                "revisedPrompt": "A minimalist, bold image featuring a perfect red circle centrally positioned on a pristine white background. The circle has sharp, clean edges and a uniform, vibrant red color, providing a strong contrast against the pure white. The lighting is even and soft, with no harsh shadows or reflections, allowing the circle's shape and color to be the sole focus. The image has a clean, modern aesthetic.",
+              },
+            ],
+          }
+        `);
       });
 
       it('should handle all provider options with Imagen 4 Ultra', async () => {
-        prepareImagen4UltraResponse();
-
         await imagen4UltraModel.doGenerate({
           prompt: 'comprehensive test prompt',
           files: undefined,
@@ -933,9 +908,6 @@ describe('GoogleVertexImageModel (Gemini)', () => {
     headers: { 'api-key': 'test-key' },
   });
 
-  const TEST_URL_GEMINI_IMAGE =
-    'https://api.example.com/models/gemini-2.5-flash-image:generateContent';
-
   function prepareGeminiJsonResponse({
     images = [{ mimeType: 'image/png', data: 'base64-generated-image' }],
     usage = {
@@ -953,7 +925,7 @@ describe('GoogleVertexImageModel (Gemini)', () => {
     };
     headers?: Record<string, string>;
   } = {}) {
-    server.urls[TEST_URL_GEMINI_IMAGE].response = {
+    server.urls[GEMINI_IMAGE_URL].response = {
       type: 'json-value',
       headers,
       body: {
