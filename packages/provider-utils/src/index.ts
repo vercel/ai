@@ -3,6 +3,11 @@ export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-t
 export * from './delay';
 export { DelayedPromise } from './delayed-promise';
 export * from './extract-response-headers';
+export { DownloadError } from './download-error';
+export {
+  readResponseWithSizeLimit,
+  DEFAULT_MAX_DOWNLOAD_SIZE,
+} from './read-response-with-size-limit';
 export * from './fetch-function';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
