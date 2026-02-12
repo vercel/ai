@@ -15,7 +15,7 @@ async function main() {
         store: true,
       },
     },
-    stopWhen: stepCountIs(10),
+    stopWhen: stepCountIs(5),
   });
 
   for await (const part of result.fullStream) {
