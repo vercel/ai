@@ -235,6 +235,14 @@ The following provider options are available:
   `['message.output_text.logprobs']` for logprobs.
   Defaults to `undefined`.
 
+- **contextManagement** _Array&lt;object&gt;_
+  Server-side context management configuration. When set, OpenAI will automatically
+  compact conversation history when it approaches the specified token threshold.
+  Each entry should have a `type` of `'compaction'` and a `compact_threshold` number
+  specifying the token count at which compaction triggers.
+  Example: `[{ type: 'compaction', compact_threshold: 200000 }]`.
+  See [OpenAI Compaction Guide](https://platform.openai.com/docs/guides/compaction) for details.
+
 - **truncation** _string_
   The truncation strategy to use for the model response.
 

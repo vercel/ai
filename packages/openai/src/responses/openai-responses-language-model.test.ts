@@ -1070,6 +1070,43 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send context_management with compaction provider option', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              contextManagement: [
+                { type: 'compaction', compact_threshold: 200000 },
+              ],
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          context_management: [
+            { type: 'compaction', compact_threshold: 200000 },
+          ],
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should not send context_management when not specified', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+          'context_management',
+        );
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send truncation auto provider option', async () => {
         const { warnings } = await createModel('gpt-5').doGenerate({
           prompt: TEST_PROMPT,

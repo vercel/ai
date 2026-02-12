@@ -270,6 +270,24 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
       textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
 
       /**
+       * Server-side context management configuration.
+       * When set, OpenAI will automatically compact conversation history
+       * when it approaches the specified token threshold.
+       *
+       * Example: `[{ type: 'compaction', compact_threshold: 200000 }]`
+       *
+       * @see https://platform.openai.com/docs/guides/compaction
+       */
+      contextManagement: z
+        .array(
+          z.object({
+            type: z.literal('compaction'),
+            compact_threshold: z.number(),
+          }),
+        )
+        .nullish(),
+
+      /**
        * Controls output truncation. 'auto' (default) performs truncation automatically;
        * 'disabled' turns truncation off.
        */
