@@ -2400,26 +2400,22 @@ describe('AnthropicMessagesLanguageModel', () => {
         },
       ];
 
-      function prepareJsonResponse(body: any) {
+      it('should enable server-side web search when using anthropic.tools.webSearch_20250305', async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
           type: 'json-value',
-          body,
+          body: {
+            type: 'message',
+            id: 'msg_test',
+            content: [
+              {
+                type: 'text',
+                text: 'Here are the latest quantum computing breakthroughs.',
+              },
+            ],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 10, output_tokens: 20 },
+          },
         };
-      }
-
-      it('should enable server-side web search when using anthropic.tools.webSearch_20250305', async () => {
-        prepareJsonResponse({
-          type: 'message',
-          id: 'msg_test',
-          content: [
-            {
-              type: 'text',
-              text: 'Here are the latest quantum computing breakthroughs.',
-            },
-          ],
-          stop_reason: 'end_turn',
-          usage: { input_tokens: 10, output_tokens: 20 },
-        });
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -2448,15 +2444,21 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should pass web search configuration with blocked domains', async () => {
-        prepareJsonResponse({
-          type: 'message',
-          id: 'msg_test',
-          content: [
-            { type: 'text', text: 'Here are the latest stock market trends.' },
-          ],
-          stop_reason: 'end_turn',
-          usage: { input_tokens: 10, output_tokens: 20 },
-        });
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_test',
+            content: [
+              {
+                type: 'text',
+                text: 'Here are the latest stock market trends.',
+              },
+            ],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 10, output_tokens: 20 },
+          },
+        };
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -2485,13 +2487,16 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should handle web search with user location', async () => {
-        prepareJsonResponse({
-          type: 'message',
-          id: 'msg_test',
-          content: [{ type: 'text', text: 'Here are local tech events.' }],
-          stop_reason: 'end_turn',
-          usage: { input_tokens: 10, output_tokens: 20 },
-        });
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_test',
+            content: [{ type: 'text', text: 'Here are local tech events.' }],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 10, output_tokens: 20 },
+          },
+        };
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -2532,13 +2537,16 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should handle web search with partial user location (city + country)', async () => {
-        prepareJsonResponse({
-          type: 'message',
-          id: 'msg_test',
-          content: [{ type: 'text', text: 'Here are local events.' }],
-          stop_reason: 'end_turn',
-          usage: { input_tokens: 10, output_tokens: 20 },
-        });
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_test',
+            content: [{ type: 'text', text: 'Here are local events.' }],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 10, output_tokens: 20 },
+          },
+        };
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -2575,13 +2583,16 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should handle web search with minimal user location (country only)', async () => {
-        prepareJsonResponse({
-          type: 'message',
-          id: 'msg_test',
-          content: [{ type: 'text', text: 'Here are global events.' }],
-          stop_reason: 'end_turn',
-          usage: { input_tokens: 10, output_tokens: 20 },
-        });
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_test',
+            content: [{ type: 'text', text: 'Here are global events.' }],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 10, output_tokens: 20 },
+          },
+        };
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -2616,41 +2627,44 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should handle server-side web search results with citations', async () => {
-        prepareJsonResponse({
-          type: 'message',
-          id: 'msg_test',
-          content: [
-            {
-              type: 'server_tool_use',
-              id: 'tool_1',
-              name: 'web_search',
-              input: { query: 'latest AI news' },
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_test',
+            content: [
+              {
+                type: 'server_tool_use',
+                id: 'tool_1',
+                name: 'web_search',
+                input: { query: 'latest AI news' },
+              },
+              {
+                type: 'web_search_tool_result',
+                tool_use_id: 'tool_1',
+                content: [
+                  {
+                    type: 'web_search_result',
+                    url: 'https://example.com/ai-news',
+                    title: 'Latest AI Developments',
+                    encrypted_content: 'encrypted_content_123',
+                    page_age: 'January 15, 2025',
+                  },
+                ],
+              },
+              {
+                type: 'text',
+                text: 'Based on recent articles, AI continues to advance rapidly.',
+              },
+            ],
+            stop_reason: 'end_turn',
+            usage: {
+              input_tokens: 10,
+              output_tokens: 20,
+              server_tool_use: { web_search_requests: 1 },
             },
-            {
-              type: 'web_search_tool_result',
-              tool_use_id: 'tool_1',
-              content: [
-                {
-                  type: 'web_search_result',
-                  url: 'https://example.com/ai-news',
-                  title: 'Latest AI Developments',
-                  encrypted_content: 'encrypted_content_123',
-                  page_age: 'January 15, 2025',
-                },
-              ],
-            },
-            {
-              type: 'text',
-              text: 'Based on recent articles, AI continues to advance rapidly.',
-            },
-          ],
-          stop_reason: 'end_turn',
-          usage: {
-            input_tokens: 10,
-            output_tokens: 20,
-            server_tool_use: { web_search_requests: 1 },
           },
-        });
+        };
 
         const provider = createAnthropic({
           apiKey: 'test-api-key',
@@ -2715,26 +2729,29 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should handle server-side web search errors', async () => {
-        prepareJsonResponse({
-          type: 'message',
-          id: 'msg_test',
-          content: [
-            {
-              type: 'web_search_tool_result',
-              tool_use_id: 'tool_1',
-              content: {
-                type: 'web_search_tool_result_error',
-                error_code: 'max_uses_exceeded',
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_test',
+            content: [
+              {
+                type: 'web_search_tool_result',
+                tool_use_id: 'tool_1',
+                content: {
+                  type: 'web_search_tool_result_error',
+                  error_code: 'max_uses_exceeded',
+                },
               },
-            },
-            {
-              type: 'text',
-              text: 'I cannot search further due to limits.',
-            },
-          ],
-          stop_reason: 'end_turn',
-          usage: { input_tokens: 10, output_tokens: 20 },
-        });
+              {
+                type: 'text',
+                text: 'I cannot search further due to limits.',
+              },
+            ],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 10, output_tokens: 20 },
+          },
+        };
 
         const result = await model.doGenerate({
           prompt: TEST_PROMPT,
@@ -2771,13 +2788,16 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should work alongside regular client-side tools', async () => {
-        prepareJsonResponse({
-          type: 'message',
-          id: 'msg_test',
-          content: [{ type: 'text', text: 'I can search and calculate.' }],
-          stop_reason: 'end_turn',
-          usage: { input_tokens: 10, output_tokens: 20 },
-        });
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_test',
+            content: [{ type: 'text', text: 'I can search and calculate.' }],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 10, output_tokens: 20 },
+          },
+        };
 
         await model.doGenerate({
           prompt: TEST_PROMPT,
