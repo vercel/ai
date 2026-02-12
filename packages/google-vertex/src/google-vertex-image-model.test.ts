@@ -2,7 +2,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
 import {
   GoogleVertexImageModel,
-  GoogleVertexImageProviderOptions,
+  GoogleVertexImageModelOptions,
 } from './google-vertex-image-model';
 import { createVertex } from './google-vertex-provider';
 
@@ -222,7 +222,7 @@ describe('GoogleVertexImageModel', () => {
         providerOptions: {
           vertex: {
             addWatermark: false,
-          } satisfies GoogleVertexImageProviderOptions,
+          } satisfies GoogleVertexImageModelOptions,
         },
       });
 
@@ -358,7 +358,7 @@ describe('GoogleVertexImageModel', () => {
             sampleImageSize: '2K',
             // @ts-expect-error Testing invalid option
             foo: 'bar',
-          } satisfies GoogleVertexImageProviderOptions,
+          } satisfies GoogleVertexImageModelOptions,
         },
       });
 
@@ -561,7 +561,7 @@ describe('GoogleVertexImageModel', () => {
               maskMode: 'MASK_MODE_USER_PROVIDED',
               maskDilation: 0.01,
             },
-          } satisfies GoogleVertexImageProviderOptions,
+          } satisfies GoogleVertexImageModelOptions,
         },
       });
 
@@ -650,7 +650,7 @@ describe('GoogleVertexImageModel', () => {
         providerOptions: {
           vertex: {
             edit: { mode: 'EDIT_MODE_CONTROLLED_EDITING' },
-          } satisfies GoogleVertexImageProviderOptions,
+          } satisfies GoogleVertexImageModelOptions,
         },
       });
 
@@ -721,7 +721,7 @@ describe('GoogleVertexImageModel', () => {
           providerOptions: {
             vertex: {
               addWatermark: false,
-            } satisfies GoogleVertexImageProviderOptions,
+            } satisfies GoogleVertexImageModelOptions,
           },
         });
 
@@ -750,7 +750,7 @@ describe('GoogleVertexImageModel', () => {
             vertex: {
               personGeneration: 'allow_adult',
               safetySetting: 'block_medium_and_above',
-            } satisfies GoogleVertexImageProviderOptions,
+            } satisfies GoogleVertexImageModelOptions,
           },
         });
 
@@ -867,7 +867,7 @@ describe('GoogleVertexImageModel', () => {
             vertex: {
               negativePrompt: 'blurry, low quality',
               addWatermark: true,
-            } satisfies GoogleVertexImageProviderOptions,
+            } satisfies GoogleVertexImageModelOptions,
           },
         });
 
@@ -899,7 +899,7 @@ describe('GoogleVertexImageModel', () => {
               safetySetting: 'block_only_high',
               addWatermark: true,
               storageUri: 'gs://my-bucket/images/',
-            } satisfies GoogleVertexImageProviderOptions,
+            } satisfies GoogleVertexImageModelOptions,
           },
         });
 

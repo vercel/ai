@@ -267,6 +267,8 @@ const result = await generateText({
 You can use the `bedrock` provider options to utilize [Amazon Bedrock Guardrails](https://aws.amazon.com/bedrock/guardrails/):
 
 ```ts
+import { type AmazonBedrockLanguageModelOptions } from '@ai-sdk/amazon-bedrock';
+
 const result = await generateText({
   model: bedrock('anthropic.claude-3-sonnet-20240229-v1:0'),
   prompt: 'Write a story about space exploration.',
@@ -278,7 +280,7 @@ const result = await generateText({
         trace: 'enabled' as const,
         streamProcessingMode: 'async',
       },
-    },
+    } satisfies AmazonBedrockLanguageModelOptions,
   },
 });
 ```
@@ -449,6 +451,21 @@ console.log(
 // }
 ```
 
+### Provider Metadata
+
+The following Bedrock-specific metadata may be returned in `providerMetadata.bedrock`:
+
+- **trace** _(optional)_
+  Guardrail tracing information (when tracing is enabled).
+- **performanceConfig** _(optional)_
+  Performance configuration, e.g. `{ latency: 'optimized' }`.
+- **serviceTier** _(optional)_
+  Service tier information, e.g. `{ type: 'on-demand' }`.
+- **usage** _(optional)_
+  Cache token usage details including `cacheWriteInputTokens` and `cacheDetails`.
+- **stopSequence** _string | null_
+  The stop sequence that triggered the stop, if any.
+
 ## Reasoning
 
 Amazon Bedrock supports model creator-specific reasoning features:
@@ -457,7 +474,10 @@ Amazon Bedrock supports model creator-specific reasoning features:
 - Amazon (e.g. `us.amazon.nova-2-lite-v1:0`): enable via the `reasoningConfig` provider option and specifying a maximum reasoning effort level (`'low' | 'medium' | 'high'`).
 
 ```ts
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import {
+  bedrock,
+  type AmazonBedrockLanguageModelOptions,
+} from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
 // Anthropic example
@@ -467,7 +487,7 @@ const anthropicResult = await generateText({
   providerOptions: {
     bedrock: {
       reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
-    },
+    } satisfies AmazonBedrockLanguageModelOptions,
   },
 });
 
@@ -481,7 +501,7 @@ const amazonResult = await generateText({
   providerOptions: {
     bedrock: {
       reasoningConfig: { type: 'enabled', maxReasoningEffort: 'medium' },
-    },
+    } satisfies AmazonBedrockLanguageModelOptions,
   },
 });
 
@@ -497,7 +517,10 @@ on how to integrate reasoning into your chatbot.
 Claude Sonnet 4 models on Amazon Bedrock support an extended context window of up to 1 million tokens when using the `context-1m-2025-08-07` beta feature.
 
 ```ts
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import {
+  bedrock,
+  type AmazonBedrockLanguageModelOptions,
+} from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -506,7 +529,7 @@ const result = await generateText({
   providerOptions: {
     bedrock: {
       anthropicBeta: ['context-1m-2025-08-07'],
-    },
+    } satisfies AmazonBedrockLanguageModelOptions,
   },
 });
 ```
@@ -761,6 +784,7 @@ You can pass them as an options argument:
 
 ```ts
 import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { type AmazonBedrockEmbeddingModelOptions } from '@ai-sdk/amazon-bedrock';
 import { embed } from 'ai';
 
 const model = bedrock.embedding('amazon.titan-embed-text-v2:0');
@@ -772,7 +796,7 @@ const { embedding } = await embed({
     bedrock: {
       dimensions: 512, // optional, number of dimensions for the embedding
       normalize: true, // optional, normalize the output embeddings
-    },
+    } satisfies AmazonBedrockEmbeddingModelOptions,
   },
 });
 ```
@@ -793,6 +817,7 @@ Amazon Nova embedding models support additional provider options:
 
 ```ts
 import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { type AmazonBedrockEmbeddingModelOptions } from '@ai-sdk/amazon-bedrock';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
@@ -803,7 +828,7 @@ const { embedding } = await embed({
       embeddingDimension: 1024, // optional, number of dimensions
       embeddingPurpose: 'TEXT_RETRIEVAL', // optional, purpose of embedding
       truncate: 'END', // optional, truncation behavior
-    },
+    } satisfies AmazonBedrockEmbeddingModelOptions,
   },
 });
 ```
@@ -828,6 +853,7 @@ Cohere embedding models on Bedrock require an `inputType` and support truncation
 
 ```ts
 import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { type AmazonBedrockEmbeddingModelOptions } from '@ai-sdk/amazon-bedrock';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
@@ -837,7 +863,7 @@ const { embedding } = await embed({
     bedrock: {
       inputType: 'search_document', // required for Cohere
       truncate: 'END', // optional, truncation behavior
-    },
+    } satisfies AmazonBedrockEmbeddingModelOptions,
   },
 });
 ```
@@ -1489,7 +1515,7 @@ const result = await generateText({
 
 Anthropic has reasoning support for Claude 3.7 and Claude 4 models on Bedrock, including:
 
-- `us.anthropic.claude-opus-4-6-v1:0`
+- `us.anthropic.claude-opus-4-6-v1`
 - `us.anthropic.claude-opus-4-5-20251101-v1:0`
 - `us.anthropic.claude-sonnet-4-5-20250929-v1:0`
 - `us.anthropic.claude-opus-4-20250514-v1:0`
@@ -1526,7 +1552,7 @@ on how to integrate reasoning into your chatbot.
 
 | Model                                          | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Reasoning           |
 | ---------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `us.anthropic.claude-opus-4-6-v1:0`            | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `us.anthropic.claude-opus-4-6-v1`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-opus-4-5-20251101-v1:0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-sonnet-4-5-20250929-v1:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-opus-4-20250514-v1:0`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

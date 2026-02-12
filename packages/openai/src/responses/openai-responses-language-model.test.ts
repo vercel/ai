@@ -15,7 +15,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
 import {
   openaiResponsesModelIds,
-  OpenAIResponsesProviderOptions,
+  OpenAILanguageModelResponsesOptions,
   openaiResponsesReasoningModelIds,
 } from './openai-responses-options';
 
@@ -275,7 +275,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           providerOptions: {
             openai: {
               reasoningEffort: 'none',
-            } satisfies OpenAIResponsesProviderOptions,
+            } satisfies OpenAILanguageModelResponsesOptions,
           },
         });
 
@@ -476,7 +476,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           providerOptions: {
             openai: {
               parallelToolCalls: false,
-            } satisfies OpenAIResponsesProviderOptions,
+            } satisfies OpenAILanguageModelResponsesOptions,
           },
         });
 
@@ -507,7 +507,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           providerOptions: {
             openai: {
               store: false,
-            } satisfies OpenAIResponsesProviderOptions,
+            } satisfies OpenAILanguageModelResponsesOptions,
           },
         });
 
@@ -541,7 +541,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           providerOptions: {
             openai: {
               store: false,
-            } satisfies OpenAIResponsesProviderOptions,
+            } satisfies OpenAILanguageModelResponsesOptions,
           },
         });
 
@@ -572,7 +572,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           providerOptions: {
             openai: {
               store: true,
-            } satisfies OpenAIResponsesProviderOptions,
+            } satisfies OpenAILanguageModelResponsesOptions,
           },
         });
 
@@ -603,7 +603,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           providerOptions: {
             openai: {
               user: 'user_123',
-            } satisfies OpenAIResponsesProviderOptions,
+            } satisfies OpenAILanguageModelResponsesOptions,
           },
         });
 
@@ -730,7 +730,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               openai: {
                 reasoningEffort: 'low',
                 reasoningSummary: 'auto',
-              } satisfies OpenAIResponsesProviderOptions,
+              } satisfies OpenAILanguageModelResponsesOptions,
             },
           });
 
@@ -762,7 +762,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               forceReasoning: true,
               reasoningEffort: 'low',
               reasoningSummary: 'auto',
-            } satisfies OpenAIResponsesProviderOptions,
+            } satisfies OpenAILanguageModelResponsesOptions,
           },
         });
 
@@ -789,7 +789,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           providerOptions: {
             openai: {
               reasoningEffort: 'xhigh',
-            } satisfies OpenAIResponsesProviderOptions,
+            } satisfies OpenAILanguageModelResponsesOptions,
           },
         });
 
@@ -817,7 +817,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             providerOptions: {
               openai: {
                 reasoningEffort: 'low',
-              } satisfies OpenAIResponsesProviderOptions,
+              } satisfies OpenAILanguageModelResponsesOptions,
             },
           });
 
@@ -848,7 +848,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           providerOptions: {
             openai: {
               instructions: 'You are a friendly assistant.',
-            } satisfies OpenAIResponsesProviderOptions,
+            } satisfies OpenAILanguageModelResponsesOptions,
           },
         });
 
@@ -1076,7 +1076,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           providerOptions: {
             openai: {
               truncation: 'auto',
-            } satisfies OpenAIResponsesProviderOptions,
+            } satisfies OpenAILanguageModelResponsesOptions,
           },
         });
 
@@ -1097,7 +1097,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           providerOptions: {
             openai: {
               truncation: 'disabled',
-            } satisfies OpenAIResponsesProviderOptions,
+            } satisfies OpenAILanguageModelResponsesOptions,
           },
         });
 
@@ -1242,7 +1242,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           providerOptions: {
             openai: {
               strictJsonSchema: false,
-            } satisfies OpenAIResponsesProviderOptions,
+            } satisfies OpenAILanguageModelResponsesOptions,
           },
         });
 

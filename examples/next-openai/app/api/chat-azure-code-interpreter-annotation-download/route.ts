@@ -1,7 +1,7 @@
 import {
   azure,
   type AzureResponsesSourceDocumentProviderMetadata,
-  type OpenAIResponsesProviderOptions,
+  type OpenAILanguageModelResponsesOptions,
 } from '@ai-sdk/azure';
 import {
   convertToModelMessages,
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     providerOptions: {
       azure: {
         store: true,
-      } satisfies OpenAIResponsesProviderOptions,
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
   });
 

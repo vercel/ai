@@ -20,12 +20,12 @@ export type ToolLoopAgentOnFinishCallback<TOOLS extends ToolSet = {}> = (
     readonly totalUsage: LanguageModelUsage;
 
     /**
-     * Context that is passed into tool calls.
+     * Context that is passed into tool execution.
      *
      * Experimental (can break in patch releases).
      *
      * @default undefined
      */
-    experimental_context?: unknown;
+    experimental_context: unknown;
   },
 ) => PromiseLike<void> | void;

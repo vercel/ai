@@ -1,5 +1,70 @@
 # @ai-sdk/vue
 
+## 3.0.83
+
+### Patch Changes
+
+- ai@6.0.83
+
+## 3.0.82
+
+### Patch Changes
+
+- ai@6.0.82
+
+## 3.0.81
+
+### Patch Changes
+
+- Updated dependencies [ee4beee]
+  - ai@6.0.81
+
+## 3.0.80
+
+### Patch Changes
+
+- ai@6.0.80
+
+## 3.0.79
+
+### Patch Changes
+
+- ai@6.0.79
+
+## 3.0.78
+
+### Patch Changes
+
+- Updated dependencies [59fcf30]
+  - ai@6.0.78
+
+## 3.0.77
+
+### Patch Changes
+
+- ai@6.0.77
+
+## 3.0.76
+
+### Patch Changes
+
+- ai@6.0.76
+
+## 3.0.75
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - ai@6.0.75
+  - @ai-sdk/provider-utils@4.0.14
+
+## 3.0.74
+
+### Patch Changes
+
+- Updated dependencies [471009b]
+  - ai@6.0.74
+
 ## 3.0.73
 
 ### Patch Changes

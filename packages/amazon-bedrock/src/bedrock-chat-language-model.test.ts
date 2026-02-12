@@ -106,17 +106,23 @@ const server = createTestServer({
   [openaiGenerateUrl]: {},
 });
 
-function prepareJsonFixtureResponse(filename: string) {
+function prepareJsonFixtureResponse(
+  filename: string,
+  { headers }: { headers?: Record<string, string> } = {},
+) {
   server.urls[generateUrl].response = {
     type: 'json-value',
+    headers,
     body: JSON.parse(
       fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
     ),
   };
-  return;
 }
 
-function prepareChunksFixtureResponse(filename: string) {
+function prepareChunksFixtureResponse(
+  filename: string,
+  { headers }: { headers?: Record<string, string> } = {},
+) {
   const chunks = fs
     .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
     .split('\n')
@@ -125,6 +131,7 @@ function prepareChunksFixtureResponse(filename: string) {
 
   server.urls[streamUrl].response = {
     type: 'stream-chunks',
+    headers,
     chunks,
   };
 }
@@ -217,6 +224,58 @@ describe('doStream', () => {
     mockOptions = { ...mockOptions, ...options };
   }
 
+  describe('text', () => {
+    beforeEach(() => {
+      setupMockEventStreamHandler();
+      prepareChunksFixtureResponse('bedrock-text');
+    });
+
+    it('should stream text deltas', async () => {
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+
+    it('should expose the raw response headers', async () => {
+      prepareChunksFixtureResponse('bedrock-text', {
+        headers: { 'test-header': 'test-value' },
+      });
+
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(result.response?.headers).toMatchInlineSnapshot(`
+        {
+          "cache-control": "no-cache",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "test-header": "test-value",
+        }
+      `);
+    });
+  });
+
+  describe('reasoning', () => {
+    beforeEach(() => {
+      setupMockEventStreamHandler();
+      prepareChunksFixtureResponse('bedrock-reasoning');
+    });
+
+    it('should stream reasoning and text parts', async () => {
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+  });
+
   it('should stream text deltas with metadata and usage', async () => {
     setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
@@ -264,6 +323,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "0",
@@ -381,6 +446,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "tool-use-id",
@@ -528,6 +599,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "id": "tool-use-id-1",
           "toolName": "test-tool-1",
           "type": "tool-input-start",
@@ -630,6 +707,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "error": {
             "$fault": "server",
             "$metadata": {},
@@ -689,6 +772,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "error": {
@@ -752,6 +841,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "error": {
             "$fault": "server",
             "$metadata": {},
@@ -813,6 +908,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "error": {
             "$fault": "server",
             "$metadata": {},
@@ -864,6 +965,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "error": {
             "message": "Chunk Parsing Failed",
           },
@@ -906,11 +1013,28 @@ describe('doStream', () => {
       includeRawChunks: false,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
-      system: [{ text: 'System Prompt' }],
-      additionalModelResponseFieldPaths: ['/delta/stop_sequence'],
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "additionalModelResponseFieldPaths": [
+          "/delta/stop_sequence",
+        ],
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "system": [
+          {
+            "text": "System Prompt",
+          },
+        ],
+      }
+    `);
   });
 
   it('should support guardrails', async () => {
@@ -983,6 +1107,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "0",
@@ -1206,6 +1336,47 @@ describe('doStream', () => {
     });
   });
 
+  it('should extract response metadata', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      headers: {
+        'x-amzn-requestid': 'test-request-id',
+        date: 'Wed, 01 Jan 2025 00:00:00 GMT',
+      },
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'end_turn',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const metadata = parts.find(p => p.type === 'response-metadata');
+
+    expect(metadata).toMatchInlineSnapshot(`
+      {
+        "id": "test-request-id",
+        "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+        "timestamp": 2025-01-01T00:00:00.000Z,
+        "type": "response-metadata",
+      }
+    `);
+  });
+
   it('should properly combine headers from all sources', async () => {
     setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
@@ -1364,6 +1535,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "id": "0",
           "type": "text-start",
         },
@@ -1407,6 +1584,143 @@ describe('doStream', () => {
           },
         },
       ]
+    `);
+  });
+
+  it('should include performanceConfig in providerMetadata', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          metadata: {
+            usage: {
+              inputTokens: 4,
+              outputTokens: 34,
+            },
+            performanceConfig: { latency: 'optimized' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: { stopReason: 'end_turn' },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const finish = parts.find(p => p.type === 'finish');
+    expect(finish?.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "performanceConfig": {
+            "latency": "optimized",
+          },
+        },
+      }
+    `);
+  });
+
+  it('should include serviceTier in providerMetadata', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          metadata: {
+            usage: {
+              inputTokens: 4,
+              outputTokens: 34,
+            },
+            serviceTier: { type: 'on-demand' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: { stopReason: 'end_turn' },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const finish = parts.find(p => p.type === 'finish');
+    expect(finish?.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "serviceTier": {
+            "type": "on-demand",
+          },
+        },
+      }
+    `);
+  });
+
+  it('should include cacheDetails in providerMetadata', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          metadata: {
+            usage: {
+              inputTokens: 4,
+              outputTokens: 34,
+              cacheDetails: [{ inputTokens: 100, ttl: 'T5M' }],
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: { stopReason: 'end_turn' },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const finish = parts.find(p => p.type === 'finish');
+    expect(finish?.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "usage": {
+            "cacheDetails": [
+              {
+                "inputTokens": 100,
+                "ttl": "T5M",
+              },
+            ],
+          },
+        },
+      }
     `);
   });
 
@@ -1500,6 +1814,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "0",
@@ -1598,6 +1918,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "delta": "",
           "id": "0",
           "providerMetadata": {
@@ -1670,6 +1996,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "rawValue": {
@@ -1835,6 +2167,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "id": "0",
           "type": "text-start",
         },
@@ -1905,6 +2243,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "0",
@@ -1995,6 +2339,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "id": "0",
           "type": "text-start",
         },
@@ -2082,6 +2432,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "0",
@@ -2190,6 +2546,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "0",
@@ -2316,6 +2678,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "0",
@@ -2477,6 +2845,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "0",
@@ -2691,6 +3065,99 @@ describe('doGenerate', () => {
     };
   }
 
+  describe('text', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('bedrock-text');
+    });
+
+    it('should extract text response', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should extract usage', async () => {
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage).toMatchInlineSnapshot(`
+        {
+          "inputTokens": {
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "noCache": 22,
+            "total": 22,
+          },
+          "outputTokens": {
+            "reasoning": undefined,
+            "text": 57,
+            "total": 57,
+          },
+          "raw": {
+            "cacheReadInputTokens": 0,
+            "cacheWriteInputTokens": 0,
+            "inputTokens": 22,
+            "outputTokens": 57,
+            "totalTokens": 79,
+          },
+        }
+      `);
+    });
+
+    it('should send additional response information', async () => {
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect({
+        id: response?.id,
+        timestamp: response?.timestamp,
+        modelId: response?.modelId,
+      }).toMatchInlineSnapshot(`
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+        }
+      `);
+    });
+
+    it('should expose the raw response headers', async () => {
+      prepareJsonFixtureResponse('bedrock-text', {
+        headers: { 'test-header': 'test-value' },
+      });
+
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(response?.headers).toMatchInlineSnapshot(`
+        {
+          "content-length": "435",
+          "content-type": "application/json",
+          "test-header": "test-value",
+        }
+      `);
+    });
+  });
+
+  describe('reasoning', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('bedrock-reasoning');
+    });
+
+    it('should extract reasoning and text response', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+  });
+
   it('should extract text response', async () => {
     prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
 
@@ -2776,11 +3243,28 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
-      system: [{ text: 'System Prompt' }],
-      additionalModelResponseFieldPaths: ['/delta/stop_sequence'],
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "additionalModelResponseFieldPaths": [
+          "/delta/stop_sequence",
+        ],
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "system": [
+          {
+            "text": "System Prompt",
+          },
+        ],
+      }
+    `);
   });
 
   it('should pass settings', async () => {
@@ -3018,6 +3502,42 @@ describe('doGenerate', () => {
       'content-type': 'application/json',
       'content-length': '164',
     });
+  });
+
+  it('should extract response metadata', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      headers: {
+        'x-amzn-requestid': 'test-request-id',
+        date: 'Wed, 01 Jan 2025 00:00:00 GMT',
+      },
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ text: 'Testing' }],
+          },
+        },
+        usage: {
+          inputTokens: 4,
+          outputTokens: 34,
+          totalTokens: 38,
+        },
+        stopReason: 'end_turn',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.response?.id).toMatchInlineSnapshot(`"test-request-id"`);
+    expect(result.response?.timestamp).toMatchInlineSnapshot(
+      `2025-01-01T00:00:00.000Z`,
+    );
+    expect(result.response?.modelId).toMatchInlineSnapshot(
+      `"anthropic.claude-3-haiku-20240307-v1:0"`,
+    );
   });
 
   it('should pass tools and tool choice correctly', async () => {
@@ -3494,6 +4014,113 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should include performanceConfig in providerMetadata', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+        },
+        usage: {
+          inputTokens: 4,
+          outputTokens: 34,
+          totalTokens: 38,
+        },
+        stopReason: 'end_turn',
+        performanceConfig: { latency: 'optimized' },
+      },
+    };
+
+    const response = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(response.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "performanceConfig": {
+            "latency": "optimized",
+          },
+          "stopSequence": null,
+        },
+      }
+    `);
+  });
+
+  it('should include serviceTier in providerMetadata', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+        },
+        usage: {
+          inputTokens: 4,
+          outputTokens: 34,
+          totalTokens: 38,
+        },
+        stopReason: 'end_turn',
+        serviceTier: { type: 'on-demand' },
+      },
+    };
+
+    const response = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(response.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "serviceTier": {
+            "type": "on-demand",
+          },
+          "stopSequence": null,
+        },
+      }
+    `);
+  });
+
+  it('should include cacheDetails in providerMetadata', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+        },
+        usage: {
+          inputTokens: 4,
+          outputTokens: 34,
+          totalTokens: 38,
+          cacheDetails: [{ inputTokens: 100, ttl: 'T5M' }],
+        },
+        stopReason: 'end_turn',
+      },
+    };
+
+    const response = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(response.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "stopSequence": null,
+          "usage": {
+            "cacheDetails": [
+              {
+                "inputTokens": 100,
+                "ttl": "T5M",
+              },
+            ],
+          },
+        },
+      }
+    `);
+  });
+
   it('should handle system messages with cache points', async () => {
     prepareJsonResponse({});
 
@@ -3643,10 +4270,10 @@ describe('doGenerate', () => {
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
   });
 
-  it('should warn when Anthropic model receives maxReasoningEffort (generate)', async () => {
+  it('should pass maxReasoningEffort as output_config.effort for Anthropic models (generate)', async () => {
     prepareJsonResponse({});
 
-    const result = await model.doGenerate({
+    await model.doGenerate({
       prompt: TEST_PROMPT,
       providerOptions: {
         bedrock: {
@@ -3662,12 +4289,8 @@ describe('doGenerate', () => {
     expect(
       requestBody.additionalModelRequestFields?.reasoningConfig,
     ).toBeUndefined();
-
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported',
-      feature: 'maxReasoningEffort',
-      details:
-        'maxReasoningEffort applies only to Amazon Nova models on Bedrock and will be ignored for this model.',
+    expect(requestBody.additionalModelRequestFields?.output_config).toEqual({
+      effort: 'medium',
     });
   });
 

@@ -10,5 +10,9 @@ export type {
   BlackForestLabsImageModelId,
   BlackForestLabsAspectRatio,
 } from './black-forest-labs-image-settings';
-export type { BlackForestLabsImageProviderOptions } from './black-forest-labs-image-model';
+export type {
+  BlackForestLabsImageModelOptions,
+  /** @deprecated Use `BlackForestLabsImageModelOptions` instead. */
+  BlackForestLabsImageModelOptions as BlackForestLabsImageProviderOptions,
+} from './black-forest-labs-image-model';
 export { VERSION } from './version';

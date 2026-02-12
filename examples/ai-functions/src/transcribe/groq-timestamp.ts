@@ -1,4 +1,4 @@
-import { groq } from '@ai-sdk/groq';
+import { groq, type GroqTranscriptionModelOptions } from '@ai-sdk/groq';
 import { experimental_transcribe as transcribe } from 'ai';
 import 'dotenv/config';
 import { readFile } from 'fs/promises';
@@ -13,7 +13,7 @@ async function main() {
         language: 'en',
         timestampGranularities: ['word', 'segment'],
         responseFormat: 'verbose_json', // this is required for timestamp granularities
-      },
+      } satisfies GroqTranscriptionModelOptions,
     },
   });
 

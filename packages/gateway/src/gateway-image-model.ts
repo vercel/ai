@@ -95,6 +95,13 @@ export class GatewayImageModel implements ImageModelV3 {
           modelId: this.modelId,
           headers: responseHeaders,
         },
+        ...(responseBody.usage != null && {
+          usage: {
+            inputTokens: responseBody.usage.inputTokens ?? undefined,
+            outputTokens: responseBody.usage.outputTokens ?? undefined,
+            totalTokens: responseBody.usage.totalTokens ?? undefined,
+          },
+        }),
       };
     } catch (error) {
       throw asGatewayError(error, await parseAuthMethod(resolvedHeaders));
@@ -129,17 +136,34 @@ const providerMetadataEntrySchema = z
   })
   .catchall(z.unknown());
 
+const gatewayImageWarningSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('unsupported'),
+    feature: z.string(),
+    details: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('compatibility'),
+    feature: z.string(),
+    details: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('other'),
+    message: z.string(),
+  }),
+]);
+
+const gatewayImageUsageSchema = z.object({
+  inputTokens: z.number().nullish(),
+  outputTokens: z.number().nullish(),
+  totalTokens: z.number().nullish(),
+});
+
 const gatewayImageResponseSchema = z.object({
   images: z.array(z.string()), // Always base64 strings over the wire
-  warnings: z
-    .array(
-      z.object({
-        type: z.literal('other'),
-        message: z.string(),
-      }),
-    )
-    .optional(),
+  warnings: z.array(gatewayImageWarningSchema).optional(),
   providerMetadata: z
     .record(z.string(), providerMetadataEntrySchema)
     .optional(),
+  usage: gatewayImageUsageSchema.optional(),
 });

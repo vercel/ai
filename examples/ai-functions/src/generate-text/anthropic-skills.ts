@@ -1,7 +1,7 @@
 import {
   anthropic,
   AnthropicMessageMetadata,
-  AnthropicProviderOptions,
+  type AnthropicLanguageModelOptions,
 } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { print } from '../lib/print';
@@ -21,7 +21,7 @@ run(async () => {
         container: {
           skills: [{ type: 'anthropic', skillId: 'pptx' }],
         },
-      } satisfies AnthropicProviderOptions,
+      } satisfies AnthropicLanguageModelOptions,
     },
   });
 

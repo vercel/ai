@@ -1,5 +1,19 @@
 # @ai-sdk/prodia
 
+## 1.0.15
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/provider-utils@4.0.14
+
 ## 1.0.13
 
 ### Patch Changes

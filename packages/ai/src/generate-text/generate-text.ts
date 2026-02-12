@@ -54,6 +54,7 @@ import { VERSION } from '../version';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
+import { extractReasoningContent } from './extract-reasoning-content';
 import { extractTextContent } from './extract-text-content';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
@@ -625,6 +626,9 @@ export async function generateText<
                         'ai.response.text': {
                           output: () => extractTextContent(result.content),
                         },
+                        'ai.response.reasoning': {
+                          output: () => extractReasoningContent(result.content),
+                        },
                         'ai.response.toolCalls': {
                           output: () => {
                             const toolCalls = asToolCalls(result.content);
@@ -878,6 +882,10 @@ export async function generateText<
                 currentModelResponse.finishReason.unified,
               'ai.response.text': {
                 output: () => extractTextContent(currentModelResponse.content),
+              },
+              'ai.response.reasoning': {
+                output: () =>
+                  extractReasoningContent(currentModelResponse.content),
               },
               'ai.response.toolCalls': {
                 output: () => {

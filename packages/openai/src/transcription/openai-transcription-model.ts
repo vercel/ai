@@ -16,8 +16,8 @@ import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiTranscriptionResponseSchema } from './openai-transcription-api';
 import {
   OpenAITranscriptionModelId,
-  openAITranscriptionProviderOptions,
-  OpenAITranscriptionProviderOptions,
+  openAITranscriptionModelOptions,
+  OpenAITranscriptionModelOptions,
 } from './openai-transcription-options';
 
 export type OpenAITranscriptionCallOptions = Omit<
@@ -25,7 +25,7 @@ export type OpenAITranscriptionCallOptions = Omit<
   'providerOptions'
 > & {
   providerOptions?: {
-    openai?: OpenAITranscriptionProviderOptions;
+    openai?: OpenAITranscriptionModelOptions;
   };
 };
 
@@ -119,7 +119,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV3 {
     const openAIOptions = await parseProviderOptions({
       provider: 'openai',
       providerOptions,
-      schema: openAITranscriptionProviderOptions,
+      schema: openAITranscriptionModelOptions,
     });
 
     // Create form data with base fields

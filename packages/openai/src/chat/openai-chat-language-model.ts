@@ -37,7 +37,7 @@ import {
 } from './openai-chat-api';
 import {
   OpenAIChatModelId,
-  openaiChatLanguageModelOptions,
+  openaiLanguageModelChatOptions,
 } from './openai-chat-options';
 import { prepareChatTools } from './openai-chat-prepare-tools';
 
@@ -90,7 +90,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       (await parseProviderOptions({
         provider: 'openai',
         providerOptions,
-        schema: openaiChatLanguageModelOptions,
+        schema: openaiLanguageModelChatOptions,
       })) ?? {};
 
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);

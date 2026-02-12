@@ -1,4 +1,4 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   InferUITools,
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     providerOptions: {
       openai: {
         reasoningSummary: 'detailed', // 'auto' for condensed or 'detailed' for comprehensive
-      } satisfies OpenAIResponsesProviderOptions,
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
   });
 

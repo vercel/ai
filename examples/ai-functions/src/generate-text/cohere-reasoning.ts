@@ -1,4 +1,4 @@
-import { cohere, type CohereChatModelOptions } from '@ai-sdk/cohere';
+import { cohere, type CohereLanguageModelOptions } from '@ai-sdk/cohere';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 
@@ -14,7 +14,7 @@ run(async () => {
           type: 'enabled',
           tokenBudget: 1000,
         },
-      } satisfies CohereChatModelOptions,
+      } satisfies CohereLanguageModelOptions,
     },
   });
 
