@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.42
+
+### Patch Changes
+
+- 1819bc1: fix (provider/gateway): add missing warning types for video response parsing
+
 ## 3.0.41
 
 ### Patch Changes
