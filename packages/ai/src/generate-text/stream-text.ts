@@ -246,6 +246,7 @@ export type StreamTextOnAbortCallback<TOOLS extends ToolSet> = (event: {
  *
  * @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
  * @param onError - Callback that is called when an error occurs during streaming. You can use it to log errors.
+ * @param onAbort - Callback that is called when the stream is aborted, either through the `abortSignal` or due to a timeout.
  * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
  * @param onFinish - Callback that is called when all steps are finished and the response is complete.
  *
@@ -414,6 +415,9 @@ export function streamText<
      */
     onFinish?: StreamTextOnFinishCallback<TOOLS>;
 
+    /**
+     * Callback that is called when the stream is aborted, either through the `abortSignal` or due to a timeout.
+     */
     onAbort?: StreamTextOnAbortCallback<TOOLS>;
 
     /**

@@ -16,6 +16,7 @@ import { LanguageModel, ToolChoice } from '../types/language-model';
 import { DownloadFunction } from '../util/download/download-function';
 import { AgentCallParameters } from './agent';
 import { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-on-finish-callback';
+import { ToolLoopAgentOnAbortCallback } from './tool-loop-agent-on-abort-callback';
 import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
 
 /**
@@ -90,6 +91,11 @@ export type ToolLoopAgentSettings<
   experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
 
   /**
+   * Callback that is called when the agent is aborted, either through the `abortSignal` or due to a timeout.
+   */
+  onAbort?: ToolLoopAgentOnAbortCallback<NoInfer<TOOLS>>;
+
+  /**
    * Callback that is called when each step (LLM call) is finished, including intermediate steps.
    */
   onStepFinish?: ToolLoopAgentOnStepFinishCallback<NoInfer<TOOLS>>;
@@ -135,7 +141,7 @@ export type ToolLoopAgentSettings<
   prepareCall?: (
     options: Omit<
       AgentCallParameters<CALL_OPTIONS, NoInfer<TOOLS>>,
-      'onStepFinish'
+      'onAbort' | 'onStepFinish'
     > &
       Pick<
         ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
