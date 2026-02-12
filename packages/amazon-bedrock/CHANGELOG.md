@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.58
+
+### Patch Changes
+
+- 242696c: feat: normalize and export provider specific model options type names for existing schemas
+
 ## 4.0.57
 
 ### Patch Changes

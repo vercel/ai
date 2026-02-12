@@ -821,7 +821,7 @@ importers:
   examples/next-openai:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: 4.0.57
+        specifier: 4.0.58
         version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
         specifier: 3.0.42
