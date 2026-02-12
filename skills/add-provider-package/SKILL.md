@@ -7,6 +7,7 @@ metadata:
 
 ## Adding a New Provider Package
 
+Small change to trigger workflows.
 This guide covers the process of creating a new `@ai-sdk/<provider>` package to integrate an AI service into the AI SDK.
 
 ## First-Party vs Third-Party Providers
