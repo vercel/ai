@@ -134,15 +134,7 @@ describe('doGenerate', () => {
         mediaType: 'audio/wav',
       });
 
-      expect(result.response).toMatchObject({
-        timestamp: testDate,
-        modelId: 'nova-3',
-        headers: {
-          'content-type': 'application/json',
-          'x-request-id': 'test-request-id',
-          'x-ratelimit-remaining': '123',
-        },
-      });
+      expect(result.response).toMatchSnapshot();
     });
   });
 
