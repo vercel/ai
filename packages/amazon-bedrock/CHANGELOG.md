@@ -1,5 +1,12 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.57
+
+### Patch Changes
+
+- 61d25a9: fix(provider/amazon-bedrock): extract response metadata from api headers
+- 08f54fc: feat(provider/amazon-bedrock): add performanceConfig, serviceTier, and cacheDetails to provider metadata
+
 ## 4.0.56
 
 ### Patch Changes
