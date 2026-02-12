@@ -325,6 +325,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "id": "0",
           "type": "text-start",
         },
@@ -440,6 +446,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "tool-use-id",
@@ -587,6 +599,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "id": "tool-use-id-1",
           "toolName": "test-tool-1",
           "type": "tool-input-start",
@@ -689,6 +707,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "error": {
             "$fault": "server",
             "$metadata": {},
@@ -748,6 +772,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "error": {
@@ -811,6 +841,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "error": {
             "$fault": "server",
             "$metadata": {},
@@ -872,6 +908,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "error": {
             "$fault": "server",
             "$metadata": {},
@@ -921,6 +963,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "error": {
@@ -1059,6 +1107,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "0",
@@ -1282,6 +1336,47 @@ describe('doStream', () => {
     });
   });
 
+  it('should extract response metadata', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      headers: {
+        'x-amzn-requestid': 'test-request-id',
+        date: 'Wed, 01 Jan 2025 00:00:00 GMT',
+      },
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'end_turn',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const metadata = parts.find(p => p.type === 'response-metadata');
+
+    expect(metadata).toMatchInlineSnapshot(`
+      {
+        "id": "test-request-id",
+        "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+        "timestamp": 2025-01-01T00:00:00.000Z,
+        "type": "response-metadata",
+      }
+    `);
+  });
+
   it('should properly combine headers from all sources', async () => {
     setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
@@ -1440,6 +1535,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "id": "0",
           "type": "text-start",
         },
@@ -1578,6 +1679,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "id": "0",
           "type": "reasoning-start",
         },
@@ -1674,6 +1781,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "delta": "",
           "id": "0",
           "providerMetadata": {
@@ -1746,6 +1859,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "rawValue": {
@@ -1911,6 +2030,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "id": "0",
           "type": "text-start",
         },
@@ -1981,6 +2106,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "0",
@@ -2071,6 +2202,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "id": "0",
           "type": "text-start",
         },
@@ -2158,6 +2295,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "0",
@@ -2266,6 +2409,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "0",
@@ -2392,6 +2541,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "0",
@@ -2553,6 +2708,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "0",
@@ -2821,7 +2982,7 @@ describe('doGenerate', () => {
       }).toMatchInlineSnapshot(`
         {
           "id": undefined,
-          "modelId": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
           "timestamp": undefined,
         }
       `);
@@ -3204,6 +3365,42 @@ describe('doGenerate', () => {
       'content-type': 'application/json',
       'content-length': '164',
     });
+  });
+
+  it('should extract response metadata', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      headers: {
+        'x-amzn-requestid': 'test-request-id',
+        date: 'Wed, 01 Jan 2025 00:00:00 GMT',
+      },
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ text: 'Testing' }],
+          },
+        },
+        usage: {
+          inputTokens: 4,
+          outputTokens: 34,
+          totalTokens: 38,
+        },
+        stopReason: 'end_turn',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.response?.id).toMatchInlineSnapshot(`"test-request-id"`);
+    expect(result.response?.timestamp).toMatchInlineSnapshot(
+      `2025-01-01T00:00:00.000Z`,
+    );
+    expect(result.response?.modelId).toMatchInlineSnapshot(
+      `"anthropic.claude-3-haiku-20240307-v1:0"`,
+    );
   });
 
   it('should pass tools and tool choice correctly', async () => {
