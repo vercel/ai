@@ -9,6 +9,20 @@ import { ContentPart } from './content-part';
 import { ToolSet } from './tool-set';
 
 /**
+ * Checks if a tool is a gateway tool based on its ID.
+ * Gateway tools are provider-executed but their results need to be sent
+ * to the LLM as regular tool results since the LLM provider (e.g., OpenAI)
+ * doesn't have them stored.
+ */
+function isGatewayTool<TOOLS extends ToolSet>(
+  tools: TOOLS | undefined,
+  toolName: string,
+): boolean {
+  const tool = tools?.[toolName];
+  return tool?.type === 'provider' && tool?.id?.startsWith('gateway.') === true;
+}
+
+/**
  * Converts the result of a `generateText` or `streamText` call to a list of response messages.
  */
 export async function toResponseMessages<TOOLS extends ToolSet>({
@@ -31,6 +45,16 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
     if (
       (part.type === 'tool-result' || part.type === 'tool-error') &&
       !part.providerExecuted
+    ) {
+      continue;
+    }
+
+    // Skip gateway tool results/errors - they need to go in the tool message
+    // because the LLM provider doesn't have them stored (unlike LLM-native tools)
+    if (
+      (part.type === 'tool-result' || part.type === 'tool-error') &&
+      part.providerExecuted &&
+      isGatewayTool(tools, part.toolName)
     ) {
       continue;
     }
@@ -69,7 +93,11 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           toolCallId: part.toolCallId,
           toolName: part.toolName,
           input: part.input,
-          providerExecuted: part.providerExecuted,
+          // Don't mark gateway tools as providerExecuted so they're converted
+          // to function_call by providers (not item_reference or skipped)
+          providerExecuted: isGatewayTool(tools, part.toolName)
+            ? undefined
+            : part.providerExecuted,
           providerOptions: part.providerMetadata,
         });
         break;
@@ -126,10 +154,15 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
 
   const toolResultContent: ToolContent = [];
   for (const part of inputContent) {
-    if (
-      !(part.type === 'tool-result' || part.type === 'tool-error') ||
-      part.providerExecuted
-    ) {
+    // Skip non-tool-result/error parts
+    if (!(part.type === 'tool-result' || part.type === 'tool-error')) {
+      continue;
+    }
+
+    // Skip provider-executed results UNLESS they are gateway tools.
+    // Gateway tools are provider-executed but their results need to be sent
+    // to the LLM since the LLM provider doesn't have them stored.
+    if (part.providerExecuted && !isGatewayTool(tools, part.toolName)) {
       continue;
     }
 

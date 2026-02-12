@@ -13,6 +13,16 @@ import { DynamicToolCall, TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolSet } from './tool-set';
 
+function inferProviderExecutedFlag({
+  providerExecuted,
+  isProviderTool,
+}: {
+  providerExecuted: boolean | undefined;
+  isProviderTool: boolean;
+}) {
+  return providerExecuted ?? (isProviderTool ? true : undefined);
+}
+
 export async function parseToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
@@ -78,6 +88,8 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       return await doParseToolCall({ toolCall: repairedToolCall, tools });
     }
   } catch (error) {
+    const matchedTool = tools?.[toolCall.toolName as keyof TOOLS & string];
+
     // use parsed input when possible
     const parsedInput = await safeParseJSON({ text: toolCall.input });
     const input = parsedInput.success ? parsedInput.value : toolCall.input;
@@ -92,7 +104,10 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       invalid: true,
       error,
       title: tools?.[toolCall.toolName]?.title,
-      providerExecuted: toolCall.providerExecuted,
+      providerExecuted: inferProviderExecutedFlag({
+        providerExecuted: toolCall.providerExecuted,
+        isProviderTool: matchedTool?.type === 'provider',
+      }),
       providerMetadata: toolCall.providerMetadata,
     };
   }
@@ -181,7 +196,10 @@ async function doParseToolCall<TOOLS extends ToolSet>({
         toolCallId: toolCall.toolCallId,
         toolName,
         input: parseResult.value,
-        providerExecuted: toolCall.providerExecuted,
+        providerExecuted: inferProviderExecutedFlag({
+          providerExecuted: toolCall.providerExecuted,
+          isProviderTool: tool.type === 'provider',
+        }),
         providerMetadata: toolCall.providerMetadata,
         title: tool.title,
       };

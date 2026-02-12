@@ -1838,13 +1838,21 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     clearStepTimeout();
                     clearChunkTimeout();
 
+                    const hasProviderExecutedToolResultsNeedingContinuation =
+                      stepFinishReason === 'tool-calls' &&
+                      stepToolOutputs.some(
+                        output => output.providerExecuted === true,
+                      );
+
                     if (
                       // Continue if:
                       // 1. There are client tool calls that have all been executed, OR
-                      // 2. There are pending deferred results from provider-executed tools
+                      // 2. There are pending deferred results from provider-executed tools,
+                      // 3. There are provider-executed tool results and model expects continuation
                       ((clientToolCalls.length > 0 &&
                         clientToolOutputs.length === clientToolCalls.length) ||
-                        pendingDeferredToolCalls.size > 0) &&
+                        pendingDeferredToolCalls.size > 0 ||
+                        hasProviderExecutedToolResultsNeedingContinuation) &&
                       // continue until a stop condition is met:
                       !(await isStopConditionMet({
                         stopConditions,
