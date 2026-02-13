@@ -1,5 +1,4 @@
 export type { GoogleVertexEmbeddingModelOptions } from './google-vertex-embedding-options';
-export type { GoogleVertexLanguageModelOptions } from './google-vertex-language-model-options';
 export type {
   GoogleVertexImageModelOptions,
   /** @deprecated Use `GoogleVertexImageModelOptions` instead. */

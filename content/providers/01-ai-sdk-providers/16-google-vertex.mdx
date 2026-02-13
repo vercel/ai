@@ -268,10 +268,8 @@ of the [standard call settings](/docs/ai-sdk-core/settings). You can pass them a
 an options argument:
 
 ```ts
-import {
-  vertex,
-  type GoogleVertexLanguageModelOptions,
-} from '@ai-sdk/google-vertex';
+import { vertex } from '@ai-sdk/google-vertex';
+import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 
 const model = vertex('gemini-1.5-pro');
 
@@ -285,7 +283,7 @@ await generateText({
           threshold: 'BLOCK_LOW_AND_ABOVE',
         },
       ],
-    } satisfies GoogleVertexLanguageModelOptions,
+    } satisfies GoogleLanguageModelOptions,
   },
 });
 ```
@@ -433,10 +431,8 @@ const result = await generateText({
 Google Maps grounding enables Gemini models to access Google Maps data for location-aware responses. Supported models: Gemini 2.5 Flash-Lite, 2.5 Flash, 2.0 Flash, 2.5 Pro, 3.0 Pro.
 
 ```ts
-import {
-  vertex,
-  type GoogleVertexLanguageModelOptions,
-} from '@ai-sdk/google-vertex';
+import { vertex } from '@ai-sdk/google-vertex';
+import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -449,7 +445,7 @@ const result = await generateText({
       retrievalConfig: {
         latLng: { latitude: 34.090199, longitude: -117.881081 },
       },
-    } satisfies GoogleVertexLanguageModelOptions,
+    } satisfies GoogleLanguageModelOptions,
   },
   prompt: 'What are the best Italian restaurants nearby?',
 });
@@ -464,10 +460,8 @@ Google Vertex AI, through its support for Gemini models, can also emit "thinking
 To enable thinking tokens for compatible Gemini models via Vertex, set `includeThoughts: true` in the `thinkingConfig` provider option. These options are passed through `providerOptions.vertex`:
 
 ```ts
-import {
-  vertex,
-  type GoogleVertexLanguageModelOptions,
-} from '@ai-sdk/google-vertex';
+import { vertex } from '@ai-sdk/google-vertex';
+import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText, streamText } from 'ai';
 
 // For generateText:
@@ -479,7 +473,7 @@ const { text, reasoningText, reasoning } = await generateText({
         includeThoughts: true,
         // thinkingBudget: 2048, // Optional
       },
-    } satisfies GoogleVertexLanguageModelOptions,
+    } satisfies GoogleLanguageModelOptions,
   },
   prompt: 'Explain quantum computing in simple terms.',
 });
@@ -497,7 +491,7 @@ const result = streamText({
         includeThoughts: true,
         // thinkingBudget: 2048, // Optional
       },
-    } satisfies GoogleVertexLanguageModelOptions,
+    } satisfies GoogleLanguageModelOptions,
   },
   prompt: 'Explain quantum computing in simple terms.',
 });
@@ -638,10 +632,8 @@ console.log('Cache created:', cache.name);
 Then use the cache with the AI SDK:
 
 ```ts
-import {
-  vertex,
-  type GoogleVertexLanguageModelOptions,
-} from '@ai-sdk/google-vertex';
+import { vertex } from '@ai-sdk/google-vertex';
+import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text: veggieLasagnaRecipe } = await generateText({
@@ -650,7 +642,7 @@ const { text: veggieLasagnaRecipe } = await generateText({
   providerOptions: {
     vertex: {
       cachedContent: cache.name,
-    } satisfies GoogleVertexLanguageModelOptions,
+    } satisfies GoogleLanguageModelOptions,
   },
 });
 
@@ -660,7 +652,7 @@ const { text: meatLasagnaRecipe } = await generateText({
   providerOptions: {
     vertex: {
       cachedContent: cache.name,
-    } satisfies GoogleVertexLanguageModelOptions,
+    } satisfies GoogleLanguageModelOptions,
   },
 });
 ```
@@ -724,17 +716,15 @@ By default, structured outputs are enabled (and for tool calling they are requir
 You can disable structured outputs for object generation as a workaround:
 
 ```ts highlight="6,11"
-import {
-  vertex,
-  type GoogleVertexLanguageModelOptions,
-} from '@ai-sdk/google-vertex';
+import { vertex } from '@ai-sdk/google-vertex';
+import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 
 const result = await generateObject({
   model: vertex('gemini-1.5-pro'),
   providerOptions: {
     vertex: {
       structuredOutputs: false,
-    } satisfies GoogleVertexLanguageModelOptions,
+    } satisfies GoogleLanguageModelOptions,
   },
   schema: z.object({
     name: z.string(),
