@@ -1,4 +1,7 @@
-import { openai } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 
@@ -14,7 +17,7 @@ run(async () => {
     providerOptions: {
       openai: {
         include: ['file_search_call.results'],
-      },
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
   });
 

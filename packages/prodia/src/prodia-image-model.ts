@@ -37,7 +37,7 @@ export class ProdiaImageModel implements ImageModelV3 {
     const prodiaOptions = await parseProviderOptions({
       provider: 'prodia',
       providerOptions,
-      schema: prodiaImageProviderOptionsSchema,
+      schema: prodiaImageModelOptionsSchema,
     });
 
     let width: number | undefined;
@@ -188,7 +188,7 @@ const stylePresets = [
   'craft-clay',
 ] as const;
 
-export const prodiaImageProviderOptionsSchema = lazySchema(() =>
+export const prodiaImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -219,8 +219,8 @@ export const prodiaImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type ProdiaImageProviderOptions = InferSchema<
-  typeof prodiaImageProviderOptionsSchema
+export type ProdiaImageModelOptions = InferSchema<
+  typeof prodiaImageModelOptionsSchema
 >;
 
 interface ProdiaImageModelConfig {

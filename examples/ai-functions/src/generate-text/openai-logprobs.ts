@@ -1,4 +1,8 @@
-import { openai, OpenaiResponsesProviderMetadata } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelChatOptions,
+  OpenaiResponsesProviderMetadata,
+} from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 
@@ -9,7 +13,7 @@ run(async () => {
     providerOptions: {
       openai: {
         logprobs: 2,
-      },
+      } satisfies OpenAILanguageModelChatOptions,
     },
   });
 

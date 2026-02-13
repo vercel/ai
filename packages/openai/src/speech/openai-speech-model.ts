@@ -9,7 +9,7 @@ import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { OpenAISpeechAPITypes } from './openai-speech-api';
 import {
-  openaiSpeechProviderOptionsSchema,
+  openaiSpeechModelOptionsSchema,
   OpenAISpeechModelId,
 } from './openai-speech-options';
 
@@ -46,7 +46,7 @@ export class OpenAISpeechModel implements SpeechModelV3 {
     const openAIOptions = await parseProviderOptions({
       provider: 'openai',
       providerOptions,
-      schema: openaiSpeechProviderOptionsSchema,
+      schema: openaiSpeechModelOptionsSchema,
     });
 
     // Create request body

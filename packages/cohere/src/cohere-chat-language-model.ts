@@ -19,7 +19,7 @@ import {
 import { z } from 'zod/v4';
 import {
   CohereChatModelId,
-  cohereChatModelOptions,
+  cohereLanguageModelOptions,
 } from './cohere-chat-options';
 import { cohereFailedResponseHandler } from './cohere-error';
 import { prepareTools } from './cohere-prepare-tools';
@@ -75,7 +75,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
       (await parseProviderOptions({
         provider: 'cohere',
         providerOptions,
-        schema: cohereChatModelOptions,
+        schema: cohereLanguageModelOptions,
       })) ?? {};
 
     const {

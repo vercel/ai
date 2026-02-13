@@ -1,4 +1,4 @@
-import { cohere, CohereRerankingOptions } from '@ai-sdk/cohere';
+import { cohere, type CohereRerankingModelOptions } from '@ai-sdk/cohere';
 import { rerank } from 'ai';
 import { run } from '../lib/run';
 import { print } from '../lib/print';
@@ -12,7 +12,7 @@ run(async () => {
     providerOptions: {
       cohere: {
         priority: 1,
-      } satisfies CohereRerankingOptions,
+      } satisfies CohereRerankingModelOptions,
     },
   });
 

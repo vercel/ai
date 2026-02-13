@@ -1,4 +1,8 @@
-import { openai, OpenaiResponsesProviderMetadata } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+  OpenaiResponsesProviderMetadata,
+} from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
 
@@ -9,7 +13,7 @@ run(async () => {
     providerOptions: {
       openai: {
         serviceTier: 'flex',
-      },
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
   });
 

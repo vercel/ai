@@ -59,21 +59,23 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      taskType: 'TEXT_IMAGE',
-      textToImageParams: {
-        text: prompt,
-        negativeText: 'bad',
-      },
-      imageGenerationConfig: {
-        numberOfImages: 1,
-        seed: 1234,
-        quality: 'premium',
-        cfgScale: 1.2,
-        width: 1024,
-        height: 1024,
-      },
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "imageGenerationConfig": {
+          "cfgScale": 1.2,
+          "height": 1024,
+          "numberOfImages": 1,
+          "quality": "premium",
+          "seed": 1234,
+          "width": 1024,
+        },
+        "taskType": "TEXT_IMAGE",
+        "textToImageParams": {
+          "negativeText": "bad",
+          "text": "A cute baby sea otter",
+        },
+      }
+    `);
   });
 
   it('should properly combine headers from all sources', async () => {
@@ -157,7 +159,12 @@ describe('doGenerate', () => {
       providerOptions: {},
     });
 
-    expect(result.images).toStrictEqual(['base64-image-1', 'base64-image-2']);
+    expect(result.images).toMatchInlineSnapshot(`
+      [
+        "base64-image-1",
+        "base64-image-2",
+      ]
+    `);
   });
 
   it('should include response data with timestamp, modelId and headers', async () => {
@@ -182,14 +189,16 @@ describe('doGenerate', () => {
       providerOptions: {},
     });
 
-    expect(result.response).toStrictEqual({
-      timestamp: testDate,
-      modelId: 'amazon.nova-canvas-v1:0',
-      headers: {
-        'content-length': '46',
-        'content-type': 'application/json',
-      },
-    });
+    expect(result.response).toMatchInlineSnapshot(`
+      {
+        "headers": {
+          "content-length": "46",
+          "content-type": "application/json",
+        },
+        "modelId": "amazon.nova-canvas-v1:0",
+        "timestamp": 2024-03-15T12:00:00.000Z,
+      }
+    `);
   });
 
   it('should use real date when no custom date provider is specified', async () => {
@@ -236,22 +245,24 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      taskType: 'TEXT_IMAGE',
-      textToImageParams: {
-        text: prompt,
-        negativeText: 'bad',
-        style: 'PHOTOREALISM',
-      },
-      imageGenerationConfig: {
-        numberOfImages: 1,
-        seed: 1234,
-        quality: 'premium',
-        cfgScale: 1.2,
-        width: 1024,
-        height: 1024,
-      },
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "imageGenerationConfig": {
+          "cfgScale": 1.2,
+          "height": 1024,
+          "numberOfImages": 1,
+          "quality": "premium",
+          "seed": 1234,
+          "width": 1024,
+        },
+        "taskType": "TEXT_IMAGE",
+        "textToImageParams": {
+          "negativeText": "bad",
+          "style": "PHOTOREALISM",
+          "text": "A cute baby sea otter",
+        },
+      }
+    `);
   });
 
   it('should not include style parameter when not provided', async () => {
@@ -543,7 +554,11 @@ describe('Image Editing', () => {
       },
     });
 
-    expect(result.images).toStrictEqual(['edited-image-base64']);
+    expect(result.images).toMatchInlineSnapshot(`
+      [
+        "edited-image-base64",
+      ]
+    `);
   });
 
   it('should throw error for URL-based images', async () => {

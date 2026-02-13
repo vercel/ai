@@ -27,6 +27,7 @@ You can find the changelogs for the individual packages in their respective `CHA
 - [@ai-sdk/groq](./packages/groq/CHANGELOG.md)
 - [@ai-sdk/huggingface](./packages/huggingface/CHANGELOG.md)
 - [@ai-sdk/hume](./packages/hume/CHANGELOG.md)
+- [@ai-sdk/klingai](./packages/klingai/CHANGELOG.md)
 - [@ai-sdk/lmnt](./packages/lmnt/CHANGELOG.md)
 - [@ai-sdk/luma](./packages/luma/CHANGELOG.md)
 - [@ai-sdk/mistral](./packages/mistral/CHANGELOG.md)
