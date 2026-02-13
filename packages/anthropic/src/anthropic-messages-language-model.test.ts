@@ -5818,18 +5818,17 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(fullReasoning).toContain('185');
 
       const signatureParts = result.filter(
-        part =>
+        (
+          part,
+        ): part is LanguageModelV3StreamPart & {
+          type: 'reasoning-delta';
+        } =>
           part.type === 'reasoning-delta' &&
-          (part as { providerMetadata?: Record<string, unknown> })
-            .providerMetadata?.anthropic != null,
+          part.providerMetadata?.anthropic != null,
       );
       expect(signatureParts).toHaveLength(1);
       expect(
-        (
-          signatureParts[0] as {
-            providerMetadata: { anthropic: { signature: string } };
-          }
-        ).providerMetadata.anthropic.signature,
+        signatureParts[0].providerMetadata?.anthropic?.signature,
       ).toBeTruthy();
 
       const textDeltas = result.filter(
