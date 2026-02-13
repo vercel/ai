@@ -1,4 +1,4 @@
-import { google } from '@ai-sdk/google';
+import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 
@@ -12,7 +12,7 @@ run(async () => {
           thinkingBudget: 2048,
           // includeThoughts: true,
         },
-      },
+      } satisfies GoogleLanguageModelOptions,
     },
   });
 

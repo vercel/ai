@@ -1,4 +1,4 @@
-import { google } from '@ai-sdk/google';
+import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { run } from '../lib/run';
@@ -9,7 +9,7 @@ run(async () => {
     providerOptions: {
       google: {
         structuredOutputs: false,
-      },
+      } satisfies GoogleLanguageModelOptions,
     },
     schema: z.object({
       name: z.string(),

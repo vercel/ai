@@ -223,7 +223,7 @@ You can configure the polling timeout using provider-specific options. Each prov
 
 ```tsx highlight={"10-12"}
 import { experimental_generateVideo as generateVideo } from 'ai';
-import { fal, type FalVideoProviderOptions } from '@ai-sdk/fal';
+import { fal, type FalVideoModelOptions } from '@ai-sdk/fal';
 
 const { video } = await generateVideo({
   model: fal.video('luma-dream-machine/ray-2'),
@@ -232,7 +232,7 @@ const { video } = await generateVideo({
   providerOptions: {
     fal: {
       pollTimeoutMs: 600000, // 10 minutes
-    } satisfies FalVideoProviderOptions,
+    } satisfies FalVideoModelOptions,
   },
 });
 ```

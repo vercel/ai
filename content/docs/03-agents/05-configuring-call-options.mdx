@@ -153,7 +153,7 @@ await newsAgent.generate({
 Configure provider settings dynamically:
 
 ```ts
-import { openai, OpenAIProviderOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { ToolLoopAgent } from 'ai';
 import { z } from 'zod';
 
@@ -167,7 +167,7 @@ const agent = new ToolLoopAgent({
     providerOptions: {
       openai: {
         reasoningEffort: options.taskDifficulty,
-      } satisfies OpenAIProviderOptions,
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
   }),
 });

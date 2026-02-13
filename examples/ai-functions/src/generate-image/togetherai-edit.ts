@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import {
   togetherai,
-  type TogetherAIImageProviderOptions,
+  type TogetherAIImageModelOptions,
 } from '@ai-sdk/togetherai';
 import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
@@ -32,7 +32,7 @@ run(async () => {
     providerOptions: {
       togetherai: {
         steps: 28,
-      } satisfies TogetherAIImageProviderOptions,
+      } satisfies TogetherAIImageModelOptions,
     },
   });
 

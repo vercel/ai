@@ -21,7 +21,7 @@ import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
 import type { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
 
-export type GoogleGenerativeAIVideoProviderOptions = {
+export type GoogleVideoModelOptions = {
   // Polling configuration
   pollIntervalMs?: number | null;
   pollTimeoutMs?: number | null;
@@ -76,8 +76,8 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
     const googleOptions = (await parseProviderOptions({
       provider: 'google',
       providerOptions: options.providerOptions,
-      schema: googleVideoProviderOptionsSchema,
-    })) as GoogleGenerativeAIVideoProviderOptions | undefined;
+      schema: googleVideoModelOptionsSchema,
+    })) as GoogleVideoModelOptions | undefined;
 
     const instances: Array<Record<string, unknown>> = [{}];
     const instance = instances[0];
@@ -155,7 +155,7 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
     }
 
     if (googleOptions != null) {
-      const opts = googleOptions as GoogleGenerativeAIVideoProviderOptions;
+      const opts = googleOptions as GoogleVideoModelOptions;
 
       if (
         opts.personGeneration !== undefined &&
@@ -350,7 +350,7 @@ const googleOperationSchema = z.object({
     .nullish(),
 });
 
-const googleVideoProviderOptionsSchema = lazySchema(() =>
+const googleVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({

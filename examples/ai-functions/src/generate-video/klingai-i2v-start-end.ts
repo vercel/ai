@@ -1,4 +1,4 @@
-import { type KlingAIVideoProviderOptions, klingai } from '@ai-sdk/klingai';
+import { type KlingAIVideoModelOptions, klingai } from '@ai-sdk/klingai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import { presentVideos } from '../lib/present-video';
 import { run } from '../lib/run';
@@ -23,7 +23,7 @@ run(async () => {
             imageTail:
               'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-dog.png',
             pollTimeoutMs: 600000, // 10 minutes
-          } satisfies KlingAIVideoProviderOptions,
+          } satisfies KlingAIVideoModelOptions,
         },
       }),
   );

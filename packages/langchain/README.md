@@ -56,6 +56,30 @@ return createUIMessageStreamResponse({
 });
 ```
 
+### Streaming with Callbacks
+
+Use callbacks to access the final LangGraph state, handle errors, or detect aborts:
+
+```ts
+const langchainStream = await graph.stream(
+  { messages: langchainMessages },
+  { streamMode: ['values', 'messages'] },
+);
+
+return createUIMessageStreamResponse({
+  stream: toUIMessageStream<MyGraphState>(langchainStream, {
+    onFinish: async finalState => {
+      if (finalState) {
+        await saveConversation(finalState.messages);
+        await sendAnalytics(finalState);
+      }
+    },
+    onError: error => console.error('Stream failed:', error),
+    onAbort: () => console.log('Client disconnected'),
+  }),
+});
+```
+
 ### Streaming with `streamEvents`
 
 You can also use `toUIMessageStream` with `streamEvents()` for more granular event handling:
@@ -195,13 +219,21 @@ Converts AI SDK `ModelMessage` objects to LangChain `BaseMessage` objects.
 
 **Returns:** `BaseMessage[]`
 
-### `toUIMessageStream(stream)`
+### `toUIMessageStream(stream, callbacks?)`
 
 Converts a LangChain/LangGraph stream to an AI SDK `UIMessageStream`.
 
 **Parameters:**
 
 - `stream`: `AsyncIterable | ReadableStream` - A stream from LangChain `model.stream()`, LangGraph `graph.stream()`, or `streamEvents()`
+- `callbacks?`: `StreamCallbacks<TState>` - Optional lifecycle callbacks:
+  - `onStart()` - Called when stream initializes
+  - `onToken(token)` - Called for each token
+  - `onText(text)` - Called for each text chunk
+  - `onFinal(text)` - Called with aggregated text (on success, error, or abort)
+  - `onFinish(state)` - Called on success with LangGraph state (or `undefined` for other streams)
+  - `onError(error)` - Called when stream errors
+  - `onAbort()` - Called when stream is aborted
 
 **Returns:** `ReadableStream<UIMessageChunk>`
 

@@ -1,5 +1,18 @@
 # @ai-sdk/openai
 
+## 3.0.28
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+
+## 3.0.27
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+
 ## 3.0.26
 
 ### Patch Changes

@@ -1,4 +1,4 @@
-import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import type { GatewayLanguageModelOptions } from '@ai-sdk/gateway';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
 
@@ -12,7 +12,7 @@ run(async () => {
     providerOptions: {
       gateway: {
         models: ['openai/gpt-5-nano', 'zai/glm-4.6'],
-      } satisfies GatewayProviderOptions,
+      } satisfies GatewayLanguageModelOptions,
     },
   });
 

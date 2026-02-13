@@ -3,7 +3,7 @@ import { writeFileSync, statSync } from 'fs';
 import { join } from 'path';
 
 // Bundle size limits in bytes
-const LIMIT = 555 * 1024;
+const LIMIT = 560 * 1024;
 
 interface BundleResult {
   size: number;

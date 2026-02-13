@@ -104,6 +104,8 @@ xAI chat models support additional provider options that are not part of
 the [standard call settings](/docs/ai-sdk-core/settings). You can pass them in the `providerOptions` argument:
 
 ```ts
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
+
 const model = xai('grok-3-mini');
 
 await generateText({
@@ -111,7 +113,7 @@ await generateText({
   providerOptions: {
     xai: {
       reasoningEffort: 'high',
-    },
+    } satisfies XaiLanguageModelChatOptions,
   },
 });
 ```
@@ -342,7 +344,7 @@ const { text } = await generateText({
 The file search tool enables searching through documents stored in xAI vector stores (collections):
 
 ```ts
-import { xai } from '@ai-sdk/xai';
+import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 
 const result = streamText({
@@ -357,7 +359,7 @@ const result = streamText({
   providerOptions: {
     xai: {
       include: ['file_search_call.results'],
-    },
+    } satisfies XaiLanguageModelResponsesOptions,
   },
 });
 ```
@@ -423,7 +425,7 @@ for await (const part of fullStream) {
 The Responses API supports the following provider options:
 
 ```ts
-import { xai } from '@ai-sdk/xai';
+import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -431,7 +433,7 @@ const result = await generateText({
   providerOptions: {
     xai: {
       reasoningEffort: 'high',
-    },
+    } satisfies XaiLanguageModelResponsesOptions,
   },
   // ...
 });
@@ -469,7 +471,7 @@ xAI models support Live Search functionality, allowing them to query real-time d
 To enable search, specify `searchParameters` with a search mode:
 
 ```ts
-import { xai } from '@ai-sdk/xai';
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
@@ -482,7 +484,7 @@ const { text, sources } = await generateText({
         returnCitations: true,
         maxSearchResults: 5,
       },
-    },
+    } satisfies XaiLanguageModelChatOptions,
   },
 });
 
@@ -529,6 +531,8 @@ You can specify different types of data sources for search:
 #### Web Search
 
 ```ts
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
+
 const result = await generateText({
   model: xai('grok-3-latest'),
   prompt: 'Best ski resorts in Switzerland',
@@ -545,7 +549,7 @@ const result = await generateText({
           },
         ],
       },
-    },
+    } satisfies XaiLanguageModelChatOptions,
   },
 });
 ```
@@ -560,6 +564,8 @@ const result = await generateText({
 #### X (Twitter) Search
 
 ```ts
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
+
 const result = await generateText({
   model: xai('grok-3-latest'),
   prompt: 'Latest updates on Grok AI',
@@ -577,7 +583,7 @@ const result = await generateText({
           },
         ],
       },
-    },
+    } satisfies XaiLanguageModelChatOptions,
   },
 });
 ```
@@ -592,6 +598,8 @@ const result = await generateText({
 #### News Search
 
 ```ts
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
+
 const result = await generateText({
   model: xai('grok-3-latest'),
   prompt: 'Recent tech industry news',
@@ -608,7 +616,7 @@ const result = await generateText({
           },
         ],
       },
-    },
+    } satisfies XaiLanguageModelChatOptions,
   },
 });
 ```
@@ -622,6 +630,8 @@ const result = await generateText({
 #### RSS Feed Search
 
 ```ts
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
+
 const result = await generateText({
   model: xai('grok-3-latest'),
   prompt: 'Latest status updates',
@@ -636,7 +646,7 @@ const result = await generateText({
           },
         ],
       },
-    },
+    } satisfies XaiLanguageModelChatOptions,
   },
 });
 ```
@@ -650,6 +660,8 @@ const result = await generateText({
 You can combine multiple data sources in a single search:
 
 ```ts
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
+
 const result = await generateText({
   model: xai('grok-3-latest'),
   prompt: 'Comprehensive overview of recent AI breakthroughs',
@@ -674,7 +686,7 @@ const result = await generateText({
           },
         ],
       },
-    },
+    } satisfies XaiLanguageModelChatOptions,
   },
 });
 ```
@@ -684,6 +696,8 @@ const result = await generateText({
 When search is enabled with `returnCitations: true`, the response includes sources that were used to generate the answer:
 
 ```ts
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
+
 const { text, sources } = await generateText({
   model: xai('grok-3-latest'),
   prompt: 'What are the latest developments in AI?',
@@ -693,7 +707,7 @@ const { text, sources } = await generateText({
         mode: 'auto',
         returnCitations: true,
       },
-    },
+    } satisfies XaiLanguageModelChatOptions,
   },
 });
 
@@ -710,6 +724,7 @@ for (const source of sources) {
 Live Search works with streaming responses. Citations are included when the stream completes:
 
 ```ts
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 
 const result = streamText({
@@ -721,7 +736,7 @@ const result = streamText({
         mode: 'auto',
         returnCitations: true,
       },
-    },
+    } satisfies XaiLanguageModelChatOptions,
   },
 });
 
@@ -783,8 +798,60 @@ const { image } = await generateImage({
 ```
 
 <Note>
-  The xAI image model does not currently support the `aspectRatio` or `size`
-  parameters. Image size defaults to 1024x768.
+  The xAI image model does not support the `size` parameter. Use `aspectRatio`
+  instead. Supported aspect ratios: `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`,
+  `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, and `auto`.
+</Note>
+
+### Image Editing
+
+xAI supports image editing through the `grok-2-image` and `grok-imagine-image` models. Pass input images via `prompt.images` to transform or edit existing images.
+
+<Note>
+  xAI image editing does not support masks. Editing is prompt-driven - describe
+  what you want to change in the text prompt.
+</Note>
+
+#### Basic Image Editing
+
+Transform an existing image using text prompts:
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { generateImage } from 'ai';
+import { readFileSync } from 'fs';
+
+const imageBuffer = readFileSync('./input-image.png');
+
+const { images } = await generateImage({
+  model: xai.image('grok-2-image'),
+  prompt: {
+    text: 'Turn the cat into a golden retriever dog',
+    images: [imageBuffer],
+  },
+});
+```
+
+#### Style Transfer
+
+Apply artistic styles to an image:
+
+```ts
+const imageBuffer = readFileSync('./input-image.png');
+
+const { images } = await generateImage({
+  model: xai.image('grok-2-image'),
+  prompt: {
+    text: 'Transform this into a watercolor painting style',
+    images: [imageBuffer],
+  },
+  aspectRatio: '1:1',
+});
+```
+
+<Note>
+  Input images can be provided as `Buffer`, `ArrayBuffer`, `Uint8Array`, or
+  base64-encoded strings. xAI only supports a single input image per request.
 </Note>
 
 ### Model-specific options
@@ -798,13 +865,14 @@ import { generateImage } from 'ai';
 const { images } = await generateImage({
   model: xai.image('grok-2-image'),
   prompt: 'A futuristic cityscape at sunset',
-  maxImagesPerCall: 5, // Default is 10
-  n: 2, // Generate 2 images
+  aspectRatio: '16:9',
+  n: 2,
 });
 ```
 
 ### Model Capabilities
 
-| Model          | Sizes              | Notes                                                                                                                                                                                                    |
-| -------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `grok-2-image` | 1024x768 (default) | xAI's text-to-image generation model, designed to create high-quality images from text prompts. It's trained on a diverse dataset and can generate images across various styles, subjects, and settings. |
+| Model                | Aspect Ratios                                                                                               | Image Editing       |
+| -------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------- |
+| `grok-2-image`       | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check size={18} /> |
+| `grok-imagine-image` | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check size={18} /> |

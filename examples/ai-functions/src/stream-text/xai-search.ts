@@ -1,4 +1,4 @@
-import { xai } from '@ai-sdk/xai';
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
 
@@ -20,7 +20,7 @@ run(async () => {
             },
           ],
         },
-      },
+      } satisfies XaiLanguageModelChatOptions,
     },
   });
 

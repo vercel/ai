@@ -1,4 +1,4 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { tool, ToolLoopAgent } from 'ai';
 import z from 'zod';
 import { printFullStream } from '../lib/print-full-stream';
@@ -10,7 +10,7 @@ const agent = new ToolLoopAgent({
     openai: {
       reasoningEffort: 'medium',
       reasoningSummary: 'detailed',
-    } satisfies OpenAIResponsesProviderOptions,
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
   instructions:
     'You are an expert at solving math problems.' +
