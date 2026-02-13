@@ -34,18 +34,29 @@ const createTestModel = (
     ...config,
   });
 
-const defaultBody = {
-  embeddings: dummyEmbeddings,
-  usage: { tokens: 8 },
-};
-
 describe('GatewayEmbeddingModel', () => {
+  function prepareJsonResponse({
+    embeddings = dummyEmbeddings,
+    usage = { tokens: 8 },
+    headers,
+  }: {
+    embeddings?: number[][];
+    usage?: { tokens: number };
+    headers?: Record<string, string>;
+  } = {}) {
+    server.urls['https://api.test.com/embedding-model'].response = {
+      type: 'json-value',
+      headers,
+      body: {
+        embeddings,
+        usage,
+      },
+    };
+  }
+
   describe('doEmbed', () => {
     it('should pass headers correctly', async () => {
-      server.urls['https://api.test.com/embedding-model'].response = {
-        type: 'json-value',
-        body: defaultBody,
-      };
+      prepareJsonResponse();
 
       await createTestModel().doEmbed({
         values: testValues,
@@ -62,10 +73,7 @@ describe('GatewayEmbeddingModel', () => {
     });
 
     it('should include o11y headers', async () => {
-      server.urls['https://api.test.com/embedding-model'].response = {
-        type: 'json-value',
-        body: defaultBody,
-      };
+      prepareJsonResponse();
 
       const o11yHeaders = {
         'ai-o11y-deployment-id': 'deployment-1',
@@ -80,13 +88,10 @@ describe('GatewayEmbeddingModel', () => {
     });
 
     it('should extract embeddings and usage', async () => {
-      server.urls['https://api.test.com/embedding-model'].response = {
-        type: 'json-value',
-        body: {
-          embeddings: dummyEmbeddings,
-          usage: { tokens: 42 },
-        },
-      };
+      prepareJsonResponse({
+        embeddings: dummyEmbeddings,
+        usage: { tokens: 42 },
+      });
 
       const { embeddings, usage } = await createTestModel().doEmbed({
         values: testValues,
@@ -97,10 +102,7 @@ describe('GatewayEmbeddingModel', () => {
     });
 
     it('should send value as array', async () => {
-      server.urls['https://api.test.com/embedding-model'].response = {
-        type: 'json-value',
-        body: defaultBody,
-      };
+      prepareJsonResponse();
 
       await createTestModel().doEmbed({ values: testValues });
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -109,10 +111,7 @@ describe('GatewayEmbeddingModel', () => {
     });
 
     it('should pass providerOptions into request body', async () => {
-      server.urls['https://api.test.com/embedding-model'].response = {
-        type: 'json-value',
-        body: defaultBody,
-      };
+      prepareJsonResponse();
 
       await createTestModel().doEmbed({
         values: testValues,
@@ -126,10 +125,7 @@ describe('GatewayEmbeddingModel', () => {
     });
 
     it('should not include providerOptions when not provided', async () => {
-      server.urls['https://api.test.com/embedding-model'].response = {
-        type: 'json-value',
-        body: defaultBody,
-      };
+      prepareJsonResponse();
 
       await createTestModel().doEmbed({ values: testValues });
 

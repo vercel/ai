@@ -64,11 +64,31 @@ describe('GatewayImageModel', () => {
   });
 
   describe('doGenerate', () => {
-    it('should send correct request headers', async () => {
+    function prepareJsonResponse({
+      images = ['base64-image-1'],
+      warnings,
+      providerMetadata,
+    }: {
+      images?: string[];
+      warnings?: Array<
+        | { type: 'unsupported'; feature: string; details?: string }
+        | { type: 'compatibility'; feature: string; details?: string }
+        | { type: 'other'; message: string }
+      >;
+      providerMetadata?: Record<string, unknown>;
+    } = {}) {
       server.urls['https://api.test.com/image-model'].response = {
         type: 'json-value',
-        body: { images: ['base64-image-1'] },
+        body: {
+          images,
+          ...(warnings && { warnings }),
+          ...(providerMetadata && { providerMetadata }),
+        },
       };
+    }
+
+    it('should send correct request headers', async () => {
+      prepareJsonResponse();
 
       await createTestModel().doGenerate({
         prompt: 'A beautiful sunset over mountains',
@@ -90,10 +110,7 @@ describe('GatewayImageModel', () => {
     });
 
     it('should send correct request body with all parameters', async () => {
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: { images: ['base64-1', 'base64-2'] },
-      };
+      prepareJsonResponse({ images: ['base64-1', 'base64-2'] });
 
       const prompt = 'A cat playing piano';
       await createTestModel().doGenerate({
@@ -121,10 +138,7 @@ describe('GatewayImageModel', () => {
     });
 
     it('should omit optional parameters when not provided', async () => {
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: { images: ['base64-image-1'] },
-      };
+      prepareJsonResponse();
 
       const prompt = 'A simple prompt';
       await createTestModel().doGenerate({
@@ -151,10 +165,7 @@ describe('GatewayImageModel', () => {
 
     it('should return images array correctly', async () => {
       const mockImages = ['base64-image-1', 'base64-image-2'];
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: { images: mockImages },
-      };
+      prepareJsonResponse({ images: mockImages });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -184,13 +195,10 @@ describe('GatewayImageModel', () => {
         },
       };
 
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: {
-          images: ['base64-1', 'base64-2'],
-          providerMetadata: mockProviderMetadata,
-        },
-      };
+      prepareJsonResponse({
+        images: ['base64-1', 'base64-2'],
+        providerMetadata: mockProviderMetadata,
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -207,18 +215,15 @@ describe('GatewayImageModel', () => {
     });
 
     it('should handle provider metadata without images field', async () => {
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: {
-          images: ['base64-1'],
-          providerMetadata: {
-            gateway: {
-              routing: { provider: 'vertex' },
-              cost: '0.04',
-            },
+      prepareJsonResponse({
+        images: ['base64-1'],
+        providerMetadata: {
+          gateway: {
+            routing: { provider: 'vertex' },
+            cost: '0.04',
           },
         },
-      };
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -240,13 +245,10 @@ describe('GatewayImageModel', () => {
     });
 
     it('should handle empty provider metadata', async () => {
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: {
-          images: ['base64-1'],
-          providerMetadata: {},
-        },
-      };
+      prepareJsonResponse({
+        images: ['base64-1'],
+        providerMetadata: {},
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -263,10 +265,9 @@ describe('GatewayImageModel', () => {
     });
 
     it('should handle undefined provider metadata', async () => {
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: { images: ['base64-1'] },
-      };
+      prepareJsonResponse({
+        images: ['base64-1'],
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -287,13 +288,10 @@ describe('GatewayImageModel', () => {
         { type: 'other' as const, message: 'Setting not supported' },
       ];
 
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: {
-          images: ['base64-1'],
-          warnings: mockWarnings,
-        },
-      };
+      prepareJsonResponse({
+        images: ['base64-1'],
+        warnings: mockWarnings,
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -319,13 +317,10 @@ describe('GatewayImageModel', () => {
         },
       ];
 
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: {
-          images: ['base64-1'],
-          warnings: mockWarnings,
-        },
-      };
+      prepareJsonResponse({
+        images: ['base64-1'],
+        warnings: mockWarnings,
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -350,13 +345,10 @@ describe('GatewayImageModel', () => {
         },
       ];
 
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: {
-          images: ['base64-1'],
-          warnings: mockWarnings,
-        },
-      };
+      prepareJsonResponse({
+        images: ['base64-1'],
+        warnings: mockWarnings,
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -389,13 +381,10 @@ describe('GatewayImageModel', () => {
         },
       ];
 
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: {
-          images: ['base64-1'],
-          warnings: mockWarnings,
-        },
-      };
+      prepareJsonResponse({
+        images: ['base64-1'],
+        warnings: mockWarnings,
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -412,10 +401,9 @@ describe('GatewayImageModel', () => {
     });
 
     it('should return empty warnings array when not provided', async () => {
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: { images: ['base64-1'] },
-      };
+      prepareJsonResponse({
+        images: ['base64-1'],
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -432,10 +420,9 @@ describe('GatewayImageModel', () => {
     });
 
     it('should include response metadata', async () => {
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: { images: ['base64-1'] },
-      };
+      prepareJsonResponse({
+        images: ['base64-1'],
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -514,10 +501,9 @@ describe('GatewayImageModel', () => {
     });
 
     it('should not include usage when not provided', async () => {
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: { images: ['base64-1'] },
-      };
+      prepareJsonResponse({
+        images: ['base64-1'],
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -534,10 +520,7 @@ describe('GatewayImageModel', () => {
     });
 
     it('should merge custom headers with config headers', async () => {
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: { images: ['base64-image-1'] },
-      };
+      prepareJsonResponse();
 
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -563,10 +546,7 @@ describe('GatewayImageModel', () => {
     });
 
     it('should include o11y headers', async () => {
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: { images: ['base64-image-1'] },
-      };
+      prepareJsonResponse();
 
       await createTestModel({
         o11yHeaders: {
@@ -592,10 +572,7 @@ describe('GatewayImageModel', () => {
     });
 
     it('should pass abort signal to fetch', async () => {
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: { images: ['base64-image-1'] },
-      };
+      prepareJsonResponse();
 
       const abortController = new AbortController();
       await createTestModel().doGenerate({
@@ -666,10 +643,7 @@ describe('GatewayImageModel', () => {
     });
 
     it('should include providerOptions object in request body', async () => {
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: { images: ['base64-image-1'] },
-      };
+      prepareJsonResponse();
 
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -705,10 +679,7 @@ describe('GatewayImageModel', () => {
     });
 
     it('should handle empty provider options', async () => {
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: { images: ['base64-image-1'] },
-      };
+      prepareJsonResponse();
 
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -730,10 +701,7 @@ describe('GatewayImageModel', () => {
     });
 
     it('should handle different model IDs', async () => {
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: { images: ['base64-image-1'] },
-      };
+      prepareJsonResponse();
 
       const customModelId = 'openai/dall-e-3';
       const model = new GatewayImageModel(customModelId, {
@@ -762,33 +730,30 @@ describe('GatewayImageModel', () => {
     });
 
     it('should handle complex provider metadata with multiple providers', async () => {
-      server.urls['https://api.test.com/image-model'].response = {
-        type: 'json-value',
-        body: {
-          images: ['base64-1', 'base64-2'],
-          providerMetadata: {
-            vertex: {
-              images: [
-                { revisedPrompt: 'Revised 1' },
-                { revisedPrompt: 'Revised 2' },
+      prepareJsonResponse({
+        images: ['base64-1', 'base64-2'],
+        providerMetadata: {
+          vertex: {
+            images: [
+              { revisedPrompt: 'Revised 1' },
+              { revisedPrompt: 'Revised 2' },
+            ],
+            usage: { tokens: 150 },
+          },
+          gateway: {
+            routing: {
+              provider: 'vertex',
+              attempts: [
+                { provider: 'openai', success: false },
+                { provider: 'vertex', success: true },
               ],
-              usage: { tokens: 150 },
             },
-            gateway: {
-              routing: {
-                provider: 'vertex',
-                attempts: [
-                  { provider: 'openai', success: false },
-                  { provider: 'vertex', success: true },
-                ],
-              },
-              cost: '0.08',
-              marketCost: '0.12',
-              generationId: 'gen-xyz-789',
-            },
+            cost: '0.08',
+            marketCost: '0.12',
+            generationId: 'gen-xyz-789',
           },
         },
-      };
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -826,10 +791,7 @@ describe('GatewayImageModel', () => {
 
     describe('file encoding', () => {
       it('should encode Uint8Array files to base64 strings', async () => {
-        server.urls['https://api.test.com/image-model'].response = {
-          type: 'json-value',
-          body: { images: ['base64-image-1'] },
-        };
+        prepareJsonResponse();
 
         const binaryData = new Uint8Array([72, 101, 108, 108, 111]); // "Hello"
 
@@ -860,10 +822,7 @@ describe('GatewayImageModel', () => {
       });
 
       it('should pass through files with string data unchanged', async () => {
-        server.urls['https://api.test.com/image-model'].response = {
-          type: 'json-value',
-          body: { images: ['base64-image-1'] },
-        };
+        prepareJsonResponse();
 
         await createTestModel().doGenerate({
           prompt: 'Edit this image',
@@ -892,10 +851,7 @@ describe('GatewayImageModel', () => {
       });
 
       it('should pass through URL-type files unchanged', async () => {
-        server.urls['https://api.test.com/image-model'].response = {
-          type: 'json-value',
-          body: { images: ['base64-image-1'] },
-        };
+        prepareJsonResponse();
 
         await createTestModel().doGenerate({
           prompt: 'Edit this image',
@@ -922,10 +878,7 @@ describe('GatewayImageModel', () => {
       });
 
       it('should encode Uint8Array mask to base64 string', async () => {
-        server.urls['https://api.test.com/image-model'].response = {
-          type: 'json-value',
-          body: { images: ['base64-image-1'] },
-        };
+        prepareJsonResponse();
 
         const maskData = new Uint8Array([255, 0, 255, 0]); // Simple mask
 
@@ -953,10 +906,7 @@ describe('GatewayImageModel', () => {
       });
 
       it('should handle mixed file types with encoding', async () => {
-        server.urls['https://api.test.com/image-model'].response = {
-          type: 'json-value',
-          body: { images: ['base64-image-1'] },
-        };
+        prepareJsonResponse();
 
         const binaryData = new Uint8Array([1, 2, 3]);
 
@@ -1014,10 +964,7 @@ describe('GatewayImageModel', () => {
       });
 
       it('should preserve providerOptions on files during encoding', async () => {
-        server.urls['https://api.test.com/image-model'].response = {
-          type: 'json-value',
-          body: { images: ['base64-image-1'] },
-        };
+        prepareJsonResponse();
 
         const binaryData = new Uint8Array([72, 101, 108, 108, 111]);
 
