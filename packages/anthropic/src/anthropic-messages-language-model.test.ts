@@ -4495,10 +4495,39 @@ describe('AnthropicMessagesLanguageModel', () => {
           appliedEdits: [],
         });
 
-        expect(result.usage).toMatchObject({
-          inputTokens: { total: 859 },
-          outputTokens: { total: 132 },
-        });
+        expect(result.usage).toMatchInlineSnapshot(
+          {
+            inputTokens: { total: 859 },
+            outputTokens: { total: 132 },
+          },
+          `
+          {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "noCache": 859,
+              "total": 859,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": 132,
+            },
+            "raw": {
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 0,
+                "ephemeral_5m_input_tokens": 0,
+              },
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "inference_geo": "not_available",
+              "input_tokens": 859,
+              "output_tokens": 132,
+              "service_tier": "standard",
+            },
+          }
+        `,
+        );
       });
 
       it('should parse clear_thinking response with thinking and context_management', async () => {
@@ -4528,10 +4557,39 @@ describe('AnthropicMessagesLanguageModel', () => {
           appliedEdits: [],
         });
 
-        expect(result.usage).toMatchObject({
-          inputTokens: { total: 69 },
-          outputTokens: { total: 33 },
-        });
+        expect(result.usage).toMatchInlineSnapshot(
+          {
+            inputTokens: { total: 69 },
+            outputTokens: { total: 33 },
+          },
+          `
+          {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "noCache": 69,
+              "total": 69,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": 33,
+            },
+            "raw": {
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 0,
+                "ephemeral_5m_input_tokens": 0,
+              },
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "inference_geo": "not_available",
+              "input_tokens": 69,
+              "output_tokens": 33,
+              "service_tier": "standard",
+            },
+          }
+        `,
+        );
       });
 
       it('should parse combined clear_thinking and clear_tool_uses response', async () => {
@@ -4579,21 +4637,66 @@ describe('AnthropicMessagesLanguageModel', () => {
           appliedEdits: [],
         });
 
-        expect(await server.calls[0].requestBodyJson).toMatchObject({
-          context_management: {
-            edits: [
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(
+          {
+            context_management: {
+              edits: [
+                {
+                  type: 'clear_thinking_20251015',
+                  keep: { type: 'thinking_turns', value: 1 },
+                },
+                {
+                  type: 'clear_tool_uses_20250919',
+                  trigger: { type: 'tool_uses', value: 4 },
+                  keep: { type: 'tool_uses', value: 1 },
+                },
+              ],
+            },
+          },
+          `
+          {
+            "context_management": {
+              "edits": [
+                {
+                  "keep": {
+                    "type": "thinking_turns",
+                    "value": 1,
+                  },
+                  "type": "clear_thinking_20251015",
+                },
+                {
+                  "keep": {
+                    "type": "tool_uses",
+                    "value": 1,
+                  },
+                  "trigger": {
+                    "type": "tool_uses",
+                    "value": 4,
+                  },
+                  "type": "clear_tool_uses_20250919",
+                },
+              ],
+            },
+            "max_tokens": 4096,
+            "messages": [
               {
-                type: 'clear_thinking_20251015',
-                keep: { type: 'thinking_turns', value: 1 },
-              },
-              {
-                type: 'clear_tool_uses_20250919',
-                trigger: { type: 'tool_uses', value: 4 },
-                keep: { type: 'tool_uses', value: 1 },
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
               },
             ],
-          },
-        });
+            "model": "claude-3-haiku-20240307",
+            "thinking": {
+              "budget_tokens": 5000,
+              "type": "enabled",
+            },
+          }
+        `,
+        );
       });
 
       it('should return compaction stop reason as other', async () => {
@@ -5787,10 +5890,39 @@ describe('AnthropicMessagesLanguageModel', () => {
         appliedEdits: [],
       });
 
-      expect(finishPart?.usage).toMatchObject({
-        inputTokens: { total: 859 },
-        outputTokens: { total: 122 },
-      });
+      expect(finishPart?.usage).toMatchInlineSnapshot(
+        {
+          inputTokens: { total: 859 },
+          outputTokens: { total: 122 },
+        },
+        `
+        {
+          "inputTokens": {
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "noCache": 859,
+            "total": 859,
+          },
+          "outputTokens": {
+            "reasoning": undefined,
+            "text": undefined,
+            "total": 122,
+          },
+          "raw": {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0,
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "inference_geo": "not_available",
+            "input_tokens": 859,
+            "output_tokens": 122,
+            "service_tier": "standard",
+          },
+        }
+      `,
+      );
     });
 
     it('should stream clear_thinking response with thinking and text blocks', async () => {
@@ -5847,10 +5979,39 @@ describe('AnthropicMessagesLanguageModel', () => {
         appliedEdits: [],
       });
 
-      expect(finishPart?.usage).toMatchObject({
-        inputTokens: { total: 69 },
-        outputTokens: { total: 53 },
-      });
+      expect(finishPart?.usage).toMatchInlineSnapshot(
+        {
+          inputTokens: { total: 69 },
+          outputTokens: { total: 53 },
+        },
+        `
+        {
+          "inputTokens": {
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "noCache": 69,
+            "total": 69,
+          },
+          "outputTokens": {
+            "reasoning": undefined,
+            "text": undefined,
+            "total": 53,
+          },
+          "raw": {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0,
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "inference_geo": "not_available",
+            "input_tokens": 69,
+            "output_tokens": 53,
+            "service_tier": "standard",
+          },
+        }
+      `,
+      );
     });
 
     it('should stream combined clear_thinking and clear_tool_uses response', async () => {
