@@ -483,4 +483,42 @@ console.log(text);`,
     websiteUrl: 'https://github.com/vercel/bash-tool',
     npmUrl: 'https://www.npmjs.com/package/bash-tool',
   },
+  {
+    slug: 'you-search',
+    name: 'You.com',
+    description:
+      "Real-time web search, AI-generated answers with web context, and webpage content extraction powered by You.com. Search current information with advanced filtering (dates, sites, file types), extract full page content in markdown or HTML, and get AI answers enhanced with live web data. Built on You.com's enterprise search API with zero server setup.",
+    packageName: '@youdotcom-oss/ai-sdk-plugin',
+    tags: ['search', 'web', 'extraction', 'ai-answers'],
+    apiKeyEnvName: 'YDC_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @youdotcom-oss/ai-sdk-plugin',
+      npm: 'npm install @youdotcom-oss/ai-sdk-plugin',
+      yarn: 'yarn add @youdotcom-oss/ai-sdk-plugin',
+      bun: 'bun add @youdotcom-oss/ai-sdk-plugin',
+    },
+    codeExample: `import { generateText, type StepResult } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+import { youSearch, youContents } from '@youdotcom-oss/ai-sdk-plugin';
+
+const stepCountIs = (n: number) => (stepResult: StepResult<any>) =>
+  stepResult.stepNumber >= n;
+
+const { text } = await generateText({
+  model: anthropic('claude-sonnet-4-5-20250929'),
+  prompt: 'Search for the latest developments in quantum computing',
+  tools: {
+    search: youSearch(),
+    extract: youContents(),
+  },
+  stopWhen: stepCountIs(5),
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/youdotcom-oss/dx-toolkit/tree/main/packages/ai-sdk-plugin#readme',
+    apiKeyUrl: 'https://you.com/platform/api-keys',
+    websiteUrl: 'https://you.com',
+    npmUrl: 'https://www.npmjs.com/package/@youdotcom-oss/ai-sdk-plugin',
+  },
 ];
