@@ -1,5 +1,26 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.59
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+  - @ai-sdk/anthropic@3.0.43
+
+## 4.0.58
+
+### Patch Changes
+
+- 242696c: feat: normalize and export provider specific model options type names for existing schemas
+
+## 4.0.57
+
+### Patch Changes
+
+- 61d25a9: fix(provider/amazon-bedrock): extract response metadata from api headers
+- 08f54fc: feat(provider/amazon-bedrock): add performanceConfig, serviceTier, and cacheDetails to provider metadata
+
 ## 4.0.56
 
 ### Patch Changes

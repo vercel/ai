@@ -838,8 +838,11 @@ The following optional provider options are available for Google Vertex AI embed
 
 ### Image Models
 
-You can create [Imagen](https://cloud.google.com/vertex-ai/generative-ai/docs/image/overview) models that call the [Imagen on Vertex AI API](https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images)
-using the `.image()` factory method. For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
+You can create image models using the `.image()` factory method. The Google Vertex provider supports both [Imagen](https://cloud.google.com/vertex-ai/generative-ai/docs/image/overview) and [Gemini image models](https://cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/2-5-flash-image). For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
+
+#### Imagen Models
+
+[Imagen models](https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images) generate images using the Imagen on Vertex AI API.
 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
@@ -910,7 +913,7 @@ console.log(
 );
 ```
 
-#### Image Editing
+##### Image Editing
 
 Google Vertex Imagen models support image editing through inpainting, outpainting, and other edit modes. Pass input images via `prompt.images` and optionally a mask via `prompt.mask`.
 
@@ -919,7 +922,7 @@ Google Vertex Imagen models support image editing through inpainting, outpaintin
   `imagen-4.0-generate-001` model does not currently support editing operations.
 </Note>
 
-##### Inpainting (Insert Objects)
+###### Inpainting (Insert Objects)
 
 Insert or replace objects in specific areas using a mask:
 
@@ -951,7 +954,7 @@ const { images } = await generateImage({
 });
 ```
 
-##### Outpainting (Extend Image)
+###### Outpainting (Extend Image)
 
 Extend an image beyond its original boundaries:
 
@@ -982,7 +985,7 @@ const { images } = await generateImage({
 });
 ```
 
-##### Edit Provider Options
+###### Edit Provider Options
 
 The following options are available under `providerOptions.vertex.edit`:
 
@@ -1013,7 +1016,7 @@ The following options are available under `providerOptions.vertex.edit`:
   image editing.
 </Note>
 
-#### Model Capabilities
+##### Imagen Model Capabilities
 
 | Model                           | Aspect Ratios             |
 | ------------------------------- | ------------------------- |
@@ -1023,6 +1026,80 @@ The following options are available under `providerOptions.vertex.edit`:
 | `imagen-4.0-generate-001`       | 1:1, 3:4, 4:3, 9:16, 16:9 |
 | `imagen-4.0-fast-generate-001`  | 1:1, 3:4, 4:3, 9:16, 16:9 |
 | `imagen-4.0-ultra-generate-001` | 1:1, 3:4, 4:3, 9:16, 16:9 |
+
+#### Gemini Image Models
+
+[Gemini image models](https://cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/2-5-flash-image) (e.g. `gemini-2.5-flash-image`) are multimodal output language models that can be used with `generateImage()` for a simpler image generation experience. Internally, the provider calls the language model API with `responseModalities: ['IMAGE']`.
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: vertex.image('gemini-2.5-flash-image'),
+  prompt: 'A photorealistic image of a cat wearing a wizard hat',
+  aspectRatio: '1:1',
+});
+```
+
+Gemini image models also support image editing by providing input images:
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateImage } from 'ai';
+import fs from 'node:fs';
+
+const sourceImage = fs.readFileSync('./cat.png');
+
+const { image } = await generateImage({
+  model: vertex.image('gemini-2.5-flash-image'),
+  prompt: {
+    text: 'Add a small wizard hat to this cat',
+    images: [sourceImage],
+  },
+});
+```
+
+You can also use URLs (including `gs://` Cloud Storage URIs) for input images:
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: vertex.image('gemini-2.5-flash-image'),
+  prompt: {
+    text: 'Add a small wizard hat to this cat',
+    images: ['https://example.com/cat.png'],
+  },
+});
+```
+
+<Note>
+  Gemini image models do not support the `size` or `n` parameters. Use
+  `aspectRatio` instead of `size`. Mask-based inpainting is also not supported.
+</Note>
+
+<Note>
+  Gemini image models are multimodal output models that can generate both text
+  and images. For more advanced use cases where you need both text and image
+  outputs, or want more control over the generation process, you can use them
+  directly with `generateText()`.
+</Note>
+
+##### Gemini Image Model Capabilities
+
+| Model                        | Image Generation    | Image Editing       | Aspect Ratios                                       |
+| ---------------------------- | ------------------- | ------------------- | --------------------------------------------------- |
+| `gemini-3-pro-image-preview` | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+| `gemini-2.5-flash-image`     | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+
+<Note>
+  `gemini-3-pro-image-preview` supports additional features including up to 14
+  reference images for editing (6 objects, 5 humans), resolution options (1K,
+  2K, 4K via `providerOptions.vertex.imageConfig.imageSize`), and Google Search
+  grounding.
+</Note>
 
 ### Video Models
 

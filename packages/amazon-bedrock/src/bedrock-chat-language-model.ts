@@ -483,15 +483,32 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       response.additionalModelResponseFields?.delta?.stop_sequence ?? null;
 
     const providerMetadata =
-      response.trace || response.usage || isJsonResponseFromTool || stopSequence
+      response.trace ||
+      response.usage ||
+      response.performanceConfig ||
+      response.serviceTier ||
+      isJsonResponseFromTool ||
+      stopSequence
         ? {
             bedrock: {
               ...(response.trace && typeof response.trace === 'object'
                 ? { trace: response.trace as JSONObject }
                 : {}),
-              ...(response.usage?.cacheWriteInputTokens != null && {
+              ...(response.performanceConfig && {
+                performanceConfig: response.performanceConfig,
+              }),
+              ...(response.serviceTier && {
+                serviceTier: response.serviceTier,
+              }),
+              ...((response.usage?.cacheWriteInputTokens != null ||
+                response.usage?.cacheDetails != null) && {
                 usage: {
-                  cacheWriteInputTokens: response.usage.cacheWriteInputTokens,
+                  ...(response.usage.cacheWriteInputTokens != null && {
+                    cacheWriteInputTokens: response.usage.cacheWriteInputTokens,
+                  }),
+                  ...(response.usage.cacheDetails != null && {
+                    cacheDetails: response.usage.cacheDetails,
+                  }),
                 },
               }),
               ...(isJsonResponseFromTool && { isJsonResponseFromTool: true }),
@@ -511,7 +528,12 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       },
       usage: convertBedrockUsage(response.usage),
       response: {
-        // TODO add id, timestamp, etc
+        id: responseHeaders?.['x-amzn-requestid'] ?? undefined,
+        timestamp:
+          responseHeaders?.['date'] != null
+            ? new Date(responseHeaders['date'])
+            : undefined,
+        modelId: this.modelId,
         headers: responseHeaders,
       },
       warnings,
@@ -527,8 +549,9 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       warnings,
       usesJsonResponseTool,
     } = await this.getArgs(options);
-    const isMistral = isMistralModel(this.modelId);
-    const url = `${this.getUrl(this.modelId)}/converse-stream`;
+    const modelId = this.modelId;
+    const isMistral = isMistralModel(modelId);
+    const url = `${this.getUrl(modelId)}/converse-stream`;
 
     const { value: response, responseHeaders } = await postJsonToApi({
       url,
@@ -573,6 +596,15 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
+            controller.enqueue({
+              type: 'response-metadata',
+              id: responseHeaders?.['x-amzn-requestid'] ?? undefined,
+              timestamp:
+                responseHeaders?.['date'] != null
+                  ? new Date(responseHeaders['date'])
+                  : undefined,
+              modelId,
+            });
           },
 
           transform(chunk, controller) {
@@ -631,11 +663,18 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
               }
 
               const cacheUsage =
-                value.metadata.usage?.cacheWriteInputTokens != null
+                value.metadata.usage?.cacheWriteInputTokens != null ||
+                value.metadata.usage?.cacheDetails != null
                   ? {
                       usage: {
-                        cacheWriteInputTokens:
-                          value.metadata.usage.cacheWriteInputTokens,
+                        ...(value.metadata.usage?.cacheWriteInputTokens !=
+                          null && {
+                          cacheWriteInputTokens:
+                            value.metadata.usage.cacheWriteInputTokens,
+                        }),
+                        ...(value.metadata.usage?.cacheDetails != null && {
+                          cacheDetails: value.metadata.usage.cacheDetails,
+                        }),
                       },
                     }
                   : undefined;
@@ -646,11 +685,22 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
                   }
                 : undefined;
 
-              if (cacheUsage || trace) {
+              if (
+                cacheUsage ||
+                trace ||
+                value.metadata.performanceConfig ||
+                value.metadata.serviceTier
+              ) {
                 providerMetadata = {
                   bedrock: {
                     ...cacheUsage,
                     ...trace,
+                    ...(value.metadata.performanceConfig && {
+                      performanceConfig: value.metadata.performanceConfig,
+                    }),
+                    ...(value.metadata.serviceTier && {
+                      serviceTier: value.metadata.serviceTier,
+                    }),
                   },
                 };
               }
@@ -955,12 +1005,17 @@ const BedrockResponseSchema = z.object({
   additionalModelResponseFields:
     BedrockAdditionalModelResponseFieldsSchema.nullish(),
   trace: z.unknown().nullish(),
+  performanceConfig: z.object({ latency: z.string() }).nullish(),
+  serviceTier: z.object({ type: z.string() }).nullish(),
   usage: z.object({
     inputTokens: z.number(),
     outputTokens: z.number(),
     totalTokens: z.number(),
     cacheReadInputTokens: z.number().nullish(),
     cacheWriteInputTokens: z.number().nullish(),
+    cacheDetails: z
+      .array(z.object({ inputTokens: z.number(), ttl: z.string() }))
+      .nullish(),
   }),
 });
 
@@ -1015,10 +1070,15 @@ const BedrockStreamSchema = z.object({
   metadata: z
     .object({
       trace: z.unknown().nullish(),
+      performanceConfig: z.object({ latency: z.string() }).nullish(),
+      serviceTier: z.object({ type: z.string() }).nullish(),
       usage: z
         .object({
           cacheReadInputTokens: z.number().nullish(),
           cacheWriteInputTokens: z.number().nullish(),
+          cacheDetails: z
+            .array(z.object({ inputTokens: z.number(), ttl: z.string() }))
+            .nullish(),
           inputTokens: z.number(),
           outputTokens: z.number(),
         })

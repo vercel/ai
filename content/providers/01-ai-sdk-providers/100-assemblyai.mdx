@@ -77,15 +77,20 @@ const model = assemblyai.transcription('best');
 
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `contentSafety` option will enable content safety filtering.
 
-```ts highlight="6"
+```ts highlight="7"
 import { experimental_transcribe as transcribe } from 'ai';
 import { assemblyai } from '@ai-sdk/assemblyai';
+import { type AssemblyAITranscriptionModelOptions } from '@ai-sdk/assemblyai';
 import { readFile } from 'fs/promises';
 
 const result = await transcribe({
   model: assemblyai.transcription('best'),
   audio: await readFile('audio.mp3'),
-  providerOptions: { assemblyai: { contentSafety: true } },
+  providerOptions: {
+    assemblyai: {
+      contentSafety: true,
+    } satisfies AssemblyAITranscriptionModelOptions,
+  },
 });
 ```
 

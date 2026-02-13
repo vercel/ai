@@ -1,5 +1,24 @@
 # @ai-sdk/google
 
+## 3.0.29
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+
+## 3.0.28
+
+### Patch Changes
+
+- 5a307f5: feat(provider/google-vertex): allow using Gemini image models with `generateImage`
+
+## 3.0.27
+
+### Patch Changes
+
+- 051361b: fix(vertex): add fallback for providerOptions keyname
+
 ## 3.0.26
 
 ### Patch Changes
