@@ -41,10 +41,13 @@ export const openAIImageModelOptions = z
      * The quality of the image that will be generated.
      *
      * - `standard`: Standard quality (DALL-E 2 & 3)
+     * - `hd`: High-definition quality (DALL-E 3 only)
      * - `low`, `medium`, `high`: Quality levels (gpt-image-1 only)
      * - `auto`: Let the model choose (default for gpt-image-1)
      */
-    quality: z.enum(['standard', 'low', 'medium', 'high', 'auto']).optional(),
+    quality: z
+      .enum(['standard', 'hd', 'low', 'medium', 'high', 'auto'])
+      .optional(),
 
     /**
      * The style of the generated images.
