@@ -305,51 +305,57 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       // context management:
       ...(anthropicOptions?.contextManagement && {
         context_management: {
-          edits: anthropicOptions.contextManagement.edits.map(edit => {
-            const convertTrigger = (
-              trigger: { type: 'input_tokens'; value: number } | undefined,
-            ) =>
-              trigger
-                ? {
-                    type: trigger.type,
-                    value: trigger.value,
-                  }
-                : undefined;
+          edits: anthropicOptions.contextManagement.edits
+            .map(edit => {
+              const strategy = edit.type;
+              switch (strategy) {
+                case 'clear_tool_uses_20250919':
+                  return {
+                    type: edit.type,
+                    ...(edit.trigger !== undefined && {
+                      trigger: edit.trigger,
+                    }),
+                    ...(edit.keep !== undefined && { keep: edit.keep }),
+                    ...(edit.clearAtLeast !== undefined && {
+                      clear_at_least: edit.clearAtLeast,
+                    }),
+                    ...(edit.clearToolInputs !== undefined && {
+                      clear_tool_inputs: edit.clearToolInputs,
+                    }),
+                    ...(edit.excludeTools !== undefined && {
+                      exclude_tools: edit.excludeTools,
+                    }),
+                  };
 
-            switch (edit.type) {
-              case 'clear_01':
-                return {
-                  type: edit.type,
-                  ...(edit.trigger !== undefined && {
-                    trigger: convertTrigger(edit.trigger),
-                  }),
-                  ...(edit.keep !== undefined && {
-                    keep: edit.keep,
-                  }),
-                };
+                case 'clear_thinking_20251015':
+                  return {
+                    type: edit.type,
+                    ...(edit.keep !== undefined && { keep: edit.keep }),
+                  };
 
-              case 'compact_20260112':
-                return {
-                  type: edit.type,
-                  ...(edit.trigger !== undefined && {
-                    trigger: convertTrigger(edit.trigger),
-                  }),
-                  ...(edit.pauseAfterCompaction !== undefined && {
-                    pause_after_compaction: edit.pauseAfterCompaction,
-                  }),
-                  ...(edit.instructions !== undefined && {
-                    instructions: edit.instructions,
-                  }),
-                };
+                case 'compact_20260112':
+                  return {
+                    type: edit.type,
+                    ...(edit.trigger !== undefined && {
+                      trigger: edit.trigger,
+                    }),
+                    ...(edit.pauseAfterCompaction !== undefined && {
+                      pause_after_compaction: edit.pauseAfterCompaction,
+                    }),
+                    ...(edit.instructions !== undefined && {
+                      instructions: edit.instructions,
+                    }),
+                  };
 
-              default:
-                warnings.push({
-                  type: 'other',
-                  message: `Unknown context management edit type: ${(edit as any).type}`,
-                });
-                return edit;
-            }
-          }),
+                default:
+                  warnings.push({
+                    type: 'other',
+                    message: `Unknown context management strategy: ${strategy}`,
+                  });
+                  return undefined;
+              }
+            })
+            .filter(edit => edit !== undefined),
         },
       }),
 
@@ -913,28 +919,58 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             : null,
           contextManagement: response.context_management
             ? {
-                appliedEdits: response.context_management.applied_edits.map(
-                  (
-                    edit:
-                      | { type: 'clear_01'; cleared_input_tokens: number }
-                      | { type: 'compact_20260112' },
-                  ):
-                    | { type: 'clear_01'; clearedInputTokens: number }
-                    | { type: 'compact_20260112' } => {
-                    switch (edit.type) {
-                      case 'clear_01':
-                        return {
-                          type: edit.type,
-                          clearedInputTokens: edit.cleared_input_tokens,
-                        };
+                appliedEdits: response.context_management.applied_edits
+                  .map(
+                    (
+                      edit:
+                        | {
+                            type: 'clear_tool_uses_20250919';
+                            cleared_tool_uses: number;
+                            cleared_input_tokens: number;
+                          }
+                        | {
+                            type: 'clear_thinking_20251015';
+                            cleared_thinking_turns: number;
+                            cleared_input_tokens: number;
+                          }
+                        | { type: 'compact_20260112' },
+                    ):
+                      | {
+                          type: 'clear_tool_uses_20250919';
+                          clearedToolUses: number;
+                          clearedInputTokens: number;
+                        }
+                      | {
+                          type: 'clear_thinking_20251015';
+                          clearedThinkingTurns: number;
+                          clearedInputTokens: number;
+                        }
+                      | { type: 'compact_20260112' } => {
+                      const strategy = edit.type;
 
-                      case 'compact_20260112':
-                        return {
-                          type: edit.type,
-                        };
-                    }
-                  },
-                ),
+                      switch (strategy) {
+                        case 'clear_tool_uses_20250919':
+                          return {
+                            type: edit.type,
+                            clearedToolUses: edit.cleared_tool_uses,
+                            clearedInputTokens: edit.cleared_input_tokens,
+                          };
+
+                        case 'clear_thinking_20251015':
+                          return {
+                            type: edit.type,
+                            clearedThinkingTurns: edit.cleared_thinking_turns,
+                            clearedInputTokens: edit.cleared_input_tokens,
+                          };
+
+                        case 'compact_20260112':
+                          return {
+                            type: edit.type,
+                          };
+                      }
+                    },
+                  )
+                  .filter(edit => edit !== undefined),
               }
             : null,
         } satisfies AnthropicMessageMetadata,
@@ -1576,28 +1612,58 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
               if (value.context_management != null) {
                 contextManagement = {
-                  appliedEdits: value.context_management.applied_edits.map(
-                    (
-                      edit:
-                        | { type: 'clear_01'; cleared_input_tokens: number }
-                        | { type: 'compact_20260112' },
-                    ):
-                      | { type: 'clear_01'; clearedInputTokens: number }
-                      | { type: 'compact_20260112' } => {
-                      switch (edit.type) {
-                        case 'clear_01':
-                          return {
-                            type: edit.type,
-                            clearedInputTokens: edit.cleared_input_tokens,
-                          };
+                  appliedEdits: value.context_management.applied_edits
+                    .map(
+                      (
+                        edit:
+                          | {
+                              type: 'clear_tool_uses_20250919';
+                              cleared_tool_uses: number;
+                              cleared_input_tokens: number;
+                            }
+                          | {
+                              type: 'clear_thinking_20251015';
+                              cleared_thinking_turns: number;
+                              cleared_input_tokens: number;
+                            }
+                          | { type: 'compact_20260112' },
+                      ):
+                        | {
+                            type: 'clear_tool_uses_20250919';
+                            clearedToolUses: number;
+                            clearedInputTokens: number;
+                          }
+                        | {
+                            type: 'clear_thinking_20251015';
+                            clearedThinkingTurns: number;
+                            clearedInputTokens: number;
+                          }
+                        | { type: 'compact_20260112' } => {
+                        const strategy = edit.type;
 
-                        case 'compact_20260112':
-                          return {
-                            type: edit.type,
-                          };
-                      }
-                    },
-                  ),
+                        switch (strategy) {
+                          case 'clear_tool_uses_20250919':
+                            return {
+                              type: edit.type,
+                              clearedToolUses: edit.cleared_tool_uses,
+                              clearedInputTokens: edit.cleared_input_tokens,
+                            };
+
+                          case 'clear_thinking_20251015':
+                            return {
+                              type: edit.type,
+                              clearedThinkingTurns: edit.cleared_thinking_turns,
+                              clearedInputTokens: edit.cleared_input_tokens,
+                            };
+
+                          case 'compact_20260112':
+                            return {
+                              type: edit.type,
+                            };
+                        }
+                      },
+                    )
+                    .filter(edit => edit !== undefined),
                 };
               }
 

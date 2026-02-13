@@ -352,15 +352,32 @@ export type AnthropicInputTokensTrigger = {
   value: number;
 };
 
+export type AnthropicToolUsesTrigger = {
+  type: 'tool_uses';
+  value: number;
+};
+
+export type AnthropicContextManagementTrigger =
+  | AnthropicInputTokensTrigger
+  | AnthropicToolUsesTrigger;
+
 export type AnthropicClearToolUsesEdit = {
-  type: 'clear_01';
-  trigger?: AnthropicInputTokensTrigger;
-  keep?: 'all' | { type: 'thinking_turns'; value: number };
+  type: 'clear_tool_uses_20250919';
+  trigger?: AnthropicContextManagementTrigger;
+  keep?: {
+    type: 'tool_uses';
+    value: number;
+  };
+  clear_at_least?: {
+    type: 'input_tokens';
+    value: number;
+  };
+  clear_tool_inputs?: boolean;
+  exclude_tools?: string[];
 };
 
 export type AnthropicClearThinkingBlockEdit = {
-  type: 'clear_01';
-  trigger?: AnthropicInputTokensTrigger;
+  type: 'clear_thinking_20251015';
   keep?: 'all' | { type: 'thinking_turns'; value: number };
 };
 
@@ -382,12 +399,14 @@ export type AnthropicContextManagementConfig = {
 
 // Response Context Management Types
 export type AnthropicResponseClearToolUsesEdit = {
-  type: 'clear_01';
+  type: 'clear_tool_uses_20250919';
+  cleared_tool_uses: number;
   cleared_input_tokens: number;
 };
 
 export type AnthropicResponseClearThinkingBlockEdit = {
-  type: 'clear_01';
+  type: 'clear_thinking_20251015';
+  cleared_thinking_turns: number;
   cleared_input_tokens: number;
 };
 
@@ -620,7 +639,13 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
           applied_edits: z.array(
             z.union([
               z.object({
-                type: z.literal('clear_01'),
+                type: z.literal('clear_tool_uses_20250919'),
+                cleared_tool_uses: z.number(),
+                cleared_input_tokens: z.number(),
+              }),
+              z.object({
+                type: z.literal('clear_thinking_20251015'),
+                cleared_thinking_turns: z.number(),
                 cleared_input_tokens: z.number(),
               }),
               z.object({
@@ -932,7 +957,13 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             applied_edits: z.array(
               z.union([
                 z.object({
-                  type: z.literal('clear_01'),
+                  type: z.literal('clear_tool_uses_20250919'),
+                  cleared_tool_uses: z.number(),
+                  cleared_input_tokens: z.number(),
+                }),
+                z.object({
+                  type: z.literal('clear_thinking_20251015'),
+                  cleared_thinking_turns: z.number(),
                   cleared_input_tokens: z.number(),
                 }),
                 z.object({

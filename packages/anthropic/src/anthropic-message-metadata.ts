@@ -79,17 +79,50 @@ export interface AnthropicMessageMetadata {
   contextManagement: {
     /**
      * List of context management edits that were applied.
+     * Each item in the array is a specific type of context management edit.
      */
     appliedEdits: Array<
+      /**
+       * Represents an edit where a certain number of tool uses and input tokens were cleared.
+       */
       | {
           /**
            * The type of context management edit applied.
-           * Possible value: 'clear_01'
+           * Possible value: 'clear_tool_uses_20250919'
            */
-          type: 'clear_01';
+          type: 'clear_tool_uses_20250919';
 
           /**
-           * The number of input tokens that were cleared.
+           * Number of tool uses that were cleared by this edit.
+           * Minimum: 0
+           */
+          clearedToolUses: number;
+
+          /**
+           * Number of input tokens cleared by this edit.
+           * Minimum: 0
+           */
+          clearedInputTokens: number;
+        }
+      /**
+       * Represents an edit where a certain number of thinking turns and input tokens were cleared.
+       */
+      | {
+          /**
+           * The type of context management edit applied.
+           * Possible value: 'clear_thinking_20251015'
+           */
+          type: 'clear_thinking_20251015';
+
+          /**
+           * Number of thinking turns that were cleared by this edit.
+           * Minimum: 0
+           */
+          clearedThinkingTurns: number;
+
+          /**
+           * Number of input tokens cleared by this edit.
+           * Minimum: 0
            */
           clearedInputTokens: number;
         }
