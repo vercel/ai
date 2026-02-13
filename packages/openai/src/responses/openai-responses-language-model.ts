@@ -37,7 +37,7 @@ import { fileSearchOutputSchema } from '../tool/file-search';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
 import { localShellInputSchema } from '../tool/local-shell';
 import { mcpOutputSchema } from '../tool/mcp';
-import { shellInputSchema } from '../tool/shell';
+import { shellInputSchema, shellOutputSchema } from '../tool/shell';
 import { webSearchOutputSchema } from '../tool/web-search';
 import {
   convertOpenAIResponsesUsage,
@@ -563,6 +563,28 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             },
           });
 
+          break;
+        }
+
+        case 'shell_call_output': {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.call_id,
+            toolName: toolNameMapping.toCustomToolName('shell'),
+            result: {
+              output: part.output.map(item => ({
+                stdout: item.stdout,
+                stderr: item.stderr,
+                outcome:
+                  item.outcome.type === 'exit'
+                    ? {
+                        type: 'exit' as const,
+                        exitCode: item.outcome.exit_code,
+                      }
+                    : { type: 'timeout' as const },
+              })),
+            } satisfies InferSchema<typeof shellOutputSchema>,
+          });
           break;
         }
 
@@ -1160,6 +1182,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolName: toolNameMapping.toCustomToolName('shell'),
                   toolCallId: value.item.call_id,
                 };
+              } else if (value.item.type === 'shell_call_output') {
+                // shell_call_output is handled in output_item.done
               } else if (value.item.type === 'message') {
                 ongoingAnnotations.splice(0, ongoingAnnotations.length);
                 controller.enqueue({
@@ -1472,6 +1496,33 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   providerMetadata: {
                     [providerOptionsName]: { itemId: value.item.id },
                   },
+                });
+              } else if (value.item.type === 'shell_call_output') {
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.call_id,
+                  toolName: toolNameMapping.toCustomToolName('shell'),
+                  result: {
+                    output: value.item.output.map(
+                      (item: {
+                        stdout: string;
+                        stderr: string;
+                        outcome:
+                          | { type: 'exit'; exit_code: number }
+                          | { type: 'timeout' };
+                      }) => ({
+                        stdout: item.stdout,
+                        stderr: item.stderr,
+                        outcome:
+                          item.outcome.type === 'exit'
+                            ? {
+                                type: 'exit' as const,
+                                exitCode: item.outcome.exit_code,
+                              }
+                            : { type: 'timeout' as const },
+                      }),
+                    ),
+                  } satisfies InferSchema<typeof shellOutputSchema>,
                 });
               } else if (value.item.type === 'reasoning') {
                 const activeReasoningPart = activeReasoning[value.item.id];

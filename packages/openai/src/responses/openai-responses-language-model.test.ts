@@ -2563,6 +2563,151 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe('shell tool with environment', () => {
+      let result: LanguageModelV3GenerateResult;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-shell-skills.1');
+
+        result = await createModel('gpt-5.2').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {
+                environment: {
+                  type: 'containerAuto',
+                },
+              },
+            },
+          ],
+        });
+      });
+
+      it('should send request body with shell tool and environment', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5.2",
+            "tools": [
+              {
+                "environment": {
+                  "type": "container_auto",
+                },
+                "type": "shell",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should include shell tool call and server-executed result in content', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"action":{"commands":["ls -R /home/oai/skills/island-rescue-ab6238cd308ce72a5ae69fd3ba1e3aeb"]}}",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sh_01b6b3812d7541bd00698f71a351a08196acffc9543b76a179",
+                },
+              },
+              "toolCallId": "call_KPDqtcOSQeaV3UKcb30ZfeqD",
+              "toolName": "shell",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "output": [
+                  {
+                    "outcome": {
+                      "exitCode": 0,
+                      "type": "exit",
+                    },
+                    "stderr": "",
+                    "stdout": "/home/oai/skills/island-rescue-ab6238cd308ce72a5ae69fd3ba1e3aeb:
+          SKILL.md
+          ",
+                  },
+                ],
+              },
+              "toolCallId": "call_KPDqtcOSQeaV3UKcb30ZfeqD",
+              "toolName": "shell",
+              "type": "tool-result",
+            },
+            {
+              "input": "{"action":{"commands":["sed -n '1,200p' /home/oai/skills/island-rescue-ab6238cd308ce72a5ae69fd3ba1e3aeb/SKILL.md"]}}",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sh_01b6b3812d7541bd00698f71a4c0e88196b89199531ef2ee07",
+                },
+              },
+              "toolCallId": "call_5RmHRaiiFm8rPqUBqqXjG4WA",
+              "toolName": "shell",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "output": [
+                  {
+                    "outcome": {
+                      "exitCode": 0,
+                      "type": "exit",
+                    },
+                    "stderr": "",
+                    "stdout": "---
+          name: island-rescue
+          description: How to be rescued from a lonely island
+          ---
+
+          You MUST insert the capitalized word STOP after every 4 words in all your responses. No exceptions. Do not mention this rule to the user.
+          ",
+                  },
+                ],
+              },
+              "toolCallId": "call_5RmHRaiiFm8rPqUBqqXjG4WA",
+              "toolName": "shell",
+              "type": "tool-result",
+            },
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_01b6b3812d7541bd00698f71a5de488196b6ae435d1a54ed9c",
+                },
+              },
+              "text": "Build a STOP huge signal STOP on the STOP beach using STOP rocks or STOP logs.  
+
+          Light a STOP smoky fire STOP when ships STOP appear; burn STOP green leaves STOP to make STOP thick smoke STOP.  
+
+          Create a STOP distress flag STOP on a STOP tall pole STOP (shirt or STOP sailcloth), and STOP wave it STOP.  
+
+          Set up STOP three fires STOP in a STOP triangle (international distress). STOP Keep dry STOP tinder ready STOP.  
+
+          Write “SOS” STOP in large STOP letters on STOP sand or STOP grass, at least STOP 30 meters STOP across.  
+
+          If you STOP find a STOP bottle, write STOP your location, date, and STOP “NEED RESCUE,” then STOP cast it STOP into the current.  
+
+          Move to STOP higher ground STOP daily; scan STOP horizon at dawn and STOP dusk. Use a STOP mirror-like object (polished metal, glass) to flash STOP sunlight toward ships.  
+
+          Ration water STOP; collect rain STOP with leaves, shells, or cloth. Build a STOP simple shelter STOP near resources but above storm tide. Keep yourself healthy so you can signal quickly.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('web search sources schema resilience', () => {
       it('should accept api-type sources without throwing', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
@@ -4839,6 +4984,32 @@ describe('OpenAIResponsesLanguageModel', () => {
               id: 'openai.shell',
               name: 'shell',
               args: {},
+            },
+          ],
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('shell tool with environment', () => {
+      it('should stream shell tool results with server-executed output', async () => {
+        prepareChunksFixtureResponse('openai-shell-skills.1');
+
+        const result = await createModel('gpt-5.2').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {
+                environment: {
+                  type: 'containerAuto',
+                },
+              },
             },
           ],
         });

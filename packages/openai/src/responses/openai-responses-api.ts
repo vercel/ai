@@ -142,8 +142,10 @@ export type OpenAIResponsesShellCall = {
 
 export type OpenAIResponsesShellCallOutput = {
   type: 'shell_call_output';
+  id?: string;
   call_id: string;
-  max_output_length?: number;
+  status?: 'in_progress' | 'completed' | 'incomplete';
+  max_output_length?: number | null;
   output: Array<{
     stdout: string;
     stderr: string;
@@ -222,6 +224,24 @@ export type OpenAIResponsesFileSearchToolCompoundFilter = {
     | OpenAIResponsesFileSearchToolCompoundFilter
   >;
 };
+
+export type OpenAIResponsesShellEnvironmentSkills = Array<
+  | {
+      type: 'skill_reference';
+      skill_id: string;
+      version?: string;
+    }
+  | {
+      type: 'inline';
+      name: string;
+      description: string;
+      source: {
+        type: 'base64';
+        media_type: 'application/zip';
+        data: string;
+      };
+    }
+>;
 
 export type OpenAIResponsesTool =
   | {
@@ -328,6 +348,32 @@ export type OpenAIResponsesTool =
     }
   | {
       type: 'shell';
+      environment?:
+        | {
+            type: 'container_auto';
+            file_ids?: string[];
+            memory_limit?: '1g' | '4g' | '16g' | '64g';
+            network_policy?:
+              | { type: 'disabled' }
+              | {
+                  type: 'allowlist';
+                  allowed_domains: string[];
+                  domain_secrets?: Array<{
+                    domain: string;
+                    name: string;
+                    value: string;
+                  }>;
+                };
+            skills?: OpenAIResponsesShellEnvironmentSkills;
+          }
+        | {
+            type: 'container_reference';
+            container_id: string;
+          }
+        | {
+            type: 'local';
+            skills?: OpenAIResponsesShellEnvironmentSkills;
+          };
     };
 
 export type OpenAIResponsesReasoning = {
@@ -485,6 +531,25 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             action: z.object({
               commands: z.array(z.string()),
             }),
+          }),
+          z.object({
+            type: z.literal('shell_call_output'),
+            id: z.string(),
+            call_id: z.string(),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
+            output: z.array(
+              z.object({
+                stdout: z.string(),
+                stderr: z.string(),
+                outcome: z.discriminatedUnion('type', [
+                  z.object({ type: z.literal('timeout') }),
+                  z.object({
+                    type: z.literal('exit'),
+                    exit_code: z.number(),
+                  }),
+                ]),
+              }),
+            ),
           }),
         ]),
       }),
@@ -678,6 +743,25 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             action: z.object({
               commands: z.array(z.string()),
             }),
+          }),
+          z.object({
+            type: z.literal('shell_call_output'),
+            id: z.string(),
+            call_id: z.string(),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
+            output: z.array(
+              z.object({
+                stdout: z.string(),
+                stderr: z.string(),
+                outcome: z.discriminatedUnion('type', [
+                  z.object({ type: z.literal('timeout') }),
+                  z.object({
+                    type: z.literal('exit'),
+                    exit_code: z.number(),
+                  }),
+                ]),
+              }),
+            ),
           }),
         ]),
       }),
@@ -1063,6 +1147,25 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               action: z.object({
                 commands: z.array(z.string()),
               }),
+            }),
+            z.object({
+              type: z.literal('shell_call_output'),
+              id: z.string(),
+              call_id: z.string(),
+              status: z.enum(['in_progress', 'completed', 'incomplete']),
+              output: z.array(
+                z.object({
+                  stdout: z.string(),
+                  stderr: z.string(),
+                  outcome: z.discriminatedUnion('type', [
+                    z.object({ type: z.literal('timeout') }),
+                    z.object({
+                      type: z.literal('exit'),
+                      exit_code: z.number(),
+                    }),
+                  ]),
+                }),
+              ),
             }),
           ]),
         )
