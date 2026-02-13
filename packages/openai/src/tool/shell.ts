@@ -91,7 +91,15 @@ export const shellArgsSchema = lazySchema(() =>
           }),
           z.object({
             type: z.literal('local'),
-            skills: shellSkillsSchema,
+            skills: z
+              .array(
+                z.object({
+                  name: z.string(),
+                  description: z.string(),
+                  path: z.string(),
+                }),
+              )
+              .optional(),
           }),
         ])
         .optional(),
@@ -136,19 +144,11 @@ type ShellArgs = {
       }
     | {
         type: 'local';
-        skills?: Array<
-          | { type: 'skillReference'; skillId: string; version?: string }
-          | {
-              type: 'inline';
-              name: string;
-              description: string;
-              source: {
-                type: 'base64';
-                mediaType: 'application/zip';
-                data: string;
-              };
-            }
-        >;
+        skills?: Array<{
+          name: string;
+          description: string;
+          path: string;
+        }>;
       };
 };
 

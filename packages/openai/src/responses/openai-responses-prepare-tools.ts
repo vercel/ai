@@ -293,17 +293,14 @@ function mapShellEnvironment(environment: {
     const env = environment as {
       type: 'local';
       skills?: Array<{
-        type: string;
-        skillId?: string;
-        version?: string;
-        name?: string;
-        description?: string;
-        source?: { type: string; mediaType: string; data: string };
+        name: string;
+        description: string;
+        path: string;
       }>;
     };
     return {
       type: 'local',
-      skills: mapShellSkills(env.skills),
+      skills: env.skills,
     };
   }
 

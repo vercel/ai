@@ -1127,7 +1127,7 @@ describe('prepareResponsesTools', () => {
         }
       `);
     });
-    it('should prepare shell tool with local environment and skill reference', async () => {
+    it('should prepare shell tool with local environment and skills', async () => {
       const result = await prepareResponsesTools({
         tools: [
           {
@@ -1139,9 +1139,9 @@ describe('prepareResponsesTools', () => {
                 type: 'local',
                 skills: [
                   {
-                    type: 'skillReference',
-                    skillId: 'skill_abc123',
-                    version: '2',
+                    name: 'calculator',
+                    description: 'Perform math calculations',
+                    path: '/path/to/calculator',
                   },
                 ],
               },
@@ -1160,9 +1160,9 @@ describe('prepareResponsesTools', () => {
               "environment": {
                 "skills": [
                   {
-                    "skill_id": "skill_abc123",
-                    "type": "skill_reference",
-                    "version": "2",
+                    "description": "Perform math calculations",
+                    "name": "calculator",
+                    "path": "/path/to/calculator",
                   },
                 ],
                 "type": "local",

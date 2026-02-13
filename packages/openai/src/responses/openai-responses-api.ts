@@ -225,24 +225,6 @@ export type OpenAIResponsesFileSearchToolCompoundFilter = {
   >;
 };
 
-export type OpenAIResponsesShellEnvironmentSkills = Array<
-  | {
-      type: 'skill_reference';
-      skill_id: string;
-      version?: string;
-    }
-  | {
-      type: 'inline';
-      name: string;
-      description: string;
-      source: {
-        type: 'base64';
-        media_type: 'application/zip';
-        data: string;
-      };
-    }
->;
-
 export type OpenAIResponsesTool =
   | {
       type: 'function';
@@ -364,7 +346,23 @@ export type OpenAIResponsesTool =
                     value: string;
                   }>;
                 };
-            skills?: OpenAIResponsesShellEnvironmentSkills;
+            skills?: Array<
+              | {
+                  type: 'skill_reference';
+                  skill_id: string;
+                  version?: string;
+                }
+              | {
+                  type: 'inline';
+                  name: string;
+                  description: string;
+                  source: {
+                    type: 'base64';
+                    media_type: 'application/zip';
+                    data: string;
+                  };
+                }
+            >;
           }
         | {
             type: 'container_reference';
@@ -372,7 +370,11 @@ export type OpenAIResponsesTool =
           }
         | {
             type: 'local';
-            skills?: OpenAIResponsesShellEnvironmentSkills;
+            skills?: Array<{
+              name: string;
+              description: string;
+              path: string;
+            }>;
           };
     };
 
