@@ -558,7 +558,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'tool-input-error': {
-              if (chunk.dynamic) {
+              const partialToolCall = state.partialToolCalls[chunk.toolCallId];
+              const dynamic = partialToolCall
+                ? partialToolCall.dynamic
+                : chunk.dynamic;
+
+              if (dynamic) {
                 updateDynamicToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
