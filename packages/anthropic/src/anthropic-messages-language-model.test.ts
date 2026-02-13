@@ -4475,6 +4475,127 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
       });
 
+      it('should parse clear_tool_uses response with context_management', async () => {
+        prepareJsonFixtureResponse('anthropic-clear-tool-uses.1');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'text',
+            text: expect.stringContaining(
+              "Here's a comparison of the weather in both cities",
+            ),
+          },
+        ]);
+
+        expect(result.providerMetadata?.anthropic?.contextManagement).toEqual({
+          appliedEdits: [],
+        });
+
+        expect(result.usage).toMatchObject({
+          inputTokens: { total: 859 },
+          outputTokens: { total: 132 },
+        });
+      });
+
+      it('should parse clear_thinking response with thinking and context_management', async () => {
+        prepareJsonFixtureResponse('anthropic-clear-thinking.1');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'reasoning',
+            text: '925 divided by 5 = 185',
+            providerMetadata: {
+              anthropic: {
+                signature: expect.any(String),
+              },
+            },
+          },
+          {
+            type: 'text',
+            text: '925 ÷ 5 = 185',
+          },
+        ]);
+
+        expect(result.providerMetadata?.anthropic?.contextManagement).toEqual({
+          appliedEdits: [],
+        });
+
+        expect(result.usage).toMatchObject({
+          inputTokens: { total: 69 },
+          outputTokens: { total: 33 },
+        });
+      });
+
+      it('should parse combined clear_thinking and clear_tool_uses response', async () => {
+        prepareJsonFixtureResponse('anthropic-combined-context-editing.1');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              thinking: { type: 'enabled', budgetTokens: 5000 },
+              contextManagement: {
+                edits: [
+                  {
+                    type: 'clear_thinking_20251015',
+                    keep: { type: 'thinking_turns', value: 1 },
+                  },
+                  {
+                    type: 'clear_tool_uses_20250919',
+                    trigger: { type: 'tool_uses', value: 4 },
+                    keep: { type: 'tool_uses', value: 1 },
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'reasoning',
+            text: expect.stringContaining('25 * 37'),
+            providerMetadata: {
+              anthropic: {
+                signature: expect.any(String),
+              },
+            },
+          },
+          {
+            type: 'text',
+            text: expect.stringContaining('925'),
+          },
+        ]);
+
+        expect(result.providerMetadata?.anthropic?.contextManagement).toEqual({
+          appliedEdits: [],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              {
+                type: 'clear_thinking_20251015',
+                keep: { type: 'thinking_turns', value: 1 },
+              },
+              {
+                type: 'clear_tool_uses_20250919',
+                trigger: { type: 'tool_uses', value: 4 },
+                keep: { type: 'tool_uses', value: 1 },
+              },
+            ],
+          },
+        });
+      });
+
       it('should return compaction stop reason as other', async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
           type: 'json-value',
@@ -5635,6 +5756,148 @@ describe('AnthropicMessagesLanguageModel', () => {
         outputTokens: {
           total: 522 + 2819,
         },
+      });
+    });
+
+    it('should stream clear_tool_uses response with context_management', async () => {
+      prepareChunksFixtureResponse('anthropic-clear-tool-uses.1');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      const textDeltas = result.filter(
+        part => part.type === 'text-delta' && part.id === '0',
+      );
+      expect(textDeltas.length).toBeGreaterThan(0);
+
+      const fullText = textDeltas
+        .map(d => (d as { delta: string }).delta)
+        .join('');
+      expect(fullText).toContain(
+        "Here's a comparison of the weather in both cities",
+      );
+
+      const finishPart = result.find(part => part.type === 'finish');
+      expect(
+        finishPart?.providerMetadata?.anthropic?.contextManagement,
+      ).toEqual({
+        appliedEdits: [],
+      });
+
+      expect(finishPart?.usage).toMatchObject({
+        inputTokens: { total: 859 },
+        outputTokens: { total: 122 },
+      });
+    });
+
+    it('should stream clear_thinking response with thinking and text blocks', async () => {
+      prepareChunksFixtureResponse('anthropic-clear-thinking.1');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      const reasoningStart = result.find(
+        part => part.type === 'reasoning-start',
+      );
+      expect(reasoningStart).toBeDefined();
+
+      const reasoningDeltas = result.filter(
+        part => part.type === 'reasoning-delta',
+      );
+      expect(reasoningDeltas.length).toBeGreaterThan(0);
+      const fullReasoning = reasoningDeltas
+        .map(d => (d as { delta: string }).delta)
+        .join('');
+      expect(fullReasoning).toContain('925');
+      expect(fullReasoning).toContain('185');
+
+      const signatureParts = result.filter(
+        part =>
+          part.type === 'reasoning-delta' &&
+          (part as { providerMetadata?: Record<string, unknown> })
+            .providerMetadata?.anthropic != null,
+      );
+      expect(signatureParts).toHaveLength(1);
+      expect(
+        (
+          signatureParts[0] as {
+            providerMetadata: { anthropic: { signature: string } };
+          }
+        ).providerMetadata.anthropic.signature,
+      ).toBeTruthy();
+
+      const textDeltas = result.filter(
+        part => part.type === 'text-delta' && part.id === '1',
+      );
+      expect(textDeltas.length).toBeGreaterThan(0);
+      const fullText = textDeltas
+        .map(d => (d as { delta: string }).delta)
+        .join('');
+      expect(fullText).toBe('925 ÷ 5 = 185');
+
+      const finishPart = result.find(part => part.type === 'finish');
+      expect(
+        finishPart?.providerMetadata?.anthropic?.contextManagement,
+      ).toEqual({
+        appliedEdits: [],
+      });
+
+      expect(finishPart?.usage).toMatchObject({
+        inputTokens: { total: 69 },
+        outputTokens: { total: 53 },
+      });
+    });
+
+    it('should stream combined clear_thinking and clear_tool_uses response', async () => {
+      prepareChunksFixtureResponse('anthropic-combined-context-editing.1');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      const reasoningDeltas = result.filter(
+        part =>
+          part.type === 'reasoning-delta' &&
+          (part as { providerMetadata?: Record<string, unknown> })
+            .providerMetadata?.anthropic == null,
+      );
+      expect(reasoningDeltas.length).toBeGreaterThan(0);
+      const fullReasoning = reasoningDeltas
+        .map(d => (d as { delta: string }).delta)
+        .join('');
+      expect(fullReasoning).toContain('25 * 37');
+      expect(fullReasoning).toContain('925');
+
+      const signatureParts = result.filter(
+        part =>
+          part.type === 'reasoning-delta' &&
+          (part as { providerMetadata?: Record<string, unknown> })
+            .providerMetadata?.anthropic != null,
+      );
+      expect(signatureParts).toHaveLength(1);
+
+      const textDeltas = result.filter(
+        part => part.type === 'text-delta' && part.id === '1',
+      );
+      expect(textDeltas.length).toBeGreaterThan(0);
+      const fullText = textDeltas
+        .map(d => (d as { delta: string }).delta)
+        .join('');
+      expect(fullText).toContain('925');
+
+      const finishPart = result.find(part => part.type === 'finish');
+      expect(
+        finishPart?.providerMetadata?.anthropic?.contextManagement,
+      ).toEqual({
+        appliedEdits: [],
       });
     });
 
