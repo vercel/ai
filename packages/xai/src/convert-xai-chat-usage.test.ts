@@ -113,6 +113,26 @@ describe('convertXaiChatUsage', () => {
     `);
   });
 
+  it('should handle cached_tokens exceeding prompt_tokens (non-inclusive reporting)', () => {
+    const result = convertXaiChatUsage({
+      prompt_tokens: 4142,
+      completion_tokens: 254,
+      total_tokens: 8724,
+      prompt_tokens_details: {
+        cached_tokens: 4328,
+      },
+    });
+
+    expect(result.inputTokens).toMatchInlineSnapshot(`
+      {
+        "cacheRead": 4328,
+        "cacheWrite": undefined,
+        "noCache": 4142,
+        "total": 8470,
+      }
+    `);
+  });
+
   it('should handle null token details', () => {
     const result = convertXaiChatUsage({
       prompt_tokens: 100,

@@ -1,5 +1,14 @@
 # @ai-sdk/google-vertex
 
+## 4.0.57
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+  - @ai-sdk/anthropic@3.0.43
+  - @ai-sdk/google@3.0.29
+
 ## 4.0.56
 
 ### Patch Changes
