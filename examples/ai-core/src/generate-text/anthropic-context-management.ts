@@ -255,7 +255,10 @@ run(async () => {
 
   console.log(result.text);
   console.log('\n');
-  console.log('providerMetadata:', JSON.stringify(result.providerMetadata, null, 2));
+  console.log(
+    'providerMetadata:',
+    JSON.stringify(result.providerMetadata, null, 2),
+  );
   console.log(
     'contextManagement:',
     result.providerMetadata?.anthropic?.contextManagement,
