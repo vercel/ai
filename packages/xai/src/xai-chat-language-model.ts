@@ -19,6 +19,7 @@ import {
   safeParseJSON,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { convertXaiChatUsage } from './convert-xai-chat-usage';
 import { convertToXaiChatMessages } from './convert-to-xai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapXaiFinishReason } from './map-xai-finish-reason';
@@ -303,16 +304,7 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
     return {
       content,
       finishReason: mapXaiFinishReason(choice.finish_reason),
-      usage: {
-        inputTokens: response.usage?.prompt_tokens,
-        outputTokens: response.usage?.completion_tokens,
-        totalTokens: response.usage?.total_tokens,
-        reasoningTokens:
-          response.usage?.completion_tokens_details?.reasoning_tokens ??
-          undefined,
-        cachedInputTokens:
-          response.usage?.prompt_tokens_details?.cached_tokens ?? undefined,
-      },
+      usage: convertXaiChatUsage(response.usage),
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -451,14 +443,12 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
 
             // update usage if present
             if (value.usage != null) {
-              usage.inputTokens = value.usage.prompt_tokens;
-              usage.outputTokens = value.usage.completion_tokens;
-              usage.totalTokens = value.usage.total_tokens;
-              usage.reasoningTokens =
-                value.usage.completion_tokens_details?.reasoning_tokens ??
-                undefined;
-              usage.cachedInputTokens =
-                value.usage.prompt_tokens_details?.cached_tokens ?? undefined;
+              const converted = convertXaiChatUsage(value.usage);
+              usage.inputTokens = converted.inputTokens;
+              usage.outputTokens = converted.outputTokens;
+              usage.totalTokens = converted.totalTokens;
+              usage.reasoningTokens = converted.reasoningTokens;
+              usage.cachedInputTokens = converted.cachedInputTokens;
             }
 
             const choice = value.choices[0];
