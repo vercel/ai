@@ -202,6 +202,27 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       description: 'Additional provider-specific configuration.',
     },
     {
+      name: 'headers',
+      type: 'Record<string, string | undefined>',
+      isOptional: true,
+      description:
+        'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
+    },
+    {
+      name: 'callOptionsSchema',
+      type: 'FlexibleSchema<CALL_OPTIONS>',
+      isOptional: true,
+      description:
+        'Optional schema for custom call options that can be passed when calling generate() or stream().',
+    },
+    {
+      name: 'prepareCall',
+      type: 'PrepareCallFunction',
+      isOptional: true,
+      description:
+        'Optional function to prepare call-specific settings based on the call options.',
+    },
+    {
       name: 'id',
       type: 'string',
       isOptional: true,
@@ -243,10 +264,24 @@ const result = await agent.generate({
     },
     {
       name: 'timeout',
-      type: 'number | { totalMs?: number }',
+      type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with a totalMs property. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, and/or chunkMs properties. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
+    },
+    {
+      name: 'options',
+      type: 'CALL_OPTIONS',
+      isOptional: true,
+      description:
+        'Custom call options when the agent is configured with a callOptionsSchema.',
+    },
+    {
+      name: 'onStepFinish',
+      type: 'ToolLoopAgentOnStepFinishCallback',
+      isOptional: true,
+      description:
+        'Callback invoked after each agent step (LLM/tool call) completes. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
     },
   ]}
 />
@@ -290,10 +325,17 @@ for await (const chunk of stream.textStream) {
     },
     {
       name: 'timeout',
-      type: 'number | { totalMs?: number }',
+      type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with a totalMs property. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, and/or chunkMs properties. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
+    },
+    {
+      name: 'options',
+      type: 'CALL_OPTIONS',
+      isOptional: true,
+      description:
+        'Custom call options when the agent is configured with a callOptionsSchema.',
     },
     {
       name: 'experimental_transform',
@@ -301,6 +343,13 @@ for await (const chunk of stream.textStream) {
       isOptional: true,
       description:
         'Optional stream transformation(s). They are applied in the order provided and must maintain the stream structure. See `streamText` docs for details.',
+    },
+    {
+      name: 'onStepFinish',
+      type: 'ToolLoopAgentOnStepFinishCallback',
+      isOptional: true,
+      description:
+        'Callback invoked after each agent step (LLM/tool call) completes. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
     },
   ]}
 />

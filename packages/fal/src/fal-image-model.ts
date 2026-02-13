@@ -15,7 +15,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { FalImageModelId, FalImageSize } from './fal-image-settings';
-import { falImageProviderOptionsSchema } from './fal-image-options';
+import { falImageModelOptionsSchema } from './fal-image-options';
 
 interface FalImageModelConfig {
   provider: string;
@@ -63,7 +63,7 @@ export class FalImageModel implements ImageModelV3 {
     const falOptions = await parseProviderOptions({
       provider: 'fal',
       providerOptions,
-      schema: falImageProviderOptionsSchema,
+      schema: falImageModelOptionsSchema,
     });
 
     const requestBody: Record<string, unknown> = {
@@ -251,9 +251,9 @@ function removeOnlyUndefined<T extends Record<string, unknown>>(obj: T) {
 }
 
 /**
-Converts an aspect ratio to an image size compatible with fal.ai APIs.
-@param aspectRatio - The aspect ratio to convert.
-@returns The image size.
+ * Converts an aspect ratio to an image size compatible with fal.ai APIs.
+ * @param aspectRatio - The aspect ratio to convert.
+ * @returns The image size.
  */
 function convertAspectRatioToSize(
   aspectRatio: `${number}:${number}`,

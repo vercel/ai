@@ -25,6 +25,19 @@ import {
 } from './types';
 
 /**
+ * Parses a LangGraph event tuple into [type, data].
+ * Handles both 2-element [type, data] and 3-element [namespace, type, data] formats.
+ *
+ * @param event - The raw LangGraph event array.
+ * @returns A tuple of [type, data].
+ */
+export function parseLangGraphEvent(
+  event: unknown[],
+): [type: unknown, data: unknown] {
+  return event.length === 3 ? [event[1], event[2]] : [event[0], event[1]];
+}
+
+/**
  * Converts a ToolResultPart to a LangChain ToolMessage
  * @param block - The ToolResultPart to convert.
  * @returns The converted ToolMessage.
@@ -959,7 +972,7 @@ export function processLangGraphEvent(
     toolCallInfoByIndex,
     emittedToolCallsByKey,
   } = state;
-  const [type, data] = event.length === 3 ? event.slice(1) : event;
+  const [type, data] = parseLangGraphEvent(event);
 
   switch (type) {
     case 'custom': {

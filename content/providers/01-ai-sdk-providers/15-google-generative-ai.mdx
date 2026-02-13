@@ -69,6 +69,16 @@ You can use the following optional settings to customize the Google Generative A
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+- **generateId** _() => string_
+
+  Optional function to generate unique IDs for each request.
+  Defaults to the SDK's built-in ID generator.
+
+- **name** _string_
+
+  Custom provider name.
+  Defaults to `'google.generative-ai'`.
+
 ## Language Models
 
 You can create models that call the [Google Generative AI API](https://ai.google.dev/api/rest) using the provider instance.
@@ -98,6 +108,8 @@ Google Generative AI also supports some model specific settings that are not par
 You can pass them as an options argument:
 
 ```ts
+import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
+
 const model = google('gemini-2.5-flash');
 
 await generateText({
@@ -110,7 +122,7 @@ await generateText({
           threshold: 'BLOCK_LOW_AND_ABOVE',
         },
       ],
-    },
+    } satisfies GoogleLanguageModelOptions,
   },
 });
 ```
@@ -141,10 +153,12 @@ The following optional provider options are available for Google Generative AI m
 
     The category of the safety setting. Can be one of the following:
 
+    - `HARM_CATEGORY_UNSPECIFIED`
     - `HARM_CATEGORY_HATE_SPEECH`
     - `HARM_CATEGORY_DANGEROUS_CONTENT`
     - `HARM_CATEGORY_HARASSMENT`
     - `HARM_CATEGORY_SEXUALLY_EXPLICIT`
+    - `HARM_CATEGORY_CIVIC_INTEGRITY`
 
   - **threshold** _string_
 
@@ -155,6 +169,7 @@ The following optional provider options are available for Google Generative AI m
     - `BLOCK_MEDIUM_AND_ABOVE`
     - `BLOCK_ONLY_HIGH`
     - `BLOCK_NONE`
+    - `OFF`
 
 - **responseModalities** _string[]_
   The modalities to use for the response. The following modalities are supported: `TEXT`, `IMAGE`. When not defined or empty, the model defaults to returning only text.
@@ -179,26 +194,60 @@ The following optional provider options are available for Google Generative AI m
 
   - **includeThoughts** _boolean_
 
-    Optional. If set to true, thought summaries are returned, which are synthisized versions of the model's raw thoughts and offer insights into the model's internal reasoning process.
+    Optional. If set to true, thought summaries are returned, which are synthesized versions of the model's raw thoughts and offer insights into the model's internal reasoning process.
 
-- **imageConfig** _\{ aspectRatio: string \}_
+- **imageConfig** _\{ aspectRatio?: string, imageSize?: string \}_
 
   Optional. Configuration for the models image generation. Only supported by specific [Google Generative AI models](https://ai.google.dev/gemini-api/docs/image-generation).
 
   - **aspectRatio** _string_
 
-  Model defaults to generate 1:1 squares, or to matching the output image size to that of your input image. Can be one of the following:
+    Model defaults to generate 1:1 squares, or to matching the output image size to that of your input image. Can be one of the following:
 
-  - 1:1
-  - 2:3
-  - 3:2
-  - 3:4
-  - 4:3
-  - 4:5
-  - 5:4
-  - 9:16
-  - 16:9
-  - 21:9
+    - 1:1
+    - 2:3
+    - 3:2
+    - 3:4
+    - 4:3
+    - 4:5
+    - 5:4
+    - 9:16
+    - 16:9
+    - 21:9
+
+  - **imageSize** _string_
+
+    Controls the output image resolution. Defaults to 1K. Can be one of the following:
+
+    - 1K
+    - 2K
+    - 4K
+
+- **audioTimestamp** _boolean_
+
+  Optional. Enables timestamp understanding for audio-only files.
+  See [Google Cloud audio understanding documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/audio-understanding).
+
+- **mediaResolution** _string_
+
+  Optional. If specified, the media resolution specified will be used. Can be one of the following:
+
+  - `MEDIA_RESOLUTION_UNSPECIFIED`
+  - `MEDIA_RESOLUTION_LOW`
+  - `MEDIA_RESOLUTION_MEDIUM`
+  - `MEDIA_RESOLUTION_HIGH`
+
+  See [Google API MediaResolution documentation](https://ai.google.dev/api/generate-content#MediaResolution).
+
+- **labels** _Record&lt;string, string&gt;_
+
+  Optional. Defines labels used in billing reports. Available on Vertex AI only.
+  See [Google Cloud labels documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls).
+
+- **threshold** _string_
+
+  Optional. Standalone threshold setting that can be used independently of `safetySettings`.
+  Uses the same values as the `safetySettings` threshold.
 
 ### Thinking
 
@@ -209,7 +258,7 @@ The Gemini 2.5 and Gemini 3 series models use an internal "thinking process" tha
 For Gemini 3 models, use the `thinkingLevel` parameter to control the depth of reasoning:
 
 ```ts
-import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import { google, GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const model = google('gemini-3-pro-preview');
@@ -223,7 +272,7 @@ const { text, reasoning } = await generateText({
         thinkingLevel: 'high',
         includeThoughts: true,
       },
-    } satisfies GoogleGenerativeAIProviderOptions,
+    } satisfies GoogleLanguageModelOptions,
   },
 });
 
@@ -237,7 +286,7 @@ console.log(reasoning); // Reasoning summary
 For Gemini 2.5 models, use the `thinkingBudget` parameter to control the number of thinking tokens:
 
 ```ts
-import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import { google, GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const model = google('gemini-2.5-flash');
@@ -251,7 +300,7 @@ const { text, reasoning } = await generateText({
         thinkingBudget: 8192,
         includeThoughts: true,
       },
-    } satisfies GoogleGenerativeAIProviderOptions,
+    } satisfies GoogleLanguageModelOptions,
   },
 });
 
@@ -362,7 +411,7 @@ const { text: meatLasagna, providerMetadata } = await generateText({
 });
 
 // Check cached token count in usage metadata
-console.log('Cached tokens:', providerMetadata.google?.usageMetadata);
+console.log('Cached tokens:', providerMetadata.google);
 // e.g.
 // {
 //   groundingMetadata: null,
@@ -388,44 +437,47 @@ console.log('Cached tokens:', providerMetadata.google?.usageMetadata);
 For guaranteed cost savings, you can still use explicit caching with Gemini 2.5 and 2.0 models. See the [models page](https://ai.google.dev/gemini-api/docs/models) to check if caching is supported for the used model:
 
 ```ts
-import { google } from '@ai-sdk/google';
-import { GoogleAICacheManager } from '@google/generative-ai/server';
+import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
+import { GoogleGenAI } from '@google/genai';
 import { generateText } from 'ai';
 
-const cacheManager = new GoogleAICacheManager(
-  process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-);
+const ai = new GoogleGenAI({
+  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+});
 
 const model = 'gemini-2.5-pro';
 
-const { name: cachedContent } = await cacheManager.create({
+// Create a cache with the content you want to reuse
+const cache = await ai.caches.create({
   model,
-  contents: [
-    {
-      role: 'user',
-      parts: [{ text: '1000 Lasagna Recipes...' }],
-    },
-  ],
-  ttlSeconds: 60 * 5,
+  config: {
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: '1000 Lasagna Recipes...' }],
+      },
+    ],
+    ttl: '300s', // Cache expires after 5 minutes
+  },
 });
 
-const { text: veggieLasangaRecipe } = await generateText({
+const { text: veggieLasagnaRecipe } = await generateText({
   model: google(model),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
   providerOptions: {
     google: {
-      cachedContent,
-    },
+      cachedContent: cache.name,
+    } satisfies GoogleLanguageModelOptions,
   },
 });
 
-const { text: meatLasangaRecipe } = await generateText({
+const { text: meatLasagnaRecipe } = await generateText({
   model: google(model),
   prompt: 'Write a meat lasagna recipe for 12 people.',
   providerOptions: {
     google: {
-      cachedContent,
-    },
+      cachedContent: cache.name,
+    } satisfies GoogleLanguageModelOptions,
   },
 });
 ```
@@ -480,6 +532,19 @@ const groundingMetadata = metadata?.groundingMetadata;
 const safetyRatings = metadata?.safetyRatings;
 ```
 
+The `googleSearch` tool accepts the following optional configuration options:
+
+- **mode** _'MODE_DYNAMIC' | 'MODE_UNSPECIFIED'_
+
+  The mode of the predictor to be used in dynamic retrieval. Default is `'MODE_UNSPECIFIED'`.
+
+  - `MODE_DYNAMIC`: Run retrieval only when the system decides it is necessary
+  - `MODE_UNSPECIFIED`: Always trigger retrieval
+
+- **dynamicThreshold** _number_
+
+  The threshold to be used in dynamic retrieval. Default is `1`. If not set, a system default value is used.
+
 When Search Grounding is enabled, the model will include sources in the response.
 
 Additionally, the grounding metadata includes detailed information about how search results were used to ground the model's response. Here are the available fields:
@@ -527,6 +592,42 @@ Example response:
   }
 }
 ```
+
+### Enterprise Web Search
+
+With [Enterprise Web Search](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/web-grounding-enterprise),
+the model has access to a compliance-focused web index designed for highly-regulated industries such as finance, healthcare, and public sector.
+
+<Note>
+  Enterprise Web Search is only available on Vertex AI. You must use the Google
+  Vertex provider (`@ai-sdk/google-vertex`) instead of the standard Google
+  provider (`@ai-sdk/google`) to use this feature. Requires Gemini 2.0 or newer
+  models.
+</Note>
+
+```ts
+import { createVertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const vertex = createVertex({
+  project: 'my-project',
+  location: 'us-central1',
+});
+
+const { text, sources, providerMetadata } = await generateText({
+  model: vertex('gemini-2.5-flash'),
+  tools: {
+    enterprise_web_search: vertex.tools.enterpriseWebSearch({}),
+  },
+  prompt: 'What are the latest regulatory updates for financial services?',
+});
+```
+
+Enterprise Web Search provides the following benefits:
+
+- Does not log customer data
+- Supports VPC service controls
+- Compliance-focused web index for regulated industries
 
 ### File Search
 
@@ -667,7 +768,7 @@ With [Google Maps grounding](https://ai.google.dev/gemini-api/docs/maps-groundin
 the model has access to Google Maps data for location-aware responses. This enables providing local data and geospatial context, such as finding nearby restaurants.
 
 ```ts highlight="7-16"
-import { google } from '@ai-sdk/google';
+import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
@@ -681,7 +782,7 @@ const { text, sources, providerMetadata } = await generateText({
       retrievalConfig: {
         latLng: { latitude: 34.090199, longitude: -117.881081 },
       },
-    },
+    } satisfies GoogleLanguageModelOptions,
   },
   prompt:
     'What are the best Italian restaurants within a 15-minute walk from here?',
@@ -828,14 +929,14 @@ The `vertexRagStore` tool accepts the following configuration options:
 
 ### Image Outputs
 
-Gemini models with image generation capabilities (`gemini-2.5-flash-image-preview`) support image generation. Images are exposed as files in the response.
+Gemini models with image generation capabilities (e.g. `gemini-2.5-flash-image`) support generating images as part of a multimodal response. Images are exposed as files in the response.
 
 ```ts
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: google('gemini-2.5-flash-image-preview'),
+  model: google('gemini-2.5-flash-image'),
   prompt:
     'Create a picture of a nano banana dish in a fancy restaurant with a Gemini theme',
 });
@@ -846,6 +947,12 @@ for (const file of result.files) {
   }
 }
 ```
+
+<Note>
+  If you primarily want to generate images without text output, you can also use
+  Gemini image models with the `generateImage()` function. See [Gemini Image
+  Models](#gemini-image-models) for details.
+</Note>
 
 ### Safety Ratings
 
@@ -909,7 +1016,7 @@ const { object } = await generateObject({
   providerOptions: {
     google: {
       structuredOutputs: false,
-    },
+    } satisfies GoogleLanguageModelOptions,
   },
   schema: z.object({
     name: z.string(),
@@ -939,6 +1046,8 @@ The following Zod features are known to not work with Google Generative AI:
 | Model                                 | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Google Search       | URL Context         |
 | ------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `gemini-3-pro-preview`                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-3-pro-image-preview`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-3-flash-preview`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.5-pro`                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.5-flash`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.5-flash-lite`               | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -961,6 +1070,10 @@ The following Zod features are known to not work with Google Generative AI:
 ## Gemma Models
 
 You can use [Gemma models](https://deepmind.google/models/gemma/) with the Google Generative AI API.
+The following Gemma models are available:
+
+- `gemma-3-27b-it`
+- `gemma-3-12b-it`
 
 Gemma models don't natively support the `systemInstruction` parameter, but the provider automatically handles system instructions by prepending them to the first user message. This allows you to use system instructions with Gemma models seamlessly:
 
@@ -994,7 +1107,7 @@ The Google Generative AI provider sends API calls to the right endpoint based on
 Google Generative AI embedding models support aditional settings. You can pass them as an options argument:
 
 ```ts
-import { google } from '@ai-sdk/google';
+import { google, type GoogleEmbeddingModelOptions } from '@ai-sdk/google';
 import { embed } from 'ai';
 
 const model = google.embedding('gemini-embedding-001');
@@ -1006,7 +1119,7 @@ const { embedding } = await embed({
     google: {
       outputDimensionality: 512, // optional, number of dimensions for the embedding
       taskType: 'SEMANTIC_SIMILARITY', // optional, specifies the task type for generating embeddings
-    },
+    } satisfies GoogleEmbeddingModelOptions,
   },
 });
 ```
@@ -1039,8 +1152,17 @@ The following optional provider options are available for Google Generative AI e
 
 ## Image Models
 
-You can create [Imagen](https://ai.google.dev/gemini-api/docs/imagen) models that call the Google Generative AI API using the `.image()` factory method.
+You can create image models that call the Google Generative AI API using the `.image()` factory method.
 For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
+
+The Google provider supports two types of image models:
+
+- **Imagen models**: Dedicated image generation models using the `:predict` API
+- **Gemini image models**: Multimodal language models with image output capabilities using the `:generateContent` API
+
+### Imagen Models
+
+[Imagen](https://ai.google.dev/gemini-api/docs/imagen) models are dedicated image generation models.
 
 ```ts
 import { google } from '@ai-sdk/google';
@@ -1053,11 +1175,11 @@ const { image } = await generateImage({
 });
 ```
 
-Further configuration can be done using Google provider options. You can validate the provider options using the `GoogleGenerativeAIImageProviderOptions` type.
+Further configuration can be done using Google provider options. You can validate the provider options using the `GoogleImageModelOptions` type.
 
 ```ts
 import { google } from '@ai-sdk/google';
-import { GoogleGenerativeAIImageProviderOptions } from '@ai-sdk/google';
+import { GoogleImageModelOptions } from '@ai-sdk/google';
 import { generateImage } from 'ai';
 
 const { image } = await generateImage({
@@ -1065,13 +1187,13 @@ const { image } = await generateImage({
   providerOptions: {
     google: {
       personGeneration: 'dont_allow',
-    } satisfies GoogleGenerativeAIImageProviderOptions,
+    } satisfies GoogleImageModelOptions,
   },
   // ...
 });
 ```
 
-The following provider options are available:
+The following provider options are available for Imagen models:
 
 - **personGeneration** `allow_adult` | `allow_all` | `dont_allow`
   Whether to allow person generation. Defaults to `allow_adult`.
@@ -1081,8 +1203,84 @@ The following provider options are available:
   parameter instead.
 </Note>
 
-#### Model Capabilities
+#### Imagen Model Capabilities
 
-| Model                     | Aspect Ratios             |
-| ------------------------- | ------------------------- |
-| `imagen-4.0-generate-001` | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| Model                           | Aspect Ratios             |
+| ------------------------------- | ------------------------- |
+| `imagen-4.0-generate-001`       | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-4.0-ultra-generate-001` | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-4.0-fast-generate-001`  | 1:1, 3:4, 4:3, 9:16, 16:9 |
+
+### Gemini Image Models
+
+[Gemini image models](https://ai.google.dev/gemini-api/docs/image-generation) (e.g. `gemini-2.5-flash-image`) are technically multimodal output language models, but they can be used with the `generateImage()` function for a simpler image generation experience. Internally, the provider calls the language model API with `responseModalities: ['IMAGE']`.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: google.image('gemini-2.5-flash-image'),
+  prompt: 'A photorealistic image of a cat wearing a wizard hat',
+  aspectRatio: '1:1',
+});
+```
+
+Gemini image models also support image editing by providing input images:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateImage } from 'ai';
+import fs from 'node:fs';
+
+const sourceImage = fs.readFileSync('./cat.png');
+
+const { image } = await generateImage({
+  model: google.image('gemini-2.5-flash-image'),
+  prompt: {
+    text: 'Add a small wizard hat to this cat',
+    images: [sourceImage],
+  },
+});
+```
+
+You can also use URLs for input images:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: google.image('gemini-2.5-flash-image'),
+  prompt: {
+    text: 'Add a small wizard hat to this cat',
+    images: ['https://example.com/cat.png'],
+  },
+});
+```
+
+<Note>
+  Gemini image models do not support the `size` or `n` parameters. Use
+  `aspectRatio` instead of `size`. Mask-based inpainting is also not supported.
+</Note>
+
+<Note>
+  For more advanced use cases where you need both text and image outputs, or
+  want more control over the generation process, you can use Gemini image models
+  directly with `generateText()`. See [Image Outputs](#image-outputs) for
+  details.
+</Note>
+
+#### Gemini Image Model Capabilities
+
+| Model                        | Image Generation    | Image Editing       | Aspect Ratios                                       |
+| ---------------------------- | ------------------- | ------------------- | --------------------------------------------------- |
+| `gemini-2.5-flash-image`     | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+| `gemini-3-pro-image-preview` | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+
+<Note>
+  `gemini-3-pro-image-preview` supports additional features including up to 14
+  reference images for editing (6 objects, 5 humans), resolution options (1K,
+  2K, 4K via `providerOptions.google.imageConfig.imageSize`), and Google Search
+  grounding.
+</Note>

@@ -1,5 +1,259 @@
 # @ai-sdk/vue
 
+## 3.0.86
+
+### Patch Changes
+
+- ai@6.0.86
+
+## 3.0.85
+
+### Patch Changes
+
+- ai@6.0.85
+
+## 3.0.84
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - ai@6.0.84
+  - @ai-sdk/provider-utils@4.0.15
+
+## 3.0.83
+
+### Patch Changes
+
+- ai@6.0.83
+
+## 3.0.82
+
+### Patch Changes
+
+- ai@6.0.82
+
+## 3.0.81
+
+### Patch Changes
+
+- Updated dependencies [ee4beee]
+  - ai@6.0.81
+
+## 3.0.80
+
+### Patch Changes
+
+- ai@6.0.80
+
+## 3.0.79
+
+### Patch Changes
+
+- ai@6.0.79
+
+## 3.0.78
+
+### Patch Changes
+
+- Updated dependencies [59fcf30]
+  - ai@6.0.78
+
+## 3.0.77
+
+### Patch Changes
+
+- ai@6.0.77
+
+## 3.0.76
+
+### Patch Changes
+
+- ai@6.0.76
+
+## 3.0.75
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - ai@6.0.75
+  - @ai-sdk/provider-utils@4.0.14
+
+## 3.0.74
+
+### Patch Changes
+
+- Updated dependencies [471009b]
+  - ai@6.0.74
+
+## 3.0.73
+
+### Patch Changes
+
+- ai@6.0.73
+
+## 3.0.72
+
+### Patch Changes
+
+- ai@6.0.72
+
+## 3.0.71
+
+### Patch Changes
+
+- ai@6.0.71
+
+## 3.0.70
+
+### Patch Changes
+
+- ai@6.0.70
+
+## 3.0.69
+
+### Patch Changes
+
+- Updated dependencies [d659305]
+  - ai@6.0.69
+
+## 3.0.68
+
+### Patch Changes
+
+- Updated dependencies [8bf2660]
+  - ai@6.0.68
+
+## 3.0.67
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - ai@6.0.67
+  - @ai-sdk/provider-utils@4.0.13
+
+## 3.0.66
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+  - ai@6.0.66
+
+## 3.0.65
+
+### Patch Changes
+
+- ai@6.0.65
+
+## 3.0.64
+
+### Patch Changes
+
+- Updated dependencies [ce9daa3]
+  - ai@6.0.64
+
+## 3.0.63
+
+### Patch Changes
+
+- Updated dependencies [be95579]
+  - ai@6.0.63
+
+## 3.0.62
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - ai@6.0.62
+
+## 3.0.61
+
+### Patch Changes
+
+- ai@6.0.61
+
+## 3.0.60
+
+### Patch Changes
+
+- Updated dependencies [5fc42fa]
+  - ai@6.0.60
+
+## 3.0.59
+
+### Patch Changes
+
+- ai@6.0.59
+
+## 3.0.58
+
+### Patch Changes
+
+- ai@6.0.58
+
+## 3.0.57
+
+### Patch Changes
+
+- Updated dependencies [65865d8]
+  - ai@6.0.57
+
+## 3.0.56
+
+### Patch Changes
+
+- ai@6.0.56
+
+## 3.0.55
+
+### Patch Changes
+
+- Updated dependencies [43a74df]
+  - ai@6.0.55
+
+## 3.0.54
+
+### Patch Changes
+
+- Updated dependencies [2f8ac87]
+  - ai@6.0.54
+
+## 3.0.53
+
+### Patch Changes
+
+- Updated dependencies [7ee3f10]
+  - ai@6.0.53
+
+## 3.0.52
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+  - ai@6.0.52
+
+## 3.0.51
+
+### Patch Changes
+
+- Updated dependencies [ea0feb5]
+  - ai@6.0.51
+
+## 3.0.50
+
+### Patch Changes
+
+- ai@6.0.50
+
+## 3.0.49
+
+### Patch Changes
+
+- Updated dependencies [ded661b]
+  - ai@6.0.49
+
 ## 3.0.48
 
 ### Patch Changes

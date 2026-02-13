@@ -33,7 +33,7 @@ import {
 } from './deepseek-chat-api-types';
 import {
   DeepSeekChatModelId,
-  deepseekChatOptions,
+  deepseekLanguageModelOptions,
 } from './deepseek-chat-options';
 import { prepareTools } from './deepseek-prepare-tools';
 import { getResponseMetadata } from './get-response-metadata';
@@ -93,7 +93,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
       (await parseProviderOptions({
         provider: this.providerOptionsName,
         providerOptions,
-        schema: deepseekChatOptions,
+        schema: deepseekLanguageModelOptions,
       })) ?? {};
 
     const { messages, warnings } = convertToDeepSeekChatMessages({

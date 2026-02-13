@@ -19,7 +19,7 @@ It takes a language model and a language model middleware and returns a new
 language model that incorporates the middleware.
 
 ```ts
-import { wrapLanguageModel } from 'ai';
+import { wrapLanguageModel, streamText } from 'ai';
 
 const wrappedLanguageModel = wrapLanguageModel({
   model: yourModel,
@@ -90,7 +90,12 @@ Some models wrap JSON responses in markdown code fences (e.g., ` ```json ... ```
 The `extractJsonMiddleware` function strips these code fences from the response, making it compatible with `Output.object()`.
 
 ```ts
-import { wrapLanguageModel, extractJsonMiddleware, Output } from 'ai';
+import {
+  wrapLanguageModel,
+  extractJsonMiddleware,
+  Output,
+  generateText,
+} from 'ai';
 import { z } from 'zod';
 
 const model = wrapLanguageModel({
@@ -166,7 +171,7 @@ import { wrapLanguageModel, addToolInputExamplesMiddleware } from 'ai';
 const model = wrapLanguageModel({
   model: yourModel,
   middleware: addToolInputExamplesMiddleware({
-    examplesPrefix: 'Input Examples:',
+    prefix: 'Input Examples:',
   }),
 });
 ```
@@ -207,18 +212,18 @@ Input Examples:
 
 #### Options
 
-- `examplesPrefix` (required): A prefix text to prepend before the examples.
-- `formatExample` (optional): A custom formatter function for each example. Receives the example object and its index. Default: `JSON.stringify(example.input)`.
-- `removeInputExamples` (optional): Whether to remove the `inputExamples` property from the tool after adding them to the description. Default: `true`.
+- `prefix` (optional): A prefix text to prepend before the examples. Default: `'Input Examples:'`.
+- `format` (optional): A custom formatter function for each example. Receives the example object and its index. Default: `JSON.stringify(example.input)`.
+- `remove` (optional): Whether to remove the `inputExamples` property from the tool after adding them to the description. Default: `true`.
 
 ```ts
 const model = wrapLanguageModel({
   model: yourModel,
   middleware: addToolInputExamplesMiddleware({
-    examplesPrefix: 'Input Examples:',
-    formatExample: (example, index) =>
+    prefix: 'Input Examples:',
+    format: (example, index) =>
       `${index + 1}. ${JSON.stringify(example.input)}`,
-    removeInputExamples: true,
+    remove: true,
   }),
 });
 ```

@@ -1,4 +1,7 @@
-import { createAnthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import {
+  createAnthropic,
+  type AnthropicLanguageModelOptions,
+} from '@ai-sdk/anthropic';
 import { ModelMessage, generateText, stepCountIs } from 'ai';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
@@ -37,7 +40,7 @@ run(async () => {
       providerOptions: {
         anthropic: {
           thinking: { type: 'enabled', budgetTokens: 12000 },
-        } satisfies AnthropicProviderOptions,
+        } satisfies AnthropicLanguageModelOptions,
       },
     });
 

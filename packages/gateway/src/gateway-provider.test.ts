@@ -8,6 +8,7 @@ import { GatewayFetchMetadata } from './gateway-fetch-metadata';
 import { NoSuchModelError } from '@ai-sdk/provider';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
+import { GatewayVideoModel } from './gateway-video-model';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import { resolve } from '@ai-sdk/provider-utils';
 import { GatewayLanguageModel } from './gateway-language-model';
@@ -81,6 +82,37 @@ function getGatewayImageModelInternalConfig(
 ): GatewayImageModelInternalConfig {
   const config = Reflect.get(model as object, 'config');
   assertIsGatewayImageModelInternalConfig(config);
+  return config;
+}
+
+type GatewayVideoModelInternalConfig = {
+  provider: string;
+  baseURL: string;
+  headers: () => Promise<Record<string, string>>;
+  fetch?: typeof fetch;
+  o11yHeaders: () => Promise<Record<string, string>>;
+};
+
+function assertIsGatewayVideoModelInternalConfig(
+  value: unknown,
+): asserts value is GatewayVideoModelInternalConfig {
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    typeof (value as { provider?: unknown }).provider !== 'string' ||
+    typeof (value as { baseURL?: unknown }).baseURL !== 'string' ||
+    typeof (value as { headers?: unknown }).headers !== 'function' ||
+    typeof (value as { o11yHeaders?: unknown }).o11yHeaders !== 'function'
+  ) {
+    throw new Error('Invalid GatewayVideoModel configuration');
+  }
+}
+
+function getGatewayVideoModelInternalConfig(
+  model: GatewayVideoModel,
+): GatewayVideoModelInternalConfig {
+  const config = Reflect.get(model as object, 'config');
+  assertIsGatewayVideoModelInternalConfig(config);
   return config;
 }
 
@@ -211,6 +243,54 @@ describe('GatewayProvider', () => {
       }
 
       const config = getGatewayImageModelInternalConfig(model);
+      const headers = await config.headers();
+
+      expect(headers).toEqual({
+        authorization: 'Bearer test-api-key',
+        'custom-header': 'value',
+        'ai-gateway-protocol-version': expect.any(String),
+        'ai-gateway-auth-method': 'api-key',
+        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+      });
+      expect(config.fetch).toBe(customFetch);
+
+      const o11yHeaders = await config.o11yHeaders();
+      expect(o11yHeaders).toEqual({ 'ai-o11y-request-id': 'mock-request-id' });
+    });
+
+    it('should create GatewayVideoModel for videoModel', () => {
+      const provider = createGatewayProvider({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      const model = provider.videoModel('google/veo-2.0-generate-001');
+
+      if (!(model instanceof GatewayVideoModel)) {
+        fail('Expected GatewayVideoModel to be created');
+      }
+
+      const config = getGatewayVideoModelInternalConfig(model);
+      expect(config.provider).toBe('gateway');
+      expect(config.baseURL).toBe('https://api.example.com');
+    });
+
+    it('should reuse gateway headers and fetch for videoModel', async () => {
+      const customFetch = vi.fn();
+      const provider = createGatewayProvider({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+        headers: { 'Custom-Header': 'value' },
+        fetch: customFetch,
+      });
+
+      const model = provider.videoModel('google/veo-2.0-generate-001');
+
+      if (!(model instanceof GatewayVideoModel)) {
+        fail('Expected GatewayVideoModel to be created');
+      }
+
+      const config = getGatewayVideoModelInternalConfig(model);
       const headers = await config.headers();
 
       expect(headers).toEqual({
@@ -431,6 +511,19 @@ describe('GatewayProvider', () => {
       }
 
       const config = getGatewayImageModelInternalConfig(model);
+      expect(config.provider).toBe('gateway');
+      expect(config.baseURL).toBe('https://ai-gateway.vercel.sh/v3/ai');
+    });
+
+    it('should expose videoModel on the default provider and construct model', () => {
+      expect(typeof gateway.videoModel).toBe('function');
+      const model = gateway.videoModel('google/veo-2.0-generate-001');
+
+      if (!(model instanceof GatewayVideoModel)) {
+        fail('Expected GatewayVideoModel to be created by default provider');
+      }
+
+      const config = getGatewayVideoModelInternalConfig(model);
       expect(config.provider).toBe('gateway');
       expect(config.baseURL).toBe('https://ai-gateway.vercel.sh/v3/ai');
     });

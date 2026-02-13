@@ -1,4 +1,4 @@
-import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import type { GatewayLanguageModelOptions } from '@ai-sdk/gateway';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
 
@@ -10,7 +10,7 @@ run(async () => {
       gateway: {
         user: 'user-123',
         tags: ['chat', 'v2'],
-      } satisfies GatewayProviderOptions,
+      } satisfies GatewayLanguageModelOptions,
     },
   });
 

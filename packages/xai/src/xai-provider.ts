@@ -1,8 +1,4 @@
 import {
-  OpenAICompatibleImageModel,
-  ProviderErrorStructure,
-} from '@ai-sdk/openai-compatible';
-import {
   ImageModelV3,
   LanguageModelV3,
   NoSuchModelError,
@@ -17,51 +13,46 @@ import {
 } from '@ai-sdk/provider-utils';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
 import { XaiChatModelId } from './xai-chat-options';
-import { XaiErrorData, xaiErrorDataSchema } from './xai-error';
+import { XaiImageModel } from './xai-image-model';
 import { XaiImageModelId } from './xai-image-settings';
 import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
 import { XaiResponsesModelId } from './responses/xai-responses-options';
 import { xaiTools } from './tool';
 import { VERSION } from './version';
 
-const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
-  errorSchema: xaiErrorDataSchema,
-  errorToMessage: data => data.error.message,
-};
-
 export interface XaiProvider extends ProviderV3 {
   /**
-Creates an Xai chat model for text generation.
+   * Creates an Xai chat model for text generation.
    */
   (modelId: XaiChatModelId): LanguageModelV3;
 
   /**
-Creates an Xai language model for text generation.
+   * Creates an Xai language model for text generation.
    */
   languageModel(modelId: XaiChatModelId): LanguageModelV3;
 
   /**
-Creates an Xai chat model for text generation.
+   * Creates an Xai chat model for text generation.
    */
   chat: (modelId: XaiChatModelId) => LanguageModelV3;
 
   /**
-Creates an Xai responses model for agentic tool calling.
+   * Creates an Xai responses model for agentic tool calling.
    */
   responses: (modelId: XaiResponsesModelId) => LanguageModelV3;
 
   /**
-Creates an Xai image model for image generation.
+   * Creates an Xai image model for image generation.
    */
   image(modelId: XaiImageModelId): ImageModelV3;
 
   /**
-Creates an Xai image model for image generation.
+   * Creates an Xai image model for image generation.
    */
   imageModel(modelId: XaiImageModelId): ImageModelV3;
 
   /**
-Server-side agentic tools for use with the responses API.
+   * Server-side agentic tools for use with the responses API.
    */
   tools: typeof xaiTools;
 
@@ -73,24 +64,24 @@ Server-side agentic tools for use with the responses API.
 
 export interface XaiProviderSettings {
   /**
-Base URL for the xAI API calls.
-     */
+   * Base URL for the xAI API calls.
+   */
   baseURL?: string;
 
   /**
-API key for authenticating requests.
+   * API key for authenticating requests.
    */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
+   * Custom headers to include in the requests.
    */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-  */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
@@ -132,12 +123,11 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   };
 
   const createImageModel = (modelId: XaiImageModelId) => {
-    return new OpenAICompatibleImageModel(modelId, {
+    return new XaiImageModel(modelId, {
       provider: 'xai.image',
-      url: ({ path }) => `${baseURL}${path}`,
+      baseURL,
       headers: getHeaders,
       fetch: options.fetch,
-      errorStructure: xaiErrorStructure,
     });
   };
 

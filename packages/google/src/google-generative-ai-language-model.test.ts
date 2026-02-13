@@ -15,7 +15,8 @@ import {
   GoogleGenerativeAIUrlContextMetadata,
 } from './google-generative-ai-prompt';
 import { createGoogleGenerativeAI } from './google-provider';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import * as fs from 'fs';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -242,6 +243,20 @@ describe('groundingMetadataSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('validates groundingSupports with missing segment', () => {
+    const metadata = {
+      groundingSupports: [
+        {
+          // Missing `segment`
+          groundingChunkIndices: [0],
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
   it('rejects invalid data types', () => {
     const metadata = {
       webSearchQueries: 'not an array', // Should be an array
@@ -306,6 +321,30 @@ describe('doGenerate', () => {
     [TEST_URL_GEMINI_1_5_FLASH]: {},
   });
 
+  function prepareJsonFixtureResponse(
+    filename: string,
+    {
+      headers,
+      url = TEST_URL_GEMINI_PRO,
+    }: {
+      headers?: Record<string, string>;
+      url?:
+        | typeof TEST_URL_GEMINI_PRO
+        | typeof TEST_URL_GEMINI_2_0_PRO
+        | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
+        | typeof TEST_URL_GEMINI_1_0_PRO
+        | typeof TEST_URL_GEMINI_1_5_FLASH;
+    } = {},
+  ) {
+    server.urls[url].response = {
+      type: 'json-value',
+      headers,
+      body: JSON.parse(
+        fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+      ),
+    };
+  }
+
   const prepareJsonResponse = ({
     content = '',
     usage = {
@@ -354,57 +393,44 @@ describe('doGenerate', () => {
     };
   };
 
-  it('should extract text response', async () => {
-    prepareJsonResponse({ content: 'Hello, World!' });
-
-    const { content } = await model.doGenerate({
-      prompt: TEST_PROMPT,
+  describe('text', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('google-text');
     });
 
-    expect(content).toMatchInlineSnapshot(`
-      [
+    it('should extract text response', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should extract usage', async () => {
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage).toMatchSnapshot();
+    });
+
+    it('should send additional response information', async () => {
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect({
+        id: response?.id,
+        timestamp: response?.timestamp,
+        modelId: response?.modelId,
+      }).toMatchInlineSnapshot(`
         {
-          "providerMetadata": undefined,
-          "text": "Hello, World!",
-          "type": "text",
-        },
-      ]
-    `);
-  });
-
-  it('should extract usage', async () => {
-    prepareJsonResponse({
-      usage: {
-        promptTokenCount: 20,
-        candidatesTokenCount: 5,
-        totalTokenCount: 25,
-      },
+          "id": undefined,
+          "modelId": undefined,
+          "timestamp": undefined,
+        }
+      `);
     });
-
-    const { usage } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(usage).toMatchInlineSnapshot(`
-      {
-        "inputTokens": {
-          "cacheRead": 0,
-          "cacheWrite": undefined,
-          "noCache": 20,
-          "total": 20,
-        },
-        "outputTokens": {
-          "reasoning": 0,
-          "text": 5,
-          "total": 5,
-        },
-        "raw": {
-          "candidatesTokenCount": 5,
-          "promptTokenCount": 20,
-          "totalTokenCount": 25,
-        },
-      }
-    `);
   });
   it('should handle MALFORMED_FUNCTION_CALL finish reason and empty content object', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
@@ -443,87 +469,81 @@ describe('doGenerate', () => {
     `);
   });
 
-  it('should extract tool calls', async () => {
-    server.urls[TEST_URL_GEMINI_PRO].response = {
-      type: 'json-value',
-      body: {
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  functionCall: {
-                    name: 'test-tool',
-                    args: { value: 'example value' },
-                  },
-                },
-              ],
-              role: 'model',
-            },
-            finishReason: 'STOP',
-            index: 0,
-            safetyRatings: SAFETY_RATINGS,
-          },
-        ],
-        promptFeedback: { safetyRatings: SAFETY_RATINGS },
-      },
-    };
-
-    const { content, finishReason } = await model.doGenerate({
-      tools: [
-        {
-          type: 'function',
-          name: 'test-tool',
-          inputSchema: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
-          },
-        },
-      ],
-      prompt: TEST_PROMPT,
+  describe('tool-call', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('google-tool-call');
     });
 
-    expect(content).toMatchInlineSnapshot(`
-      [
-        {
-          "input": "{"value":"example value"}",
-          "providerMetadata": undefined,
-          "toolCallId": "test-id",
-          "toolName": "test-tool",
-          "type": "tool-call",
-        },
-      ]
-    `);
-    expect(finishReason).toMatchInlineSnapshot(`
-      {
-        "raw": "STOP",
-        "unified": "tool-calls",
-      }
-    `);
+    it('should extract tool calls', async () => {
+      const result = await model.doGenerate({
+        tools: [
+          {
+            type: 'function',
+            name: 'weather',
+            inputSchema: {
+              type: 'object',
+              properties: { location: { type: 'string' } },
+              required: ['location'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+  });
+
+  describe('reasoning-gemini3', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('google-reasoning-gemini3');
+    });
+
+    it('should extract reasoning with thoughtSignature', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+  });
+
+  describe('tool-call-gemini3', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('google-tool-call-gemini3');
+    });
+
+    it('should extract tool call with thoughtSignature', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result).toMatchSnapshot();
+    });
   });
 
   it('should expose the raw response headers', async () => {
-    prepareJsonResponse({ headers: { 'test-header': 'test-value' } });
+    prepareJsonFixtureResponse('google-text', {
+      headers: { 'test-header': 'test-value' },
+    });
 
     const { response } = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(response?.headers).toStrictEqual({
-      // default headers:
-      'content-length': '804',
-      'content-type': 'application/json',
-
-      // custom header
-      'test-header': 'test-value',
-    });
+    expect(response?.headers).toMatchInlineSnapshot(`
+      {
+        "content-length": "549",
+        "content-type": "application/json",
+        "test-header": "test-value",
+      }
+    `);
   });
 
   it('should pass the model, messages, and options', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('google-text');
 
     await model.doGenerate({
       prompt: [
@@ -534,23 +554,35 @@ describe('doGenerate', () => {
       temperature: 0.5,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: 'Hello' }],
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "generationConfig": {
+          "seed": 123,
+          "temperature": 0.5,
         },
-      ],
-      systemInstruction: { parts: [{ text: 'test system instruction' }] },
-      generationConfig: {
-        seed: 123,
-        temperature: 0.5,
-      },
-    });
+        "systemInstruction": {
+          "parts": [
+            {
+              "text": "test system instruction",
+            },
+          ],
+        },
+      }
+    `);
   });
 
   it('should only pass valid provider options', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('google-text');
 
     await model.doGenerate({
       prompt: [
@@ -564,24 +596,39 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: 'Hello' }],
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "generationConfig": {
+          "responseModalities": [
+            "TEXT",
+            "IMAGE",
+          ],
+          "seed": 123,
+          "temperature": 0.5,
         },
-      ],
-      systemInstruction: { parts: [{ text: 'test system instruction' }] },
-      generationConfig: {
-        seed: 123,
-        temperature: 0.5,
-        responseModalities: ['TEXT', 'IMAGE'],
-      },
-    });
+        "systemInstruction": {
+          "parts": [
+            {
+              "text": "test system instruction",
+            },
+          ],
+        },
+      }
+    `);
   });
 
   it('should pass tools and toolChoice', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('google-text');
 
     await model.doGenerate({
       tools: [
@@ -604,35 +651,54 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      generationConfig: {},
-      contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
-      tools: [
-        {
-          functionDeclarations: [
-            {
-              name: 'test-tool',
-              description: '',
-              parameters: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
               },
-            },
-          ],
+            ],
+            "role": "user",
+          },
+        ],
+        "generationConfig": {},
+        "toolConfig": {
+          "functionCallingConfig": {
+            "allowedFunctionNames": [
+              "test-tool",
+            ],
+            "mode": "ANY",
+          },
         },
-      ],
-      toolConfig: {
-        functionCallingConfig: {
-          mode: 'ANY',
-          allowedFunctionNames: ['test-tool'],
-        },
-      },
-    });
+        "tools": [
+          {
+            "functionDeclarations": [
+              {
+                "description": "",
+                "name": "test-tool",
+                "parameters": {
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "value",
+                  ],
+                  "type": "object",
+                },
+              },
+            ],
+          },
+        ],
+      }
+    `);
   });
 
   it('should set response mime type with responseFormat', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('google-text');
 
     await model.doGenerate({
       responseFormat: {
@@ -645,29 +711,35 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: 'Hello' }],
-        },
-      ],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: 'object',
-          properties: {
-            location: {
-              type: 'string',
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "generationConfig": {
+          "responseMimeType": "application/json",
+          "responseSchema": {
+            "properties": {
+              "location": {
+                "type": "string",
+              },
             },
+            "type": "object",
           },
         },
-      },
-    });
+      }
+    `);
   });
 
   it('should pass specification with responseFormat and structuredOutputs = true (default)', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('google-text');
 
     await provider.languageModel('gemini-pro').doGenerate({
       responseFormat: {
@@ -685,24 +757,42 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          properties: {
-            property1: { type: 'string' },
-            property2: { type: 'number' },
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
           },
-          required: ['property1', 'property2'],
-          type: 'object',
+        ],
+        "generationConfig": {
+          "responseMimeType": "application/json",
+          "responseSchema": {
+            "properties": {
+              "property1": {
+                "type": "string",
+              },
+              "property2": {
+                "type": "number",
+              },
+            },
+            "required": [
+              "property1",
+              "property2",
+            ],
+            "type": "object",
+          },
         },
-      },
-    });
+      }
+    `);
   });
 
   it('should not pass specification with responseFormat and structuredOutputs = false', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('google-text');
 
     await provider.languageModel('gemini-pro').doGenerate({
       providerOptions: {
@@ -725,16 +815,27 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
-      generationConfig: {
-        responseMimeType: 'application/json',
-      },
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "generationConfig": {
+          "responseMimeType": "application/json",
+        },
+      }
+    `);
   });
 
   it('should pass tools and toolChoice', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('google-text');
 
     await provider.languageModel('gemini-pro').doGenerate({
       tools: [
@@ -756,33 +857,55 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
-      generationConfig: {},
-      toolConfig: { functionCallingConfig: { mode: 'ANY' } },
-      tools: [
-        {
-          functionDeclarations: [
-            {
-              name: 'test-tool',
-              description: '',
-              parameters: {
-                properties: {
-                  property1: { type: 'string' },
-                  property2: { type: 'number' },
-                },
-                required: ['property1', 'property2'],
-                type: 'object',
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
               },
-            },
-          ],
+            ],
+            "role": "user",
+          },
+        ],
+        "generationConfig": {},
+        "toolConfig": {
+          "functionCallingConfig": {
+            "mode": "ANY",
+          },
         },
-      ],
-    });
+        "tools": [
+          {
+            "functionDeclarations": [
+              {
+                "description": "",
+                "name": "test-tool",
+                "parameters": {
+                  "properties": {
+                    "property1": {
+                      "type": "string",
+                    },
+                    "property2": {
+                      "type": "number",
+                    },
+                  },
+                  "required": [
+                    "property1",
+                    "property2",
+                  ],
+                  "type": "object",
+                },
+              },
+            ],
+          },
+        ],
+      }
+    `);
   });
 
   it('should pass headers', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('google-text');
 
     const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
@@ -800,19 +923,21 @@ describe('doGenerate', () => {
 
     const requestHeaders = server.calls[0].requestHeaders;
 
-    expect(requestHeaders).toStrictEqual({
-      'content-type': 'application/json',
-      'custom-provider-header': 'provider-header-value',
-      'custom-request-header': 'request-header-value',
-      'x-goog-api-key': 'test-api-key',
-    });
+    expect(requestHeaders).toMatchInlineSnapshot(`
+      {
+        "content-type": "application/json",
+        "custom-provider-header": "provider-header-value",
+        "custom-request-header": "request-header-value",
+        "x-goog-api-key": "test-api-key",
+      }
+    `);
     expect(server.calls[0].requestUserAgent).toContain(
       `ai-sdk/google/0.0.0-test`,
     );
   });
 
   it('should pass response format', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('google-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -828,32 +953,58 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: 'object',
-          properties: {
-            text: { type: 'string' },
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
           },
-          required: ['text'],
+        ],
+        "generationConfig": {
+          "responseMimeType": "application/json",
+          "responseSchema": {
+            "properties": {
+              "text": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "text",
+            ],
+            "type": "object",
+          },
         },
-      },
-    });
+      }
+    `);
   });
 
   it('should send request body', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('google-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
-      generationConfig: {},
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Hello",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "generationConfig": {},
+      }
+    `);
   });
 
   it('should extract sources from grounding metadata', async () => {
@@ -921,36 +1072,36 @@ describe('doGenerate', () => {
     });
 
     expect(content).toMatchInlineSnapshot(`
-          [
-            {
-              "providerMetadata": undefined,
-              "text": "test response with RAG",
-              "type": "text",
-            },
-            {
-              "id": "test-id",
-              "sourceType": "url",
-              "title": "Web Source",
-              "type": "source",
-              "url": "https://web.example.com",
-            },
-            {
-              "filename": "document.pdf",
-              "id": "test-id",
-              "mediaType": "application/pdf",
-              "sourceType": "document",
-              "title": "RAG Document",
-              "type": "source",
-            },
-            {
-              "id": "test-id",
-              "sourceType": "url",
-              "title": "External RAG Source",
-              "type": "source",
-              "url": "https://external-rag-source.com/page",
-            },
-          ]
-        `);
+      [
+        {
+          "providerMetadata": undefined,
+          "text": "test response with RAG",
+          "type": "text",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "Web Source",
+          "type": "source",
+          "url": "https://web.example.com",
+        },
+        {
+          "filename": "document.pdf",
+          "id": "test-id",
+          "mediaType": "application/pdf",
+          "sourceType": "document",
+          "title": "RAG Document",
+          "type": "source",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "External RAG Source",
+          "type": "source",
+          "url": "https://external-rag-source.com/page",
+        },
+      ]
+    `);
   });
 
   it('should extract sources from File Search retrievedContext (new format)', async () => {
@@ -981,30 +1132,30 @@ describe('doGenerate', () => {
     });
 
     expect(content).toMatchInlineSnapshot(`
-          [
-            {
-              "providerMetadata": undefined,
-              "text": "test response with File Search",
-              "type": "text",
-            },
-            {
-              "filename": "test-store-xyz",
-              "id": "test-id",
-              "mediaType": "application/octet-stream",
-              "sourceType": "document",
-              "title": "Test Document",
-              "type": "source",
-            },
-            {
-              "filename": "another-store-abc",
-              "id": "test-id",
-              "mediaType": "application/octet-stream",
-              "sourceType": "document",
-              "title": "Unknown Document",
-              "type": "source",
-            },
-          ]
-        `);
+      [
+        {
+          "providerMetadata": undefined,
+          "text": "test response with File Search",
+          "type": "text",
+        },
+        {
+          "filename": "test-store-xyz",
+          "id": "test-id",
+          "mediaType": "application/octet-stream",
+          "sourceType": "document",
+          "title": "Test Document",
+          "type": "source",
+        },
+        {
+          "filename": "another-store-abc",
+          "id": "test-id",
+          "mediaType": "application/octet-stream",
+          "sourceType": "document",
+          "title": "Unknown Document",
+          "type": "source",
+        },
+      ]
+    `);
   });
 
   it('should handle URL sources with undefined title correctly', async () => {
@@ -1033,28 +1184,28 @@ describe('doGenerate', () => {
     });
 
     expect(content).toMatchInlineSnapshot(`
-          [
-            {
-              "providerMetadata": undefined,
-              "text": "test response with URLs",
-              "type": "text",
-            },
-            {
-              "id": "test-id",
-              "sourceType": "url",
-              "title": undefined,
-              "type": "source",
-              "url": "https://example.com/page1",
-            },
-            {
-              "id": "test-id",
-              "sourceType": "url",
-              "title": undefined,
-              "type": "source",
-              "url": "https://example.com/page2",
-            },
-          ]
-        `);
+      [
+        {
+          "providerMetadata": undefined,
+          "text": "test response with URLs",
+          "type": "text",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": undefined,
+          "type": "source",
+          "url": "https://example.com/page1",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": undefined,
+          "type": "source",
+          "url": "https://example.com/page2",
+        },
+      ]
+    `);
   });
 
   it('should extract sources from maps grounding metadata', async () => {
@@ -1139,44 +1290,44 @@ describe('doGenerate', () => {
     });
 
     expect(content).toMatchInlineSnapshot(`
-          [
-            {
-              "providerMetadata": undefined,
-              "text": "test response with mixed sources",
-              "type": "text",
-            },
-            {
-              "id": "test-id",
-              "sourceType": "url",
-              "title": undefined,
-              "type": "source",
-              "url": "https://web.example.com",
-            },
-            {
-              "id": "test-id",
-              "sourceType": "url",
-              "title": undefined,
-              "type": "source",
-              "url": "https://external.example.com",
-            },
-            {
-              "filename": "document.pdf",
-              "id": "test-id",
-              "mediaType": "application/pdf",
-              "sourceType": "document",
-              "title": "Unknown Document",
-              "type": "source",
-            },
-            {
-              "filename": "store-123",
-              "id": "test-id",
-              "mediaType": "application/octet-stream",
-              "sourceType": "document",
-              "title": "Unknown Document",
-              "type": "source",
-            },
-          ]
-        `);
+      [
+        {
+          "providerMetadata": undefined,
+          "text": "test response with mixed sources",
+          "type": "text",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": undefined,
+          "type": "source",
+          "url": "https://web.example.com",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": undefined,
+          "type": "source",
+          "url": "https://external.example.com",
+        },
+        {
+          "filename": "document.pdf",
+          "id": "test-id",
+          "mediaType": "application/pdf",
+          "sourceType": "document",
+          "title": "Unknown Document",
+          "type": "source",
+        },
+        {
+          "filename": "store-123",
+          "id": "test-id",
+          "mediaType": "application/octet-stream",
+          "sourceType": "document",
+          "title": "Unknown Document",
+          "type": "source",
+        },
+      ]
+    `);
   });
 
   describe('async headers handling', () => {
@@ -1225,12 +1376,14 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(server.calls[0].requestHeaders).toStrictEqual({
-        'content-type': 'application/json',
-        'x-async-config': 'async-config-value',
-        'x-sync-request': 'sync-request-value',
-        'x-common': 'request-value', // Request headers take precedence
-      });
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "content-type": "application/json",
+          "x-async-config": "async-config-value",
+          "x-common": "request-value",
+          "x-sync-request": "sync-request-value",
+        }
+      `);
     });
 
     it('handles Promise-based headers', async () => {
@@ -1270,14 +1423,16 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(server.calls[0].requestHeaders).toStrictEqual({
-        'content-type': 'application/json',
-        'x-promise-header': 'promise-value',
-      });
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "content-type": "application/json",
+          "x-promise-header": "promise-value",
+        }
+      `);
     });
 
     it('handles async function headers from config', async () => {
-      prepareJsonResponse({});
+      prepareJsonFixtureResponse('google-text');
       const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
         provider: 'google.generative-ai',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
@@ -1291,10 +1446,12 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(server.calls[0].requestHeaders).toStrictEqual({
-        'content-type': 'application/json',
-        'x-async-header': 'async-value',
-      });
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "content-type": "application/json",
+          "x-async-header": "async-value",
+        }
+      `);
     });
   });
 
@@ -1330,16 +1487,18 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(providerMetadata?.google.safetyRatings).toStrictEqual([
-      {
-        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-        probability: 'NEGLIGIBLE',
-        probabilityScore: 0.1,
-        severity: 'LOW',
-        severityScore: 0.2,
-        blocked: false,
-      },
-    ]);
+    expect(providerMetadata?.google.safetyRatings).toMatchInlineSnapshot(`
+      [
+        {
+          "blocked": false,
+          "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+          "probability": "NEGLIGIBLE",
+          "probabilityScore": 0.1,
+          "severity": "LOW",
+          "severityScore": 0.2,
+        },
+      ]
+    `);
   });
 
   it('should expose PromptFeedback in provider metadata', async () => {
@@ -1365,10 +1524,29 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(providerMetadata?.google.promptFeedback).toStrictEqual({
-      blockReason: 'SAFETY',
-      safetyRatings: SAFETY_RATINGS,
-    });
+    expect(providerMetadata?.google.promptFeedback).toMatchInlineSnapshot(`
+      {
+        "blockReason": "SAFETY",
+        "safetyRatings": [
+          {
+            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            "probability": "NEGLIGIBLE",
+          },
+          {
+            "category": "HARM_CATEGORY_HATE_SPEECH",
+            "probability": "NEGLIGIBLE",
+          },
+          {
+            "category": "HARM_CATEGORY_HARASSMENT",
+            "probability": "NEGLIGIBLE",
+          },
+          {
+            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+            "probability": "NEGLIGIBLE",
+          },
+        ],
+      }
+    `);
   });
 
   it('should expose grounding metadata in provider metadata', async () => {
@@ -1408,34 +1586,42 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(providerMetadata?.google.groundingMetadata).toStrictEqual({
-      webSearchQueries: ["What's the weather in Chicago this weekend?"],
-      searchEntryPoint: {
-        renderedContent: 'Sample rendered content for search results',
-      },
-      groundingChunks: [
-        {
-          web: {
-            uri: 'https://example.com/weather',
-            title: 'Chicago Weather Forecast',
+    expect(providerMetadata?.google.groundingMetadata).toMatchInlineSnapshot(`
+      {
+        "groundingChunks": [
+          {
+            "web": {
+              "title": "Chicago Weather Forecast",
+              "uri": "https://example.com/weather",
+            },
           },
-        },
-      ],
-      groundingSupports: [
-        {
-          segment: {
-            startIndex: 0,
-            endIndex: 65,
-            text: 'Chicago weather changes rapidly, so layers let you adjust easily.',
+        ],
+        "groundingSupports": [
+          {
+            "confidenceScores": [
+              0.99,
+            ],
+            "groundingChunkIndices": [
+              0,
+            ],
+            "segment": {
+              "endIndex": 65,
+              "startIndex": 0,
+              "text": "Chicago weather changes rapidly, so layers let you adjust easily.",
+            },
           },
-          groundingChunkIndices: [0],
-          confidenceScores: [0.99],
+        ],
+        "retrievalMetadata": {
+          "webDynamicRetrievalScore": 0.96879,
         },
-      ],
-      retrievalMetadata: {
-        webDynamicRetrievalScore: 0.96879,
-      },
-    });
+        "searchEntryPoint": {
+          "renderedContent": "Sample rendered content for search results",
+        },
+        "webSearchQueries": [
+          "What's the weather in Chicago this weekend?",
+        ],
+      }
+    `);
   });
 
   it('should handle code execution tool calls', async () => {
@@ -1496,6 +1682,69 @@ describe('doGenerate', () => {
           "result": {
             "outcome": "OUTCOME_OK",
             "output": "2",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
+  it('should handle code execution result with missing output field', async () => {
+    server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  executableCode: {
+                    language: 'PYTHON',
+                    code: "import PIL.Image\nimg = PIL.Image.open('input.png')\nimg.save('output.png')\n",
+                  },
+                },
+                {
+                  codeExecutionResult: {
+                    outcome: 'OUTCOME_OK',
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+          },
+        ],
+      },
+    };
+
+    const model = provider.languageModel('gemini-2.0-pro');
+    const { content } = await model.doGenerate({
+      tools: [
+        {
+          type: 'provider',
+          id: 'google.code_execution',
+          name: 'code_execution',
+          args: {},
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"language":"PYTHON","code":"import PIL.Image\\nimg = PIL.Image.open('input.png')\\nimg.save('output.png')\\n"}",
+          "providerExecuted": true,
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-call",
+        },
+        {
+          "result": {
+            "outcome": "OUTCOME_OK",
+            "output": "",
           },
           "toolCallId": "test-id",
           "toolName": "code_execution",
@@ -1690,7 +1939,7 @@ describe('doGenerate', () => {
     });
 
     it('should use googleSearch for gemini-2.0-pro', async () => {
-      prepareJsonResponse({
+      prepareJsonFixtureResponse('google-text', {
         url: TEST_URL_GEMINI_2_0_PRO,
       });
 
@@ -1713,7 +1962,7 @@ describe('doGenerate', () => {
     });
 
     it('should use googleSearch for gemini-2.0-flash-exp', async () => {
-      prepareJsonResponse({
+      prepareJsonFixtureResponse('google-text', {
         url: TEST_URL_GEMINI_2_0_FLASH_EXP,
       });
 
@@ -1736,7 +1985,7 @@ describe('doGenerate', () => {
     });
 
     it('should use googleSearchRetrieval for non-gemini-2 models', async () => {
-      prepareJsonResponse({
+      prepareJsonFixtureResponse('google-text', {
         url: TEST_URL_GEMINI_1_0_PRO,
       });
 
@@ -1759,7 +2008,7 @@ describe('doGenerate', () => {
     });
 
     it('should use dynamic retrieval for gemini-1-5', async () => {
-      prepareJsonResponse({
+      prepareJsonFixtureResponse('google-text', {
         url: TEST_URL_GEMINI_1_5_FLASH,
       });
 
@@ -1794,7 +2043,7 @@ describe('doGenerate', () => {
       });
     });
     it('should use urlContextTool for gemini-2.0-pro', async () => {
-      prepareJsonResponse({
+      prepareJsonFixtureResponse('google-text', {
         url: TEST_URL_GEMINI_2_0_PRO,
       });
 
@@ -1816,7 +2065,7 @@ describe('doGenerate', () => {
       });
     });
     it('should use vertexRagStore for gemini-2.0-pro', async () => {
-      prepareJsonResponse({
+      prepareJsonFixtureResponse('google-text', {
         url: TEST_URL_GEMINI_2_0_PRO,
       });
 
@@ -1986,7 +2235,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass responseModalities in provider options', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('google-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -2005,7 +2254,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass mediaResolution in provider options', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('google-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -2024,7 +2273,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass imageConfig.aspectRatio in provider options', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('google-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -2046,8 +2295,58 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass imageConfig.imageSize in provider options', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          imageConfig: {
+            imageSize: '4K',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        imageConfig: {
+          imageSize: '4K',
+        },
+      },
+    });
+  });
+
+  it('should pass imageConfig with both aspectRatio and imageSize', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          imageConfig: {
+            aspectRatio: '16:9',
+            imageSize: '2K',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        imageConfig: {
+          aspectRatio: '16:9',
+          imageSize: '2K',
+        },
+      },
+    });
+  });
+
   it('should pass retrievalConfig in provider options', async () => {
-    prepareJsonResponse({ url: TEST_URL_GEMINI_2_0_FLASH_EXP });
+    prepareJsonFixtureResponse('google-text', {
+      url: TEST_URL_GEMINI_2_0_FLASH_EXP,
+    });
 
     const gemini2Model = provider.chat('gemini-2.0-flash-exp');
 
@@ -2408,7 +2707,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass thinkingLevel in provider options', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('google-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -2431,7 +2730,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass thinkingLevel "minimal" in provider options', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('google-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -2454,7 +2753,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass thinkingLevel "medium" in provider options', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('google-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -2689,6 +2988,34 @@ describe('doStream', () => {
     [TEST_URL_GEMINI_1_5_FLASH]: {},
   });
 
+  function prepareChunksFixtureResponse(
+    filename: string,
+    {
+      headers,
+      url = TEST_URL_GEMINI_PRO,
+    }: {
+      headers?: Record<string, string>;
+      url?:
+        | typeof TEST_URL_GEMINI_PRO
+        | typeof TEST_URL_GEMINI_2_0_PRO
+        | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
+        | typeof TEST_URL_GEMINI_1_0_PRO
+        | typeof TEST_URL_GEMINI_1_5_FLASH;
+    } = {},
+  ) {
+    const chunks = fs
+      .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
+      .split('\n')
+      .filter(line => line.trim().length > 0)
+      .map(line => `data: ${line}\n\n`);
+
+    server.urls[url].response = {
+      type: 'stream-chunks',
+      headers,
+      chunks,
+    };
+  }
+
   const prepareStreamResponse = ({
     content,
     headers,
@@ -2736,6 +3063,136 @@ describe('doStream', () => {
     };
   };
 
+  describe('text', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('google-text');
+    });
+
+    it('should stream text deltas', async () => {
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+
+    it('should include raw chunks when includeRawChunks is enabled', async () => {
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: true,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks.filter(chunk => chunk.type === 'raw')).toMatchSnapshot();
+    });
+
+    it('should not include raw chunks when includeRawChunks is false', async () => {
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
+    });
+
+    it('should expose the raw response headers', async () => {
+      prepareChunksFixtureResponse('google-text', {
+        headers: { 'test-header': 'test-value' },
+      });
+
+      const { response } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(response?.headers).toMatchInlineSnapshot(`
+        {
+          "cache-control": "no-cache",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "test-header": "test-value",
+        }
+      `);
+    });
+  });
+
+  describe('tool-call', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('google-tool-call');
+    });
+
+    it('should stream tool call', async () => {
+      const { stream } = await model.doStream({
+        tools: [
+          {
+            type: 'function',
+            name: 'weather',
+            inputSchema: {
+              type: 'object',
+              properties: { location: { type: 'string' } },
+              required: ['location'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+  });
+
+  describe('reasoning', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('google-reasoning');
+    });
+
+    it('should stream reasoning and text parts', async () => {
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+  });
+
+  describe('reasoning-gemini3', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('google-reasoning-gemini3');
+    });
+
+    it('should stream reasoning with thoughtSignature', async () => {
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+  });
+
+  describe('tool-call-gemini3', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('google-tool-call-gemini3');
+    });
+
+    it('should stream tool call with thoughtSignature', async () => {
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+  });
+
   it('should expose grounding metadata in provider metadata on finish', async () => {
     prepareStreamResponse({
       content: ['test'],
@@ -2780,34 +3237,42 @@ describe('doStream', () => {
     expect(
       finishEvent?.type === 'finish' &&
         finishEvent.providerMetadata?.google.groundingMetadata,
-    ).toStrictEqual({
-      webSearchQueries: ["What's the weather in Chicago this weekend?"],
-      searchEntryPoint: {
-        renderedContent: 'Sample rendered content for search results',
-      },
-      groundingChunks: [
-        {
-          web: {
-            uri: 'https://example.com/weather',
-            title: 'Chicago Weather Forecast',
+    ).toMatchInlineSnapshot(`
+      {
+        "groundingChunks": [
+          {
+            "web": {
+              "title": "Chicago Weather Forecast",
+              "uri": "https://example.com/weather",
+            },
           },
-        },
-      ],
-      groundingSupports: [
-        {
-          segment: {
-            startIndex: 0,
-            endIndex: 65,
-            text: 'Chicago weather changes rapidly, so layers let you adjust easily.',
+        ],
+        "groundingSupports": [
+          {
+            "confidenceScores": [
+              0.99,
+            ],
+            "groundingChunkIndices": [
+              0,
+            ],
+            "segment": {
+              "endIndex": 65,
+              "startIndex": 0,
+              "text": "Chicago weather changes rapidly, so layers let you adjust easily.",
+            },
           },
-          groundingChunkIndices: [0],
-          confidenceScores: [0.99],
+        ],
+        "retrievalMetadata": {
+          "webDynamicRetrievalScore": 0.96879,
         },
-      ],
-      retrievalMetadata: {
-        webDynamicRetrievalScore: 0.96879,
-      },
-    });
+        "searchEntryPoint": {
+          "renderedContent": "Sample rendered content for search results",
+        },
+        "webSearchQueries": [
+          "What's the weather in Chicago this weekend?",
+        ],
+      }
+    `);
   });
 
   it('should expose url context metadata in provider metadata on finish', async () => {
@@ -2834,113 +3299,15 @@ describe('doStream', () => {
     expect(
       finishEvent?.type === 'finish' &&
         finishEvent.providerMetadata?.google.urlContextMetadata,
-    ).toStrictEqual({
-      urlMetadata: [
-        {
-          retrievedUrl: 'https://example.com/weather',
-          urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
-        },
-      ],
-    });
-  });
-
-  it('should stream text deltas', async () => {
-    prepareStreamResponse({ content: ['Hello', ', ', 'world!'] });
-
-    const { stream } = await model.doStream({
-      prompt: TEST_PROMPT,
-      includeRawChunks: false,
-    });
-
-    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
-      [
-        {
-          "type": "stream-start",
-          "warnings": [],
-        },
-        {
-          "id": "0",
-          "providerMetadata": undefined,
-          "type": "text-start",
-        },
-        {
-          "delta": "Hello",
-          "id": "0",
-          "providerMetadata": undefined,
-          "type": "text-delta",
-        },
-        {
-          "delta": ", ",
-          "id": "0",
-          "providerMetadata": undefined,
-          "type": "text-delta",
-        },
-        {
-          "delta": "world!",
-          "id": "0",
-          "providerMetadata": undefined,
-          "type": "text-delta",
-        },
-        {
-          "id": "0",
-          "type": "text-end",
-        },
-        {
-          "finishReason": {
-            "raw": "STOP",
-            "unified": "stop",
+    ).toMatchInlineSnapshot(`
+      {
+        "urlMetadata": [
+          {
+            "retrievedUrl": "https://example.com/weather",
+            "urlRetrievalStatus": "URL_RETRIEVAL_STATUS_SUCCESS",
           },
-          "providerMetadata": {
-            "google": {
-              "groundingMetadata": null,
-              "promptFeedback": null,
-              "safetyRatings": [
-                {
-                  "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                  "probability": "NEGLIGIBLE",
-                },
-                {
-                  "category": "HARM_CATEGORY_HATE_SPEECH",
-                  "probability": "NEGLIGIBLE",
-                },
-                {
-                  "category": "HARM_CATEGORY_HARASSMENT",
-                  "probability": "NEGLIGIBLE",
-                },
-                {
-                  "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                  "probability": "NEGLIGIBLE",
-                },
-              ],
-              "urlContextMetadata": null,
-              "usageMetadata": {
-                "candidatesTokenCount": 233,
-                "promptTokenCount": 294,
-                "totalTokenCount": 527,
-              },
-            },
-          },
-          "type": "finish",
-          "usage": {
-            "inputTokens": {
-              "cacheRead": 0,
-              "cacheWrite": undefined,
-              "noCache": 294,
-              "total": 294,
-            },
-            "outputTokens": {
-              "reasoning": 0,
-              "text": 233,
-              "total": 233,
-            },
-            "raw": {
-              "candidatesTokenCount": 233,
-              "promptTokenCount": 294,
-              "totalTokenCount": 527,
-            },
-          },
-        },
-      ]
+        ],
+      }
     `);
   });
 
@@ -2966,16 +3333,18 @@ describe('doStream', () => {
     expect(
       finishEvent?.type === 'finish' &&
         finishEvent.providerMetadata?.google.safetyRatings,
-    ).toStrictEqual([
-      {
-        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-        probability: 'NEGLIGIBLE',
-        probabilityScore: 0.1,
-        severity: 'LOW',
-        severityScore: 0.2,
-        blocked: false,
-      },
-    ]);
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "blocked": false,
+          "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+          "probability": "NEGLIGIBLE",
+          "probabilityScore": 0.1,
+          "severity": "LOW",
+          "severityScore": 0.2,
+        },
+      ]
+    `);
   });
 
   it('should expose PromptFeedback in provider metadata on finish', async () => {
@@ -3002,10 +3371,29 @@ describe('doStream', () => {
     expect(
       finishEvent?.type === 'finish' &&
         finishEvent.providerMetadata?.google.promptFeedback,
-    ).toStrictEqual({
-      blockReason: 'PROHIBITED_CONTENT',
-      safetyRatings: SAFETY_RATINGS,
-    });
+    ).toMatchInlineSnapshot(`
+      {
+        "blockReason": "PROHIBITED_CONTENT",
+        "safetyRatings": [
+          {
+            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            "probability": "NEGLIGIBLE",
+          },
+          {
+            "category": "HARM_CATEGORY_HATE_SPEECH",
+            "probability": "NEGLIGIBLE",
+          },
+          {
+            "category": "HARM_CATEGORY_HARASSMENT",
+            "probability": "NEGLIGIBLE",
+          },
+          {
+            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+            "probability": "NEGLIGIBLE",
+          },
+        ],
+      }
+    `);
   });
 
   it('should stream code execution tool calls and results', async () => {
@@ -3081,6 +3469,86 @@ describe('doStream', () => {
             "outcome": "OUTCOME_OK",
             "output": "hello
       ",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
+  it('should stream code execution result with missing output field', async () => {
+    server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    executableCode: {
+                      language: 'PYTHON',
+                      code: "img = PIL.Image.open('input.png')\nimg.save('output.png')\n",
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    codeExecutionResult: {
+                      outcome: 'OUTCOME_OK',
+                    },
+                  },
+                ],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const model = provider.languageModel('gemini-2.0-pro');
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'provider',
+          id: 'google.code_execution',
+          name: 'code_execution',
+          args: {},
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    const toolEvents = events.filter(
+      e => e.type === 'tool-call' || e.type === 'tool-result',
+    );
+
+    expect(toolEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"language":"PYTHON","code":"img = PIL.Image.open('input.png')\\nimg.save('output.png')\\n"}",
+          "providerExecuted": true,
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-call",
+        },
+        {
+          "result": {
+            "outcome": "OUTCOME_OK",
+            "output": "",
           },
           "toolCallId": "test-id",
           "toolName": "code_execution",
@@ -3715,7 +4183,7 @@ describe('doStream', () => {
   });
 
   it('should only pass valid provider options', async () => {
-    prepareStreamResponse({ content: [''] });
+    prepareChunksFixtureResponse('google-text');
 
     await model.doStream({
       prompt: TEST_PROMPT,
@@ -4077,121 +4545,6 @@ describe('doStream', () => {
         },
       ]
     `);
-  });
-
-  describe('raw chunks', () => {
-    it('should include raw chunks when includeRawChunks is enabled', async () => {
-      prepareStreamResponse({
-        content: ['Hello', ' World!'],
-      });
-
-      const { stream } = await model.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: true,
-      });
-
-      const chunks = await convertReadableStreamToArray(stream);
-
-      expect(chunks.filter(chunk => chunk.type === 'raw'))
-        .toMatchInlineSnapshot(`
-        [
-          {
-            "rawValue": {
-              "candidates": [
-                {
-                  "content": {
-                    "parts": [
-                      {
-                        "text": "Hello",
-                      },
-                    ],
-                    "role": "model",
-                  },
-                  "finishReason": "STOP",
-                  "index": 0,
-                  "safetyRatings": [
-                    {
-                      "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                      "probability": "NEGLIGIBLE",
-                    },
-                    {
-                      "category": "HARM_CATEGORY_HATE_SPEECH",
-                      "probability": "NEGLIGIBLE",
-                    },
-                    {
-                      "category": "HARM_CATEGORY_HARASSMENT",
-                      "probability": "NEGLIGIBLE",
-                    },
-                    {
-                      "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                      "probability": "NEGLIGIBLE",
-                    },
-                  ],
-                },
-              ],
-            },
-            "type": "raw",
-          },
-          {
-            "rawValue": {
-              "candidates": [
-                {
-                  "content": {
-                    "parts": [
-                      {
-                        "text": " World!",
-                      },
-                    ],
-                    "role": "model",
-                  },
-                  "finishReason": "STOP",
-                  "index": 0,
-                  "safetyRatings": [
-                    {
-                      "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                      "probability": "NEGLIGIBLE",
-                    },
-                    {
-                      "category": "HARM_CATEGORY_HATE_SPEECH",
-                      "probability": "NEGLIGIBLE",
-                    },
-                    {
-                      "category": "HARM_CATEGORY_HARASSMENT",
-                      "probability": "NEGLIGIBLE",
-                    },
-                    {
-                      "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                      "probability": "NEGLIGIBLE",
-                    },
-                  ],
-                },
-              ],
-              "usageMetadata": {
-                "candidatesTokenCount": 233,
-                "promptTokenCount": 294,
-                "totalTokenCount": 527,
-              },
-            },
-            "type": "raw",
-          },
-        ]
-      `);
-    });
-
-    it('should not include raw chunks when includeRawChunks is false', async () => {
-      prepareStreamResponse({
-        content: ['Hello', ' World!'],
-      });
-
-      const { stream } = await model.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-      });
-
-      const chunks = await convertReadableStreamToArray(stream);
-
-      expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
-    });
   });
 
   describe('providerMetadata key based on provider string', () => {

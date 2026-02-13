@@ -155,7 +155,9 @@ OpenAI language models can also be used in the `streamText`, `generateObject`, a
 
 When using OpenAI language models on Azure, you can configure provider-specific options using `providerOptions.openai`. More information on available configuration options are on [the OpenAI provider page](/providers/ai-sdk-providers/openai#language-models).
 
-```ts highlight="12-14,22-24"
+```ts highlight="12-14,24-26"
+import { azure, type OpenAILanguageModelResponsesOptions } from '@ai-sdk/azure';
+
 const messages = [
   {
     role: 'user',
@@ -180,7 +182,7 @@ const { text } = await generateText({
   providerOptions: {
     openai: {
       reasoningEffort: 'low',
-    },
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
 });
 ```
@@ -202,7 +204,7 @@ Azure OpenAI chat models support also some model specific settings that are not 
 You can pass them as an options argument:
 
 ```ts
-import { azure } from '@ai-sdk/azure';
+import { azure, type OpenAILanguageModelChatOptions } from '@ai-sdk/azure';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -215,7 +217,7 @@ const result = await generateText({
         '50256': -100,
       },
       user: 'test-user', // optional unique user identifier
-    },
+    } satisfies OpenAILanguageModelChatOptions,
   },
 });
 ```
@@ -266,7 +268,7 @@ const model = azure('your-deployment-name');
 ```
 
 Further configuration can be done using OpenAI provider options.
-You can validate the provider options using the `OpenAIResponsesProviderOptions` type.
+You can validate the provider options using the `OpenAILanguageModelResponsesOptions` type.
 
 <Note>
   In the Responses API, use `azure` as the provider name in `providerOptions`
@@ -275,7 +277,7 @@ You can validate the provider options using the `OpenAIResponsesProviderOptions`
 </Note>
 
 ```ts
-import { azure, OpenAIResponsesProviderOptions } from '@ai-sdk/azure';
+import { azure, OpenAILanguageModelResponsesOptions } from '@ai-sdk/azure';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -286,7 +288,7 @@ const result = await generateText({
       store: false,
       user: 'user_123',
       // ...
-    } satisfies OpenAIResponsesProviderOptions,
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
   // ...
 });
@@ -322,24 +324,34 @@ The following provider options are available:
 
 The Azure OpenAI provider also returns provider-specific metadata:
 
+For Responses models (`azure(deploymentName)`), you can type this metadata using `AzureResponsesProviderMetadata`:
+
 ```ts
-const { providerMetadata } = await generateText({
+import { azure, type AzureResponsesProviderMetadata } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const result = await generateText({
   model: azure('your-deployment-name'),
 });
 
-const openaiMetadata = providerMetadata?.openai;
+const providerMetadata = result.providerMetadata as
+  | AzureResponsesProviderMetadata
+  | undefined;
+
+const { responseId, logprobs, serviceTier } = providerMetadata?.azure ?? {};
+
+// responseId can be used to continue a conversation (previousResponseId).
+console.log(responseId);
 ```
 
-The following OpenAI-specific metadata is returned:
+The following Azure-specific metadata may be returned:
 
-- **responseId** _string_
+- **responseId** _string | null | undefined_
   The ID of the response. Can be used to continue a conversation.
-
-- **cachedPromptTokens** _number_
-  The number of prompt tokens that were a cache hit.
-
-- **reasoningTokens** _number_
-  The number of reasoning tokens that the model generated.
+- **logprobs** _(optional)_
+  Log probabilities of output tokens (when enabled).
+- **serviceTier** _(optional)_
+  Service tier information returned by the API.
 
 <Note>
   The providerMetadata is only returned with the default responses API, and is
@@ -652,6 +664,51 @@ for (const part of result.content) {
   API.
 </Note>
 
+#### Typed providerMetadata in Reasoning Parts
+
+When using the Azure OpenAI Responses API, reasoning output parts can include provider metadata.
+To handle this metadata in a type-safe way, use `AzureResponsesReasoningProviderMetadata`.
+
+For reasoning parts, when `part.type === 'reasoning'`, the `providerMetadata` is provided in the form of `AzureResponsesReasoningProviderMetadata`.
+
+This metadata includes the following fields:
+
+- `itemId`  
+  The ID of the reasoning item in the Responses API.
+- `reasoningEncryptedContent` (optional)  
+  Encrypted reasoning content (only returned when requested via `include: ['reasoning.encrypted_content']`).
+
+```ts
+import {
+  azure,
+  type AzureResponsesReasoningProviderMetadata,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: azure('your-deployment-name'),
+  prompt: 'How many "r"s are in the word "strawberry"?',
+  providerOptions: {
+    azure: {
+      store: false,
+      include: ['reasoning.encrypted_content'],
+    } satisfies OpenAILanguageModelResponsesOptions,
+  },
+});
+
+for (const part of result.content) {
+  if (part.type === 'reasoning') {
+    const providerMetadata = part.providerMetadata as
+      | AzureResponsesReasoningProviderMetadata
+      | undefined;
+
+    const { itemId, reasoningEncryptedContent } = providerMetadata?.azure ?? {};
+    console.log(itemId, reasoningEncryptedContent);
+  }
+}
+```
+
 #### Typed providerMetadata in Source Document Parts
 
 For source document parts, when `part.type === 'source'` and `sourceType === 'document'`, the `providerMetadata` is provided as `AzureResponsesSourceDocumentProviderMetadata`.
@@ -740,7 +797,10 @@ OpenAI completion models support also some model specific settings that are not 
 You can pass them as an options argument:
 
 ```ts
-import { azure } from '@ai-sdk/azure';
+import {
+  azure,
+  type OpenAILanguageModelCompletionOptions,
+} from '@ai-sdk/azure';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -755,7 +815,7 @@ const result = await generateText({
       },
       suffix: 'some text', // optional suffix that comes after a completion of inserted text
       user: 'test-user', // optional unique user identifier
-    },
+    } satisfies OpenAILanguageModelCompletionOptions,
   },
 });
 ```
@@ -815,7 +875,7 @@ Azure OpenAI embedding models support several additional settings.
 You can pass them as an options argument:
 
 ```ts
-import { azure } from '@ai-sdk/azure';
+import { azure, type OpenAIEmbeddingModelOptions } from '@ai-sdk/azure';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
@@ -825,7 +885,7 @@ const { embedding } = await embed({
     openai: {
       dimensions: 512, // optional, number of dimensions for the embedding
       user: 'test-user', // optional unique user identifier
-    },
+    } satisfies OpenAIEmbeddingModelOptions,
   },
 });
 ```
@@ -933,13 +993,17 @@ You can also pass additional provider-specific options using the `providerOption
 
 ```ts highlight="6"
 import { experimental_transcribe as transcribe } from 'ai';
-import { azure } from '@ai-sdk/azure';
+import { azure, type OpenAITranscriptionModelOptions } from '@ai-sdk/azure';
 import { readFile } from 'fs/promises';
 
 const result = await transcribe({
   model: azure.transcription('whisper-1'),
   audio: await readFile('audio.mp3'),
-  providerOptions: { openai: { language: 'en' } },
+  providerOptions: {
+    openai: {
+      language: 'en',
+    } satisfies OpenAITranscriptionModelOptions,
+  },
 });
 ```
 
@@ -974,3 +1038,67 @@ The following provider options are available:
 | `whisper-1`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-4o-mini-transcribe` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `gpt-4o-transcribe`      | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+
+## Speech Models
+
+You can create models that call the Azure OpenAI speech API using the `.speech()` factory method.
+
+The first argument is your deployment name for the text-to-speech model (e.g., `tts-1`).
+
+```ts
+const model = azure.speech('your-tts-deployment-name');
+```
+
+### Example
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: azure.speech('your-tts-deployment-name'),
+  text: 'Hello, world!',
+  voice: 'alloy', // OpenAI voice ID
+});
+```
+
+You can also pass additional provider-specific options using the `providerOptions` argument:
+
+```ts
+import { azure, type OpenAISpeechModelOptions } from '@ai-sdk/azure';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: azure.speech('your-tts-deployment-name'),
+  text: 'Hello, world!',
+  voice: 'alloy',
+  providerOptions: {
+    openai: {
+      speed: 1.2,
+    } satisfies OpenAISpeechModelOptions,
+  },
+});
+```
+
+The following provider options are available:
+
+- **instructions** _string_
+  Control the voice of your generated audio with additional instructions e.g. "Speak in a slow and steady tone".
+  Does not work with `tts-1` or `tts-1-hd`.
+  Optional.
+
+- **speed** _number_
+  The speed of the generated audio.
+  Select a value from 0.25 to 4.0.
+  Defaults to 1.0.
+  Optional.
+
+### Model Capabilities
+
+Azure OpenAI supports TTS models through deployments. The capabilities depend on which model version your deployment is using:
+
+| Model Version     | Instructions        |
+| ----------------- | ------------------- |
+| `tts-1`           | <Cross size={18} /> |
+| `tts-1-hd`        | <Cross size={18} /> |
+| `gpt-4o-mini-tts` | <Check size={18} /> |

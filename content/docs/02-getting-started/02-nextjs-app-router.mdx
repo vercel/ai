@@ -111,7 +111,7 @@ Let's take a look at what is happening in this code:
 
 1. Define an asynchronous `POST` request handler and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation between you and the chatbot and provides the chatbot with the necessary context to make the next generation. The `messages` are of UIMessage type, which are designed for use in application UI - they contain the entire message history and associated metadata like timestamps.
 2. Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider and `messages` (defined in step 1). You can pass additional [settings](/docs/ai-sdk-core/settings) to further customize the model's behavior. The `messages` key expects a `ModelMessage[]` array. This type is different from `UIMessage` in that it does not include metadata, such as timestamps or sender information. To convert between these types, we use the `convertToModelMessages` function, which strips the UI-specific metadata and transforms the `UIMessage[]` array into the `ModelMessage[]` format that the model expects.
-3. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toUIMessageStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-data-stream-response) function which converts the result to a streamed response object.
+3. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toUIMessageStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-ui-message-stream-response) function which converts the result to a streamed response object.
 4. Finally, return the result to the client to stream the response.
 
 This Route Handler creates a POST request endpoint at `/api/chat`.
@@ -257,7 +257,7 @@ Let's enhance your chatbot by adding a simple weather tool.
 
 Modify your `app/api/chat/route.ts` file to include the new weather tool:
 
-```tsx filename="app/api/chat/route.ts" highlight="2,13-27"
+```tsx filename="app/api/chat/route.ts" highlight="1,11-25"
 import { streamText, UIMessage, convertToModelMessages, tool } from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
@@ -314,7 +314,7 @@ Notice the blank response in the UI? This is because instead of generating a tex
 
 To display the tool invocation in your UI, update your `app/page.tsx` file:
 
-```tsx filename="app/page.tsx" highlight="16-21"
+```tsx filename="app/page.tsx" highlight="18-22"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
@@ -376,7 +376,7 @@ To solve this, you can enable multi-step tool calls using `stopWhen`. By default
 
 Modify your `app/api/chat/route.ts` file to include the `stopWhen` condition:
 
-```tsx filename="app/api/chat/route.ts"
+```tsx filename="app/api/chat/route.ts" highlight="16"
 import {
   streamText,
   UIMessage,
@@ -409,6 +409,9 @@ export async function POST(req: Request) {
         },
       }),
     },
+    onStepFinish: ({ toolResults }) => {
+      console.log(toolResults);
+    },
   });
 
   return result.toUIMessageStreamResponse();
@@ -418,7 +421,7 @@ export async function POST(req: Request) {
 In this updated code:
 
 1. You set `stopWhen` to be when `stepCountIs` 5, allowing the model to use up to 5 "steps" for any given generation.
-2. You add an `onStepFinish` callback to log any `toolResults` from each step of the interaction, helping you understand the model's tool usage. This means we can also delete the `toolCall` and `toolResult` `console.log` statements from the previous example.
+2. You add an `onStepFinish` callback to log any `toolResults` from each step of the interaction, helping you understand the model's tool usage.
 
 Head back to the browser and ask about the weather in a location. You should now see the model using the weather tool results to answer your question.
 
@@ -428,7 +431,7 @@ By setting `stopWhen: stepCountIs(5)`, you're allowing the model to use up to 5 
 
 Update your `app/api/chat/route.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
-```tsx filename="app/api/chat/route.ts" highlight="34-47"
+```tsx filename="app/api/chat/route.ts" highlight="31-46"
 import {
   streamText,
   UIMessage,
@@ -485,7 +488,7 @@ export async function POST(req: Request) {
 
 update your `app/page.tsx` file to render the new temperature conversion tool:
 
-```tsx filename="app/page.tsx" highlight="21"
+```tsx filename="app/page.tsx" highlight="19"
 'use client';
 
 import { useChat } from '@ai-sdk/react';

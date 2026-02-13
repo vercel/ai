@@ -12,7 +12,7 @@ import { LMNTSpeechModelId } from './lmnt-speech-options';
 import { LMNTSpeechAPITypes } from './lmnt-api-types';
 
 // https://docs.lmnt.com/api-reference/speech/synthesize-speech-bytes
-const lmntSpeechCallOptionsSchema = z.object({
+const lmntSpeechModelOptionsSchema = z.object({
   /**
    * The model to use for speech synthesis e.g. 'aurora' or 'blizzard'.
    * @default 'aurora'
@@ -75,7 +75,9 @@ const lmntSpeechCallOptionsSchema = z.object({
   temperature: z.number().min(0).nullish().default(1),
 });
 
-export type LMNTSpeechCallOptions = z.infer<typeof lmntSpeechCallOptionsSchema>;
+export type LMNTSpeechModelOptions = z.infer<
+  typeof lmntSpeechModelOptionsSchema
+>;
 
 interface LMNTSpeechModelConfig extends LMNTConfig {
   _internal?: {
@@ -109,7 +111,7 @@ export class LMNTSpeechModel implements SpeechModelV3 {
     const lmntOptions = await parseProviderOptions({
       provider: 'lmnt',
       providerOptions,
-      schema: lmntSpeechCallOptionsSchema,
+      schema: lmntSpeechModelOptionsSchema,
     });
 
     // Create request body

@@ -1,4 +1,7 @@
-import { openai } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
 
@@ -14,7 +17,7 @@ run(async () => {
         // https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries
         // reasoningSummary: 'auto', // 'detailed'
         reasoningSummary: 'auto',
-      },
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
   });
 

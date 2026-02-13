@@ -4285,7 +4285,7 @@ describe('streamText', () => {
   });
 
   describe('result.request', () => {
-    it('should resolve with response information', async () => {
+    it('should resolve with request information by default', async () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
@@ -4311,6 +4311,36 @@ describe('streamText', () => {
 
       expect(await result.request).toStrictEqual({
         body: 'test body',
+      });
+    });
+
+    it('should exclude request body when retention.requestBody is false', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+          request: { body: 'test body' },
+        }),
+        prompt: 'test-input',
+        experimental_include: { requestBody: false },
+      });
+
+      expect(await result.request).toStrictEqual({
+        body: undefined,
       });
     });
   });
@@ -8930,6 +8960,7 @@ describe('streamText', () => {
                 "ai.response.model": "mock-model-id",
                 "ai.response.msToFinish": 500,
                 "ai.response.msToFirstChunk": 100,
+                "ai.response.reasoning": "thinking",
                 "ai.response.text": "",
                 "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
                 "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
@@ -10574,6 +10605,22 @@ describe('streamText', () => {
 
       expect(receivedAbortSignal).toBeDefined();
     });
+
+    it('should clean up step timeout when doStream throws an error', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => {
+            throw new Error('Fail immediately');
+          },
+        }),
+        prompt: 'test-input',
+        maxRetries: 0,
+        timeout: { stepMs: 10000 },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+    });
   });
 
   describe('telemetry', () => {
@@ -10775,6 +10822,64 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(tracer.jsonSpans).toMatchSnapshot();
+    });
+
+    it('should record reasoning in telemetry when present', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'reasoning-start', id: '1' },
+            {
+              type: 'reasoning-delta',
+              id: '1',
+              delta: 'This is my reasoning ',
+            },
+            {
+              type: 'reasoning-delta',
+              id: '1',
+              delta: 'about the problem.',
+            },
+            { type: 'reasoning-end', id: '1' },
+            { type: 'text-start', id: '2' },
+            { type: 'text-delta', id: '2', delta: 'Hello, world!' },
+            { type: 'text-end', id: '2' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          tracer,
+        },
+        _internal: { now: mockValues(0, 100, 500) },
+      });
+
+      await result.consumeStream();
+
+      // Check that reasoning is recorded in both spans
+      const rootSpan = tracer.jsonSpans.find(
+        span => span.name === 'ai.streamText',
+      );
+      const doStreamSpan = tracer.jsonSpans.find(
+        span => span.name === 'ai.streamText.doStream',
+      );
+
+      expect(rootSpan?.attributes['ai.response.reasoning']).toBe(
+        'This is my reasoning about the problem.',
+      );
+      expect(doStreamSpan?.attributes['ai.response.reasoning']).toBe(
+        'This is my reasoning about the problem.',
+      );
     });
   });
 
@@ -17690,6 +17795,229 @@ describe('streamText', () => {
               ]
             `);
         });
+      });
+    });
+
+    describe('deferred tool calls with tool-error', () => {
+      it('should resolve deferred tool call when tool-error is in the same step', async () => {
+        const result = streamText({
+          model: new MockLanguageModelV3({
+            doStream: async () => {
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'response-metadata',
+                    id: 'msg-1',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-1',
+                    toolName: 'deferred_tool',
+                    input: `{ "value": "test" }`,
+                    providerExecuted: true,
+                  },
+                  {
+                    type: 'tool-result',
+                    toolCallId: 'call-1',
+                    toolName: 'deferred_tool',
+                    result: `ERROR`,
+                    isError: true,
+                    providerExecuted: true,
+                  },
+                  {
+                    type: 'text-start',
+                    id: '1',
+                  },
+                  {
+                    type: 'text-delta',
+                    id: '1',
+                    delta: 'Final response',
+                  },
+                  {
+                    type: 'text-end',
+                    id: '1',
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: testUsage,
+                  },
+                ]),
+                response: {},
+              };
+            },
+          }),
+          tools: {
+            deferred_tool: {
+              type: 'provider',
+              id: 'test.deferred_tool',
+              inputSchema: z.object({ value: z.string() }),
+              outputSchema: z.object({ value: z.string() }),
+              args: {},
+              supportsDeferredResults: true,
+            },
+          },
+          ...defaultSettings(),
+          stopWhen: stepCountIs(2),
+        });
+
+        // Consume the stream
+        await result.consumeStream();
+
+        // Verify that the stream completes with only one step
+        // (if the deferred tool call wasn't resolved, it would wait for another step)
+        expect((await result.steps).length).toBe(1);
+
+        expect(await result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": true,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "deferred_tool",
+              "type": "tool-call",
+            },
+            {
+              "dynamic": undefined,
+              "error": "ERROR",
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "deferred_tool",
+              "type": "tool-error",
+            },
+            {
+              "providerMetadata": undefined,
+              "text": "Final response",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should resolve deferred tool call when tool-error arrives in a later step', async () => {
+        let responseCount = 0;
+        const result = streamText({
+          model: new MockLanguageModelV3({
+            doStream: async () => {
+              switch (responseCount++) {
+                case 0:
+                  // Step 1: tool call without result
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'msg-1',
+                        modelId: 'mock-model-id',
+                        timestamp: new Date(0),
+                      },
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'call-1',
+                        toolName: 'deferred_tool',
+                        input: `{ "value": "test" }`,
+                        providerExecuted: true,
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
+                        usage: testUsage,
+                      },
+                    ]),
+                    response: {},
+                  };
+                case 1:
+                  // Step 2: tool-error arrives
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'msg-2',
+                        modelId: 'mock-model-id',
+                        timestamp: new Date(1000),
+                      },
+                      {
+                        type: 'tool-result',
+                        toolCallId: 'call-1',
+                        toolName: 'deferred_tool',
+                        result: `ERROR`,
+                        isError: true,
+                        providerExecuted: true,
+                      },
+                      {
+                        type: 'text-start',
+                        id: '1',
+                      },
+                      {
+                        type: 'text-delta',
+                        id: '1',
+                        delta: 'Final response',
+                      },
+                      {
+                        type: 'text-end',
+                        id: '1',
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage,
+                      },
+                    ]),
+                    response: {},
+                  };
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            deferred_tool: {
+              type: 'provider',
+              id: 'test.deferred_tool',
+              inputSchema: z.object({ value: z.string() }),
+              outputSchema: z.object({ value: z.string() }),
+              args: {},
+              supportsDeferredResults: true,
+            },
+          },
+          ...defaultSettings(),
+          stopWhen: stepCountIs(3),
+        });
+
+        // Consume the stream
+        await result.consumeStream();
+
+        // Verify that the stream completes with two steps
+        expect((await result.steps).length).toBe(2);
+
+        expect(await result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "dynamic": undefined,
+              "error": "ERROR",
+              "input": undefined,
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "deferred_tool",
+              "type": "tool-error",
+            },
+            {
+              "providerMetadata": undefined,
+              "text": "Final response",
+              "type": "text",
+            },
+          ]
+        `);
       });
     });
   });

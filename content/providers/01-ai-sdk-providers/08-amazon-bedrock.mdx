@@ -168,6 +168,27 @@ You can use the following optional settings to customize the Amazon Bedrock prov
   Optional. The AWS credential provider chain that you want to use for the API calls.
   It uses the specified credentials by default.
 
+- **apiKey** _string_
+
+  Optional. API key for authenticating requests using Bearer token authentication.
+  When provided, this will be used instead of AWS SigV4 authentication.
+  It uses the `AWS_BEARER_TOKEN_BEDROCK` environment variable by default.
+
+- **baseURL** _string_
+
+  Optional. Base URL for the Bedrock API calls.
+  Useful for custom endpoints or proxy configurations.
+
+- **headers** _Record&lt;string, string&gt;_
+
+  Optional. Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) =&gt; Promise&lt;Response&gt;_
+
+  Optional. Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
 ## Language Models
 
 You can create models that call the Bedrock API using the provider instance.
@@ -246,6 +267,8 @@ const result = await generateText({
 You can use the `bedrock` provider options to utilize [Amazon Bedrock Guardrails](https://aws.amazon.com/bedrock/guardrails/):
 
 ```ts
+import { type AmazonBedrockLanguageModelOptions } from '@ai-sdk/amazon-bedrock';
+
 const result = await generateText({
   model: bedrock('anthropic.claude-3-sonnet-20240229-v1:0'),
   prompt: 'Write a story about space exploration.',
@@ -257,7 +280,7 @@ const result = await generateText({
         trace: 'enabled' as const,
         streamProcessingMode: 'async',
       },
-    },
+    } satisfies AmazonBedrockLanguageModelOptions,
   },
 });
 ```
@@ -327,7 +350,21 @@ console.log('Response:', result.object);
 
 In messages, you can use the `providerOptions` property to set cache points. Set the `bedrock` property in the `providerOptions` object to `{ cachePoint: { type: 'default' } }` to create a cache point.
 
-Cache usage information is returned in the `providerMetadata` object`. See examples below.
+You can also specify a TTL (time-to-live) for cache points using the `ttl` property. Supported values are `'5m'` (5 minutes, default) and `'1h'` (1 hour). The 1-hour TTL is only supported by Claude Opus 4.5, Claude Haiku 4.5, and Claude Sonnet 4.5.
+
+```ts
+providerOptions: {
+  bedrock: { cachePoint: { type: 'default', ttl: '1h' } },
+}
+```
+
+<Note>
+  When using multiple cache points with different TTLs, cache entries with
+  longer TTL must appear before shorter TTLs (i.e., 1-hour cache entries must
+  come before 5-minute cache entries).
+</Note>
+
+Cache usage information is returned in the `providerMetadata` object. See examples below.
 
 <Note>
   Cache points have model-specific token minimums and limits. For example,
@@ -414,6 +451,21 @@ console.log(
 // }
 ```
 
+### Provider Metadata
+
+The following Bedrock-specific metadata may be returned in `providerMetadata.bedrock`:
+
+- **trace** _(optional)_
+  Guardrail tracing information (when tracing is enabled).
+- **performanceConfig** _(optional)_
+  Performance configuration, e.g. `{ latency: 'optimized' }`.
+- **serviceTier** _(optional)_
+  Service tier information, e.g. `{ type: 'on-demand' }`.
+- **usage** _(optional)_
+  Cache token usage details including `cacheWriteInputTokens` and `cacheDetails`.
+- **stopSequence** _string | null_
+  The stop sequence that triggered the stop, if any.
+
 ## Reasoning
 
 Amazon Bedrock supports model creator-specific reasoning features:
@@ -422,7 +474,10 @@ Amazon Bedrock supports model creator-specific reasoning features:
 - Amazon (e.g. `us.amazon.nova-2-lite-v1:0`): enable via the `reasoningConfig` provider option and specifying a maximum reasoning effort level (`'low' | 'medium' | 'high'`).
 
 ```ts
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import {
+  bedrock,
+  type AmazonBedrockLanguageModelOptions,
+} from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
 // Anthropic example
@@ -432,7 +487,7 @@ const anthropicResult = await generateText({
   providerOptions: {
     bedrock: {
       reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
-    },
+    } satisfies AmazonBedrockLanguageModelOptions,
   },
 });
 
@@ -446,7 +501,7 @@ const amazonResult = await generateText({
   providerOptions: {
     bedrock: {
       reasoningConfig: { type: 'enabled', maxReasoningEffort: 'medium' },
-    },
+    } satisfies AmazonBedrockLanguageModelOptions,
   },
 });
 
@@ -462,7 +517,10 @@ on how to integrate reasoning into your chatbot.
 Claude Sonnet 4 models on Amazon Bedrock support an extended context window of up to 1 million tokens when using the `context-1m-2025-08-07` beta feature.
 
 ```ts
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import {
+  bedrock,
+  type AmazonBedrockLanguageModelOptions,
+} from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -471,7 +529,7 @@ const result = await generateText({
   providerOptions: {
     bedrock: {
       anthropicBeta: ['context-1m-2025-08-07'],
-    },
+    } satisfies AmazonBedrockLanguageModelOptions,
   },
 });
 ```
@@ -491,7 +549,7 @@ They are available via the `tools` property of the provider instance.
 The Bash Tool allows running bash commands. Here's how to create and use it:
 
 ```ts
-const bashTool = anthropic.tools.bash_20241022({
+const bashTool = bedrock.tools.bash_20241022({
   execute: async ({ command, restart }) => {
     // Implement your bash command execution logic here
     // Return the result of the command execution
@@ -511,13 +569,14 @@ The Text Editor Tool provides functionality for viewing and editing text files.
 **For Claude 4 models (Opus & Sonnet):**
 
 ```ts
-const textEditorTool = anthropic.tools.textEditor_20250429({
+const textEditorTool = bedrock.tools.textEditor_20250429({
   execute: async ({
     command,
     path,
     file_text,
     insert_line,
     new_str,
+    insert_text,
     old_str,
     view_range,
   }) => {
@@ -530,13 +589,14 @@ const textEditorTool = anthropic.tools.textEditor_20250429({
 **For Claude 3.5 Sonnet and earlier models:**
 
 ```ts
-const textEditorTool = anthropic.tools.textEditor_20241022({
+const textEditorTool = bedrock.tools.textEditor_20241022({
   execute: async ({
     command,
     path,
     file_text,
     insert_line,
     new_str,
+    insert_text,
     old_str,
     view_range,
   }) => {
@@ -552,7 +612,8 @@ Parameters:
 - `path` (string): Absolute path to file or directory, e.g. `/repo/file.py` or `/repo`.
 - `file_text` (string, optional): Required for `create` command, with the content of the file to be created.
 - `insert_line` (number, optional): Required for `insert` command. The line number after which to insert the new string.
-- `new_str` (string, optional): New string for `str_replace` or `insert` commands.
+- `new_str` (string, optional): New string for `str_replace` command.
+- `insert_text` (string, optional): Required for `insert` command, containing the text to insert.
 - `old_str` (string, optional): Required for `str_replace` command, containing the string to replace.
 - `view_range` (number[], optional): Optional for `view` command to specify line range to show.
 
@@ -588,7 +649,7 @@ const response = await generateText({
 The Computer Tool enables control of keyboard and mouse actions on a computer:
 
 ```ts
-const computerTool = anthropic.tools.computer_20241022({
+const computerTool = bedrock.tools.computer_20241022({
   displayWidthPx: 1920,
   displayHeightPx: 1080,
   displayNumber: 0, // Optional, for X11 environments
@@ -723,6 +784,7 @@ You can pass them as an options argument:
 
 ```ts
 import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { type AmazonBedrockEmbeddingModelOptions } from '@ai-sdk/amazon-bedrock';
 import { embed } from 'ai';
 
 const model = bedrock.embedding('amazon.titan-embed-text-v2:0');
@@ -734,7 +796,7 @@ const { embedding } = await embed({
     bedrock: {
       dimensions: 512, // optional, number of dimensions for the embedding
       normalize: true, // optional, normalize the output embeddings
-    },
+    } satisfies AmazonBedrockEmbeddingModelOptions,
   },
 });
 ```
@@ -749,12 +811,80 @@ The following optional provider options are available for Bedrock Titan embeddin
 
   Flag indicating whether or not to normalize the output embeddings. Defaults to true.
 
+### Nova Embedding Models
+
+Amazon Nova embedding models support additional provider options:
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { type AmazonBedrockEmbeddingModelOptions } from '@ai-sdk/amazon-bedrock';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: bedrock.embedding('amazon.nova-embed-text-v2:0'),
+  value: 'sunny day at the beach',
+  providerOptions: {
+    bedrock: {
+      embeddingDimension: 1024, // optional, number of dimensions
+      embeddingPurpose: 'TEXT_RETRIEVAL', // optional, purpose of embedding
+      truncate: 'END', // optional, truncation behavior
+    } satisfies AmazonBedrockEmbeddingModelOptions,
+  },
+});
+```
+
+The following optional provider options are available for Nova embedding models:
+
+- **embeddingDimension** _number_
+
+  The number of dimensions for the output embeddings. Supported values: 256, 384, 1024 (default), 3072.
+
+- **embeddingPurpose** _string_
+
+  The purpose of the embedding. Accepts: `GENERIC_INDEX` (default), `TEXT_RETRIEVAL`, `IMAGE_RETRIEVAL`, `VIDEO_RETRIEVAL`, `DOCUMENT_RETRIEVAL`, `AUDIO_RETRIEVAL`, `GENERIC_RETRIEVAL`, `CLASSIFICATION`, `CLUSTERING`.
+
+- **truncate** _string_
+
+  Truncation behavior when input exceeds the model's context length. Accepts: `NONE`, `START`, `END` (default).
+
+### Cohere Embedding Models
+
+Cohere embedding models on Bedrock require an `inputType` and support truncation:
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { type AmazonBedrockEmbeddingModelOptions } from '@ai-sdk/amazon-bedrock';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: bedrock.embedding('cohere.embed-english-v3'),
+  value: 'sunny day at the beach',
+  providerOptions: {
+    bedrock: {
+      inputType: 'search_document', // required for Cohere
+      truncate: 'END', // optional, truncation behavior
+    } satisfies AmazonBedrockEmbeddingModelOptions,
+  },
+});
+```
+
+The following provider options are available for Cohere embedding models:
+
+- **inputType** _string_
+
+  Input type for Cohere embedding models. Accepts: `search_document`, `search_query` (default), `classification`, `clustering`.
+
+- **truncate** _string_
+
+  Truncation behavior when input exceeds the model's context length. Accepts: `NONE`, `START`, `END`.
+
 ### Model Capabilities
 
 | Model                          | Default Dimensions | Custom Dimensions   |
 | ------------------------------ | ------------------ | ------------------- |
 | `amazon.titan-embed-text-v1`   | 1536               | <Cross size={18} /> |
 | `amazon.titan-embed-text-v2:0` | 1024               | <Check size={18} /> |
+| `amazon.nova-embed-text-v2:0`  | 1024               | <Check size={18} /> |
 | `cohere.embed-english-v3`      | 1024               | <Cross size={18} /> |
 | `cohere.embed-multilingual-v3` | 1024               | <Cross size={18} /> |
 
@@ -1327,7 +1457,7 @@ const result = await generateText({
   model: bedrockAnthropic('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
   tools: {
     str_replace_editor: bedrockAnthropic.tools.textEditor_20241022({
-      execute: async ({ command, path, old_str, new_str }) => {
+      execute: async ({ command, path, old_str, new_str, insert_text }) => {
         // Implement your text editing logic here
         return 'File updated successfully';
       },
@@ -1385,6 +1515,7 @@ const result = await generateText({
 
 Anthropic has reasoning support for Claude 3.7 and Claude 4 models on Bedrock, including:
 
+- `us.anthropic.claude-opus-4-6-v1`
 - `us.anthropic.claude-opus-4-5-20251101-v1:0`
 - `us.anthropic.claude-sonnet-4-5-20250929-v1:0`
 - `us.anthropic.claude-opus-4-20250514-v1:0`
@@ -1421,6 +1552,7 @@ on how to integrate reasoning into your chatbot.
 
 | Model                                          | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Reasoning           |
 | ---------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `us.anthropic.claude-opus-4-6-v1`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-opus-4-5-20251101-v1:0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-sonnet-4-5-20250929-v1:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-opus-4-20250514-v1:0`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

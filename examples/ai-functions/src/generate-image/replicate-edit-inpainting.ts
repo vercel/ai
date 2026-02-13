@@ -1,8 +1,5 @@
 import { readFileSync } from 'node:fs';
-import {
-  replicate,
-  type ReplicateImageProviderOptions,
-} from '@ai-sdk/replicate';
+import { replicate, type ReplicateImageModelOptions } from '@ai-sdk/replicate';
 import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
@@ -38,7 +35,7 @@ run(async () => {
       replicate: {
         guidance_scale: 7.5,
         num_inference_steps: 30,
-      } satisfies ReplicateImageProviderOptions,
+      } satisfies ReplicateImageModelOptions,
     },
   });
 

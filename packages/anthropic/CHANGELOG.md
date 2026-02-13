@@ -1,5 +1,134 @@
 # @ai-sdk/anthropic
 
+## 3.0.43
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+
+## 3.0.42
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+
+## 3.0.41
+
+### Patch Changes
+
+- c60b393: feat(anthropic): add the new compaction feature
+
+## 3.0.40
+
+### Patch Changes
+
+- 8c2b1e1: fix(provider/anthropic): include actual raw usage data for `response.usage.raw` when streaming
+
+## 3.0.39
+
+### Patch Changes
+
+- 0a0d29c: feat(anthropic): add support for Opus 4.6 fast mode
+
+## 3.0.38
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/provider-utils@4.0.14
+
+## 3.0.37
+
+### Patch Changes
+
+- e288302: feat(anthropic): add support for Opus 4.6
+
+## 3.0.36
+
+### Patch Changes
+
+- 1652320: feat(anthropic): support custom tool-reference content for deferred tool loading
+
+## 3.0.35
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/provider-utils@4.0.13
+
+## 3.0.34
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+
+## 3.0.33
+
+### Patch Changes
+
+- 445cbe3: fix streaming context_management field location - was incorrectly expected inside delta object but API returns it at message_delta root level
+
+## 3.0.32
+
+### Patch Changes
+
+- c33343b: fix(anthropic): add missing param in tool schema
+
+## 3.0.31
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+
+## 3.0.30
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
+## 3.0.29
+
+### Patch Changes
+
+- b9d105f: Fix cache usage reporting for anthropic stream
+
+## 3.0.28
+
+### Patch Changes
+
+- 2445da4: fix(provider/anthropic): populate outputTokens.text field in usage
+
+## 3.0.27
+
+### Patch Changes
+
+- 572ea12: feat(anthropic): allow custom/dynamic key for providerOptions
+
+## 3.0.26
+
+### Patch Changes
+
+- 2c70b90: chore: update provider docs
+
+## 3.0.25
+
+### Patch Changes
+
+- 0bb9bcd: feat(provider/anthropic): add computer_20251124 tool for claude opus 4.5
+
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+
 ## 3.0.23
 
 ### Patch Changes

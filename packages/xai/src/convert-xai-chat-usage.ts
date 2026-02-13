@@ -6,16 +6,22 @@ export function convertXaiChatUsage(usage: XaiChatUsage): LanguageModelV3Usage {
   const reasoningTokens =
     usage.completion_tokens_details?.reasoning_tokens ?? 0;
 
+  const promptTokensIncludesCached = cacheReadTokens <= usage.prompt_tokens;
+
   return {
     inputTokens: {
-      total: usage.prompt_tokens,
-      noCache: usage.prompt_tokens - cacheReadTokens,
+      total: promptTokensIncludesCached
+        ? usage.prompt_tokens
+        : usage.prompt_tokens + cacheReadTokens,
+      noCache: promptTokensIncludesCached
+        ? usage.prompt_tokens - cacheReadTokens
+        : usage.prompt_tokens,
       cacheRead: cacheReadTokens,
       cacheWrite: undefined,
     },
     outputTokens: {
-      total: usage.completion_tokens,
-      text: usage.completion_tokens - reasoningTokens,
+      total: usage.completion_tokens + reasoningTokens,
+      text: usage.completion_tokens,
       reasoning: reasoningTokens,
     },
     raw: usage,

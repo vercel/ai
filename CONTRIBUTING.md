@@ -42,13 +42,14 @@ To set up the repository on your local machine, follow these steps:
 2. **Clone the Repository**: Clone the repository to your local machine, e.g. using `git clone`.
 3. **Install Node**: If you haven't already, install Node v22.
 4. **Install pnpm**: If you haven't already, install pnpm v10. You can do this by running `npm install -g pnpm@10` if you're using npm. Alternatively, if you're using Homebrew (Mac), you can run `brew install pnpm`. For more see [the pnpm site](https://pnpm.io/installation).
-5. **Install Dependencies**: Navigate to the project directory and run `pnpm install` to install all necessary dependencies.
+5. **Install Dependencies**: Navigate to the project directory and run `pnpm install` to install all necessary dependencies. This also sets up Git hooks via Husky.
 6. **Build the Project**: Run `pnpm build` in the root to build all packages.
 
 ### Running the Examples
 
 1. `cd examples/ai-functions` (for AI SDK Core, or another example folder)
 1. AI SDK Core examples: run e.g. `pnpm tsx src/stream-text/openai.ts`
+   - For most examples, you need to provide relevant API keys, e.g. environment variables like `OPENAI_API_KEY`
 1. Other framework examples: run `pnpm dev` and go to the browser url
 
 ### Local Development Workflow
@@ -81,7 +82,7 @@ We greatly appreciate your pull requests. Here are the steps to submit them:
 
 3. **Add a codemod**: If the change introduces a deprecation or a breaking change, add a codemod if possible. See [how to contribute codemods](contributing/codemods.md)
 4. **Commit Your Changes**: Ensure your commits are succinct and clear, detailing what modifications have been made and the reasons behind them. We don't require a specific commit message format, but please be descriptive.
-5. **Fix prettier issues**: Run `pnpm prettier-fix` to fix any formatting issues in your code.
+5. **Pre-commit hooks**: A pre-commit hook automatically formats your staged files using `lint-staged` when you commit. If you stage any `package.json` changes, `pnpm install` runs automatically to keep the lockfile in sync. If you need to skip these hooks (e.g., for work-in-progress commits), set `ARTISANAL_MODE=1` before committing: `ARTISANAL_MODE=1 git commit -m "message"`.
 6. **Push the Changes to Your GitHub Repository**: After committing your changes, push them to your GitHub repository.
 7. **Open a Pull Request**: Propose your changes for review. Furnish a lucid title and description of your contributions. Make sure to link any relevant issues your PR resolves. We use the following PR title format:
 

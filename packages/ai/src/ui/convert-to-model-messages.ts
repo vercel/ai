@@ -29,15 +29,15 @@ import {
 } from './ui-messages';
 
 /**
-Converts an array of UI messages from useChat into an array of ModelMessages that can be used
-with the AI functions (e.g. `streamText`, `generateText`).
-
-@param messages - The UI messages to convert.
-@param options.tools - The tools to use.
-@param options.ignoreIncompleteToolCalls - Whether to ignore incomplete tool calls. Default is `false`.
-@param options.convertDataPart - Optional function to convert data parts to text or file model message parts. Returns `undefined` if the part should be ignored.
-
-@returns An array of ModelMessages.
+ * Converts an array of UI messages from useChat into an array of ModelMessages that can be used
+ * with the AI functions (e.g. `streamText`, `generateText`).
+ *
+ * @param messages - The UI messages to convert.
+ * @param options.tools - The tools to use.
+ * @param options.ignoreIncompleteToolCalls - Whether to ignore incomplete tool calls. Default is `false`.
+ * @param options.convertDataPart - Optional function to convert data parts to text or file model message parts. Returns `undefined` if the part should be ignored.
+ *
+ * @returns An array of ModelMessages.
  */
 export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
   messages: Array<Omit<UI_MESSAGE, 'id'>>,

@@ -87,7 +87,7 @@ export class LumaImageModel implements ImageModelV3 {
     const lumaOptions = await parseProviderOptions({
       provider: 'luma',
       providerOptions,
-      schema: lumaImageProviderOptionsSchema,
+      schema: lumaImageModelOptionsSchema,
     });
 
     // Extract non-request options
@@ -380,7 +380,7 @@ export type LumaErrorData = z.infer<typeof lumaErrorSchema>;
  *
  * @see https://docs.lumalabs.ai/docs/image-generation
  */
-export const lumaImageProviderOptionsSchema = lazySchema(() =>
+export const lumaImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
@@ -436,6 +436,6 @@ export const lumaImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type LumaImageProviderOptions = InferSchema<
-  typeof lumaImageProviderOptionsSchema
+export type LumaImageModelOptions = InferSchema<
+  typeof lumaImageModelOptionsSchema
 >;

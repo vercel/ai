@@ -1,5 +1,44 @@
 # @ai-sdk/devtools
 
+## 0.0.14
+
+### Patch Changes
+
+- d14f0aa: chore (devtools): include skill instructions in readme
+
+## 0.0.13
+
+### Patch Changes
+
+- b2e7fe2: Fix dev mode detection to prevent false positives when repos are in paths containing '/src/'
+
+## 0.0.12
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+
+## 0.0.11
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+
+## 0.0.10
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider@3.0.6
+
+## 0.0.9
+
+### Patch Changes
+
+- 87e5e2a: Fix typo in README.md: `devToolsMiddleware` should be called as a function `devToolsMiddleware()`.
+
 ## 0.0.8
 
 ### Patch Changes

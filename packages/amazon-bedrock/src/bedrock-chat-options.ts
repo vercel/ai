@@ -91,7 +91,7 @@ export type BedrockFilePartProviderOptions = z.infer<
   typeof bedrockFilePartProviderOptions
 >;
 
-export const bedrockProviderOptions = z.object({
+export const amazonBedrockLanguageModelOptions = z.object({
   /**
    * Additional inference parameters that the model supports,
    * beyond the base set of inference parameters that Converse
@@ -100,9 +100,15 @@ export const bedrockProviderOptions = z.object({
   additionalModelRequestFields: z.record(z.string(), z.any()).optional(),
   reasoningConfig: z
     .object({
-      type: z.union([z.literal('enabled'), z.literal('disabled')]).optional(),
+      type: z
+        .union([
+          z.literal('enabled'),
+          z.literal('disabled'),
+          z.literal('adaptive'),
+        ])
+        .optional(),
       budgetTokens: z.number().optional(),
-      maxReasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
+      maxReasoningEffort: z.enum(['low', 'medium', 'high', 'max']).optional(),
     })
     .optional(),
   /**
@@ -111,4 +117,6 @@ export const bedrockProviderOptions = z.object({
   anthropicBeta: z.array(z.string()).optional(),
 });
 
-export type BedrockProviderOptions = z.infer<typeof bedrockProviderOptions>;
+export type AmazonBedrockLanguageModelOptions = z.infer<
+  typeof amazonBedrockLanguageModelOptions
+>;

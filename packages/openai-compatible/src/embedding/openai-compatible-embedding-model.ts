@@ -14,7 +14,7 @@ import {
 import { z } from 'zod/v4';
 import {
   OpenAICompatibleEmbeddingModelId,
-  openaiCompatibleEmbeddingProviderOptions,
+  openaiCompatibleEmbeddingModelOptions,
 } from './openai-compatible-embedding-options';
 import {
   defaultOpenAICompatibleErrorStructure,
@@ -23,13 +23,13 @@ import {
 
 type OpenAICompatibleEmbeddingConfig = {
   /**
-Override the maximum number of embeddings per call.
+   * Override the maximum number of embeddings per call.
    */
   maxEmbeddingsPerCall?: number;
 
   /**
-Override the parallelism of embedding calls.
-  */
+   * Override the parallelism of embedding calls.
+   */
   supportsParallelCalls?: boolean;
 
   provider: string;
@@ -83,7 +83,7 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV3 {
     const deprecatedOptions = await parseProviderOptions({
       provider: 'openai-compatible',
       providerOptions,
-      schema: openaiCompatibleEmbeddingProviderOptions,
+      schema: openaiCompatibleEmbeddingModelOptions,
     });
 
     if (deprecatedOptions != null) {
@@ -98,12 +98,12 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV3 {
       (await parseProviderOptions({
         provider: 'openaiCompatible',
         providerOptions,
-        schema: openaiCompatibleEmbeddingProviderOptions,
+        schema: openaiCompatibleEmbeddingModelOptions,
       })) ?? {},
       (await parseProviderOptions({
         provider: this.providerOptionsName,
         providerOptions,
-        schema: openaiCompatibleEmbeddingProviderOptions,
+        schema: openaiCompatibleEmbeddingModelOptions,
       })) ?? {},
     );
 

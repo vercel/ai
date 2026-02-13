@@ -4,6 +4,11 @@ export type {
   DeepgramProviderSettings,
 } from './deepgram-provider';
 export { DeepgramSpeechModel } from './deepgram-speech-model';
-export type { DeepgramSpeechCallOptions } from './deepgram-speech-model';
+export type {
+  DeepgramSpeechModelOptions,
+  /** @deprecated Use `DeepgramSpeechModelOptions` instead. */
+  DeepgramSpeechModelOptions as DeepgramSpeechCallOptions,
+} from './deepgram-speech-model';
 export type { DeepgramSpeechModelId } from './deepgram-speech-options';
+export type { DeepgramTranscriptionModelOptions } from './deepgram-transcription-model';
 export { VERSION } from './version';

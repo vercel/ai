@@ -63,7 +63,7 @@ pnpm build          # Build all packages
 | `pnpm lint`              | Run linting                                                       |
 | `pnpm prettier-fix`      | Fix formatting issues                                             |
 | `pnpm prettier-check`    | Check formatting                                                  |
-| `pnpm type-check`        | TypeScript type checking                                          |
+| `pnpm type-check:full`   | TypeScript type checking (includes examples)                      |
 | `pnpm changeset`         | Add a changeset for your PR                                       |
 | `pnpm update-references` | Update tsconfig.json references after adding package dependencies |
 
@@ -118,7 +118,7 @@ pnpm tsx src/stream-text/openai.ts    # Run a specific example
 - **Tool**: Prettier
 - **Config**: Defined in root `package.json`
 - **Settings**: Single quotes, trailing commas, 2-space indentation, no tabs
-- **Run**: `pnpm prettier-fix` before committing
+- **Pre-commit hook**: Automatically formats staged files on commit via `lint-staged`. If `package.json` changes are staged, `pnpm install` runs automatically
 
 ### Testing
 
@@ -145,6 +145,16 @@ import * as z4 from 'zod/v4';
 
 Never use `JSON.parse` directly in production code to prevent security risks.
 Instead use `parseJSON` or `safeParseJSON` from `@ai-sdk/provider-utils`.
+
+### Type Checking
+
+Always run type checking after making code changes:
+
+```bash
+pnpm type-check:full    # Run from workspace root
+```
+
+This ensures your changes don't introduce type errors across the codebase, including examples.
 
 ### File Naming Conventions
 
@@ -225,10 +235,50 @@ The SDK uses a layered provider architecture following the adapter pattern:
 - **Command**: `pnpm changeset` in workspace root
 - **Note**: Don't select example packages - they're not published
 
+## Task Completion Guidelines
+
+These guidelines outline typical artifacts for different task types. Use judgment to adapt based on scope and context.
+
+### Bug Fixes
+
+A complete bug fix typically includes:
+
+1. **Reproduction example**: Create/update an example in `examples/` that demonstrates the bug before fixing
+2. **Unit tests**: Add tests that would fail without the fix (regression tests)
+3. **Implementation**: Fix the bug
+4. **Manual verification**: Run the reproduction example to confirm the fix
+5. **Changeset**: Describe what was broken and how it's fixed
+
+### New Features
+
+A complete feature typically includes:
+
+1. **Implementation**: Build the feature
+2. **Examples**: Add usage examples in `examples/` demonstrating the feature
+3. **Unit tests**: Comprehensive test coverage for new functionality
+4. **Documentation**: Update relevant docs in `content/` for public APIs
+5. **Changeset**: Describe the feature for release notes
+
+### Refactoring / Internal Changes
+
+- Unit tests for any changed behavior
+- No documentation needed for internal-only changes
+- Changeset only if it affects published packages
+
+### When to Deviate
+
+These are guidelines, not rigid rules. Adjust based on:
+
+- **Scope**: Trivial fixes (typos, comments) may not need examples
+- **Visibility**: Internal changes may not need documentation
+- **Context**: Some changes span multiple categories
+
+When uncertain about expected artifacts, ask for clarification.
+
 ## Do Not
 
-- Add minor/major changesets without maintainer approval
+- Add minor/major changesets
 - Change public APIs without updating documentation
-- Commit without running `pnpm prettier-fix`
-- Use `require()` for Zod imports
+- Use `require()` for imports
 - Add new dependencies without running `pnpm update-references`
+- Modify `content/docs/08-migration-guides` or `packages/codemod` as part of broader codebase changes

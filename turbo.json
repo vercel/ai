@@ -7,6 +7,7 @@
       "env": [
         "AI_GATEWAY_API_KEY",
         "AI_SDK_DEVTOOLS_PORT",
+        "ALIBABA_API_KEY",
         "ANTHROPIC_API_KEY",
         "ANTHROPIC_BASE_URL",
         "ANTHROPIC_MICROSOFT_RESOURCE_NAME",
@@ -36,6 +37,8 @@
         "GOOGLE_VERTEX_LOCATION",
         "GOOGLE_VERTEX_PROJECT",
         "GROQ_API_KEY",
+        "KLINGAI_ACCESS_KEY",
+        "KLINGAI_SECRET_KEY",
         "LUMA_API_KEY",
         "MISTRAL_API_KEY",
         "NEXT_RUNTIME",

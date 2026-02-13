@@ -1,4 +1,4 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { stepCountIs, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../lib/run';
@@ -18,7 +18,7 @@ run(async () => {
     providerOptions: {
       openai: {
         reasoningEffort: 'medium',
-      } satisfies OpenAIResponsesProviderOptions,
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
     tools: {
       weather: tool({

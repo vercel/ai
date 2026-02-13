@@ -1,5 +1,49 @@
 # @ai-sdk/provider-utils
 
+## 4.0.15
+
+### Patch Changes
+
+- 4024a3a: security: prevent unbounded memory growth in download functions
+
+  The `download()` and `downloadBlob()` functions now enforce a default 2 GiB size limit when downloading from user-provided URLs. Downloads that exceed this limit are aborted with a `DownloadError` instead of consuming unbounded memory and crashing the process. The `abortSignal` parameter is now passed through to `fetch()` in all download call sites.
+
+  Added `download` option to `transcribe()` and `experimental_generateVideo()` for providing a custom download function. Use the new `createDownload({ maxBytes })` factory to configure download size limits.
+
+## 4.0.14
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+
+## 4.0.13
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+
+## 4.0.12
+
+### Patch Changes
+
+- 96936e5: fix(provider-utils): export only types from standard-schema package
+
+## 4.0.11
+
+### Patch Changes
+
+- 2810850: fix(ai): improve type validation error messages with field paths and entity identifiers
+- Updated dependencies [2810850]
+  - @ai-sdk/provider@3.0.6
+
+## 4.0.10
+
+### Patch Changes
+
+- 462ad00: fix(provider-utils): recognize bun fetch errors as retryable
+
 ## 4.0.9
 
 ### Patch Changes
