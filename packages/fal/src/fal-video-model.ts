@@ -1,6 +1,9 @@
 import {
   AISDKError,
   type Experimental_VideoModelV3,
+  type Experimental_VideoModelV3StartResult,
+  type Experimental_VideoModelV3StatusResult,
+  type SharedV3ProviderMetadata,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -90,6 +93,138 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV3Warning[] = [];
 
+    const { body, falOptions } = await this.buildRequestBody(options);
+
+    const responseUrl = await this.submitToQueue(options, body);
+
+    const pollIntervalMs = falOptions?.pollIntervalMs ?? 2000; // 2 seconds
+    const pollTimeoutMs = falOptions?.pollTimeoutMs ?? 300000; // 5 minutes
+    const startTime = Date.now();
+    let response: FalVideoResponse;
+    let responseHeaders: Record<string, string> | undefined;
+
+    while (true) {
+      try {
+        const { value: statusResponse, responseHeaders: statusHeaders } =
+          await this.fetchStatus({
+            responseUrl,
+            headers: options.headers,
+            abortSignal: options.abortSignal,
+          });
+
+        response = statusResponse;
+        responseHeaders = statusHeaders;
+        break;
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message === 'Request is still in progress'
+        ) {
+          // Continue polling
+        } else {
+          throw error;
+        }
+      }
+
+      if (Date.now() - startTime > pollTimeoutMs) {
+        throw new AISDKError({
+          name: 'FAL_VIDEO_GENERATION_TIMEOUT',
+          message: `Video generation request timed out after ${pollTimeoutMs}ms`,
+        });
+      }
+
+      await delay(pollIntervalMs);
+
+      if (options.abortSignal?.aborted) {
+        throw new AISDKError({
+          name: 'FAL_VIDEO_GENERATION_ABORTED',
+          message: 'Video generation request was aborted',
+        });
+      }
+    }
+
+    return this.buildResult({
+      response,
+      responseHeaders,
+      warnings,
+      currentDate,
+    });
+  }
+
+  async doStart(
+    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
+  ): Promise<Experimental_VideoModelV3StartResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const warnings: SharedV3Warning[] = [];
+
+    const { body } = await this.buildRequestBody(options);
+
+    const responseUrl = await this.submitToQueue(
+      {
+        headers: options.headers,
+        abortSignal: options.abortSignal,
+        webhookUrl: options.webhookUrl,
+      },
+      body,
+    );
+
+    return {
+      operation: { responseUrl },
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: undefined,
+      },
+    };
+  }
+
+  async doStatus(
+    options: Parameters<NonNullable<Experimental_VideoModelV3['doStatus']>>[0],
+  ): Promise<Experimental_VideoModelV3StatusResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { responseUrl } = options.operation as { responseUrl: string };
+
+    try {
+      const { value: response, responseHeaders } = await this.fetchStatus({
+        responseUrl,
+        headers: options.headers,
+        abortSignal: options.abortSignal,
+      });
+
+      return this.buildResult({
+        response,
+        responseHeaders,
+        warnings: [],
+        currentDate,
+      });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === 'Request is still in progress'
+      ) {
+        return {
+          status: 'pending' as const,
+          response: {
+            timestamp: currentDate,
+            modelId: this.modelId,
+            headers: undefined,
+          },
+        };
+      }
+
+      throw error;
+    }
+  }
+
+  private async buildRequestBody(
+    options: Parameters<
+      NonNullable<Experimental_VideoModelV3['doGenerate']>
+    >[0],
+  ): Promise<{
+    body: Record<string, unknown>;
+    falOptions: FalVideoModelOptions | undefined;
+  }> {
     const falOptions = (await parseProviderOptions({
       provider: 'fal',
       providerOptions: options.providerOptions,
@@ -157,9 +292,25 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
+    return { body, falOptions };
+  }
+
+  private async submitToQueue(
+    options: {
+      headers?: Record<string, string | undefined>;
+      abortSignal?: AbortSignal;
+      webhookUrl?: string;
+    },
+    body: Record<string, unknown>,
+  ): Promise<string> {
+    let queuePath = `https://queue.fal.run/fal-ai/${this.normalizedModelId}`;
+    if (options.webhookUrl) {
+      queuePath += `?fal_webhook=${encodeURIComponent(options.webhookUrl)}`;
+    }
+
     const { value: queueResponse } = await postJsonToApi({
       url: this.config.url({
-        path: `https://queue.fal.run/fal-ai/${this.normalizedModelId}`,
+        path: queuePath,
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
@@ -179,79 +330,72 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
-    const pollIntervalMs = falOptions?.pollIntervalMs ?? 2000; // 2 seconds
-    const pollTimeoutMs = falOptions?.pollTimeoutMs ?? 300000; // 5 minutes
-    const startTime = Date.now();
-    let response: FalVideoResponse;
-    let responseHeaders: Record<string, string> | undefined;
+    return responseUrl;
+  }
 
-    while (true) {
-      try {
-        const { value: statusResponse, responseHeaders: statusHeaders } =
-          await getFromApi({
-            url: this.config.url({
-              path: responseUrl,
-              modelId: this.modelId,
-            }),
-            headers: combineHeaders(this.config.headers(), options.headers),
-            failedResponseHandler: async ({
-              response,
-              url,
-              requestBodyValues,
-            }) => {
-              const body = await response.clone().json();
+  private async fetchStatus({
+    responseUrl,
+    headers,
+    abortSignal,
+  }: {
+    responseUrl: string;
+    headers?: Record<string, string | undefined>;
+    abortSignal?: AbortSignal;
+  }): Promise<{
+    value: FalVideoResponse;
+    responseHeaders?: Record<string, string>;
+  }> {
+    return getFromApi({
+      url: this.config.url({
+        path: responseUrl,
+        modelId: this.modelId,
+      }),
+      headers: combineHeaders(this.config.headers(), headers),
+      failedResponseHandler: async ({ response, url, requestBodyValues }) => {
+        const body = await response.clone().json();
 
-              if (body.detail === 'Request is still in progress') {
-                return {
-                  value: new Error('Request is still in progress'),
-                  rawValue: body,
-                  responseHeaders: {},
-                };
-              }
-
-              return createJsonErrorResponseHandler({
-                errorSchema: falErrorDataSchema,
-                errorToMessage: data => data.error.message,
-              })({ response, url, requestBodyValues });
-            },
-            successfulResponseHandler: createJsonResponseHandler(
-              falVideoResponseSchema,
-            ),
-            abortSignal: options.abortSignal,
-            fetch: this.config.fetch,
-          });
-
-        response = statusResponse;
-        responseHeaders = statusHeaders;
-        break;
-      } catch (error) {
-        if (
-          error instanceof Error &&
-          error.message === 'Request is still in progress'
-        ) {
-          // Continue polling
-        } else {
-          throw error;
+        if (body.detail === 'Request is still in progress') {
+          return {
+            value: new Error('Request is still in progress'),
+            rawValue: body,
+            responseHeaders: {},
+          };
         }
-      }
 
-      if (Date.now() - startTime > pollTimeoutMs) {
-        throw new AISDKError({
-          name: 'FAL_VIDEO_GENERATION_TIMEOUT',
-          message: `Video generation request timed out after ${pollTimeoutMs}ms`,
-        });
-      }
+        return createJsonErrorResponseHandler({
+          errorSchema: falErrorDataSchema,
+          errorToMessage: data => data.error.message,
+        })({ response, url, requestBodyValues });
+      },
+      successfulResponseHandler: createJsonResponseHandler(
+        falVideoResponseSchema,
+      ),
+      abortSignal,
+      fetch: this.config.fetch,
+    });
+  }
 
-      await delay(pollIntervalMs);
-
-      if (options.abortSignal?.aborted) {
-        throw new AISDKError({
-          name: 'FAL_VIDEO_GENERATION_ABORTED',
-          message: 'Video generation request was aborted',
-        });
-      }
-    }
-
+  private buildResult({
+    response,
+    responseHeaders,
+    warnings,
+    currentDate,
+  }: {
+    response: FalVideoResponse;
+    responseHeaders?: Record<string, string>;
+    warnings: SharedV3Warning[];
+    currentDate: Date;
+  }): {
+    status: 'completed';
+    videos: Array<{ type: 'url'; url: string; mediaType: string }>;
+    warnings: SharedV3Warning[];
+    providerMetadata: SharedV3ProviderMetadata;
+    response: {
+      timestamp: Date;
+      modelId: string;
+      headers: Record<string, string> | undefined;
+    };
+  } {
     const videoUrl = response.video?.url;
 
     if (!videoUrl || !response.video) {
@@ -262,6 +406,7 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
     }
 
     return {
+      status: 'completed',
       videos: [
         {
           type: 'url',
