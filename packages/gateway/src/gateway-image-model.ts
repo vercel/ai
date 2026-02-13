@@ -104,7 +104,7 @@ export class GatewayImageModel implements ImageModelV3 {
         }),
       };
     } catch (error) {
-      throw asGatewayError(error, await parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
     }
   }
 

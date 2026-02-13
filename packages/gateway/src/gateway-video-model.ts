@@ -107,7 +107,7 @@ export class GatewayVideoModel implements Experimental_VideoModelV3 {
         },
       };
     } catch (error) {
-      throw asGatewayError(error, await parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
     }
   }
 
