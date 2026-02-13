@@ -11,7 +11,7 @@
  *
  * Run: pnpm tsx src/generate-image/gateway-timeout.ts
  */
-import { createGateway, generateImage } from 'ai';
+import { createGateway, experimental_generateImage } from 'ai';
 import { Agent, fetch as undiciFetch } from 'undici';
 import { run } from '../lib/run';
 
@@ -45,7 +45,7 @@ run(async () => {
       'This should timeout immediately and show the timeout error handling.\n',
     );
 
-    const { image } = await generateImage({
+    const { image } = await experimental_generateImage({
       model: gateway.imageModel('black-forest-labs/flux-1.1-pro'),
       prompt: 'A serene mountain landscape at sunset',
     });
