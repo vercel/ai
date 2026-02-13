@@ -9,6 +9,7 @@ import {
   convertToFormData,
   createJsonResponseHandler,
   downloadBlob,
+  parseProviderOptions,
   postFormDataToApi,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -19,6 +20,7 @@ import {
   OpenAIImageModelId,
   hasDefaultResponseFormat,
   modelMaxImagesPerCall,
+  openaiImageModelOptions,
 } from './openai-image-options';
 
 interface OpenAIImageModelConfig extends OpenAIConfig {
@@ -59,6 +61,12 @@ export class OpenAIImageModel implements ImageModelV3 {
   > {
     const warnings: Array<SharedV3Warning> = [];
 
+    const openaiOptions = await parseProviderOptions({
+      provider: 'openai',
+      providerOptions,
+      schema: openaiImageModelOptions,
+    });
+
     if (aspectRatio != null) {
       warnings.push({
         type: 'unsupported',
@@ -75,38 +83,65 @@ export class OpenAIImageModel implements ImageModelV3 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
     if (files != null) {
+      const editInput: OpenAIImageEditInput = {
+        model: this.modelId,
+        prompt,
+        image: await Promise.all(
+          files.map(file =>
+            file.type === 'file'
+              ? new Blob(
+                  [
+                    file.data instanceof Uint8Array
+                      ? new Blob([file.data as BlobPart], {
+                          type: file.mediaType,
+                        })
+                      : new Blob([convertBase64ToUint8Array(file.data)], {
+                          type: file.mediaType,
+                        }),
+                  ],
+                  { type: file.mediaType },
+                )
+              : downloadBlob(file.url),
+          ),
+        ),
+        mask: mask != null ? await fileToBlob(mask) : undefined,
+        n,
+        size,
+      };
+
+      if (openaiOptions?.quality != null) {
+        editInput.quality =
+          openaiOptions.quality as OpenAIImageEditInput['quality'];
+      }
+      if (openaiOptions?.background != null) {
+        editInput.background =
+          openaiOptions.background as OpenAIImageEditInput['background'];
+      }
+      if (openaiOptions?.output_format != null) {
+        editInput.output_format =
+          openaiOptions.output_format as OpenAIImageEditInput['output_format'];
+      }
+      if (openaiOptions?.output_compression != null) {
+        editInput.output_compression = openaiOptions.output_compression;
+      }
+      if (openaiOptions?.input_fidelity != null) {
+        editInput.input_fidelity =
+          openaiOptions.input_fidelity as OpenAIImageEditInput['input_fidelity'];
+      }
+      if (openaiOptions?.partial_images != null) {
+        editInput.partial_images = openaiOptions.partial_images;
+      }
+      if (openaiOptions?.user != null) {
+        editInput.user = openaiOptions.user;
+      }
+
       const { value: response, responseHeaders } = await postFormDataToApi({
         url: this.config.url({
           path: '/images/edits',
           modelId: this.modelId,
         }),
         headers: combineHeaders(this.config.headers(), headers),
-        formData: convertToFormData<OpenAIImageEditInput>({
-          model: this.modelId,
-          prompt,
-          image: await Promise.all(
-            files.map(file =>
-              file.type === 'file'
-                ? new Blob(
-                    [
-                      file.data instanceof Uint8Array
-                        ? new Blob([file.data as BlobPart], {
-                            type: file.mediaType,
-                          })
-                        : new Blob([convertBase64ToUint8Array(file.data)], {
-                            type: file.mediaType,
-                          }),
-                    ],
-                    { type: file.mediaType },
-                  )
-                : downloadBlob(file.url),
-            ),
-          ),
-          mask: mask != null ? await fileToBlob(mask) : undefined,
-          n,
-          size,
-          ...(providerOptions.openai ?? {}),
-        }),
+        formData: convertToFormData<OpenAIImageEditInput>(editInput),
         failedResponseHandler: openaiFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
           openaiImageResponseSchema,
@@ -148,22 +183,43 @@ export class OpenAIImageModel implements ImageModelV3 {
       };
     }
 
+    const body: Record<string, unknown> = {
+      model: this.modelId,
+      prompt,
+      n,
+      size,
+    };
+
+    if (openaiOptions?.quality != null) {
+      body.quality = openaiOptions.quality;
+    }
+    if (openaiOptions?.style != null) {
+      body.style = openaiOptions.style;
+    }
+    if (openaiOptions?.background != null) {
+      body.background = openaiOptions.background;
+    }
+    if (openaiOptions?.output_format != null) {
+      body.output_format = openaiOptions.output_format;
+    }
+    if (openaiOptions?.output_compression != null) {
+      body.output_compression = openaiOptions.output_compression;
+    }
+    if (openaiOptions?.user != null) {
+      body.user = openaiOptions.user;
+    }
+
+    if (!hasDefaultResponseFormat(this.modelId)) {
+      body.response_format = 'b64_json';
+    }
+
     const { value: response, responseHeaders } = await postJsonToApi({
       url: this.config.url({
         path: '/images/generations',
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), headers),
-      body: {
-        model: this.modelId,
-        prompt,
-        n,
-        size,
-        ...(providerOptions.openai ?? {}),
-        ...(!hasDefaultResponseFormat(this.modelId)
-          ? { response_format: 'b64_json' }
-          : {}),
-      },
+      body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openaiImageResponseSchema,
