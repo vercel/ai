@@ -376,6 +376,144 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       prompt,
+<<<<<<< HEAD
+=======
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(result.usage).toStrictEqual({
+      inputTokens: 12,
+      outputTokens: 0,
+      totalTokens: 12,
+    });
+
+    expect(result.providerMetadata?.openai).toMatchObject({
+      images: [
+        {
+          imageTokens: 7,
+          textTokens: 5,
+        },
+      ],
+    });
+  });
+
+  it('should distribute input token details evenly across images', async () => {
+    server.urls['https://api.openai.com/v1/images/generations'].response = {
+      type: 'json-value',
+      body: {
+        created: 1733837122,
+        data: [
+          { b64_json: 'base64-image-1' },
+          { b64_json: 'base64-image-2' },
+          { b64_json: 'base64-image-3' },
+        ],
+        usage: {
+          input_tokens: 30,
+          output_tokens: 900,
+          total_tokens: 930,
+          input_tokens_details: {
+            image_tokens: 194,
+            text_tokens: 28,
+          },
+        },
+      },
+    };
+
+    const result = await provider.image('gpt-image-1').doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 3,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(result.providerMetadata?.openai).toMatchObject({
+      images: [
+        { imageTokens: 64, textTokens: 9 },
+        { imageTokens: 64, textTokens: 9 },
+        { imageTokens: 66, textTokens: 10 },
+      ],
+    });
+  });
+});
+
+describe('doGenerate - image editing', () => {
+  it('should call /images/edits endpoint when files are provided', async () => {
+    prepareEditFixtureResponse('openai-image-edit');
+
+    await provider.image('gpt-image-1').doGenerate({
+      prompt,
+      files: [
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: new Uint8Array([137, 80, 78, 71]),
+        },
+      ],
+      mask: undefined,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(server.calls[0].requestUrl).toBe(
+      'https://api.openai.com/v1/images/edits',
+    );
+  });
+
+  it('should send image as form data with Uint8Array input', async () => {
+    prepareEditFixtureResponse('openai-image-edit');
+
+    await provider.image('gpt-image-1').doGenerate({
+      prompt,
+      files: [
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: new Uint8Array([137, 80, 78, 71]),
+        },
+      ],
+      mask: undefined,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+      model: 'gpt-image-1',
+      prompt,
+      n: '1',
+      size: '1024x1024',
+    });
+  });
+
+  it('should send image as form data with base64 string input', async () => {
+    prepareEditFixtureResponse('openai-image-edit');
+
+    await provider.image('gpt-image-1').doGenerate({
+      prompt,
+      files: [
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: 'iVBORw0KGgo=',
+        },
+      ],
+      mask: undefined,
+>>>>>>> e2ee705be (feat: differentiate text vs image input tokens (#12382))
       n: 1,
       size: undefined,
       aspectRatio: undefined,
