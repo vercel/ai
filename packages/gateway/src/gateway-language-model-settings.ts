@@ -47,7 +47,6 @@ export type GatewayModelId =
   | 'google/gemini-2.0-flash-lite'
   | 'google/gemini-2.5-flash'
   | 'google/gemini-2.5-flash-image'
-  | 'google/gemini-2.5-flash-image-preview'
   | 'google/gemini-2.5-flash-lite'
   | 'google/gemini-2.5-flash-lite-preview-09-2025'
   | 'google/gemini-2.5-flash-preview-09-2025'
