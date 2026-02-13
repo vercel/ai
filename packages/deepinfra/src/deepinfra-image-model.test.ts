@@ -50,7 +50,9 @@ describe('DeepInfraImageModel', () => {
         size: undefined,
         aspectRatio: '16:9',
         seed: 42,
-        providerOptions: { deepinfra: { additional_param: 'value' } },
+        providerOptions: {
+          deepinfra: { num_inference_steps: 25 },
+        },
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -58,7 +60,7 @@ describe('DeepInfraImageModel', () => {
         aspect_ratio: '16:9',
         seed: 42,
         num_images: 1,
-        additional_param: 'value',
+        num_inference_steps: 25,
       });
     });
 
