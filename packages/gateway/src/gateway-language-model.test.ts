@@ -53,18 +53,32 @@ describe('GatewayLanguageModel', () => {
   });
 
   describe('doGenerate', () => {
-    it('should pass headers correctly', async () => {
+    function prepareJsonResponse({
+      content = { type: 'text', text: '' },
+      usage = {
+        prompt_tokens: 4,
+        completion_tokens: 30,
+      },
+      finish_reason = 'stop',
+      id = 'test-id',
+      created = 1711115037,
+      model = 'test-model',
+    } = {}) {
       server.urls['https://api.test.com/language-model'].response = {
         type: 'json-value',
         body: {
-          id: 'test-id',
-          created: 1711115037,
-          model: 'test-model',
-          content: { type: 'text', text: 'Hello, World!' },
-          finish_reason: 'stop',
-          usage: { prompt_tokens: 4, completion_tokens: 30 },
+          id,
+          created,
+          model,
+          content,
+          finish_reason,
+          usage,
         },
       };
+    }
+
+    it('should pass headers correctly', async () => {
+      prepareJsonResponse({ content: { type: 'text', text: 'Hello, World!' } });
 
       await createTestModel().doGenerate({
         prompt: TEST_PROMPT,
@@ -84,17 +98,7 @@ describe('GatewayLanguageModel', () => {
     });
 
     it('should extract text response', async () => {
-      server.urls['https://api.test.com/language-model'].response = {
-        type: 'json-value',
-        body: {
-          id: 'test-id',
-          created: 1711115037,
-          model: 'test-model',
-          content: { type: 'text', text: 'Hello, World!' },
-          finish_reason: 'stop',
-          usage: { prompt_tokens: 4, completion_tokens: 30 },
-        },
-      };
+      prepareJsonResponse({ content: { type: 'text', text: 'Hello, World!' } });
 
       const { content } = await createTestModel().doGenerate({
         prompt: TEST_PROMPT,
@@ -104,17 +108,13 @@ describe('GatewayLanguageModel', () => {
     });
 
     it('should extract usage information', async () => {
-      server.urls['https://api.test.com/language-model'].response = {
-        type: 'json-value',
-        body: {
-          id: 'test-id',
-          created: 1711115037,
-          model: 'test-model',
-          content: { type: 'text', text: 'Test' },
-          finish_reason: 'stop',
-          usage: { prompt_tokens: 10, completion_tokens: 20 },
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test' },
+        usage: {
+          prompt_tokens: 10,
+          completion_tokens: 20,
         },
-      };
+      });
 
       const { usage } = await createTestModel().doGenerate({
         prompt: TEST_PROMPT,
@@ -127,17 +127,7 @@ describe('GatewayLanguageModel', () => {
     });
 
     it('should remove abortSignal from the request body', async () => {
-      server.urls['https://api.test.com/language-model'].response = {
-        type: 'json-value',
-        body: {
-          id: 'test-id',
-          created: 1711115037,
-          model: 'test-model',
-          content: { type: 'text', text: 'Test response' },
-          finish_reason: 'stop',
-          usage: { prompt_tokens: 4, completion_tokens: 30 },
-        },
-      };
+      prepareJsonResponse({ content: { type: 'text', text: 'Test response' } });
 
       const controller = new AbortController();
       const signal = controller.signal;
@@ -152,17 +142,7 @@ describe('GatewayLanguageModel', () => {
     });
 
     it('should pass abortSignal to fetch when provided', async () => {
-      server.urls['https://api.test.com/language-model'].response = {
-        type: 'json-value',
-        body: {
-          id: 'test-id',
-          created: 1711115037,
-          model: 'test-model',
-          content: { type: 'text', text: 'Test response' },
-          finish_reason: 'stop',
-          usage: { prompt_tokens: 4, completion_tokens: 30 },
-        },
-      };
+      prepareJsonResponse({ content: { type: 'text', text: 'Test response' } });
 
       const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
 
@@ -182,17 +162,7 @@ describe('GatewayLanguageModel', () => {
     });
 
     it('should not pass abortSignal to fetch when not provided', async () => {
-      server.urls['https://api.test.com/language-model'].response = {
-        type: 'json-value',
-        body: {
-          id: 'test-id',
-          created: 1711115037,
-          model: 'test-model',
-          content: { type: 'text', text: 'Test response' },
-          finish_reason: 'stop',
-          usage: { prompt_tokens: 4, completion_tokens: 30 },
-        },
-      };
+      prepareJsonResponse({ content: { type: 'text', text: 'Test response' } });
 
       const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
 
@@ -208,17 +178,7 @@ describe('GatewayLanguageModel', () => {
     });
 
     it('should include o11y headers in the request', async () => {
-      server.urls['https://api.test.com/language-model'].response = {
-        type: 'json-value',
-        body: {
-          id: 'test-id',
-          created: 1711115037,
-          model: 'test-model',
-          content: { type: 'text', text: 'Hello, World!' },
-          finish_reason: 'stop',
-          usage: { prompt_tokens: 4, completion_tokens: 30 },
-        },
-      };
+      prepareJsonResponse({ content: { type: 'text', text: 'Hello, World!' } });
 
       const o11yHeaders = {
         'ai-o11y-deployment-id': 'test-deployment',
@@ -336,17 +296,7 @@ describe('GatewayLanguageModel', () => {
 
     describe('Image part encoding', () => {
       it('should not modify prompt without image parts', async () => {
-        server.urls['https://api.test.com/language-model'].response = {
-          type: 'json-value',
-          body: {
-            id: 'test-id',
-            created: 1711115037,
-            model: 'test-model',
-            content: { type: 'text', text: 'response' },
-            finish_reason: 'stop',
-            usage: { prompt_tokens: 4, completion_tokens: 30 },
-          },
-        };
+        prepareJsonResponse({ content: { type: 'text', text: 'response' } });
 
         await createTestModel().doGenerate({
           prompt: TEST_PROMPT,
@@ -357,17 +307,7 @@ describe('GatewayLanguageModel', () => {
       });
 
       it('should encode Uint8Array image part to base64 data URL with default mime type', async () => {
-        server.urls['https://api.test.com/language-model'].response = {
-          type: 'json-value',
-          body: {
-            id: 'test-id',
-            created: 1711115037,
-            model: 'test-model',
-            content: { type: 'text', text: 'response' },
-            finish_reason: 'stop',
-            usage: { prompt_tokens: 4, completion_tokens: 30 },
-          },
-        };
+        prepareJsonResponse({ content: { type: 'text', text: 'response' } });
         const imageBytes = new Uint8Array([1, 2, 3, 4]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
         const imagePrompt: LanguageModelV3Prompt = [
@@ -394,17 +334,7 @@ describe('GatewayLanguageModel', () => {
       });
 
       it('should encode Uint8Array image part to base64 data URL with specified mime type', async () => {
-        server.urls['https://api.test.com/language-model'].response = {
-          type: 'json-value',
-          body: {
-            id: 'test-id',
-            created: 1711115037,
-            model: 'test-model',
-            content: { type: 'text', text: 'response' },
-            finish_reason: 'stop',
-            usage: { prompt_tokens: 4, completion_tokens: 30 },
-          },
-        };
+        prepareJsonResponse({ content: { type: 'text', text: 'response' } });
         const imageBytes = new Uint8Array([5, 6, 7, 8]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
         const mimeType = 'image/png';
@@ -431,17 +361,7 @@ describe('GatewayLanguageModel', () => {
       });
 
       it('should not modify image part with URL', async () => {
-        server.urls['https://api.test.com/language-model'].response = {
-          type: 'json-value',
-          body: {
-            id: 'test-id',
-            created: 1711115037,
-            model: 'test-model',
-            content: { type: 'text', text: 'response' },
-            finish_reason: 'stop',
-            usage: { prompt_tokens: 4, completion_tokens: 30 },
-          },
-        };
+        prepareJsonResponse({ content: { type: 'text', text: 'response' } });
         const imageUrl = new URL('https://example.com/image.jpg');
         const imagePrompt: LanguageModelV3Prompt = [
           {
@@ -466,17 +386,7 @@ describe('GatewayLanguageModel', () => {
       });
 
       it('should handle mixed content types correctly', async () => {
-        server.urls['https://api.test.com/language-model'].response = {
-          type: 'json-value',
-          body: {
-            id: 'test-id',
-            created: 1711115037,
-            model: 'test-model',
-            content: { type: 'text', text: 'response' },
-            finish_reason: 'stop',
-            usage: { prompt_tokens: 4, completion_tokens: 30 },
-          },
-        };
+        prepareJsonResponse({ content: { type: 'text', text: 'response' } });
         const imageBytes = new Uint8Array([1, 2, 3, 4]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
         const imageUrl = new URL('https://example.com/image2.png');
@@ -648,16 +558,39 @@ describe('GatewayLanguageModel', () => {
   });
 
   describe('doStream', () => {
-    it('should stream text deltas', async () => {
+    function prepareStreamResponse({
+      content,
+      finish_reason = 'stop',
+    }: {
+      content: string[];
+      finish_reason?: string;
+    }) {
       server.urls['https://api.test.com/language-model'].response = {
         type: 'stream-chunks',
         chunks: [
-          `data: ${JSON.stringify({ type: 'text-delta', textDelta: 'Hello' })}\n\n`,
-          `data: ${JSON.stringify({ type: 'text-delta', textDelta: ', ' })}\n\n`,
-          `data: ${JSON.stringify({ type: 'text-delta', textDelta: 'World!' })}\n\n`,
-          `data: ${JSON.stringify({ type: 'finish', finishReason: 'stop', usage: { prompt_tokens: 10, completion_tokens: 20 } })}\n\n`,
+          ...content.map(
+            text =>
+              `data: ${JSON.stringify({
+                type: 'text-delta',
+                textDelta: text,
+              })}\n\n`,
+          ),
+          `data: ${JSON.stringify({
+            type: 'finish',
+            finishReason: finish_reason,
+            usage: {
+              prompt_tokens: 10,
+              completion_tokens: 20,
+            },
+          })}\n\n`,
         ],
       };
+    }
+
+    it('should stream text deltas', async () => {
+      prepareStreamResponse({
+        content: ['Hello', ', ', 'World!'],
+      });
 
       const { stream } = await createTestModel().doStream({
         prompt: TEST_PROMPT,
@@ -691,13 +624,9 @@ describe('GatewayLanguageModel', () => {
     });
 
     it('should pass streaming headers', async () => {
-      server.urls['https://api.test.com/language-model'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          `data: ${JSON.stringify({ type: 'text-delta', textDelta: 'Test' })}\n\n`,
-          `data: ${JSON.stringify({ type: 'finish', finishReason: 'stop', usage: { prompt_tokens: 10, completion_tokens: 20 } })}\n\n`,
-        ],
-      };
+      prepareStreamResponse({
+        content: ['Test'],
+      });
 
       await createTestModel().doStream({
         prompt: TEST_PROMPT,
@@ -713,13 +642,9 @@ describe('GatewayLanguageModel', () => {
     });
 
     it('should remove abortSignal from the streaming request body', async () => {
-      server.urls['https://api.test.com/language-model'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          `data: ${JSON.stringify({ type: 'text-delta', textDelta: 'Test content' })}\n\n`,
-          `data: ${JSON.stringify({ type: 'finish', finishReason: 'stop', usage: { prompt_tokens: 10, completion_tokens: 20 } })}\n\n`,
-        ],
-      };
+      prepareStreamResponse({
+        content: ['Test content'],
+      });
 
       const controller = new AbortController();
       const signal = controller.signal;
@@ -735,13 +660,9 @@ describe('GatewayLanguageModel', () => {
     });
 
     it('should pass abortSignal to fetch when provided for streaming', async () => {
-      server.urls['https://api.test.com/language-model'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          `data: ${JSON.stringify({ type: 'text-delta', textDelta: 'Test content' })}\n\n`,
-          `data: ${JSON.stringify({ type: 'finish', finishReason: 'stop', usage: { prompt_tokens: 10, completion_tokens: 20 } })}\n\n`,
-        ],
-      };
+      prepareStreamResponse({
+        content: ['Test content'],
+      });
 
       const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
 
@@ -762,13 +683,9 @@ describe('GatewayLanguageModel', () => {
     });
 
     it('should not pass abortSignal to fetch when not provided for streaming', async () => {
-      server.urls['https://api.test.com/language-model'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          `data: ${JSON.stringify({ type: 'text-delta', textDelta: 'Test content' })}\n\n`,
-          `data: ${JSON.stringify({ type: 'finish', finishReason: 'stop', usage: { prompt_tokens: 10, completion_tokens: 20 } })}\n\n`,
-        ],
-      };
+      prepareStreamResponse({
+        content: ['Test content'],
+      });
 
       const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
 
@@ -785,13 +702,9 @@ describe('GatewayLanguageModel', () => {
     });
 
     it('should include o11y headers in the streaming request', async () => {
-      server.urls['https://api.test.com/language-model'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          `data: ${JSON.stringify({ type: 'text-delta', textDelta: 'Test content' })}\n\n`,
-          `data: ${JSON.stringify({ type: 'finish', finishReason: 'stop', usage: { prompt_tokens: 10, completion_tokens: 20 } })}\n\n`,
-        ],
-      };
+      prepareStreamResponse({
+        content: ['Test content'],
+      });
 
       const o11yHeaders = {
         'ai-o11y-deployment-id': 'test-deployment',
@@ -909,13 +822,7 @@ describe('GatewayLanguageModel', () => {
 
     describe('Image part encoding', () => {
       it('should not modify prompt without image parts', async () => {
-        server.urls['https://api.test.com/language-model'].response = {
-          type: 'stream-chunks',
-          chunks: [
-            `data: ${JSON.stringify({ type: 'text-delta', textDelta: 'response' })}\n\n`,
-            `data: ${JSON.stringify({ type: 'finish', finishReason: 'stop', usage: { prompt_tokens: 10, completion_tokens: 20 } })}\n\n`,
-          ],
-        };
+        prepareStreamResponse({ content: ['response'] });
 
         await createTestModel().doStream({
           prompt: TEST_PROMPT,
@@ -927,13 +834,7 @@ describe('GatewayLanguageModel', () => {
       });
 
       it('should encode Uint8Array image part to base64 data URL with default mime type', async () => {
-        server.urls['https://api.test.com/language-model'].response = {
-          type: 'stream-chunks',
-          chunks: [
-            `data: ${JSON.stringify({ type: 'text-delta', textDelta: 'response' })}\n\n`,
-            `data: ${JSON.stringify({ type: 'finish', finishReason: 'stop', usage: { prompt_tokens: 10, completion_tokens: 20 } })}\n\n`,
-          ],
-        };
+        prepareStreamResponse({ content: ['response'] });
         const imageBytes = new Uint8Array([1, 2, 3, 4]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
         const imagePrompt: LanguageModelV3Prompt = [
@@ -961,13 +862,7 @@ describe('GatewayLanguageModel', () => {
       });
 
       it('should encode Uint8Array image part to base64 data URL with specified mime type', async () => {
-        server.urls['https://api.test.com/language-model'].response = {
-          type: 'stream-chunks',
-          chunks: [
-            `data: ${JSON.stringify({ type: 'text-delta', textDelta: 'response' })}\n\n`,
-            `data: ${JSON.stringify({ type: 'finish', finishReason: 'stop', usage: { prompt_tokens: 10, completion_tokens: 20 } })}\n\n`,
-          ],
-        };
+        prepareStreamResponse({ content: ['response'] });
         const imageBytes = new Uint8Array([5, 6, 7, 8]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
         const mimeType = 'image/png';
@@ -998,13 +893,7 @@ describe('GatewayLanguageModel', () => {
       });
 
       it('should not modify image part with URL', async () => {
-        server.urls['https://api.test.com/language-model'].response = {
-          type: 'stream-chunks',
-          chunks: [
-            `data: ${JSON.stringify({ type: 'text-delta', textDelta: 'response' })}\n\n`,
-            `data: ${JSON.stringify({ type: 'finish', finishReason: 'stop', usage: { prompt_tokens: 10, completion_tokens: 20 } })}\n\n`,
-          ],
-        };
+        prepareStreamResponse({ content: ['response'] });
         const imageUrl = new URL('https://example.com/image.jpg');
         const imagePrompt: LanguageModelV3Prompt = [
           {
@@ -1031,13 +920,7 @@ describe('GatewayLanguageModel', () => {
       });
 
       it('should handle mixed content types correctly for streaming', async () => {
-        server.urls['https://api.test.com/language-model'].response = {
-          type: 'stream-chunks',
-          chunks: [
-            `data: ${JSON.stringify({ type: 'text-delta', textDelta: 'response' })}\n\n`,
-            `data: ${JSON.stringify({ type: 'finish', finishReason: 'stop', usage: { prompt_tokens: 10, completion_tokens: 20 } })}\n\n`,
-          ],
-        };
+        prepareStreamResponse({ content: ['response'] });
         const imageBytes = new Uint8Array([1, 2, 3, 4]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
         const imageUrl = new URL('https://example.com/image2.png');
@@ -1447,18 +1330,63 @@ describe('GatewayLanguageModel', () => {
   });
 
   describe('Provider Options', () => {
-    it('should pass provider routing order for doGenerate', async () => {
+    function prepareJsonResponse({
+      content = { type: 'text', text: '' },
+      usage = {
+        prompt_tokens: 4,
+        completion_tokens: 30,
+      },
+      finish_reason = 'stop',
+      id = 'test-id',
+      created = 1711115037,
+      model = 'test-model',
+    } = {}) {
       server.urls['https://api.test.com/language-model'].response = {
         type: 'json-value',
         body: {
-          id: 'test-id',
-          created: 1711115037,
-          model: 'test-model',
-          content: { type: 'text', text: 'Test response' },
-          finish_reason: 'stop',
-          usage: { prompt_tokens: 4, completion_tokens: 30 },
+          id,
+          created,
+          model,
+          content,
+          finish_reason,
+          usage,
         },
       };
+    }
+
+    function prepareStreamResponse({
+      content,
+      finish_reason = 'stop',
+    }: {
+      content: string[];
+      finish_reason?: string;
+    }) {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ...content.map(
+            text =>
+              `data: ${JSON.stringify({
+                type: 'text-delta',
+                textDelta: text,
+              })}\n\n`,
+          ),
+          `data: ${JSON.stringify({
+            type: 'finish',
+            finishReason: finish_reason,
+            usage: {
+              prompt_tokens: 10,
+              completion_tokens: 20,
+            },
+          })}\n\n`,
+        ],
+      };
+    }
+
+    it('should pass provider routing order for doGenerate', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
 
       await createTestModel().doGenerate({
         prompt: TEST_PROMPT,
@@ -1476,17 +1404,9 @@ describe('GatewayLanguageModel', () => {
     });
 
     it('should pass single provider in order array', async () => {
-      server.urls['https://api.test.com/language-model'].response = {
-        type: 'json-value',
-        body: {
-          id: 'test-id',
-          created: 1711115037,
-          model: 'test-model',
-          content: { type: 'text', text: 'Test response' },
-          finish_reason: 'stop',
-          usage: { prompt_tokens: 4, completion_tokens: 30 },
-        },
-      };
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
 
       await createTestModel().doGenerate({
         prompt: TEST_PROMPT,
@@ -1504,17 +1424,9 @@ describe('GatewayLanguageModel', () => {
     });
 
     it('should work without provider options', async () => {
-      server.urls['https://api.test.com/language-model'].response = {
-        type: 'json-value',
-        body: {
-          id: 'test-id',
-          created: 1711115037,
-          model: 'test-model',
-          content: { type: 'text', text: 'Test response' },
-          finish_reason: 'stop',
-          usage: { prompt_tokens: 4, completion_tokens: 30 },
-        },
-      };
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: TEST_PROMPT,
@@ -1529,14 +1441,9 @@ describe('GatewayLanguageModel', () => {
     });
 
     it('should pass provider routing order for doStream', async () => {
-      server.urls['https://api.test.com/language-model'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          `data: ${JSON.stringify({ type: 'text-delta', textDelta: 'Hello' })}\n\n`,
-          `data: ${JSON.stringify({ type: 'text-delta', textDelta: ' world' })}\n\n`,
-          `data: ${JSON.stringify({ type: 'finish', finishReason: 'stop', usage: { prompt_tokens: 10, completion_tokens: 20 } })}\n\n`,
-        ],
-      };
+      prepareStreamResponse({
+        content: ['Hello', ' world'],
+      });
 
       const { stream } = await createTestModel().doStream({
         prompt: TEST_PROMPT,
@@ -1556,17 +1463,9 @@ describe('GatewayLanguageModel', () => {
     });
 
     it('should validate provider options against schema', async () => {
-      server.urls['https://api.test.com/language-model'].response = {
-        type: 'json-value',
-        body: {
-          id: 'test-id',
-          created: 1711115037,
-          model: 'test-model',
-          content: { type: 'text', text: 'Test response' },
-          finish_reason: 'stop',
-          usage: { prompt_tokens: 4, completion_tokens: 30 },
-        },
-      };
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
 
       await createTestModel().doGenerate({
         prompt: TEST_PROMPT,

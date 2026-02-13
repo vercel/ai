@@ -68,15 +68,37 @@ describe('GatewayVideoModel', () => {
       | { type: 'url'; url: string; mediaType: string }
       | { type: 'base64'; data: string; mediaType: string };
 
-    it('should send correct request headers', async () => {
+    function prepareJsonResponse({
+      videos = [
+        {
+          type: 'base64' as const,
+          data: 'base64-video-1',
+          mediaType: 'video/mp4',
+        },
+      ],
+      warnings,
+      providerMetadata,
+    }: {
+      videos?: VideoData[];
+      warnings?: Array<
+        | { type: 'unsupported'; feature: string; details?: string }
+        | { type: 'compatibility'; feature: string; details?: string }
+        | { type: 'other'; message: string }
+      >;
+      providerMetadata?: Record<string, unknown>;
+    } = {}) {
       server.urls['https://api.test.com/video-model'].response = {
         type: 'json-value',
         body: {
-          videos: [
-            { type: 'base64', data: 'base64-video-1', mediaType: 'video/mp4' },
-          ],
+          videos,
+          ...(warnings && { warnings }),
+          ...(providerMetadata && { providerMetadata }),
         },
       };
+    }
+
+    it('should send correct request headers', async () => {
+      prepareJsonResponse();
 
       await createTestModel().doGenerate({
         prompt: 'A beautiful sunset over mountains',
@@ -99,14 +121,9 @@ describe('GatewayVideoModel', () => {
     });
 
     it('should send correct request body with all parameters', async () => {
-      server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos: [
-            { type: 'base64', data: 'base64-1', mediaType: 'video/mp4' },
-          ],
-        },
-      };
+      prepareJsonResponse({
+        videos: [{ type: 'base64', data: 'base64-1', mediaType: 'video/mp4' }],
+      });
 
       const prompt = 'A cat playing piano';
       await createTestModel().doGenerate({
@@ -137,14 +154,7 @@ describe('GatewayVideoModel', () => {
     });
 
     it('should omit optional parameters when not provided', async () => {
-      server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos: [
-            { type: 'base64', data: 'base64-video-1', mediaType: 'video/mp4' },
-          ],
-        },
-      };
+      prepareJsonResponse();
 
       const prompt = 'A simple prompt';
       await createTestModel().doGenerate({
@@ -177,12 +187,7 @@ describe('GatewayVideoModel', () => {
         { type: 'base64', data: 'base64-video-1', mediaType: 'video/mp4' },
         { type: 'base64', data: 'base64-video-2', mediaType: 'video/webm' },
       ];
-      server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos: mockVideos,
-        },
-      };
+      prepareJsonResponse({ videos: mockVideos });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -207,12 +212,7 @@ describe('GatewayVideoModel', () => {
           mediaType: 'video/mp4',
         },
       ];
-      server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos: mockVideos,
-        },
-      };
+      prepareJsonResponse({ videos: mockVideos });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -240,15 +240,10 @@ describe('GatewayVideoModel', () => {
         },
       };
 
-      server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos: [
-            { type: 'base64', data: 'base64-1', mediaType: 'video/mp4' },
-          ],
-          providerMetadata: mockProviderMetadata,
-        },
-      };
+      prepareJsonResponse({
+        videos: [{ type: 'base64', data: 'base64-1', mediaType: 'video/mp4' }],
+        providerMetadata: mockProviderMetadata,
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -266,20 +261,15 @@ describe('GatewayVideoModel', () => {
     });
 
     it('should handle provider metadata without videos field', async () => {
-      server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos: [
-            { type: 'base64', data: 'base64-1', mediaType: 'video/mp4' },
-          ],
-          providerMetadata: {
-            gateway: {
-              routing: { provider: 'google' },
-              cost: '0.10',
-            },
+      prepareJsonResponse({
+        videos: [{ type: 'base64', data: 'base64-1', mediaType: 'video/mp4' }],
+        providerMetadata: {
+          gateway: {
+            routing: { provider: 'google' },
+            cost: '0.10',
           },
         },
-      };
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -302,15 +292,10 @@ describe('GatewayVideoModel', () => {
     });
 
     it('should handle empty provider metadata', async () => {
-      server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos: [
-            { type: 'base64', data: 'base64-1', mediaType: 'video/mp4' },
-          ],
-          providerMetadata: {},
-        },
-      };
+      prepareJsonResponse({
+        videos: [{ type: 'base64', data: 'base64-1', mediaType: 'video/mp4' }],
+        providerMetadata: {},
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -328,14 +313,9 @@ describe('GatewayVideoModel', () => {
     });
 
     it('should handle undefined provider metadata', async () => {
-      server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos: [
-            { type: 'base64', data: 'base64-1', mediaType: 'video/mp4' },
-          ],
-        },
-      };
+      prepareJsonResponse({
+        videos: [{ type: 'base64', data: 'base64-1', mediaType: 'video/mp4' }],
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -357,15 +337,10 @@ describe('GatewayVideoModel', () => {
         { type: 'other' as const, message: 'Duration exceeds maximum' },
       ];
 
-      server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos: [
-            { type: 'base64', data: 'base64-1', mediaType: 'video/mp4' },
-          ],
-          warnings: mockWarnings,
-        },
-      };
+      prepareJsonResponse({
+        videos: [{ type: 'base64', data: 'base64-1', mediaType: 'video/mp4' }],
+        warnings: mockWarnings,
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -392,15 +367,10 @@ describe('GatewayVideoModel', () => {
         },
       ];
 
-      server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos: [
-            { type: 'base64', data: 'base64-1', mediaType: 'video/mp4' },
-          ],
-          warnings: mockWarnings,
-        },
-      };
+      prepareJsonResponse({
+        videos: [{ type: 'base64', data: 'base64-1', mediaType: 'video/mp4' }],
+        warnings: mockWarnings,
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -426,15 +396,10 @@ describe('GatewayVideoModel', () => {
         },
       ];
 
-      server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos: [
-            { type: 'base64', data: 'base64-1', mediaType: 'video/mp4' },
-          ],
-          warnings: mockWarnings,
-        },
-      };
+      prepareJsonResponse({
+        videos: [{ type: 'base64', data: 'base64-1', mediaType: 'video/mp4' }],
+        warnings: mockWarnings,
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -452,14 +417,9 @@ describe('GatewayVideoModel', () => {
     });
 
     it('should return empty warnings array when not provided', async () => {
-      server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos: [
-            { type: 'base64', data: 'base64-1', mediaType: 'video/mp4' },
-          ],
-        },
-      };
+      prepareJsonResponse({
+        videos: [{ type: 'base64', data: 'base64-1', mediaType: 'video/mp4' }],
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -477,14 +437,9 @@ describe('GatewayVideoModel', () => {
     });
 
     it('should include response metadata', async () => {
-      server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos: [
-            { type: 'base64', data: 'base64-1', mediaType: 'video/mp4' },
-          ],
-        },
-      };
+      prepareJsonResponse({
+        videos: [{ type: 'base64', data: 'base64-1', mediaType: 'video/mp4' }],
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -504,14 +459,7 @@ describe('GatewayVideoModel', () => {
     });
 
     it('should merge custom headers with config headers', async () => {
-      server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos: [
-            { type: 'base64', data: 'base64-video-1', mediaType: 'video/mp4' },
-          ],
-        },
-      };
+      prepareJsonResponse();
 
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -538,14 +486,7 @@ describe('GatewayVideoModel', () => {
     });
 
     it('should include o11y headers', async () => {
-      server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos: [
-            { type: 'base64', data: 'base64-video-1', mediaType: 'video/mp4' },
-          ],
-        },
-      };
+      prepareJsonResponse();
 
       await createTestModel({
         o11yHeaders: {
@@ -572,14 +513,7 @@ describe('GatewayVideoModel', () => {
     });
 
     it('should pass abort signal to fetch', async () => {
-      server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos: [
-            { type: 'base64', data: 'base64-video-1', mediaType: 'video/mp4' },
-          ],
-        },
-      };
+      prepareJsonResponse();
 
       const abortController = new AbortController();
       await createTestModel().doGenerate({
@@ -653,14 +587,7 @@ describe('GatewayVideoModel', () => {
     });
 
     it('should include providerOptions object in request body', async () => {
-      server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos: [
-            { type: 'base64', data: 'base64-video-1', mediaType: 'video/mp4' },
-          ],
-        },
-      };
+      prepareJsonResponse();
 
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -699,14 +626,7 @@ describe('GatewayVideoModel', () => {
     });
 
     it('should handle empty provider options', async () => {
-      server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos: [
-            { type: 'base64', data: 'base64-video-1', mediaType: 'video/mp4' },
-          ],
-        },
-      };
+      prepareJsonResponse();
 
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -729,14 +649,7 @@ describe('GatewayVideoModel', () => {
     });
 
     it('should handle different model IDs', async () => {
-      server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos: [
-            { type: 'base64', data: 'base64-video-1', mediaType: 'video/mp4' },
-          ],
-        },
-      };
+      prepareJsonResponse();
 
       const customModelId = 'fal/luma-ray-2';
       const model = new GatewayVideoModel(customModelId, {
@@ -766,32 +679,27 @@ describe('GatewayVideoModel', () => {
     });
 
     it('should handle complex provider metadata with multiple providers', async () => {
-      server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos: [
-            { type: 'base64', data: 'base64-1', mediaType: 'video/mp4' },
-          ],
-          providerMetadata: {
-            fal: {
-              videos: [{ duration: 5.0, fps: 24, width: 1920, height: 1080 }],
-              usage: { computeUnits: 10 },
+      prepareJsonResponse({
+        videos: [{ type: 'base64', data: 'base64-1', mediaType: 'video/mp4' }],
+        providerMetadata: {
+          fal: {
+            videos: [{ duration: 5.0, fps: 24, width: 1920, height: 1080 }],
+            usage: { computeUnits: 10 },
+          },
+          gateway: {
+            routing: {
+              provider: 'fal',
+              attempts: [
+                { provider: 'google', success: false },
+                { provider: 'fal', success: true },
+              ],
             },
-            gateway: {
-              routing: {
-                provider: 'fal',
-                attempts: [
-                  { provider: 'google', success: false },
-                  { provider: 'fal', success: true },
-                ],
-              },
-              cost: '0.20',
-              marketCost: '0.30',
-              generationId: 'gen-xyz-789',
-            },
+            cost: '0.20',
+            marketCost: '0.30',
+            generationId: 'gen-xyz-789',
           },
         },
-      };
+      });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
@@ -827,18 +735,7 @@ describe('GatewayVideoModel', () => {
 
     describe('image file encoding for image-to-video', () => {
       it('should encode Uint8Array image to base64 string', async () => {
-        server.urls['https://api.test.com/video-model'].response = {
-          type: 'json-value',
-          body: {
-            videos: [
-              {
-                type: 'base64',
-                data: 'base64-video-1',
-                mediaType: 'video/mp4',
-              },
-            ],
-          },
-        };
+        prepareJsonResponse();
 
         const binaryData = new Uint8Array([72, 101, 108, 108, 111]); // "Hello"
 
@@ -867,18 +764,7 @@ describe('GatewayVideoModel', () => {
       });
 
       it('should pass through image with string data unchanged', async () => {
-        server.urls['https://api.test.com/video-model'].response = {
-          type: 'json-value',
-          body: {
-            videos: [
-              {
-                type: 'base64',
-                data: 'base64-video-1',
-                mediaType: 'video/mp4',
-              },
-            ],
-          },
-        };
+        prepareJsonResponse();
 
         await createTestModel().doGenerate({
           prompt: 'Animate this image',
@@ -905,18 +791,7 @@ describe('GatewayVideoModel', () => {
       });
 
       it('should pass through URL-type image unchanged', async () => {
-        server.urls['https://api.test.com/video-model'].response = {
-          type: 'json-value',
-          body: {
-            videos: [
-              {
-                type: 'base64',
-                data: 'base64-video-1',
-                mediaType: 'video/mp4',
-              },
-            ],
-          },
-        };
+        prepareJsonResponse();
 
         await createTestModel().doGenerate({
           prompt: 'Animate this image',
@@ -941,18 +816,7 @@ describe('GatewayVideoModel', () => {
       });
 
       it('should preserve providerOptions on image during encoding', async () => {
-        server.urls['https://api.test.com/video-model'].response = {
-          type: 'json-value',
-          body: {
-            videos: [
-              {
-                type: 'base64',
-                data: 'base64-video-1',
-                mediaType: 'video/mp4',
-              },
-            ],
-          },
-        };
+        prepareJsonResponse();
 
         const binaryData = new Uint8Array([72, 101, 108, 108, 111]);
 
