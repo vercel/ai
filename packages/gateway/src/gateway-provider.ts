@@ -16,8 +16,10 @@ import {
 import { GatewayLanguageModel } from './gateway-language-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
+import { GatewayVideoModel } from './gateway-video-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
+import type { GatewayVideoModelId } from './gateway-video-model-settings';
 import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
@@ -25,6 +27,7 @@ import type {
   LanguageModelV3,
   EmbeddingModelV3,
   ImageModelV3,
+  Experimental_VideoModelV3,
   ProviderV3,
 } from '@ai-sdk/provider';
 import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
@@ -32,6 +35,11 @@ import { VERSION } from './version';
 
 export interface GatewayProvider extends ProviderV3 {
   (modelId: GatewayModelId): LanguageModelV3;
+
+  /**
+   * Creates a model for text generation.
+   */
+  chat(modelId: GatewayModelId): LanguageModelV3;
 
   /**
    * Creates a model for text generation.
@@ -51,6 +59,11 @@ export interface GatewayProvider extends ProviderV3 {
   /**
    * Creates a model for generating text embeddings.
    */
+  embedding(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * Creates a model for generating text embeddings.
+   */
   embeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
 
   /**
@@ -61,7 +74,22 @@ export interface GatewayProvider extends ProviderV3 {
   /**
    * Creates a model for generating images.
    */
+  image(modelId: GatewayImageModelId): ImageModelV3;
+
+  /**
+   * Creates a model for generating images.
+   */
   imageModel(modelId: GatewayImageModelId): ImageModelV3;
+
+  /**
+   * Creates a model for generating videos.
+   */
+  video(modelId: GatewayVideoModelId): Experimental_VideoModelV3;
+
+  /**
+   * Creates a model for generating videos.
+   */
+  videoModel(modelId: GatewayVideoModelId): Experimental_VideoModelV3;
 
   /**
    * Gateway-specific tools executed server-side.
@@ -254,8 +282,20 @@ export function createGatewayProvider(
   };
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+  provider.videoModel = (modelId: GatewayVideoModelId) => {
+    return new GatewayVideoModel(modelId, {
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
+  };
+  provider.chat = provider.languageModel;
+  provider.embedding = provider.embeddingModel;
+  provider.image = provider.imageModel;
+  provider.video = provider.videoModel;
   provider.tools = gatewayTools;
-
   return provider;
 }
 

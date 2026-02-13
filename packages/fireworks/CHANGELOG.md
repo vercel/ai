@@ -1,5 +1,49 @@
 # @ai-sdk/fireworks
 
+## 2.0.34
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+  - @ai-sdk/openai-compatible@2.0.30
+
+## 2.0.33
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+- Updated dependencies [99fbed8]
+  - @ai-sdk/openai-compatible@2.0.29
+
+## 2.0.32
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/openai-compatible@2.0.28
+  - @ai-sdk/provider-utils@4.0.14
+
+## 2.0.31
+
+### Patch Changes
+
+- Updated dependencies [9e490ad]
+  - @ai-sdk/openai-compatible@2.0.27
+
+## 2.0.30
+
+### Patch Changes
+
+- e152eef: feat(provider/fireworks): add thinking and reasoning options for kimi k2.5
+
+## 2.0.29
+
+### Patch Changes
+
+- 4e3d75f: feat(provider/fireworks): add thinking and reasoning options for kimi k2.5
+
 ## 2.0.28
 
 ### Patch Changes

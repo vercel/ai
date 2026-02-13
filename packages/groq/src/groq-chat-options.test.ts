@@ -1,13 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { groqProviderOptions, GroqProviderOptions } from './groq-chat-options';
+import {
+  groqLanguageModelOptions,
+  GroqLanguageModelOptions,
+} from './groq-chat-options';
 
-describe('groqProviderOptions', () => {
+describe('groqLanguageModelOptions', () => {
   describe('reasoningEffort', () => {
     it('accepts valid reasoningEffort values', () => {
       const validValues = ['none', 'default', 'low', 'medium', 'high'] as const;
 
       validValues.forEach(value => {
-        const result = groqProviderOptions.safeParse({
+        const result = groqLanguageModelOptions.safeParse({
           reasoningEffort: value,
         });
         expect(result.success).toBe(true);
@@ -25,7 +28,7 @@ describe('groqProviderOptions', () => {
       ];
 
       invalidValues.forEach(value => {
-        const result = groqProviderOptions.safeParse({
+        const result = groqLanguageModelOptions.safeParse({
           reasoningEffort: value,
         });
         expect(result.success).toBe(false);
@@ -33,13 +36,13 @@ describe('groqProviderOptions', () => {
     });
 
     it('allows reasoningEffort to be undefined', () => {
-      const result = groqProviderOptions.safeParse({});
+      const result = groqLanguageModelOptions.safeParse({});
       expect(result.success).toBe(true);
       expect(result.data?.reasoningEffort).toBeUndefined();
     });
 
     it('allows reasoningEffort to be omitted explicitly', () => {
-      const result = groqProviderOptions.safeParse({
+      const result = groqLanguageModelOptions.safeParse({
         reasoningEffort: undefined,
       });
       expect(result.success).toBe(true);
@@ -49,7 +52,7 @@ describe('groqProviderOptions', () => {
 
   describe('combined options with reasoningEffort', () => {
     it('accepts reasoningEffort with other valid options', () => {
-      const result = groqProviderOptions.safeParse({
+      const result = groqLanguageModelOptions.safeParse({
         reasoningEffort: 'high',
         parallelToolCalls: true,
         user: 'test-user',
@@ -64,7 +67,7 @@ describe('groqProviderOptions', () => {
     });
 
     it('rejects when reasoningEffort is invalid among valid options', () => {
-      const result = groqProviderOptions.safeParse({
+      const result = groqLanguageModelOptions.safeParse({
         reasoningEffort: 'ultra-high',
         parallelToolCalls: true,
         user: 'test-user',
@@ -85,7 +88,7 @@ describe('groqProviderOptions', () => {
       ];
 
       variants.forEach(variant => {
-        const result = groqProviderOptions.safeParse({
+        const result = groqLanguageModelOptions.safeParse({
           reasoningEffort: variant,
         });
         expect(result.success).toBe(true);
@@ -97,8 +100,8 @@ describe('groqProviderOptions', () => {
   });
 
   describe('type inference', () => {
-    it('infers GroqProviderOptions type correctly', () => {
-      const options: GroqProviderOptions = {
+    it('infers GroqLanguageModelOptions type correctly', () => {
+      const options: GroqLanguageModelOptions = {
         reasoningEffort: 'medium',
         parallelToolCalls: false,
       };

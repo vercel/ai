@@ -7,10 +7,12 @@ import { UIMessage } from '../ui/ui-messages';
 import { ErrorHandler } from '../util/error-handler';
 import { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
 import { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
+import { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
 
 export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   messageId,
   originalMessages = [],
+  onStepFinish,
   onFinish,
   onError,
   stream,
@@ -29,6 +31,11 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   originalMessages?: UI_MESSAGE[];
 
   onError: ErrorHandler;
+
+  /**
+   * Callback that is called when each step finishes during multi-step agent runs.
+   */
+  onStepFinish?: UIMessageStreamOnStepFinishCallback<UI_MESSAGE>;
 
   onFinish?: UIMessageStreamOnFinishCallback<UI_MESSAGE>;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
@@ -69,7 +76,8 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     }),
   );
 
-  if (onFinish == null) {
+  // Only process the stream if we need to track state for callbacks
+  if (onFinish == null && onStepFinish == null) {
     return idInjectedStream;
   }
 
@@ -110,6 +118,29 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
     });
   };
 
+  const callOnStepFinish = async () => {
+    if (!onStepFinish) {
+      return;
+    }
+
+    const isContinuation = state.message.id === lastMessage?.id;
+
+    try {
+      await onStepFinish({
+        isContinuation,
+        responseMessage: structuredClone(state.message) as UI_MESSAGE,
+        messages: [
+          ...(isContinuation
+            ? originalMessages.slice(0, -1)
+            : originalMessages),
+          structuredClone(state.message),
+        ] as UI_MESSAGE[],
+      });
+    } catch (error) {
+      onError(error);
+    }
+  };
+
   return processUIMessageStream<UI_MESSAGE>({
     stream: idInjectedStream,
     runUpdateMessageJob,
@@ -119,7 +150,11 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
       InferUIMessageChunk<UI_MESSAGE>,
       InferUIMessageChunk<UI_MESSAGE>
     >({
-      transform(chunk, controller) {
+      async transform(chunk, controller) {
+        if (chunk.type === 'finish-step') {
+          await callOnStepFinish();
+        }
+
         controller.enqueue(chunk);
       },
       // @ts-expect-error cancel is still new and missing from types https://developer.mozilla.org/en-US/docs/Web/API/TransformStream#browser_compatibility

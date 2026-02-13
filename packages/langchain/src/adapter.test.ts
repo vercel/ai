@@ -2041,3 +2041,257 @@ describe('toUIMessageStream with LangGraph HITL fixture', () => {
     );
   });
 });
+
+describe('toUIMessageStream callbacks', () => {
+  it('should call onFinish with final state for LangGraph streams', async () => {
+    const onFinish = vi.fn();
+    const valuesData = {
+      messages: [{ id: 'ai-1', type: 'ai', content: 'Hello!' }],
+    };
+
+    const inputStream = convertArrayToReadableStream([['values', valuesData]]);
+    await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, { onFinish }),
+    );
+
+    expect(onFinish).toHaveBeenCalledWith(valuesData);
+  });
+
+  it('should call onFinish with last values data when multiple values events', async () => {
+    const onFinish = vi.fn();
+
+    const inputStream = convertArrayToReadableStream([
+      ['values', { messages: [], step: 1 }],
+      ['values', { messages: [{ id: 'ai-1' }], step: 2 }],
+    ]);
+    await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, { onFinish }),
+    );
+
+    expect(onFinish).toHaveBeenCalledWith({
+      messages: [{ id: 'ai-1' }],
+      step: 2,
+    });
+  });
+
+  it('should call onFinish with undefined for model streams', async () => {
+    const onFinish = vi.fn();
+
+    const inputStream = convertArrayToReadableStream([
+      new AIMessageChunk({ content: 'Hello', id: 'test-1' }),
+    ]);
+    await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, { onFinish }),
+    );
+
+    expect(onFinish).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call onFinish with undefined for streamEvents streams', async () => {
+    const onFinish = vi.fn();
+
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_chat_model_stream',
+        data: { chunk: { id: 'msg-1', content: 'Hello' } },
+      },
+    ]);
+    await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, { onFinish }),
+    );
+
+    expect(onFinish).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call onError when stream errors', async () => {
+    const onError = vi.fn();
+    const onFinish = vi.fn();
+
+    async function* errorStream(): AsyncGenerator<unknown> {
+      yield ['values', { messages: [] }];
+      throw new Error('Stream failed');
+    }
+
+    await convertReadableStreamToArray(
+      toUIMessageStream(errorStream() as AsyncIterable<AIMessageChunk>, {
+        onError,
+        onFinish,
+      }),
+    );
+
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Stream failed' }),
+    );
+    expect(onFinish).not.toHaveBeenCalled();
+  });
+
+  it('should call onAbort when stream is aborted', async () => {
+    const onAbort = vi.fn();
+    const onError = vi.fn();
+    const onFinish = vi.fn();
+
+    async function* abortStream(): AsyncGenerator<unknown> {
+      yield ['values', { messages: [] }];
+      throw new DOMException('Aborted', 'AbortError');
+    }
+
+    await convertReadableStreamToArray(
+      toUIMessageStream(abortStream() as AsyncIterable<AIMessageChunk>, {
+        onAbort,
+        onError,
+        onFinish,
+      }),
+    );
+
+    expect(onAbort).toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+    expect(onFinish).not.toHaveBeenCalled();
+  });
+
+  it('should call onFinal before onFinish on success', async () => {
+    const callOrder: string[] = [];
+
+    const callbacks = {
+      onFinal: () => {
+        callOrder.push('onFinal');
+      },
+      onFinish: () => {
+        callOrder.push('onFinish');
+      },
+    };
+
+    const inputStream = convertArrayToReadableStream([
+      ['values', { messages: [] }],
+    ]);
+    await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, callbacks),
+    );
+
+    expect(callOrder).toEqual(['onFinal', 'onFinish']);
+  });
+
+  it('should call onFinal before onError on error', async () => {
+    const callOrder: string[] = [];
+
+    async function* errorStream(): AsyncGenerator<unknown> {
+      yield ['values', { messages: [] }];
+      throw new Error('Stream failed');
+    }
+
+    const callbacks = {
+      onFinal: () => {
+        callOrder.push('onFinal');
+      },
+      onError: () => {
+        callOrder.push('onError');
+      },
+    };
+
+    const stream = toUIMessageStream(
+      errorStream() as AsyncIterable<AIMessageChunk>,
+      callbacks,
+    );
+    await convertReadableStreamToArray(stream);
+
+    expect(callOrder).toEqual(['onFinal', 'onError']);
+  });
+
+  it('should call onFinal before onAbort on abort', async () => {
+    const callOrder: string[] = [];
+
+    async function* abortStream(): AsyncGenerator<unknown> {
+      yield ['values', { messages: [] }];
+      throw new DOMException('Aborted', 'AbortError');
+    }
+
+    const callbacks = {
+      onFinal: () => {
+        callOrder.push('onFinal');
+      },
+      onAbort: () => {
+        callOrder.push('onAbort');
+      },
+    };
+
+    const stream = toUIMessageStream(
+      abortStream() as AsyncIterable<AIMessageChunk>,
+      callbacks,
+    );
+    await convertReadableStreamToArray(stream);
+
+    expect(callOrder).toEqual(['onFinal', 'onAbort']);
+  });
+
+  it('should support typed state with generic parameter', async () => {
+    interface ChatState {
+      messages: Array<{ role: string; content: string }>;
+      escalated: boolean;
+    }
+
+    const onFinish = vi.fn();
+    const valuesData: ChatState = {
+      messages: [{ role: 'assistant', content: 'Hello' }],
+      escalated: false,
+    };
+
+    const inputStream = convertArrayToReadableStream([['values', valuesData]]);
+    await convertReadableStreamToArray(
+      toUIMessageStream<ChatState>(inputStream, { onFinish }),
+    );
+
+    expect(onFinish).toHaveBeenCalledWith(valuesData);
+  });
+
+  it('should await async callbacks in order', async () => {
+    const results: string[] = [];
+
+    const inputStream = convertArrayToReadableStream([
+      ['values', { messages: [] }],
+    ]);
+    await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, {
+        onStart: async () => {
+          results.push('start');
+        },
+        onFinal: async () => {
+          results.push('final');
+        },
+        onFinish: async () => {
+          results.push('finish');
+        },
+      }),
+    );
+
+    expect(results).toEqual(['start', 'final', 'finish']);
+  });
+
+  it('should pass accumulated text to onFinal even on error', async () => {
+    const onFinal = vi.fn();
+
+    async function* partialStream(): AsyncGenerator<AIMessageChunk> {
+      yield new AIMessageChunk({ content: 'Hello', id: 'msg-1' });
+      yield new AIMessageChunk({ content: ' World', id: 'msg-1' });
+      throw new Error('Mid-stream error');
+    }
+
+    await convertReadableStreamToArray(
+      toUIMessageStream(partialStream(), { onFinal }),
+    );
+
+    expect(onFinal).toHaveBeenCalledWith('Hello World');
+  });
+
+  it('should handle [namespace, type, data] format for values events', async () => {
+    const onFinish = vi.fn();
+    const valuesData = { messages: [{ id: 'ai-1', content: 'Hello' }] };
+
+    const inputStream = convertArrayToReadableStream([
+      ['some-namespace', 'values', valuesData],
+    ]);
+    await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, { onFinish }),
+    );
+
+    expect(onFinish).toHaveBeenCalledWith(valuesData);
+  });
+});

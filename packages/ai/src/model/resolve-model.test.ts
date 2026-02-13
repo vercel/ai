@@ -261,11 +261,75 @@ describe('resolveVideoModel', () => {
     });
   });
 
-  describe('when a string is provided', () => {
+  describe('when a string is provided and the global default provider is not set', () => {
+    it('should return a gateway video model', () => {
+      const mockModel = new MockVideoModelV3({
+        provider: 'gateway',
+        modelId: 'test-model-id',
+      });
+
+      const videoModelSpy = vi
+        .spyOn(gateway, 'videoModel')
+        .mockReturnValue(mockModel);
+
+      try {
+        const resolvedModel = resolveVideoModel('test-model-id');
+
+        expect(resolvedModel.provider).toBe('gateway');
+        expect(resolvedModel.modelId).toBe('test-model-id');
+      } finally {
+        videoModelSpy.mockRestore();
+      }
+    });
+  });
+
+  describe('when a string is provided and the global default provider is set', () => {
+    beforeEach(() => {
+      globalThis.AI_SDK_DEFAULT_PROVIDER = customProvider({
+        videoModels: {
+          'test-model-id': new MockVideoModelV3({
+            provider: 'global-test-provider',
+            modelId: 'actual-test-model-id',
+          }),
+        },
+      });
+    });
+
+    afterEach(() => {
+      delete globalThis.AI_SDK_DEFAULT_PROVIDER;
+    });
+
+    it('should return a video model from the global default provider', () => {
+      const resolvedModel = resolveVideoModel('test-model-id');
+
+      expect(resolvedModel.provider).toBe('global-test-provider');
+      expect(resolvedModel.modelId).toBe('actual-test-model-id');
+    });
+  });
+
+  describe('when a string is provided and the provider does not support video models', () => {
+    beforeEach(() => {
+      globalThis.AI_SDK_DEFAULT_PROVIDER = {
+        specificationVersion: 'v3' as const,
+        languageModel: () => {
+          throw new Error('not implemented');
+        },
+        embeddingModel: () => {
+          throw new Error('not implemented');
+        },
+        imageModel: () => {
+          throw new Error('not implemented');
+        },
+      };
+    });
+
+    afterEach(() => {
+      delete globalThis.AI_SDK_DEFAULT_PROVIDER;
+    });
+
     it('should throw an error', () => {
-      expect(() => resolveVideoModel('test-model-id' as any)).toThrow(
-        'Video models cannot be resolved from strings. ' +
-          'Please use a Experimental_VideoModelV3 object from a provider (e.g., fal.video("model-id")).',
+      expect(() => resolveVideoModel('test-model-id')).toThrow(
+        'The default provider does not support video models.',
       );
     });
   });

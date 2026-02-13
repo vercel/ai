@@ -8960,6 +8960,7 @@ describe('streamText', () => {
                 "ai.response.model": "mock-model-id",
                 "ai.response.msToFinish": 500,
                 "ai.response.msToFirstChunk": 100,
+                "ai.response.reasoning": "thinking",
                 "ai.response.text": "",
                 "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
                 "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
@@ -10821,6 +10822,64 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(tracer.jsonSpans).toMatchSnapshot();
+    });
+
+    it('should record reasoning in telemetry when present', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'reasoning-start', id: '1' },
+            {
+              type: 'reasoning-delta',
+              id: '1',
+              delta: 'This is my reasoning ',
+            },
+            {
+              type: 'reasoning-delta',
+              id: '1',
+              delta: 'about the problem.',
+            },
+            { type: 'reasoning-end', id: '1' },
+            { type: 'text-start', id: '2' },
+            { type: 'text-delta', id: '2', delta: 'Hello, world!' },
+            { type: 'text-end', id: '2' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          tracer,
+        },
+        _internal: { now: mockValues(0, 100, 500) },
+      });
+
+      await result.consumeStream();
+
+      // Check that reasoning is recorded in both spans
+      const rootSpan = tracer.jsonSpans.find(
+        span => span.name === 'ai.streamText',
+      );
+      const doStreamSpan = tracer.jsonSpans.find(
+        span => span.name === 'ai.streamText.doStream',
+      );
+
+      expect(rootSpan?.attributes['ai.response.reasoning']).toBe(
+        'This is my reasoning about the problem.',
+      );
+      expect(doStreamSpan?.attributes['ai.response.reasoning']).toBe(
+        'This is my reasoning about the problem.',
+      );
     });
   });
 

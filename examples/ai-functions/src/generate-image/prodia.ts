@@ -1,4 +1,4 @@
-import { ProdiaImageProviderOptions, prodia } from '@ai-sdk/prodia';
+import { ProdiaImageModelOptions, prodia } from '@ai-sdk/prodia';
 import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
@@ -13,7 +13,7 @@ run(async () => {
         width: 1024,
         height: 1024,
         steps: 4,
-      } satisfies ProdiaImageProviderOptions,
+      } satisfies ProdiaImageModelOptions,
     },
   });
 

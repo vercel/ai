@@ -1,4 +1,5 @@
 export type { GatewayModelId } from './gateway-language-model-settings';
+export type { GatewayVideoModelId } from './gateway-video-model-settings';
 export type {
   GatewayLanguageModelEntry,
   GatewayLanguageModelSpecification,
@@ -14,7 +15,11 @@ export type {
   GatewayProvider,
   GatewayProviderSettings,
 } from './gateway-provider';
-export type { GatewayProviderOptions } from './gateway-provider-options';
+export type {
+  GatewayLanguageModelOptions,
+  /** @deprecated Use `GatewayLanguageModelOptions` instead. */
+  GatewayLanguageModelOptions as GatewayProviderOptions,
+} from './gateway-provider-options';
 export {
   GatewayError,
   GatewayAuthenticationError,

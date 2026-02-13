@@ -1018,6 +1018,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               attributes: {
                 'ai.response.finishReason': finishReason,
                 'ai.response.text': { output: () => finalStep.text },
+                'ai.response.reasoning': {
+                  output: () => finalStep.reasoningText,
+                },
                 'ai.response.toolCalls': {
                   output: () =>
                     finalStep.toolCalls?.length
@@ -1716,6 +1719,19 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                             'ai.response.finishReason': stepFinishReason,
                             'ai.response.text': {
                               output: () => activeText,
+                            },
+                            'ai.response.reasoning': {
+                              output: () => {
+                                const reasoningParts = recordedContent.filter(
+                                  (
+                                    c,
+                                  ): c is { type: 'reasoning'; text: string } =>
+                                    c.type === 'reasoning',
+                                );
+                                return reasoningParts.length > 0
+                                  ? reasoningParts.map(r => r.text).join('\n')
+                                  : undefined;
+                              },
                             },
                             'ai.response.toolCalls': {
                               output: () => stepToolCallsJson,

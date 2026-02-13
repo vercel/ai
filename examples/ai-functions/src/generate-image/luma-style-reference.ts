@@ -1,4 +1,4 @@
-import { luma, LumaImageProviderOptions } from '@ai-sdk/luma';
+import { luma, type LumaImageModelOptions } from '@ai-sdk/luma';
 import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
@@ -12,7 +12,7 @@ run(async () => {
       luma: {
         referenceType: 'style',
         images: [{ weight: 0.8 }],
-      } satisfies LumaImageProviderOptions,
+      } satisfies LumaImageModelOptions,
     },
   });
 

@@ -1,6 +1,6 @@
 import {
   openai,
-  OpenAIResponsesProviderOptions,
+  OpenAILanguageModelResponsesOptions,
   OpenaiResponsesReasoningProviderMetadata,
 } from '@ai-sdk/openai';
 import { generateText } from 'ai';
@@ -14,7 +14,7 @@ run(async () => {
       openai: {
         reasoningEffort: 'low',
         reasoningSummary: 'detailed',
-      } satisfies OpenAIResponsesProviderOptions,
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
   });
 

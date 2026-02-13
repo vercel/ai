@@ -1,5 +1,86 @@
 # @ai-sdk/gateway
 
+## 3.0.45
+
+### Patch Changes
+
+- e858654: fix (provider/gateway): Fixed error handling in Gateway models by making asGatewayError async in both image and video model implementations.
+
+## 3.0.44
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+
+## 3.0.43
+
+### Patch Changes
+
+- b424e50: chore(provider/gateway): update gateway model settings files
+
+## 3.0.42
+
+### Patch Changes
+
+- 1819bc1: fix (provider/gateway): add missing warning types for video response parsing
+
+## 3.0.41
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+
+## 3.0.40
+
+### Patch Changes
+
+- a2208a2: fix (provider/gateway): added custom error class and message for client side timeouts
+
+## 3.0.39
+
+### Patch Changes
+
+- eea5d30: fix: image generation via Gateway warning schema mismatch
+
+## 3.0.38
+
+### Patch Changes
+
+- 70028ab: feat: report image generation usage info in Gateway
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/provider-utils@4.0.14
+
+## 3.0.36
+
+### Patch Changes
+
+- 9892c58: feat(anthropic): add support for Opus 4.6
+
+## 3.0.35
+
+### Patch Changes
+
+- 8e2eaac: chore(provider/gateway): update gateway model settings files
+
+## 3.0.34
+
+### Patch Changes
+
+- 4867635: feat (provider/gateway): add video generation support
+
+## 3.0.33
+
+### Patch Changes
+
+- ae30443: fix(google): remove shut down `gemini-2.5-flash-image-preview`
+
 ## 3.0.32
 
 ### Patch Changes

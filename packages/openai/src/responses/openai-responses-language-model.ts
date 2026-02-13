@@ -58,7 +58,7 @@ import {
 } from './openai-responses-api';
 import {
   OpenAIResponsesModelId,
-  openaiResponsesProviderOptionsSchema,
+  openaiLanguageModelResponsesOptionsSchema,
   TOP_LOGPROBS_MAX,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
@@ -159,14 +159,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     let openaiOptions = await parseProviderOptions({
       provider: providerOptionsName,
       providerOptions,
-      schema: openaiResponsesProviderOptionsSchema,
+      schema: openaiLanguageModelResponsesOptionsSchema,
     });
 
     if (openaiOptions == null && providerOptionsName !== 'openai') {
       openaiOptions = await parseProviderOptions({
         provider: 'openai',
         providerOptions,
-        schema: openaiResponsesProviderOptionsSchema,
+        schema: openaiLanguageModelResponsesOptionsSchema,
       });
     }
 
