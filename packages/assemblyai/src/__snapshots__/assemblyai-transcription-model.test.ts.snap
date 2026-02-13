@@ -1,0 +1,34 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`doGenerate > response headers > should include response data with timestamp, modelId and headers 1`] = `
+{
+  "body": {
+    "audio_duration": 281,
+    "error": "error",
+    "id": "9ea68fd3-f953-42c1-9742-976c447fb463",
+    "language_code": "en_us",
+    "status": "completed",
+    "text": "Hello, world!",
+    "words": [
+      {
+        "end": 650,
+        "start": 250,
+        "text": "Hello,",
+      },
+      {
+        "end": 1022,
+        "start": 730,
+        "text": "world",
+      },
+    ],
+  },
+  "headers": {
+    "content-length": "3226",
+    "content-type": "application/json",
+    "x-ratelimit-remaining": "123",
+    "x-request-id": "test-request-id",
+  },
+  "modelId": "best",
+  "timestamp": 1970-01-01T00:00:00.000Z,
+}
+`;
