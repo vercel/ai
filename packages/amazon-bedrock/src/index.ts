@@ -15,4 +15,5 @@ export type {
   /** @deprecated Use `AmazonBedrockRerankingModelOptions` instead. */
   AmazonBedrockRerankingModelOptions as BedrockRerankingOptions,
 } from './reranking/bedrock-reranking-options';
+export type { AmazonBedrockImageModelOptions } from './bedrock-image-settings';
 export { VERSION } from './version';
