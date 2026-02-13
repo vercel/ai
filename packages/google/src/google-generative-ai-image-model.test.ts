@@ -29,28 +29,7 @@ const server = createTestServer({
 });
 describe('GoogleGenerativeAIImageModel', () => {
   describe('doGenerate', () => {
-    function prepareJsonResponse({
-      headers,
-    }: {
-      headers?: Record<string, string>;
-    } = {}) {
-      const url =
-        'https://api.example.com/v1beta/models/imagen-3.0-generate-002:predict';
-      server.urls[url].response = {
-        type: 'json-value',
-        headers,
-        body: {
-          predictions: [
-            { bytesBase64Encoded: 'base64-image-1' },
-            { bytesBase64Encoded: 'base64-image-2' },
-          ],
-        },
-      };
-    }
-
     it('should pass headers', async () => {
-      prepareJsonResponse();
-
       const modelWithHeaders = new GoogleGenerativeAIImageModel(
         'imagen-3.0-generate-002',
         {},
@@ -113,8 +92,6 @@ describe('GoogleGenerativeAIImageModel', () => {
     });
 
     it('should extract the generated images', async () => {
-      prepareJsonResponse();
-
       const result = await model.doGenerate({
         prompt,
         files: undefined,
@@ -130,8 +107,6 @@ describe('GoogleGenerativeAIImageModel', () => {
     });
 
     it('sends aspect ratio in the request', async () => {
-      prepareJsonResponse();
-
       await model.doGenerate({
         prompt: 'test prompt',
         files: undefined,
@@ -159,8 +134,6 @@ describe('GoogleGenerativeAIImageModel', () => {
     });
 
     it('should pass aspect ratio directly when specified', async () => {
-      prepareJsonResponse();
-
       await model.doGenerate({
         prompt: 'test prompt',
         files: undefined,
@@ -188,8 +161,6 @@ describe('GoogleGenerativeAIImageModel', () => {
     });
 
     it('should combine aspectRatio and provider options', async () => {
-      prepareJsonResponse();
-
       await model.doGenerate({
         prompt: 'test prompt',
         files: undefined,
@@ -222,8 +193,6 @@ describe('GoogleGenerativeAIImageModel', () => {
     });
 
     it('should return warnings for unsupported settings', async () => {
-      prepareJsonResponse();
-
       const result = await model.doGenerate({
         prompt,
         files: undefined,
@@ -252,12 +221,21 @@ describe('GoogleGenerativeAIImageModel', () => {
     });
 
     it('should include response data with timestamp, modelId and headers', async () => {
-      prepareJsonResponse({
+      server.urls[
+        'https://api.example.com/v1beta/models/imagen-3.0-generate-002:predict'
+      ].response = {
+        type: 'json-value',
         headers: {
           'request-id': 'test-request-id',
           'x-goog-quota-remaining': '123',
         },
-      });
+        body: {
+          predictions: [
+            { bytesBase64Encoded: 'base64-image-1' },
+            { bytesBase64Encoded: 'base64-image-2' },
+          ],
+        },
+      };
 
       const testDate = new Date('2024-03-15T12:00:00Z');
 
@@ -298,7 +276,6 @@ describe('GoogleGenerativeAIImageModel', () => {
     });
 
     it('should use real date when no custom date provider is specified', async () => {
-      prepareJsonResponse();
       const beforeDate = new Date();
 
       const result = await model.doGenerate({
@@ -324,8 +301,6 @@ describe('GoogleGenerativeAIImageModel', () => {
     });
 
     it('should only pass valid provider options', async () => {
-      prepareJsonResponse();
-
       await model.doGenerate({
         prompt,
         files: undefined,
@@ -455,46 +430,6 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
     },
   });
 
-  function prepareGeminiJsonResponse({
-    images = [{ mimeType: 'image/png', data: 'base64-generated-image' }],
-    usage = {
-      promptTokenCount: 10,
-      candidatesTokenCount: 100,
-      totalTokenCount: 110,
-    },
-    headers,
-  }: {
-    images?: Array<{ mimeType: string; data: string }>;
-    usage?: {
-      promptTokenCount: number;
-      candidatesTokenCount: number;
-      totalTokenCount: number;
-    };
-    headers?: Record<string, string>;
-  } = {}) {
-    geminiServer.urls[TEST_URL_GEMINI_IMAGE].response = {
-      type: 'json-value',
-      headers,
-      body: {
-        candidates: [
-          {
-            content: {
-              parts: images.map(img => ({
-                inlineData: {
-                  mimeType: img.mimeType,
-                  data: img.data,
-                },
-              })),
-              role: 'model',
-            },
-            finishReason: 'STOP',
-          },
-        ],
-        usageMetadata: usage,
-      },
-    };
-  }
-
   describe('maxImagesPerCall', () => {
     it('should return 10 for Gemini image models by default', () => {
       expect(geminiModel.maxImagesPerCall).toBe(10);
@@ -516,8 +451,6 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
 
   describe('doGenerate', () => {
     it('should extract the generated image', async () => {
-      prepareGeminiJsonResponse();
-
       const result = await geminiModel.doGenerate({
         prompt: 'A beautiful sunset',
         files: undefined,
@@ -533,8 +466,6 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
     });
 
     it('should send correct request body with responseModalities', async () => {
-      prepareGeminiJsonResponse();
-
       await geminiModel.doGenerate({
         prompt: 'A beautiful sunset',
         files: undefined,
@@ -559,8 +490,6 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
     });
 
     it('should pass aspectRatio via imageConfig', async () => {
-      prepareGeminiJsonResponse();
-
       await geminiModel.doGenerate({
         prompt: 'A beautiful sunset',
         files: undefined,
@@ -579,8 +508,6 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
     });
 
     it('should support Gemini-only aspect ratios like 21:9', async () => {
-      prepareGeminiJsonResponse();
-
       await geminiModel.doGenerate({
         prompt: 'A cinematic landscape',
         files: undefined,
@@ -599,8 +526,6 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
     });
 
     it('should pass seed in generationConfig', async () => {
-      prepareGeminiJsonResponse();
-
       await geminiModel.doGenerate({
         prompt: 'A beautiful sunset',
         files: undefined,
@@ -617,13 +542,32 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
     });
 
     it('should include usage in response', async () => {
-      prepareGeminiJsonResponse({
-        usage: {
-          promptTokenCount: 20,
-          candidatesTokenCount: 200,
-          totalTokenCount: 220,
+      geminiServer.urls[TEST_URL_GEMINI_IMAGE].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    inlineData: {
+                      mimeType: 'image/png',
+                      data: 'base64-generated-image',
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 20,
+            candidatesTokenCount: 200,
+            totalTokenCount: 220,
+          },
         },
-      });
+      };
 
       const result = await geminiModel.doGenerate({
         prompt: 'A beautiful sunset',
@@ -644,8 +588,6 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
     });
 
     it('should return warning for unsupported size option', async () => {
-      prepareGeminiJsonResponse();
-
       const result = await geminiModel.doGenerate({
         prompt: 'A beautiful sunset',
         files: undefined,
@@ -668,8 +610,6 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
 
   describe('image editing', () => {
     it('should include input images in request for editing', async () => {
-      prepareGeminiJsonResponse();
-
       await geminiModel.doGenerate({
         prompt: 'Add a hat to this cat',
         files: [
@@ -701,8 +641,6 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
     });
 
     it('should handle URL-based input images', async () => {
-      prepareGeminiJsonResponse();
-
       await geminiModel.doGenerate({
         prompt: 'Add a hat to this cat',
         files: [
