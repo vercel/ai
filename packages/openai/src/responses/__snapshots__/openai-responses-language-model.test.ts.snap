@@ -9587,6 +9587,125 @@ exports[`OpenAIResponsesLanguageModel > doStream > shell tool > should stream sh
 ]
 `;
 
+exports[`OpenAIResponsesLanguageModel > doStream > shell tool with container (no skills) > should stream shell tool results with container execution 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f",
+    "modelId": "gpt-5.2-2025-12-11",
+    "timestamp": 2026-02-13T18:56:40.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "input": "{"action":{"commands":["echo 'Hello from container!' && uname -a"]}}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50",
+      },
+    },
+    "toolCallId": "call_abc123def456ghi789jkl012",
+    "toolName": "shell",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "output": [
+        {
+          "outcome": {
+            "exitCode": 0,
+            "type": "exit",
+          },
+          "stderr": "",
+          "stdout": "Hello from container!
+Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux
+",
+        },
+      ],
+    },
+    "toolCallId": "call_abc123def456ghi789jkl012",
+    "toolName": "shell",
+    "type": "tool-result",
+  },
+  {
+    "id": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "The",
+    "id": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+    "type": "text-delta",
+  },
+  {
+    "delta": " command",
+    "id": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ran",
+    "id": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+    "type": "text-delta",
+  },
+  {
+    "delta": " successfully.",
+    "id": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+      },
+    },
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 200,
+        "total": 200,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 120,
+        "total": 120,
+      },
+      "raw": {
+        "input_tokens": 200,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 120,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+      },
+    },
+  },
+]
+`;
+
 exports[`OpenAIResponsesLanguageModel > doStream > shell tool with environment > should stream shell tool results with server-executed output 1`] = `
 [
   {

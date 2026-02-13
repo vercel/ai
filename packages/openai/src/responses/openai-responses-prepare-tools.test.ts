@@ -840,6 +840,43 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
+    it('should prepare shell tool with containerAuto without skills', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'containerAuto',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": undefined,
+                "skills": undefined,
+                "type": "container_auto",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
     it('should prepare shell tool with containerAuto and skillReference skills', async () => {
       const result = await prepareResponsesTools({
         tools: [

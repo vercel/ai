@@ -2563,6 +2563,106 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe('shell tool with container (no skills)', () => {
+      let result: LanguageModelV3GenerateResult;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-shell-container.1');
+
+        result = await createModel('gpt-5.2').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {
+                environment: {
+                  type: 'containerAuto',
+                },
+              },
+            },
+          ],
+        });
+      });
+
+      it('should send request body with shell tool and container environment', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5.2",
+            "tools": [
+              {
+                "environment": {
+                  "type": "container_auto",
+                },
+                "type": "shell",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should include shell tool call and server-executed result in content', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"action":{"commands":["echo 'Hello from container!' && uname -a"]}}",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50",
+                },
+              },
+              "toolCallId": "call_abc123def456ghi789jkl012",
+              "toolName": "shell",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "output": [
+                  {
+                    "outcome": {
+                      "exitCode": 0,
+                      "type": "exit",
+                    },
+                    "stderr": "",
+                    "stdout": "Hello from container!
+          Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux
+          ",
+                  },
+                ],
+              },
+              "toolCallId": "call_abc123def456ghi789jkl012",
+              "toolName": "shell",
+              "type": "tool-result",
+            },
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+                },
+              },
+              "text": "The command ran successfully in the container. Here's the output:
+
+          - The echo command printed: "Hello from container!"
+          - The system is running Linux (kernel 6.1.0) on an x86_64 architecture.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('shell tool with environment', () => {
       let result: LanguageModelV3GenerateResult;
 
@@ -4984,6 +5084,32 @@ describe('OpenAIResponsesLanguageModel', () => {
               id: 'openai.shell',
               name: 'shell',
               args: {},
+            },
+          ],
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('shell tool with container (no skills)', () => {
+      it('should stream shell tool results with container execution', async () => {
+        prepareChunksFixtureResponse('openai-shell-container.1');
+
+        const result = await createModel('gpt-5.2').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {
+                environment: {
+                  type: 'containerAuto',
+                },
+              },
             },
           ],
         });
