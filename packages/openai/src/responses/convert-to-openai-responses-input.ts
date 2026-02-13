@@ -477,6 +477,7 @@ export async function convertToOpenAIResponsesInput({
             input.push({
               type: 'shell_call_output',
               call_id: part.toolCallId,
+              status: parsedOutput.status,
               output: parsedOutput.output.map(item => ({
                 stdout: item.stdout,
                 stderr: item.stderr,
