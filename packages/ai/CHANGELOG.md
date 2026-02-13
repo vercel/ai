@@ -1,5 +1,40 @@
 # ai
 
+## 6.0.85
+
+### Patch Changes
+
+- Updated dependencies [e858654]
+  - @ai-sdk/gateway@3.0.45
+
+## 6.0.84
+
+### Patch Changes
+
+- 4024a3a: security: prevent unbounded memory growth in download functions
+
+  The `download()` and `downloadBlob()` functions now enforce a default 2 GiB size limit when downloading from user-provided URLs. Downloads that exceed this limit are aborted with a `DownloadError` instead of consuming unbounded memory and crashing the process. The `abortSignal` parameter is now passed through to `fetch()` in all download call sites.
+
+  Added `download` option to `transcribe()` and `experimental_generateVideo()` for providing a custom download function. Use the new `createDownload({ maxBytes })` factory to configure download size limits.
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+  - @ai-sdk/gateway@3.0.44
+
+## 6.0.83
+
+### Patch Changes
+
+- Updated dependencies [b424e50]
+  - @ai-sdk/gateway@3.0.43
+
+## 6.0.82
+
+### Patch Changes
+
+- Updated dependencies [1819bc1]
+  - @ai-sdk/gateway@3.0.42
+
 ## 6.0.81
 
 ### Patch Changes

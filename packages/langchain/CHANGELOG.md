@@ -1,5 +1,42 @@
 # @ai-sdk/langchain
 
+## 2.0.91
+
+### Patch Changes
+
+- ai@6.0.85
+
+## 2.0.90
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - ai@6.0.84
+
+## 2.0.89
+
+### Patch Changes
+
+- ai@6.0.83
+
+## 2.0.88
+
+### Patch Changes
+
+- 2b29f7a: Add `onFinish`, `onError`, and `onAbort` callbacks to `StreamCallbacks` for `toUIMessageStream`.
+
+  - `onFinish(state)`: Called on successful completion with final LangGraph state (or `undefined` for other stream types)
+  - `onError(error)`: Called when stream encounters an error
+  - `onAbort()`: Called when stream is aborted
+
+  Also adds `parseLangGraphEvent` helper for parsing LangGraph event tuples.
+
+## 2.0.87
+
+### Patch Changes
+
+- ai@6.0.82
+
 ## 2.0.86
 
 ### Patch Changes

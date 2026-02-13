@@ -1,5 +1,30 @@
 # @ai-sdk/gateway
 
+## 3.0.45
+
+### Patch Changes
+
+- e858654: fix (provider/gateway): Fixed error handling in Gateway models by making asGatewayError async in both image and video model implementations.
+
+## 3.0.44
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+
+## 3.0.43
+
+### Patch Changes
+
+- b424e50: chore(provider/gateway): update gateway model settings files
+
+## 3.0.42
+
+### Patch Changes
+
+- 1819bc1: fix (provider/gateway): add missing warning types for video response parsing
+
 ## 3.0.41
 
 ### Patch Changes
