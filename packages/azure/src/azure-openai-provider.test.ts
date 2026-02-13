@@ -1,5 +1,4 @@
 import {
-  EmbeddingModelV3Embedding,
   LanguageModelV3,
   LanguageModelV3GenerateResult,
   LanguageModelV3Prompt,
@@ -92,49 +91,46 @@ const server = createTestServer({
 });
 
 describe('responses (default language model)', () => {
-  describe('doGenerate', () => {
-    function prepareJsonResponse({
-      content = '',
-      usage = {
-        input_tokens: 4,
-        output_tokens: 30,
-        total_tokens: 34,
+  const defaultResponsesBody = {
+    id: 'resp_67c97c0203188190a025beb4a75242bc',
+    object: 'response',
+    created_at: 1741257730,
+    status: 'completed',
+    model: 'test-deployment',
+    output: [
+      {
+        id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+        type: 'message',
+        status: 'completed',
+        role: 'assistant',
+        content: [
+          {
+            type: 'output_text',
+            text: '',
+            annotations: [],
+          },
+        ],
       },
-    } = {}) {
+    ],
+    usage: {
+      input_tokens: 4,
+      output_tokens: 30,
+      total_tokens: 34,
+    },
+    incomplete_details: null,
+  };
+
+  describe('doGenerate', () => {
+    beforeEach(() => {
       server.urls[
         'https://test-resource.openai.azure.com/openai/v1/responses'
       ].response = {
         type: 'json-value',
-        body: {
-          id: 'resp_67c97c0203188190a025beb4a75242bc',
-          object: 'response',
-          created_at: 1741257730,
-          status: 'completed',
-          model: 'test-deployment',
-          output: [
-            {
-              id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
-              type: 'message',
-              status: 'completed',
-              role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: content,
-                  annotations: [],
-                },
-              ],
-            },
-          ],
-          usage,
-          incomplete_details: null,
-        },
+        body: defaultResponsesBody,
       };
-    }
+    });
 
     it('should set the correct default api version', async () => {
-      prepareJsonResponse();
-
       await provider('test-deployment').doGenerate({
         prompt: TEST_PROMPT,
       });
@@ -145,8 +141,6 @@ describe('responses (default language model)', () => {
     });
 
     it('should set the correct modified api version', async () => {
-      prepareJsonResponse();
-
       await providerApiVersionChanged('test-deployment').doGenerate({
         prompt: TEST_PROMPT,
       });
@@ -157,8 +151,6 @@ describe('responses (default language model)', () => {
     });
 
     it('should pass headers', async () => {
-      prepareJsonResponse();
-
       const provider = createAzure({
         resourceName: 'test-resource',
         apiKey: 'test-api-key',
@@ -188,8 +180,6 @@ describe('responses (default language model)', () => {
     });
 
     it('should use the baseURL correctly', async () => {
-      prepareJsonResponse();
-
       const provider = createAzure({
         baseURL: 'https://test-resource.openai.azure.com/openai',
         apiKey: 'test-api-key',
@@ -206,40 +196,40 @@ describe('responses (default language model)', () => {
 });
 
 describe('chat', () => {
+  const defaultChatBody = {
+    id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+    object: 'chat.completion',
+    created: 1711115037,
+    model: 'gpt-3.5-turbo-0125',
+    choices: [
+      {
+        index: 0,
+        message: {
+          role: 'assistant',
+          content: '',
+        },
+        finish_reason: 'stop',
+      },
+    ],
+    usage: {
+      prompt_tokens: 4,
+      total_tokens: 34,
+      completion_tokens: 30,
+    },
+    system_fingerprint: 'fp_3bc1b5746c',
+  };
+
   describe('doGenerate', () => {
-    function prepareJsonResponse({ content = '' }: { content?: string } = {}) {
+    beforeEach(() => {
       server.urls[
         'https://test-resource.openai.azure.com/openai/v1/chat/completions'
       ].response = {
         type: 'json-value',
-        body: {
-          id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-          object: 'chat.completion',
-          created: 1711115037,
-          model: 'gpt-3.5-turbo-0125',
-          choices: [
-            {
-              index: 0,
-              message: {
-                role: 'assistant',
-                content,
-              },
-              finish_reason: 'stop',
-            },
-          ],
-          usage: {
-            prompt_tokens: 4,
-            total_tokens: 34,
-            completion_tokens: 30,
-          },
-          system_fingerprint: 'fp_3bc1b5746c',
-        },
+        body: defaultChatBody,
       };
-    }
+    });
 
     it('should set the correct default api version', async () => {
-      prepareJsonResponse();
-
       await provider.chat('test-deployment').doGenerate({
         prompt: TEST_PROMPT,
       });
@@ -250,8 +240,6 @@ describe('chat', () => {
     });
 
     it('should set the correct modified api version', async () => {
-      prepareJsonResponse();
-
       await providerApiVersionChanged.chat('test-deployment').doGenerate({
         prompt: TEST_PROMPT,
       });
@@ -262,8 +250,6 @@ describe('chat', () => {
     });
 
     it('should pass headers', async () => {
-      prepareJsonResponse();
-
       const provider = createAzure({
         resourceName: 'test-resource',
         apiKey: 'test-api-key',
@@ -293,8 +279,6 @@ describe('chat', () => {
     });
 
     it('should use the baseURL correctly', async () => {
-      prepareJsonResponse();
-
       const provider = createAzure({
         baseURL: 'https://test-resource.openai.azure.com/openai',
         apiKey: 'test-api-key',
@@ -312,23 +296,7 @@ describe('chat', () => {
 
 describe('completion', () => {
   describe('doGenerate', () => {
-    function prepareJsonCompletionResponse({
-      content = '',
-      usage = {
-        prompt_tokens: 4,
-        total_tokens: 34,
-        completion_tokens: 30,
-      },
-      finish_reason = 'stop',
-    }: {
-      content?: string;
-      usage?: {
-        prompt_tokens: number;
-        total_tokens: number;
-        completion_tokens: number;
-      };
-      finish_reason?: string;
-    }) {
+    beforeEach(() => {
       server.urls[
         'https://test-resource.openai.azure.com/openai/v1/completions'
       ].response = {
@@ -340,19 +308,21 @@ describe('completion', () => {
           model: 'test-deployment',
           choices: [
             {
-              text: content,
+              text: 'Hello World!',
               index: 0,
-              finish_reason,
+              finish_reason: 'stop',
             },
           ],
-          usage,
+          usage: {
+            prompt_tokens: 4,
+            total_tokens: 34,
+            completion_tokens: 30,
+          },
         },
       };
-    }
+    });
 
     it('should set the correct api version', async () => {
-      prepareJsonCompletionResponse({ content: 'Hello World!' });
-
       await provider.completion('test-deployment').doGenerate({
         prompt: TEST_PROMPT,
       });
@@ -362,8 +332,6 @@ describe('completion', () => {
     });
 
     it('should pass headers', async () => {
-      prepareJsonCompletionResponse({ content: 'Hello World!' });
-
       const provider = createAzure({
         resourceName: 'test-resource',
         apiKey: 'test-api-key',
@@ -481,31 +449,27 @@ describe('embedding', () => {
   describe('doEmbed', () => {
     const model = provider.embedding('my-embedding');
 
-    function prepareJsonResponse({
-      embeddings = dummyEmbeddings,
-    }: {
-      embeddings?: EmbeddingModelV3Embedding[];
-    } = {}) {
+    const defaultEmbeddingBody = {
+      object: 'list',
+      data: dummyEmbeddings.map((embedding, i) => ({
+        object: 'embedding',
+        index: i,
+        embedding,
+      })),
+      model: 'my-embedding',
+      usage: { prompt_tokens: 8, total_tokens: 8 },
+    };
+
+    beforeEach(() => {
       server.urls[
         'https://test-resource.openai.azure.com/openai/v1/embeddings'
       ].response = {
         type: 'json-value',
-        body: {
-          object: 'list',
-          data: embeddings.map((embedding, i) => ({
-            object: 'embedding',
-            index: i,
-            embedding,
-          })),
-          model: 'my-embedding',
-          usage: { prompt_tokens: 8, total_tokens: 8 },
-        },
+        body: defaultEmbeddingBody,
       };
-    }
+    });
 
     it('should set the correct api version', async () => {
-      prepareJsonResponse();
-
       await model.doEmbed({
         values: testValues,
       });
@@ -515,8 +479,6 @@ describe('embedding', () => {
     });
 
     it('should pass headers', async () => {
-      prepareJsonResponse();
-
       const provider = createAzure({
         resourceName: 'test-resource',
         apiKey: 'test-api-key',
@@ -551,30 +513,30 @@ describe('image', () => {
   const prompt = 'A cute baby sea otter';
 
   describe('doGenerate', () => {
-    function prepareJsonResponse() {
+    const defaultImageBody = {
+      created: 1733837122,
+      data: [
+        {
+          revised_prompt:
+            'A charming visual illustration of a baby sea otter swimming joyously.',
+          b64_json: 'base64-image-1',
+        },
+        {
+          b64_json: 'base64-image-2',
+        },
+      ],
+    };
+
+    beforeEach(() => {
       server.urls[
         'https://test-resource.openai.azure.com/openai/v1/images/generations'
       ].response = {
         type: 'json-value',
-        body: {
-          created: 1733837122,
-          data: [
-            {
-              revised_prompt:
-                'A charming visual illustration of a baby sea otter swimming joyously.',
-              b64_json: 'base64-image-1',
-            },
-            {
-              b64_json: 'base64-image-2',
-            },
-          ],
-        },
+        body: defaultImageBody,
       };
-    }
+    });
 
     it('should set the correct default api version', async () => {
-      prepareJsonResponse();
-
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
         files: undefined,
@@ -592,8 +554,6 @@ describe('image', () => {
     });
 
     it('should set the correct modified api version', async () => {
-      prepareJsonResponse();
-
       await providerApiVersionChanged
         .imageModel('dalle-deployment')
         .doGenerate({
@@ -613,8 +573,6 @@ describe('image', () => {
     });
 
     it('should pass headers', async () => {
-      prepareJsonResponse();
-
       const provider = createAzure({
         resourceName: 'test-resource',
         apiKey: 'test-api-key',
@@ -651,8 +609,6 @@ describe('image', () => {
     });
 
     it('should use the baseURL correctly', async () => {
-      prepareJsonResponse();
-
       const provider = createAzure({
         baseURL: 'https://test-resource.openai.azure.com/openai',
         apiKey: 'test-api-key',
@@ -675,8 +631,6 @@ describe('image', () => {
     });
 
     it('should extract the generated images', async () => {
-      prepareJsonResponse();
-
       const result = await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
         files: undefined,
@@ -697,8 +651,6 @@ describe('image', () => {
     });
 
     it('should send the correct request body', async () => {
-      prepareJsonResponse();
-
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
         files: undefined,
