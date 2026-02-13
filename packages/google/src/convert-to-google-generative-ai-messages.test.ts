@@ -616,4 +616,54 @@ describe('tool results with thought signatures', () => {
 
     expect(result.contents[1].parts[0]).not.toHaveProperty('thoughtSignature');
   });
+
+  it('should resolve google-namespaced thoughtSignature in multi-turn tool flow with vertex providerOptionsName', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'What is the weather?' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call1',
+              toolName: 'getWeather',
+              input: { location: 'San Francisco' },
+              providerOptions: {
+                google: { thoughtSignature: 'sig_from_google' },
+              },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call1',
+              toolName: 'getWeather',
+              output: {
+                type: 'json',
+                value: { temperature: 72 },
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsName: 'vertex' },
+    );
+
+    expect(result.contents[1].parts[0]).toEqual({
+      functionCall: {
+        name: 'getWeather',
+        args: { location: 'San Francisco' },
+      },
+      thoughtSignature: 'sig_from_google',
+    });
+
+    expect(result.contents[2].parts[0]).not.toHaveProperty('thoughtSignature');
+  });
 });
