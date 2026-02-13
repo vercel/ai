@@ -103,6 +103,12 @@ The Perplexity provider includes additional metadata in the response through `pr
 Additional configuration options are available through `providerOptions`.
 
 ```ts
+import {
+  perplexity,
+  type PerplexityLanguageModelOptions,
+} from '@ai-sdk/perplexity';
+import { generateText } from 'ai';
+
 const result = await generateText({
   model: perplexity('sonar-pro'),
   prompt: 'What are the latest developments in quantum computing?',
@@ -110,7 +116,7 @@ const result = await generateText({
     perplexity: {
       return_images: true, // Enable image responses (Tier-2 Perplexity users only)
       search_recency_filter: 'week', // Filter search results by recency
-    },
+    } satisfies PerplexityLanguageModelOptions,
   },
 });
 
