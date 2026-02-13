@@ -16,7 +16,7 @@
   },
   "type": "module",
   "devDependencies": {
-    "@ai-sdk/openai": "3.0.28",
+    "@ai-sdk/openai": "3.0.29",
     "@ai-sdk/provider-utils": "4.0.15",
     "@ai-sdk/svelte": "4.0.86",
     "@eslint/compat": "^1.2.5",
