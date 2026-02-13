@@ -1,42 +1,47 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`doEmbed > should expose the raw response 1`] = `
+exports[`doEmbed > should expose the raw response 2`] = `
 {
   "body": {
     "data": [
       {
         "embedding": [
-          0.1,
-          0.2,
-          0.3,
-          0.4,
-          0.5,
+          -0.0389404296875,
+          0.048065185546875,
+          0.07159423828125,
+          0.00139617919921875,
+          0.028350830078125,
         ],
         "index": 0,
         "object": "embedding",
       },
       {
         "embedding": [
-          0.6,
-          0.7,
-          0.8,
-          0.9,
-          1,
+          -0.0535888671875,
+          0.019500732421875,
+          0.057464599609375,
+          0.0029582977294921875,
+          0.0467529296875,
         ],
         "index": 1,
         "object": "embedding",
       },
     ],
-    "id": "b322cfc2b9d34e2f8e14fc99874faee5",
+    "id": "fe87621011b544829fe9f966488f3d84",
     "model": "mistral-embed",
     "object": "list",
     "usage": {
-      "prompt_tokens": 8,
-      "total_tokens": 8,
+      "completion_tokens": 0,
+      "prompt_audio_seconds": null,
+      "prompt_token_details": null,
+      "prompt_tokens": 16,
+      "prompt_tokens_details": null,
+      "request_count": null,
+      "total_tokens": 16,
     },
   },
   "headers": {
-    "content-length": "267",
+    "content-length": "540",
     "content-type": "application/json",
     "test-header": "test-value",
   },
