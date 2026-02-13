@@ -2964,192 +2964,370 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(result.warnings).toStrictEqual([]);
     });
 
-    it('should map compact_20260112 to request body', async () => {
-      prepareJsonResponse({});
+    describe('context management', () => {
+      it('should send context_management in request body', async () => {
+        prepareJsonResponse({});
 
-      await model.doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          anthropic: {
-            contextManagement: {
-              edits: [
-                {
-                  type: 'compact_20260112',
-                  trigger: { type: 'input_tokens', value: 50000 },
-                },
-              ],
-            },
-          },
-        },
-      });
-
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        context_management: {
-          edits: [
-            {
-              type: 'compact_20260112',
-              trigger: { type: 'input_tokens', value: 50000 },
-            },
-          ],
-        },
-      });
-    });
-
-    it('should map compact_20260112 with all options to request body', async () => {
-      prepareJsonResponse({});
-
-      await model.doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          anthropic: {
-            contextManagement: {
-              edits: [
-                {
-                  type: 'compact_20260112',
-                  trigger: { type: 'input_tokens', value: 50000 },
-                  pauseAfterCompaction: true,
-                  instructions: 'Summarize the conversation concisely.',
-                },
-              ],
-            },
-          },
-        },
-      });
-
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        context_management: {
-          edits: [
-            {
-              type: 'compact_20260112',
-              trigger: { type: 'input_tokens', value: 50000 },
-              pause_after_compaction: true,
-              instructions: 'Summarize the conversation concisely.',
-            },
-          ],
-        },
-      });
-    });
-
-    it('should add compact beta header when using compact edit', async () => {
-      prepareJsonResponse({});
-
-      await model.doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          anthropic: {
-            contextManagement: {
-              edits: [{ type: 'compact_20260112' }],
-            },
-          },
-        },
-      });
-
-      expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
-        'compact-2026-01-12',
-      );
-      expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
-        'context-management-2025-06-27',
-      );
-    });
-
-    it('should parse compaction response with iterations and compaction content', async () => {
-      prepareJsonFixtureResponse('anthropic-compaction.1');
-
-      const result = await model.doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(result.content).toEqual([
-        {
-          type: 'text',
-          text: expect.stringContaining('## Summary of Conversation'),
-          providerMetadata: {
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
             anthropic: {
-              type: 'compaction',
+              contextManagement: {
+                edits: [{ type: 'clear_tool_uses_20250919' }],
+              },
             },
           },
-        },
-        {
-          type: 'text',
-          text: expect.stringContaining(
-            'Based on our conversation history, you had asked me',
-          ),
-        },
-      ]);
+        });
 
-      expect(result.providerMetadata?.anthropic?.iterations).toEqual([
-        {
-          type: 'compaction',
-          inputTokens: 60385,
-          outputTokens: 592,
-        },
-        {
-          type: 'message',
-          inputTokens: 682,
-          outputTokens: 1320,
-        },
-      ]);
-
-      // Usage should sum iterations
-      expect(result.usage.inputTokens).toBe(60385 + 682);
-      expect(result.usage.outputTokens).toBe(592 + 1320);
-    });
-
-    it('should parse context_management with compact_20260112 from response', async () => {
-      server.urls['https://api.anthropic.com/v1/messages'].response = {
-        type: 'json-value',
-        body: {
-          id: 'msg_123',
-          type: 'message',
-          role: 'assistant',
-          content: [{ type: 'text', text: 'Hello' }],
-          model: 'claude-3-haiku-20240307',
-          stop_reason: 'end_turn',
-          stop_sequence: null,
-          usage: { input_tokens: 100, output_tokens: 50 },
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
           context_management: {
-            applied_edits: [
+            edits: [{ type: 'clear_tool_uses_20250919' }],
+          },
+        });
+      });
+
+      it('should add context-management beta header', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [{ type: 'clear_tool_uses_20250919' }],
+              },
+            },
+          },
+        });
+
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'context-management-2025-06-27',
+        );
+      });
+
+      it('should parse context_management from response', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_123',
+            type: 'message',
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'end_turn',
+            stop_sequence: null,
+            usage: { input_tokens: 100, output_tokens: 50 },
+            context_management: {
+              applied_edits: [
+                {
+                  type: 'clear_tool_uses_20250919',
+                  cleared_tool_uses: 5,
+                  cleared_input_tokens: 10000,
+                },
+              ],
+            },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata?.anthropic?.contextManagement).toEqual({
+          appliedEdits: [
+            {
+              type: 'clear_tool_uses_20250919',
+              clearedToolUses: 5,
+              clearedInputTokens: 10000,
+            },
+          ],
+        });
+      });
+
+      it('should map clear_tool_uses_20250919 with all options to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  {
+                    type: 'clear_tool_uses_20250919',
+                    trigger: { type: 'input_tokens', value: 50000 },
+                    keep: { type: 'tool_uses', value: 5 },
+                    clearAtLeast: { type: 'input_tokens', value: 10000 },
+                    clearToolInputs: true,
+                    excludeTools: ['important_tool'],
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
               {
-                type: 'compact_20260112',
+                type: 'clear_tool_uses_20250919',
+                trigger: { type: 'input_tokens', value: 50000 },
+                keep: { type: 'tool_uses', value: 5 },
+                clear_at_least: { type: 'input_tokens', value: 10000 },
+                clear_tool_inputs: true,
+                exclude_tools: ['important_tool'],
               },
             ],
           },
-        },
-      };
-
-      const result = await model.doGenerate({
-        prompt: TEST_PROMPT,
+        });
       });
 
-      expect(result.providerMetadata?.anthropic?.contextManagement).toEqual({
-        appliedEdits: [
-          {
-            type: 'compact_20260112',
+      it('should map clear_thinking_20251015 with keep option to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  {
+                    type: 'clear_thinking_20251015',
+                    keep: { type: 'thinking_turns', value: 3 },
+                  },
+                ],
+              },
+            },
           },
-        ],
-      });
-    });
+        });
 
-    it('should return compaction stop reason as other', async () => {
-      server.urls['https://api.anthropic.com/v1/messages'].response = {
-        type: 'json-value',
-        body: {
-          id: 'msg_123',
-          type: 'message',
-          role: 'assistant',
-          content: [{ type: 'compaction', content: 'Compaction summary...' }],
-          model: 'claude-3-haiku-20240307',
-          stop_reason: 'compaction',
-          stop_sequence: null,
-          usage: { input_tokens: 100, output_tokens: 50 },
-        },
-      };
-
-      const result = await model.doGenerate({
-        prompt: TEST_PROMPT,
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              {
+                type: 'clear_thinking_20251015',
+                keep: { type: 'thinking_turns', value: 3 },
+              },
+            ],
+          },
+        });
       });
 
-      expect(result.finishReason).toBe('other');
+      it('should map multiple context management edits to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  { type: 'clear_tool_uses_20250919' },
+                  { type: 'clear_thinking_20251015' },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              { type: 'clear_tool_uses_20250919' },
+              { type: 'clear_thinking_20251015' },
+            ],
+          },
+        });
+      });
+
+      it('should map compact_20260112 to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  {
+                    type: 'compact_20260112',
+                    trigger: { type: 'input_tokens', value: 50000 },
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              {
+                type: 'compact_20260112',
+                trigger: { type: 'input_tokens', value: 50000 },
+              },
+            ],
+          },
+        });
+      });
+
+      it('should map compact_20260112 with all options to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  {
+                    type: 'compact_20260112',
+                    trigger: { type: 'input_tokens', value: 50000 },
+                    pauseAfterCompaction: true,
+                    instructions: 'Summarize the conversation concisely.',
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              {
+                type: 'compact_20260112',
+                trigger: { type: 'input_tokens', value: 50000 },
+                pause_after_compaction: true,
+                instructions: 'Summarize the conversation concisely.',
+              },
+            ],
+          },
+        });
+      });
+
+      it('should add compact beta header when using compact edit', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [{ type: 'compact_20260112' }],
+              },
+            },
+          },
+        });
+
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'compact-2026-01-12',
+        );
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'context-management-2025-06-27',
+        );
+      });
+
+      it('should parse compaction response with iterations and compaction content', async () => {
+        prepareJsonFixtureResponse('anthropic-compaction.1');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'text',
+            text: expect.stringContaining('## Summary of Conversation'),
+            providerMetadata: {
+              anthropic: {
+                type: 'compaction',
+              },
+            },
+          },
+          {
+            type: 'text',
+            text: expect.stringContaining(
+              'Based on our conversation history, you had asked me',
+            ),
+          },
+        ]);
+
+        expect(result.providerMetadata?.anthropic?.iterations).toEqual([
+          {
+            type: 'compaction',
+            inputTokens: 60385,
+            outputTokens: 592,
+          },
+          {
+            type: 'message',
+            inputTokens: 682,
+            outputTokens: 1320,
+          },
+        ]);
+
+        // Usage should sum iterations
+        expect(result.usage.inputTokens).toBe(60385 + 682);
+        expect(result.usage.outputTokens).toBe(592 + 1320);
+      });
+
+      it('should parse context_management with compact_20260112 from response', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_123',
+            type: 'message',
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'end_turn',
+            stop_sequence: null,
+            usage: { input_tokens: 100, output_tokens: 50 },
+            context_management: {
+              applied_edits: [
+                {
+                  type: 'compact_20260112',
+                },
+              ],
+            },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata?.anthropic?.contextManagement).toEqual({
+          appliedEdits: [
+            {
+              type: 'compact_20260112',
+            },
+          ],
+        });
+      });
+
+      it('should return compaction stop reason as other', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_123',
+            type: 'message',
+            role: 'assistant',
+            content: [{ type: 'compaction', content: 'Compaction summary...' }],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'compaction',
+            stop_sequence: null,
+            usage: { input_tokens: 100, output_tokens: 50 },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.finishReason).toBe('other');
+      });
     });
   });
 
