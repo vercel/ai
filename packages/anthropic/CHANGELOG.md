@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.63
+
+### Patch Changes
+
+- e551c84: fix(anthropic): map proper context management tools for anthropic
+
 ## 2.0.62
 
 ### Patch Changes
