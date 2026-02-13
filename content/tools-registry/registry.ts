@@ -497,15 +497,11 @@ console.log(text);`,
       yarn: 'yarn add @youdotcom-oss/ai-sdk-plugin',
       bun: 'bun add @youdotcom-oss/ai-sdk-plugin',
     },
-    codeExample: `import { generateText, type StepResult } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
+    codeExample: `import { generateText, stepCountIs } from 'ai';
 import { youSearch, youContents } from '@youdotcom-oss/ai-sdk-plugin';
 
-const stepCountIs = (n: number) => (stepResult: StepResult<any>) =>
-  stepResult.stepNumber >= n;
-
 const { text } = await generateText({
-  model: anthropic('claude-sonnet-4-5-20250929'),
+  model: 'anthropic/claude-sonnet-4-5-20250929',
   prompt: 'Search for the latest developments in quantum computing',
   tools: {
     search: youSearch(),
