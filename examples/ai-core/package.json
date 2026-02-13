@@ -9,7 +9,6 @@
     "@ai-sdk/assemblyai": "workspace:*",
     "@ai-sdk/azure": "workspace:*",
     "@ai-sdk/baseten": "workspace:*",
-    "@ai-sdk/black-forest-labs": "workspace:*",
     "@ai-sdk/cerebras": "workspace:*",
     "@ai-sdk/cohere": "workspace:*",
     "@ai-sdk/deepgram": "workspace:*",
