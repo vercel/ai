@@ -876,3 +876,181 @@ const { images } = await generateImage({
 | -------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------- |
 | `grok-2-image`       | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check size={18} /> |
 | `grok-imagine-image` | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check size={18} /> |
+
+## Video Models
+
+You can create xAI video models using the `.video()` factory method.
+For more on video generation with the AI SDK see [generateVideo()](/docs/reference/ai-sdk-core/generate-video).
+
+This provider supports three video generation modes: text-to-video, image-to-video, and video editing.
+
+### Text-to-Video
+
+Generate videos from text prompts:
+
+```ts
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { videos } = await generateVideo({
+  model: xai.video('grok-imagine-video'),
+  prompt: 'A chicken flying into the sunset in the style of 90s anime.',
+  aspectRatio: '16:9',
+  duration: 5,
+  providerOptions: {
+    xai: {
+      pollTimeoutMs: 600000, // 10 minutes
+    } satisfies XaiVideoModelOptions,
+  },
+});
+```
+
+### Image-to-Video
+
+Generate videos using an image as the starting frame with an optional text prompt:
+
+```ts
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { videos } = await generateVideo({
+  model: xai.video('grok-imagine-video'),
+  prompt: {
+    image: 'https://example.com/start-frame.png',
+    text: 'The cat slowly turns its head and blinks',
+  },
+  duration: 5,
+  providerOptions: {
+    xai: {
+      pollTimeoutMs: 600000, // 10 minutes
+    } satisfies XaiVideoModelOptions,
+  },
+});
+```
+
+### Video Editing
+
+Edit an existing video using a text prompt by providing a source video URL via provider options:
+
+```ts
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { videos } = await generateVideo({
+  model: xai.video('grok-imagine-video'),
+  prompt: 'Give the person sunglasses and a hat',
+  providerOptions: {
+    xai: {
+      videoUrl: 'https://example.com/source-video.mp4',
+      pollTimeoutMs: 600000, // 10 minutes
+    } satisfies XaiVideoModelOptions,
+  },
+});
+```
+
+<Note>
+  Video editing accepts input videos up to 8.7 seconds long. The `duration`,
+  `aspectRatio`, and `resolution` parameters are not supported for editing - the
+  output matches the input video's properties (capped at 720p).
+</Note>
+
+### Chaining and Concurrent Edits
+
+The xAI-hosted video URL is available in `providerMetadata.xai.videoUrl`.
+You can use it to chain sequential edits or branch into concurrent edits
+using `Promise.all`:
+
+```ts
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const providerOptions = {
+  xai: {
+    videoUrl: 'https://example.com/source-video.mp4',
+    pollTimeoutMs: 600000,
+  } satisfies XaiVideoModelOptions,
+};
+
+// Step 1: Apply an initial edit
+const step1 = await generateVideo({
+  model: xai.video('grok-imagine-video'),
+  prompt: 'Add a party hat to the person',
+  providerOptions,
+});
+
+// Get the xAI-hosted URL from provider metadata
+const step1VideoUrl = step1.providerMetadata?.xai?.videoUrl as string;
+
+// Step 2: Apply two more edits concurrently, building on step 1
+const [withSunglasses, withScarf] = await Promise.all([
+  generateVideo({
+    model: xai.video('grok-imagine-video'),
+    prompt: 'Add sunglasses',
+    providerOptions: {
+      xai: { videoUrl: step1VideoUrl, pollTimeoutMs: 600000 },
+    },
+  }),
+  generateVideo({
+    model: xai.video('grok-imagine-video'),
+    prompt: 'Add a scarf',
+    providerOptions: {
+      xai: { videoUrl: step1VideoUrl, pollTimeoutMs: 600000 },
+    },
+  }),
+]);
+```
+
+### Video Provider Options
+
+The following provider options are available via `providerOptions.xai`.
+You can validate the provider options using the `XaiVideoModelOptions` type.
+
+- **pollIntervalMs** _number_
+
+  Polling interval in milliseconds for checking task status. Defaults to 5000.
+
+- **pollTimeoutMs** _number_
+
+  Maximum wait time in milliseconds for video generation. Defaults to 600000 (10 minutes).
+
+- **resolution** _'480p' | '720p'_
+
+  Video resolution. When using the SDK's standard `resolution` parameter,
+  `1280x720` maps to `720p` and `854x480` maps to `480p`.
+  Use this provider option to pass the native format directly.
+
+- **videoUrl** _string_
+
+  URL of a source video for video editing. When provided, the prompt is used
+  to describe the desired edits to the video.
+
+<Note>
+  Video generation is an asynchronous process that can take several minutes.
+  Consider setting `pollTimeoutMs` to at least 10 minutes (600000ms) for
+  reliable operation. Generated video URLs are ephemeral and should be
+  downloaded promptly.
+</Note>
+
+### Aspect Ratio and Resolution
+
+For **text-to-video**, you can specify both `aspectRatio` and `resolution`.
+The default aspect ratio is `16:9` and the default resolution is `480p`.
+
+For **image-to-video**, the output defaults to the input image's aspect ratio.
+If you specify `aspectRatio`, it will override this and stretch the image to the
+desired ratio.
+
+For **video editing**, the output matches the input video's aspect ratio and
+resolution. Custom `duration`, `aspectRatio`, and `resolution` are not
+supported - the output resolution is capped at 720p (e.g., a 1080p input
+will be downsized to 720p).
+
+### Video Model Capabilities
+
+| Model                | Duration | Aspect Ratios                                     | Resolution     | Image-to-Video      | Video Editing       |
+| -------------------- | -------- | ------------------------------------------------- | -------------- | ------------------- | ------------------- |
+| `grok-imagine-video` | 1–15s    | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3` | `480p`, `720p` | <Check size={18} /> | <Check size={18} /> |
+
+<Note>
+  You can also pass any available provider model ID as a string if needed.
+</Note>

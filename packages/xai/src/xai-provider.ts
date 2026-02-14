@@ -1,4 +1,5 @@
 import {
+  type Experimental_VideoModelV3,
   ImageModelV3,
   LanguageModelV3,
   NoSuchModelError,
@@ -19,6 +20,8 @@ import { XaiResponsesLanguageModel } from './responses/xai-responses-language-mo
 import { XaiResponsesModelId } from './responses/xai-responses-options';
 import { xaiTools } from './tool';
 import { VERSION } from './version';
+import { XaiVideoModel } from './xai-video-model';
+import { XaiVideoModelId } from './xai-video-settings';
 
 export interface XaiProvider extends ProviderV3 {
   /**
@@ -50,6 +53,16 @@ export interface XaiProvider extends ProviderV3 {
    * Creates an Xai image model for image generation.
    */
   imageModel(modelId: XaiImageModelId): ImageModelV3;
+
+  /**
+   * Creates an Xai video model for video generation.
+   */
+  video(modelId: XaiVideoModelId): Experimental_VideoModelV3;
+
+  /**
+   * Creates an Xai video model for video generation.
+   */
+  videoModel(modelId: XaiVideoModelId): Experimental_VideoModelV3;
 
   /**
    * Server-side agentic tools for use with the responses API.
@@ -131,6 +144,15 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     });
   };
 
+  const createVideoModel = (modelId: XaiVideoModelId) => {
+    return new XaiVideoModel(modelId, {
+      provider: 'xai.video',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+  };
+
   const provider = (modelId: XaiChatModelId) =>
     createChatLanguageModel(modelId);
 
@@ -144,6 +166,8 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = createImageModel;
   provider.image = createImageModel;
+  provider.videoModel = createVideoModel;
+  provider.video = createVideoModel;
   provider.tools = xaiTools;
 
   return provider;
