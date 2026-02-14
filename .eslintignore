@@ -1,0 +1,7 @@
+**/dist
+**/dist-ssr
+**/node_modules
+**/.next
+**/.turbo
+*.tsbuildinfo
+*.log
