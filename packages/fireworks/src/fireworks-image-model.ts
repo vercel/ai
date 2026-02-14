@@ -5,9 +5,13 @@ import {
   createBinaryResponseHandler,
   createStatusCodeErrorResponseHandler,
   FetchFunction,
+  parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { FireworksImageModelId } from './fireworks-image-options';
+import {
+  FireworksImageModelId,
+  fireworksImageModelOptions,
+} from './fireworks-image-options';
 
 interface FireworksImageModelBackendConfig {
   urlFormat: 'workflows' | 'workflows_edit' | 'image_generation';
@@ -163,20 +167,52 @@ export class FireworksImageModel implements ImageModelV3 {
       });
     }
 
+    const fireworksOptions = await parseProviderOptions({
+      provider: 'fireworks',
+      providerOptions,
+      schema: fireworksImageModelOptions,
+    });
+
     const splitSize = size?.split('x');
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+
+    const body: Record<string, unknown> = {
+      prompt,
+      aspect_ratio: aspectRatio,
+      seed,
+      samples: n,
+      ...(inputImage && { input_image: inputImage }),
+      ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
+    };
+    if (fireworksOptions?.cfg_scale != null) {
+      body.cfg_scale = fireworksOptions.cfg_scale;
+    }
+    if (fireworksOptions?.steps != null) {
+      body.steps = fireworksOptions.steps;
+    }
+    if (fireworksOptions?.negative_prompt != null) {
+      body.negative_prompt = fireworksOptions.negative_prompt;
+    }
+    if (fireworksOptions?.strength != null) {
+      body.strength = fireworksOptions.strength;
+    }
+    if (fireworksOptions?.scheduler != null) {
+      body.scheduler = fireworksOptions.scheduler;
+    }
+    if (fireworksOptions?.safety_checker != null) {
+      body.safety_checker = fireworksOptions.safety_checker;
+    }
+    if (fireworksOptions?.output_format != null) {
+      body.output_format = fireworksOptions.output_format;
+    }
+    if (fireworksOptions?.safety_tolerance != null) {
+      body.safety_tolerance = fireworksOptions.safety_tolerance;
+    }
+
     const { value: response, responseHeaders } = await postJsonToApi({
       url: getUrlForModel(this.config.baseURL, this.modelId, hasInputImage),
       headers: combineHeaders(this.config.headers(), headers),
-      body: {
-        prompt,
-        aspect_ratio: aspectRatio,
-        seed,
-        samples: n,
-        ...(inputImage && { input_image: inputImage }),
-        ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
-        ...(providerOptions.fireworks ?? {}),
-      },
+      body,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
       abortSignal,
