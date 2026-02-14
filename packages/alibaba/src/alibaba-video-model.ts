@@ -147,8 +147,12 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
   ) {}
 
   async doGenerate(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
+    options: Parameters<
+      NonNullable<Experimental_VideoModelV3['doGenerate']>
+    >[0],
+  ): Promise<
+    Awaited<ReturnType<NonNullable<Experimental_VideoModelV3['doGenerate']>>>
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV3Warning[] = [];
     const mode = detectMode(this.modelId);

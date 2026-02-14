@@ -844,6 +844,238 @@ describe('FalVideoModel', () => {
     });
   });
 
+  describe('doStart', () => {
+    it('should submit to queue and return operation with responseUrl', async () => {
+      const model = createBasicModel();
+
+      const result = await model.doStart({ ...defaultOptions });
+
+      expect(result.operation).toStrictEqual({
+        responseUrl:
+          'https://queue.fal.run/fal-ai/luma-dream-machine/requests/test-request-id-123',
+      });
+      expect(result.warnings).toStrictEqual([]);
+      expect(result.response.modelId).toBe('luma-dream-machine');
+    });
+
+    it('should pass the correct request body', async () => {
+      const model = createBasicModel();
+
+      await model.doStart({
+        ...defaultOptions,
+        seed: 42,
+        aspectRatio: '16:9',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        prompt,
+        seed: 42,
+        aspect_ratio: '16:9',
+      });
+    });
+
+    it('should pass headers', async () => {
+      const modelWithHeaders = createBasicModel({
+        headers: {
+          'Custom-Provider-Header': 'provider-header-value',
+        },
+      });
+
+      await modelWithHeaders.doStart({
+        ...defaultOptions,
+        headers: {
+          'Custom-Request-Header': 'request-header-value',
+        },
+      });
+
+      expect(server.calls[0].requestHeaders).toStrictEqual({
+        'content-type': 'application/json',
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
+      });
+    });
+
+    it('should throw error when no response URL returned', async () => {
+      server.urls['https://queue.fal.run/fal-ai/luma-dream-machine'].response =
+        {
+          type: 'json-value',
+          body: {},
+        };
+
+      const model = createBasicModel();
+
+      await expect(model.doStart({ ...defaultOptions })).rejects.toMatchObject({
+        message: 'No response URL returned from queue endpoint',
+      });
+    });
+
+    it('should append webhookUrl as fal_webhook query parameter', async () => {
+      let capturedUrl = '';
+
+      const model = new FalVideoModel('luma-dream-machine', {
+        provider: 'fal.video',
+        url: ({ path }) => path,
+        headers: () => ({ 'api-key': 'test-key' }),
+        fetch: async (url, init) => {
+          capturedUrl = url.toString();
+          return new Response(
+            JSON.stringify({
+              request_id: 'webhook-test-id',
+              response_url:
+                'https://queue.fal.run/fal-ai/luma-dream-machine/requests/webhook-test-id',
+            }),
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            },
+          );
+        },
+      });
+
+      await model.doStart({
+        ...defaultOptions,
+        webhookUrl: 'https://smee.io/abc123',
+      });
+
+      expect(capturedUrl).toBe(
+        'https://queue.fal.run/fal-ai/luma-dream-machine?fal_webhook=https%3A%2F%2Fsmee.io%2Fabc123',
+      );
+    });
+  });
+
+  describe('doStatus', () => {
+    it('should return completed status with video data', async () => {
+      const model = createBasicModel();
+
+      const result = await model.doStatus({
+        operation: {
+          responseUrl:
+            'https://queue.fal.run/fal-ai/luma-dream-machine/requests/test-request-id-123',
+        },
+      });
+
+      expect(result.status).toBe('completed');
+      if (result.status === 'completed') {
+        expect(result.videos).toHaveLength(1);
+        expect(result.videos[0]).toStrictEqual({
+          type: 'url',
+          url: 'https://fal.media/files/video-output.mp4',
+          mediaType: 'video/mp4',
+        });
+        expect(result.providerMetadata?.fal).toBeDefined();
+      }
+    });
+
+    it('should return pending status when request is still in progress', async () => {
+      let callCount = 0;
+
+      const model = new FalVideoModel('luma-dream-machine', {
+        provider: 'fal.video',
+        url: ({ path }) => path,
+        headers: () => ({ 'api-key': 'test-key' }),
+        fetch: async () => {
+          callCount++;
+          return new Response(
+            JSON.stringify({ detail: 'Request is still in progress' }),
+            {
+              status: 500,
+              headers: { 'Content-Type': 'application/json' },
+            },
+          );
+        },
+      });
+
+      const result = await model.doStatus({
+        operation: {
+          responseUrl:
+            'https://queue.fal.run/fal-ai/luma-dream-machine/requests/test-id',
+        },
+      });
+
+      expect(callCount).toBe(1);
+      expect(result.status).toBe('pending');
+    });
+
+    it('should include provider metadata in completed status', async () => {
+      const model = createBasicModel();
+
+      const result = await model.doStatus({
+        operation: {
+          responseUrl:
+            'https://queue.fal.run/fal-ai/luma-dream-machine/requests/test-request-id-123',
+        },
+      });
+
+      expect(result.status).toBe('completed');
+      if (result.status === 'completed') {
+        expect(result.providerMetadata).toStrictEqual({
+          fal: {
+            videos: [
+              {
+                url: 'https://fal.media/files/video-output.mp4',
+                width: 1920,
+                height: 1080,
+                duration: 5.0,
+                fps: 24,
+                contentType: 'video/mp4',
+              },
+            ],
+            seed: 12345,
+            timings: { inference: 45.5 },
+          },
+        });
+      }
+    });
+
+    it('should throw error when video URL is missing in completed response', async () => {
+      server.urls[
+        'https://queue.fal.run/fal-ai/luma-dream-machine/requests/test-request-id-123'
+      ].response = {
+        type: 'json-value',
+        body: {},
+      };
+
+      const model = createBasicModel();
+
+      await expect(
+        model.doStatus({
+          operation: {
+            responseUrl:
+              'https://queue.fal.run/fal-ai/luma-dream-machine/requests/test-request-id-123',
+          },
+        }),
+      ).rejects.toMatchObject({
+        message: 'No video URL in response',
+      });
+    });
+
+    it('should propagate non-polling errors', async () => {
+      const model = new FalVideoModel('luma-dream-machine', {
+        provider: 'fal.video',
+        url: ({ path }) => path,
+        headers: () => ({ 'api-key': 'test-key' }),
+        fetch: async () => {
+          return new Response(
+            JSON.stringify({ error: { message: 'Internal server error' } }),
+            {
+              status: 500,
+              headers: { 'Content-Type': 'application/json' },
+            },
+          );
+        },
+      });
+
+      await expect(
+        model.doStatus({
+          operation: {
+            responseUrl:
+              'https://queue.fal.run/fal-ai/luma-dream-machine/requests/test-id',
+          },
+        }),
+      ).rejects.toThrow();
+    });
+  });
+
   describe('Default Media Type', () => {
     it('should default to video/mp4 when content_type is not provided', async () => {
       server.urls['https://queue.fal.run/fal-ai/luma-dream-machine'].response =
