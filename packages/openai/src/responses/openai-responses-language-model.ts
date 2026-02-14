@@ -315,6 +315,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       safety_identifier: openaiOptions?.safetyIdentifier,
       top_logprobs: topLogprobs,
       truncation: openaiOptions?.truncation,
+      context_management: openaiOptions?.contextManagement,
 
       // model-specific settings:
       ...(isReasoningModel &&
