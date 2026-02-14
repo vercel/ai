@@ -14,6 +14,12 @@ export type {
   /** @deprecated Use `XaiImageModelOptions` instead. */
   XaiImageModelOptions as XaiImageProviderOptions,
 } from './xai-image-options';
+export type { XaiVideoModelId } from './xai-video-settings';
+export type {
+  XaiVideoModelOptions,
+  /** @deprecated Use `XaiVideoModelOptions` instead. */
+  XaiVideoModelOptions as XaiVideoProviderOptions,
+} from './xai-video-options';
 export { createXai, xai } from './xai-provider';
 export type { XaiProvider, XaiProviderSettings } from './xai-provider';
 export {
