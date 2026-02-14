@@ -2972,7 +2972,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         providerOptions: {
           anthropic: {
             speed: 'standard',
-          } satisfies AnthropicLanguageModelOptions,
+          } satisfies AnthropicProviderOptions,
         },
       });
 
