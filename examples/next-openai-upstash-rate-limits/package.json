@@ -9,11 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "3.0.28",
-    "@ai-sdk/react": "3.0.87",
+    "@ai-sdk/openai": "3.0.29",
+    "@ai-sdk/react": "3.0.88",
     "@upstash/ratelimit": "^0.4.3",
     "@vercel/kv": "^0.2.2",
-    "ai": "6.0.85",
+    "ai": "6.0.86",
     "next": "^15.5.9",
     "react": "^18",
     "react-dom": "^18",

@@ -133,7 +133,7 @@ export class OpenAIImageModel implements ImageModelV3 {
         },
         providerMetadata: {
           openai: {
-            images: response.data.map(item => ({
+            images: response.data.map((item, index) => ({
               ...(item.revised_prompt
                 ? { revisedPrompt: item.revised_prompt }
                 : {}),
@@ -142,6 +142,11 @@ export class OpenAIImageModel implements ImageModelV3 {
               quality: response.quality ?? undefined,
               background: response.background ?? undefined,
               outputFormat: response.output_format ?? undefined,
+              ...distributeTokenDetails(
+                response.usage?.input_tokens_details,
+                index,
+                response.data.length,
+              ),
             })),
           },
         },
@@ -190,7 +195,7 @@ export class OpenAIImageModel implements ImageModelV3 {
       },
       providerMetadata: {
         openai: {
-          images: response.data.map(item => ({
+          images: response.data.map((item, index) => ({
             ...(item.revised_prompt
               ? { revisedPrompt: item.revised_prompt }
               : {}),
@@ -199,11 +204,50 @@ export class OpenAIImageModel implements ImageModelV3 {
             quality: response.quality ?? undefined,
             background: response.background ?? undefined,
             outputFormat: response.output_format ?? undefined,
+            ...distributeTokenDetails(
+              response.usage?.input_tokens_details,
+              index,
+              response.data.length,
+            ),
           })),
         },
       },
     };
   }
+}
+
+/**
+ * Distributes input token details evenly across images, with the remainder
+ * assigned to the last image so that summing across all entries gives the
+ * exact total.
+ */
+function distributeTokenDetails(
+  details:
+    | { image_tokens?: number | null; text_tokens?: number | null }
+    | null
+    | undefined,
+  index: number,
+  total: number,
+): { imageTokens?: number; textTokens?: number } {
+  if (details == null) {
+    return {};
+  }
+
+  const result: { imageTokens?: number; textTokens?: number } = {};
+
+  if (details.image_tokens != null) {
+    const base = Math.floor(details.image_tokens / total);
+    const remainder = details.image_tokens - base * (total - 1);
+    result.imageTokens = index === total - 1 ? remainder : base;
+  }
+
+  if (details.text_tokens != null) {
+    const base = Math.floor(details.text_tokens / total);
+    const remainder = details.text_tokens - base * (total - 1);
+    result.textTokens = index === total - 1 ? remainder : base;
+  }
+
+  return result;
 }
 
 type OpenAIImageEditInput = {
