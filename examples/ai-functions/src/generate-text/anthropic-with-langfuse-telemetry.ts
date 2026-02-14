@@ -3,7 +3,7 @@ import {
   anthropic,
   createAnthropic,
 } from '@ai-sdk/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, otel, stepCountIs } from 'ai';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { run } from '../lib/run';
@@ -43,8 +43,8 @@ run(async () => {
       } satisfies AnthropicLanguageModelOptions,
     },
     stopWhen: stepCountIs(5),
-    experimental_telemetry: {
-      isEnabled: true,
+    telemetry: {
+      ...otel(),
       functionId: 'anthropic-custom-provider-demo',
       metadata: {
         environment: 'demo',

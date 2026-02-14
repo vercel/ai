@@ -1,11 +1,14 @@
-import { TelemetrySettings } from './telemetry-settings';
-
+/**
+ * @deprecated This utility is used by un-migrated core functions.
+ * Migrated functions use TelemetryEmitter which handles operation
+ * name assembly internally via the OTel handler.
+ */
 export function assembleOperationName({
   operationId,
   telemetry,
 }: {
   operationId: string;
-  telemetry?: TelemetrySettings;
+  telemetry?: { functionId?: string };
 }) {
   return {
     // standardized operation and resource name:
