@@ -8,27 +8,34 @@ export const openaiCompatibleLanguageModelChatOptions = z.object({
    * monitor and detect abuse.
    */
   user: z.string().optional(),
+});
 
+/**
+ * Legacy normalized chat options kept for backwards compatibility.
+ *
+ * Prefer provider-native option names passed through `providerOptions[providerName]`.
+ */
+export const openaiCompatibleLanguageModelChatLegacyOptions = z.object({
   /**
-   * Reasoning effort for reasoning models. Defaults to `medium`.
+   * @deprecated Use provider-native request fields for reasoning configuration.
    */
   reasoningEffort: z.string().optional(),
 
   /**
-   * Controls the verbosity of the generated text. Defaults to `medium`.
+   * @deprecated Use provider-native request fields for verbosity configuration.
    */
   textVerbosity: z.string().optional(),
 
   /**
-   * Whether to use strict JSON schema validation.
-   * When true, the model uses constrained decoding to guarantee schema compliance.
-   * Only used when the provider supports structured outputs and a schema is provided.
-   *
-   * @default true
+   * @deprecated Use provider-native request fields for schema strictness configuration.
    */
   strictJsonSchema: z.boolean().optional(),
 });
 
 export type OpenAICompatibleLanguageModelChatOptions = z.infer<
   typeof openaiCompatibleLanguageModelChatOptions
+>;
+
+export type OpenAICompatibleLanguageModelChatLegacyOptions = z.infer<
+  typeof openaiCompatibleLanguageModelChatLegacyOptions
 >;
