@@ -276,7 +276,7 @@ const model = vertex('gemini-1.5-pro');
 await generateText({
   model,
   providerOptions: {
-    google: {
+    vertex: {
       safetySettings: [
         {
           category: 'HARM_CATEGORY_UNSPECIFIED',
@@ -441,7 +441,7 @@ const result = await generateText({
     google_maps: vertex.tools.googleMaps({}),
   },
   providerOptions: {
-    google: {
+    vertex: {
       retrievalConfig: {
         latLng: { latitude: 34.090199, longitude: -117.881081 },
       },
@@ -457,19 +457,18 @@ The optional `retrievalConfig.latLng` provider option provides location context 
 
 Google Vertex AI, through its support for Gemini models, can also emit "thinking" tokens, representing the model's reasoning process. The AI SDK exposes these as reasoning information.
 
-To enable thinking tokens for compatible Gemini models via Vertex, set `includeThoughts: true` in the `thinkingConfig` provider option. Since the Vertex provider uses the Google provider's underlying language model, these options are passed through `providerOptions.google`:
+To enable thinking tokens for compatible Gemini models via Vertex, set `includeThoughts: true` in the `thinkingConfig` provider option. These options are passed through `providerOptions.vertex`:
 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
-import { GoogleLanguageModelOptions } from '@ai-sdk/google'; // Note: importing from @ai-sdk/google
+import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText, streamText } from 'ai';
 
 // For generateText:
 const { text, reasoningText, reasoning } = await generateText({
   model: vertex('gemini-2.0-flash-001'), // Or other supported model via Vertex
   providerOptions: {
-    google: {
-      // Options are nested under 'google' for Vertex provider
+    vertex: {
       thinkingConfig: {
         includeThoughts: true,
         // thinkingBudget: 2048, // Optional
@@ -487,8 +486,7 @@ console.log('Final Text:', text);
 const result = streamText({
   model: vertex('gemini-2.0-flash-001'), // Or other supported model via Vertex
   providerOptions: {
-    google: {
-      // Options are nested under 'google' for Vertex provider
+    vertex: {
       thinkingConfig: {
         includeThoughts: true,
         // thinkingBudget: 2048, // Optional
@@ -581,7 +579,7 @@ const { text: meatLasagna, providerMetadata } = await generateText({
 });
 
 // Check cached token count in usage metadata
-console.log('Cached tokens:', providerMetadata.google);
+console.log('Cached tokens:', providerMetadata.vertex);
 // e.g.
 // {
 //   groundingMetadata: null,
@@ -642,7 +640,7 @@ const { text: veggieLasagnaRecipe } = await generateText({
   model: vertex('gemini-2.5-pro'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
   providerOptions: {
-    google: {
+    vertex: {
       cachedContent: cache.name,
     } satisfies GoogleLanguageModelOptions,
   },
@@ -652,7 +650,7 @@ const { text: meatLasagnaRecipe } = await generateText({
   model: vertex('gemini-2.5-pro'),
   prompt: 'Write a meat lasagna recipe for 12 people.',
   providerOptions: {
-    google: {
+    vertex: {
       cachedContent: cache.name,
     } satisfies GoogleLanguageModelOptions,
   },
@@ -717,11 +715,14 @@ The errors that you get in this case look like this:
 By default, structured outputs are enabled (and for tool calling they are required).
 You can disable structured outputs for object generation as a workaround:
 
-```ts highlight="3,8"
+```ts highlight="6,11"
+import { vertex } from '@ai-sdk/google-vertex';
+import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
+
 const result = await generateObject({
   model: vertex('gemini-1.5-pro'),
   providerOptions: {
-    google: {
+    vertex: {
       structuredOutputs: false,
     } satisfies GoogleLanguageModelOptions,
   },
@@ -789,7 +790,7 @@ const { embedding } = await embed({
   model,
   value: 'sunny day at the beach',
   providerOptions: {
-    google: {
+    vertex: {
       outputDimensionality: 512, // optional, number of dimensions for the embedding
       taskType: 'SEMANTIC_SIMILARITY', // optional, specifies the task type for generating embeddings
       autoTruncate: false, // optional
