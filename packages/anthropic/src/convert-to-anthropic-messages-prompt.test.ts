@@ -348,6 +348,120 @@ describe('user messages', () => {
     });
   });
 
+  it('should add search_result file parts for text/plain data', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: Buffer.from('search result content', 'utf-8').toString(
+                'base64',
+              ),
+              mediaType: 'text/plain',
+              filename: 'search-result.txt',
+              providerOptions: {
+                anthropic: {
+                  type: 'search_result',
+                  source: 'https://example.com/result',
+                  citations: { enabled: true },
+                  title: 'Search Result Title',
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'search_result',
+                source: 'https://example.com/result',
+                title: 'Search Result Title',
+                content: [{ type: 'text', text: 'search result content' }],
+                citations: { enabled: true },
+                cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(),
+    });
+  });
+
+  it('should add custom content documents from provider source blocks', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: Buffer.from('unused', 'utf-8').toString('base64'),
+              mediaType: 'text/plain',
+              filename: 'custom.txt',
+              providerOptions: {
+                anthropic: {
+                  source: {
+                    type: 'content',
+                    content: [
+                      { type: 'text', text: 'First chunk' },
+                      { type: 'text', text: 'Second chunk' },
+                    ],
+                  },
+                  citations: { enabled: true },
+                  title: 'Custom Content Doc',
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: {
+                  type: 'content',
+                  content: [
+                    { type: 'text', text: 'First chunk' },
+                    { type: 'text', text: 'Second chunk' },
+                  ],
+                },
+                title: 'Custom Content Doc',
+                citations: { enabled: true },
+                cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(),
+    });
+  });
+
   it('should throw error for unsupported file types', async () => {
     await expect(
       convertToAnthropicMessagesPrompt({
