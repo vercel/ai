@@ -86,6 +86,12 @@ describe('stream data stream', () => {
         });
       });
     });
+
+    it('should clear input after submit', async () => {
+      await waitFor(() => {
+        expect(screen.getByTestId('input')).toHaveValue('');
+      });
+    });
   });
 
   describe('loading state', () => {
