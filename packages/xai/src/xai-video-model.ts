@@ -62,6 +62,8 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
       schema: xaiVideoModelOptionsSchema,
     })) as XaiVideoModelOptions | undefined;
 
+    const isEdit = xaiOptions?.videoUrl != null;
+
     if (options.fps != null) {
       warnings.push({
         type: 'unsupported',
@@ -88,23 +90,49 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
+    if (isEdit && options.duration != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'duration',
+        details: 'xAI video editing does not support custom duration.',
+      });
+    }
+
+    if (isEdit && options.aspectRatio != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'aspectRatio',
+        details: 'xAI video editing does not support custom aspect ratio.',
+      });
+    }
+
+    if (
+      isEdit &&
+      (xaiOptions?.resolution != null || options.resolution != null)
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'resolution',
+        details: 'xAI video editing does not support custom resolution.',
+      });
+    }
+
     const body: Record<string, unknown> = {
       model: this.modelId,
       prompt: options.prompt,
     };
 
-    if (options.duration != null) {
+    if (!isEdit && options.duration != null) {
       body.duration = options.duration;
     }
 
-    if (options.aspectRatio != null) {
+    if (!isEdit && options.aspectRatio != null) {
       body.aspect_ratio = options.aspectRatio;
     }
 
-    // Resolution: prefer provider option (native format), then map SDK format
-    if (xaiOptions?.resolution != null) {
+    if (!isEdit && xaiOptions?.resolution != null) {
       body.resolution = xaiOptions.resolution;
-    } else if (options.resolution != null) {
+    } else if (!isEdit && options.resolution != null) {
       const mapped = RESOLUTION_MAP[options.resolution];
       if (mapped != null) {
         body.resolution = mapped;
@@ -140,7 +168,6 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
     }
 
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
-    const isEdit = xaiOptions?.videoUrl != null;
 
     // Step 1: Create video generation/edit request
     const { value: createResponse } = await postJsonToApi({
