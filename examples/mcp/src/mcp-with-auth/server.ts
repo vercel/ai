@@ -63,7 +63,9 @@ function requireAuth(
 ): void {
   const authHeader = req.headers.authorization;
   console.log(
-    `[${req.method} ${req.path}] Authorization header:`,
+    '[%s %s] Authorization header:',
+    req.method,
+    req.path,
     authHeader ? `Bearer ${authHeader.substring(7, 27)}...` : 'missing',
   );
 
