@@ -62,54 +62,34 @@ describe('config', () => {
   });
 });
 
-describe('doGenerate', () => {
-  function prepareJsonResponse({
-    content = '',
-    usage = {
-      prompt_tokens: 4,
-      total_tokens: 34,
-      completion_tokens: 30,
+const defaultCompletionBody = {
+  id: 'cmpl-96cAM1v77r4jXa4qb2NSmRREV5oWB',
+  object: 'text_completion',
+  created: 1711363706,
+  model: 'gpt-3.5-turbo-instruct',
+  choices: [
+    {
+      text: '',
+      index: 0,
+      finish_reason: 'stop',
     },
-    finish_reason = 'stop',
-    id = 'cmpl-96cAM1v77r4jXa4qb2NSmRREV5oWB',
-    created = 1711363706,
-    model = 'gpt-3.5-turbo-instruct',
-    headers,
-  }: {
-    content?: string;
-    usage?: {
-      prompt_tokens: number;
-      total_tokens: number;
-      completion_tokens: number;
-    };
-    finish_reason?: string;
-    id?: string;
-    created?: number;
-    model?: string;
-    headers?: Record<string, string>;
-  }) {
+  ],
+  usage: {
+    prompt_tokens: 4,
+    total_tokens: 34,
+    completion_tokens: 30,
+  },
+};
+
+describe('doGenerate', () => {
+  it('should extract text response', async () => {
     server.urls['https://my.api.com/v1/completions'].response = {
       type: 'json-value',
-      headers,
       body: {
-        id,
-        object: 'text_completion',
-        created,
-        model,
-        choices: [
-          {
-            text: content,
-            index: 0,
-            finish_reason,
-          },
-        ],
-        usage,
+        ...defaultCompletionBody,
+        choices: [{ text: 'Hello, World!', index: 0, finish_reason: 'stop' }],
       },
     };
-  }
-
-  it('should extract text response', async () => {
-    prepareJsonResponse({ content: 'Hello, World!' });
 
     const { content } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -126,9 +106,13 @@ describe('doGenerate', () => {
   });
 
   it('should extract usage', async () => {
-    prepareJsonResponse({
-      usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
-    });
+    server.urls['https://my.api.com/v1/completions'].response = {
+      type: 'json-value',
+      body: {
+        ...defaultCompletionBody,
+        usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
+      },
+    };
 
     const { usage } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -156,7 +140,10 @@ describe('doGenerate', () => {
     `);
   });
   it('should send request body', async () => {
-    prepareJsonResponse({});
+    server.urls['https://my.api.com/v1/completions'].response = {
+      type: 'json-value',
+      body: defaultCompletionBody,
+    };
 
     const { request } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -191,11 +178,15 @@ describe('doGenerate', () => {
   });
 
   it('should send additional response information', async () => {
-    prepareJsonResponse({
-      id: 'test-id',
-      created: 123,
-      model: 'test-model',
-    });
+    server.urls['https://my.api.com/v1/completions'].response = {
+      type: 'json-value',
+      body: {
+        ...defaultCompletionBody,
+        id: 'test-id',
+        created: 123,
+        model: 'test-model',
+      },
+    };
 
     const { response } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -233,9 +224,10 @@ describe('doGenerate', () => {
   });
 
   it('should extract finish reason', async () => {
-    prepareJsonResponse({
-      finish_reason: 'stop',
-    });
+    server.urls['https://my.api.com/v1/completions'].response = {
+      type: 'json-value',
+      body: defaultCompletionBody,
+    };
 
     const { finishReason } = await provider
       .completionModel('gpt-3.5-turbo-instruct')
@@ -252,9 +244,13 @@ describe('doGenerate', () => {
   });
 
   it('should support unknown finish reason', async () => {
-    prepareJsonResponse({
-      finish_reason: 'eos',
-    });
+    server.urls['https://my.api.com/v1/completions'].response = {
+      type: 'json-value',
+      body: {
+        ...defaultCompletionBody,
+        choices: [{ text: '', index: 0, finish_reason: 'eos' }],
+      },
+    };
 
     const { finishReason } = await provider
       .completionModel('gpt-3.5-turbo-instruct')
@@ -271,9 +267,11 @@ describe('doGenerate', () => {
   });
 
   it('should expose the raw response headers', async () => {
-    prepareJsonResponse({
+    server.urls['https://my.api.com/v1/completions'].response = {
+      type: 'json-value',
       headers: { 'test-header': 'test-value' },
-    });
+      body: defaultCompletionBody,
+    };
 
     const { response } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -290,7 +288,10 @@ describe('doGenerate', () => {
   });
 
   it('should pass the model and the prompt', async () => {
-    prepareJsonResponse({ content: '' });
+    server.urls['https://my.api.com/v1/completions'].response = {
+      type: 'json-value',
+      body: defaultCompletionBody,
+    };
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -313,7 +314,10 @@ describe('doGenerate', () => {
   });
 
   it('should pass headers', async () => {
-    prepareJsonResponse({ content: '' });
+    server.urls['https://my.api.com/v1/completions'].response = {
+      type: 'json-value',
+      body: defaultCompletionBody,
+    };
 
     const provider = createOpenAICompatible({
       baseURL: 'https://my.api.com/v1/',
@@ -340,7 +344,10 @@ describe('doGenerate', () => {
   });
 
   it('should include provider-specific options', async () => {
-    prepareJsonResponse({ content: '' });
+    server.urls['https://my.api.com/v1/completions'].response = {
+      type: 'json-value',
+      body: defaultCompletionBody,
+    };
 
     await provider.completionModel('gpt-3.5-turbo-instruct').doGenerate({
       prompt: TEST_PROMPT,
@@ -369,7 +376,10 @@ describe('doGenerate', () => {
   });
 
   it('should not include provider-specific options for different provider', async () => {
-    prepareJsonResponse({ content: '' });
+    server.urls['https://my.api.com/v1/completions'].response = {
+      type: 'json-value',
+      body: defaultCompletionBody,
+    };
 
     await provider.completionModel('gpt-3.5-turbo-instruct').doGenerate({
       prompt: TEST_PROMPT,
