@@ -160,6 +160,13 @@ export type Tool<
   strict?: boolean;
 
   /**
+   * Optional timeout in milliseconds for tool execution.
+   * If the tool execution takes longer than the specified timeout,
+   * the tool call will be aborted.
+   */
+  timeout?: number;
+
+  /**
    * Optional function that is called when the argument streaming starts.
    * Only called when the tool is used in a streaming context.
    */
@@ -317,6 +324,11 @@ export function dynamicTool(tool: {
    * Whether the tool needs approval before it can be executed.
    */
   needsApproval?: boolean | ToolNeedsApprovalFunction<unknown>;
+
+  /**
+   * Optional timeout in milliseconds for tool execution.
+   */
+  timeout?: number;
 }): Tool<unknown, unknown> & {
   type: 'dynamic';
 } {
