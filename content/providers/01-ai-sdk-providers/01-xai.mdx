@@ -948,6 +948,52 @@ const { videos } = await generateVideo({
 });
 ```
 
+### Chaining and Concurrent Edits
+
+The xAI-hosted video URL is available in `providerMetadata.xai.videoUrl`.
+You can use it to chain sequential edits or branch into concurrent edits
+using `Promise.all`:
+
+```ts
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const providerOptions = {
+  xai: {
+    videoUrl: 'https://example.com/source-video.mp4',
+    pollTimeoutMs: 600000,
+  } satisfies XaiVideoModelOptions,
+};
+
+// Step 1: Apply an initial edit
+const step1 = await generateVideo({
+  model: xai.video('grok-imagine-video'),
+  prompt: 'Add a party hat to the person',
+  providerOptions,
+});
+
+// Get the xAI-hosted URL from provider metadata
+const step1VideoUrl = step1.providerMetadata?.xai?.videoUrl as string;
+
+// Step 2: Apply two more edits concurrently, building on step 1
+const [withSunglasses, withScarf] = await Promise.all([
+  generateVideo({
+    model: xai.video('grok-imagine-video'),
+    prompt: 'Add sunglasses',
+    providerOptions: {
+      xai: { videoUrl: step1VideoUrl, pollTimeoutMs: 600000 },
+    },
+  }),
+  generateVideo({
+    model: xai.video('grok-imagine-video'),
+    prompt: 'Add a scarf',
+    providerOptions: {
+      xai: { videoUrl: step1VideoUrl, pollTimeoutMs: 600000 },
+    },
+  }),
+]);
+```
+
 ### Video Provider Options
 
 The following provider options are available via `providerOptions.xai`.
@@ -978,6 +1024,20 @@ You can validate the provider options using the `XaiVideoModelOptions` type.
   reliable operation. Generated video URLs are ephemeral and should be
   downloaded promptly.
 </Note>
+
+### Aspect Ratio and Resolution
+
+For **text-to-video**, you can specify both `aspectRatio` and `resolution`.
+The default aspect ratio is `16:9` and the default resolution is `480p`.
+
+For **image-to-video**, the output defaults to the input image's aspect ratio.
+If you specify `aspectRatio`, it will override this and stretch the image to the
+desired ratio.
+
+For **video editing**, the output matches the input video's aspect ratio and
+resolution. Custom `aspectRatio` and `resolution` are not supported —
+the output resolution is capped at 720p (e.g., a 1080p input will be
+downsized to 720p).
 
 ### Video Model Capabilities
 

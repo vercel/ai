@@ -62,6 +62,12 @@ describe('XaiVideoModel', () => {
         body: createVideoResponse,
       },
     },
+    [`${TEST_BASE_URL}/videos/edits`]: {
+      response: {
+        type: 'json-value',
+        body: createVideoResponse,
+      },
+    },
     [`${TEST_BASE_URL}/videos/req-123`]: {
       response: {
         type: 'json-value',
@@ -179,7 +185,7 @@ describe('XaiVideoModel', () => {
       );
     });
 
-    it('should send image_url from URL-based image input', async () => {
+    it('should send image object from URL-based image input', async () => {
       const model = createModel();
 
       await model.doGenerate({
@@ -192,11 +198,11 @@ describe('XaiVideoModel', () => {
 
       const body = await server.calls[0].requestBodyJson;
       expect(body).toMatchObject({
-        image_url: 'https://example.com/image.png',
+        image: { url: 'https://example.com/image.png' },
       });
     });
 
-    it('should send image_url as data URI from file data', async () => {
+    it('should send image object with data URI from file data', async () => {
       const model = createModel();
       const imageData = new Uint8Array([137, 80, 78, 71]); // PNG magic bytes
 
@@ -211,11 +217,11 @@ describe('XaiVideoModel', () => {
 
       const body = await server.calls[0].requestBodyJson;
       expect(body).toMatchObject({
-        image_url: 'data:image/png;base64,iVBORw==',
+        image: { url: 'data:image/png;base64,iVBORw==' },
       });
     });
 
-    it('should send image_url as data URI from base64 string', async () => {
+    it('should send image object with data URI from base64 string', async () => {
       const model = createModel();
 
       await model.doGenerate({
@@ -229,11 +235,11 @@ describe('XaiVideoModel', () => {
 
       const body = await server.calls[0].requestBodyJson;
       expect(body).toMatchObject({
-        image_url: 'data:image/jpeg;base64,aGVsbG8=',
+        image: { url: 'data:image/jpeg;base64,aGVsbG8=' },
       });
     });
 
-    it('should send video_url for video editing', async () => {
+    it('should send video object to /videos/edits for video editing', async () => {
       const model = createModel();
 
       await model.doGenerate({
@@ -247,9 +253,11 @@ describe('XaiVideoModel', () => {
         },
       });
 
+      expect(server.calls[0].requestMethod).toBe('POST');
+      expect(server.calls[0].requestUrl).toBe(`${TEST_BASE_URL}/videos/edits`);
       const body = await server.calls[0].requestBodyJson;
       expect(body).toMatchObject({
-        video_url: 'https://example.com/source-video.mp4',
+        video: { url: 'https://example.com/source-video.mp4' },
       });
     });
 
@@ -293,6 +301,37 @@ describe('XaiVideoModel', () => {
         url: 'https://vidgen.x.ai/output/video-001.mp4',
         mediaType: 'video/mp4',
       });
+    });
+
+    it('should handle done response without status field', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          video: {
+            url: 'https://vidgen.x.ai/output/video-001.mp4',
+            duration: 5,
+            respect_moderation: true,
+          },
+          model: 'grok-imagine-video',
+        },
+      };
+
+      const model = createModel();
+
+      const result = await model.doGenerate({ ...defaultOptions });
+
+      expect(result.videos).toHaveLength(1);
+      expect(result.videos[0]).toStrictEqual({
+        type: 'url',
+        url: 'https://vidgen.x.ai/output/video-001.mp4',
+        mediaType: 'video/mp4',
+      });
+
+      // Reset
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
     });
 
     it('should return empty warnings for supported features', async () => {
@@ -385,7 +424,7 @@ describe('XaiVideoModel', () => {
   });
 
   describe('providerMetadata', () => {
-    it('should include requestId and duration', async () => {
+    it('should include requestId, videoUrl, and duration', async () => {
       const model = createModel();
 
       const result = await model.doGenerate({ ...defaultOptions });
@@ -393,6 +432,7 @@ describe('XaiVideoModel', () => {
       expect(result.providerMetadata).toStrictEqual({
         xai: {
           requestId: 'req-123',
+          videoUrl: 'https://vidgen.x.ai/output/video-001.mp4',
           duration: 5,
         },
       });

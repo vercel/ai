@@ -116,29 +116,32 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
-    // Video editing: pass source video URL
+    // Video editing: pass source video URL (nested object like image)
     if (xaiOptions?.videoUrl != null) {
-      body.video_url = xaiOptions.videoUrl;
+      body.video = { url: xaiOptions.videoUrl };
     }
 
-    // Image-to-video: convert SDK image to image_url field
+    // Image-to-video: convert SDK image to nested image object
     if (options.image != null) {
       if (options.image.type === 'url') {
-        body.image_url = options.image.url;
+        body.image = { url: options.image.url };
       } else {
         const base64Data =
           typeof options.image.data === 'string'
             ? options.image.data
             : convertUint8ArrayToBase64(options.image.data);
-        body.image_url = `data:${options.image.mediaType};base64,${base64Data}`;
+        body.image = {
+          url: `data:${options.image.mediaType};base64,${base64Data}`,
+        };
       }
     }
 
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
+    const isEdit = xaiOptions?.videoUrl != null;
 
-    // Step 1: Create video generation request
+    // Step 1: Create video generation/edit request
     const { value: createResponse } = await postJsonToApi({
-      url: `${baseURL}/videos/generations`,
+      url: `${baseURL}/videos/${isEdit ? 'edits' : 'generations'}`,
       headers: combineHeaders(this.config.headers(), options.headers),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
@@ -187,7 +190,10 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
 
       responseHeaders = pollHeaders;
 
-      if (statusResponse.status === 'done') {
+      if (
+        statusResponse.status === 'done' ||
+        (statusResponse.status == null && statusResponse.video?.url)
+      ) {
         if (!statusResponse.video?.url) {
           throw new AISDKError({
             name: 'XAI_VIDEO_GENERATION_ERROR',
@@ -213,6 +219,7 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
           providerMetadata: {
             xai: {
               requestId,
+              videoUrl: statusResponse.video.url,
               ...(statusResponse.video.duration != null
                 ? { duration: statusResponse.video.duration }
                 : {}),
@@ -238,7 +245,7 @@ const xaiCreateVideoResponseSchema = z.object({
 });
 
 const xaiVideoStatusResponseSchema = z.object({
-  status: z.string(),
+  status: z.string().nullish(),
   video: z
     .object({
       url: z.string(),

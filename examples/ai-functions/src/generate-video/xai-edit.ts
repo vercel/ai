@@ -10,10 +10,11 @@ run(async () => {
     () =>
       generateVideo({
         model: xai.video('grok-imagine-video'),
-        prompt: 'Give the person sunglasses and a hat',
+        prompt: 'Render this cat as a dog in the style of 90s anime.',
         providerOptions: {
           xai: {
-            videoUrl: 'https://example.com/source-video.mp4',
+            videoUrl:
+              'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/prudence.mp4',
             pollTimeoutMs: 600000, // 10 minutes
           } satisfies XaiVideoModelOptions,
         },
