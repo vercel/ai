@@ -2965,7 +2965,7 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     it('should set speed=standard without fast-mode beta header', async () => {
-      prepareJsonFixtureResponse('anthropic-text');
+      prepareJsonResponse({});
 
       const result = await model.doGenerate({
         prompt: TEST_PROMPT,
