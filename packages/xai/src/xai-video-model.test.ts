@@ -261,6 +261,143 @@ describe('XaiVideoModel', () => {
       });
     });
 
+    it('should warn about duration in edit mode', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        duration: 10,
+        providerOptions: {
+          xai: {
+            videoUrl: 'https://example.com/source-video.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'duration',
+        }),
+      );
+    });
+
+    it('should warn about aspectRatio in edit mode', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        aspectRatio: '16:9',
+        providerOptions: {
+          xai: {
+            videoUrl: 'https://example.com/source-video.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'aspectRatio',
+        }),
+      );
+    });
+
+    it('should warn about resolution in edit mode', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        resolution: '1280x720',
+        providerOptions: {
+          xai: {
+            videoUrl: 'https://example.com/source-video.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+        }),
+      );
+    });
+
+    it('should not warn about duration outside edit mode', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        duration: 10,
+      });
+
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({
+          feature: 'duration',
+        }),
+      );
+    });
+
+    it('should not warn about aspectRatio outside edit mode', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        aspectRatio: '16:9',
+      });
+
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({
+          feature: 'aspectRatio',
+        }),
+      );
+    });
+
+    it('should not warn about resolution outside edit mode', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        resolution: '1280x720',
+      });
+
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({
+          feature: 'resolution',
+        }),
+      );
+    });
+
+    it('should omit duration, aspect_ratio, and resolution from body in edit mode', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        duration: 10,
+        aspectRatio: '16:9',
+        resolution: '1280x720',
+        providerOptions: {
+          xai: {
+            videoUrl: 'https://example.com/source-video.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('duration');
+      expect(body).not.toHaveProperty('aspect_ratio');
+      expect(body).not.toHaveProperty('resolution');
+    });
+
     it('should pass headers to requests', async () => {
       const model = createModel({
         headers: () => ({
