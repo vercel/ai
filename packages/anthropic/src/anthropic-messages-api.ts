@@ -439,6 +439,8 @@ export type AnthropicTool =
       name: string;
     };
 
+export type AnthropicSpeed = 'fast' | 'standard';
+
 export type AnthropicToolChoice =
   | { type: 'auto' | 'any'; disable_parallel_tool_use?: boolean }
   | { type: 'tool'; name: string; disable_parallel_tool_use?: boolean };
