@@ -948,6 +948,12 @@ const { videos } = await generateVideo({
 });
 ```
 
+<Note>
+  Video editing accepts input videos up to 8.7 seconds long. The `duration`,
+  `aspectRatio`, and `resolution` parameters are not supported for editing - the
+  output matches the input video's properties (capped at 720p).
+</Note>
+
 ### Chaining and Concurrent Edits
 
 The xAI-hosted video URL is available in `providerMetadata.xai.videoUrl`.
@@ -1035,9 +1041,9 @@ If you specify `aspectRatio`, it will override this and stretch the image to the
 desired ratio.
 
 For **video editing**, the output matches the input video's aspect ratio and
-resolution. Custom `aspectRatio` and `resolution` are not supported —
-the output resolution is capped at 720p (e.g., a 1080p input will be
-downsized to 720p).
+resolution. Custom `duration`, `aspectRatio`, and `resolution` are not
+supported - the output resolution is capped at 720p (e.g., a 1080p input
+will be downsized to 720p).
 
 ### Video Model Capabilities
 
