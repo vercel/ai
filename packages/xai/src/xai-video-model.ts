@@ -167,6 +167,21 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
+    if (xaiOptions != null) {
+      for (const [key, value] of Object.entries(xaiOptions)) {
+        if (
+          ![
+            'pollIntervalMs',
+            'pollTimeoutMs',
+            'resolution',
+            'videoUrl',
+          ].includes(key)
+        ) {
+          body[key] = value;
+        }
+      }
+    }
+
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
 
     // Step 1: Create video generation/edit request
