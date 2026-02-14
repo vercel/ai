@@ -10,12 +10,16 @@ import { WeatherWithApprovalAgentUIMessage } from '@/agent/weather-with-approval
 import WeatherWithApprovalView from '@/components/tool/weather-with-approval-view';
 
 export default function TestToolApproval() {
-  const { status, sendMessage, messages, addToolApprovalResponse } =
-    useChat<WeatherWithApprovalAgentUIMessage>({
-      transport: new DefaultChatTransport({ api: '/api/chat-tool-approval' }),
-      sendAutomaticallyWhen:
-        lastAssistantMessageIsCompleteWithApprovalResponses,
-    });
+  const {
+    status,
+    sendMessage,
+    messages,
+    addToolApprovalResponse,
+    resetToolApproval,
+  } = useChat<WeatherWithApprovalAgentUIMessage>({
+    transport: new DefaultChatTransport({ api: '/api/chat-tool-approval' }),
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
+  });
 
   console.log(structuredClone(messages));
 
@@ -36,6 +40,7 @@ export default function TestToolApproval() {
                     key={index}
                     invocation={part}
                     addToolApprovalResponse={addToolApprovalResponse}
+                    resetToolApproval={resetToolApproval}
                   />
                 );
             }

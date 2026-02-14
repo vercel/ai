@@ -34,6 +34,7 @@ export type UseChatHelpers<UI_MESSAGE extends UIMessage> = {
   | 'addToolResult'
   | 'addToolOutput'
   | 'addToolApprovalResponse'
+  | 'resetToolApproval'
   | 'status'
   | 'messages'
   | 'clearError'
@@ -169,5 +170,6 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     addToolResult: chatRef.current.addToolOutput,
     addToolOutput: chatRef.current.addToolOutput,
     addToolApprovalResponse: chatRef.current.addToolApprovalResponse,
+    resetToolApproval: chatRef.current.resetToolApproval,
   };
 }
