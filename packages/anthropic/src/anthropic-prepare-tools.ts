@@ -331,8 +331,12 @@ export async function prepareTools({
         betas,
       };
     case 'none':
-      // Anthropic does not support 'none' tool choice, so we remove the tools:
-      return { tools: undefined, toolChoice: undefined, toolWarnings, betas };
+      return {
+        tools: anthropicTools,
+        toolChoice: { type: 'none' },
+        toolWarnings,
+        betas,
+      };
     case 'tool':
       return {
         tools: anthropicTools,
