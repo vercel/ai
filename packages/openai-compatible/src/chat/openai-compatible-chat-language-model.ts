@@ -18,6 +18,7 @@ import {
   createJsonResponseHandler,
   FetchFunction,
   generateId,
+  injectJsonInstructionIntoMessages,
   isParsableJson,
   parseProviderOptions,
   ParseResult,
@@ -162,11 +163,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
-    if (
+    // When structured outputs are not supported but a schema is provided,
+    // inject the JSON schema as a system instruction so the model knows
+    // what structure to produce (since the schema is dropped from response_format).
+    const shouldInjectSchemaInstruction =
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      !this.supportsStructuredOutputs
-    ) {
+      !this.supportsStructuredOutputs;
+
+    if (shouldInjectSchemaInstruction) {
       warnings.push({
         type: 'unsupported',
         feature: 'responseFormat',
@@ -174,6 +179,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
           'JSON response format schema is only supported with structuredOutputs',
       });
     }
+
+    const messagesPrompt = shouldInjectSchemaInstruction
+      ? injectJsonInstructionIntoMessages({
+          messages: prompt,
+          schema: responseFormat.schema,
+        })
+      : prompt;
 
     const {
       tools: openaiTools,
@@ -231,7 +243,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         verbosity: compatibleOptions.textVerbosity,
 
         // messages:
-        messages: convertToOpenAICompatibleChatMessages(prompt),
+        messages: convertToOpenAICompatibleChatMessages(messagesPrompt),
 
         // tools:
         tools: openaiTools,
