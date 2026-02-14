@@ -60,7 +60,7 @@ export const shellArgsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       environment: z
-        .discriminatedUnion('type', [
+        .union([
           z.object({
             type: z.literal('containerAuto'),
             fileIds: z.array(z.string()).optional(),
@@ -90,7 +90,7 @@ export const shellArgsSchema = lazySchema(() =>
             containerId: z.string(),
           }),
           z.object({
-            type: z.literal('local'),
+            type: z.literal('local').optional(),
             skills: z
               .array(
                 z.object({
@@ -143,7 +143,7 @@ type ShellArgs = {
         containerId: string;
       }
     | {
-        type: 'local';
+        type?: 'local';
         skills?: Array<{
           name: string;
           description: string;

@@ -273,7 +273,7 @@ export async function prepareResponsesTools({
 }
 
 function mapShellEnvironment(environment: {
-  type: string;
+  type?: string;
   [key: string]: unknown;
 }): NonNullable<
   Extract<OpenAIResponsesTool, { type: 'shell' }>['environment']
@@ -289,59 +289,59 @@ function mapShellEnvironment(environment: {
     };
   }
 
-  if (environment.type === 'local') {
+  if (environment.type === 'containerAuto') {
     const env = environment as {
-      type: 'local';
+      type: 'containerAuto';
+      fileIds?: string[];
+      memoryLimit?: '1g' | '4g' | '16g' | '64g';
+      networkPolicy?: {
+        type: string;
+        allowedDomains?: string[];
+        domainSecrets?: Array<{
+          domain: string;
+          name: string;
+          value: string;
+        }>;
+      };
       skills?: Array<{
-        name: string;
-        description: string;
-        path: string;
+        type: string;
+        skillId?: string;
+        version?: string;
+        name?: string;
+        description?: string;
+        source?: { type: string; mediaType: string; data: string };
       }>;
     };
+
     return {
-      type: 'local',
-      skills: env.skills,
+      type: 'container_auto',
+      file_ids: env.fileIds,
+      memory_limit: env.memoryLimit,
+      network_policy:
+        env.networkPolicy == null
+          ? undefined
+          : env.networkPolicy.type === 'disabled'
+            ? { type: 'disabled' as const }
+            : {
+                type: 'allowlist' as const,
+                allowed_domains: env.networkPolicy.allowedDomains!,
+                domain_secrets: env.networkPolicy.domainSecrets,
+              },
+      skills: mapShellSkills(env.skills),
     };
   }
 
   const env = environment as {
-    type: 'containerAuto';
-    fileIds?: string[];
-    memoryLimit?: '1g' | '4g' | '16g' | '64g';
-    networkPolicy?: {
-      type: string;
-      allowedDomains?: string[];
-      domainSecrets?: Array<{
-        domain: string;
-        name: string;
-        value: string;
-      }>;
-    };
+    type?: 'local';
     skills?: Array<{
-      type: string;
-      skillId?: string;
-      version?: string;
-      name?: string;
-      description?: string;
-      source?: { type: string; mediaType: string; data: string };
+      name: string;
+      description: string;
+      path: string;
     }>;
   };
-
   return {
-    type: 'container_auto',
-    file_ids: env.fileIds,
-    memory_limit: env.memoryLimit,
-    network_policy:
-      env.networkPolicy == null
-        ? undefined
-        : env.networkPolicy.type === 'disabled'
-          ? { type: 'disabled' as const }
-          : {
-              type: 'allowlist' as const,
-              allowed_domains: env.networkPolicy.allowedDomains!,
-              domain_secrets: env.networkPolicy.domainSecrets,
-            },
-    skills: mapShellSkills(env.skills),
+    type: 'local',
+    skills: env.skills,
   };
 }
 

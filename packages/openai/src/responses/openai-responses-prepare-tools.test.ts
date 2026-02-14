@@ -1211,6 +1211,52 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
+    it('should prepare shell tool with local environment without explicit type', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                skills: [
+                  {
+                    name: 'calculator',
+                    description: 'Perform math calculations',
+                    path: '/path/to/calculator',
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "skills": [
+                  {
+                    "description": "Perform math calculations",
+                    "name": "calculator",
+                    "path": "/path/to/calculator",
+                  },
+                ],
+                "type": "local",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
     it('should prepare shell tool with local environment without skills', async () => {
       const result = await prepareResponsesTools({
         tools: [
