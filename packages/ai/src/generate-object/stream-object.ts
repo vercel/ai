@@ -140,6 +140,7 @@ export type StreamObjectOnFinishCallback<RESULT> = (event: {
  * If set, the model will stop generating text when one of the stop sequences is generated.
  * @param seed - The seed (integer) to use for random sampling.
  * If set and supported by the model, calls will generate deterministic results.
+ * @param thinking - Top-level thinking / reasoning configuration.
  *
  * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.

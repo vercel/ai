@@ -48,6 +48,24 @@ type OpenAIChatConfig = {
   fetch?: FetchFunction;
 };
 
+function mapThinkingToOpenAIReasoningEffort({
+  thinking,
+  isReasoningModel,
+}: {
+  thinking: LanguageModelV3CallOptions['thinking'] | undefined;
+  isReasoningModel: boolean;
+}) {
+  if (thinking == null) {
+    return undefined;
+  }
+
+  if (thinking.type === 'disabled') {
+    return isReasoningModel ? 'none' : undefined;
+  }
+
+  return thinking.effort;
+}
+
 export class OpenAIChatLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
 
@@ -82,6 +100,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     providerOptions,
+    thinking,
   }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
 
@@ -96,6 +115,22 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
     const isReasoningModel =
       openaiOptions.forceReasoning ?? modelCapabilities.isReasoningModel;
+    const reasoningEffort =
+      thinking == null
+        ? openaiOptions.reasoningEffort
+        : mapThinkingToOpenAIReasoningEffort({
+            thinking,
+            isReasoningModel,
+          });
+
+    if (thinking?.type === 'enabled' && thinking.budgetTokens != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'thinking.budgetTokens',
+        details:
+          'thinking.budgetTokens is not supported by the OpenAI chat API',
+      });
+    }
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -168,7 +203,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       store: openaiOptions.store,
       metadata: openaiOptions.metadata,
       prediction: openaiOptions.prediction,
-      reasoning_effort: openaiOptions.reasoningEffort,
+      reasoning_effort: reasoningEffort,
       service_tier: openaiOptions.serviceTier,
       prompt_cache_key: openaiOptions.promptCacheKey,
       prompt_cache_retention: openaiOptions.promptCacheRetention,
@@ -184,7 +219,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       // when reasoning effort is none, gpt-5.1 models allow temperature, topP, logprobs
       //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
       if (
-        openaiOptions.reasoningEffort !== 'none' ||
+        reasoningEffort !== 'none' ||
         !modelCapabilities.supportsNonReasoningParameters
       ) {
         if (baseArgs.temperature != null) {

@@ -69,6 +69,24 @@ import {
   ResponsesTextProviderMetadata,
 } from './openai-responses-provider-metadata';
 
+function mapThinkingToOpenAIReasoningEffort({
+  thinking,
+  isReasoningModel,
+}: {
+  thinking: LanguageModelV3CallOptions['thinking'] | undefined;
+  isReasoningModel: boolean;
+}) {
+  if (thinking == null) {
+    return undefined;
+  }
+
+  if (thinking.type === 'disabled') {
+    return isReasoningModel ? 'none' : undefined;
+  }
+
+  return thinking.effort;
+}
+
 /**
  * Extracts a mapping from MCP approval request IDs to their corresponding tool call IDs
  * from the prompt. When an MCP tool requires approval, we generate a tool call ID to track
@@ -129,6 +147,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     responseFormat,
+    thinking,
   }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
@@ -172,6 +191,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
     const isReasoningModel =
       openaiOptions?.forceReasoning ?? modelCapabilities.isReasoningModel;
+    const reasoningEffort =
+      thinking == null
+        ? openaiOptions?.reasoningEffort
+        : mapThinkingToOpenAIReasoningEffort({
+            thinking,
+            isReasoningModel,
+          });
+
+    if (thinking?.type === 'enabled' && thinking.budgetTokens != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'thinking.budgetTokens',
+        details:
+          'thinking.budgetTokens is not supported by the OpenAI responses API',
+      });
+    }
 
     if (openaiOptions?.conversation && openaiOptions?.previousResponseId) {
       warnings.push({
@@ -318,11 +353,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
       // model-specific settings:
       ...(isReasoningModel &&
-        (openaiOptions?.reasoningEffort != null ||
+        (reasoningEffort != null ||
           openaiOptions?.reasoningSummary != null) && {
           reasoning: {
-            ...(openaiOptions?.reasoningEffort != null && {
-              effort: openaiOptions.reasoningEffort,
+            ...(reasoningEffort != null && {
+              effort: reasoningEffort,
             }),
             ...(openaiOptions?.reasoningSummary != null && {
               summary: openaiOptions.reasoningSummary,
@@ -338,7 +373,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
       if (
         !(
-          openaiOptions?.reasoningEffort === 'none' &&
+          reasoningEffort === 'none' &&
           modelCapabilities.supportsNonReasoningParameters
         )
       ) {
@@ -361,7 +396,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         }
       }
     } else {
-      if (openaiOptions?.reasoningEffort != null) {
+      if (reasoningEffort != null) {
         warnings.push({
           type: 'unsupported',
           feature: 'reasoningEffort',

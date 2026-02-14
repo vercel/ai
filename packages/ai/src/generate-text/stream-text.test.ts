@@ -10059,6 +10059,49 @@ describe('streamText', () => {
     });
   });
 
+  describe('options.thinking', () => {
+    it('should pass thinking settings to model', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async ({ thinking }) => {
+            expect(thinking).toStrictEqual({
+              type: 'enabled',
+              effort: 'medium',
+            });
+
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: 'thinking settings test',
+                },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        thinking: {
+          type: 'enabled',
+          effort: 'medium',
+        },
+        onError: () => {},
+      });
+
+      assert.deepStrictEqual(
+        await convertAsyncIterableToArray(result.textStream),
+        ['thinking settings test'],
+      );
+    });
+  });
+
   describe('options.abortSignal', () => {
     it('should forward abort signal to tool execution during streaming', async () => {
       const abortController = new AbortController();

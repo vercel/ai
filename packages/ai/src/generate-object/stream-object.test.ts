@@ -802,6 +802,48 @@ describe('streamObject', () => {
       });
     });
 
+    describe('options.thinking', () => {
+      it('should pass thinking settings to model', async () => {
+        const result = streamObject({
+          model: new MockLanguageModelV3({
+            doStream: async ({ thinking }) => {
+              expect(thinking).toStrictEqual({
+                type: 'enabled',
+                effort: 'high',
+              });
+
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'text-start', id: '1' },
+                  {
+                    type: 'text-delta',
+                    id: '1',
+                    delta: `{ "content": "thinking settings test" }`,
+                  },
+                  { type: 'text-end', id: '1' },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: testUsage,
+                  },
+                ]),
+              };
+            },
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          thinking: {
+            type: 'enabled',
+            effort: 'high',
+          },
+        });
+
+        expect(
+          await convertAsyncIterableToArray(result.partialObjectStream),
+        ).toStrictEqual([{ content: 'thinking settings test' }]);
+      });
+    });
+
     describe('custom schema', () => {
       it('should send object deltas', async () => {
         const mockModel = createTestModel();

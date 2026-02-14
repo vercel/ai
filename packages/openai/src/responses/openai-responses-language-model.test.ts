@@ -748,6 +748,119 @@ describe('OpenAIResponsesLanguageModel', () => {
         },
       );
 
+      it.each(openaiResponsesReasoningModelIds)(
+        'should send top-level thinking effort for %s',
+        async modelId => {
+          const { warnings } = await createModel(modelId).doGenerate({
+            prompt: TEST_PROMPT,
+            thinking: {
+              type: 'enabled',
+              effort: 'high',
+            },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+            model: modelId,
+            input: [
+              {
+                role: 'user',
+                content: [{ type: 'input_text', text: 'Hello' }],
+              },
+            ],
+            reasoning: {
+              effort: 'high',
+            },
+          });
+
+          expect(warnings).toStrictEqual([]);
+        },
+      );
+
+      it('should prioritize top-level thinking over providerOptions reasoningEffort', async () => {
+        const { warnings } = await createModel('o4-mini').doGenerate({
+          prompt: TEST_PROMPT,
+          thinking: {
+            type: 'enabled',
+            effort: 'low',
+          },
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'high',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'o4-mini',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+          reasoning: {
+            effort: 'low',
+          },
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should allow disabling thinking via top-level settings for reasoning models', async () => {
+        const { warnings } = await createModel('o4-mini').doGenerate({
+          prompt: TEST_PROMPT,
+          thinking: {
+            type: 'disabled',
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'o4-mini',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+          reasoning: {
+            effort: 'none',
+          },
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should warn when thinking.budgetTokens is provided via top-level settings', async () => {
+        const { warnings } = await createModel('o4-mini').doGenerate({
+          prompt: TEST_PROMPT,
+          thinking: {
+            type: 'enabled',
+            effort: 'low',
+            budgetTokens: 2048,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'o4-mini',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+          reasoning: {
+            effort: 'low',
+          },
+        });
+
+        expect(warnings).toContainEqual({
+          type: 'unsupported',
+          feature: 'thinking.budgetTokens',
+          details:
+            'thinking.budgetTokens is not supported by the OpenAI responses API',
+        });
+      });
+
       it('should allow forcing reasoning mode for unrecognized model IDs via providerOptions', async () => {
         const { warnings } = await createModel(
           'stealth-reasoning-model',
@@ -835,6 +948,28 @@ describe('OpenAIResponsesLanguageModel', () => {
                 'reasoningEffort is not supported for non-reasoning models',
             },
           ]);
+        },
+      );
+
+      it.each(nonReasoningModelIds)(
+        'should ignore disabled top-level thinking without warnings for %s',
+        async modelId => {
+          const { warnings } = await createModel(modelId).doGenerate({
+            prompt: TEST_PROMPT,
+            thinking: { type: 'disabled' },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+            model: modelId,
+            input: [
+              {
+                role: 'user',
+                content: [{ type: 'input_text', text: 'Hello' }],
+              },
+            ],
+          });
+
+          expect(warnings).toStrictEqual([]);
         },
       );
 

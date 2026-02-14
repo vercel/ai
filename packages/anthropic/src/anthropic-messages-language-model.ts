@@ -181,6 +181,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     providerOptions,
+    thinking,
     stream,
   }: LanguageModelV3CallOptions & {
     stream: boolean;
@@ -255,6 +256,21 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       canonicalOptions ?? {},
       customProviderOptions ?? {},
     );
+    const effectiveThinking =
+      thinking == null
+        ? anthropicOptions?.thinking
+        : thinking.type === 'enabled'
+          ? {
+              type: 'enabled',
+              ...(thinking.budgetTokens != null && {
+                budgetTokens: thinking.budgetTokens,
+              }),
+            }
+          : { type: 'disabled' as const };
+    const effectiveEffort =
+      thinking?.type === 'enabled' && thinking.effort != null
+        ? thinking.effort
+        : anthropicOptions?.effort;
 
     const {
       maxOutputTokens: maxOutputTokensForModel,
@@ -319,13 +335,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         toolNameMapping,
       });
 
-    const thinkingType = anthropicOptions?.thinking?.type;
+    const thinkingType = effectiveThinking?.type;
     const isThinking =
       thinkingType === 'enabled' || thinkingType === 'adaptive';
     let thinkingBudget =
-      thinkingType === 'enabled'
-        ? anthropicOptions?.thinking?.budgetTokens
-        : undefined;
+      thinkingType === 'enabled' ? effectiveThinking?.budgetTokens : undefined;
 
     const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
 
@@ -347,8 +361,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           ...(thinkingBudget != null && { budget_tokens: thinkingBudget }),
         },
       }),
-      ...(anthropicOptions?.effort && {
-        output_config: { effort: anthropicOptions.effort },
+      ...(effectiveEffort && {
+        output_config: { effort: effectiveEffort },
       }),
       ...(anthropicOptions?.speed && {
         speed: anthropicOptions.speed,
@@ -572,7 +586,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       }
     }
 
-    if (anthropicOptions?.effort) {
+    if (effectiveEffort) {
       betas.add('effort-2025-11-24');
     }
 

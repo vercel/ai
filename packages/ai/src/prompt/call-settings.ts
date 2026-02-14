@@ -1,3 +1,7 @@
+import { LanguageModelV3CallOptions } from '@ai-sdk/provider';
+
+type ThinkingCallSettings = LanguageModelV3CallOptions['thinking'];
+
 /**
  * Timeout configuration for API calls. Can be specified as:
  * - A number representing milliseconds
@@ -119,6 +123,11 @@ export type CallSettings = {
    * by the model, calls will generate deterministic results.
    */
   seed?: number;
+
+  /**
+   * Top-level thinking / reasoning configuration.
+   */
+  thinking?: ThinkingCallSettings;
 
   /**
    * Maximum number of retries. Set to 0 to disable retries.
