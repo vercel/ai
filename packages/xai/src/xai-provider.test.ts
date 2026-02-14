@@ -3,9 +3,11 @@ import { createXai } from './xai-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
 import { XaiImageModel } from './xai-image-model';
+import { XaiVideoModel } from './xai-video-model';
 
 const XaiChatLanguageModelMock = XaiChatLanguageModel as unknown as Mock;
 const XaiImageModelMock = XaiImageModel as unknown as Mock;
+const XaiVideoModelMock = XaiVideoModel as unknown as Mock;
 
 vi.mock('./xai-chat-language-model', () => ({
   XaiChatLanguageModel: vi.fn(),
@@ -13,6 +15,10 @@ vi.mock('./xai-chat-language-model', () => ({
 
 vi.mock('./xai-image-model', () => ({
   XaiImageModel: vi.fn(),
+}));
+
+vi.mock('./xai-video-model', () => ({
+  XaiVideoModel: vi.fn(),
 }));
 
 vi.mock('@ai-sdk/provider-utils', async () => {
@@ -150,6 +156,63 @@ describe('xAIProvider', () => {
         'custom-header': 'test-value',
         'user-agent': 'ai-sdk/xai/0.0.0-test',
       });
+    });
+  });
+
+  describe('videoModel', () => {
+    it('should construct a video model with correct configuration', () => {
+      const provider = createXai();
+      const modelId = 'grok-imagine-video';
+
+      provider.videoModel(modelId);
+
+      expect(XaiVideoModelMock).toHaveBeenCalledOnce();
+
+      const constructorCall = XaiVideoModelMock.mock.calls[0];
+      expect(constructorCall[0]).toBe(modelId);
+
+      const config = constructorCall[1];
+      expect(config.provider).toBe('xai.video');
+      expect(config.baseURL).toBe('https://api.x.ai/v1');
+    });
+
+    it('should use custom baseURL for video model', () => {
+      const customBaseURL = 'https://custom.xai.api';
+      const provider = createXai({ baseURL: customBaseURL });
+
+      provider.videoModel('grok-imagine-video');
+
+      const constructorCall = XaiVideoModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      expect(config.baseURL).toBe(customBaseURL);
+    });
+
+    it('should pass custom headers to video model', () => {
+      const customHeaders = { 'Custom-Header': 'test-value' };
+      const provider = createXai({ headers: customHeaders });
+
+      provider.videoModel('grok-imagine-video');
+
+      const constructorCall = XaiVideoModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const headers = config.headers();
+
+      expect(headers).toMatchObject({
+        authorization: 'Bearer mock-api-key',
+        'custom-header': 'test-value',
+        'user-agent': 'ai-sdk/xai/0.0.0-test',
+      });
+    });
+
+    it('should create a video model via .video() alias', () => {
+      const provider = createXai();
+      const modelId = 'grok-imagine-video';
+
+      provider.video(modelId);
+
+      expect(XaiVideoModelMock).toHaveBeenCalledOnce();
+      const constructorCall = XaiVideoModelMock.mock.calls[0];
+      expect(constructorCall[0]).toBe(modelId);
     });
   });
 });
