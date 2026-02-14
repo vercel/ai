@@ -816,6 +816,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           break;
         }
         case 'compaction': {
+          if (part.content == null) {
+            break;
+          }
           content.push({
             type: 'text',
             text: part.content,
@@ -1840,6 +1843,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 }
 
                 case 'compaction_delta': {
+                  if (value.delta.content == null) {
+                    return;
+                  }
+
                   controller.enqueue({
                     type: 'text-delta',
                     id: String(value.index),
