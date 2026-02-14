@@ -992,7 +992,10 @@ const { image } = await generateImage({
 You can also pass the `providerOptions` object to the `generateImage` function to customize the generation behavior:
 
 ```ts
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import {
+  bedrock,
+  type AmazonBedrockImageModelOptions,
+} from '@ai-sdk/amazon-bedrock';
 import { generateImage } from 'ai';
 
 const { image } = await generateImage({
@@ -1006,7 +1009,7 @@ const { image } = await generateImage({
       negativeText: 'blurry, low quality',
       cfgScale: 7.5,
       style: 'PHOTOREALISM',
-    },
+    } satisfies AmazonBedrockImageModelOptions,
   },
 });
 ```
