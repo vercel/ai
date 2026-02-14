@@ -593,7 +593,7 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
           }),
           z.object({
             type: z.literal('compaction'),
-            content: z.string(),
+            content: z.string().nullish(),
           }),
           z.object({
             type: z.literal('tool_use'),
