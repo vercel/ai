@@ -67,6 +67,20 @@ export type OpenAICompatibleChatConfig = {
   transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
 };
 
+function mapThinkingToOpenAICompatibleReasoningEffort(
+  thinking: LanguageModelV3CallOptions['thinking'] | undefined,
+) {
+  if (thinking == null) {
+    return undefined;
+  }
+
+  if (thinking.type === 'disabled') {
+    return 'none';
+  }
+
+  return thinking.effort;
+}
+
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
 
@@ -125,6 +139,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     seed,
     toolChoice,
     tools,
+    thinking,
   }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
 
@@ -157,6 +172,19 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     );
 
     const strictJsonSchema = compatibleOptions?.strictJsonSchema ?? true;
+    const reasoningEffort =
+      thinking == null
+        ? compatibleOptions.reasoningEffort
+        : mapThinkingToOpenAICompatibleReasoningEffort(thinking);
+
+    if (thinking?.type === 'enabled' && thinking.budgetTokens != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'thinking.budgetTokens',
+        details:
+          'thinking.budgetTokens is not supported by OpenAI-compatible chat APIs',
+      });
+    }
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -227,7 +255,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
           ),
         ),
 
-        reasoning_effort: compatibleOptions.reasoningEffort,
+        reasoning_effort: reasoningEffort,
         verbosity: compatibleOptions.textVerbosity,
 
         // messages:

@@ -27,6 +27,12 @@ export function getBaseTelemetryAttributes({
         if (totalTimeoutMs != null) {
           attributes[`ai.settings.${key}`] = totalTimeoutMs;
         }
+      } else if (
+        value != null &&
+        typeof value === 'object' &&
+        !Array.isArray(value)
+      ) {
+        attributes[`ai.settings.${key}`] = JSON.stringify(value);
       } else {
         attributes[`ai.settings.${key}`] = value as AttributeValue;
       }

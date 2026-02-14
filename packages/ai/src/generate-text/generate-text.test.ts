@@ -2235,6 +2235,33 @@ describe('generateText', () => {
     });
   });
 
+  describe('options.thinking', () => {
+    it('should pass thinking settings to model', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({ thinking }) => {
+            expect(thinking).toStrictEqual({
+              type: 'enabled',
+              effort: 'high',
+            });
+
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'thinking settings test' }],
+            };
+          },
+        }),
+        prompt: 'test-input',
+        thinking: {
+          type: 'enabled',
+          effort: 'high',
+        },
+      });
+
+      expect(result.text).toStrictEqual('thinking settings test');
+    });
+  });
+
   describe('options.abortSignal', () => {
     it('should forward abort signal to tool execution', async () => {
       const abortController = new AbortController();

@@ -28,9 +28,30 @@ describe('prepareCallSettings', () => {
         presencePenalty: undefined,
         frequencyPenalty: undefined,
         seed: undefined,
+        thinking: undefined,
       };
 
       expect(() => prepareCallSettings(validSettings)).not.toThrow();
+    });
+
+    it('should allow valid thinking settings', () => {
+      expect(() =>
+        prepareCallSettings({
+          thinking: {
+            type: 'enabled',
+            effort: 'high',
+            budgetTokens: 2048,
+          },
+        }),
+      ).not.toThrow();
+
+      expect(() =>
+        prepareCallSettings({
+          thinking: {
+            type: 'disabled',
+          },
+        }),
+      ).not.toThrow();
     });
   });
 
@@ -130,6 +151,102 @@ describe('prepareCallSettings', () => {
             parameter: 'seed',
             value: 10.5,
             message: 'seed must be an integer',
+          }),
+        );
+      });
+    });
+
+    describe('thinking', () => {
+      it('should throw InvalidArgumentError if thinking is not an object', () => {
+        expect(() =>
+          prepareCallSettings({ thinking: 'enabled' as any }),
+        ).toThrow(
+          new InvalidArgumentError({
+            parameter: 'thinking',
+            value: 'enabled',
+            message: 'thinking must be an object',
+          }),
+        );
+      });
+
+      it('should throw InvalidArgumentError if thinking.type is invalid', () => {
+        expect(() =>
+          prepareCallSettings({ thinking: { type: 'adaptive' } as any }),
+        ).toThrow(
+          new InvalidArgumentError({
+            parameter: 'thinking.type',
+            value: 'adaptive',
+            message: 'thinking.type must be "enabled" or "disabled"',
+          }),
+        );
+      });
+
+      it('should throw InvalidArgumentError if thinking.effort is invalid', () => {
+        expect(() =>
+          prepareCallSettings({
+            thinking: {
+              type: 'enabled',
+              effort: 'xhigh',
+            } as any,
+          }),
+        ).toThrow(
+          new InvalidArgumentError({
+            parameter: 'thinking.effort',
+            value: 'xhigh',
+            message: 'thinking.effort must be "low", "medium", or "high"',
+          }),
+        );
+      });
+
+      it('should throw InvalidArgumentError if thinking.budgetTokens is invalid', () => {
+        expect(() =>
+          prepareCallSettings({
+            thinking: {
+              type: 'enabled',
+              budgetTokens: 0,
+            },
+          }),
+        ).toThrow(
+          new InvalidArgumentError({
+            parameter: 'thinking.budgetTokens',
+            value: 0,
+            message: 'thinking.budgetTokens must be an integer >= 1',
+          }),
+        );
+      });
+
+      it('should throw InvalidArgumentError if thinking.effort is set while disabled', () => {
+        expect(() =>
+          prepareCallSettings({
+            thinking: {
+              type: 'disabled',
+              effort: 'high',
+            } as any,
+          }),
+        ).toThrow(
+          new InvalidArgumentError({
+            parameter: 'thinking.effort',
+            value: 'high',
+            message:
+              'thinking.effort can only be set when thinking.type is "enabled"',
+          }),
+        );
+      });
+
+      it('should throw InvalidArgumentError if thinking.budgetTokens is set while disabled', () => {
+        expect(() =>
+          prepareCallSettings({
+            thinking: {
+              type: 'disabled',
+              budgetTokens: 1024,
+            } as any,
+          }),
+        ).toThrow(
+          new InvalidArgumentError({
+            parameter: 'thinking.budgetTokens',
+            value: 1024,
+            message:
+              'thinking.budgetTokens can only be set when thinking.type is "enabled"',
           }),
         );
       });

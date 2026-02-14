@@ -236,6 +236,33 @@ describe('defaultSettingsMiddleware', () => {
       expect(result.maxOutputTokens).toBe(50);
     });
 
+    it('should apply default thinking', async () => {
+      const middleware = defaultSettingsMiddleware({
+        settings: { thinking: { type: 'enabled', effort: 'high' } },
+      });
+      const result = await middleware.transformParams!({
+        type: 'generate',
+        params: BASE_PARAMS,
+        model: MOCK_MODEL,
+      });
+      expect(result.thinking).toEqual({ type: 'enabled', effort: 'high' });
+    });
+
+    it('should prioritize param thinking', async () => {
+      const middleware = defaultSettingsMiddleware({
+        settings: { thinking: { type: 'enabled', effort: 'high' } },
+      });
+      const result = await middleware.transformParams!({
+        type: 'generate',
+        params: {
+          ...BASE_PARAMS,
+          thinking: { type: 'disabled' },
+        },
+        model: MOCK_MODEL,
+      });
+      expect(result.thinking).toEqual({ type: 'disabled' });
+    });
+
     it('should apply default stopSequences', async () => {
       const middleware = defaultSettingsMiddleware({
         settings: { stopSequences: ['stop'] },

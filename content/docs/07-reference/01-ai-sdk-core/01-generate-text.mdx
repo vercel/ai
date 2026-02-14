@@ -422,6 +422,13 @@ To see `generateText` in action, check out [these examples](#examples).
         'The seed (integer) to use for random sampling. If set and supported by the model, calls will generate deterministic results.',
     },
     {
+      name: 'thinking',
+      type: '{ type: "enabled"; effort?: "low" | "medium" | "high"; budgetTokens?: number } | { type: "disabled" }',
+      isOptional: true,
+      description:
+        'Top-level thinking / reasoning configuration. Providers may map this to provider-specific reasoning settings.',
+    },
+    {
       name: 'maxRetries',
       type: 'number',
       isOptional: true,

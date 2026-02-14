@@ -657,6 +657,83 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass thinking effort from top-level settings', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('o4-mini');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      thinking: { type: 'enabled', effort: 'high' },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'o4-mini',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'high',
+    });
+  });
+
+  it('should allow disabling thinking via top-level settings', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('o4-mini');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      thinking: { type: 'disabled' },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'o4-mini',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'none',
+    });
+  });
+
+  it('should prioritize top-level thinking over providerOptions reasoningEffort', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('o4-mini');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      thinking: { type: 'enabled', effort: 'low' },
+      providerOptions: {
+        openai: { reasoningEffort: 'high' },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'o4-mini',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'low',
+    });
+  });
+
+  it('should warn when thinking.budgetTokens is provided', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('o4-mini');
+
+    const { warnings } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      thinking: { type: 'enabled', effort: 'high', budgetTokens: 2048 },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'o4-mini',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'high',
+    });
+
+    expect(warnings).toContainEqual({
+      type: 'unsupported',
+      feature: 'thinking.budgetTokens',
+      details: 'thinking.budgetTokens is not supported by the OpenAI chat API',
+    });
+  });
+
   it('should pass tools and toolChoice', async () => {
     prepareJsonFixtureResponse('openai-text');
 

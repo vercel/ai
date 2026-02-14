@@ -13,6 +13,7 @@ export function prepareCallSettings({
   frequencyPenalty,
   seed,
   stopSequences,
+  thinking,
 }: Omit<CallSettings, 'abortSignal' | 'headers' | 'maxRetries'>): Omit<
   CallSettings,
   'abortSignal' | 'headers' | 'maxRetries'
@@ -95,6 +96,75 @@ export function prepareCallSettings({
     }
   }
 
+  if (thinking != null) {
+    if (typeof thinking !== 'object' || Array.isArray(thinking)) {
+      throw new InvalidArgumentError({
+        parameter: 'thinking',
+        value: thinking,
+        message: 'thinking must be an object',
+      });
+    }
+
+    const thinkingType = thinking.type;
+    if (thinkingType !== 'enabled' && thinkingType !== 'disabled') {
+      throw new InvalidArgumentError({
+        parameter: 'thinking.type',
+        value: thinkingType,
+        message: 'thinking.type must be "enabled" or "disabled"',
+      });
+    }
+
+    const effort = (thinking as { effort?: unknown }).effort;
+    const budgetTokens = (thinking as { budgetTokens?: unknown }).budgetTokens;
+
+    if (thinkingType === 'enabled') {
+      if (
+        effort != null &&
+        effort !== 'low' &&
+        effort !== 'medium' &&
+        effort !== 'high'
+      ) {
+        throw new InvalidArgumentError({
+          parameter: 'thinking.effort',
+          value: effort,
+          message: 'thinking.effort must be "low", "medium", or "high"',
+        });
+      }
+
+      if (budgetTokens != null) {
+        if (
+          typeof budgetTokens !== 'number' ||
+          !Number.isInteger(budgetTokens) ||
+          budgetTokens < 1
+        ) {
+          throw new InvalidArgumentError({
+            parameter: 'thinking.budgetTokens',
+            value: budgetTokens,
+            message: 'thinking.budgetTokens must be an integer >= 1',
+          });
+        }
+      }
+    } else {
+      if (effort != null) {
+        throw new InvalidArgumentError({
+          parameter: 'thinking.effort',
+          value: effort,
+          message:
+            'thinking.effort can only be set when thinking.type is "enabled"',
+        });
+      }
+
+      if (budgetTokens != null) {
+        throw new InvalidArgumentError({
+          parameter: 'thinking.budgetTokens',
+          value: budgetTokens,
+          message:
+            'thinking.budgetTokens can only be set when thinking.type is "enabled"',
+        });
+      }
+    }
+  }
+
   return {
     maxOutputTokens,
     temperature,
@@ -104,5 +174,6 @@ export function prepareCallSettings({
     frequencyPenalty,
     stopSequences,
     seed,
+    ...(thinking != null && { thinking }),
   };
 }

@@ -77,6 +77,22 @@ describe('ToolLoopAgent', () => {
       expect(doGenerateOptions?.abortSignal).toBe(abortController.signal);
     });
 
+    it('should pass thinking to generateText', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        thinking: { type: 'enabled', effort: 'high' },
+      });
+
+      await agent.generate({
+        prompt: 'Hello, world!',
+      });
+
+      expect(doGenerateOptions?.thinking).toEqual({
+        type: 'enabled',
+        effort: 'high',
+      });
+    });
+
     it('should pass timeout to generateText', async () => {
       const agent = new ToolLoopAgent({ model: mockModel });
 
@@ -348,6 +364,24 @@ describe('ToolLoopAgent', () => {
       await result.consumeStream();
 
       expect(doStreamOptions?.abortSignal).toBe(abortController.signal);
+    });
+
+    it('should pass thinking to streamText', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        thinking: { type: 'enabled', effort: 'medium' },
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+      });
+
+      await result.consumeStream();
+
+      expect(doStreamOptions?.thinking).toEqual({
+        type: 'enabled',
+        effort: 'medium',
+      });
     });
 
     it('should pass timeout to streamText', async () => {

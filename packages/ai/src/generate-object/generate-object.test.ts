@@ -701,6 +701,41 @@ describe('generateObject', () => {
       });
     });
 
+    describe('options.thinking', () => {
+      it('should pass thinking settings to model', async () => {
+        const result = await generateObject({
+          model: new MockLanguageModelV3({
+            doGenerate: async ({ thinking }) => {
+              expect(thinking).toStrictEqual({
+                type: 'enabled',
+                effort: 'low',
+              });
+
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'text',
+                    text: '{ "content": "thinking settings test" }',
+                  },
+                ],
+              };
+            },
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          thinking: {
+            type: 'enabled',
+            effort: 'low',
+          },
+        });
+
+        expect(result.object).toStrictEqual({
+          content: 'thinking settings test',
+        });
+      });
+    });
+
     describe('error handling', () => {
       function verifyNoObjectGeneratedError(
         error: unknown,
