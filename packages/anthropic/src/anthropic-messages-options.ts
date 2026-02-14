@@ -174,7 +174,7 @@ export const anthropicLanguageModelOptions = z.object({
    * Enable fast mode for faster inference (2.5x faster output token speeds).
    * Only supported with claude-opus-4-6.
    */
-  speed: z.literal('fast').optional(),
+  speed: z.enum(['fast', 'standard']).optional(),
 
   contextManagement: z
     .object({
