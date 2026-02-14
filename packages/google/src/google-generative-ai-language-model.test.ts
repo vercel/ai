@@ -2962,6 +2962,140 @@ describe('doGenerate', () => {
       });
     });
   });
+
+  describe('multi-turn thoughtSignature in request body', () => {
+    it('should include thoughtSignature on functionCall in request body', async () => {
+      prepareJsonFixtureResponse('google-text');
+
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'What is the weather?' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call1',
+                toolName: 'getWeather',
+                input: { location: 'San Francisco' },
+                providerOptions: {
+                  google: { thoughtSignature: 'sig_abc123' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call1',
+                toolName: 'getWeather',
+                output: {
+                  type: 'json',
+                  value: { temperature: 72 },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+
+      expect(body.contents[1].parts[0]).toEqual({
+        functionCall: {
+          name: 'getWeather',
+          args: { location: 'San Francisco' },
+        },
+        thoughtSignature: 'sig_abc123',
+      });
+
+      expect(body.contents[2].parts[0]).not.toHaveProperty('thoughtSignature');
+    });
+
+    it('should resolve google-namespaced thoughtSignature when using vertex provider', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'It is 72F in San Francisco.' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 20,
+            totalTokenCount: 30,
+          },
+        },
+      };
+
+      const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      await vertexModel.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'What is the weather?' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call1',
+                toolName: 'getWeather',
+                input: { location: 'San Francisco' },
+                providerOptions: {
+                  google: { thoughtSignature: 'sig_from_google_provider' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call1',
+                toolName: 'getWeather',
+                output: {
+                  type: 'json',
+                  value: { temperature: 72 },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+
+      expect(body.contents[1].parts[0]).toEqual({
+        functionCall: {
+          name: 'getWeather',
+          args: { location: 'San Francisco' },
+        },
+        thoughtSignature: 'sig_from_google_provider',
+      });
+
+      expect(body.contents[2].parts[0]).not.toHaveProperty('thoughtSignature');
+    });
+  });
 });
 
 describe('doStream', () => {
@@ -4735,6 +4869,123 @@ describe('doStream', () => {
           'google',
         );
       }
+    });
+  });
+
+  describe('multi-turn thoughtSignature in request body', () => {
+    it('should include thoughtSignature on functionCall in request body', async () => {
+      prepareChunksFixtureResponse('google-text');
+
+      await model.doStream({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'What is the weather?' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call1',
+                toolName: 'getWeather',
+                input: { location: 'San Francisco' },
+                providerOptions: {
+                  google: { thoughtSignature: 'sig_stream_abc' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call1',
+                toolName: 'getWeather',
+                output: {
+                  type: 'json',
+                  value: { temperature: 72 },
+                },
+              },
+            ],
+          },
+        ],
+        includeRawChunks: false,
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+
+      expect(body.contents[1].parts[0]).toEqual({
+        functionCall: {
+          name: 'getWeather',
+          args: { location: 'San Francisco' },
+        },
+        thoughtSignature: 'sig_stream_abc',
+      });
+
+      expect(body.contents[2].parts[0]).not.toHaveProperty('thoughtSignature');
+    });
+
+    it('should resolve google-namespaced thoughtSignature when using vertex provider', async () => {
+      prepareChunksFixtureResponse('google-text');
+
+      const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      await vertexModel.doStream({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'What is the weather?' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call1',
+                toolName: 'getWeather',
+                input: { location: 'San Francisco' },
+                providerOptions: {
+                  google: { thoughtSignature: 'sig_stream_from_google' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call1',
+                toolName: 'getWeather',
+                output: {
+                  type: 'json',
+                  value: { temperature: 72 },
+                },
+              },
+            ],
+          },
+        ],
+        includeRawChunks: false,
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+
+      expect(body.contents[1].parts[0]).toEqual({
+        functionCall: {
+          name: 'getWeather',
+          args: { location: 'San Francisco' },
+        },
+        thoughtSignature: 'sig_stream_from_google',
+      });
+
+      expect(body.contents[2].parts[0]).not.toHaveProperty('thoughtSignature');
     });
   });
 });
