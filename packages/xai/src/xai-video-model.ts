@@ -15,7 +15,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
-import { xaiVideoModelOptions } from './xai-video-options';
+import {
+  type XaiVideoModelOptions,
+  xaiVideoModelOptionsSchema,
+} from './xai-video-options';
 import type { XaiVideoModelId } from './xai-video-settings';
 
 interface XaiVideoModelConfig {
@@ -53,11 +56,11 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV3Warning[] = [];
 
-    const xaiOptions = await parseProviderOptions({
+    const xaiOptions = (await parseProviderOptions({
       provider: 'xai',
       providerOptions: options.providerOptions,
-      schema: xaiVideoModelOptions,
-    });
+      schema: xaiVideoModelOptionsSchema,
+    })) as XaiVideoModelOptions | undefined;
 
     if (options.fps != null) {
       warnings.push({
