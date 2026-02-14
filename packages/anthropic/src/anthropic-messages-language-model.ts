@@ -1258,6 +1258,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     let stopSequence: string | null = null;
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
+    const jsonResponseToolStartInputByIndex: Record<number, string> = {};
 
     let blockType:
       | 'text'
@@ -1370,6 +1371,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     isJsonResponseFromTool = true;
 
                     contentBlocks[value.index] = { type: 'text' };
+
+                    // In some Anthropic streams (e.g. with extended thinking),
+                    // the JSON tool input can be sent only on content_block_start
+                    // without any input_json_delta events.
+                    if (
+                      part.input != null &&
+                      typeof part.input === 'object' &&
+                      Object.keys(part.input).length > 0
+                    ) {
+                      jsonResponseToolStartInputByIndex[value.index] =
+                        JSON.stringify(part.input);
+                    }
 
                     controller.enqueue({
                       type: 'text-start',
@@ -1715,6 +1728,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                 switch (contentBlock.type) {
                   case 'text': {
+                    const jsonResponseToolStartInput =
+                      jsonResponseToolStartInputByIndex[value.index];
+
+                    if (jsonResponseToolStartInput != null) {
+                      controller.enqueue({
+                        type: 'text-delta',
+                        id: String(value.index),
+                        delta: jsonResponseToolStartInput,
+                      });
+
+                      delete jsonResponseToolStartInputByIndex[value.index];
+                    }
+
                     controller.enqueue({
                       type: 'text-end',
                       id: String(value.index),
@@ -1863,6 +1889,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     if (contentBlock?.type !== 'text') {
                       return; // exclude reasoning
                     }
+
+                    delete jsonResponseToolStartInputByIndex[value.index];
 
                     controller.enqueue({
                       type: 'text-delta',

@@ -5387,6 +5387,67 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
+    it('should emit json text deltas when json tool input is only on content_block_start', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01JsonToolInputOnly","type":"message","role":"assistant","content":[],"model":"claude-opus-4-6","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"Working..."}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_json_1","name":"json","input":{"greeting":"Hello","items":["apple","banana"]}}}\n\n`,
+          `data: {"type":"content_block_stop","index":1}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await provider('claude-opus-4-6').doStream({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              greeting: { type: 'string' },
+              items: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+            },
+            required: ['greeting', 'items'],
+            additionalProperties: false,
+          },
+        },
+        providerOptions: {
+          anthropic: {
+            structuredOutputMode: 'jsonTool',
+            thinking: { type: 'enabled', budgetTokens: 1024 },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      expect(result).toContainEqual({ type: 'text-start', id: '1' });
+      expect(result).toContainEqual({
+        type: 'text-delta',
+        id: '1',
+        delta: '{"greeting":"Hello","items":["apple","banana"]}',
+      });
+      expect(result).toContainEqual({ type: 'text-end', id: '1' });
+
+      const finishPart = result.find(part => part.type === 'finish');
+      expect(finishPart).toBeDefined();
+      if (finishPart?.type !== 'finish') {
+        throw new Error('Expected finish part');
+      }
+      expect(finishPart.finishReason).toStrictEqual({
+        unified: 'stop',
+        raw: 'tool_use',
+      });
+    });
+
     it('should stream redacted reasoning', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
