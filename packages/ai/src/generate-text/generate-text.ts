@@ -856,24 +856,24 @@ export async function generateText<
                           result.providerMetadata,
                         ),
 
-                        'ai.usage.inputTokens': result.usage.inputTokens.total,
+                        'ai.usage.inputTokens': result.usage?.inputTokens?.total,
                         'ai.usage.inputTokenDetails.noCacheTokens':
-                          result.usage.inputTokens.noCache,
+                          result.usage?.inputTokens?.noCache,
                         'ai.usage.inputTokenDetails.cacheReadTokens':
-                          result.usage.inputTokens.cacheRead,
+                          result.usage?.inputTokens?.cacheRead,
                         'ai.usage.inputTokenDetails.cacheWriteTokens':
-                          result.usage.inputTokens.cacheWrite,
+                          result.usage?.inputTokens?.cacheWrite,
                         'ai.usage.outputTokens':
-                          result.usage.outputTokens.total,
+                          result.usage?.outputTokens?.total,
                         'ai.usage.outputTokenDetails.textTokens':
-                          result.usage.outputTokens.text,
+                          result.usage?.outputTokens?.text,
                         'ai.usage.outputTokenDetails.reasoningTokens':
-                          result.usage.outputTokens.reasoning,
-                        'ai.usage.totalTokens': usage.totalTokens,
+                          result.usage?.outputTokens?.reasoning,
+                        'ai.usage.totalTokens': usage?.totalTokens,
                         'ai.usage.reasoningTokens':
-                          result.usage.outputTokens.reasoning,
+                          result.usage?.outputTokens?.reasoning,
                         'ai.usage.cachedInputTokens':
-                          result.usage.inputTokens.cacheRead,
+                          result.usage?.inputTokens?.cacheRead,
 
                         // standardized gen-ai llm span attributes:
                         'gen_ai.response.finish_reasons': [
@@ -882,9 +882,9 @@ export async function generateText<
                         'gen_ai.response.id': responseData.id,
                         'gen_ai.response.model': responseData.modelId,
                         'gen_ai.usage.input_tokens':
-                          result.usage.inputTokens.total,
+                          result.usage?.inputTokens?.total,
                         'gen_ai.usage.output_tokens':
-                          result.usage.outputTokens.total,
+                          result.usage?.outputTokens?.total,
                       },
                     }),
                   );
@@ -1148,6 +1148,7 @@ export async function generateText<
               'ai.response.providerMetadata': JSON.stringify(
                 currentModelResponse.providerMetadata,
               ),
+
             },
           }),
         );
