@@ -11,7 +11,7 @@ import {
   ToolApprovalResponse,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
+import { Tracer, SpanKind } from '@opentelemetry/api';
 import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
@@ -36,6 +36,12 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import {
+  convertToOTelGenAIInputMessages,
+  convertToOTelGenAIOutputMessages,
+  convertToOTelGenAIToolDefinitions,
+  getGenAIOperationName,
+} from '../telemetry/convert-to-otel-genai-messages';
 import {
   LanguageModel,
   LanguageModelRequestMetadata,
@@ -547,9 +553,14 @@ export async function generateText<
                 activeTools: prepareStepResult?.activeTools ?? activeTools,
               });
 
+            const genAIOperationName = getGenAIOperationName(
+              'ai.generateText.doGenerate',
+            );
+
             currentModelResponse = await retry(() =>
               recordSpan({
-                name: 'ai.generateText.doGenerate',
+                name: `${genAIOperationName} ${stepModel.modelId}`,
+                kind: SpanKind.CLIENT,
                 attributes: selectTelemetryAttributes({
                   telemetry,
                   attributes: {
@@ -576,7 +587,8 @@ export async function generateText<
                           : undefined,
                     },
 
-                    // standardized gen-ai llm span attributes:
+                    'gen_ai.operation.name': genAIOperationName,
+                    'gen_ai.provider.name': stepModel.provider,
                     'gen_ai.system': stepModel.provider,
                     'gen_ai.request.model': stepModel.modelId,
                     'gen_ai.request.frequency_penalty':
@@ -588,6 +600,20 @@ export async function generateText<
                       settings.temperature ?? undefined,
                     'gen_ai.request.top_k': settings.topK,
                     'gen_ai.request.top_p': settings.topP,
+                    'gen_ai.input.messages': {
+                      input: () =>
+                        JSON.stringify(
+                          convertToOTelGenAIInputMessages(promptMessages),
+                        ),
+                    },
+                    'gen_ai.tool.definitions': {
+                      input: () =>
+                        stepTools
+                          ? JSON.stringify(
+                              convertToOTelGenAIToolDefinitions(stepTools),
+                            )
+                          : undefined,
+                    },
                   },
                 }),
                 tracer,
@@ -650,7 +676,6 @@ export async function generateText<
                         'ai.usage.completionTokens':
                           result.usage.outputTokens.total,
 
-                        // standardized gen-ai llm span attributes:
                         'gen_ai.response.finish_reasons': [
                           result.finishReason.unified,
                         ],
@@ -660,6 +685,22 @@ export async function generateText<
                           result.usage.inputTokens.total,
                         'gen_ai.usage.output_tokens':
                           result.usage.outputTokens.total,
+                        'gen_ai.output.messages': {
+                          output: () => {
+                            const toolCalls = asToolCalls(result.content);
+                            return JSON.stringify(
+                              convertToOTelGenAIOutputMessages({
+                                text: extractTextContent(result.content),
+                                toolCalls: toolCalls?.map(tc => ({
+                                  toolCallId: tc.toolCallId,
+                                  toolName: tc.toolName,
+                                  input: tc.input,
+                                })),
+                                finishReason: result.finishReason.unified,
+                              }),
+                            );
+                          },
+                        },
                       },
                     }),
                   );

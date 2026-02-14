@@ -47,6 +47,10 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
+      "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"test-input"}]}]",
+      "gen_ai.operation.name": "chat",
+      "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"tool_call","id":"call-1","name":"tool1","arguments":{"value":"value"}}],"finish_reason":"tool-calls"}]",
+      "gen_ai.provider.name": "mock-provider",
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.response.finish_reasons": [
         "tool-calls",
@@ -54,6 +58,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
       "gen_ai.response.id": "id-0",
       "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
+      "gen_ai.tool.definitions": "[{"type":"function","name":"tool1","parameters":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}]",
       "gen_ai.usage.input_tokens": 3,
       "gen_ai.usage.output_tokens": 10,
       "operation.name": "ai.streamText.doStream",
@@ -70,7 +75,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
         "name": "ai.stream.finish",
       },
     ],
-    "name": "ai.streamText.doStream",
+    "name": "chat mock-model-id",
   },
   {
     "attributes": {
@@ -108,6 +113,10 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
       "ai.usage.outputTokens": 10,
       "ai.usage.reasoningTokens": 10,
       "ai.usage.totalTokens": 13,
+      "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"test-input"}]},{"role":"assistant","parts":[{"type":"tool_call","id":"call-1","name":"tool1","arguments":{"value":"value"}}]},{"role":"tool","parts":[{"type":"tool_call_response","id":"call-1","result":"result1"}]}]",
+      "gen_ai.operation.name": "chat",
+      "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello, world!"}],"finish_reason":"stop"}]",
+      "gen_ai.provider.name": "mock-provider",
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.response.finish_reasons": [
         "stop",
@@ -115,6 +124,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
       "gen_ai.response.id": "id-1",
       "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
+      "gen_ai.tool.definitions": "[{"type":"function","name":"tool1","parameters":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}]",
       "gen_ai.usage.input_tokens": 3,
       "gen_ai.usage.output_tokens": 10,
       "operation.name": "ai.streamText.doStream",
@@ -131,7 +141,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
         "name": "ai.stream.finish",
       },
     ],
-    "name": "ai.streamText.doStream",
+    "name": "chat mock-model-id",
   },
 ]
 `;
@@ -181,6 +191,10 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
+      "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"test-input"}]}]",
+      "gen_ai.operation.name": "chat",
+      "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello, world!"},{"type":"tool_call","id":"call-1","name":"tool1","arguments":{"value":"VALUE"}}],"finish_reason":"stop"}]",
+      "gen_ai.provider.name": "mock-provider",
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.response.finish_reasons": [
         "stop",
@@ -188,6 +202,7 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "gen_ai.response.id": "id-0",
       "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
+      "gen_ai.tool.definitions": "[{"type":"function","name":"tool1","parameters":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}]",
       "gen_ai.usage.input_tokens": 3,
       "gen_ai.usage.output_tokens": 10,
       "operation.name": "ai.streamText.doStream",
@@ -204,7 +219,7 @@ exports[`streamText > options.transform > with base transformation > telemetry s
         "name": "ai.stream.finish",
       },
     ],
-    "name": "ai.streamText.doStream",
+    "name": "chat mock-model-id",
   },
   {
     "attributes": {
@@ -957,6 +972,8 @@ exports[`streamText > telemetry > should not record telemetry inputs / outputs w
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
+      "gen_ai.operation.name": "chat",
+      "gen_ai.provider.name": "mock-provider",
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.response.finish_reasons": [
         "stop",
@@ -980,7 +997,7 @@ exports[`streamText > telemetry > should not record telemetry inputs / outputs w
         "name": "ai.stream.finish",
       },
     ],
-    "name": "ai.streamText.doStream",
+    "name": "chat mock-model-id",
   },
   {
     "attributes": {
@@ -1038,6 +1055,10 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
+      "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"test-input"}]}]",
+      "gen_ai.operation.name": "chat",
+      "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"tool_call","id":"call-1","name":"tool1","arguments":{"value":"value"}}],"finish_reason":"stop"}]",
+      "gen_ai.provider.name": "mock-provider",
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.response.finish_reasons": [
         "stop",
@@ -1045,6 +1066,7 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "gen_ai.response.id": "id-0",
       "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
+      "gen_ai.tool.definitions": "[{"type":"function","name":"tool1","parameters":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}]",
       "gen_ai.usage.input_tokens": 3,
       "gen_ai.usage.output_tokens": 10,
       "operation.name": "ai.streamText.doStream",
@@ -1061,7 +1083,7 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
         "name": "ai.stream.finish",
       },
     ],
-    "name": "ai.streamText.doStream",
+    "name": "chat mock-model-id",
   },
   {
     "attributes": {
@@ -1144,6 +1166,10 @@ exports[`streamText > telemetry > should record telemetry data when enabled 1`] 
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
+      "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"test-input"}]}]",
+      "gen_ai.operation.name": "chat",
+      "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello, world!"}],"finish_reason":"stop"}]",
+      "gen_ai.provider.name": "mock-provider",
       "gen_ai.request.frequency_penalty": 0.3,
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.request.presence_penalty": 0.4,
@@ -1176,7 +1202,7 @@ exports[`streamText > telemetry > should record telemetry data when enabled 1`] 
         "name": "ai.stream.finish",
       },
     ],
-    "name": "ai.streamText.doStream",
+    "name": "chat mock-model-id",
   },
 ]
 `;
