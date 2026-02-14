@@ -940,16 +940,15 @@ describe('pruneMessages', () => {
         });
 
         // toolu_leaf (kept) -> srv_mid -> srv_root: all should be kept
-        const allToolCallIds = result.flatMap(m =>
-          typeof m.content === 'string'
-            ? []
-            : m.content
-                .filter(
-                  (p): p is { type: 'tool-call'; toolCallId: string } =>
-                    p.type === 'tool-call',
-                )
-                .map(p => p.toolCallId),
-        );
+        const allToolCallIds = result.flatMap(m => {
+          if (typeof m.content === 'string') {
+            return [];
+          }
+
+          return m.content
+            .map(part => (part.type === 'tool-call' ? part.toolCallId : null))
+            .filter((toolCallId): toolCallId is string => toolCallId != null);
+        });
         expect(allToolCallIds).toContain('srv_root');
         expect(allToolCallIds).toContain('srv_mid');
         expect(allToolCallIds).toContain('toolu_leaf');
