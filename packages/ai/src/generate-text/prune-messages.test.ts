@@ -716,5 +716,114 @@ describe('pruneMessages', () => {
         `);
       });
     });
+
+    describe('caller tool id dependencies', () => {
+      it('should keep referenced caller tool calls when pruning', () => {
+        const messages: ModelMessage[] = [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Use code execution.' }],
+          },
+          // server_tool_use (provider-executed)
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_ABC',
+                toolName: 'code_execution',
+                input: {},
+                providerExecuted: true,
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'srvtoolu_ABC',
+                toolName: 'code_execution',
+                output: { type: 'text', value: 'executed' },
+              },
+            ],
+          },
+          // programmatic tool_use referencing the server_tool_use via caller
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'toolu_XYZ',
+                toolName: 'lookup',
+                input: { ticker: 'AAPL' },
+                providerOptions: {
+                  anthropic: {
+                    caller: {
+                      type: 'code_execution_20250825',
+                      toolId: 'srvtoolu_ABC',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'toolu_XYZ',
+                toolName: 'lookup',
+                output: { type: 'text', value: '185.42' },
+              },
+            ],
+          },
+          // final assistant text
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'AAPL is $185.42.' }],
+          },
+          // follow-up turn
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Now check MSFT.' }],
+          },
+        ];
+
+        const result = pruneMessages({
+          messages,
+          toolCalls: 'before-last-5-messages',
+          emptyMessages: 'remove',
+        });
+
+        // srvtoolu_ABC must be kept because toolu_XYZ references it via caller
+        const allToolCallIds = result.flatMap(m =>
+          typeof m.content === 'string'
+            ? []
+            : m.content
+                .filter(
+                  (p): p is { type: 'tool-call'; toolCallId: string } =>
+                    p.type === 'tool-call',
+                )
+                .map(p => p.toolCallId),
+        );
+        const allToolResultIds = result.flatMap(m =>
+          typeof m.content === 'string'
+            ? []
+            : m.content
+                .filter(
+                  (p): p is { type: 'tool-result'; toolCallId: string } =>
+                    p.type === 'tool-result',
+                )
+                .map(p => p.toolCallId),
+        );
+
+        expect(allToolCallIds).toContain('srvtoolu_ABC');
+        expect(allToolCallIds).toContain('toolu_XYZ');
+        expect(allToolResultIds).toContain('srvtoolu_ABC');
+        expect(allToolResultIds).toContain('toolu_XYZ');
+      });
+    });
   });
 });
