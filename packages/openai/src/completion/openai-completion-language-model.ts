@@ -1,6 +1,8 @@
 import {
   LanguageModelV3,
   LanguageModelV3CallOptions,
+  LanguageModelV3CountTokensOptions,
+  LanguageModelV3CountTokensResult,
   LanguageModelV3FinishReason,
   LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
@@ -18,6 +20,7 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { countTokensForOpenAI } from '../openai-count-tokens';
 import {
   convertOpenAICompletionUsage,
   OpenAICompletionUsage,
@@ -331,6 +334,27 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
       ),
       request: { body },
       response: { headers: responseHeaders },
+    };
+  }
+
+  async doCountTokens(
+    options: LanguageModelV3CountTokensOptions,
+  ): Promise<LanguageModelV3CountTokensResult> {
+    // Legacy completion API doesn't support tools
+    const { tokens, warnings } = await countTokensForOpenAI({
+      modelId: this.modelId,
+      prompt: options.prompt,
+      tools: undefined,
+    });
+
+    return {
+      tokens,
+      warnings,
+      providerMetadata: {
+        openai: {
+          estimatedTokenCount: true, // Indicates this is local estimation, not API-verified
+        },
+      },
     };
   }
 }

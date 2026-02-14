@@ -1260,3 +1260,11 @@ export type Citation = NonNullable<
     type: 'text';
   })['citations']
 >[number];
+
+export const anthropicCountTokensResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      input_tokens: z.number(),
+    }),
+  ),
+);

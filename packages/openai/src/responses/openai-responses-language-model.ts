@@ -5,6 +5,8 @@ import {
   LanguageModelV3Prompt,
   LanguageModelV3CallOptions,
   LanguageModelV3Content,
+  LanguageModelV3CountTokensOptions,
+  LanguageModelV3CountTokensResult,
   LanguageModelV3FinishReason,
   LanguageModelV3GenerateResult,
   LanguageModelV3ProviderTool,
@@ -26,6 +28,7 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { OpenAIConfig } from '../openai-config';
+import { countTokensForOpenAI } from '../openai-count-tokens';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
 import { applyPatchInputSchema } from '../tool/apply-patch';
@@ -1805,6 +1808,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       ),
       request: { body },
       response: { headers: responseHeaders },
+    };
+  }
+
+  async doCountTokens(
+    options: LanguageModelV3CountTokensOptions,
+  ): Promise<LanguageModelV3CountTokensResult> {
+    const { tokens, warnings } = await countTokensForOpenAI({
+      modelId: this.modelId,
+      prompt: options.prompt,
+      tools: options.tools,
+    });
+
+    return {
+      tokens,
+      warnings,
+      providerMetadata: {
+        openai: {
+          estimatedTokenCount: true, // Indicates this is local estimation, not API-verified
+        },
+      },
     };
   }
 }

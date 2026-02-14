@@ -58,12 +58,19 @@
     "@ai-sdk/test-server": "workspace:*",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
+    "js-tiktoken": "^1.0.18",
     "tsup": "^8",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },
   "peerDependencies": {
+    "js-tiktoken": "^1.0.18",
     "zod": "^3.25.76 || ^4.1.8"
+  },
+  "peerDependenciesMeta": {
+    "js-tiktoken": {
+      "optional": true
+    }
   },
   "engines": {
     "node": ">=18"

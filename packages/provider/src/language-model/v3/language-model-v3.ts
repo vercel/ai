@@ -1,4 +1,6 @@
 import { LanguageModelV3CallOptions } from './language-model-v3-call-options';
+import { LanguageModelV3CountTokensOptions } from './language-model-v3-count-tokens-options';
+import { LanguageModelV3CountTokensResult } from './language-model-v3-count-tokens-result';
 import { LanguageModelV3GenerateResult } from './language-model-v3-generate-result';
 import { LanguageModelV3StreamResult } from './language-model-v3-stream-result';
 
@@ -58,4 +60,19 @@ export type LanguageModelV3 = {
   doStream(
     options: LanguageModelV3CallOptions,
   ): PromiseLike<LanguageModelV3StreamResult>;
+
+  /**
+   * Counts the number of tokens in a prompt (optional).
+   *
+   * Not all providers support token counting. Providers that support
+   * native token counting APIs (e.g., Anthropic, Google) implement this
+   * method. For providers without native support (e.g., OpenAI), local
+   * estimation may be used.
+   *
+   * Naming: "do" prefix to prevent accidental direct usage of the method
+   * by the user.
+   */
+  doCountTokens?(
+    options: LanguageModelV3CountTokensOptions,
+  ): PromiseLike<LanguageModelV3CountTokensResult>;
 };
