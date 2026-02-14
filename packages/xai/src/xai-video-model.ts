@@ -116,6 +116,11 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
+    // Video editing: pass source video URL
+    if (xaiOptions?.videoUrl != null) {
+      body.video_url = xaiOptions.videoUrl;
+    }
+
     // Image-to-video: convert SDK image to image_url field
     if (options.image != null) {
       if (options.image.type === 'url') {

@@ -233,6 +233,26 @@ describe('XaiVideoModel', () => {
       });
     });
 
+    it('should send video_url for video editing', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            videoUrl: 'https://example.com/source-video.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        video_url: 'https://example.com/source-video.mp4',
+      });
+    });
+
     it('should pass headers to requests', async () => {
       const model = createModel({
         headers: () => ({
