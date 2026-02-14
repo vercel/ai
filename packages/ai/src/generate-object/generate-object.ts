@@ -386,9 +386,9 @@ export async function generateObject<
                     ),
 
                     // TODO rename telemetry attributes to inputTokens and outputTokens
-                    'ai.usage.promptTokens': result.usage.inputTokens.total,
+                    'ai.usage.promptTokens': result.usage?.inputTokens?.total,
                     'ai.usage.completionTokens':
-                      result.usage.outputTokens.total,
+                      result.usage?.outputTokens?.total,
 
                     // standardized gen-ai llm span attributes:
                     'gen_ai.response.finish_reasons': [
@@ -396,9 +396,10 @@ export async function generateObject<
                     ],
                     'gen_ai.response.id': responseData.id,
                     'gen_ai.response.model': responseData.modelId,
-                    'gen_ai.usage.input_tokens': result.usage.inputTokens.total,
+                    'gen_ai.usage.input_tokens':
+                      result.usage?.inputTokens?.total,
                     'gen_ai.usage.output_tokens':
-                      result.usage.outputTokens.total,
+                      result.usage?.outputTokens?.total,
                   },
                 }),
               );
