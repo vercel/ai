@@ -495,6 +495,437 @@ describe('tool calls', () => {
       },
     ]);
   });
+
+  it('should extract image-data from content tool results into a user message', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            input: {},
+            toolCallId: 'call-img',
+            toolName: 'get_screenshot',
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-img',
+            toolName: 'get_screenshot',
+            output: {
+              type: 'content',
+              value: [
+                { type: 'text', text: 'Screenshot captured' },
+                {
+                  type: 'image-data',
+                  data: 'iVBORw0KGgo=',
+                  mediaType: 'image/png',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call-img',
+            function: {
+              name: 'get_screenshot',
+              arguments: '{}',
+            },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: 'Screenshot captured',
+        tool_call_id: 'call-img',
+      },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: '[Image from tool result]' },
+          {
+            type: 'image_url',
+            image_url: { url: 'data:image/png;base64,iVBORw0KGgo=' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should extract image-url from content tool results into a user message', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            input: {},
+            toolCallId: 'call-img-url',
+            toolName: 'get_image',
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-img-url',
+            toolName: 'get_image',
+            output: {
+              type: 'content',
+              value: [
+                { type: 'text', text: 'Image fetched' },
+                {
+                  type: 'image-url',
+                  url: 'https://example.com/image.png',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call-img-url',
+            function: {
+              name: 'get_image',
+              arguments: '{}',
+            },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: 'Image fetched',
+        tool_call_id: 'call-img-url',
+      },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: '[Image from tool result]' },
+          {
+            type: 'image_url',
+            image_url: { url: 'https://example.com/image.png' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should extract image file-data from content tool results into a user message', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            input: {},
+            toolCallId: 'call-file',
+            toolName: 'read_file',
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-file',
+            toolName: 'read_file',
+            output: {
+              type: 'content',
+              value: [
+                { type: 'text', text: 'File read successfully' },
+                {
+                  type: 'file-data',
+                  data: 'iVBORw0KGgo=',
+                  mediaType: 'image/jpeg',
+                  filename: 'photo.jpg',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call-file',
+            function: {
+              name: 'read_file',
+              arguments: '{}',
+            },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: 'File read successfully',
+        tool_call_id: 'call-file',
+      },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: '[Image from tool result]' },
+          {
+            type: 'image_url',
+            image_url: { url: 'data:image/jpeg;base64,iVBORw0KGgo=' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should use fallback text when content tool result has only media', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            input: {},
+            toolCallId: 'call-only-img',
+            toolName: 'screenshot',
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-only-img',
+            toolName: 'screenshot',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'image-data',
+                  data: 'AAAA',
+                  mediaType: 'image/png',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call-only-img',
+            function: {
+              name: 'screenshot',
+              arguments: '{}',
+            },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: 'See attached media.',
+        tool_call_id: 'call-only-img',
+      },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: '[Image from tool result]' },
+          {
+            type: 'image_url',
+            image_url: { url: 'data:image/png;base64,AAAA' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should not inject user message for content tool results with only text', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            input: {},
+            toolCallId: 'call-text',
+            toolName: 'read_file',
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-text',
+            toolName: 'read_file',
+            output: {
+              type: 'content',
+              value: [
+                { type: 'text', text: 'File contents here' },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call-text',
+            function: {
+              name: 'read_file',
+              arguments: '{}',
+            },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: 'File contents here',
+        tool_call_id: 'call-text',
+      },
+    ]);
+  });
+
+  it('should batch media from multiple tool results into a single user message', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            input: {},
+            toolCallId: 'call-1',
+            toolName: 'screenshot',
+          },
+          {
+            type: 'tool-call',
+            input: {},
+            toolCallId: 'call-2',
+            toolName: 'read_image',
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'screenshot',
+            output: {
+              type: 'content',
+              value: [
+                { type: 'text', text: 'Screenshot taken' },
+                {
+                  type: 'image-data',
+                  data: 'SCREEN1',
+                  mediaType: 'image/png',
+                },
+              ],
+            },
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-2',
+            toolName: 'read_image',
+            output: {
+              type: 'content',
+              value: [
+                { type: 'text', text: 'Image loaded' },
+                {
+                  type: 'image-data',
+                  data: 'IMG2',
+                  mediaType: 'image/jpeg',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call-1',
+            function: { name: 'screenshot', arguments: '{}' },
+          },
+          {
+            type: 'function',
+            id: 'call-2',
+            function: { name: 'read_image', arguments: '{}' },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: 'Screenshot taken',
+        tool_call_id: 'call-1',
+      },
+      {
+        role: 'tool',
+        content: 'Image loaded',
+        tool_call_id: 'call-2',
+      },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: '[Image from tool result]' },
+          {
+            type: 'image_url',
+            image_url: { url: 'data:image/png;base64,SCREEN1' },
+          },
+          {
+            type: 'image_url',
+            image_url: { url: 'data:image/jpeg;base64,IMG2' },
+          },
+        ],
+      },
+    ]);
+  });
 });
 
 describe('provider-specific metadata merging', () => {

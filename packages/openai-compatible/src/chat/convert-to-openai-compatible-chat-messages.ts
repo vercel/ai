@@ -3,7 +3,10 @@ import {
   SharedV3ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
+import {
+  OpenAICompatibleChatPrompt,
+  OpenAICompatibleContentPart,
+} from './openai-compatible-api-types';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 function getOpenAIMetadata(message: {
@@ -207,6 +210,11 @@ export function convertToOpenAICompatibleChatMessages(
       }
 
       case 'tool': {
+        // Collect media parts from all tool results in this turn.
+        // They will be batched into a single user message after all
+        // tool messages to avoid interleaved tool/user ordering.
+        const mediaUserContentParts: OpenAICompatibleContentPart[] = [];
+
         for (const toolResponse of content) {
           if (toolResponse.type === 'tool-approval-response') {
             continue;
@@ -223,7 +231,56 @@ export function convertToOpenAICompatibleChatMessages(
             case 'execution-denied':
               contentValue = output.reason ?? 'Tool execution denied.';
               break;
-            case 'content':
+            case 'content': {
+              // Extract text and media parts separately.
+              // Text goes into the tool message as a string.
+              // Media parts (images) are collected to be injected
+              // as a follow-up user message, since the OpenAI chat
+              // completions spec only allows string content in tool
+              // messages.
+              const textParts: string[] = [];
+              for (const item of output.value) {
+                switch (item.type) {
+                  case 'text':
+                    textParts.push(item.text);
+                    break;
+                  case 'image-data':
+                    mediaUserContentParts.push({
+                      type: 'image_url',
+                      image_url: {
+                        url: `data:${item.mediaType};base64,${item.data}`,
+                      },
+                    });
+                    break;
+                  case 'image-url':
+                    mediaUserContentParts.push({
+                      type: 'image_url',
+                      image_url: { url: item.url },
+                    });
+                    break;
+                  case 'file-data':
+                    if (item.mediaType.startsWith('image/')) {
+                      mediaUserContentParts.push({
+                        type: 'image_url',
+                        image_url: {
+                          url: `data:${item.mediaType};base64,${item.data}`,
+                        },
+                      });
+                    } else {
+                      textParts.push(JSON.stringify(item));
+                    }
+                    break;
+                  default:
+                    textParts.push(JSON.stringify(item));
+                    break;
+                }
+              }
+              contentValue =
+                textParts.length > 0
+                  ? textParts.join('\n')
+                  : 'See attached media.';
+              break;
+            }
             case 'json':
             case 'error-json':
               contentValue = JSON.stringify(output.value);
@@ -236,6 +293,23 @@ export function convertToOpenAICompatibleChatMessages(
             tool_call_id: toolResponse.toolCallId,
             content: contentValue,
             ...toolResponseMetadata,
+          });
+        }
+
+        // Inject a single synthetic user message with all media
+        // extracted from tool results. This ensures images reach the
+        // model as proper content parts rather than being
+        // JSON-stringified in tool messages.
+        if (mediaUserContentParts.length > 0) {
+          messages.push({
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: '[Image from tool result]',
+              },
+              ...mediaUserContentParts,
+            ],
           });
         }
         break;
