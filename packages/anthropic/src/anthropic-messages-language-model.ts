@@ -41,7 +41,7 @@ import {
 } from './anthropic-messages-api';
 import {
   AnthropicMessagesModelId,
-  anthropicProviderOptions,
+  anthropicLanguageModelOptions,
 } from './anthropic-messages-options';
 import { prepareTools } from './anthropic-prepare-tools';
 import {
@@ -234,7 +234,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     const canonicalOptions = await parseProviderOptions({
       provider: 'anthropic',
       providerOptions,
-      schema: anthropicProviderOptions,
+      schema: anthropicLanguageModelOptions,
     });
 
     const customProviderOptions =
@@ -242,7 +242,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         ? await parseProviderOptions({
             provider: providerOptionsName,
             providerOptions,
-            schema: anthropicProviderOptions,
+            schema: anthropicLanguageModelOptions,
           })
         : null;
 
@@ -576,7 +576,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       betas.add('effort-2025-11-24');
     }
 
-    if (anthropicOptions?.speed) {
+    if (anthropicOptions?.speed === 'fast') {
       betas.add('fast-mode-2026-02-01');
     }
 

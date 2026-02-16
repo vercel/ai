@@ -1,4 +1,4 @@
-import { type AlibabaVideoProviderOptions, alibaba } from '@ai-sdk/alibaba';
+import { type AlibabaVideoModelOptions, alibaba } from '@ai-sdk/alibaba';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import { presentVideos } from '../lib/present-video';
 import { run } from '../lib/run';
@@ -20,7 +20,7 @@ run(async () => {
           alibaba: {
             audio: false,
             pollTimeoutMs: 600000, // 10 minutes
-          } satisfies AlibabaVideoProviderOptions,
+          } satisfies AlibabaVideoModelOptions,
         },
       }),
   );

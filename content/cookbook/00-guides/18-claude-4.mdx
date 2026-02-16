@@ -48,7 +48,7 @@ console.log(text);
 Claude 4 enhances the extended thinking capabilities first introduced in Claude 3.7 Sonnet—the ability to solve complex problems with careful, step-by-step reasoning. Additionally, both Opus 4 and Sonnet 4 can now use tools during extended thinking, allowing Claude to alternate between reasoning and tool use to improve responses. You can enable extended thinking using the `thinking` provider option and specifying a thinking budget in tokens. For interleaved thinking (where Claude can think in between tool calls) you'll need to enable a beta feature using the `anthropic-beta` header:
 
 ```ts
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text, reasoningText, reasoning } = await generateText({
@@ -57,7 +57,7 @@ const { text, reasoningText, reasoning } = await generateText({
   providerOptions: {
     anthropic: {
       thinking: { type: 'enabled', budgetTokens: 15000 },
-    } satisfies AnthropicProviderOptions,
+    } satisfies AnthropicLanguageModelOptions,
   },
   headers: {
     'anthropic-beta': 'interleaved-thinking-2025-05-14',
@@ -86,7 +86,7 @@ In a new Next.js application, first install the AI SDK and the Anthropic provide
 Then, create a route handler for the chat endpoint:
 
 ```tsx filename="app/api/chat/route.ts"
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { streamText, convertToModelMessages, type UIMessage } from 'ai';
 
 export async function POST(req: Request) {
@@ -101,7 +101,7 @@ export async function POST(req: Request) {
     providerOptions: {
       anthropic: {
         thinking: { type: 'enabled', budgetTokens: 15000 },
-      } satisfies AnthropicProviderOptions,
+      } satisfies AnthropicLanguageModelOptions,
     },
   });
 

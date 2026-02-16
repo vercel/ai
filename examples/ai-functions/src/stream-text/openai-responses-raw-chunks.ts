@@ -1,4 +1,7 @@
-import { openai } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
 
@@ -10,7 +13,7 @@ run(async () => {
       openai: {
         reasoningEffort: 'low',
         reasoningSummary: 'auto',
-      },
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
     includeRawChunks: true,
   });

@@ -36,7 +36,7 @@ import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
 import {
   GoogleGenerativeAIModelId,
-  googleGenerativeAIProviderOptions,
+  googleLanguageModelOptions,
 } from './google-generative-ai-options';
 import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
 import { prepareTools } from './google-prepare-tools';
@@ -103,14 +103,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     let googleOptions = await parseProviderOptions({
       provider: providerOptionsName,
       providerOptions,
-      schema: googleGenerativeAIProviderOptions,
+      schema: googleLanguageModelOptions,
     });
 
     if (googleOptions == null && providerOptionsName !== 'google') {
       googleOptions = await parseProviderOptions({
         provider: 'google',
         providerOptions,
-        schema: googleGenerativeAIProviderOptions,
+        schema: googleLanguageModelOptions,
       });
     }
 

@@ -1,4 +1,4 @@
-import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import type { GatewayLanguageModelOptions } from '@ai-sdk/gateway';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
 
@@ -9,7 +9,7 @@ run(async () => {
     providerOptions: {
       gateway: {
         zeroDataRetention: true,
-      } satisfies GatewayProviderOptions,
+      } satisfies GatewayLanguageModelOptions,
     },
   });
 

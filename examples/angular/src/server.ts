@@ -1,3 +1,4 @@
+import { type OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   stepCountIs,
@@ -27,7 +28,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       openai: {
         reasoningEffort: 'low',
         reasoningSummary: 'detailed',
-      },
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
     tools: {
       getWeatherInformation: {

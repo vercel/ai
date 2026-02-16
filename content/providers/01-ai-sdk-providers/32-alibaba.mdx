@@ -123,7 +123,7 @@ The following optional provider options are available for Alibaba models:
 Alibaba's Qwen models support thinking/reasoning mode for complex problem-solving:
 
 ```ts
-import { alibaba } from '@ai-sdk/alibaba';
+import { alibaba, type AlibabaLanguageModelOptions } from '@ai-sdk/alibaba';
 import { generateText } from 'ai';
 
 const { text, reasoning } = await generateText({
@@ -132,7 +132,7 @@ const { text, reasoning } = await generateText({
     alibaba: {
       enableThinking: true,
       thinkingBudget: 2048,
-    },
+    } satisfies AlibabaLanguageModelOptions,
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
 });
@@ -212,7 +212,7 @@ Alibaba supports three video generation modes: text-to-video, image-to-video (fi
 Generate videos from text prompts:
 
 ```ts
-import { alibaba, type AlibabaVideoProviderOptions } from '@ai-sdk/alibaba';
+import { alibaba, type AlibabaVideoModelOptions } from '@ai-sdk/alibaba';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
@@ -224,7 +224,7 @@ const { video } = await generateVideo({
     alibaba: {
       promptExtend: true,
       pollTimeoutMs: 600000, // 10 minutes
-    } satisfies AlibabaVideoProviderOptions,
+    } satisfies AlibabaVideoModelOptions,
   },
 });
 ```
@@ -234,7 +234,7 @@ const { video } = await generateVideo({
 Generate videos from a first-frame image and optional text prompt:
 
 ```ts
-import { alibaba, type AlibabaVideoProviderOptions } from '@ai-sdk/alibaba';
+import { alibaba, type AlibabaVideoModelOptions } from '@ai-sdk/alibaba';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
@@ -247,7 +247,7 @@ const { video } = await generateVideo({
   providerOptions: {
     alibaba: {
       pollTimeoutMs: 600000, // 10 minutes
-    } satisfies AlibabaVideoProviderOptions,
+    } satisfies AlibabaVideoModelOptions,
   },
 });
 ```
@@ -258,7 +258,7 @@ Generate videos using reference images and/or videos for character consistency. 
 (`character1`, `character2`, etc.) in your prompt to reference them:
 
 ```ts
-import { alibaba, type AlibabaVideoProviderOptions } from '@ai-sdk/alibaba';
+import { alibaba, type AlibabaVideoModelOptions } from '@ai-sdk/alibaba';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
@@ -270,7 +270,7 @@ const { video } = await generateVideo({
     alibaba: {
       referenceUrls: ['https://example.com/character-reference.jpg'],
       pollTimeoutMs: 600000, // 10 minutes
-    } satisfies AlibabaVideoProviderOptions,
+    } satisfies AlibabaVideoModelOptions,
   },
 });
 ```

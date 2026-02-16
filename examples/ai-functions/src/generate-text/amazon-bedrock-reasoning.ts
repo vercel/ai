@@ -1,4 +1,7 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import {
+  bedrock,
+  type AmazonBedrockLanguageModelOptions,
+} from '@ai-sdk/amazon-bedrock';
 import { generateText, stepCountIs } from 'ai';
 import { run } from '../lib/run';
 
@@ -10,7 +13,7 @@ run(async () => {
     providerOptions: {
       bedrock: {
         reasoningConfig: { type: 'enabled', budgetTokens: 2048 },
-      },
+      } satisfies AmazonBedrockLanguageModelOptions,
     },
     maxRetries: 0,
     stopWhen: stepCountIs(5),

@@ -1,3 +1,4 @@
+import { type GatewayLanguageModelOptions } from '@ai-sdk/gateway';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
 
@@ -8,7 +9,7 @@ run(async () => {
     providerOptions: {
       gateway: {
         order: ['bedrock', 'anthropic'],
-      },
+      } satisfies GatewayLanguageModelOptions,
     },
   });
 

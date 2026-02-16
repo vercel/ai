@@ -91,7 +91,7 @@ export type BedrockFilePartProviderOptions = z.infer<
   typeof bedrockFilePartProviderOptions
 >;
 
-export const bedrockProviderOptions = z.object({
+export const amazonBedrockLanguageModelOptions = z.object({
   /**
    * Additional inference parameters that the model supports,
    * beyond the base set of inference parameters that Converse
@@ -117,4 +117,6 @@ export const bedrockProviderOptions = z.object({
   anthropicBeta: z.array(z.string()).optional(),
 });
 
-export type BedrockProviderOptions = z.infer<typeof bedrockProviderOptions>;
+export type AmazonBedrockLanguageModelOptions = z.infer<
+  typeof amazonBedrockLanguageModelOptions
+>;
