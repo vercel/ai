@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.64
+
+### Patch Changes
+
+- 9d5c1b1: fix(provider/anthropic): minor follow up to support no-op speed standard
+
 ## 2.0.63
 
 ### Patch Changes
