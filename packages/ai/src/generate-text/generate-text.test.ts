@@ -2693,6 +2693,43 @@ describe('generateText', () => {
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
 
+    it('should record file telemetry on doGenerate span when content includes text and files', async () => {
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({}) => ({
+            ...dummyResponseValues,
+            content: [
+              { type: 'text', text: 'Hello, world!' },
+              {
+                type: 'file',
+                data: new Uint8Array([1, 2, 3]),
+                mediaType: 'image/png',
+              },
+            ],
+          }),
+        }),
+        prompt: 'prompt',
+        experimental_telemetry: {
+          isEnabled: true,
+          tracer,
+        },
+        _internal: {
+          generateId: () => 'test-id',
+        },
+      });
+
+      const doGenerateSpan = tracer.jsonSpans.find(
+        span => span.name === 'ai.generateText.doGenerate',
+      );
+
+      expect(doGenerateSpan).toBeDefined();
+      expect(doGenerateSpan!.attributes).toMatchObject({
+        'ai.response.text': 'Hello, world!',
+        'ai.response.files':
+          '[{"type":"file","mediaType":"image/png","data":"AQID"}]',
+      });
+    });
+
     it('should record successful tool call', async () => {
       await generateText({
         model: new MockLanguageModelV3({

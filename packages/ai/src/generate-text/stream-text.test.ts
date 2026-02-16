@@ -10675,6 +10675,53 @@ describe('streamText', () => {
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
 
+    it('should record file telemetry on doStream span when content includes text and files', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            {
+              type: 'file',
+              data: new Uint8Array([1, 2, 3]),
+              mediaType: 'image/png',
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello, world!' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          tracer,
+        },
+        _internal: { now: mockValues(0, 100, 500) },
+      });
+
+      await result.consumeStream();
+
+      const doStreamSpan = tracer.jsonSpans.find(
+        span => span.name === 'ai.streamText.doStream',
+      );
+
+      expect(doStreamSpan).toBeDefined();
+      expect(doStreamSpan!.attributes).toMatchObject({
+        'ai.response.text': 'Hello, world!',
+        'ai.response.files':
+          '[{"type":"file","mediaType":"image/png","data":"AQID"}]',
+      });
+    });
+
     it('should record successful tool call', async () => {
       const result = streamText({
         model: createTestModel({

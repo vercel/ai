@@ -64,6 +64,7 @@ import { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
 import { PrepareStepFunction } from './prepare-step';
 import { ResponseMessage } from './response-message';
+import { serializeFilePartsForTelemetry } from './serialize-file-parts-for-telemetry';
 import { DefaultStepResult, StepResult } from './step-result';
 import {
   isStopConditionMet,
@@ -636,6 +637,10 @@ export async function generateText<
                               ? undefined
                               : JSON.stringify(toolCalls);
                           },
+                        },
+                        'ai.response.files': {
+                          output: () =>
+                            serializeFilePartsForTelemetry(result.content),
                         },
                         'ai.response.id': responseData.id,
                         'ai.response.model': responseData.modelId,
