@@ -2,7 +2,7 @@ import { type FalVideoModelOptions, fal } from '@ai-sdk/fal';
 import { experimental_generateVideo } from 'ai';
 import { presentVideos } from '../lib/present-video';
 import { run } from '../lib/run';
-import { createSmeeWebhook } from '../lib/smee-webhook';
+import { createWebhook } from '../lib/create-webhook';
 import { withSpinner } from '../lib/spinner';
 
 run(async () => {
@@ -19,7 +19,7 @@ run(async () => {
         } satisfies FalVideoModelOptions,
       },
       webhook: async () => {
-        const { url, received } = await createSmeeWebhook();
+        const { url, received } = await createWebhook();
         console.log(`\nWaiting for webhook via ${url}`);
         return { url, received };
       },
