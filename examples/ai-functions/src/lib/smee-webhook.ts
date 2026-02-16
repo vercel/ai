@@ -1,4 +1,10 @@
+import { JSONValue } from 'ai';
 import { EventSource } from 'eventsource';
+
+type SmeeWebhookData = {
+  body: JSONValue;
+  headers: JSONValue;
+};
 
 /**
  * Creates a public webhook URL via smee.io and returns a promise that
@@ -11,7 +17,7 @@ import { EventSource } from 'eventsource';
  */
 export async function createSmeeWebhook(): Promise<{
   url: string;
-  received: Promise<void>;
+  received: Promise<SmeeWebhookData>;
 }> {
   // Create a new smee.io channel
   const response = await fetch('https://smee.io/new', {
@@ -27,10 +33,12 @@ export async function createSmeeWebhook(): Promise<{
   // Connect to the SSE stream and resolve when a webhook message arrives
   const events = new EventSource(url);
 
-  const received = new Promise<void>((resolve, reject) => {
-    events.addEventListener('message', () => {
+  const received = new Promise<SmeeWebhookData>((resolve, reject) => {
+    events.addEventListener('message', msg => {
+      console.log('Received webhook event from smee.io:');
+      const { body, ...headers } = JSON.parse(msg.data);
       events.close();
-      resolve();
+      resolve({ body, headers });
     });
     events.addEventListener('error', () => {
       events.close();
