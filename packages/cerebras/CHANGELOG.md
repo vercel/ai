@@ -1,5 +1,11 @@
 # @ai-sdk/cerebras
 
+## 1.0.38
+
+### Patch Changes
+
+- b3e3dea: Remove deprecated model IDs (`llama-3.3-70b`, `qwen-3-32b`) from `CerebrasChatModelId` type.
+
 ## 1.0.37
 
 ### Patch Changes
