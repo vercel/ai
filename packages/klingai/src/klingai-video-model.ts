@@ -1,6 +1,8 @@
 import {
   AISDKError,
   type Experimental_VideoModelV3,
+  type Experimental_VideoModelV3StartResult,
+  type Experimental_VideoModelV3StatusResult,
   NoSuchModelError,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
@@ -312,41 +314,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
       body = this.buildI2VBody(options, klingaiOptions, warnings);
     }
 
-    // Warn about universally unsupported standard options
-    if (options.resolution) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'resolution',
-        details: 'KlingAI video models do not support the resolution option.',
-      });
-    }
-
-    if (options.seed) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'seed',
-        details:
-          'KlingAI video models do not support seed for deterministic generation.',
-      });
-    }
-
-    if (options.fps) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'fps',
-        details: 'KlingAI video models do not support custom FPS.',
-      });
-    }
-
-    if (options.n != null && options.n > 1) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'n',
-        details:
-          'KlingAI video models do not support generating multiple videos per call. ' +
-          'Only 1 video will be generated.',
-      });
-    }
+    this.addUniversalWarnings(options, warnings);
 
     const endpointPath = modeEndpointMap[mode];
 
@@ -425,6 +393,180 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
       // Continue polling for 'submitted' and 'processing' statuses
     }
 
+    return this.buildCompletedResult(
+      finalResponse,
+      taskId,
+      responseHeaders,
+      warnings,
+      currentDate,
+    );
+  }
+
+  async doStart(
+    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
+  ): Promise<Experimental_VideoModelV3StartResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const warnings: SharedV3Warning[] = [];
+    const mode = detectMode(this.modelId);
+
+    const klingaiOptions = (await parseProviderOptions({
+      provider: 'klingai',
+      providerOptions: options.providerOptions,
+      schema: klingaiVideoModelOptionsSchema,
+    })) as KlingAIVideoModelOptions | undefined;
+
+    let body: Record<string, unknown>;
+
+    if (mode === 'motion-control') {
+      body = this.buildMotionControlBody(options, klingaiOptions, warnings);
+    } else if (mode === 't2v') {
+      body = this.buildT2VBody(options, klingaiOptions, warnings);
+    } else {
+      body = this.buildI2VBody(options, klingaiOptions, warnings);
+    }
+
+    this.addUniversalWarnings(options, warnings);
+
+    const endpointPath = modeEndpointMap[mode];
+
+    const { value: createResponse, responseHeaders } = await postJsonToApi({
+      url: `${this.config.baseURL}${endpointPath}`,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      body,
+      successfulResponseHandler: createJsonResponseHandler(
+        klingaiCreateTaskSchema,
+      ),
+      failedResponseHandler: klingaiFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const taskId = createResponse.data?.task_id;
+    if (!taskId) {
+      throw new AISDKError({
+        name: 'KLINGAI_VIDEO_GENERATION_ERROR',
+        message: `No task_id returned from KlingAI API. Response: ${JSON.stringify(createResponse)}`,
+      });
+    }
+
+    return {
+      operation: { taskId, endpointPath },
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+    };
+  }
+
+  async doStatus(
+    options: Parameters<NonNullable<Experimental_VideoModelV3['doStatus']>>[0],
+  ): Promise<Experimental_VideoModelV3StatusResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { taskId, endpointPath } = options.operation as {
+      taskId: string;
+      endpointPath: string;
+    };
+
+    const { value: statusResponse, responseHeaders } = await getFromApi({
+      url: `${this.config.baseURL}${endpointPath}/${taskId}`,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      successfulResponseHandler: createJsonResponseHandler(
+        klingaiTaskStatusSchema,
+      ),
+      failedResponseHandler: klingaiFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const taskStatus = statusResponse.data?.task_status;
+
+    if (taskStatus === 'succeed') {
+      return {
+        status: 'completed',
+        ...this.buildCompletedResult(
+          statusResponse,
+          taskId,
+          responseHeaders,
+          [],
+          currentDate,
+        ),
+      };
+    }
+
+    if (taskStatus === 'failed') {
+      throw new AISDKError({
+        name: 'KLINGAI_VIDEO_GENERATION_FAILED',
+        message: `Video generation failed: ${statusResponse.data?.task_status_msg ?? 'Unknown error'}`,
+      });
+    }
+
+    return {
+      status: 'pending',
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+    };
+  }
+
+  private addUniversalWarnings(
+    options: Parameters<
+      NonNullable<Experimental_VideoModelV3['doGenerate']>
+    >[0],
+    warnings: SharedV3Warning[],
+  ): void {
+    if (options.resolution) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'resolution',
+        details: 'KlingAI video models do not support the resolution option.',
+      });
+    }
+
+    if (options.seed) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'seed',
+        details:
+          'KlingAI video models do not support seed for deterministic generation.',
+      });
+    }
+
+    if (options.fps) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'fps',
+        details: 'KlingAI video models do not support custom FPS.',
+      });
+    }
+
+    if (options.n != null && options.n > 1) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'n',
+        details:
+          'KlingAI video models do not support generating multiple videos per call. ' +
+          'Only 1 video will be generated.',
+      });
+    }
+  }
+
+  private buildCompletedResult(
+    finalResponse: KlingAITaskResponse,
+    taskId: string,
+    responseHeaders: Record<string, string> | undefined,
+    warnings: SharedV3Warning[],
+    currentDate: Date,
+  ) {
     if (!finalResponse?.data?.task_result?.videos?.length) {
       throw new AISDKError({
         name: 'KLINGAI_VIDEO_GENERATION_ERROR',

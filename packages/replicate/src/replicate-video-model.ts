@@ -1,6 +1,8 @@
 import {
   AISDKError,
   type Experimental_VideoModelV3,
+  type Experimental_VideoModelV3StartResult,
+  type Experimental_VideoModelV3StatusResult,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -68,14 +70,22 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
     private readonly config: ReplicateVideoModelConfig,
   ) {}
 
-  async doGenerate(
-    options: Parameters<
-      NonNullable<Experimental_VideoModelV3['doGenerate']>
-    >[0],
-  ): Promise<
-    Awaited<ReturnType<NonNullable<Experimental_VideoModelV3['doGenerate']>>>
-  > {
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+  private async buildInput(options: {
+    prompt?: string;
+    image?:
+      | { type: 'url'; url: string }
+      | { type: 'file'; data: string | Uint8Array; mediaType: string };
+    aspectRatio?: string;
+    resolution?: string;
+    duration?: number;
+    fps?: number;
+    seed?: number;
+    providerOptions?: Record<string, Record<string, unknown>>;
+  }): Promise<{
+    input: Record<string, unknown>;
+    warnings: SharedV3Warning[];
+    replicateOptions: ReplicateVideoModelOptions | undefined;
+  }> {
     const warnings: SharedV3Warning[] = [];
 
     const replicateOptions = (await parseProviderOptions({
@@ -84,7 +94,6 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
       schema: replicateVideoModelOptionsSchema,
     })) as ReplicateVideoModelOptions | undefined;
 
-    const [modelId, version] = this.modelId.split(':');
     const input: Record<string, unknown> = {};
 
     if (options.prompt != null) {
@@ -182,6 +191,22 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
         }
       }
     }
+
+    return { input, warnings, replicateOptions };
+  }
+
+  async doGenerate(
+    options: Parameters<
+      NonNullable<Experimental_VideoModelV3['doGenerate']>
+    >[0],
+  ): Promise<
+    Awaited<ReturnType<NonNullable<Experimental_VideoModelV3['doGenerate']>>>
+  > {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { input, warnings, replicateOptions } =
+      await this.buildInput(options);
+
+    const [modelId, version] = this.modelId.split(':');
 
     const maxWaitTimeInSeconds = replicateOptions?.maxWaitTimeInSeconds;
     const preferHeader: Record<string, string> =
@@ -304,6 +329,119 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
           predictionId: finalPrediction.id,
           metrics: finalPrediction.metrics,
         },
+      },
+    };
+  }
+
+  async doStart(
+    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
+  ): Promise<Experimental_VideoModelV3StartResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { input, warnings } = await this.buildInput(options);
+
+    const [modelId, version] = this.modelId.split(':');
+
+    const predictionUrl =
+      version != null
+        ? `${this.config.baseURL}/predictions`
+        : `${this.config.baseURL}/models/${modelId}/predictions`;
+
+    const { value: prediction, responseHeaders } = await postJsonToApi({
+      url: predictionUrl,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      body: {
+        input,
+        ...(version != null ? { version } : {}),
+      },
+      successfulResponseHandler: createJsonResponseHandler(
+        replicatePredictionSchema,
+      ),
+      failedResponseHandler: replicateFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    return {
+      operation: { getUrl: prediction.urls.get },
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+    };
+  }
+
+  async doStatus(
+    options: Parameters<NonNullable<Experimental_VideoModelV3['doStatus']>>[0],
+  ): Promise<Experimental_VideoModelV3StatusResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { getUrl } = options.operation as { getUrl: string };
+
+    const { value: prediction, responseHeaders } = await getFromApi({
+      url: getUrl,
+      headers: await resolve(this.config.headers),
+      successfulResponseHandler: createJsonResponseHandler(
+        replicatePredictionSchema,
+      ),
+      failedResponseHandler: replicateFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    if (prediction.status === 'failed') {
+      throw new AISDKError({
+        name: 'REPLICATE_VIDEO_GENERATION_FAILED',
+        message: `Video generation failed: ${prediction.error ?? 'Unknown error'}`,
+      });
+    }
+
+    if (prediction.status === 'canceled') {
+      throw new AISDKError({
+        name: 'REPLICATE_VIDEO_GENERATION_CANCELED',
+        message: 'Video generation was canceled',
+      });
+    }
+
+    if (prediction.status === 'succeeded') {
+      if (!prediction.output) {
+        throw new AISDKError({
+          name: 'REPLICATE_VIDEO_GENERATION_ERROR',
+          message: 'No video URL in response',
+        });
+      }
+
+      return {
+        status: 'completed',
+        videos: [
+          { type: 'url', url: prediction.output, mediaType: 'video/mp4' },
+        ],
+        warnings: [],
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+        providerMetadata: {
+          replicate: {
+            videos: [{ url: prediction.output }],
+            predictionId: prediction.id,
+            metrics: prediction.metrics,
+          },
+        },
+      };
+    }
+
+    // starting or processing
+    return {
+      status: 'pending',
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
       },
     };
   }

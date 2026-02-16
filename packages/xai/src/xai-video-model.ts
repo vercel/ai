@@ -1,6 +1,8 @@
 import {
   AISDKError,
   type Experimental_VideoModelV3,
+  type Experimental_VideoModelV3StartResult,
+  type Experimental_VideoModelV3StatusResult,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -50,10 +52,24 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
     private config: XaiVideoModelConfig,
   ) {}
 
-  async doGenerate(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+  private async buildRequestBody(options: {
+    prompt?: string;
+    n?: number;
+    image?:
+      | { type: 'url'; url: string }
+      | { type: 'file'; data: string | Uint8Array; mediaType: string };
+    aspectRatio?: string;
+    resolution?: string;
+    duration?: number;
+    fps?: number;
+    seed?: number;
+    providerOptions?: Record<string, Record<string, unknown>>;
+  }): Promise<{
+    body: Record<string, unknown>;
+    warnings: SharedV3Warning[];
+    xaiOptions: XaiVideoModelOptions | undefined;
+    isEdit: boolean;
+  }> {
     const warnings: SharedV3Warning[] = [];
 
     const xaiOptions = (await parseProviderOptions({
@@ -182,6 +198,68 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
+    return { body, warnings, xaiOptions, isEdit };
+  }
+
+  private buildCompletedResult({
+    statusResponse,
+    requestId,
+    warnings,
+    currentDate,
+    responseHeaders,
+  }: {
+    statusResponse: {
+      video?: { url: string; duration?: number | null } | null;
+    };
+    requestId: string;
+    warnings: SharedV3Warning[];
+    currentDate: Date;
+    responseHeaders: Record<string, string> | undefined;
+  }) {
+    if (!statusResponse.video?.url) {
+      throw new AISDKError({
+        name: 'XAI_VIDEO_GENERATION_ERROR',
+        message: 'Video generation completed but no video URL was returned.',
+      });
+    }
+
+    return {
+      videos: [
+        {
+          type: 'url' as const,
+          url: statusResponse.video.url,
+          mediaType: 'video/mp4',
+        },
+      ],
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+      providerMetadata: {
+        xai: {
+          requestId,
+          videoUrl: statusResponse.video.url,
+          ...(statusResponse.video.duration != null
+            ? { duration: statusResponse.video.duration }
+            : {}),
+        },
+      },
+    };
+  }
+
+  async doGenerate(
+    options: Parameters<
+      NonNullable<Experimental_VideoModelV3['doGenerate']>
+    >[0],
+  ): Promise<
+    Awaited<ReturnType<NonNullable<Experimental_VideoModelV3['doGenerate']>>>
+  > {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { body, warnings, xaiOptions, isEdit } =
+      await this.buildRequestBody(options);
+
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
 
     // Step 1: Create video generation/edit request
@@ -239,38 +317,13 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
         statusResponse.status === 'done' ||
         (statusResponse.status == null && statusResponse.video?.url)
       ) {
-        if (!statusResponse.video?.url) {
-          throw new AISDKError({
-            name: 'XAI_VIDEO_GENERATION_ERROR',
-            message:
-              'Video generation completed but no video URL was returned.',
-          });
-        }
-
-        return {
-          videos: [
-            {
-              type: 'url' as const,
-              url: statusResponse.video.url,
-              mediaType: 'video/mp4',
-            },
-          ],
+        return this.buildCompletedResult({
+          statusResponse,
+          requestId,
           warnings,
-          response: {
-            timestamp: currentDate,
-            modelId: this.modelId,
-            headers: responseHeaders,
-          },
-          providerMetadata: {
-            xai: {
-              requestId,
-              videoUrl: statusResponse.video.url,
-              ...(statusResponse.video.duration != null
-                ? { duration: statusResponse.video.duration }
-                : {}),
-            },
-          },
-        };
+          currentDate,
+          responseHeaders,
+        });
       }
 
       if (statusResponse.status === 'expired') {
@@ -282,6 +335,120 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
 
       // 'pending' → continue polling
     }
+  }
+
+  async doStart(
+    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
+  ): Promise<Experimental_VideoModelV3StartResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { body, warnings, xaiOptions, isEdit } =
+      await this.buildRequestBody(options);
+
+    const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
+
+    const { value: createResponse, responseHeaders } = await postJsonToApi({
+      url: `${baseURL}/videos/${isEdit ? 'edits' : 'generations'}`,
+      headers: combineHeaders(this.config.headers(), options.headers),
+      body,
+      failedResponseHandler: xaiFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        xaiCreateVideoResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const requestId = createResponse.request_id;
+    if (!requestId) {
+      throw new AISDKError({
+        name: 'XAI_VIDEO_GENERATION_ERROR',
+        message: `No request_id returned from xAI API.`,
+      });
+    }
+
+    return {
+      operation: { requestId },
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+    };
+  }
+
+  async doStatus(
+    options: Parameters<NonNullable<Experimental_VideoModelV3['doStatus']>>[0],
+  ): Promise<Experimental_VideoModelV3StatusResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { requestId } = options.operation as { requestId: string };
+    const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
+
+    const { value: statusResponse, responseHeaders } = await getFromApi({
+      url: `${baseURL}/videos/${requestId}`,
+      headers: combineHeaders(this.config.headers(), options.headers),
+      successfulResponseHandler: createJsonResponseHandler(
+        xaiVideoStatusResponseSchema,
+      ),
+      failedResponseHandler: xaiFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    if (statusResponse.status === 'expired') {
+      throw new AISDKError({
+        name: 'XAI_VIDEO_GENERATION_EXPIRED',
+        message: 'Video generation request expired.',
+      });
+    }
+
+    if (
+      statusResponse.status === 'done' ||
+      (statusResponse.status == null && statusResponse.video?.url)
+    ) {
+      if (!statusResponse.video?.url) {
+        throw new AISDKError({
+          name: 'XAI_VIDEO_GENERATION_ERROR',
+          message: 'Video generation completed but no video URL was returned.',
+        });
+      }
+
+      return {
+        status: 'completed',
+        videos: [
+          {
+            type: 'url',
+            url: statusResponse.video.url,
+            mediaType: 'video/mp4',
+          },
+        ],
+        warnings: [],
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+        providerMetadata: {
+          xai: {
+            requestId,
+            videoUrl: statusResponse.video.url,
+            ...(statusResponse.video.duration != null
+              ? { duration: statusResponse.video.duration }
+              : {}),
+          },
+        },
+      };
+    }
+
+    // pending status
+    return {
+      status: 'pending',
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+    };
   }
 }
 

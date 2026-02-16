@@ -808,4 +808,264 @@ describe('GoogleGenerativeAIVideoModel', () => {
       expect(result.videos[0].mediaType).toBe('video/mp4');
     });
   });
+
+  describe('doStart', () => {
+    it('should return operation with operationName', async () => {
+      const model = createMockModel({
+        operationName: 'operations/start-test-op',
+      });
+
+      const result = await model.doStart({ ...defaultOptions });
+
+      expect(result.operation).toStrictEqual({
+        operationName: 'operations/start-test-op',
+      });
+    });
+
+    it('should pass correct request body', async () => {
+      let capturedBody: unknown;
+      const model = createMockModel({
+        onRequest: (url, body) => {
+          if (url.includes(':predictLongRunning')) {
+            capturedBody = body;
+          }
+        },
+      });
+
+      await model.doStart({ ...defaultOptions });
+
+      expect(capturedBody).toStrictEqual({
+        instances: [{ prompt }],
+        parameters: { sampleCount: 1 },
+      });
+    });
+
+    it('should pass headers', async () => {
+      let capturedHeaders: Record<string, string> = {};
+      const model = createMockModel({
+        onRequest: (url, _body, headers) => {
+          if (url.includes(':predictLongRunning')) {
+            capturedHeaders = headers;
+          }
+        },
+      });
+
+      await model.doStart({
+        ...defaultOptions,
+        headers: { 'x-custom-header': 'custom-value' },
+      });
+
+      expect(capturedHeaders['x-custom-header']).toBe('custom-value');
+      expect(capturedHeaders['x-goog-api-key']).toBe('test-api-key');
+    });
+
+    it('should throw when no operation name returned', async () => {
+      const model = new GoogleGenerativeAIVideoModel(
+        'veo-3.1-generate-preview',
+        {
+          provider: 'google.generative-ai',
+          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+          headers: () => ({ 'x-goog-api-key': 'test-key' }),
+          fetch: async () => {
+            return new Response(
+              JSON.stringify({
+                done: false,
+              }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            );
+          },
+        },
+      );
+
+      await expect(model.doStart({ ...defaultOptions })).rejects.toMatchObject({
+        message: 'No operation name returned from API',
+      });
+    });
+
+    it('should include warnings and response metadata', async () => {
+      const testDate = new Date('2024-01-01T00:00:00Z');
+      const model = createMockModel({
+        currentDate: () => testDate,
+      });
+
+      const result = await model.doStart({ ...defaultOptions });
+
+      expect(result.warnings).toStrictEqual([]);
+      expect(result.response.timestamp).toStrictEqual(testDate);
+      expect(result.response.modelId).toBe('veo-3.1-generate-preview');
+      expect(result.response.headers).toBeDefined();
+    });
+  });
+
+  describe('doStatus', () => {
+    it('should return completed with video data when done', async () => {
+      const model = createMockModel({
+        operationName: 'operations/status-test-op',
+        videos: [
+          {
+            video: {
+              uri: 'https://generativelanguage.googleapis.com/files/video-456.mp4',
+            },
+          },
+        ],
+      });
+
+      const result = await model.doStatus({
+        operation: { operationName: 'operations/status-test-op' },
+      });
+
+      expect(result.status).toBe('completed');
+      if (result.status === 'completed') {
+        expect(result.videos).toHaveLength(1);
+        expect(result.videos[0]).toStrictEqual({
+          type: 'url',
+          url: 'https://generativelanguage.googleapis.com/files/video-456.mp4?key=test-api-key',
+          mediaType: 'video/mp4',
+        });
+      }
+    });
+
+    it('should return pending when not done', async () => {
+      const testDate = new Date('2024-06-15T00:00:00Z');
+      const model = new GoogleGenerativeAIVideoModel(
+        'veo-3.1-generate-preview',
+        {
+          provider: 'google.generative-ai',
+          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+          headers: () => ({ 'x-goog-api-key': 'test-key' }),
+          fetch: async () => {
+            return new Response(
+              JSON.stringify({
+                name: 'operations/pending-op',
+                done: false,
+              }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            );
+          },
+          _internal: {
+            currentDate: () => testDate,
+          },
+        },
+      );
+
+      const result = await model.doStatus({
+        operation: { operationName: 'operations/pending-op' },
+      });
+
+      expect(result.status).toBe('pending');
+      expect(result.response.timestamp).toStrictEqual(testDate);
+      expect(result.response.modelId).toBe('veo-3.1-generate-preview');
+    });
+
+    it('should throw on operation error', async () => {
+      const model = new GoogleGenerativeAIVideoModel(
+        'veo-3.1-generate-preview',
+        {
+          provider: 'google.generative-ai',
+          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+          headers: () => ({ 'x-goog-api-key': 'test-key' }),
+          fetch: async () => {
+            return new Response(
+              JSON.stringify({
+                name: 'operations/error-op',
+                done: true,
+                error: {
+                  code: 400,
+                  message: 'Content policy violation',
+                  status: 'FAILED_PRECONDITION',
+                },
+              }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            );
+          },
+        },
+      );
+
+      await expect(
+        model.doStatus({
+          operation: { operationName: 'operations/error-op' },
+        }),
+      ).rejects.toMatchObject({
+        message: expect.stringContaining('Content policy violation'),
+      });
+    });
+
+    it('should throw when no videos in response', async () => {
+      const model = new GoogleGenerativeAIVideoModel(
+        'veo-3.1-generate-preview',
+        {
+          provider: 'google.generative-ai',
+          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+          headers: () => ({ 'x-goog-api-key': 'test-key' }),
+          fetch: async () => {
+            return new Response(
+              JSON.stringify({
+                name: 'operations/empty-op',
+                done: true,
+                response: {
+                  generateVideoResponse: {
+                    generatedSamples: [],
+                  },
+                },
+              }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            );
+          },
+        },
+      );
+
+      await expect(
+        model.doStatus({
+          operation: { operationName: 'operations/empty-op' },
+        }),
+      ).rejects.toMatchObject({
+        message: expect.stringContaining('No videos in response'),
+      });
+    });
+
+    it('should pass headers to status request', async () => {
+      let capturedHeaders: Record<string, string> = {};
+      const model = new GoogleGenerativeAIVideoModel(
+        'veo-3.1-generate-preview',
+        {
+          provider: 'google.generative-ai',
+          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+          headers: () => ({ 'x-goog-api-key': 'test-key' }),
+          fetch: async (_url, init) => {
+            capturedHeaders = (init?.headers as Record<string, string>) ?? {};
+            return new Response(
+              JSON.stringify({
+                name: 'operations/headers-test',
+                done: false,
+              }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            );
+          },
+        },
+      );
+
+      await model.doStatus({
+        operation: { operationName: 'operations/headers-test' },
+        headers: { 'x-custom': 'value' },
+      });
+
+      expect(capturedHeaders['x-custom']).toBe('value');
+      expect(capturedHeaders['x-goog-api-key']).toBe('test-key');
+    });
+  });
 });

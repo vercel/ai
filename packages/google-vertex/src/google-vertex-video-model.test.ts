@@ -895,4 +895,226 @@ describe('GoogleVertexVideoModel', () => {
       expect(result.videos[0].mediaType).toBe('video/mp4');
     });
   });
+
+  describe('doStart', () => {
+    it('should return operation with operationName', async () => {
+      const model = createMockModel({
+        operationName: 'operations/my-op-123',
+      });
+
+      const result = await model.doStart({ ...defaultOptions });
+
+      expect(result.operation).toStrictEqual({
+        operationName: 'operations/my-op-123',
+      });
+    });
+
+    it('should pass correct request body', async () => {
+      let capturedBody: unknown;
+      const model = createMockModel({
+        onRequest: (url, body) => {
+          if (url.includes(':predictLongRunning')) {
+            capturedBody = body;
+          }
+        },
+      });
+
+      await model.doStart({ ...defaultOptions });
+
+      expect(capturedBody).toStrictEqual({
+        instances: [{ prompt }],
+        parameters: { sampleCount: 1 },
+      });
+    });
+
+    it('should throw when no operation name returned', async () => {
+      const model = new GoogleVertexVideoModel('veo-2.0-generate-001', {
+        provider: 'google-vertex',
+        baseURL: 'https://api.example.com',
+        headers: () => ({ 'api-key': 'test-key' }),
+        fetch: async () => {
+          return new Response(
+            JSON.stringify({
+              done: false,
+            }),
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            },
+          );
+        },
+      });
+
+      await expect(model.doStart({ ...defaultOptions })).rejects.toMatchObject({
+        message: 'No operation name returned from API',
+      });
+    });
+
+    it('should include warnings and response metadata', async () => {
+      const testDate = new Date('2024-01-01T00:00:00Z');
+      const model = createMockModel({
+        currentDate: () => testDate,
+      });
+
+      const result = await model.doStart({ ...defaultOptions });
+
+      expect(result.warnings).toStrictEqual([]);
+      expect(result.response.timestamp).toStrictEqual(testDate);
+      expect(result.response.modelId).toBe('veo-2.0-generate-001');
+    });
+  });
+
+  describe('doStatus', () => {
+    it('should return completed with video data when done', async () => {
+      const model = createMockModel({
+        operationName: 'operations/my-op-123',
+        videos: [
+          {
+            video: {
+              bytesBase64Encoded: 'base64-video-data',
+              mimeType: 'video/mp4',
+            },
+          },
+        ],
+      });
+
+      const result = await model.doStatus({
+        operation: { operationName: 'operations/my-op-123' },
+      });
+
+      expect(result.status).toBe('completed');
+      expect(result.status === 'completed' && result.videos).toStrictEqual([
+        {
+          type: 'base64',
+          data: 'base64-video-data',
+          mediaType: 'video/mp4',
+        },
+      ]);
+    });
+
+    it('should return pending when not done', async () => {
+      const model = createMockModel({
+        operationName: 'operations/my-op-123',
+        pollsUntilDone: 3, // Never completes on first poll
+      });
+
+      const result = await model.doStatus({
+        operation: { operationName: 'operations/my-op-123' },
+      });
+
+      expect(result.status).toBe('pending');
+    });
+
+    it('should throw on operation error', async () => {
+      const model = createMockModel({
+        operationName: 'operations/my-op-123',
+        operationError: {
+          code: 400,
+          message: 'Content policy violation',
+          status: 'FAILED_PRECONDITION',
+        },
+      });
+
+      await expect(
+        model.doStatus({
+          operation: { operationName: 'operations/my-op-123' },
+        }),
+      ).rejects.toMatchObject({
+        message: expect.stringContaining('Content policy violation'),
+      });
+    });
+
+    it('should use POST with operationName in body', async () => {
+      let capturedUrl: string | undefined;
+      let capturedBody: unknown;
+      let capturedMethod: string | undefined;
+      const model = new GoogleVertexVideoModel('veo-2.0-generate-001', {
+        provider: 'google-vertex',
+        baseURL: 'https://api.example.com',
+        headers: () => ({ 'api-key': 'test-key' }),
+        fetch: async (url, init) => {
+          const urlString = url.toString();
+
+          if (urlString.includes(':predictLongRunning')) {
+            return new Response(
+              JSON.stringify({
+                name: 'operations/check-post',
+                done: false,
+              }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            );
+          }
+
+          if (urlString.includes(':fetchPredictOperation')) {
+            capturedUrl = urlString;
+            capturedBody = init?.body
+              ? JSON.parse(init.body as string)
+              : undefined;
+            capturedMethod = init?.method;
+
+            return new Response(
+              JSON.stringify({
+                name: 'operations/check-post',
+                done: true,
+                response: {
+                  videos: [
+                    {
+                      bytesBase64Encoded: 'video-data',
+                      mimeType: 'video/mp4',
+                    },
+                  ],
+                },
+              }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            );
+          }
+
+          return new Response('Not found', { status: 404 });
+        },
+      });
+
+      await model.doStatus({
+        operation: { operationName: 'operations/check-post' },
+      });
+
+      expect(capturedUrl).toContain(':fetchPredictOperation');
+      expect(capturedMethod).toBe('POST');
+      expect(capturedBody).toStrictEqual({
+        operationName: 'operations/check-post',
+      });
+    });
+
+    it('should return completed with GCS URI video', async () => {
+      const model = createMockModel({
+        operationName: 'operations/gcs-op',
+        videos: [
+          {
+            video: {
+              gcsUri: 'gs://bucket/video.mp4',
+              mimeType: 'video/mp4',
+            },
+          },
+        ],
+      });
+
+      const result = await model.doStatus({
+        operation: { operationName: 'operations/gcs-op' },
+      });
+
+      expect(result.status).toBe('completed');
+      expect(result.status === 'completed' && result.videos).toStrictEqual([
+        {
+          type: 'url',
+          url: 'gs://bucket/video.mp4',
+          mediaType: 'video/mp4',
+        },
+      ]);
+    });
+  });
 });

@@ -932,4 +932,318 @@ describe('ReplicateVideoModel', () => {
       expect(result.videos[0].mediaType).toBe('video/mp4');
     });
   });
+
+  describe('doStart', () => {
+    it('should return operation with getUrl', async () => {
+      const model = createMockModel({
+        predictionId: 'start-pred-123',
+        pollsUntilDone: 0,
+      });
+
+      const result = await model.doStart({ ...defaultOptions });
+
+      expect(result.operation).toStrictEqual({
+        getUrl: 'https://api.replicate.com/v1/predictions/start-pred-123',
+      });
+    });
+
+    it('should pass correct request body', async () => {
+      let capturedBody: unknown;
+      const model = createMockModel({
+        pollsUntilDone: 0,
+        onRequest: (url, body) => {
+          if (
+            url.includes('/predictions') &&
+            !url.includes('test-prediction')
+          ) {
+            capturedBody = body;
+          }
+        },
+      });
+
+      await model.doStart({ ...defaultOptions });
+
+      expect(capturedBody).toMatchObject({
+        input: { prompt },
+      });
+    });
+
+    it('should NOT send prefer header', async () => {
+      let capturedHeaders: Record<string, string> = {};
+      const model = createMockModel({
+        pollsUntilDone: 0,
+        onRequest: (url, _body, headers) => {
+          if (
+            url.includes('/predictions') &&
+            !url.includes('test-prediction')
+          ) {
+            capturedHeaders = headers;
+          }
+        },
+      });
+
+      await model.doStart({ ...defaultOptions });
+
+      expect(capturedHeaders.prefer).toBeUndefined();
+    });
+
+    it('should use correct URL for versioned models', async () => {
+      let capturedUrl: string = '';
+      let capturedBody: unknown;
+      const model = createMockModel({
+        modelId: 'stability-ai/stable-video-diffusion:abc123',
+        pollsUntilDone: 0,
+        onRequest: (url, body) => {
+          if (
+            url.includes('/predictions') &&
+            !url.includes('test-prediction')
+          ) {
+            capturedUrl = url;
+            capturedBody = body;
+          }
+        },
+      });
+
+      await model.doStart({ ...defaultOptions });
+
+      expect(capturedUrl).toBe('https://api.replicate.com/v1/predictions');
+      expect(capturedBody).toMatchObject({
+        version: 'abc123',
+      });
+    });
+
+    it('should use /models/ URL for unversioned models', async () => {
+      let capturedUrl: string = '';
+      const model = createMockModel({
+        modelId: 'minimax/video-01',
+        pollsUntilDone: 0,
+        onRequest: url => {
+          if (
+            url.includes('/predictions') &&
+            !url.includes('test-prediction')
+          ) {
+            capturedUrl = url;
+          }
+        },
+      });
+
+      await model.doStart({ ...defaultOptions });
+
+      expect(capturedUrl).toBe(
+        'https://api.replicate.com/v1/models/minimax/video-01/predictions',
+      );
+    });
+
+    it('should return warnings and response metadata', async () => {
+      const testDate = new Date('2024-01-01T00:00:00Z');
+      const model = createMockModel({
+        currentDate: () => testDate,
+        pollsUntilDone: 0,
+      });
+
+      const result = await model.doStart({ ...defaultOptions });
+
+      expect(result.warnings).toStrictEqual([]);
+      expect(result.response.timestamp).toStrictEqual(testDate);
+      expect(result.response.modelId).toBe('minimax/video-01');
+    });
+  });
+
+  describe('doStatus', () => {
+    function createStatusModel({
+      predictionId = 'status-pred-123',
+      predictionStatus = 'succeeded',
+      output = 'https://replicate.delivery/video.mp4',
+      error,
+      currentDate,
+      metrics = { predict_time: 25.5 },
+      apiToken = 'test-api-token',
+    }: {
+      predictionId?: string;
+      predictionStatus?: string;
+      output?: string | null;
+      error?: string;
+      currentDate?: () => Date;
+      metrics?: { predict_time?: number | null } | null;
+      apiToken?: string;
+    } = {}) {
+      return new ReplicateVideoModel('minimax/video-01', {
+        provider: 'replicate.video',
+        baseURL: 'https://api.replicate.com/v1',
+        headers: () => ({
+          Authorization: `Bearer ${apiToken}`,
+        }),
+        fetch: async url => {
+          const urlString = url.toString();
+
+          if (urlString.includes(`/predictions/${predictionId}`)) {
+            return new Response(
+              JSON.stringify({
+                id: predictionId,
+                status: predictionStatus,
+                output,
+                error: error ?? null,
+                urls: {
+                  get: `https://api.replicate.com/v1/predictions/${predictionId}`,
+                },
+                metrics,
+              }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            );
+          }
+
+          return new Response('Not found', { status: 404 });
+        },
+        _internal: {
+          currentDate,
+        },
+      });
+    }
+
+    it('should return completed with video data when succeeded', async () => {
+      const model = createStatusModel({
+        predictionStatus: 'succeeded',
+        output: 'https://replicate.delivery/video-output.mp4',
+      });
+
+      const result = await model.doStatus({
+        operation: {
+          getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
+        },
+      });
+
+      expect(result.status).toBe('completed');
+      expect(result.status === 'completed' && result.videos).toStrictEqual([
+        {
+          type: 'url',
+          url: 'https://replicate.delivery/video-output.mp4',
+          mediaType: 'video/mp4',
+        },
+      ]);
+    });
+
+    it('should return pending when processing', async () => {
+      const model = createStatusModel({
+        predictionStatus: 'processing',
+      });
+
+      const result = await model.doStatus({
+        operation: {
+          getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
+        },
+      });
+
+      expect(result.status).toBe('pending');
+    });
+
+    it('should return pending when starting', async () => {
+      const model = createStatusModel({
+        predictionStatus: 'starting',
+      });
+
+      const result = await model.doStatus({
+        operation: {
+          getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
+        },
+      });
+
+      expect(result.status).toBe('pending');
+    });
+
+    it('should throw on failed status', async () => {
+      const model = createStatusModel({
+        predictionStatus: 'failed',
+        error: 'GPU out of memory',
+      });
+
+      await expect(
+        model.doStatus({
+          operation: {
+            getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
+          },
+        }),
+      ).rejects.toMatchObject({
+        message: expect.stringContaining('GPU out of memory'),
+      });
+    });
+
+    it('should throw on canceled status', async () => {
+      const model = createStatusModel({
+        predictionStatus: 'canceled',
+      });
+
+      await expect(
+        model.doStatus({
+          operation: {
+            getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
+          },
+        }),
+      ).rejects.toMatchObject({
+        message: expect.stringContaining('canceled'),
+      });
+    });
+
+    it('should throw when no output on succeeded', async () => {
+      const model = createStatusModel({
+        predictionStatus: 'succeeded',
+        output: null,
+      });
+
+      await expect(
+        model.doStatus({
+          operation: {
+            getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
+          },
+        }),
+      ).rejects.toMatchObject({
+        message: 'No video URL in response',
+      });
+    });
+
+    it('should include providerMetadata', async () => {
+      const model = createStatusModel({
+        predictionId: 'meta-pred-456',
+        predictionStatus: 'succeeded',
+        output: 'https://replicate.delivery/video.mp4',
+        metrics: { predict_time: 30.2 },
+      });
+
+      const result = await model.doStatus({
+        operation: {
+          getUrl: 'https://api.replicate.com/v1/predictions/meta-pred-456',
+        },
+      });
+
+      expect(result.status).toBe('completed');
+      if (result.status === 'completed') {
+        expect(result.providerMetadata).toMatchObject({
+          replicate: {
+            predictionId: 'meta-pred-456',
+            metrics: { predict_time: 30.2 },
+            videos: [{ url: 'https://replicate.delivery/video.mp4' }],
+          },
+        });
+      }
+    });
+
+    it('should include response metadata', async () => {
+      const testDate = new Date('2024-06-15T12:00:00Z');
+      const model = createStatusModel({
+        currentDate: () => testDate,
+        predictionStatus: 'processing',
+      });
+
+      const result = await model.doStatus({
+        operation: {
+          getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
+        },
+      });
+
+      expect(result.response.timestamp).toStrictEqual(testDate);
+      expect(result.response.modelId).toBe('minimax/video-01');
+    });
+  });
 });
