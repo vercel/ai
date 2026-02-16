@@ -1720,6 +1720,18 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'unknown',
               description: 'The experimental context.',
             },
+            {
+              name: 'output',
+              type: 'OUTPUT | undefined',
+              description:
+                'The parsed output based on the output specification. Undefined if parsing failed or no output specification was provided.',
+            },
+            {
+              name: 'outputError',
+              type: 'unknown | undefined',
+              description:
+                'Error that occurred during output parsing. Contains the error if parsing failed, undefined otherwise.',
+            },
           ],
         },
       ],
