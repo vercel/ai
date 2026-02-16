@@ -5,7 +5,7 @@ description: Add persistent memory to your agent using provider-defined tools, m
 
 # Memory
 
-Memory lets your agent save information and recall it later. Without memory, every conversation starts from zero. With memory, your agent builds context over time, recalls previous interactions, and adapts to the user.
+Memory lets your agent save information and recall it later. Without memory, every conversation starts fresh. With memory, your agent builds context over time, recalls previous interactions, and adapts to the user.
 
 ## Three Approaches
 
@@ -61,6 +61,10 @@ Another approach is to use a provider that has memory built in. These providers 
 
 [Letta](https://letta.com) provides agents with persistent long-term memory. You create an agent on Letta's platform (cloud or self-hosted), configure its memory there, and use the AI SDK provider to interact with it. Letta's agent runtime handles memory management (core memory, archival memory, recall).
 
+```bash
+pnpm add @letta-ai/vercel-ai-sdk-provider
+```
+
 ```ts
 import { lettaCloud } from '@letta-ai/vercel-ai-sdk-provider';
 import { ToolLoopAgent } from 'ai';
@@ -104,15 +108,15 @@ const stream = agent.stream({
 });
 ```
 
-```bash
-pnpm add @letta-ai/vercel-ai-sdk-provider
-```
-
 See the [Letta provider documentation](/providers/community-providers/letta) for full setup and configuration.
 
 ### Mem0
 
 [Mem0](https://mem0.ai) adds a memory layer on top of any supported LLM provider. It automatically extracts memories from conversations, stores them, and retrieves relevant ones for future prompts.
+
+```bash
+pnpm add @mem0/vercel-ai-provider
+```
 
 ```ts
 import { createMem0 } from '@mem0/vercel-ai-provider';
@@ -140,10 +144,6 @@ import { addMemories, retrieveMemories } from '@mem0/vercel-ai-provider';
 
 await addMemories(messages, { user_id: 'user-123' });
 const context = await retrieveMemories(prompt, { user_id: 'user-123' });
-```
-
-```bash
-pnpm add @mem0/vercel-ai-provider
 ```
 
 See the [Mem0 provider documentation](/providers/community-providers/mem0) for full setup and configuration.

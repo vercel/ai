@@ -76,7 +76,7 @@ To follow this guide, you need the following:
 Install dependencies for both routes:
 
 ```bash
-bun add ai just-bash zod
+pnpm add ai just-bash zod
 ```
 
 If you only use Route A (structured actions), you can skip `just-bash`.
@@ -152,7 +152,7 @@ Rules:
       const output = await runMemoryCommand(input);
       return { output };
     } catch (error) {
-      return { output: `Memory action failed: ${error.message}` };
+      return { output: `Memory action failed: ${(error as Error).message}` };
     }
   },
 });
@@ -286,7 +286,7 @@ await appendConversation({
 console.log(result.text);
 ```
 
-When the model decides it needs to store or recall information, it calls the `memory` tool with a bash command. The `ToolLoopAgent` executes the tool and feeds the result back, continuing until the model produces a final text response.
+When the model decides it needs to store or recall information, it calls the `memory` tool. The `ToolLoopAgent` executes the tool and feeds the result back, continuing until the model produces a final text response.
 
 A typical interaction looks like this:
 
@@ -299,7 +299,7 @@ A typical interaction looks like this:
 ## Learn More
 
 - [AI SDK documentation](https://ai-sdk.dev/docs) for `ToolLoopAgent`, `tool`, and `generateText`
-- [just-bash](https://github.com/nichochar/just-bash) for the JavaScript-based bash interpreter and AST parser
+- [just-bash](https://github.com/vercel-labs/just-bash) for the JavaScript-based bash interpreter and AST parser
 - [AI SDK examples](https://github.com/vercel/ai/tree/main/examples) for more agent patterns
 
 ---
@@ -374,6 +374,80 @@ async function appendConversation(entry: {
   timestamp: string;
 }): Promise<void> {
   await appendFile(CONVERSATIONS_PATH, `${JSON.stringify(entry)}\n`, 'utf8');
+}
+```
+
+### Appendix: Structured Actions Handler
+
+The `runMemoryCommand` function used in Route A maps each action to a filesystem operation. Paths are resolved relative to the memory root, and only known memory files are allowed:
+
+```ts
+import { readFile, writeFile, appendFile } from 'node:fs/promises';
+import { join, relative } from 'node:path';
+
+const MEMORY_FILES = ['core.md', 'notes.md', 'conversations.jsonl'];
+
+function resolveMemoryPath(path: string): string {
+  const relativePath = path
+    .trim()
+    .replace(/^\/?memories\/?/, '')
+    .replace(/^\/?\.memory\/?/, '')
+    .replace(/^\/+/, '');
+
+  if (!MEMORY_FILES.includes(relativePath)) {
+    throw new Error(`Unsupported memory path: ${path}`);
+  }
+
+  return join(MEMORY_ROOT, relativePath);
+}
+
+async function runMemoryCommand(input: {
+  command: 'view' | 'create' | 'update' | 'search';
+  path?: string;
+  content?: string;
+  mode?: 'append' | 'overwrite';
+  query?: string;
+}): Promise<string> {
+  const { command, path, content, mode, query } = input;
+
+  switch (command) {
+    case 'view': {
+      if (!path) throw new Error('path is required for view');
+      return await readFile(resolveMemoryPath(path), 'utf8');
+    }
+    case 'create':
+    case 'update': {
+      if (!path) throw new Error('path is required');
+      if (!content) throw new Error('content is required');
+      const target = resolveMemoryPath(path);
+      if (mode === 'append') {
+        await appendFile(target, content, 'utf8');
+      } else {
+        await writeFile(target, content, 'utf8');
+      }
+      return `${command === 'create' ? 'Created' : 'Updated'} ${path}`;
+    }
+    case 'search': {
+      if (!query) throw new Error('query is required for search');
+      const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+      const files = path
+        ? [resolveMemoryPath(path)]
+        : MEMORY_FILES.map(f => join(MEMORY_ROOT, f));
+      const matches: string[] = [];
+
+      for (const filePath of files) {
+        const lines = (await readFile(filePath, 'utf8')).split('\n');
+        for (const [i, line] of lines.entries()) {
+          const lower = line.toLowerCase();
+          if (terms.some(t => lower.includes(t))) {
+            matches.push(`${relative(MEMORY_ROOT, filePath)}:${i + 1}:${line}`);
+          }
+        }
+      }
+
+      return matches.length > 0 ? matches.join('\n') : 'No matches found.';
+    }
+  }
 }
 ```
 
