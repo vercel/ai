@@ -576,6 +576,262 @@ describe('XaiVideoModel', () => {
     });
   });
 
+  describe('doStart', () => {
+    it('should return operation with requestId', async () => {
+      const model = createModel();
+
+      const result = await model.doStart({ ...defaultOptions });
+
+      expect(result.operation).toStrictEqual({ requestId: 'req-123' });
+    });
+
+    it('should pass correct request body', async () => {
+      const model = createModel();
+
+      await model.doStart({ ...defaultOptions });
+
+      expect(server.calls[0].requestMethod).toBe('POST');
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/generations`,
+      );
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'grok-imagine-video',
+        prompt,
+      });
+    });
+
+    it('should pass headers', async () => {
+      const model = createModel({
+        headers: () => ({
+          Authorization: 'Bearer custom-token',
+          'X-Custom': 'value',
+        }),
+      });
+
+      await model.doStart({
+        ...defaultOptions,
+        headers: {
+          'X-Request-Header': 'request-value',
+        },
+      });
+
+      expect(server.calls[0].requestHeaders).toMatchObject({
+        authorization: 'Bearer custom-token',
+        'x-custom': 'value',
+        'x-request-header': 'request-value',
+      });
+    });
+
+    it('should throw when no request_id returned', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/generations`].response = {
+        type: 'json-value',
+        body: {},
+      };
+
+      const model = createModel();
+
+      await expect(model.doStart({ ...defaultOptions })).rejects.toThrow(
+        'No request_id',
+      );
+
+      // Reset
+      server.urls[`${TEST_BASE_URL}/videos/generations`].response = {
+        type: 'json-value',
+        body: createVideoResponse,
+      };
+    });
+
+    it('should use edits endpoint for video editing', async () => {
+      const model = createModel();
+
+      await model.doStart({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            videoUrl: 'https://example.com/source-video.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(server.calls[0].requestMethod).toBe('POST');
+      expect(server.calls[0].requestUrl).toBe(`${TEST_BASE_URL}/videos/edits`);
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        video: { url: 'https://example.com/source-video.mp4' },
+      });
+    });
+
+    it('should include response metadata', async () => {
+      const testDate = new Date('2024-01-01T00:00:00Z');
+      const model = createModel({
+        currentDate: () => testDate,
+      });
+
+      const result = await model.doStart({ ...defaultOptions });
+
+      expect(result.response).toStrictEqual({
+        timestamp: testDate,
+        modelId: 'grok-imagine-video',
+        headers: expect.any(Object),
+      });
+    });
+
+    it('should return warnings for unsupported features', async () => {
+      const model = createModel();
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        fps: 30,
+        seed: 42,
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'fps',
+        }),
+      );
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'seed',
+        }),
+      );
+    });
+  });
+
+  describe('doStatus', () => {
+    it('should return completed with video data when done', async () => {
+      const model = createModel();
+
+      const result = await model.doStatus({
+        operation: { requestId: 'req-123' },
+      });
+
+      expect(result.status).toBe('completed');
+      if (result.status === 'completed') {
+        expect(result.videos).toHaveLength(1);
+        expect(result.videos[0]).toStrictEqual({
+          type: 'url',
+          url: 'https://vidgen.x.ai/output/video-001.mp4',
+          mediaType: 'video/mp4',
+        });
+        expect(result.providerMetadata).toStrictEqual({
+          xai: {
+            requestId: 'req-123',
+            videoUrl: 'https://vidgen.x.ai/output/video-001.mp4',
+            duration: 5,
+          },
+        });
+      }
+    });
+
+    it('should return pending when status is pending', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: { status: 'pending' },
+      };
+
+      const model = createModel();
+
+      const result = await model.doStatus({
+        operation: { requestId: 'req-123' },
+      });
+
+      expect(result.status).toBe('pending');
+
+      // Reset
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+
+    it('should throw on expired status', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'expired',
+          model: 'grok-imagine-video',
+        },
+      };
+
+      const model = createModel();
+
+      await expect(
+        model.doStatus({ operation: { requestId: 'req-123' } }),
+      ).rejects.toThrow('expired');
+
+      // Reset
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+
+    it('should throw when video URL missing on done', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'done',
+          video: null,
+          model: 'grok-imagine-video',
+        },
+      };
+
+      const model = createModel();
+
+      await expect(
+        model.doStatus({ operation: { requestId: 'req-123' } }),
+      ).rejects.toThrow('no video URL');
+
+      // Reset
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+
+    it('should include response metadata', async () => {
+      const testDate = new Date('2024-01-01T00:00:00Z');
+      const model = createModel({
+        currentDate: () => testDate,
+      });
+
+      const result = await model.doStatus({
+        operation: { requestId: 'req-123' },
+      });
+
+      expect(result.response).toStrictEqual({
+        timestamp: testDate,
+        modelId: 'grok-imagine-video',
+        headers: expect.any(Object),
+      });
+    });
+
+    it('should pass headers to request', async () => {
+      const model = createModel({
+        headers: () => ({
+          Authorization: 'Bearer custom-token',
+        }),
+      });
+
+      await model.doStatus({
+        operation: { requestId: 'req-123' },
+        headers: {
+          'X-Request-Header': 'request-value',
+        },
+      });
+
+      expect(server.calls[0].requestHeaders).toMatchObject({
+        authorization: 'Bearer custom-token',
+        'x-request-header': 'request-value',
+      });
+    });
+  });
+
   describe('error handling', () => {
     it('should throw when status is expired', async () => {
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {

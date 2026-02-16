@@ -682,4 +682,247 @@ describe('AlibabaVideoModel', () => {
       server.urls[TASK_URL].response = originalResponse;
     });
   });
+
+  describe('doStart', () => {
+    it('should return operation with taskId', async () => {
+      const model = createModel();
+
+      const result = await model.doStart({ ...defaultOptions });
+
+      expect(result.operation).toStrictEqual({ taskId: 'task-abc-123' });
+      expect(result.warnings).toStrictEqual([]);
+      expect(result.response.modelId).toBe('wan2.6-t2v');
+    });
+
+    it('should pass correct request body', async () => {
+      const model = createModel();
+
+      await model.doStart({
+        ...defaultOptions,
+        duration: 10,
+        seed: 42,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'wan2.6-t2v',
+        input: { prompt },
+        parameters: { duration: 10, seed: 42 },
+      });
+    });
+
+    it('should send X-DashScope-Async header', async () => {
+      const model = createModel();
+
+      await model.doStart({ ...defaultOptions });
+
+      expect(server.calls[0].requestHeaders).toMatchObject({
+        'x-dashscope-async': 'enable',
+      });
+    });
+
+    it('should pass headers', async () => {
+      const model = createModel({
+        headers: {
+          Authorization: 'Bearer custom-key',
+          'X-Custom': 'value',
+        },
+      });
+
+      await model.doStart({
+        ...defaultOptions,
+        headers: { 'X-Request-Header': 'request-value' },
+      });
+
+      expect(server.calls[0].requestHeaders).toMatchObject({
+        authorization: 'Bearer custom-key',
+        'x-custom': 'value',
+        'x-request-header': 'request-value',
+      });
+    });
+
+    it('should throw when no task_id returned', async () => {
+      server.urls[CREATE_URL].response = {
+        type: 'json-value',
+        body: { output: null, request_id: 'req-003' },
+      };
+
+      const model = createModel();
+
+      await expect(model.doStart({ ...defaultOptions })).rejects.toThrow(
+        'No task_id',
+      );
+
+      // Reset
+      server.urls[CREATE_URL].response = {
+        type: 'json-value',
+        body: createTaskResponse,
+      };
+    });
+  });
+
+  describe('doStatus', () => {
+    it('should return completed with video data when SUCCEEDED', async () => {
+      const model = createModel();
+
+      const result = await model.doStatus({
+        operation: { taskId: 'task-abc-123' },
+      });
+
+      expect(result.status).toBe('completed');
+      if (result.status === 'completed') {
+        expect(result.videos).toHaveLength(1);
+        expect(result.videos[0]).toStrictEqual({
+          type: 'url',
+          url: 'https://dashscope-result.oss.aliyuncs.com/output/video-001.mp4',
+          mediaType: 'video/mp4',
+        });
+      }
+    });
+
+    it('should return pending when PENDING', async () => {
+      server.urls[TASK_URL].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            task_id: 'task-abc-123',
+            task_status: 'PENDING',
+          },
+          request_id: 'req-pending',
+        },
+      };
+
+      const model = createModel();
+
+      const result = await model.doStatus({
+        operation: { taskId: 'task-abc-123' },
+      });
+
+      expect(result.status).toBe('pending');
+
+      // Reset
+      server.urls[TASK_URL].response = {
+        type: 'json-value',
+        body: succeededTaskResponse,
+      };
+    });
+
+    it('should return pending when RUNNING', async () => {
+      server.urls[TASK_URL].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            task_id: 'task-abc-123',
+            task_status: 'RUNNING',
+          },
+          request_id: 'req-running',
+        },
+      };
+
+      const model = createModel();
+
+      const result = await model.doStatus({
+        operation: { taskId: 'task-abc-123' },
+      });
+
+      expect(result.status).toBe('pending');
+
+      // Reset
+      server.urls[TASK_URL].response = {
+        type: 'json-value',
+        body: succeededTaskResponse,
+      };
+    });
+
+    it('should throw on FAILED status', async () => {
+      server.urls[TASK_URL].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            task_id: 'task-abc-123',
+            task_status: 'FAILED',
+            message: 'Content policy violation',
+          },
+          request_id: 'req-failed',
+        },
+      };
+
+      const model = createModel();
+
+      await expect(
+        model.doStatus({ operation: { taskId: 'task-abc-123' } }),
+      ).rejects.toThrow(/failed/i);
+
+      // Reset
+      server.urls[TASK_URL].response = {
+        type: 'json-value',
+        body: succeededTaskResponse,
+      };
+    });
+
+    it('should throw on CANCELED status', async () => {
+      server.urls[TASK_URL].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            task_id: 'task-abc-123',
+            task_status: 'CANCELED',
+          },
+          request_id: 'req-canceled',
+        },
+      };
+
+      const model = createModel();
+
+      await expect(
+        model.doStatus({ operation: { taskId: 'task-abc-123' } }),
+      ).rejects.toThrow(/canceled/i);
+
+      // Reset
+      server.urls[TASK_URL].response = {
+        type: 'json-value',
+        body: succeededTaskResponse,
+      };
+    });
+
+    it('should include providerMetadata in completed result', async () => {
+      const model = createModel();
+
+      const result = await model.doStatus({
+        operation: { taskId: 'task-abc-123' },
+      });
+
+      expect(result.status).toBe('completed');
+      if (result.status === 'completed') {
+        expect(result.providerMetadata).toStrictEqual({
+          alibaba: {
+            taskId: 'task-abc-123',
+            videoUrl:
+              'https://dashscope-result.oss.aliyuncs.com/output/video-001.mp4',
+            actualPrompt: 'An enhanced prompt with more cinematic details',
+            usage: {
+              duration: 5.0,
+              outputVideoDuration: 5,
+              resolution: 1080,
+              size: '1920x1080',
+            },
+          },
+        });
+      }
+    });
+
+    it('should include timestamp, modelId, and headers in response', async () => {
+      const testDate = new Date('2024-01-01T00:00:00Z');
+      const model = createModel({ currentDate: () => testDate });
+
+      const result = await model.doStatus({
+        operation: { taskId: 'task-abc-123' },
+      });
+
+      expect(result.response).toStrictEqual({
+        timestamp: testDate,
+        modelId: 'wan2.6-t2v',
+        headers: expect.any(Object),
+      });
+    });
+  });
 });

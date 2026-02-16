@@ -1,6 +1,9 @@
 import {
   AISDKError,
   type Experimental_VideoModelV3,
+  type Experimental_VideoModelV3StartResult,
+  type Experimental_VideoModelV3StatusResult,
+  type SharedV3ProviderMetadata,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -67,14 +70,16 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
     private readonly config: GoogleGenerativeAIVideoModelConfig,
   ) {}
 
-  async doGenerate(
+  private async buildRequest(
     options: Parameters<
       NonNullable<Experimental_VideoModelV3['doGenerate']>
     >[0],
-  ): Promise<
-    Awaited<ReturnType<NonNullable<Experimental_VideoModelV3['doGenerate']>>>
-  > {
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+  ): Promise<{
+    instances: Array<Record<string, unknown>>;
+    parameters: Record<string, unknown>;
+    warnings: SharedV3Warning[];
+    googleOptions: GoogleVideoModelOptions | undefined;
+  }> {
     const warnings: SharedV3Warning[] = [];
 
     const googleOptions = (await parseProviderOptions({
@@ -186,6 +191,97 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
+    return { instances, parameters, warnings, googleOptions };
+  }
+
+  private async buildCompletedResult(
+    finalOperation: z.infer<typeof googleOperationSchema>,
+    responseHeaders: Record<string, string> | undefined,
+    warnings: SharedV3Warning[],
+    currentDate: Date,
+  ): Promise<{
+    status: 'completed';
+    videos: Array<{ type: 'url'; url: string; mediaType: string }>;
+    warnings: SharedV3Warning[];
+    providerMetadata: SharedV3ProviderMetadata;
+    response: {
+      timestamp: Date;
+      modelId: string;
+      headers: Record<string, string> | undefined;
+    };
+  }> {
+    const response = finalOperation.response;
+    if (
+      !response?.generateVideoResponse?.generatedSamples ||
+      response.generateVideoResponse.generatedSamples.length === 0
+    ) {
+      throw new AISDKError({
+        name: 'GOOGLE_VIDEO_GENERATION_ERROR',
+        message: `No videos in response. Response: ${JSON.stringify(finalOperation)}`,
+      });
+    }
+
+    const videos: Array<{ type: 'url'; url: string; mediaType: string }> = [];
+    const videoMetadata: Array<{ uri: string }> = [];
+
+    // Get API key from headers to append to download URLs
+    const resolvedHeaders = await resolve(this.config.headers);
+    const apiKey = resolvedHeaders?.['x-goog-api-key'];
+
+    for (const generatedSample of response.generateVideoResponse
+      .generatedSamples) {
+      if (generatedSample.video?.uri) {
+        // Append API key to URL for authentication during download
+        const urlWithAuth = apiKey
+          ? `${generatedSample.video.uri}${generatedSample.video.uri.includes('?') ? '&' : '?'}key=${apiKey}`
+          : generatedSample.video.uri;
+
+        videos.push({
+          type: 'url',
+          url: urlWithAuth,
+          mediaType: 'video/mp4',
+        });
+        videoMetadata.push({
+          uri: generatedSample.video.uri,
+        });
+      }
+    }
+
+    if (videos.length === 0) {
+      throw new AISDKError({
+        name: 'GOOGLE_VIDEO_GENERATION_ERROR',
+        message: 'No valid videos in response',
+      });
+    }
+
+    return {
+      status: 'completed',
+      videos,
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+      providerMetadata: {
+        google: {
+          videos: videoMetadata,
+        },
+      },
+    };
+  }
+
+  async doGenerate(
+    options: Parameters<
+      NonNullable<Experimental_VideoModelV3['doGenerate']>
+    >[0],
+  ): Promise<
+    Awaited<ReturnType<NonNullable<Experimental_VideoModelV3['doGenerate']>>>
+  > {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { instances, parameters, warnings, googleOptions } =
+      await this.buildRequest(options);
+
     const { value: operation } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}:predictLongRunning`,
       headers: combineHeaders(
@@ -262,64 +358,109 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
-    const response = finalOperation.response;
-    if (
-      !response?.generateVideoResponse?.generatedSamples ||
-      response.generateVideoResponse.generatedSamples.length === 0
-    ) {
+    const result = await this.buildCompletedResult(
+      finalOperation,
+      responseHeaders,
+      warnings,
+      currentDate,
+    );
+
+    return {
+      videos: result.videos,
+      warnings: result.warnings,
+      response: result.response,
+      providerMetadata: result.providerMetadata,
+    };
+  }
+
+  async doStart(
+    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
+  ): Promise<Experimental_VideoModelV3StartResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { instances, parameters, warnings } =
+      await this.buildRequest(options);
+
+    const { value: operation, responseHeaders } = await postJsonToApi({
+      url: `${this.config.baseURL}/models/${this.modelId}:predictLongRunning`,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      body: {
+        instances,
+        parameters,
+      },
+      successfulResponseHandler: createJsonResponseHandler(
+        googleOperationSchema,
+      ),
+      failedResponseHandler: googleFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const operationName = operation.name;
+    if (!operationName) {
       throw new AISDKError({
         name: 'GOOGLE_VIDEO_GENERATION_ERROR',
-        message: `No videos in response. Response: ${JSON.stringify(finalOperation)}`,
-      });
-    }
-
-    const videos: Array<{ type: 'url'; url: string; mediaType: string }> = [];
-    const videoMetadata: Array<{ uri: string }> = [];
-
-    // Get API key from headers to append to download URLs
-    const resolvedHeaders = await resolve(this.config.headers);
-    const apiKey = resolvedHeaders?.['x-goog-api-key'];
-
-    for (const generatedSample of response.generateVideoResponse
-      .generatedSamples) {
-      if (generatedSample.video?.uri) {
-        // Append API key to URL for authentication during download
-        const urlWithAuth = apiKey
-          ? `${generatedSample.video.uri}${generatedSample.video.uri.includes('?') ? '&' : '?'}key=${apiKey}`
-          : generatedSample.video.uri;
-
-        videos.push({
-          type: 'url',
-          url: urlWithAuth,
-          mediaType: 'video/mp4',
-        });
-        videoMetadata.push({
-          uri: generatedSample.video.uri,
-        });
-      }
-    }
-
-    if (videos.length === 0) {
-      throw new AISDKError({
-        name: 'GOOGLE_VIDEO_GENERATION_ERROR',
-        message: 'No valid videos in response',
+        message: 'No operation name returned from API',
       });
     }
 
     return {
-      videos,
+      operation: { operationName },
       warnings,
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata: {
-        google: {
-          videos: videoMetadata,
-        },
-      },
     };
+  }
+
+  async doStatus(
+    options: Parameters<NonNullable<Experimental_VideoModelV3['doStatus']>>[0],
+  ): Promise<Experimental_VideoModelV3StatusResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { operationName } = options.operation as { operationName: string };
+
+    const { value: statusOperation, responseHeaders } = await getFromApi({
+      url: `${this.config.baseURL}/${operationName}`,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      successfulResponseHandler: createJsonResponseHandler(
+        googleOperationSchema,
+      ),
+      failedResponseHandler: googleFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    if (!statusOperation.done) {
+      return {
+        status: 'pending',
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
+    }
+
+    if (statusOperation.error) {
+      throw new AISDKError({
+        name: 'GOOGLE_VIDEO_GENERATION_FAILED',
+        message: `Video generation failed: ${statusOperation.error.message}`,
+      });
+    }
+
+    return this.buildCompletedResult(
+      statusOperation,
+      responseHeaders,
+      [],
+      currentDate,
+    );
   }
 }
 

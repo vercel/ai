@@ -1082,4 +1082,363 @@ describe('KlingAIVideoModel', () => {
       };
     });
   });
+
+  describe('doStart', () => {
+    it('should return operation with taskId and endpointPath for t2v', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
+
+      const result = await model.doStart({ ...t2vDefaultOptions });
+
+      expect(result.operation).toStrictEqual({
+        taskId: 'task-abc-123',
+        endpointPath: '/v1/videos/text2video',
+      });
+    });
+
+    it('should return operation with endpointPath for i2v', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
+
+      const result = await model.doStart({ ...i2vDefaultOptions });
+
+      expect(result.operation).toStrictEqual({
+        taskId: 'task-abc-123',
+        endpointPath: '/v1/videos/image2video',
+      });
+    });
+
+    it('should return operation with endpointPath for motion-control', async () => {
+      const model = createBasicModel();
+
+      const result = await model.doStart({ ...defaultOptions });
+
+      expect(result.operation).toStrictEqual({
+        taskId: 'task-abc-123',
+        endpointPath: '/v1/videos/motion-control',
+      });
+    });
+
+    it('should pass correct request body', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
+
+      await model.doStart({
+        ...t2vDefaultOptions,
+        prompt: 'A sunset over the ocean',
+        aspectRatio: '16:9',
+        duration: 5,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model_name: 'kling-v2-6',
+        prompt: 'A sunset over the ocean',
+        mode: 'std',
+        aspect_ratio: '16:9',
+        duration: '5',
+      });
+    });
+
+    it('should pass headers', async () => {
+      const model = createBasicModel({
+        headers: {
+          Authorization: 'Bearer custom-token',
+          'X-Custom': 'value',
+        },
+        modelId: 'kling-v2.6-t2v',
+      });
+
+      await model.doStart({
+        ...t2vDefaultOptions,
+        headers: {
+          'X-Request-Header': 'request-value',
+        },
+      });
+
+      expect(server.calls[0].requestHeaders).toMatchObject({
+        authorization: 'Bearer custom-token',
+        'x-custom': 'value',
+        'x-request-header': 'request-value',
+      });
+    });
+
+    it('should throw when no task_id returned', async () => {
+      server.urls[`${TEST_BASE_URL}/v1/videos/text2video`].response = {
+        type: 'json-value',
+        body: {
+          code: 0,
+          message: 'success',
+          request_id: 'req-004',
+          data: null,
+        },
+      };
+
+      const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
+
+      await expect(model.doStart({ ...t2vDefaultOptions })).rejects.toThrow(
+        'No task_id',
+      );
+
+      // Reset
+      server.urls[`${TEST_BASE_URL}/v1/videos/text2video`].response = {
+        type: 'json-value',
+        body: createTaskResponse,
+      };
+    });
+
+    it('should include response metadata', async () => {
+      const testDate = new Date('2024-01-01T00:00:00Z');
+      const model = createBasicModel({
+        currentDate: () => testDate,
+        modelId: 'kling-v2.6-t2v',
+      });
+
+      const result = await model.doStart({ ...t2vDefaultOptions });
+
+      expect(result.response).toStrictEqual({
+        timestamp: testDate,
+        modelId: 'kling-v2.6-t2v',
+        headers: expect.any(Object),
+      });
+    });
+
+    it('should include warnings for unsupported options', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
+
+      const result = await model.doStart({
+        ...t2vDefaultOptions,
+        resolution: '1920x1080',
+        seed: 42,
+        fps: 30,
+        n: 3,
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({ type: 'unsupported', feature: 'resolution' }),
+      );
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({ type: 'unsupported', feature: 'seed' }),
+      );
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({ type: 'unsupported', feature: 'fps' }),
+      );
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({ type: 'unsupported', feature: 'n' }),
+      );
+    });
+  });
+
+  describe('doStatus', () => {
+    it('should return completed with video data when succeed', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
+
+      const result = await model.doStatus({
+        operation: {
+          taskId: 'task-abc-123',
+          endpointPath: '/v1/videos/text2video',
+        },
+      });
+
+      expect(result.status).toBe('completed');
+      if (result.status === 'completed') {
+        expect(result.videos).toHaveLength(1);
+        expect(result.videos[0]).toStrictEqual({
+          type: 'url',
+          url: 'https://p1.a.kwimgs.com/output/video-001.mp4',
+          mediaType: 'video/mp4',
+        });
+        expect(result.providerMetadata).toStrictEqual({
+          klingai: {
+            taskId: 'task-abc-123',
+            videos: [
+              {
+                id: 'video-001',
+                url: 'https://p1.a.kwimgs.com/output/video-001.mp4',
+                watermarkUrl:
+                  'https://p1.a.kwimgs.com/output/video-001-watermark.mp4',
+                duration: '5.0',
+              },
+            ],
+          },
+        });
+      }
+    });
+
+    it('should return pending when status is submitted', async () => {
+      server.urls[
+        `${TEST_BASE_URL}/v1/videos/text2video/task-abc-123`
+      ].response = {
+        type: 'json-value',
+        body: {
+          code: 0,
+          message: 'success',
+          request_id: 'req-006',
+          data: {
+            task_id: 'task-abc-123',
+            task_status: 'submitted',
+            task_status_msg: '',
+            task_info: {},
+            created_at: 1722769557708,
+            updated_at: 1722769557708,
+          },
+        },
+      };
+
+      const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
+
+      const result = await model.doStatus({
+        operation: {
+          taskId: 'task-abc-123',
+          endpointPath: '/v1/videos/text2video',
+        },
+      });
+
+      expect(result.status).toBe('pending');
+
+      // Reset
+      server.urls[
+        `${TEST_BASE_URL}/v1/videos/text2video/task-abc-123`
+      ].response = {
+        type: 'json-value',
+        body: successfulTaskResponse,
+      };
+    });
+
+    it('should return pending when status is processing', async () => {
+      server.urls[
+        `${TEST_BASE_URL}/v1/videos/text2video/task-abc-123`
+      ].response = {
+        type: 'json-value',
+        body: {
+          code: 0,
+          message: 'success',
+          request_id: 'req-007',
+          data: {
+            task_id: 'task-abc-123',
+            task_status: 'processing',
+            task_status_msg: '',
+            task_info: {},
+            created_at: 1722769557708,
+            updated_at: 1722769558000,
+          },
+        },
+      };
+
+      const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
+
+      const result = await model.doStatus({
+        operation: {
+          taskId: 'task-abc-123',
+          endpointPath: '/v1/videos/text2video',
+        },
+      });
+
+      expect(result.status).toBe('pending');
+
+      // Reset
+      server.urls[
+        `${TEST_BASE_URL}/v1/videos/text2video/task-abc-123`
+      ].response = {
+        type: 'json-value',
+        body: successfulTaskResponse,
+      };
+    });
+
+    it('should throw on failed status', async () => {
+      server.urls[
+        `${TEST_BASE_URL}/v1/videos/text2video/task-abc-123`
+      ].response = {
+        type: 'json-value',
+        body: {
+          code: 0,
+          message: 'success',
+          request_id: 'req-008',
+          data: {
+            task_id: 'task-abc-123',
+            task_status: 'failed',
+            task_status_msg: 'Content policy violation',
+            task_info: {},
+            created_at: 1722769557708,
+            updated_at: 1722769560000,
+          },
+        },
+      };
+
+      const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
+
+      await expect(
+        model.doStatus({
+          operation: {
+            taskId: 'task-abc-123',
+            endpointPath: '/v1/videos/text2video',
+          },
+        }),
+      ).rejects.toThrow('Content policy violation');
+
+      // Reset
+      server.urls[
+        `${TEST_BASE_URL}/v1/videos/text2video/task-abc-123`
+      ].response = {
+        type: 'json-value',
+        body: successfulTaskResponse,
+      };
+    });
+
+    it('should use correct endpointPath from operation', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
+
+      await model.doStatus({
+        operation: {
+          taskId: 'task-abc-123',
+          endpointPath: '/v1/videos/image2video',
+        },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/v1/videos/image2video/task-abc-123`,
+      );
+    });
+
+    it('should pass headers to status request', async () => {
+      const model = createBasicModel({
+        headers: {
+          Authorization: 'Bearer custom-token',
+        },
+        modelId: 'kling-v2.6-t2v',
+      });
+
+      await model.doStatus({
+        operation: {
+          taskId: 'task-abc-123',
+          endpointPath: '/v1/videos/text2video',
+        },
+        headers: {
+          'X-Request-Header': 'request-value',
+        },
+      });
+
+      expect(server.calls[0].requestHeaders).toMatchObject({
+        authorization: 'Bearer custom-token',
+        'x-request-header': 'request-value',
+      });
+    });
+
+    it('should include response metadata', async () => {
+      const testDate = new Date('2024-01-01T00:00:00Z');
+      const model = createBasicModel({
+        currentDate: () => testDate,
+        modelId: 'kling-v2.6-t2v',
+      });
+
+      const result = await model.doStatus({
+        operation: {
+          taskId: 'task-abc-123',
+          endpointPath: '/v1/videos/text2video',
+        },
+      });
+
+      expect(result.response).toStrictEqual({
+        timestamp: testDate,
+        modelId: 'kling-v2.6-t2v',
+        headers: expect.any(Object),
+      });
+    });
+  });
 });
