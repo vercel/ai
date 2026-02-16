@@ -5,7 +5,7 @@ import {
 import { experimental_generateVideo } from 'ai';
 import { presentVideos } from '../lib/present-video';
 import { run } from '../lib/run';
-import { createSmeeWebhook } from '../lib/smee-webhook';
+import { createWebhook } from '../lib/create-webhook';
 import { withSpinner } from '../lib/spinner';
 
 // Note: Requires GOOGLE_VERTEX_LOCATION to be set to a specific region (e.g., us-central1)
@@ -24,7 +24,7 @@ run(async () => {
         } satisfies GoogleVertexVideoModelOptions,
       },
       webhook: async () => {
-        const { url, received } = await createSmeeWebhook();
+        const { url, received } = await createWebhook();
         console.log(`\nWaiting for webhook via ${url}`);
         return { url, received };
       },
