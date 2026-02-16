@@ -20,6 +20,7 @@ export const shellInputSchema = lazySchema(() =>
 export const shellOutputSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      status: z.enum(['in_progress', 'completed', 'incomplete']).optional(),
       output: z.array(
         z.object({
           stdout: z.string(),
@@ -76,6 +77,11 @@ export const shell = createProviderToolFactoryWithOutputSchema<
        */
       outcome: { type: 'timeout' } | { type: 'exit'; exitCode: number };
     }>;
+
+    /**
+     * The status of the shell execution.
+     */
+    status?: 'in_progress' | 'completed' | 'incomplete';
   },
   {}
 >({
