@@ -5,6 +5,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   process.stdout.write('Generating video ...');
+  const startTime = Date.now();
   const { videos } = await generateVideo({
     model: xai.video('grok-imagine-video'),
     prompt: 'A yorkie among dandelions at Crissy Field in San Francisco.',
@@ -19,12 +20,13 @@ run(async () => {
       intervalMs: 1000,
       backoff: 'none',
       timeoutMs: 60_000,
-      onAttempt(options) {
+      onAttempt() {
         process.stdout.write('.');
       },
     },
   });
 
-  console.log('\nVideo generation complete!');
+  const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`\nVideo generation complete in ${elapsedSeconds}s`);
   await presentVideos(videos);
 });

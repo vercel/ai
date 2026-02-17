@@ -10,6 +10,7 @@ import { run } from '../lib/run';
 // Veo models are not available in the 'global' region
 run(async () => {
   process.stdout.write('Generating video ...');
+  const startTime = Date.now();
   const { video } = await experimental_generateVideo({
     model: vertex.video('veo-3.1-fast-generate-001'),
     prompt: 'A salamander in a forest pond at dusk with luminescent algae.',
@@ -25,12 +26,13 @@ run(async () => {
       intervalMs: 1000,
       backoff: 'none',
       timeoutMs: 60_000,
-      onAttempt(options) {
+      onAttempt() {
         process.stdout.write('.');
       },
     },
   });
 
-  console.log('\nVideo generation complete!');
+  const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`\nVideo generation complete in ${elapsedSeconds}s`);
   await presentVideos([video]);
 });
