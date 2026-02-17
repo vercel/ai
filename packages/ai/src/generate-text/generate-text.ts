@@ -155,10 +155,12 @@ export type GenerateTextOnStepStartCallback<TOOLS extends ToolSet> = (event: {
 /**
  * Callback that is set using the `onStepFinish` option.
  *
- * @param stepResult - The result of the step.
+ * @param event - The step result along with the step number.
  */
 export type GenerateTextOnStepFinishCallback<TOOLS extends ToolSet> = (
-  stepResult: StepResult<TOOLS>,
+  event: StepResult<TOOLS> & {
+    readonly stepNumber: number;
+  },
 ) => Promise<void> | void;
 
 /**
@@ -976,8 +978,30 @@ export async function generateText<
               model: stepModel.modelId,
             });
 
+            const stepNumber = steps.length;
             steps.push(currentStepResult);
-            await onStepFinish?.(currentStepResult);
+            await onStepFinish?.({
+              finishReason: currentStepResult.finishReason,
+              rawFinishReason: currentStepResult.rawFinishReason,
+              usage: currentStepResult.usage,
+              content: currentStepResult.content,
+              text: currentStepResult.text,
+              reasoningText: currentStepResult.reasoningText,
+              reasoning: currentStepResult.reasoning,
+              files: currentStepResult.files,
+              sources: currentStepResult.sources,
+              toolCalls: currentStepResult.toolCalls,
+              staticToolCalls: currentStepResult.staticToolCalls,
+              dynamicToolCalls: currentStepResult.dynamicToolCalls,
+              toolResults: currentStepResult.toolResults,
+              staticToolResults: currentStepResult.staticToolResults,
+              dynamicToolResults: currentStepResult.dynamicToolResults,
+              request: currentStepResult.request,
+              response: currentStepResult.response,
+              warnings: currentStepResult.warnings,
+              providerMetadata: currentStepResult.providerMetadata,
+              stepNumber,
+            });
           } finally {
             if (stepTimeoutId != null) {
               clearTimeout(stepTimeoutId);
