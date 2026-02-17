@@ -36,6 +36,7 @@
     "ai": "6.0.86",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "effect": "^3.19.4",
     "lucide-react": "^0.545.0",
     "next": "^15.5.9",
     "react": "^18",
