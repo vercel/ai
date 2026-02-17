@@ -725,6 +725,116 @@ const anthropicProviderOptionsSchema = z.object({
     .optional(),
 });
 
+<<<<<<< HEAD
 export type AnthropicProviderOptions = z.infer<
   typeof anthropicProviderOptionsSchema
 >;
+=======
+      let result = await firstChunkReader.read();
+
+      // when raw chunks are enabled, the first chunk is a raw chunk, so we need to read the next chunk
+      if (result.value?.type === 'raw') {
+        result = await firstChunkReader.read();
+      }
+
+      // The Anthropic API returns 200 responses when there are overloaded errors.
+      // We handle the case where the first chunk is an error here and transform
+      // it into an APICallError.
+      if (result.value?.type === 'error') {
+        const error = result.value.error as { message: string; type: string };
+
+        throw new APICallError({
+          message: error.message,
+          url,
+          requestBodyValues: body,
+          statusCode: error.type === 'overloaded_error' ? 529 : 500,
+          responseHeaders,
+          responseBody: JSON.stringify(error),
+          isRetryable: error.type === 'overloaded_error',
+        });
+      }
+    } finally {
+      firstChunkReader.cancel().catch(() => {});
+      firstChunkReader.releaseLock();
+    }
+
+    return {
+      stream: streamForConsumer,
+      request: { body },
+      response: { headers: responseHeaders },
+    };
+  }
+}
+
+/**
+ * Returns the capabilities of a Claude model that are used for defaults and feature selection.
+ *
+ * @see https://docs.claude.com/en/docs/about-claude/models/overview#model-comparison-table
+ * @see https://platform.claude.com/docs/en/build-with-claude/structured-outputs
+ */
+function getModelCapabilities(modelId: string): {
+  maxOutputTokens: number;
+  supportsStructuredOutput: boolean;
+  isKnownModel: boolean;
+} {
+  if (
+    modelId.includes('claude-sonnet-4-6') ||
+    modelId.includes('claude-opus-4-6')
+  ) {
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      isKnownModel: true,
+    };
+  } else if (
+    modelId.includes('claude-sonnet-4-5') ||
+    modelId.includes('claude-opus-4-5')
+  ) {
+    return {
+      maxOutputTokens: 64000,
+      supportsStructuredOutput: true,
+      isKnownModel: true,
+    };
+  } else if (modelId.includes('claude-opus-4-1')) {
+    return {
+      maxOutputTokens: 32000,
+      supportsStructuredOutput: true,
+      isKnownModel: true,
+    };
+  } else if (
+    modelId.includes('claude-sonnet-4-') ||
+    modelId.includes('claude-3-7-sonnet') ||
+    modelId.includes('claude-haiku-4-5')
+  ) {
+    return {
+      maxOutputTokens: 64000,
+      supportsStructuredOutput: false,
+      isKnownModel: true,
+    };
+  } else if (modelId.includes('claude-opus-4-')) {
+    return {
+      maxOutputTokens: 32000,
+      supportsStructuredOutput: false,
+      isKnownModel: true,
+    };
+  } else if (modelId.includes('claude-3-5-haiku')) {
+    return {
+      maxOutputTokens: 8192,
+      supportsStructuredOutput: false,
+      isKnownModel: true,
+    };
+  } else if (modelId.includes('claude-3-haiku')) {
+    return {
+      maxOutputTokens: 4096,
+      supportsStructuredOutput: false,
+      isKnownModel: true,
+    };
+  } else {
+    return {
+      maxOutputTokens: 4096,
+      supportsStructuredOutput: false,
+      isKnownModel: false,
+    };
+  }
+}
+>>>>>>> fe42fd310 (Backport: feat(provider/anthropic): add support for new Claude Sonnet 4.6 model (#12648))
