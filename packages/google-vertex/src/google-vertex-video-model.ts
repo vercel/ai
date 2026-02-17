@@ -350,10 +350,15 @@ export class GoogleVertexVideoModel implements VideoModelV3 {
     }
 
     if (statusOperation.error) {
-      throw new AISDKError({
-        name: 'VERTEX_VIDEO_GENERATION_FAILED',
-        message: `Video generation failed: ${statusOperation.error.message}`,
-      });
+      return {
+        status: 'error' as const,
+        error: `Video generation failed: ${statusOperation.error.message}`,
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
     }
 
     return this.buildCompletedResult({

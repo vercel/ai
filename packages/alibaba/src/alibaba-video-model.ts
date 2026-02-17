@@ -416,10 +416,16 @@ export class AlibabaVideoModel implements VideoModelV3 {
     }
 
     if (taskStatus === 'FAILED' || taskStatus === 'CANCELED') {
-      throw new AISDKError({
-        name: 'ALIBABA_VIDEO_GENERATION_FAILED',
-        message: `Video generation ${taskStatus.toLowerCase()}. Task ID: ${taskId}. ${statusResponse.output?.message ?? ''}`,
-      });
+      return {
+        status: 'error' as const,
+        error:
+          `Video generation ${taskStatus.toLowerCase()}. Task ID: ${taskId}. ${statusResponse.output?.message ?? ''}`.trim(),
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
     }
 
     return {

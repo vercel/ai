@@ -548,30 +548,42 @@ describe('FalVideoModel', () => {
       });
     });
 
-    it('should propagate non-polling errors', async () => {
+    it('should return error status for non-polling API errors', async () => {
       const model = new FalVideoModel('luma-dream-machine', {
         provider: 'fal.video',
         url: ({ path }) => path,
         headers: () => ({ 'api-key': 'test-key' }),
         fetch: async () => {
           return new Response(
-            JSON.stringify({ error: { message: 'Internal server error' } }),
+            JSON.stringify({
+              error: { message: 'Internal server error', code: 500 },
+            }),
             {
               status: 500,
               headers: { 'Content-Type': 'application/json' },
             },
           );
         },
+        _internal: {
+          currentDate: () => new Date('2026-02-16T00:00:00Z'),
+        },
       });
 
-      await expect(
-        model.doStatus({
-          operation: {
-            responseUrl:
-              'https://queue.fal.run/fal-ai/luma-dream-machine/requests/test-id',
-          },
-        }),
-      ).rejects.toThrow();
+      const result = await model.doStatus({
+        operation: {
+          responseUrl:
+            'https://queue.fal.run/fal-ai/luma-dream-machine/requests/test-id',
+        },
+      });
+
+      expect(result.status).toBe('error');
+      if (result.status === 'error') {
+        expect(result.error).toBe('Internal server error');
+        expect(result.response.modelId).toBe('luma-dream-machine');
+        expect(result.response.timestamp).toStrictEqual(
+          new Date('2026-02-16T00:00:00Z'),
+        );
+      }
     });
   });
 });

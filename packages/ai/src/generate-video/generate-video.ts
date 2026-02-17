@@ -511,6 +511,10 @@ async function executeStartStatusFlow({
       headers,
     });
 
+    if (statusResult.status === 'error') {
+      throw new Error(statusResult.error);
+    }
+
     if (statusResult.status !== 'completed') {
       throw new Error(
         'Video generation did not complete after webhook notification.',
@@ -599,6 +603,10 @@ async function pollUntilComplete({
 
     if (statusResult.status === 'completed') {
       return statusResult;
+    }
+
+    if (statusResult.status === 'error') {
+      throw new Error(statusResult.error);
     }
   }
 }

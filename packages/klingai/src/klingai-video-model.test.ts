@@ -1046,7 +1046,7 @@ describe('KlingAIVideoModel', () => {
       };
     });
 
-    it('should throw on failed status', async () => {
+    it('should return error status on failed task', async () => {
       server.urls[
         `${TEST_BASE_URL}/v1/videos/text2video/task-abc-123`
       ].response = {
@@ -1068,14 +1068,22 @@ describe('KlingAIVideoModel', () => {
 
       const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
 
-      await expect(
-        model.doStatus({
-          operation: {
-            taskId: 'task-abc-123',
-            endpointPath: '/v1/videos/text2video',
-          },
-        }),
-      ).rejects.toThrow('Content policy violation');
+      const result = await model.doStatus({
+        operation: {
+          taskId: 'task-abc-123',
+          endpointPath: '/v1/videos/text2video',
+        },
+      });
+
+      expect(result.status).toBe('error');
+      if (result.status === 'error') {
+        expect(result.error).toContain('Content policy violation');
+        expect(result.response).toStrictEqual({
+          timestamp: expect.any(Date),
+          modelId: 'kling-v2.6-t2v',
+          headers: expect.any(Object),
+        });
+      }
 
       // Reset
       server.urls[
