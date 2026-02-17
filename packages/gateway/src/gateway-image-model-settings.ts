@@ -9,4 +9,6 @@ export type GatewayImageModelId =
   | 'google/imagen-4.0-ultra-generate-001'
   | 'recraft/recraft-v2'
   | 'recraft/recraft-v3'
+  | 'xai/grok-imagine-image'
+  | 'xai/grok-imagine-image-pro'
   | (string & {});
