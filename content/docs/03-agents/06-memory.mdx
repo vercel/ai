@@ -11,11 +11,11 @@ Memory lets your agent save information and recall it later. Without memory, eve
 
 You can add memory to your agent with the AI SDK in three ways, each with different tradeoffs:
 
-| Approach                                          | Effort | Flexibility | Provider Lock-in |
-| ------------------------------------------------- | ------ | ----------- | ---------------- |
-| [Provider-Defined Tools](#provider-defined-tools) | Low    | Medium      | Yes              |
-| [Memory Providers](#memory-providers)             | Low    | Low         | Yes              |
-| [Custom Tool](#custom-tool)                       | High   | High        | No               |
+| Approach                                          | Effort | Flexibility | Provider Lock-in           |
+| ------------------------------------------------- | ------ | ----------- | -------------------------- |
+| [Provider-Defined Tools](#provider-defined-tools) | Low    | Medium      | Yes                        |
+| [Memory Providers](#memory-providers)             | Low    | Low         | Depends on memory provider |
+| [Custom Tool](#custom-tool)                       | High   | High        | No                         |
 
 ## Provider-Defined Tools
 
@@ -147,6 +147,33 @@ const context = await retrieveMemories(prompt, { user_id: 'user-123' });
 ```
 
 See the [Mem0 provider documentation](/providers/community-providers/mem0) for full setup and configuration.
+
+### Supermemory
+
+[Supermemory](https://supermemory.ai) is a long-term memory platform that adds persistent, self-growing memory to your AI applications. It provides tools that handle saving and retrieving memories automatically through semantic search.
+
+```bash
+pnpm add @supermemory/tools
+```
+
+```ts
+__PROVIDER_IMPORT__;
+import { supermemoryTools } from '@supermemory/tools/ai-sdk';
+import { ToolLoopAgent } from 'ai';
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: supermemoryTools(process.env.SUPERMEMORY_API_KEY!),
+});
+
+const result = await agent.generate({
+  prompt: 'Remember that my favorite editor is Neovim',
+});
+```
+
+Supermemory works with any AI SDK provider. The tools give the model `addMemory` and `searchMemories` operations that handle storage and retrieval.
+
+See the [Supermemory provider documentation](/providers/community-providers/supermemory) for full setup and configuration.
 
 **When to use memory providers**: these providers are a good fit when you want memory without building any storage infrastructure. The tradeoff is that the provider controls memory behavior, so you have less visibility into what gets stored and how it is retrieved. You also take on a dependency on an external service.
 

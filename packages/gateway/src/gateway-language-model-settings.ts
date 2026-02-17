@@ -15,6 +15,7 @@ export type GatewayModelId =
   | 'alibaba/qwen3-next-80b-a3b-thinking'
   | 'alibaba/qwen3-vl-instruct'
   | 'alibaba/qwen3-vl-thinking'
+  | 'alibaba/qwen3.5-plus'
   | 'amazon/nova-2-lite'
   | 'amazon/nova-lite'
   | 'amazon/nova-micro'
