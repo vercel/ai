@@ -8,6 +8,7 @@ import {
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
+  SystemModelMessage,
   ToolApprovalResponse,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
@@ -84,6 +85,46 @@ const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
   size: 24,
 });
+
+/**
+ * Callback that is set using the `experimental_onStart` option.
+ *
+ * Called when the generateText operation begins, before any LLM calls.
+ *
+ * @param event - The event that is passed to the callback.
+ */
+export type GenerateTextOnStartCallback = (event: {
+  readonly model: {
+    readonly provider: string;
+    readonly modelId: string;
+  };
+
+  readonly system:
+    | string
+    | SystemModelMessage
+    | Array<SystemModelMessage>
+    | undefined;
+
+  readonly prompt: string | Array<ModelMessage> | undefined;
+
+  readonly messages: Array<ModelMessage> | undefined;
+
+  readonly settings: {
+    readonly maxOutputTokens: number | undefined;
+    readonly temperature: number | undefined;
+    readonly topP: number | undefined;
+    readonly topK: number | undefined;
+    readonly presencePenalty: number | undefined;
+    readonly frequencyPenalty: number | undefined;
+    readonly stopSequences: string[] | undefined;
+    readonly seed: number | undefined;
+    readonly maxRetries: number;
+  };
+
+  readonly functionId: string | undefined;
+
+  readonly metadata: Record<string, unknown> | undefined;
+}) => PromiseLike<void> | void;
 
 /**
  * Callback that is set using the `onStepFinish` option.
@@ -196,6 +237,7 @@ export async function generateText<
   experimental_context,
   experimental_include: include,
   _internal: { generateId = originalGenerateId } = {},
+  experimental_onStart: onStart,
   onStepFinish,
   onFinish,
   ...settings
@@ -284,6 +326,12 @@ export async function generateText<
     experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
 
     /**
+     * Callback that is called when the generateText operation begins,
+     * before any LLM calls are made.
+     */
+    experimental_onStart?: GenerateTextOnStartCallback;
+
+    /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
      */
     onStepFinish?: GenerateTextOnStepFinishCallback<NoInfer<TOOLS>>;
@@ -368,6 +416,30 @@ export async function generateText<
     prompt,
     messages,
   } as Prompt);
+
+  try {
+    await onStart?.({
+      model: { provider: model.provider, modelId: model.modelId },
+      system,
+      prompt,
+      messages,
+      settings: {
+        maxOutputTokens: callSettings.maxOutputTokens,
+        temperature: callSettings.temperature,
+        topP: callSettings.topP,
+        topK: callSettings.topK,
+        presencePenalty: callSettings.presencePenalty,
+        frequencyPenalty: callSettings.frequencyPenalty,
+        stopSequences: callSettings.stopSequences,
+        seed: callSettings.seed,
+        maxRetries,
+      },
+      functionId: telemetry?.functionId,
+      metadata: telemetry?.metadata as Record<string, unknown> | undefined,
+    });
+  } catch (_ignored) {
+    // Errors in callbacks should not break the generation flow.
+  }
 
   const tracer = getTracer(telemetry);
 
