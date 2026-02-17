@@ -1047,6 +1047,51 @@ describe('ReplicateVideoModel', () => {
       expect(result.response.timestamp).toStrictEqual(testDate);
       expect(result.response.modelId).toBe('minimax/video-01');
     });
+
+    it('should pass webhookUrl as webhook body parameter', async () => {
+      let capturedBody: unknown;
+      const model = createMockModel({
+        pollsUntilDone: 0,
+        onRequest: (url, body) => {
+          if (
+            url.includes('/predictions') &&
+            !url.includes('test-prediction')
+          ) {
+            capturedBody = body;
+          }
+        },
+      });
+
+      await model.doStart({
+        ...defaultOptions,
+        webhookUrl: 'https://example.com/webhook',
+      });
+
+      expect(capturedBody).toMatchObject({
+        webhook: 'https://example.com/webhook',
+        webhook_events_filter: ['completed'],
+      });
+    });
+
+    it('should NOT include webhook when webhookUrl is not provided', async () => {
+      let capturedBody: Record<string, unknown> = {};
+      const model = createMockModel({
+        pollsUntilDone: 0,
+        onRequest: (url, body) => {
+          if (
+            url.includes('/predictions') &&
+            !url.includes('test-prediction')
+          ) {
+            capturedBody = body as Record<string, unknown>;
+          }
+        },
+      });
+
+      await model.doStart({ ...defaultOptions });
+
+      expect(capturedBody.webhook).toBeUndefined();
+      expect(capturedBody.webhook_events_filter).toBeUndefined();
+    });
   });
 
   describe('doStatus', () => {
