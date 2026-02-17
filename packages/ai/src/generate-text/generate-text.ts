@@ -1,7 +1,9 @@
 import {
   LanguageModelV3,
   LanguageModelV3Content,
+  LanguageModelV3Prompt,
   LanguageModelV3ToolCall,
+  LanguageModelV3ToolChoice,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -127,6 +129,28 @@ export type GenerateTextOnStartCallback = (event: {
 }) => PromiseLike<void> | void;
 
 /**
+ * Callback that is set using the `experimental_onStepStart` option.
+ *
+ * Called when a step (LLM call) begins, before the provider is called.
+ *
+ * @param event - The event that is passed to the callback.
+ */
+export type GenerateTextOnStepStartCallback = (event: {
+  readonly stepNumber: number;
+
+  readonly model: {
+    readonly provider: string;
+    readonly modelId: string;
+  };
+
+  readonly promptMessages: LanguageModelV3Prompt;
+
+  readonly tools: Record<string, unknown> | undefined;
+
+  readonly toolChoice: LanguageModelV3ToolChoice | undefined;
+}) => PromiseLike<void> | void;
+
+/**
  * Callback that is set using the `onStepFinish` option.
  *
  * @param stepResult - The result of the step.
@@ -238,6 +262,7 @@ export async function generateText<
   experimental_include: include,
   _internal: { generateId = originalGenerateId } = {},
   experimental_onStart: onStart,
+  experimental_onStepStart: onStepStart,
   onStepFinish,
   onFinish,
   ...settings
@@ -330,6 +355,12 @@ export async function generateText<
      * before any LLM calls are made.
      */
     experimental_onStart?: GenerateTextOnStartCallback;
+
+    /**
+     * Callback that is called when a step (LLM call) begins,
+     * before the provider is called.
+     */
+    experimental_onStepStart?: GenerateTextOnStepStartCallback;
 
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
@@ -618,6 +649,21 @@ export async function generateText<
                 toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
                 activeTools: prepareStepResult?.activeTools ?? activeTools,
               });
+
+            try {
+              await onStepStart?.({
+                stepNumber: steps.length,
+                model: {
+                  provider: stepModel.provider,
+                  modelId: stepModel.modelId,
+                },
+                promptMessages,
+                tools: tools as Record<string, unknown> | undefined,
+                toolChoice: stepToolChoice,
+              });
+            } catch (_ignored) {
+              // Errors in callbacks should not break the generation flow.
+            }
 
             currentModelResponse = await retry(() =>
               recordSpan({
