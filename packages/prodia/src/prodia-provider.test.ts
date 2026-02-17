@@ -43,7 +43,7 @@ const defaultJobResult = {
 const multipartResponse = createMultipartResponse(defaultJobResult);
 
 const server = createTestServer({
-  'https://api.example.com/v2/job': {
+  'https://api.example.com/v2/job?price=true': {
     response: {
       type: 'binary',
       body: multipartResponse.body,
@@ -91,7 +91,9 @@ describe('Prodia provider', () => {
       providerOptions: {},
     });
 
-    expect(server.calls[0].requestUrl).toBe('https://api.example.com/v2/job');
+    expect(server.calls[0].requestUrl).toBe(
+      'https://api.example.com/v2/job?price=true',
+    );
     expect(server.calls[0].requestMethod).toBe('POST');
     expect(server.calls[0].requestHeaders.authorization).toBe(
       'Bearer test-api-key',

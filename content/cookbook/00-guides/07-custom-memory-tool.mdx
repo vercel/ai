@@ -1,6 +1,6 @@
 ---
 title: Build a Custom Memory Tool
-description: Build a custom memory tool with filesystem persistence and system prompt injection, using either structured actions or a bash-backed interface.
+description: Build an agent that persists memories using a filesystem-backed memory tool.
 ---
 
 # Build a Custom Memory Tool
@@ -355,7 +355,7 @@ async function ensureMemoryFilesystem(): Promise<void> {
 
 Add `.memory` to your `.gitignore` to keep memory local and private.
 
-### Appendix: Helper Functions {#appendix-helper-functions}
+### Appendix: Helper Functions
 
 One helper reads core memory for system prompt injection, the other appends conversation entries as JSONL:
 
