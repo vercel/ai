@@ -179,6 +179,91 @@ const result = streamObject({
 });
 ```
 
+### ToolLoopAgent
+
+When testing a `ToolLoopAgent`, you can use `MockLanguageModelV3` together with
+`mockValues` to simulate a multi-step tool loop. The first call returns a tool
+call, and the second call (after the tool executes) returns the final text response:
+
+```ts
+import { ToolLoopAgent } from 'ai';
+import { MockLanguageModelV3, mockValues } from 'ai/test';
+import { z } from 'zod';
+
+const agent = new ToolLoopAgent({
+  model: new MockLanguageModelV3({
+    doGenerate: mockValues(
+      // Step 1: model calls the weather tool
+      {
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: JSON.stringify({ city: 'London' }),
+          },
+        ],
+        finishReason: { unified: 'tool-calls', raw: undefined },
+        usage: {
+          inputTokens: {
+            total: 10,
+            noCache: 10,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: 5,
+            text: 5,
+            reasoning: undefined,
+          },
+        },
+        warnings: [],
+      },
+      // Step 2: model returns final text
+      {
+        content: [
+          { type: 'text', text: 'The weather in London is sunny, 22°C.' },
+        ],
+        finishReason: { unified: 'stop', raw: undefined },
+        usage: {
+          inputTokens: {
+            total: 25,
+            noCache: 25,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: 15,
+            text: 15,
+            reasoning: undefined,
+          },
+        },
+        warnings: [],
+      },
+    ),
+  }),
+  tools: {
+    weather: {
+      description: 'Get the weather for a city',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async ({ city }) => ({
+        city,
+        temperature: 22,
+        condition: 'sunny',
+      }),
+    },
+  },
+});
+
+const result = await agent.generate({
+  prompt: "What's the weather in London?",
+});
+
+// result.text === 'The weather in London is sunny, 22°C.'
+// result.steps.length === 2
+// result.steps[0].toolCalls[0].toolName === 'weather'
+```
+
 ### Simulate UI Message Stream Responses
 
 You can also simulate [UI Message Stream](/docs/ai-sdk-ui/stream-protocol#ui-message-stream) responses for testing,
