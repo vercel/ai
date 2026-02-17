@@ -1,6 +1,6 @@
 import {
   anthropic,
-  type AnthropicLanguageModelOptions,
+  type AnthropicProviderOptions,
 } from '@ai-sdk/anthropic';
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
@@ -109,7 +109,7 @@ run(async () => {
             },
           ],
         },
-      } satisfies AnthropicLanguageModelOptions,
+      } satisfies AnthropicProviderOptions,
     },
   });
 
