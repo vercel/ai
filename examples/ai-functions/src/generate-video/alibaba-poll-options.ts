@@ -5,6 +5,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   process.stdout.write('Generating video ...');
+  const startTime = Date.now();
   const { video } = await generateVideo({
     model: alibaba.video('wan2.6-t2v'),
     prompt: 'A chicken flying into the sunset in the style of 90s anime.',
@@ -20,12 +21,13 @@ run(async () => {
       intervalMs: 1000,
       backoff: 'none',
       timeoutMs: 60_000,
-      onAttempt(options) {
+      onAttempt() {
         process.stdout.write('.');
       },
     },
   });
 
-  console.log('\nVideo generation complete!');
+  const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`\nVideo generation complete in ${elapsedSeconds}s`);
   await presentVideos([video]);
 });
