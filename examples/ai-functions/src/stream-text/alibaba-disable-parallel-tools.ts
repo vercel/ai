@@ -1,4 +1,4 @@
-import { alibaba } from '@ai-sdk/alibaba';
+import { alibaba, type AlibabaLanguageModelOptions } from '@ai-sdk/alibaba';
 import { stepCountIs, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../lib/run';
@@ -10,8 +10,8 @@ run(async () => {
     stopWhen: stepCountIs(5),
     providerOptions: {
       alibaba: {
-        parallelToolCalls: false, // Execute tools sequentially
-      },
+        parallelToolCalls: false,
+      } satisfies AlibabaLanguageModelOptions,
     },
     tools: {
       getWeather: tool({

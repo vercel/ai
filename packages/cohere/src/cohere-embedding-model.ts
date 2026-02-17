@@ -12,7 +12,7 @@ import {
 import { z } from 'zod/v4';
 import {
   CohereEmbeddingModelId,
-  cohereEmbeddingOptions,
+  cohereEmbeddingModelOptions,
 } from './cohere-embedding-options';
 import { cohereFailedResponseHandler } from './cohere-error';
 
@@ -52,7 +52,7 @@ export class CohereEmbeddingModel implements EmbeddingModelV3 {
     const embeddingOptions = await parseProviderOptions({
       provider: 'cohere',
       providerOptions,
-      schema: cohereEmbeddingOptions,
+      schema: cohereEmbeddingModelOptions,
     });
 
     if (values.length > this.maxEmbeddingsPerCall) {

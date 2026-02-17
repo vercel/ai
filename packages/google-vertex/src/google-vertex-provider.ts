@@ -210,7 +210,10 @@ export function createVertex(
     new GoogleVertexEmbeddingModel(modelId, createConfig('embedding'));
 
   const createImageModel = (modelId: GoogleVertexImageModelId) =>
-    new GoogleVertexImageModel(modelId, createConfig('image'));
+    new GoogleVertexImageModel(modelId, {
+      ...createConfig('image'),
+      generateId: options.generateId ?? generateId,
+    });
 
   const createVideoModel = (modelId: GoogleVertexVideoModelId) =>
     new GoogleVertexVideoModel(modelId, {

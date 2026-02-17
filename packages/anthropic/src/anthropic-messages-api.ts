@@ -40,7 +40,14 @@ export interface AnthropicAssistantMessage {
     | AnthropicTextEditorCodeExecutionToolResultContent
     | AnthropicMcpToolUseContent
     | AnthropicMcpToolResultContent
+    | AnthropicCompactionContent
   >;
+}
+
+export interface AnthropicCompactionContent {
+  type: 'compaction';
+  content: string;
+  cache_control?: AnthropicCacheControl;
 }
 
 export interface AnthropicTextContent {
@@ -432,6 +439,8 @@ export type AnthropicTool =
       name: string;
     };
 
+export type AnthropicSpeed = 'fast' | 'standard';
+
 export type AnthropicToolChoice =
   | { type: 'auto' | 'any'; disable_parallel_tool_use?: boolean }
   | { type: 'tool'; name: string; disable_parallel_tool_use?: boolean }
@@ -480,9 +489,17 @@ export type AnthropicClearThinkingBlockEdit = {
   keep?: 'all' | { type: 'thinking_turns'; value: number };
 };
 
+export type AnthropicCompactEdit = {
+  type: 'compact_20260112';
+  trigger?: AnthropicInputTokensTrigger;
+  pause_after_compaction?: boolean;
+  instructions?: string;
+};
+
 export type AnthropicContextManagementEdit =
   | AnthropicClearToolUsesEdit
-  | AnthropicClearThinkingBlockEdit;
+  | AnthropicClearThinkingBlockEdit
+  | AnthropicCompactEdit;
 
 export type AnthropicContextManagementConfig = {
   edits: AnthropicContextManagementEdit[];
@@ -500,9 +517,14 @@ export type AnthropicResponseClearThinkingBlockEdit = {
   cleared_input_tokens: number;
 };
 
+export type AnthropicResponseCompactEdit = {
+  type: 'compact_20260112';
+};
+
 export type AnthropicResponseContextManagementEdit =
   | AnthropicResponseClearToolUsesEdit
-  | AnthropicResponseClearThinkingBlockEdit;
+  | AnthropicResponseClearThinkingBlockEdit
+  | AnthropicResponseCompactEdit;
 
 export type AnthropicResponseContextManagement = {
   applied_edits: AnthropicResponseContextManagementEdit[];
@@ -559,6 +581,10 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
           z.object({
             type: z.literal('redacted_thinking'),
             data: z.string(),
+          }),
+          z.object({
+            type: z.literal('compaction'),
+            content: z.string(),
           }),
           z.object({
             type: z.literal('tool_use'),
@@ -764,6 +790,15 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
         output_tokens: z.number(),
         cache_creation_input_tokens: z.number().nullish(),
         cache_read_input_tokens: z.number().nullish(),
+        iterations: z
+          .array(
+            z.object({
+              type: z.union([z.literal('compaction'), z.literal('message')]),
+              input_tokens: z.number(),
+              output_tokens: z.number(),
+            }),
+          )
+          .nullish(),
       }),
       container: z
         .object({
@@ -793,6 +828,9 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
                 type: z.literal('clear_thinking_20251015'),
                 cleared_thinking_turns: z.number(),
                 cleared_input_tokens: z.number(),
+              }),
+              z.object({
+                type: z.literal('compact_20260112'),
               }),
             ]),
           ),
@@ -885,6 +923,10 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
           z.object({
             type: z.literal('redacted_thinking'),
             data: z.string(),
+          }),
+          z.object({
+            type: z.literal('compaction'),
+            content: z.string().nullish(),
           }),
           z.object({
             type: z.literal('server_tool_use'),
@@ -1086,6 +1128,10 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             signature: z.string(),
           }),
           z.object({
+            type: z.literal('compaction_delta'),
+            content: z.string(),
+          }),
+          z.object({
             type: z.literal('citations_delta'),
             citation: z.discriminatedUnion('type', [
               z.object({
@@ -1155,6 +1201,15 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
           output_tokens: z.number(),
           cache_creation_input_tokens: z.number().nullish(),
           cache_read_input_tokens: z.number().nullish(),
+          iterations: z
+            .array(
+              z.object({
+                type: z.union([z.literal('compaction'), z.literal('message')]),
+                input_tokens: z.number(),
+                output_tokens: z.number(),
+              }),
+            )
+            .nullish(),
         }),
         context_management: z
           .object({
@@ -1169,6 +1224,9 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                   type: z.literal('clear_thinking_20251015'),
                   cleared_thinking_turns: z.number(),
                   cleared_input_tokens: z.number(),
+                }),
+                z.object({
+                  type: z.literal('compact_20260112'),
                 }),
               ]),
             ),

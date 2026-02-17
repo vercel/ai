@@ -7,7 +7,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import { XaiResponsesLanguageModel } from './xai-responses-language-model';
-import { XaiResponsesProviderOptions } from './xai-responses-options';
+import { XaiLanguageModelResponsesOptions } from './xai-responses-options';
 
 const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'hello' }] },
@@ -370,7 +370,7 @@ describe('XaiResponsesLanguageModel', () => {
             providerOptions: {
               xai: {
                 reasoningEffort: 'high',
-              } satisfies XaiResponsesProviderOptions,
+              } satisfies XaiLanguageModelResponsesOptions,
             },
           });
 
@@ -393,7 +393,7 @@ describe('XaiResponsesLanguageModel', () => {
             providerOptions: {
               xai: {
                 store: true,
-              } satisfies XaiResponsesProviderOptions,
+              } satisfies XaiLanguageModelResponsesOptions,
             },
           });
 
@@ -417,7 +417,7 @@ describe('XaiResponsesLanguageModel', () => {
             providerOptions: {
               xai: {
                 store: false,
-              } satisfies XaiResponsesProviderOptions,
+              } satisfies XaiLanguageModelResponsesOptions,
             },
           });
 
@@ -443,7 +443,7 @@ describe('XaiResponsesLanguageModel', () => {
             providerOptions: {
               xai: {
                 previousResponseId: 'resp_456',
-              } satisfies XaiResponsesProviderOptions,
+              } satisfies XaiLanguageModelResponsesOptions,
             },
           });
 
@@ -466,7 +466,7 @@ describe('XaiResponsesLanguageModel', () => {
             providerOptions: {
               xai: {
                 include: ['file_search_call.results'],
-              } satisfies XaiResponsesProviderOptions,
+              } satisfies XaiLanguageModelResponsesOptions,
             },
           });
 
@@ -492,7 +492,7 @@ describe('XaiResponsesLanguageModel', () => {
               xai: {
                 include: ['file_search_call.results'],
                 store: false,
-              } satisfies XaiResponsesProviderOptions,
+              } satisfies XaiLanguageModelResponsesOptions,
             },
           });
 
@@ -1888,6 +1888,116 @@ describe('XaiResponsesLanguageModel', () => {
           toolName: 'web_search',
           input: '{"query":"test"}',
           providerExecuted: true,
+        });
+      });
+
+      it('should stream function tool call arguments', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: {
+              type: 'function_call',
+              id: 'fc_123',
+              call_id: 'call_123',
+              name: 'weather',
+              arguments: '',
+              status: 'in_progress',
+            },
+          }),
+          JSON.stringify({
+            type: 'response.function_call_arguments.delta',
+            item_id: 'fc_123',
+            output_index: 0,
+            delta: '{"location"',
+          }),
+          JSON.stringify({
+            type: 'response.function_call_arguments.delta',
+            item_id: 'fc_123',
+            output_index: 0,
+            delta: ':"sf"}',
+          }),
+          JSON.stringify({
+            type: 'response.function_call_arguments.done',
+            item_id: 'fc_123',
+            output_index: 0,
+            arguments: '{"location":"sf"}',
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: {
+              type: 'function_call',
+              id: 'fc_123',
+              call_id: 'call_123',
+              name: 'weather',
+              arguments: '{"location":"sf"}',
+              status: 'completed',
+            },
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'weather',
+              description: 'get weather',
+              inputSchema: {
+                type: 'object',
+                properties: { location: { type: 'string' } },
+              },
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-input-start',
+          id: 'call_123',
+          toolName: 'weather',
+        });
+        expect(parts).toContainEqual({
+          type: 'tool-input-delta',
+          id: 'call_123',
+          delta: '{"location"',
+        });
+        expect(parts).toContainEqual({
+          type: 'tool-input-delta',
+          id: 'call_123',
+          delta: ':"sf"}',
+        });
+        expect(parts).toContainEqual({
+          type: 'tool-input-end',
+          id: 'call_123',
+        });
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'call_123',
+          toolName: 'weather',
+          input: '{"location":"sf"}',
         });
       });
 

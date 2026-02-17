@@ -1,8 +1,5 @@
 import { readFileSync } from 'node:fs';
-import {
-  GoogleVertexImageProviderOptions,
-  vertex,
-} from '@ai-sdk/google-vertex';
+import { GoogleVertexImageModelOptions, vertex } from '@ai-sdk/google-vertex';
 import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
@@ -37,7 +34,7 @@ run(async () => {
           mode: 'EDIT_MODE_OUTPAINT',
           maskMode: 'MASK_MODE_USER_PROVIDED',
         },
-      } satisfies GoogleVertexImageProviderOptions,
+      } satisfies GoogleVertexImageModelOptions,
     },
   });
 

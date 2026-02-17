@@ -86,7 +86,7 @@ You can configure how the reasoning is exposed in the generated text by using th
 It supports the options `parsed`, `hidden`, and `raw`.
 
 ```ts
-import { groq } from '@ai-sdk/groq';
+import { groq, type GroqLanguageModelOptions } from '@ai-sdk/groq';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -98,7 +98,7 @@ const result = await generateText({
       parallelToolCalls: true, // Enable parallel function calling (default: true)
       user: 'user-123', // Unique identifier for end-user (optional)
       serviceTier: 'flex', // Use flex tier for higher throughput (optional)
-    },
+    } satisfies GroqLanguageModelOptions,
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
 });
@@ -192,7 +192,7 @@ console.log(JSON.stringify(result.object, null, 2));
 You can disable structured outputs for models that don't support them:
 
 ```ts highlight="9"
-import { groq } from '@ai-sdk/groq';
+import { groq, type GroqLanguageModelOptions } from '@ai-sdk/groq';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 
@@ -201,7 +201,7 @@ const result = await generateObject({
   providerOptions: {
     groq: {
       structuredOutputs: false,
-    },
+    } satisfies GroqLanguageModelOptions,
   },
   schema: z.object({
     recipe: z.object({
@@ -433,13 +433,15 @@ You can also pass additional provider-specific options using the `providerOption
 
 ```ts highlight="6"
 import { experimental_transcribe as transcribe } from 'ai';
-import { groq } from '@ai-sdk/groq';
+import { groq, type GroqTranscriptionModelOptions } from '@ai-sdk/groq';
 import { readFile } from 'fs/promises';
 
 const result = await transcribe({
   model: groq.transcription('whisper-large-v3'),
   audio: await readFile('audio.mp3'),
-  providerOptions: { groq: { language: 'en' } },
+  providerOptions: {
+    groq: { language: 'en' } satisfies GroqTranscriptionModelOptions,
+  },
 });
 ```
 

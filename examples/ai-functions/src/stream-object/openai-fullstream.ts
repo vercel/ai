@@ -1,4 +1,7 @@
-import { openai } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import { streamObject } from 'ai';
 import { z } from 'zod';
 import { run } from '../lib/run';
@@ -21,7 +24,7 @@ run(async () => {
     providerOptions: {
       openai: {
         logprobs: 2,
-      },
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
     prompt:
       'Generate 3 character descriptions for a fantasy role playing game.',

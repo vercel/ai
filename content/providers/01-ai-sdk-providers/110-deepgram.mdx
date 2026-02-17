@@ -91,7 +91,7 @@ You can also pass additional provider-specific options using the `providerOption
 
 ```ts highlight="7-11"
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { deepgram } from '@ai-sdk/deepgram';
+import { deepgram, type DeepgramSpeechModelOptions } from '@ai-sdk/deepgram';
 
 const result = await generateSpeech({
   model: deepgram.speech('aura-2-helena-en'),
@@ -100,7 +100,7 @@ const result = await generateSpeech({
     deepgram: {
       encoding: 'linear16',
       sampleRate: 24000,
-    },
+    } satisfies DeepgramSpeechModelOptions,
   },
 });
 ```
@@ -183,13 +183,20 @@ You can also pass additional provider-specific options using the `providerOption
 
 ```ts highlight="6"
 import { experimental_transcribe as transcribe } from 'ai';
-import { deepgram } from '@ai-sdk/deepgram';
+import {
+  deepgram,
+  type DeepgramTranscriptionModelOptions,
+} from '@ai-sdk/deepgram';
 import { readFile } from 'fs/promises';
 
 const result = await transcribe({
   model: deepgram.transcription('nova-3'),
   audio: await readFile('audio.mp3'),
-  providerOptions: { deepgram: { summarize: true } },
+  providerOptions: {
+    deepgram: {
+      summarize: true,
+    } satisfies DeepgramTranscriptionModelOptions,
+  },
 });
 ```
 

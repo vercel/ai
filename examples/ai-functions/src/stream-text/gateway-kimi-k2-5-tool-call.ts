@@ -1,3 +1,4 @@
+import { type FireworksLanguageModelOptions } from '@ai-sdk/fireworks';
 import { gateway } from '@ai-sdk/gateway';
 import { stepCountIs, streamText } from 'ai';
 import { printFullStream } from '../lib/print-full-stream';
@@ -11,7 +12,7 @@ run(async () => {
       fireworks: {
         thinking: { type: 'enabled', budgetTokens: 4096 },
         reasoningHistory: 'interleaved',
-      },
+      } satisfies FireworksLanguageModelOptions,
     },
     tools: { weather: weatherTool },
     stopWhen: stepCountIs(2),

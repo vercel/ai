@@ -80,7 +80,11 @@ describe('GatewayVideoModel', () => {
       providerMetadata,
     }: {
       videos?: VideoData[];
-      warnings?: Array<{ type: 'other'; message: string }>;
+      warnings?: Array<
+        | { type: 'unsupported'; feature: string; details?: string }
+        | { type: 'compatibility'; feature: string; details?: string }
+        | { type: 'other'; message: string }
+      >;
       providerMetadata?: Record<string, unknown>;
     } = {}) {
       server.urls['https://api.test.com/video-model'].response = {
@@ -331,6 +335,65 @@ describe('GatewayVideoModel', () => {
     it('should return warnings when provided', async () => {
       const mockWarnings = [
         { type: 'other' as const, message: 'Duration exceeds maximum' },
+      ];
+
+      prepareJsonResponse({
+        videos: [{ type: 'base64', data: 'base64-1', mediaType: 'video/mp4' }],
+        warnings: mockWarnings,
+      });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        image: undefined,
+        n: 1,
+        aspectRatio: undefined,
+        resolution: undefined,
+        duration: undefined,
+        fps: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toEqual(mockWarnings);
+    });
+
+    it('should return unsupported warnings correctly', async () => {
+      const mockWarnings = [
+        {
+          type: 'unsupported' as const,
+          feature: 'aspectRatio',
+          details:
+            'KlingAI image-to-video does not support aspectRatio. The output dimensions are determined by the input image.',
+        },
+      ];
+
+      prepareJsonResponse({
+        videos: [{ type: 'base64', data: 'base64-1', mediaType: 'video/mp4' }],
+        warnings: mockWarnings,
+      });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        image: undefined,
+        n: 1,
+        aspectRatio: undefined,
+        resolution: undefined,
+        duration: undefined,
+        fps: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toEqual(mockWarnings);
+    });
+
+    it('should return compatibility warnings correctly', async () => {
+      const mockWarnings = [
+        {
+          type: 'compatibility' as const,
+          feature: 'resolution',
+          details: 'Resolution was adjusted to nearest supported value.',
+        },
       ];
 
       prepareJsonResponse({

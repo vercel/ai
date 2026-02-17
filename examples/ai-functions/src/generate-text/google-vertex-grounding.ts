@@ -4,11 +4,9 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: vertex('gemini-1.5-pro'),
-    providerOptions: {
-      google: {
-        useSearchGrounding: true,
-      },
+    model: vertex('gemini-2.5-flash'),
+    tools: {
+      google_search: vertex.tools.googleSearch({}),
     },
     prompt:
       'List the top 5 San Francisco news from the past week.' +

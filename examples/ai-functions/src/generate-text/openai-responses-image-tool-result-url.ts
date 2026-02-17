@@ -1,7 +1,10 @@
 import { generateText, stepCountIs, tool } from 'ai';
 import { run } from '../lib/run';
 import { z } from 'zod';
-import { openai } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 
 run(async () => {
   const readImage = tool({
@@ -41,7 +44,7 @@ run(async () => {
     providerOptions: {
       openai: {
         reasoningEffort: 'minimal',
-      },
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
     prompt:
       'Please read the image using the tool provided and return the summary of that image',

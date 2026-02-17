@@ -1,5 +1,5 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
 import { convertOpenAICompatibleChatUsage } from '@ai-sdk/openai-compatible/internal';
+import type { LanguageModelV3Usage } from '@ai-sdk/provider';
 
 export type AlibabaUsage = {
   prompt_tokens?: number | null;

@@ -1,4 +1,4 @@
-import { xai } from '@ai-sdk/xai';
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { run } from '../lib/run';
@@ -22,7 +22,7 @@ run(async () => {
     providerOptions: {
       xai: {
         reasoningEffort: 'high',
-      },
+      } satisfies XaiLanguageModelChatOptions,
     },
   });
 

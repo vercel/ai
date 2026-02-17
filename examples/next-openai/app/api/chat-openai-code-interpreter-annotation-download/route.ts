@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import type {
-  OpenAIResponsesProviderOptions,
+  OpenAILanguageModelResponsesOptions,
   OpenaiResponsesSourceDocumentProviderMetadata,
 } from '@ai-sdk/openai';
 import {
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
     providerOptions: {
       openai: {
         store: true,
-      } satisfies OpenAIResponsesProviderOptions,
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
   });
 

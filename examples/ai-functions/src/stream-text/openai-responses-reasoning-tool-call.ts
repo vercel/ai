@@ -1,4 +1,4 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { stepCountIs, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../lib/run';
@@ -39,7 +39,7 @@ run(async () => {
         store: false,
         reasoningEffort: 'medium',
         reasoningSummary: 'auto',
-      } satisfies OpenAIResponsesProviderOptions,
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
   });
 

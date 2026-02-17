@@ -1,5 +1,24 @@
 # @ai-sdk/klingai
 
+## 3.0.3
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+
+## 3.0.2
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+
+## 3.0.1
+
+### Patch Changes
+
+- c43aeb2: feat (provider/klingai): add text-to-video and image-to-video support
+
 ## 3.0.0
 
 ### Major Changes

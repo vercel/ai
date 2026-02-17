@@ -1,3 +1,4 @@
+import { type AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { run } from '../lib/run';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText, stepCountIs } from 'ai';
@@ -41,7 +42,7 @@ This is a test file.
         providerOptions: {
           anthropic: {
             cacheControl: { type: 'ephemeral' },
-          },
+          } satisfies AnthropicLanguageModelOptions,
         },
       },
     ],

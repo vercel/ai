@@ -1,4 +1,4 @@
-import { type KlingAIVideoProviderOptions, klingai } from '@ai-sdk/klingai';
+import { type KlingAIVideoModelOptions, klingai } from '@ai-sdk/klingai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import { presentVideos } from '../lib/present-video';
 import { run } from '../lib/run';
@@ -23,7 +23,7 @@ run(async () => {
             characterOrientation: 'image',
             // Required: 'std' (standard) or 'pro' (professional)
             mode: 'std',
-          } satisfies KlingAIVideoProviderOptions,
+          } satisfies KlingAIVideoModelOptions,
         },
       }),
   );

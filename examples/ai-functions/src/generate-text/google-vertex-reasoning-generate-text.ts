@@ -1,3 +1,4 @@
+import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
@@ -13,7 +14,7 @@ run(async () => {
           thinkingBudget: 2048,
           includeThoughts: true,
         },
-      },
+      } satisfies GoogleLanguageModelOptions,
     },
   });
 

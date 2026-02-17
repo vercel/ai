@@ -1,7 +1,4 @@
-import {
-  GoogleVertexImageProviderOptions,
-  vertex,
-} from '@ai-sdk/google-vertex';
+import { GoogleVertexImageModelOptions, vertex } from '@ai-sdk/google-vertex';
 import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
@@ -14,7 +11,7 @@ run(async () => {
     providerOptions: {
       vertex: {
         addWatermark: false,
-      } satisfies GoogleVertexImageProviderOptions,
+      } satisfies GoogleVertexImageModelOptions,
     },
   });
 

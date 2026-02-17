@@ -1,11 +1,11 @@
 import {
-  LanguageModelV3DataContent,
-  LanguageModelV3Prompt,
+  type LanguageModelV3DataContent,
+  type LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
-import { AlibabaChatPrompt } from './alibaba-chat-prompt';
-import { CacheControlValidator } from './get-cache-control';
+import type { AlibabaChatPrompt } from './alibaba-chat-prompt';
+import type { CacheControlValidator } from './get-cache-control';
 
 function formatImageUrl({
   data,

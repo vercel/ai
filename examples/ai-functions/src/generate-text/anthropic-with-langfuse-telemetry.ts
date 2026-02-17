@@ -1,5 +1,5 @@
 import {
-  AnthropicProviderOptions,
+  type AnthropicLanguageModelOptions,
   anthropic,
   createAnthropic,
 } from '@ai-sdk/anthropic';
@@ -40,7 +40,7 @@ run(async () => {
     providerOptions: {
       anthropic: {
         thinking: { type: 'enabled', budgetTokens: 12000 },
-      } satisfies AnthropicProviderOptions,
+      } satisfies AnthropicLanguageModelOptions,
     },
     stopWhen: stepCountIs(5),
     experimental_telemetry: {

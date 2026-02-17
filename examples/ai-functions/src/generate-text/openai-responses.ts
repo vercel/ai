@@ -1,4 +1,4 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 
@@ -16,7 +16,7 @@ run(async () => {
           key2: 'value2',
         },
         user: 'user_123',
-      } satisfies OpenAIResponsesProviderOptions,
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
   });
 

@@ -26,7 +26,68 @@ You can import the default provider instance `klingai` from `@ai-sdk/klingai`:
 import { klingai } from '@ai-sdk/klingai';
 ```
 
-## Video Generation Example
+## Video Models
+
+This provider currently supports three video generation modes: text-to-video, image-to-video, and motion control.
+
+> **Note:** Not all options are supported by every model version and mode combination. See the [KlingAI Capability Map](https://app.klingai.com/global/dev/document-api/apiReference/model/skillsMap) for detailed compatibility.
+
+### Text-to-Video
+
+Generate video from a text prompt.
+
+Available models: `kling-v1-t2v`, `kling-v1.6-t2v`, `kling-v2-master-t2v`, `kling-v2.1-master-t2v`, `kling-v2.5-turbo-t2v`, `kling-v2.6-t2v`
+
+```ts
+import { klingai } from '@ai-sdk/klingai';
+import { experimental_generateVideo } from 'ai';
+
+const { videos } = await experimental_generateVideo({
+  model: klingai.video('kling-v2.6-t2v'),
+  prompt: 'A chicken flying into the sunset in the style of 90s anime.',
+  aspectRatio: '16:9',
+  duration: 5,
+  providerOptions: {
+    klingai: {
+      mode: 'std',
+    },
+  },
+});
+```
+
+### Image-to-Video
+
+Generate video from a start frame image, with optional end frame control.
+
+Available models: `kling-v1-i2v`, `kling-v1.5-i2v`, `kling-v1.6-i2v`, `kling-v2-master-i2v`, `kling-v2.1-i2v`, `kling-v2.1-master-i2v`, `kling-v2.5-turbo-i2v`, `kling-v2.6-i2v`
+
+```ts
+import { klingai } from '@ai-sdk/klingai';
+import { experimental_generateVideo } from 'ai';
+
+const { videos } = await experimental_generateVideo({
+  model: klingai.video('kling-v2.6-i2v'),
+  prompt: {
+    image: 'https://example.com/start-frame.png',
+    text: 'The cat slowly turns its head and blinks',
+  },
+  duration: 5,
+  providerOptions: {
+    klingai: {
+      // Pro mode required for start+end frame control
+      mode: 'pro',
+      // Optional: end frame image
+      imageTail: 'https://example.com/end-frame.png',
+    },
+  },
+});
+```
+
+### Motion Control
+
+Generate video using a reference motion video.
+
+Available models: `kling-v2.6-motion-control`
 
 ```ts
 import { klingai } from '@ai-sdk/klingai';
@@ -48,30 +109,28 @@ const { videos } = await experimental_generateVideo({
 });
 ```
 
-## Additional Options
+## Provider Options
 
-Use `providerOptions.klingai` to configure motion control options:
+Use `providerOptions.klingai` to configure video generation. Options vary by mode:
 
-```ts
-const { videos } = await experimental_generateVideo({
-  model: klingai.video('kling-v2.6-motion-control'),
-  prompt: {
-    image: 'https://example.com/character.png',
-    text: 'The character performs a smooth dance move',
-  },
-  providerOptions: {
-    klingai: {
-      videoUrl: 'https://example.com/reference-motion.mp4',
-      characterOrientation: 'video',
-      mode: 'pro',
-      keepOriginalSound: 'yes',
-      watermarkEnabled: true,
-      pollIntervalMs: 10000,
-      pollTimeoutMs: 600000,
-    },
-  },
-});
-```
+| Option                 | T2V               | I2V               | Motion Control    | Description                     |
+| ---------------------- | ----------------- | ----------------- | ----------------- | ------------------------------- |
+| `mode`                 | `'std'` / `'pro'` | `'std'` / `'pro'` | `'std'` / `'pro'` | Generation quality mode         |
+| `negativePrompt`       | Yes               | Yes               | —                 | What to avoid (max 2500 chars)  |
+| `sound`                | V2.6+ pro only    | V2.6+ pro only    | —                 | `'on'` / `'off'` for audio      |
+| `cfgScale`             | Yes (V1.x)        | Yes (V1.x)        | —                 | Prompt adherence [0, 1]         |
+| `cameraControl`        | Yes               | Yes               | —                 | Camera movement presets         |
+| `imageTail`            | —                 | Pro mode          | —                 | End frame image (URL or base64) |
+| `staticMask`           | —                 | Yes               | —                 | Static brush mask               |
+| `dynamicMasks`         | —                 | Yes               | —                 | Dynamic brush configs           |
+| `videoUrl`             | —                 | —                 | Required          | Reference motion video URL      |
+| `characterOrientation` | —                 | —                 | Required          | `'image'` or `'video'`          |
+| `keepOriginalSound`    | —                 | —                 | Yes               | `'yes'` / `'no'`                |
+| `watermarkEnabled`     | —                 | —                 | Yes               | Enable watermark                |
+| `pollIntervalMs`       | Yes               | Yes               | Yes               | Poll interval (default: 5000ms) |
+| `pollTimeoutMs`        | Yes               | Yes               | Yes               | Max wait (default: 600000ms)    |
+
+See the [KlingAI Capability Map](https://app.klingai.com/global/dev/document-api/apiReference/model/skillsMap) for which features each model version supports.
 
 ## Authentication
 

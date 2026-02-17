@@ -1,6 +1,10 @@
 export type {
-  OpenAIResponsesProviderOptions,
-  OpenAIChatLanguageModelOptions,
+  OpenAILanguageModelResponsesOptions,
+  /** @deprecated Use `OpenAILanguageModelResponsesOptions` instead. */
+  OpenAILanguageModelResponsesOptions as OpenAIResponsesProviderOptions,
+  OpenAILanguageModelChatOptions,
+  /** @deprecated Use `OpenAILanguageModelChatOptions` instead. */
+  OpenAILanguageModelChatOptions as OpenAIChatLanguageModelOptions,
 } from '@ai-sdk/openai';
 
 export { azure, createAzure } from './azure-openai-provider';

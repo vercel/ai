@@ -1,4 +1,7 @@
-import { openai } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import { generateText, streamText } from 'ai';
 import { run } from '../lib/run';
 
@@ -7,7 +10,10 @@ run(async () => {
     model: openai.responses('gpt-5-mini'),
     prompt: 'What happened in the world today?',
     providerOptions: {
-      openai: { reasoningSummary: 'detailed', reasoningEffort: 'medium' },
+      openai: {
+        reasoningSummary: 'detailed',
+        reasoningEffort: 'medium',
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
     tools: {
       web_search: openai.tools.webSearch(),

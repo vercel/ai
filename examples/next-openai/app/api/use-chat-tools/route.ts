@@ -1,4 +1,4 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   InferUITools,
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
     providerOptions: {
       openai: {
         // store: false,
-      } satisfies OpenAIResponsesProviderOptions,
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
     onStepFinish({ request }) {
       console.dir(request.body, { depth: Infinity });

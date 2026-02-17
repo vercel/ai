@@ -1,5 +1,5 @@
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { type AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 
@@ -11,7 +11,7 @@ run(async () => {
       anthropic: {
         thinking: { type: 'adaptive' },
         effort: 'max',
-      } satisfies AnthropicProviderOptions,
+      } satisfies AnthropicLanguageModelOptions,
     },
     maxRetries: 0,
   });

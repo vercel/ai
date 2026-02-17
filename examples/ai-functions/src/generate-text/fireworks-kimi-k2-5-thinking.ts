@@ -1,4 +1,7 @@
-import { fireworks } from '@ai-sdk/fireworks';
+import {
+  fireworks,
+  type FireworksLanguageModelOptions,
+} from '@ai-sdk/fireworks';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 
@@ -8,7 +11,7 @@ run(async () => {
     providerOptions: {
       fireworks: {
         thinking: { type: 'enabled', budgetTokens: 4096 },
-      },
+      } satisfies FireworksLanguageModelOptions,
     },
     prompt: 'How many "r"s are in the word "strawberry"?',
   });

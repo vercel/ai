@@ -43,12 +43,17 @@ export async function POST(req: Request) {
         model: openai('gpt-4o'),
         messages: await convertToModelMessages(processedMessages),
         tools,
-        stopWhen: stepCountIs(5),
+        stopWhen: stepCountIs(20),
       });
 
       writer.merge(
         result.toUIMessageStream({ originalMessages: processedMessages }),
       );
+    },
+    onStepFinish: ({ messages, responseMessage }) => {
+      console.log('--- Step finished ---');
+      console.log('Parts count:', responseMessage.parts.length);
+      console.log('Messages:', JSON.stringify(messages, null, 2));
     },
     onFinish: ({}) => {
       // save messages here

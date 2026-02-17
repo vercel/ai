@@ -59,3 +59,68 @@ run(async () => {
   await saveRawChunks({ result, filename: 'openai-gpt-5-nano' });
 });
 ```
+
+#### embedMany
+
+For `embedMany`, log the raw response body from the first response. Note that `embedMany` returns `responses` (plural, an array) not `response`.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { embedMany } from 'ai';
+import { run } from '../lib/run';
+
+run(async () => {
+  const result = await embedMany({
+    model: openai.embedding('text-embedding-3-small'),
+    values: ['sunny day at the beach', 'rainy day in the city'],
+  });
+
+  console.log(JSON.stringify(result.responses?.[0]?.body, null, 2));
+});
+```
+
+Embedding vectors are typically too large to store in full. Trim them to a few values per vector (e.g. 5) while keeping the rest of the response structure intact.
+
+### Loading Fixtures in Tests
+
+The `saveRawChunks` helper writes one JSON object per line (no SSE envelope). The test chunk loader must reconstruct the SSE format the provider expects. Different providers use different SSE formats:
+
+**OpenAI-style SSE** (openai, deepseek, groq, xai, etc.) uses `data: ` prefix with a `[DONE]` sentinel:
+
+```ts
+function prepareChunksFixtureResponse(filename: string) {
+  const chunks = fs
+    .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
+    .split('\n')
+    .filter(line => line.trim().length > 0)
+    .map(line => `data: ${line}\n\n`);
+  chunks.push('data: [DONE]\n\n');
+
+  server.urls['<api-url>'].response = {
+    type: 'stream-chunks',
+    chunks,
+  };
+}
+```
+
+**Event-typed SSE** (cohere) includes an `event:` field extracted from the chunk's `type` property:
+
+```ts
+function prepareChunksFixtureResponse(filename: string) {
+  const chunks = fs
+    .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
+    .split('\n')
+    .filter(line => line.trim() !== '')
+    .map(line => {
+      const parsed = JSON.parse(line);
+      return `event: ${parsed.type}\ndata: ${line}\n\n`;
+    });
+
+  server.urls['<api-url>'].response = {
+    type: 'stream-chunks',
+    chunks,
+  };
+}
+```
+
+Check the provider's `doStream` implementation to see which `createEventSourceResponseHandler` or SSE parsing it uses, and match the loader accordingly.

@@ -1,4 +1,4 @@
-import { cohere } from '@ai-sdk/cohere';
+import { cohere, type CohereEmbeddingModelOptions } from '@ai-sdk/cohere';
 import { embed } from 'ai';
 import { run } from '../lib/run';
 
@@ -10,7 +10,7 @@ run(async () => {
     providerOptions: {
       cohere: {
         outputDimension: 256,
-      },
+      } satisfies CohereEmbeddingModelOptions,
     },
   });
 

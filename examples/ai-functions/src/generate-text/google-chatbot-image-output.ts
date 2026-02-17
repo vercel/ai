@@ -1,4 +1,4 @@
-import { google } from '@ai-sdk/google';
+import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { ModelMessage, generateText } from 'ai';
 import * as readline from 'node:readline/promises';
 import { presentImages } from '../lib/present-image';
@@ -18,7 +18,9 @@ run(async () => {
     const result = await generateText({
       model: google('gemini-2.0-flash-exp'),
       providerOptions: {
-        google: { responseModalities: ['TEXT', 'IMAGE'] },
+        google: {
+          responseModalities: ['TEXT', 'IMAGE'],
+        } satisfies GoogleLanguageModelOptions,
       },
       messages,
     });

@@ -1,4 +1,4 @@
-import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { stepCountIs, streamText } from 'ai';
 import { weatherTool } from '../tools/weather-tool';
 import { run } from '../lib/run';
@@ -14,7 +14,7 @@ run(async () => {
         thinkingConfig: {
           thinkingBudget: 1024,
         },
-      } satisfies GoogleGenerativeAIProviderOptions,
+      } satisfies GoogleLanguageModelOptions,
     },
     onError: console.error,
   });

@@ -1,4 +1,7 @@
-import { anthropic } from '@ai-sdk/anthropic';
+import {
+  anthropic,
+  type AnthropicLanguageModelOptions,
+} from '@ai-sdk/anthropic';
 import {
   extractReasoningMiddleware,
   stepCountIs,
@@ -23,7 +26,7 @@ run(async () => {
         // will fail the provider-side signature check if included in subsequent
         // request messages, so we disable sending reasoning content.
         sendReasoning: false,
-      },
+      } satisfies AnthropicLanguageModelOptions,
     },
     tools: {
       weather: weatherTool,

@@ -178,9 +178,11 @@ const { text } = await generateText({
 
 You can publish your own tool packages to npm for others to use. Simply export your tool objects from your package:
 
-```ts
-// my-tools/index.ts
-export const myTool = {
+```ts filename="my-tools/index.ts"
+import { tool } from 'ai';
+import { z } from 'zod';
+
+export const myTool = tool({
   description: 'A helpful tool',
   inputSchema: z.object({
     query: z.string(),
@@ -189,7 +191,7 @@ export const myTool = {
     // your tool logic
     return result;
   },
-};
+});
 ```
 
 Anyone can then install and use your tools by importing them.

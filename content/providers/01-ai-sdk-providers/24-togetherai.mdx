@@ -152,7 +152,10 @@ const { images } = await generateImage({
 You can pass optional provider-specific request parameters using the `providerOptions` argument.
 
 ```ts
-import { togetherai } from '@ai-sdk/togetherai';
+import {
+  togetherai,
+  type TogetherAIImageModelOptions,
+} from '@ai-sdk/togetherai';
 import { generateImage } from 'ai';
 
 const { images } = await generateImage({
@@ -163,7 +166,7 @@ const { images } = await generateImage({
   providerOptions: {
     togetherai: {
       steps: 40,
-    },
+    } satisfies TogetherAIImageModelOptions,
   },
 });
 ```
@@ -214,7 +217,7 @@ const { images } = await generateImage({
   providerOptions: {
     togetherai: {
       steps: 28,
-    },
+    } satisfies TogetherAIImageModelOptions,
   },
 });
 ```
@@ -234,7 +237,7 @@ const { images } = await generateImage({
   providerOptions: {
     togetherai: {
       steps: 28,
-    },
+    } satisfies TogetherAIImageModelOptions,
   },
 });
 ```
@@ -344,7 +347,10 @@ console.log(ranking);
 Together.ai reranking models support additional provider options for object documents. You can specify which fields to use for ranking:
 
 ```ts
-import { togetherai } from '@ai-sdk/togetherai';
+import {
+  togetherai,
+  type TogetherAIRerankingModelOptions,
+} from '@ai-sdk/togetherai';
 import { rerank } from 'ai';
 
 const documents = [
@@ -367,7 +373,7 @@ const { ranking } = await rerank({
   providerOptions: {
     togetherai: {
       rankFields: ['from', 'subject', 'text'], // Specify which fields to rank by
-    },
+    } satisfies TogetherAIRerankingModelOptions,
   },
 });
 ```

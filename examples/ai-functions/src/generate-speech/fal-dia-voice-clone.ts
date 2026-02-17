@@ -1,4 +1,4 @@
-import { fal } from '@ai-sdk/fal';
+import { fal, type FalSpeechModelOptions } from '@ai-sdk/fal';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
 import { saveAudioFile } from '../lib/save-audio';
 import { run } from '../lib/run';
@@ -13,7 +13,7 @@ run(async () => {
           'https://v3.fal.media/files/elephant/d5lORit2npFfBykcAtyUr_tmplacfh8oa.mp3',
         ref_text:
           '[S1] Dia is an open weights text to dialogue model. [S2] You get full control over scripts and voices.',
-      },
+      } satisfies FalSpeechModelOptions,
     },
   });
 
