@@ -1,8 +1,8 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV3,
-  type Experimental_VideoModelV3OperationStartResult,
-  type Experimental_VideoModelV3OperationStatusResult,
+  type Experimental_VideoModelV3 as VideoModelV3,
+  type Experimental_VideoModelV3OperationStartResult as VideoModelV3OperationStartResult,
+  type Experimental_VideoModelV3OperationStatusResult as VideoModelV3OperationStatusResult,
   type SharedV3ProviderMetadata,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
@@ -59,7 +59,7 @@ interface FalVideoModelConfig extends FalConfig {
   };
 }
 
-export class FalVideoModel implements Experimental_VideoModelV3 {
+export class FalVideoModel implements VideoModelV3 {
   readonly specificationVersion = 'v3';
   readonly maxVideosPerCall = 1; // FAL video models support 1 video at a time
 
@@ -77,17 +77,15 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
   ) {}
 
   async handleWebhookOption(
-    options: Parameters<
-      NonNullable<Experimental_VideoModelV3['handleWebhookOption']>
-    >[0],
+    options: Parameters<NonNullable<VideoModelV3['handleWebhookOption']>>[0],
   ) {
     const { url, received } = await options.webhook();
     return { webhookUrl: url, received };
   }
 
   async doStart(
-    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
-  ): Promise<Experimental_VideoModelV3OperationStartResult> {
+    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
+  ): Promise<VideoModelV3OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV3Warning[] = [];
 
@@ -114,8 +112,8 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
   }
 
   async doStatus(
-    options: Parameters<NonNullable<Experimental_VideoModelV3['doStatus']>>[0],
-  ): Promise<Experimental_VideoModelV3OperationStatusResult> {
+    options: Parameters<NonNullable<VideoModelV3['doStatus']>>[0],
+  ): Promise<VideoModelV3OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { responseUrl } = options.operation as { responseUrl: string };
 
@@ -152,7 +150,7 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
   }
 
   private async buildRequestBody(
-    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
+    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
   ): Promise<{
     body: Record<string, unknown>;
     falOptions: FalVideoModelOptions | undefined;

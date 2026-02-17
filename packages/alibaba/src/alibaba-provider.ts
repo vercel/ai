@@ -1,5 +1,5 @@
 import {
-  type Experimental_VideoModelV3,
+  type Experimental_VideoModelV3 as VideoModelV3,
   type LanguageModelV3,
   NoSuchModelError,
   type ProviderV3,
@@ -49,12 +49,12 @@ export interface AlibabaProvider extends ProviderV3 {
   /**
    * Creates a model for video generation.
    */
-  video(modelId: AlibabaVideoModelId): Experimental_VideoModelV3;
+  video(modelId: AlibabaVideoModelId): VideoModelV3;
 
   /**
    * Creates a model for video generation.
    */
-  videoModel(modelId: AlibabaVideoModelId): Experimental_VideoModelV3;
+  videoModel(modelId: AlibabaVideoModelId): VideoModelV3;
 }
 
 export interface AlibabaProviderSettings {

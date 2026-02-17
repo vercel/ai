@@ -1,6 +1,6 @@
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
 import {
-  Experimental_VideoModelV3,
+  Experimental_VideoModelV3 as VideoModelV3,
   ImageModelV3,
   LanguageModelV3,
   ProviderV3,
@@ -77,12 +77,12 @@ export interface GoogleVertexProvider extends ProviderV3 {
   /**
    * Creates a model for video generation.
    */
-  video(modelId: GoogleVertexVideoModelId): Experimental_VideoModelV3;
+  video(modelId: GoogleVertexVideoModelId): VideoModelV3;
 
   /**
    * Creates a model for video generation.
    */
-  videoModel(modelId: GoogleVertexVideoModelId): Experimental_VideoModelV3;
+  videoModel(modelId: GoogleVertexVideoModelId): VideoModelV3;
 }
 
 export interface GoogleVertexProviderSettings {

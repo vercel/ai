@@ -1,4 +1,4 @@
-import { type Experimental_VideoModelV3OperationWebhook } from '@ai-sdk/provider';
+import { type Experimental_VideoModelV3OperationWebhook as VideoModelV3OperationWebhook } from '@ai-sdk/provider';
 import { EventSource } from 'eventsource';
 
 /**
@@ -12,7 +12,7 @@ import { EventSource } from 'eventsource';
  */
 export async function createWebhook(): Promise<{
   url: string;
-  received: Promise<Experimental_VideoModelV3OperationWebhook>;
+  received: Promise<VideoModelV3OperationWebhook>;
 }> {
   // Create a new smee.io channel
   const response = await fetch('https://smee.io/new', {
@@ -28,7 +28,7 @@ export async function createWebhook(): Promise<{
   // Connect to the SSE stream and resolve when a webhook message arrives
   const events = new EventSource(url);
 
-  const received = new Promise<Experimental_VideoModelV3OperationWebhook>(
+  const received = new Promise<VideoModelV3OperationWebhook>(
     (resolve, reject) => {
       events.addEventListener('message', msg => {
         console.log('Received webhook event:');

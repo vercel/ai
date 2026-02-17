@@ -1,6 +1,6 @@
 import {
   EmbeddingModelV3,
-  Experimental_VideoModelV3,
+  Experimental_VideoModelV3 as VideoModelV3,
   ImageModelV3,
   LanguageModelV3,
   ProviderV3,
@@ -72,14 +72,12 @@ export interface GoogleGenerativeAIProvider extends ProviderV3 {
   /**
    * Creates a model for video generation.
    */
-  video(modelId: GoogleGenerativeAIVideoModelId): Experimental_VideoModelV3;
+  video(modelId: GoogleGenerativeAIVideoModelId): VideoModelV3;
 
   /**
    * Creates a model for video generation.
    */
-  videoModel(
-    modelId: GoogleGenerativeAIVideoModelId,
-  ): Experimental_VideoModelV3;
+  videoModel(modelId: GoogleGenerativeAIVideoModelId): VideoModelV3;
 
   tools: typeof googleTools;
 }

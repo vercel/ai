@@ -1,5 +1,5 @@
 import {
-  Experimental_VideoModelV3,
+  Experimental_VideoModelV3 as VideoModelV3,
   ImageModelV3,
   NoSuchModelError,
   ProviderV3,
@@ -65,12 +65,12 @@ export interface FalProvider extends ProviderV3 {
   /**
    * Creates a model for video generation.
    */
-  video(modelId: FalVideoModelId): Experimental_VideoModelV3;
+  video(modelId: FalVideoModelId): VideoModelV3;
 
   /**
    * Creates a model for video generation.
    */
-  videoModel(modelId: FalVideoModelId): Experimental_VideoModelV3;
+  videoModel(modelId: FalVideoModelId): VideoModelV3;
 
   /**
    * Creates a model for speech generation.

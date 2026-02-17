@@ -1,7 +1,7 @@
 import type {
-  Experimental_VideoModelV3,
-  Experimental_VideoModelV3VideoData,
-  Experimental_VideoModelV3OperationWebhook,
+  Experimental_VideoModelV3 as VideoModelV3,
+  Experimental_VideoModelV3VideoData as VideoModelV3VideoData,
+  Experimental_VideoModelV3OperationWebhook as VideoModelV3OperationWebhook,
   SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
@@ -33,7 +33,7 @@ vi.mock('../version', () => {
 });
 
 const createMockResponse = (options: {
-  videos: Experimental_VideoModelV3VideoData[];
+  videos: VideoModelV3VideoData[];
   warnings?: Warning[];
   timestamp?: Date;
   modelId?: string;
@@ -80,9 +80,7 @@ describe('experimental_generateVideo', () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
 
-    let capturedArgs!: Parameters<
-      NonNullable<Experimental_VideoModelV3['doGenerate']>
-    >[0];
+    let capturedArgs!: Parameters<NonNullable<VideoModelV3['doGenerate']>>[0];
 
     await experimental_generateVideo({
       model: new MockVideoModelV3({
@@ -797,9 +795,7 @@ describe('experimental_generateVideo', () => {
 
   describe('prompt normalization', () => {
     it('should handle string prompt', async () => {
-      let capturedArgs!: Parameters<
-        NonNullable<Experimental_VideoModelV3['doGenerate']>
-      >[0];
+      let capturedArgs!: Parameters<NonNullable<VideoModelV3['doGenerate']>>[0];
 
       await experimental_generateVideo({
         model: new MockVideoModelV3({
@@ -820,9 +816,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should handle object prompt with text and image', async () => {
-      let capturedArgs!: Parameters<
-        NonNullable<Experimental_VideoModelV3['doGenerate']>
-      >[0];
+      let capturedArgs!: Parameters<NonNullable<VideoModelV3['doGenerate']>>[0];
       const imageBase64 =
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
 
@@ -848,9 +842,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should handle URL image in prompt', async () => {
-      let capturedArgs!: Parameters<
-        NonNullable<Experimental_VideoModelV3['doGenerate']>
-      >[0];
+      let capturedArgs!: Parameters<NonNullable<VideoModelV3['doGenerate']>>[0];
 
       await experimental_generateVideo({
         model: new MockVideoModelV3({
@@ -875,9 +867,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should handle data URL image in prompt', async () => {
-      let capturedArgs!: Parameters<
-        NonNullable<Experimental_VideoModelV3['doGenerate']>
-      >[0];
+      let capturedArgs!: Parameters<NonNullable<VideoModelV3['doGenerate']>>[0];
       const pngBase64 =
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
       const dataUrl = `data:image/png;base64,${pngBase64}`;
@@ -906,9 +896,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should handle Uint8Array image in prompt', async () => {
-      let capturedArgs!: Parameters<
-        NonNullable<Experimental_VideoModelV3['doGenerate']>
-      >[0];
+      let capturedArgs!: Parameters<NonNullable<VideoModelV3['doGenerate']>>[0];
       const pngBase64 =
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
       const uint8Array = convertBase64ToUint8Array(pngBase64);
@@ -934,9 +922,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should detect image mediaType from raw base64 string via signature detection', async () => {
-      let capturedArgs!: Parameters<
-        NonNullable<Experimental_VideoModelV3['doGenerate']>
-      >[0];
+      let capturedArgs!: Parameters<NonNullable<VideoModelV3['doGenerate']>>[0];
       // Raw base64 PNG (not a data URL) - must be detected via signature
       const pngBase64 =
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
@@ -965,9 +951,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should detect image mediaType from Uint8Array via signature detection', async () => {
-      let capturedArgs!: Parameters<
-        NonNullable<Experimental_VideoModelV3['doGenerate']>
-      >[0];
+      let capturedArgs!: Parameters<NonNullable<VideoModelV3['doGenerate']>>[0];
       // JPEG magic bytes: 0xFF 0xD8 0xFF
       const jpegBytes = new Uint8Array([
         0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46,
@@ -1352,13 +1336,12 @@ describe('experimental_generateVideo', () => {
 
     it('should use webhook flow when webhook is provided', async () => {
       let webhookUrlCapture: string | undefined;
-      let resolveWebhook: (
-        value: Experimental_VideoModelV3OperationWebhook,
-      ) => void;
-      const webhookReceived =
-        new Promise<Experimental_VideoModelV3OperationWebhook>(resolve => {
+      let resolveWebhook: (value: VideoModelV3OperationWebhook) => void;
+      const webhookReceived = new Promise<VideoModelV3OperationWebhook>(
+        resolve => {
           resolveWebhook = resolve;
-        });
+        },
+      );
 
       const model = new MockVideoModelV3({
         doGenerate: undefined,
@@ -1412,13 +1395,12 @@ describe('experimental_generateVideo', () => {
 
     it('should use webhook over poll when both are provided', async () => {
       let statusCallCount = 0;
-      let resolveWebhook: (
-        value: Experimental_VideoModelV3OperationWebhook,
-      ) => void;
-      const webhookReceived =
-        new Promise<Experimental_VideoModelV3OperationWebhook>(resolve => {
+      let resolveWebhook: (value: VideoModelV3OperationWebhook) => void;
+      const webhookReceived = new Promise<VideoModelV3OperationWebhook>(
+        resolve => {
           resolveWebhook = resolve;
-        });
+        },
+      );
 
       const model = new MockVideoModelV3({
         doGenerate: undefined,
@@ -1512,9 +1494,7 @@ describe('experimental_generateVideo', () => {
           webhookFactoryCalled = true;
           return {
             url: 'https://example.com/webhook',
-            received: new Promise<Experimental_VideoModelV3OperationWebhook>(
-              () => {},
-            ),
+            received: new Promise<VideoModelV3OperationWebhook>(() => {}),
           };
         },
       });

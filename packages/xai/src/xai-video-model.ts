@@ -1,8 +1,8 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV3,
-  type Experimental_VideoModelV3OperationStartResult,
-  type Experimental_VideoModelV3OperationStatusResult,
+  type Experimental_VideoModelV3 as VideoModelV3,
+  type Experimental_VideoModelV3OperationStartResult as VideoModelV3OperationStartResult,
+  type Experimental_VideoModelV3OperationStatusResult as VideoModelV3OperationStatusResult,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -38,7 +38,7 @@ const RESOLUTION_MAP: Record<string, string> = {
   '640x480': '480p',
 };
 
-export class XaiVideoModel implements Experimental_VideoModelV3 {
+export class XaiVideoModel implements VideoModelV3 {
   readonly specificationVersion = 'v3';
   readonly maxVideosPerCall = 1;
 
@@ -194,8 +194,8 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
   }
 
   async doStart(
-    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
-  ): Promise<Experimental_VideoModelV3OperationStartResult> {
+    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
+  ): Promise<VideoModelV3OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { body, warnings, xaiOptions, isEdit } =
       await this.buildRequestBody(options);
@@ -234,8 +234,8 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
   }
 
   async doStatus(
-    options: Parameters<NonNullable<Experimental_VideoModelV3['doStatus']>>[0],
-  ): Promise<Experimental_VideoModelV3OperationStatusResult> {
+    options: Parameters<NonNullable<VideoModelV3['doStatus']>>[0],
+  ): Promise<VideoModelV3OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestId } = options.operation as { requestId: string };
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';

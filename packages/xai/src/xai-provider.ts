@@ -1,5 +1,5 @@
 import {
-  type Experimental_VideoModelV3,
+  type Experimental_VideoModelV3 as VideoModelV3,
   ImageModelV3,
   LanguageModelV3,
   NoSuchModelError,
@@ -57,12 +57,12 @@ export interface XaiProvider extends ProviderV3 {
   /**
    * Creates an Xai video model for video generation.
    */
-  video(modelId: XaiVideoModelId): Experimental_VideoModelV3;
+  video(modelId: XaiVideoModelId): VideoModelV3;
 
   /**
    * Creates an Xai video model for video generation.
    */
-  videoModel(modelId: XaiVideoModelId): Experimental_VideoModelV3;
+  videoModel(modelId: XaiVideoModelId): VideoModelV3;
 
   /**
    * Server-side agentic tools for use with the responses API.
