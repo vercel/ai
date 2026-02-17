@@ -452,8 +452,6 @@ describe('ProdiaImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
-        files: undefined,
-        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
@@ -491,8 +489,6 @@ describe('ProdiaImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
-        files: undefined,
-        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
@@ -530,8 +526,6 @@ describe('ProdiaImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
-        files: undefined,
-        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
