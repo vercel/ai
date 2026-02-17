@@ -16,11 +16,7 @@ const defaultOptions = {
   duration: undefined,
   fps: undefined,
   seed: undefined,
-  providerOptions: {
-    vertex: {
-      pollIntervalMs: 10, // Use short polling interval for tests
-    },
-  },
+  providerOptions: {},
 } as const;
 
 function createMockModel({
@@ -123,6 +119,7 @@ function createMockModel({
     },
     _internal: {
       currentDate,
+      pollIntervalMs: 10,
     },
   });
 }
@@ -498,7 +495,6 @@ describe('GoogleVertexVideoModel', () => {
         ...defaultOptions,
         providerOptions: {
           vertex: {
-            pollIntervalMs: 10,
             personGeneration: 'allow_adult',
           },
         },
@@ -527,7 +523,6 @@ describe('GoogleVertexVideoModel', () => {
         ...defaultOptions,
         providerOptions: {
           vertex: {
-            pollIntervalMs: 10,
             negativePrompt: 'blurry, low quality',
           },
         },
@@ -556,7 +551,6 @@ describe('GoogleVertexVideoModel', () => {
         ...defaultOptions,
         providerOptions: {
           vertex: {
-            pollIntervalMs: 10,
             generateAudio: true,
           },
         },
@@ -593,7 +587,6 @@ describe('GoogleVertexVideoModel', () => {
         ...defaultOptions,
         providerOptions: {
           vertex: {
-            pollIntervalMs: 10,
             gcsOutputDirectory: 'gs://bucket/output/',
           },
         },
@@ -622,7 +615,6 @@ describe('GoogleVertexVideoModel', () => {
         ...defaultOptions,
         providerOptions: {
           vertex: {
-            pollIntervalMs: 10,
             referenceImages: [
               { bytesBase64Encoded: 'reference-image-data' },
               { gcsUri: 'gs://bucket/reference.png' },
@@ -757,6 +749,9 @@ describe('GoogleVertexVideoModel', () => {
 
           return new Response('Not found', { status: 404 });
         },
+        _internal: {
+          pollIntervalMs: 10,
+        },
       });
 
       const result = await model.doGenerate({ ...defaultOptions });
@@ -804,17 +799,15 @@ describe('GoogleVertexVideoModel', () => {
 
           return new Response('Not found', { status: 404 });
         },
+        _internal: {
+          pollIntervalMs: 10,
+          pollTimeoutMs: 50,
+        },
       });
 
       await expect(
         model.doGenerate({
           ...defaultOptions,
-          providerOptions: {
-            vertex: {
-              pollIntervalMs: 10,
-              pollTimeoutMs: 50,
-            },
-          },
         }),
       ).rejects.toMatchObject({
         message: expect.stringContaining('timed out'),
@@ -860,16 +853,14 @@ describe('GoogleVertexVideoModel', () => {
 
           return new Response('Not found', { status: 404 });
         },
+        _internal: {
+          pollIntervalMs: 10,
+        },
       });
 
       await expect(
         model.doGenerate({
           ...defaultOptions,
-          providerOptions: {
-            vertex: {
-              pollIntervalMs: 10,
-            },
-          },
           abortSignal: abortController.signal,
         }),
       ).rejects.toMatchObject({

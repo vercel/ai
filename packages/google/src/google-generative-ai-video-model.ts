@@ -25,10 +25,6 @@ import { googleFailedResponseHandler } from './google-error';
 import type { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
 
 export type GoogleVideoModelOptions = {
-  // Polling configuration
-  pollIntervalMs?: number | null;
-  pollTimeoutMs?: number | null;
-
   // Video generation options
   personGeneration?: 'dont_allow' | 'allow_adult' | 'allow_all' | null;
   negativePrompt?: string | null;
@@ -50,6 +46,8 @@ interface GoogleGenerativeAIVideoModelConfig {
   generateId?: () => string;
   _internal?: {
     currentDate?: () => Date;
+    pollIntervalMs?: number;
+    pollTimeoutMs?: number;
   };
 }
 
@@ -178,13 +176,9 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
 
       for (const [key, value] of Object.entries(opts)) {
         if (
-          ![
-            'pollIntervalMs',
-            'pollTimeoutMs',
-            'personGeneration',
-            'negativePrompt',
-            'referenceImages',
-          ].includes(key)
+          !['personGeneration', 'negativePrompt', 'referenceImages'].includes(
+            key,
+          )
         ) {
           parameters[key] = value;
         }
@@ -308,8 +302,8 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
-    const pollIntervalMs = googleOptions?.pollIntervalMs ?? 10000; // 10 seconds (per Google docs)
-    const pollTimeoutMs = googleOptions?.pollTimeoutMs ?? 600000; // 10 minutes
+    const pollIntervalMs = this.config._internal?.pollIntervalMs ?? 10000; // 10 seconds (per Google docs)
+    const pollTimeoutMs = this.config._internal?.pollTimeoutMs ?? 600000; // 10 minutes
 
     const startTime = Date.now();
     let finalOperation = operation;
@@ -499,8 +493,6 @@ const googleVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
         personGeneration: z
           .enum(['dont_allow', 'allow_adult', 'allow_all'])
           .nullish(),

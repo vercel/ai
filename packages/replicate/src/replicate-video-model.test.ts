@@ -16,11 +16,7 @@ const defaultOptions = {
   duration: undefined,
   fps: undefined,
   seed: undefined,
-  providerOptions: {
-    replicate: {
-      pollIntervalMs: 10, // Use short polling interval for tests
-    },
-  },
+  providerOptions: {},
 } as const;
 
 function createMockModel({
@@ -132,6 +128,7 @@ function createMockModel({
     },
     _internal: {
       currentDate,
+      pollIntervalMs: 10,
     },
   });
 }
@@ -574,7 +571,6 @@ describe('ReplicateVideoModel', () => {
         ...defaultOptions,
         providerOptions: {
           replicate: {
-            pollIntervalMs: 10,
             guidance_scale: 7.5,
           },
         },
@@ -602,7 +598,6 @@ describe('ReplicateVideoModel', () => {
         ...defaultOptions,
         providerOptions: {
           replicate: {
-            pollIntervalMs: 10,
             num_inference_steps: 50,
           },
         },
@@ -630,7 +625,6 @@ describe('ReplicateVideoModel', () => {
         ...defaultOptions,
         providerOptions: {
           replicate: {
-            pollIntervalMs: 10,
             motion_bucket_id: 127,
           },
         },
@@ -658,7 +652,6 @@ describe('ReplicateVideoModel', () => {
         ...defaultOptions,
         providerOptions: {
           replicate: {
-            pollIntervalMs: 10,
             prompt_optimizer: true,
           },
         },
@@ -686,7 +679,6 @@ describe('ReplicateVideoModel', () => {
         ...defaultOptions,
         providerOptions: {
           replicate: {
-            pollIntervalMs: 10,
             custom_param: 'custom_value',
           },
         },
@@ -714,7 +706,6 @@ describe('ReplicateVideoModel', () => {
         ...defaultOptions,
         providerOptions: {
           replicate: {
-            pollIntervalMs: 10,
             maxWaitTimeInSeconds: 30,
           },
         },
@@ -834,17 +825,15 @@ describe('ReplicateVideoModel', () => {
 
           return new Response('Not found', { status: 404 });
         },
+        _internal: {
+          pollIntervalMs: 10,
+          pollTimeoutMs: 50,
+        },
       });
 
       await expect(
         model.doGenerate({
           ...defaultOptions,
-          providerOptions: {
-            replicate: {
-              pollIntervalMs: 10,
-              pollTimeoutMs: 50,
-            },
-          },
         }),
       ).rejects.toMatchObject({
         message: expect.stringContaining('timed out'),
@@ -888,16 +877,14 @@ describe('ReplicateVideoModel', () => {
 
           return new Response('Not found', { status: 404 });
         },
+        _internal: {
+          pollIntervalMs: 10,
+        },
       });
 
       await expect(
         model.doGenerate({
           ...defaultOptions,
-          providerOptions: {
-            replicate: {
-              pollIntervalMs: 10,
-            },
-          },
           abortSignal: abortController.signal,
         }),
       ).rejects.toMatchObject({

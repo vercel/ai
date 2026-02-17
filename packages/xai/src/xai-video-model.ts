@@ -30,6 +30,8 @@ interface XaiVideoModelConfig {
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
+    pollIntervalMs?: number;
+    pollTimeoutMs?: number;
   };
 }
 
@@ -185,14 +187,7 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
 
     if (xaiOptions != null) {
       for (const [key, value] of Object.entries(xaiOptions)) {
-        if (
-          ![
-            'pollIntervalMs',
-            'pollTimeoutMs',
-            'resolution',
-            'videoUrl',
-          ].includes(key)
-        ) {
+        if (!['resolution', 'videoUrl'].includes(key)) {
           body[key] = value;
         }
       }
@@ -284,8 +279,8 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
     }
 
     // Step 2: Poll for completion
-    const pollIntervalMs = xaiOptions?.pollIntervalMs ?? 5000;
-    const pollTimeoutMs = xaiOptions?.pollTimeoutMs ?? 600000;
+    const pollIntervalMs = this.config._internal?.pollIntervalMs ?? 5000;
+    const pollTimeoutMs = this.config._internal?.pollTimeoutMs ?? 600000;
     const startTime = Date.now();
     let responseHeaders: Record<string, string> | undefined;
 

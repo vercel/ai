@@ -26,8 +26,6 @@ import type { FalVideoModelId } from './fal-video-settings';
 export type FalVideoModelOptions = {
   loop?: boolean | null;
   motionStrength?: number | null;
-  pollIntervalMs?: number | null;
-  pollTimeoutMs?: number | null;
   resolution?: string | null;
   negativePrompt?: string | null;
   promptOptimizer?: boolean | null;
@@ -45,10 +43,6 @@ export const falVideoModelOptionsSchema = lazySchema(() =>
         // Motion strength (provider-specific)
         motionStrength: z.number().min(0).max(1).nullish(),
 
-        // Polling configuration
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
-
         // Resolution (model-specific, e.g., '480p', '720p', '1080p')
         resolution: z.string().nullish(),
 
@@ -63,6 +57,8 @@ export const falVideoModelOptionsSchema = lazySchema(() =>
 interface FalVideoModelConfig extends FalConfig {
   _internal?: {
     currentDate?: () => Date;
+    pollIntervalMs?: number;
+    pollTimeoutMs?: number;
   };
 }
 
@@ -97,8 +93,8 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
 
     const responseUrl = await this.submitToQueue(options, body);
 
-    const pollIntervalMs = falOptions?.pollIntervalMs ?? 2000; // 2 seconds
-    const pollTimeoutMs = falOptions?.pollTimeoutMs ?? 300000; // 5 minutes
+    const pollIntervalMs = this.config._internal?.pollIntervalMs ?? 2000; // 2 seconds
+    const pollTimeoutMs = this.config._internal?.pollTimeoutMs ?? 300000; // 5 minutes
     const startTime = Date.now();
     let response: FalVideoResponse;
     let responseHeaders: Record<string, string> | undefined;
@@ -289,8 +285,6 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
           ![
             'loop',
             'motionStrength',
-            'pollIntervalMs',
-            'pollTimeoutMs',
             'resolution',
             'negativePrompt',
             'promptOptimizer',

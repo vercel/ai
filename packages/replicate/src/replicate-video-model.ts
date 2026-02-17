@@ -25,8 +25,6 @@ import type { ReplicateVideoModelId } from './replicate-video-settings';
 
 export type ReplicateVideoModelOptions = {
   // Polling configuration
-  pollIntervalMs?: number | null;
-  pollTimeoutMs?: number | null;
   maxWaitTimeInSeconds?: number | null;
 
   // Common video generation options
@@ -54,6 +52,8 @@ interface ReplicateVideoModelConfig {
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
+    pollIntervalMs?: number;
+    pollTimeoutMs?: number;
   };
 }
 
@@ -173,8 +173,6 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
       for (const [key, value] of Object.entries(opts)) {
         if (
           ![
-            'pollIntervalMs',
-            'pollTimeoutMs',
             'maxWaitTimeInSeconds',
             'guidance_scale',
             'num_inference_steps',
@@ -243,8 +241,8 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
       prediction.status === 'starting' ||
       prediction.status === 'processing'
     ) {
-      const pollIntervalMs = replicateOptions?.pollIntervalMs ?? 2000; // 2 seconds
-      const pollTimeoutMs = replicateOptions?.pollTimeoutMs ?? 300000; // 5 minutes
+      const pollIntervalMs = this.config._internal?.pollIntervalMs ?? 2000; // 2 seconds
+      const pollTimeoutMs = this.config._internal?.pollTimeoutMs ?? 300000; // 5 minutes
 
       const startTime = Date.now();
 
@@ -481,8 +479,6 @@ const replicateVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
         maxWaitTimeInSeconds: z.number().positive().nullish(),
         guidance_scale: z.number().nullish(),
         num_inference_steps: z.number().nullish(),
