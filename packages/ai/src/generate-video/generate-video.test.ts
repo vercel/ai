@@ -1361,6 +1361,10 @@ describe('experimental_generateVideo', () => {
 
       const model = new MockVideoModelV3({
         doGenerate: undefined,
+        handleWebhookOption: async ({ webhook }) => {
+          const { url, received } = await webhook();
+          return { webhookUrl: url, received };
+        },
         doStart: async options => {
           webhookUrlCapture = options.webhookUrl;
           // Simulate async webhook notification
@@ -1416,6 +1420,10 @@ describe('experimental_generateVideo', () => {
 
       const model = new MockVideoModelV3({
         doGenerate: undefined,
+        handleWebhookOption: async ({ webhook }) => {
+          const { url, received } = await webhook();
+          return { webhookUrl: url, received };
+        },
         doStart: async options => {
           expect(options.webhookUrl).toBe('https://example.com/webhook');
           setTimeout(() => resolveWebhook!({ headers: {}, body: {} }), 10);
@@ -1459,6 +1467,65 @@ describe('experimental_generateVideo', () => {
       // Should only call doStatus once (after webhook), not via polling loop
       expect(statusCallCount).toBe(1);
       expect(result.videos.length).toBe(1);
+    });
+
+    it('should fall back to polling when model has no handleWebhookOption', async () => {
+      let statusCallCount = 0;
+      let webhookFactoryCalled = false;
+
+      const model = new MockVideoModelV3({
+        doGenerate: undefined,
+        // no handleWebhookOption — model does not support webhooks
+        doStart: async () => ({
+          operation: 'op-fallback',
+          warnings: [],
+          response: {
+            timestamp: new Date(),
+            modelId: 'test-model-id',
+            headers: {},
+          },
+        }),
+        doStatus: async () => {
+          statusCallCount++;
+          return {
+            status: 'completed' as const,
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          };
+        },
+      });
+
+      const result = await experimental_generateVideo({
+        model,
+        prompt,
+        poll: { intervalMs: 10 },
+        webhook: async () => {
+          webhookFactoryCalled = true;
+          return {
+            url: 'https://example.com/webhook',
+            received: new Promise<Experimental_VideoModelV3Webhook>(() => {}),
+          };
+        },
+      });
+
+      // Webhook factory should never be called
+      expect(webhookFactoryCalled).toBe(false);
+      // Should have used polling instead
+      expect(statusCallCount).toBeGreaterThanOrEqual(1);
+      expect(result.videos.length).toBe(1);
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'webhook',
+        details:
+          'This model does not support webhooks. Falling back to polling.',
+      });
     });
 
     it('should handle n > maxVideosPerCall with doStart/doStatus', async () => {

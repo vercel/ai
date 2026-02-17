@@ -3,6 +3,7 @@ import type { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provide
 import type { SharedV3Warning } from '../../shared/v3/shared-v3-warning';
 import type { VideoModelV3StartResult } from './video-model-v3-start-result';
 import type { VideoModelV3StatusResult } from './video-model-v3-status-result';
+import type { VideoModelV3Webhook } from './video-model-v3-webhook';
 
 type GetMaxVideosPerCallFunction = (options: {
   modelId: string;
@@ -133,6 +134,40 @@ export type VideoModelV3 = {
        */
       headers: Record<string, string> | undefined;
     };
+  }>;
+
+  /**
+   * Optional method that handles the user's `webhook` option for the
+   * asynchronous start/status flow.
+   *
+   * Its presence on the model signals that the provider's API natively
+   * supports webhooks. The SDK checks for this method before invoking the
+   * user-provided `webhook` factory:
+   *
+   * - **Present**: The SDK calls this method with the user's webhook factory.
+   *   The implementation should invoke the factory to obtain a webhook URL
+   *   and a `received` promise. The URL is then forwarded to `doStart` via
+   *   `webhookUrl`, and the SDK awaits `received` instead of polling.
+   *
+   * - **Absent**: The SDK never calls the user's `webhook` factory and falls
+   *   back to polling via `doStatus`. This avoids unnecessary webhook
+   *   endpoint creation for providers whose APIs have no native webhook
+   *   mechanism.
+   *
+   * This method exists because the SDK must decide whether to invoke the
+   * user's webhook factory — which may create real HTTP endpoints or
+   * external resources — *before* calling `doStart`. Without an explicit
+   * capability signal on the model, the SDK would eagerly create a webhook
+   * endpoint for every provider, even those that silently ignore the URL.
+   */
+  handleWebhookOption?: (options: {
+    webhook: () => PromiseLike<{
+      url: string;
+      received: Promise<VideoModelV3Webhook>;
+    }>;
+  }) => PromiseLike<{
+    webhookUrl: string;
+    received: Promise<VideoModelV3Webhook>;
   }>;
 
   /**

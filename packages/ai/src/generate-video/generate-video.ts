@@ -462,14 +462,30 @@ async function executeStartStatusFlow({
     ReturnType<NonNullable<Experimental_VideoModelV3['doGenerate']>>
   >['response'];
 }> {
-  // 1. If webhook, get the webhook URL and received promise
+  // 1. If webhook and provider supports it, set up the webhook
+  const earlyWarnings: Array<
+    Awaited<
+      ReturnType<NonNullable<Experimental_VideoModelV3['doGenerate']>>
+    >['warnings'][number]
+  > = [];
   let webhookUrl: string | undefined;
   let webhookReceived: Promise<Experimental_VideoModelV3Webhook> | undefined;
 
   if (webhookFactory != null) {
-    const { url, received } = await webhookFactory();
-    webhookUrl = url;
-    webhookReceived = received;
+    if (model.handleWebhookOption != null) {
+      const result = await model.handleWebhookOption({
+        webhook: webhookFactory,
+      });
+      webhookUrl = result.webhookUrl;
+      webhookReceived = result.received;
+    } else {
+      earlyWarnings.push({
+        type: 'unsupported',
+        feature: 'webhook',
+        details:
+          'This model does not support webhooks. Falling back to polling.',
+      });
+    }
   }
 
   // 2. Start the generation
@@ -478,7 +494,7 @@ async function executeStartStatusFlow({
     webhookUrl,
   });
 
-  const allWarnings = [...startResult.warnings];
+  const allWarnings = [...earlyWarnings, ...startResult.warnings];
 
   let completedResult: Extract<
     Experimental_VideoModelV3StatusResult,
@@ -503,7 +519,7 @@ async function executeStartStatusFlow({
 
     completedResult = statusResult;
   } else {
-    // 3b. Polling flow
+    // 3b. Polling flow (also used as fallback when webhook not supported)
     completedResult = await pollUntilComplete({
       model,
       operation: startResult.operation,
