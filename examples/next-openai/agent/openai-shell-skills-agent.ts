@@ -1,9 +1,14 @@
 import { openai } from '@ai-sdk/openai';
 import { Sandbox } from '@vercel/sandbox';
 import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
-import { resolve } from 'path';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
-// warning: this is a demo sandbox that is shared across chats on localhost
+const skillPath = '/vercel/sandbox/skills/island-rescue';
+const skillMd = readFileSync(
+  join(process.cwd(), 'data', 'island-rescue', 'SKILL.md'),
+);
+
 let globalSandboxId: string | null = null;
 async function getSandbox(): Promise<Sandbox> {
   if (globalSandboxId) {
@@ -11,13 +16,22 @@ async function getSandbox(): Promise<Sandbox> {
   }
   const sandbox = await Sandbox.create();
   globalSandboxId = sandbox.sandboxId;
+
+  await sandbox.runCommand({ cmd: 'mkdir', args: ['-p', skillPath] });
+  await sandbox.writeFiles([
+    { path: `${skillPath}/SKILL.md`, content: skillMd },
+  ]);
+
   return sandbox;
 }
 
-async function executeShellCommand(
-  command: string,
-  timeoutMs?: number,
-): Promise<{
+async function executeShellCommand({
+  command,
+  timeoutMs,
+}: {
+  command: string;
+  timeoutMs?: number;
+}): Promise<{
   stdout: string;
   stderr: string;
   outcome: { type: 'timeout' } | { type: 'exit'; exitCode: number };
@@ -74,7 +88,10 @@ export const openaiShellSkillsAgent = new ToolLoopAgent({
       async execute({ action }) {
         const outputs = await Promise.all(
           action.commands.map(command =>
-            executeShellCommand(command, action.timeoutMs),
+            executeShellCommand({
+              command,
+              timeoutMs: action.timeoutMs,
+            }),
           ),
         );
 
@@ -86,13 +103,7 @@ export const openaiShellSkillsAgent = new ToolLoopAgent({
           {
             name: 'island-rescue',
             description: 'How to be rescued from a lonely island',
-            path: resolve(
-              process.cwd(),
-              '..',
-              'ai-functions',
-              'data',
-              'island-rescue',
-            ),
+            path: skillPath,
           },
         ],
       },

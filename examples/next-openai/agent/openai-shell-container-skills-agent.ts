@@ -4,7 +4,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 const skillZip = readFileSync(
-  join(process.cwd(), '..', 'ai-functions', 'data', 'island-rescue-skill.zip'),
+  join(process.cwd(), 'data', 'island-rescue-skill.zip'),
 ).toString('base64');
 
 export const openaiShellContainerSkillsAgent = new ToolLoopAgent({
