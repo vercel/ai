@@ -1,9 +1,9 @@
 import type { VideoModelV3CallOptions } from './video-model-v3-call-options';
 import type { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
 import type { SharedV3Warning } from '../../shared/v3/shared-v3-warning';
-import type { VideoModelV3StartResult } from './video-model-v3-start-result';
-import type { VideoModelV3StatusResult } from './video-model-v3-status-result';
-import type { VideoModelV3Webhook } from './video-model-v3-webhook';
+import type { VideoModelV3OperationStartResult } from './video-model-v3-operation-start-result';
+import type { VideoModelV3OperationStatusResult } from './video-model-v3-operation-status-result';
+import type { VideoModelV3OperationWebhook } from './video-model-v3-operation-webhook';
 
 type GetMaxVideosPerCallFunction = (options: {
   modelId: string;
@@ -163,11 +163,11 @@ export type VideoModelV3 = {
   handleWebhookOption?: (options: {
     webhook: () => PromiseLike<{
       url: string;
-      received: Promise<VideoModelV3Webhook>;
+      received: Promise<VideoModelV3OperationWebhook>;
     }>;
   }) => PromiseLike<{
     webhookUrl: string;
-    received: Promise<VideoModelV3Webhook>;
+    received: Promise<VideoModelV3OperationWebhook>;
   }>;
 
   /**
@@ -186,7 +186,7 @@ export type VideoModelV3 = {
        */
       webhookUrl?: string;
     },
-  ): PromiseLike<VideoModelV3StartResult>;
+  ): PromiseLike<VideoModelV3OperationStartResult>;
 
   /**
    * Checks the status of an asynchronous video generation that was
@@ -210,5 +210,5 @@ export type VideoModelV3 = {
      * Additional HTTP headers.
      */
     headers?: Record<string, string | undefined>;
-  }): PromiseLike<VideoModelV3StatusResult>;
+  }): PromiseLike<VideoModelV3OperationStatusResult>;
 };

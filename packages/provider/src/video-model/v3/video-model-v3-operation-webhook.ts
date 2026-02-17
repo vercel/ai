@@ -5,7 +5,7 @@ import type { JSONValue } from '../../json-value/json-value';
  * generation. Generic over the body type so providers/consumers can
  * narrow it to a specific shape.
  */
-export type VideoModelV3Webhook<TBody = JSONValue> = {
+export type VideoModelV3OperationWebhook<TBody = JSONValue> = {
   headers: Record<string, string>;
   body: TBody;
 };
