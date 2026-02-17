@@ -417,6 +417,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       toolChoice,
     });
 
+    const shellToolEnvType = (
+      tools?.find(
+        tool => tool.type === 'provider' && tool.id === 'openai.shell',
+      ) as { args?: { environment?: { type?: string } } } | undefined
+    )?.args?.environment?.type;
+
+    const isShellProviderExecuted =
+      shellToolEnvType === 'containerAuto' ||
+      shellToolEnvType === 'containerReference';
+
     return {
       webSearchToolName,
       args: {
@@ -428,6 +438,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       store,
       toolNameMapping,
       providerOptionsName,
+      isShellProviderExecuted,
     };
   }
 
@@ -440,6 +451,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       webSearchToolName,
       toolNameMapping,
       providerOptionsName,
+      isShellProviderExecuted,
     } = await this.getArgs(options);
     const url = this.config.url({
       path: '/responses',
@@ -556,6 +568,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 commands: part.action.commands,
               },
             } satisfies InferSchema<typeof shellInputSchema>),
+            ...(isShellProviderExecuted && { providerExecuted: true }),
             providerMetadata: {
               [providerOptionsName]: {
                 itemId: part.id,
@@ -932,6 +945,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       toolNameMapping,
       store,
       providerOptionsName,
+      isShellProviderExecuted,
     } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -1493,6 +1507,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       commands: value.item.action.commands,
                     },
                   } satisfies InferSchema<typeof shellInputSchema>),
+                  ...(isShellProviderExecuted && {
+                    providerExecuted: true,
+                  }),
                   providerMetadata: {
                     [providerOptionsName]: { itemId: value.item.id },
                   },
