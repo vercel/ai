@@ -280,7 +280,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
 
 exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callbacks > onStepFinish should be called for each step 1`] = `
 [
-  DefaultStepResult {
+  {
     "content": [
       {
         "input": {
@@ -304,9 +304,14 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         "type": "tool-result",
       },
     ],
+    "dynamicToolCalls": [],
+    "dynamicToolResults": [],
+    "files": [],
     "finishReason": "tool-calls",
     "providerMetadata": undefined,
     "rawFinishReason": undefined,
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -346,6 +351,59 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "sources": [],
+    "staticToolCalls": [
+      {
+        "input": {
+          "value": "value",
+        },
+        "providerExecuted": undefined,
+        "providerMetadata": undefined,
+        "title": "Tool One",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "staticToolResults": [
+      {
+        "dynamic": false,
+        "input": {
+          "value": "value",
+        },
+        "output": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
+    "stepNumber": 0,
+    "text": "",
+    "toolCalls": [
+      {
+        "input": {
+          "value": "value",
+        },
+        "providerExecuted": undefined,
+        "providerMetadata": undefined,
+        "title": "Tool One",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "toolResults": [
+      {
+        "dynamic": false,
+        "input": {
+          "value": "value",
+        },
+        "output": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -365,16 +423,21 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     },
     "warnings": [],
   },
-  DefaultStepResult {
+  {
     "content": [
       {
         "text": "Hello, world!",
         "type": "text",
       },
     ],
+    "dynamicToolCalls": [],
+    "dynamicToolResults": [],
+    "files": [],
     "finishReason": "stop",
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -426,6 +489,13 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
+    "sources": [],
+    "staticToolCalls": [],
+    "staticToolResults": [],
+    "stepNumber": 1,
+    "text": "Hello, world!",
+    "toolCalls": [],
+    "toolResults": [],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -664,7 +734,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
 
 exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with prepareStep > onStepFinish should be called for each step 1`] = `
 [
-  DefaultStepResult {
+  {
     "content": [
       {
         "input": {
@@ -688,9 +758,14 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
         "type": "tool-result",
       },
     ],
+    "dynamicToolCalls": [],
+    "dynamicToolResults": [],
+    "files": [],
     "finishReason": "tool-calls",
     "providerMetadata": undefined,
     "rawFinishReason": undefined,
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -730,6 +805,59 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "sources": [],
+    "staticToolCalls": [
+      {
+        "input": {
+          "value": "value",
+        },
+        "providerExecuted": undefined,
+        "providerMetadata": undefined,
+        "title": undefined,
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "staticToolResults": [
+      {
+        "dynamic": false,
+        "input": {
+          "value": "value",
+        },
+        "output": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
+    "stepNumber": 0,
+    "text": "",
+    "toolCalls": [
+      {
+        "input": {
+          "value": "value",
+        },
+        "providerExecuted": undefined,
+        "providerMetadata": undefined,
+        "title": undefined,
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "toolResults": [
+      {
+        "dynamic": false,
+        "input": {
+          "value": "value",
+        },
+        "output": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -749,16 +877,21 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     },
     "warnings": [],
   },
-  DefaultStepResult {
+  {
     "content": [
       {
         "text": "Hello, world!",
         "type": "text",
       },
     ],
+    "dynamicToolCalls": [],
+    "dynamicToolResults": [],
+    "files": [],
     "finishReason": "stop",
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -810,6 +943,13 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
+    "sources": [],
+    "staticToolCalls": [],
+    "staticToolResults": [],
+    "stepNumber": 1,
+    "text": "Hello, world!",
+    "toolCalls": [],
+    "toolResults": [],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {

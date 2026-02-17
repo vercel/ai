@@ -34,6 +34,7 @@ import {
   generateText,
   GenerateTextOnFinishCallback,
   GenerateTextOnStartCallback,
+  GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
@@ -1142,6 +1143,141 @@ describe('generateText', () => {
 
       // Step 1 should see step 0's text
       expect(stepStartEvents[1].steps[0].text).toBe('Thinking...');
+    });
+  });
+
+  describe('options.onStepFinish stepNumber', () => {
+    it('should pass stepNumber 0 for a single step', async () => {
+      let stepFinishEvent!: Parameters<
+        GenerateTextOnStepFinishCallback<any>
+      >[0];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello!' }],
+            ...dummyResponseValues,
+          }),
+        }),
+        prompt: 'test-input',
+        onStepFinish: async event => {
+          stepFinishEvent = event;
+        },
+      });
+
+      expect(stepFinishEvent.stepNumber).toBe(0);
+    });
+
+    it('should pass correct stepNumber for each step in a multi-step tool loop', async () => {
+      const stepNumbers: number[] = [];
+      let responseCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "test" }',
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 1:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-2',
+                      toolName: 'tool1',
+                      input: '{ "value": "test2" }',
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 2:
+              default:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Done.' }],
+                };
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: stepCountIs(4),
+        onStepFinish: async event => {
+          stepNumbers.push(event.stepNumber);
+        },
+      });
+
+      expect(stepNumbers).toEqual([0, 1, 2]);
+    });
+
+    it('should have matching stepNumber between onStepStart and onStepFinish', async () => {
+      const startStepNumbers: number[] = [];
+      const finishStepNumbers: number[] = [];
+      let responseCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "test" }',
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 1:
+              default:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Done.' }],
+                };
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: stepCountIs(3),
+        experimental_onStepStart: async event => {
+          startStepNumbers.push(event.stepNumber);
+        },
+        onStepFinish: async event => {
+          finishStepNumbers.push(event.stepNumber);
+        },
+      });
+
+      expect(startStepNumbers).toEqual(finishStepNumbers);
     });
   });
 
