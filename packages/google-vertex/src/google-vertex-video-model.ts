@@ -24,10 +24,6 @@ import { googleVertexFailedResponseHandler } from './google-vertex-error';
 import type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
 
 export type GoogleVertexVideoModelOptions = {
-  // Polling configuration
-  pollIntervalMs?: number | null;
-  pollTimeoutMs?: number | null;
-
   // Video generation options
   personGeneration?: 'dont_allow' | 'allow_adult' | 'allow_all' | null;
   negativePrompt?: string | null;
@@ -53,6 +49,8 @@ interface GoogleVertexVideoModelConfig {
   generateId?: () => string;
   _internal?: {
     currentDate?: () => Date;
+    pollIntervalMs?: number;
+    pollTimeoutMs?: number;
   };
 }
 
@@ -174,8 +172,6 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       for (const [key, value] of Object.entries(opts)) {
         if (
           ![
-            'pollIntervalMs',
-            'pollTimeoutMs',
             'personGeneration',
             'negativePrompt',
             'generateAudio',
@@ -317,8 +313,8 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
-    const pollIntervalMs = vertexOptions?.pollIntervalMs ?? 10000; // 10 seconds
-    const pollTimeoutMs = vertexOptions?.pollTimeoutMs ?? 600000; // 10 minutes
+    const pollIntervalMs = this.config._internal?.pollIntervalMs ?? 10000; // 10 seconds
+    const pollTimeoutMs = this.config._internal?.pollTimeoutMs ?? 600000; // 10 minutes
 
     const startTime = Date.now();
     let finalOperation = operation;
@@ -512,8 +508,6 @@ const googleVertexVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
         personGeneration: z
           .enum(['dont_allow', 'allow_adult', 'allow_all'])
           .nullish(),

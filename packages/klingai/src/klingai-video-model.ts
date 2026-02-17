@@ -76,18 +76,6 @@ export type KlingAIVideoModelOptions = {
    */
   mode?: 'std' | 'pro' | null;
 
-  /**
-   * Polling interval in milliseconds for checking task status.
-   * Default: 5000 (5 seconds).
-   */
-  pollIntervalMs?: number | null;
-
-  /**
-   * Maximum time in milliseconds to wait for video generation.
-   * Default: 600000 (10 minutes).
-   */
-  pollTimeoutMs?: number | null;
-
   // --- T2V and I2V options ---
 
   /**
@@ -195,8 +183,6 @@ const klingaiVideoModelOptionsSchema = lazySchema(() =>
     z
       .object({
         mode: z.enum(['std', 'pro']).nullish(),
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
         // T2V and I2V
         negativePrompt: z.string().nullish(),
         sound: z.enum(['on', 'off']).nullish(),
@@ -249,8 +235,6 @@ const klingaiVideoModelOptionsSchema = lazySchema(() =>
  */
 const HANDLED_PROVIDER_OPTIONS = new Set([
   'mode',
-  'pollIntervalMs',
-  'pollTimeoutMs',
   'negativePrompt',
   'sound',
   'cfgScale',
@@ -271,6 +255,8 @@ interface KlingAIVideoModelConfig {
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
+    pollIntervalMs?: number;
+    pollTimeoutMs?: number;
   };
 }
 
@@ -344,8 +330,8 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
     }
 
     // Step 2: Poll for task completion
-    const pollIntervalMs = klingaiOptions?.pollIntervalMs ?? 5000; // 5 seconds
-    const pollTimeoutMs = klingaiOptions?.pollTimeoutMs ?? 600000; // 10 minutes
+    const pollIntervalMs = this.config._internal?.pollIntervalMs ?? 5000; // 5 seconds
+    const pollTimeoutMs = this.config._internal?.pollTimeoutMs ?? 600000; // 10 minutes
     const startTime = Date.now();
     let finalResponse: KlingAITaskResponse | undefined;
     let responseHeaders: Record<string, string> | undefined = createHeaders;

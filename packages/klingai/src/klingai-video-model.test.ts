@@ -49,8 +49,6 @@ const klingaiProviderOptions = {
     videoUrl: 'https://example.com/reference-motion.mp4',
     characterOrientation: 'image' as const,
     mode: 'std' as const,
-    pollIntervalMs: 10, // Fast polling for tests
-    pollTimeoutMs: 5000,
   },
 };
 
@@ -69,8 +67,6 @@ const defaultOptions = {
 const t2vProviderOptions = {
   klingai: {
     mode: 'std' as const,
-    pollIntervalMs: 10,
-    pollTimeoutMs: 5000,
   },
 };
 
@@ -89,8 +85,6 @@ const t2vDefaultOptions = {
 const i2vProviderOptions = {
   klingai: {
     mode: 'std' as const,
-    pollIntervalMs: 10,
-    pollTimeoutMs: 5000,
   },
 };
 
@@ -126,6 +120,7 @@ function createBasicModel({
     headers: headers ?? { Authorization: 'Bearer test-jwt-token' },
     _internal: {
       currentDate,
+      pollIntervalMs: 10,
     },
   });
 }
@@ -460,7 +455,6 @@ describe('KlingAIVideoModel', () => {
             videoUrl: 'https://example.com/motion.mp4',
             characterOrientation: 'video',
             mode: 'pro',
-            pollIntervalMs: 10,
           },
         },
       });
@@ -967,7 +961,6 @@ describe('KlingAIVideoModel', () => {
           providerOptions: {
             klingai: {
               // Missing videoUrl, characterOrientation, mode
-              pollIntervalMs: 10,
             },
           },
         }),

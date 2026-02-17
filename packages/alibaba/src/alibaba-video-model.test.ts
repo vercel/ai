@@ -36,12 +36,7 @@ const succeededTaskResponse = {
   request_id: 'req-002',
 };
 
-const defaultProviderOptions = {
-  alibaba: {
-    pollIntervalMs: 10, // Fast polling for tests
-    pollTimeoutMs: 5000,
-  },
-};
+const defaultProviderOptions = {};
 
 const defaultOptions = {
   prompt,
@@ -68,7 +63,7 @@ function createModel({
     provider: 'alibaba.video',
     baseURL: TEST_BASE_URL,
     headers: headers ?? { Authorization: 'Bearer test-api-key' },
-    _internal: { currentDate },
+    _internal: { currentDate, pollIntervalMs: 10 },
   });
 }
 
@@ -164,8 +159,6 @@ describe('AlibabaVideoModel', () => {
             promptExtend: true,
             shotType: 'multi',
             watermark: false,
-            pollIntervalMs: 10,
-            pollTimeoutMs: 5000,
           },
         },
       });
@@ -192,8 +185,6 @@ describe('AlibabaVideoModel', () => {
         providerOptions: {
           alibaba: {
             audioUrl: 'https://example.com/audio.mp3',
-            pollIntervalMs: 10,
-            pollTimeoutMs: 5000,
           },
         },
       });
@@ -300,8 +291,6 @@ describe('AlibabaVideoModel', () => {
         providerOptions: {
           alibaba: {
             audio: false,
-            pollIntervalMs: 10,
-            pollTimeoutMs: 5000,
           },
         },
       });
@@ -325,8 +314,6 @@ describe('AlibabaVideoModel', () => {
               'https://example.com/ref-image.jpg',
               'https://example.com/ref-video.mp4',
             ],
-            pollIntervalMs: 10,
-            pollTimeoutMs: 5000,
           },
         },
       });
@@ -366,8 +353,6 @@ describe('AlibabaVideoModel', () => {
         providerOptions: {
           alibaba: {
             referenceUrls: ['https://example.com/ref.jpg'],
-            pollIntervalMs: 10,
-            pollTimeoutMs: 5000,
           },
         },
       });

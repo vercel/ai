@@ -16,11 +16,7 @@ const defaultOptions = {
   duration: undefined,
   fps: undefined,
   seed: undefined,
-  providerOptions: {
-    google: {
-      pollIntervalMs: 10, // Use short polling interval for tests
-    },
-  },
+  providerOptions: {},
 } as const;
 
 function createMockModel({
@@ -124,6 +120,7 @@ function createMockModel({
     },
     _internal: {
       currentDate,
+      pollIntervalMs: 10,
     },
   });
 }
@@ -455,7 +452,6 @@ describe('GoogleGenerativeAIVideoModel', () => {
         ...defaultOptions,
         providerOptions: {
           google: {
-            pollIntervalMs: 10,
             personGeneration: 'allow_adult',
           },
         },
@@ -484,7 +480,6 @@ describe('GoogleGenerativeAIVideoModel', () => {
         ...defaultOptions,
         providerOptions: {
           google: {
-            pollIntervalMs: 10,
             negativePrompt: 'blurry, low quality',
           },
         },
@@ -513,7 +508,6 @@ describe('GoogleGenerativeAIVideoModel', () => {
         ...defaultOptions,
         providerOptions: {
           google: {
-            pollIntervalMs: 10,
             referenceImages: [
               { bytesBase64Encoded: 'reference-image-data' },
               { gcsUri: 'gs://bucket/reference.png' },
@@ -663,6 +657,9 @@ describe('GoogleGenerativeAIVideoModel', () => {
 
             return new Response('Not found', { status: 404 });
           },
+          _internal: {
+            pollIntervalMs: 10,
+          },
         },
       );
 
@@ -713,18 +710,16 @@ describe('GoogleGenerativeAIVideoModel', () => {
 
             return new Response('Not found', { status: 404 });
           },
+          _internal: {
+            pollIntervalMs: 10,
+            pollTimeoutMs: 50,
+          },
         },
       );
 
       await expect(
         model.doGenerate({
           ...defaultOptions,
-          providerOptions: {
-            google: {
-              pollIntervalMs: 10,
-              pollTimeoutMs: 50,
-            },
-          },
         }),
       ).rejects.toMatchObject({
         message: expect.stringContaining('timed out'),
@@ -772,17 +767,15 @@ describe('GoogleGenerativeAIVideoModel', () => {
 
             return new Response('Not found', { status: 404 });
           },
+          _internal: {
+            pollIntervalMs: 10,
+          },
         },
       );
 
       await expect(
         model.doGenerate({
           ...defaultOptions,
-          providerOptions: {
-            google: {
-              pollIntervalMs: 10,
-            },
-          },
           abortSignal: abortController.signal,
         }),
       ).rejects.toMatchObject({

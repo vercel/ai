@@ -29,12 +29,7 @@ const defaultOptions = {
   duration: undefined,
   fps: undefined,
   seed: undefined,
-  providerOptions: {
-    xai: {
-      pollIntervalMs: 10,
-      pollTimeoutMs: 5000,
-    },
-  },
+  providerOptions: {},
 } as const;
 
 function createModel({
@@ -50,6 +45,7 @@ function createModel({
     headers: headers ?? (() => ({ 'api-key': 'test-key' })),
     _internal: {
       currentDate,
+      pollIntervalMs: 10,
     },
   });
 }
@@ -159,8 +155,6 @@ describe('XaiVideoModel', () => {
         providerOptions: {
           xai: {
             resolution: '480p',
-            pollIntervalMs: 10,
-            pollTimeoutMs: 5000,
           },
         },
       });
@@ -247,8 +241,6 @@ describe('XaiVideoModel', () => {
         providerOptions: {
           xai: {
             videoUrl: 'https://example.com/source-video.mp4',
-            pollIntervalMs: 10,
-            pollTimeoutMs: 5000,
           },
         },
       });
@@ -270,8 +262,6 @@ describe('XaiVideoModel', () => {
         providerOptions: {
           xai: {
             videoUrl: 'https://example.com/source-video.mp4',
-            pollIntervalMs: 10,
-            pollTimeoutMs: 5000,
           },
         },
       });
@@ -293,8 +283,6 @@ describe('XaiVideoModel', () => {
         providerOptions: {
           xai: {
             videoUrl: 'https://example.com/source-video.mp4',
-            pollIntervalMs: 10,
-            pollTimeoutMs: 5000,
           },
         },
       });
@@ -316,8 +304,6 @@ describe('XaiVideoModel', () => {
         providerOptions: {
           xai: {
             videoUrl: 'https://example.com/source-video.mp4',
-            pollIntervalMs: 10,
-            pollTimeoutMs: 5000,
           },
         },
       });
@@ -386,8 +372,6 @@ describe('XaiVideoModel', () => {
         providerOptions: {
           xai: {
             videoUrl: 'https://example.com/source-video.mp4',
-            pollIntervalMs: 10,
-            pollTimeoutMs: 5000,
           },
         },
       });
@@ -649,8 +633,6 @@ describe('XaiVideoModel', () => {
         providerOptions: {
           xai: {
             videoUrl: 'https://example.com/source-video.mp4',
-            pollIntervalMs: 10,
-            pollTimeoutMs: 5000,
           },
         },
       });
@@ -906,19 +888,19 @@ describe('XaiVideoModel', () => {
         },
       };
 
-      const model = createModel();
+      const model = new XaiVideoModel('grok-imagine-video', {
+        provider: 'xai.video',
+        baseURL: TEST_BASE_URL,
+        headers: () => ({ 'api-key': 'test-key' }),
+        _internal: {
+          pollIntervalMs: 10,
+          pollTimeoutMs: 50,
+        },
+      });
 
-      await expect(
-        model.doGenerate({
-          ...defaultOptions,
-          providerOptions: {
-            xai: {
-              pollIntervalMs: 10,
-              pollTimeoutMs: 50,
-            },
-          },
-        }),
-      ).rejects.toThrow('timed out');
+      await expect(model.doGenerate({ ...defaultOptions })).rejects.toThrow(
+        'timed out',
+      );
 
       // Reset
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {

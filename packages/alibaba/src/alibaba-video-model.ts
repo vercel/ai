@@ -43,10 +43,6 @@ export type AlibabaVideoModelOptions = {
    * Use character identifiers (character1, character2) in prompts to reference them.
    */
   referenceUrls?: string[] | null;
-  /** Polling interval in milliseconds. Defaults to 5000 (5 seconds). */
-  pollIntervalMs?: number | null;
-  /** Maximum wait time in milliseconds for video generation. Defaults to 600000 (10 minutes). */
-  pollTimeoutMs?: number | null;
   [key: string]: unknown;
 };
 
@@ -61,8 +57,6 @@ const alibabaVideoModelOptionsSchema = lazySchema(() =>
         watermark: z.boolean().nullish(),
         audio: z.boolean().nullish(),
         referenceUrls: z.array(z.string()).nullish(),
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
       })
       .passthrough(),
   ),
@@ -75,6 +69,8 @@ interface AlibabaVideoModelConfig {
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
+    pollIntervalMs?: number;
+    pollTimeoutMs?: number;
   };
 }
 
@@ -389,8 +385,8 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
     }
 
     // Step 2: Poll for task completion
-    const pollIntervalMs = alibabaOptions?.pollIntervalMs ?? 5000;
-    const pollTimeoutMs = alibabaOptions?.pollTimeoutMs ?? 600000;
+    const pollIntervalMs = this.config._internal?.pollIntervalMs ?? 5000;
+    const pollTimeoutMs = this.config._internal?.pollTimeoutMs ?? 600000;
     const startTime = Date.now();
     let finalResponse: AlibabaVideoTaskStatusResponse | undefined;
     let responseHeaders: Record<string, string> | undefined;

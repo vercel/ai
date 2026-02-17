@@ -35,6 +35,7 @@ function createBasicModel({
     fetch,
     _internal: {
       currentDate,
+      pollIntervalMs: 10,
     },
   });
 }
@@ -660,6 +661,9 @@ describe('FalVideoModel', () => {
         provider: 'fal.video',
         url: ({ path }) => path,
         headers: () => ({ 'api-key': 'test-key' }),
+        _internal: {
+          pollIntervalMs: 10,
+        },
         fetch: async (url, init) => {
           const urlString = url.toString();
 
@@ -717,11 +721,6 @@ describe('FalVideoModel', () => {
 
       const result = await model.doGenerate({
         ...defaultOptions,
-        providerOptions: {
-          fal: {
-            pollIntervalMs: 10, // Fast polling for test
-          },
-        },
       });
 
       expect(pollCount).toBe(3);
@@ -736,6 +735,10 @@ describe('FalVideoModel', () => {
         provider: 'fal.video',
         url: ({ path }) => path,
         headers: () => ({ 'api-key': 'test-key' }),
+        _internal: {
+          pollIntervalMs: 10,
+          pollTimeoutMs: 50,
+        },
         fetch: async (url, init) => {
           const urlString = url.toString();
 
@@ -773,12 +776,6 @@ describe('FalVideoModel', () => {
       await expect(
         model.doGenerate({
           ...defaultOptions,
-          providerOptions: {
-            fal: {
-              pollIntervalMs: 10,
-              pollTimeoutMs: 50,
-            },
-          },
         }),
       ).rejects.toMatchObject({
         message: expect.stringContaining('timed out'),
@@ -792,6 +789,9 @@ describe('FalVideoModel', () => {
         provider: 'fal.video',
         url: ({ path }) => path,
         headers: () => ({ 'api-key': 'test-key' }),
+        _internal: {
+          pollIntervalMs: 10,
+        },
         fetch: async (url, init) => {
           const urlString = url.toString();
 
@@ -831,11 +831,6 @@ describe('FalVideoModel', () => {
       await expect(
         model.doGenerate({
           ...defaultOptions,
-          providerOptions: {
-            fal: {
-              pollIntervalMs: 10,
-            },
-          },
           abortSignal: abortController.signal,
         }),
       ).rejects.toMatchObject({
