@@ -1,10 +1,10 @@
 import type {
-  Experimental_VideoModelV3,
-  Experimental_VideoModelV3CallOptions,
-  Experimental_VideoModelV3File,
-  Experimental_VideoModelV3StatusResult,
-  Experimental_VideoModelV3Webhook,
-  SharedV3ProviderMetadata,
+  Experimental_VideoModelV3 as VideoModelV3,
+  Experimental_VideoModelV3CallOptions as VideoModelV3CallOptions,
+  Experimental_VideoModelV3File as VideoModelV3File,
+  Experimental_VideoModelV3StatusResult as VideoModelV3StatusResult,
+  Experimental_VideoModelV3Webhook as VideoModelV3Webhook,
+  SharedV3ProviderMetadata as SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
@@ -108,7 +108,7 @@ export async function experimental_generateVideo({
   aspectRatio?: `${number}:${number}`;
 
   /**
-   * Resolution of the videos to generate. Must have the format `{width}x${number}`.
+   * Resolution of the videos to generate. Must have the format `{width}x${height}`.
    */
   resolution?: `${number}x${number}`;
 
@@ -210,7 +210,7 @@ export async function experimental_generateVideo({
    */
   webhook?: () => PromiseLike<{
     url: string;
-    received: Promise<Experimental_VideoModelV3Webhook>;
+    received: Promise<VideoModelV3Webhook>;
   }>;
 }): Promise<GenerateVideoResult> {
   const model = resolveVideoModel(modelArg);
@@ -267,7 +267,7 @@ export async function experimental_generateVideo({
 
   const results = await Promise.all(
     callVideoCounts.map(async callVideoCount => {
-      const callOptions: Experimental_VideoModelV3CallOptions = {
+      const callOptions: VideoModelV3CallOptions = {
         prompt,
         n: callVideoCount,
         aspectRatio,
@@ -433,8 +433,8 @@ async function executeStartStatusFlow({
   abortSignal,
   headers,
 }: {
-  model: Experimental_VideoModelV3;
-  callOptions: Experimental_VideoModelV3CallOptions;
+  model: VideoModelV3;
+  callOptions: VideoModelV3CallOptions;
   poll?: {
     intervalMs?: number;
     backoff?: 'none' | 'exponential';
@@ -446,30 +446,30 @@ async function executeStartStatusFlow({
   };
   webhook?: () => PromiseLike<{
     url: string;
-    received: Promise<Experimental_VideoModelV3Webhook>;
+    received: Promise<VideoModelV3Webhook>;
   }>;
   abortSignal?: AbortSignal;
   headers?: Record<string, string | undefined>;
 }): Promise<{
   videos: Awaited<
-    ReturnType<NonNullable<Experimental_VideoModelV3['doGenerate']>>
+    ReturnType<NonNullable<VideoModelV3['doGenerate']>>
   >['videos'];
   warnings: Awaited<
-    ReturnType<NonNullable<Experimental_VideoModelV3['doGenerate']>>
+    ReturnType<NonNullable<VideoModelV3['doGenerate']>>
   >['warnings'];
   providerMetadata?: SharedV3ProviderMetadata;
   response: Awaited<
-    ReturnType<NonNullable<Experimental_VideoModelV3['doGenerate']>>
+    ReturnType<NonNullable<VideoModelV3['doGenerate']>>
   >['response'];
 }> {
   // 1. If webhook and provider supports it, set up the webhook
   const earlyWarnings: Array<
     Awaited<
-      ReturnType<NonNullable<Experimental_VideoModelV3['doGenerate']>>
+      ReturnType<NonNullable<VideoModelV3['doGenerate']>>
     >['warnings'][number]
   > = [];
   let webhookUrl: string | undefined;
-  let webhookReceived: Promise<Experimental_VideoModelV3Webhook> | undefined;
+  let webhookReceived: Promise<VideoModelV3Webhook> | undefined;
 
   if (webhookFactory != null) {
     if (model.handleWebhookOption != null) {
@@ -497,7 +497,7 @@ async function executeStartStatusFlow({
   const allWarnings = [...earlyWarnings, ...startResult.warnings];
 
   let completedResult: Extract<
-    Experimental_VideoModelV3StatusResult,
+    VideoModelV3StatusResult,
     { status: 'completed' }
   >;
 
@@ -548,7 +548,7 @@ async function pollUntilComplete({
   abortSignal,
   headers,
 }: {
-  model: Experimental_VideoModelV3;
+  model: VideoModelV3;
   operation: unknown;
   pollConfig?: {
     intervalMs?: number;
@@ -561,9 +561,7 @@ async function pollUntilComplete({
   };
   abortSignal?: AbortSignal;
   headers?: Record<string, string | undefined>;
-}): Promise<
-  Extract<Experimental_VideoModelV3StatusResult, { status: 'completed' }>
-> {
+}): Promise<Extract<VideoModelV3StatusResult, { status: 'completed' }>> {
   const baseInterval = pollConfig?.intervalMs ?? 5000;
   const backoff = pollConfig?.backoff ?? 'none';
   const timeoutMs = pollConfig?.timeoutMs ?? 600_000;
@@ -607,7 +605,7 @@ async function pollUntilComplete({
 
 function normalizePrompt(promptArg: GenerateVideoPrompt): {
   prompt: string | undefined;
-  image: Experimental_VideoModelV3File | undefined;
+  image: VideoModelV3File | undefined;
 } {
   if (typeof promptArg === 'string') {
     return {
@@ -616,7 +614,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
     };
   }
 
-  let image: Experimental_VideoModelV3File | undefined;
+  let image: VideoModelV3File | undefined;
 
   if (promptArg.image != null) {
     const dataContent = promptArg.image;
@@ -672,7 +670,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
   };
 }
 
-async function invokeModelMaxVideosPerCall(model: Experimental_VideoModelV3) {
+async function invokeModelMaxVideosPerCall(model: VideoModelV3) {
   if (typeof model.maxVideosPerCall === 'function') {
     return await model.maxVideosPerCall({ modelId: model.modelId });
   }
