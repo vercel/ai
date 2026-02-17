@@ -2681,7 +2681,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               toolName: 'shell',
               input: '{"action":{"commands":["uname -a"]}}',
               providerExecuted: true,
-              providerMetadata: {
+              providerOptions: {
                 openai: {
                   itemId:
                     'sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50',
@@ -2709,7 +2709,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'text',
               text: 'Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux',
-              providerMetadata: {
+              providerOptions: {
                 openai: {
                   itemId:
                     'msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52',
@@ -2777,13 +2777,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "shell_call_output",
               },
               {
-                "content": [
-                  {
-                    "text": "Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux",
-                    "type": "output_text",
-                  },
-                ],
-                "role": "assistant",
+                "id": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+                "type": "item_reference",
               },
               {
                 "content": [
@@ -2841,7 +2836,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               toolCallId: 'call_abc123def456ghi789jkl012',
               toolName: 'shell',
               input: '{"action":{"commands":["uname -a"]}}',
-              providerMetadata: {
+              providerOptions: {
                 openai: {
                   itemId:
                     'sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50',
@@ -2879,7 +2874,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'text',
               text: 'Darwin mac-host 24.6.0 Darwin Kernel Version 24.6.0 arm64',
-              providerMetadata: {
+              providerOptions: {
                 openai: {
                   itemId:
                     'msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52',
@@ -2943,13 +2938,8 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "shell_call_output",
               },
               {
-                "content": [
-                  {
-                    "text": "Darwin mac-host 24.6.0 Darwin Kernel Version 24.6.0 arm64",
-                    "type": "output_text",
-                  },
-                ],
-                "role": "assistant",
+                "id": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+                "type": "item_reference",
               },
               {
                 "content": [
@@ -5465,7 +5455,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 toolName: 'shell',
                 input: '{"action":{"commands":["uname -a"]}}',
                 providerExecuted: true,
-                providerMetadata: {
+                providerOptions: {
                   openai: {
                     itemId:
                       'sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50',
@@ -5493,7 +5483,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               {
                 type: 'text',
                 text: 'Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux',
-                providerMetadata: {
+                providerOptions: {
                   openai: {
                     itemId:
                       'msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52',
@@ -5549,7 +5539,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 toolCallId: 'call_abc123def456ghi789jkl012',
                 toolName: 'shell',
                 input: '{"action":{"commands":["uname -a"]}}',
-                providerMetadata: {
+                providerOptions: {
                   openai: {
                     itemId:
                       'sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50',
@@ -5587,7 +5577,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               {
                 type: 'text',
                 text: 'Darwin mac-host 24.6.0 Darwin Kernel Version 24.6.0 arm64',
-                providerMetadata: {
+                providerOptions: {
                   openai: {
                     itemId:
                       'msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52',
