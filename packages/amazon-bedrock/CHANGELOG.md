@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.82
+
+### Patch Changes
+
+- fe42fd3: feat(provider/anthropic): add support for new Claude Sonnet 4.6 model
+- Updated dependencies [fe42fd3]
+  - @ai-sdk/anthropic@2.0.65
+
 ## 3.0.81
 
 ### Patch Changes

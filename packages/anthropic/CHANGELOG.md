@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.65
+
+### Patch Changes
+
+- fe42fd3: feat(provider/anthropic): add support for new Claude Sonnet 4.6 model
+
 ## 2.0.64
 
 ### Patch Changes
