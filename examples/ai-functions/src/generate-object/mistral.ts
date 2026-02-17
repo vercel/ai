@@ -1,4 +1,4 @@
-import { mistral } from '@ai-sdk/mistral';
+import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { run } from '../lib/run';
@@ -25,7 +25,7 @@ run(async () => {
         // in the JSON schema unless `strict` is set to true
         // See https://github.com/vercel/ai/pull/8130#issuecomment-3213138032
         strictJsonSchema: true,
-      },
+      } satisfies MistralLanguageModelOptions,
     },
   });
 

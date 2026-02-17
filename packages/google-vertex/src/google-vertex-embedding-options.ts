@@ -12,7 +12,7 @@ export type GoogleVertexEmbeddingModelId =
   | 'text-embedding-005'
   | (string & {});
 
-export const googleVertexEmbeddingProviderOptions = z.object({
+export const googleVertexEmbeddingModelOptions = z.object({
   /**
    * Optional. Optional reduced dimension for the output embedding.
    * If set, excessive values in the output embedding are truncated from the end.
@@ -58,6 +58,6 @@ export const googleVertexEmbeddingProviderOptions = z.object({
   autoTruncate: z.boolean().optional(),
 });
 
-export type GoogleVertexEmbeddingProviderOptions = z.infer<
-  typeof googleVertexEmbeddingProviderOptions
+export type GoogleVertexEmbeddingModelOptions = z.infer<
+  typeof googleVertexEmbeddingModelOptions
 >;

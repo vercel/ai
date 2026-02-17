@@ -858,7 +858,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
       name: 'providerMetadata',
       type: 'Promise<Record<string,JSONObject> | undefined>',
       description:
-        'Optional metadata from the provider. Resolved whe the response is finished. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+        'Optional metadata from the provider. Resolved when the response is finished. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },
     {
       name: 'finishReason',
@@ -1061,7 +1061,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
     },
     {
       name: 'pipeTextStreamToResponse',
-      type: '(response: ServerResponse, init?: ResponseInit => void',
+      type: '(response: ServerResponse, init?: ResponseInit) => void',
       description:
         'Writes text delta output to a Node.js response-like object. It sets a `Content-Type` header to `text/plain; charset=utf-8` and writes each text delta as a separate chunk.',
       properties: [

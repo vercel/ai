@@ -1,4 +1,4 @@
-import { xai } from '@ai-sdk/xai';
+import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 
@@ -13,7 +13,7 @@ run(async () => {
           returnCitations: true,
           maxSearchResults: 5,
         },
-      },
+      } satisfies XaiLanguageModelChatOptions,
     },
   });
 

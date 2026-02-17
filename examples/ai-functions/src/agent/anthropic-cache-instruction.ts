@@ -1,4 +1,7 @@
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import {
+  anthropic,
+  type AnthropicLanguageModelOptions,
+} from '@ai-sdk/anthropic';
 import { ToolLoopAgent } from 'ai';
 import fs from 'node:fs';
 import { print } from '../lib/print';
@@ -15,7 +18,7 @@ const agent = new ToolLoopAgent({
       providerOptions: {
         anthropic: {
           cacheControl: { type: 'ephemeral', ttl: '1h' },
-        } satisfies AnthropicProviderOptions,
+        } satisfies AnthropicLanguageModelOptions,
       },
     },
     {

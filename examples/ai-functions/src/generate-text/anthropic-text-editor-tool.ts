@@ -13,7 +13,7 @@ This is a test file.
     tools: {
       str_replace_based_edit_tool: anthropic.tools.textEditor_20250728({
         maxCharacters: 10000, // optional
-        async execute({ command, path, old_str, new_str }) {
+        async execute({ command, path, old_str, new_str, insert_text }) {
           switch (command) {
             case 'view': {
               return editorContent;
@@ -27,7 +27,7 @@ This is a test file.
               return editorContent;
             }
             case 'insert': {
-              editorContent = new_str!;
+              editorContent = insert_text!;
               return editorContent;
             }
           }
@@ -37,7 +37,8 @@ This is a test file.
         },
       }),
     },
-    prompt: 'Update my README file to talk about AI.',
+    prompt:
+      'Call insert to add "INTEGRATION TEST SUCCESS" after line 1 of editorContent',
     stopWhen: stepCountIs(5),
   });
 

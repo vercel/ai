@@ -1,3 +1,4 @@
+import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 import fs from 'node:fs';
@@ -9,7 +10,7 @@ run(async () => {
     providerOptions: {
       google: {
         audioTimestamp: true,
-      },
+      } satisfies GoogleLanguageModelOptions,
     },
     messages: [
       {

@@ -4,8 +4,9 @@ import {
   convertReadableStreamToArray,
   isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
+import fs from 'node:fs';
 import { createGroq } from './groq-provider';
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -15,128 +16,91 @@ const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
+const CHAT_COMPLETIONS_URL = 'https://api.groq.com/openai/v1/chat/completions';
+
 const provider = createGroq({ apiKey: 'test-api-key' });
 const model = provider('gemma2-9b-it');
 
 const server = createTestServer({
-  'https://api.groq.com/openai/v1/chat/completions': {},
+  [CHAT_COMPLETIONS_URL]: {},
 });
 
 describe('doGenerate', () => {
-  function prepareJsonResponse({
-    content = '',
-    reasoning,
-    tool_calls,
-    function_call,
-    usage = {
-      prompt_tokens: 4,
-      total_tokens: 34,
-      completion_tokens: 30,
-    },
-    finish_reason = 'stop',
-    id = 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-    created = 1711115037,
-    model = 'gemma2-9b-it',
-    headers,
-  }: {
-    content?: string;
-    reasoning?: string;
-    tool_calls?: Array<{
-      id: string;
-      type: 'function';
-      function: {
-        name: string;
-        arguments: string;
-      };
-    }>;
-    function_call?: {
-      name: string;
-      arguments: string;
-    };
-    usage?: {
-      prompt_tokens?: number;
-      total_tokens?: number;
-      completion_tokens?: number;
-      prompt_tokens_details?: {
-        cached_tokens?: number;
-      };
-      completion_tokens_details?: {
-        reasoning_tokens?: number;
-      };
-    };
-    finish_reason?: string;
-    created?: number;
-    id?: string;
-    model?: string;
-    headers?: Record<string, string>;
-  } = {}) {
-    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
+  function prepareJsonFixtureResponse(
+    filename: string,
+    { headers }: { headers?: Record<string, string> } = {},
+  ) {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'json-value',
       headers,
-      body: {
-        id,
-        object: 'chat.completion',
-        created,
-        model,
-        choices: [
-          {
-            index: 0,
-            message: {
-              role: 'assistant',
-              content,
-              reasoning,
-              tool_calls,
-              function_call,
-            },
-            finish_reason,
-          },
-        ],
-        usage,
-        system_fingerprint: 'fp_3bc1b5746c',
-      },
+      body: JSON.parse(
+        fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+      ),
     };
   }
 
-  it('should extract text', async () => {
-    prepareJsonResponse({ content: 'Hello, World!' });
-
-    const { content } = await model.doGenerate({
-      prompt: TEST_PROMPT,
+  describe('text', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('groq-text');
     });
 
-    expect(content).toMatchInlineSnapshot(`
-      [
+    it('should extract text content', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should send correct request body', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
-          "text": "Hello, World!",
-          "type": "text",
-        },
-      ]
-    `);
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "gemma2-9b-it",
+        }
+      `);
+    });
   });
 
-  it('should extract reasoning', async () => {
-    prepareJsonResponse({
-      reasoning: 'This is a test reasoning',
+  describe('tool call', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('groq-tool-call');
     });
 
-    const { content } = await model.doGenerate({
-      prompt: TEST_PROMPT,
+    it('should extract tool call content', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+  });
+
+  describe('reasoning', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('groq-reasoning');
     });
 
-    expect(content).toMatchInlineSnapshot(`
-      [
-        {
-          "text": "This is a test reasoning",
-          "type": "reasoning",
-        },
-      ]
-    `);
+    it('should extract reasoning content', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result).toMatchSnapshot();
+    });
   });
 
   it('should extract usage', async () => {
-    prepareJsonResponse({
-      usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
-    });
+    prepareJsonFixtureResponse('groq-text');
 
     const { usage } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -147,28 +111,25 @@ describe('doGenerate', () => {
         "inputTokens": {
           "cacheRead": undefined,
           "cacheWrite": undefined,
-          "noCache": 20,
-          "total": 20,
+          "noCache": 45,
+          "total": 45,
         },
         "outputTokens": {
           "reasoning": undefined,
-          "text": 5,
-          "total": 5,
+          "text": 607,
+          "total": 607,
         },
         "raw": {
-          "completion_tokens": 5,
-          "prompt_tokens": 20,
-          "total_tokens": 25,
+          "completion_tokens": 607,
+          "prompt_tokens": 45,
+          "total_tokens": 652,
         },
       }
     `);
   });
+
   it('should send additional response information', async () => {
-    prepareJsonResponse({
-      id: 'test-id',
-      created: 123,
-      model: 'test-model',
-    });
+    prepareJsonFixtureResponse('groq-text');
 
     const { response } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -178,17 +139,33 @@ describe('doGenerate', () => {
       id: response?.id,
       timestamp: response?.timestamp,
       modelId: response?.modelId,
-    }).toStrictEqual({
-      id: 'test-id',
-      timestamp: new Date(123 * 1000),
-      modelId: 'test-model',
-    });
+    }).toMatchInlineSnapshot(`
+      {
+        "id": "chatcmpl-09d64d2a-ed1c-4473-829f-78db43f45d13",
+        "modelId": "llama-3.3-70b-versatile",
+        "timestamp": 2026-02-11T00:46:38.000Z,
+      }
+    `);
   });
 
   it('should support partial usage', async () => {
-    prepareJsonResponse({
-      usage: { prompt_tokens: 20, total_tokens: 20 },
-    });
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-test',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gemma2-9b-it',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 20, total_tokens: 20 },
+      },
+    };
 
     const { usage } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -216,16 +193,30 @@ describe('doGenerate', () => {
   });
 
   it('should extract cached input tokens', async () => {
-    prepareJsonResponse({
-      usage: {
-        prompt_tokens: 20,
-        total_tokens: 25,
-        completion_tokens: 5,
-        prompt_tokens_details: {
-          cached_tokens: 15,
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-test',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gemma2-9b-it',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 20,
+          total_tokens: 25,
+          completion_tokens: 5,
+          prompt_tokens_details: {
+            cached_tokens: 15,
+          },
         },
       },
-    });
+    };
 
     const { usage } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -257,16 +248,7 @@ describe('doGenerate', () => {
   });
 
   it('should extract reasoning tokens from completion_tokens_details', async () => {
-    prepareJsonResponse({
-      usage: {
-        prompt_tokens: 79,
-        total_tokens: 119,
-        completion_tokens: 40,
-        completion_tokens_details: {
-          reasoning_tokens: 21,
-        },
-      },
-    });
+    prepareJsonFixtureResponse('groq-reasoning');
 
     const { usage } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -277,47 +259,48 @@ describe('doGenerate', () => {
         "inputTokens": {
           "cacheRead": undefined,
           "cacheWrite": undefined,
-          "noCache": 79,
-          "total": 79,
+          "noCache": 17,
+          "total": 17,
         },
         "outputTokens": {
-          "reasoning": 21,
-          "text": 19,
-          "total": 40,
+          "reasoning": 570,
+          "text": 79,
+          "total": 649,
         },
         "raw": {
-          "completion_tokens": 40,
+          "completion_tokens": 649,
           "completion_tokens_details": {
-            "reasoning_tokens": 21,
+            "reasoning_tokens": 570,
           },
-          "prompt_tokens": 79,
-          "total_tokens": 119,
+          "prompt_tokens": 17,
+          "total_tokens": 666,
         },
-      }
-    `);
-  });
-
-  it('should extract finish reason', async () => {
-    prepareJsonResponse({
-      finish_reason: 'stop',
-    });
-
-    const response = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(response.finishReason).toMatchInlineSnapshot(`
-      {
-        "raw": "stop",
-        "unified": "stop",
       }
     `);
   });
 
   it('should support unknown finish reason', async () => {
-    prepareJsonResponse({
-      finish_reason: 'eos',
-    });
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-test',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gemma2-9b-it',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'eos',
+          },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+        },
+      },
+    };
 
     const response = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -332,41 +315,25 @@ describe('doGenerate', () => {
   });
 
   it('should expose the raw response headers', async () => {
-    prepareJsonResponse({
-      headers: {
-        'test-header': 'test-value',
-      },
+    prepareJsonFixtureResponse('groq-text', {
+      headers: { 'test-header': 'test-value' },
     });
 
     const { response } = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(response?.headers).toStrictEqual({
-      // default headers:
-      'content-length': '315',
-      'content-type': 'application/json',
-
-      // custom header
-      'test-header': 'test-value',
-    });
-  });
-
-  it('should pass the model and the messages', async () => {
-    prepareJsonResponse({ content: '' });
-
-    await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'gemma2-9b-it',
-      messages: [{ role: 'user', content: 'Hello' }],
-    });
+    expect(response?.headers).toMatchInlineSnapshot(`
+      {
+        "content-length": "3547",
+        "content-type": "application/json",
+        "test-header": "test-value",
+      }
+    `);
   });
 
   it('should pass provider options', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('groq-text');
 
     await provider('gemma2-9b-it').doGenerate({
       prompt: TEST_PROMPT,
@@ -379,17 +346,24 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'gemma2-9b-it',
-      messages: [{ role: 'user', content: 'Hello' }],
-      parallel_tool_calls: false,
-      user: 'test-user-id',
-      reasoning_format: 'hidden',
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gemma2-9b-it",
+        "parallel_tool_calls": false,
+        "reasoning_format": "hidden",
+        "user": "test-user-id",
+      }
+    `);
   });
 
   it('should pass serviceTier provider option', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('groq-text');
 
     await provider('gemma2-9b-it').doGenerate({
       prompt: TEST_PROMPT,
@@ -400,15 +374,22 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'gemma2-9b-it',
-      messages: [{ role: 'user', content: 'Hello' }],
-      service_tier: 'flex',
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gemma2-9b-it",
+        "service_tier": "flex",
+      }
+    `);
   });
 
   it('should pass tools and toolChoice', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('groq-text');
 
     await model.doGenerate({
       tools: [
@@ -431,33 +412,48 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'gemma2-9b-it',
-      messages: [{ role: 'user', content: 'Hello' }],
-      tools: [
-        {
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
           },
+        ],
+        "model": "gemma2-9b-it",
+        "tool_choice": {
+          "function": {
+            "name": "test-tool",
+          },
+          "type": "function",
         },
-      ],
-      tool_choice: {
-        type: 'function',
-        function: { name: 'test-tool' },
-      },
-    });
+        "tools": [
+          {
+            "function": {
+              "name": "test-tool",
+              "parameters": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+            },
+            "type": "function",
+          },
+        ],
+      }
+    `);
   });
 
   it('should pass headers', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('groq-text');
 
     const provider = createGroq({
       apiKey: 'test-api-key',
@@ -473,66 +469,21 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(server.calls[0].requestHeaders).toStrictEqual({
-      authorization: 'Bearer test-api-key',
-      'content-type': 'application/json',
-      'custom-provider-header': 'provider-header-value',
-      'custom-request-header': 'request-header-value',
-    });
+    expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+      {
+        "authorization": "Bearer test-api-key",
+        "content-type": "application/json",
+        "custom-provider-header": "provider-header-value",
+        "custom-request-header": "request-header-value",
+      }
+    `);
     expect(server.calls[0].requestUserAgent).toContain(
       `ai-sdk/groq/0.0.0-test`,
     );
   });
 
-  it('should parse tool results', async () => {
-    prepareJsonResponse({
-      tool_calls: [
-        {
-          id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            arguments: '{"value":"Spark"}',
-          },
-        },
-      ],
-    });
-
-    const result = await model.doGenerate({
-      tools: [
-        {
-          type: 'function',
-          name: 'test-tool',
-          inputSchema: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
-          },
-        },
-      ],
-      toolChoice: {
-        type: 'tool',
-        toolName: 'test-tool',
-      },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(result.content).toMatchInlineSnapshot(`
-      [
-        {
-          "input": "{"value":"Spark"}",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolName": "test-tool",
-          "type": "tool-call",
-        },
-      ]
-    `);
-  });
-
   it('should pass response format information as json_schema when structuredOutputs enabled by default', async () => {
-    prepareJsonResponse({ content: '{"value":"Spark"}' });
+    prepareJsonFixtureResponse('groq-text');
 
     const model = provider('gemma2-9b-it');
 
@@ -552,29 +503,42 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'gemma2-9b-it',
-      messages: [{ role: 'user', content: 'Hello' }],
-      response_format: {
-        type: 'json_schema',
-        json_schema: {
-          strict: true,
-          name: 'test-name',
-          description: 'test description',
-          schema: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
           },
+        ],
+        "model": "gemma2-9b-it",
+        "response_format": {
+          "json_schema": {
+            "description": "test description",
+            "name": "test-name",
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "value",
+              ],
+              "type": "object",
+            },
+            "strict": true,
+          },
+          "type": "json_schema",
         },
-      },
-    });
+      }
+    `);
   });
 
   it('should pass response format information as json_object when structuredOutputs explicitly disabled', async () => {
-    prepareJsonResponse({ content: '{"value":"Spark"}' });
+    prepareJsonFixtureResponse('groq-text');
 
     const model = provider('gemma2-9b-it');
 
@@ -599,13 +563,20 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'gemma2-9b-it',
-      messages: [{ role: 'user', content: 'Hello' }],
-      response_format: {
-        type: 'json_object',
-      },
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gemma2-9b-it",
+        "response_format": {
+          "type": "json_object",
+        },
+      }
+    `);
 
     expect(warnings).toMatchInlineSnapshot(`
       [
@@ -619,7 +590,7 @@ describe('doGenerate', () => {
   });
 
   it('should use json_schema format when structuredOutputs explicitly enabled', async () => {
-    prepareJsonResponse({ content: '{"value":"Spark"}' });
+    prepareJsonFixtureResponse('groq-text');
 
     const model = provider('gemma2-9b-it');
 
@@ -644,29 +615,42 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'gemma2-9b-it',
-      messages: [{ role: 'user', content: 'Hello' }],
-      response_format: {
-        type: 'json_schema',
-        json_schema: {
-          strict: true,
-          name: 'test-name',
-          description: 'test description',
-          schema: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
           },
+        ],
+        "model": "gemma2-9b-it",
+        "response_format": {
+          "json_schema": {
+            "description": "test description",
+            "name": "test-name",
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "value",
+              ],
+              "type": "object",
+            },
+            "strict": true,
+          },
+          "type": "json_schema",
         },
-      },
-    });
+      }
+    `);
   });
 
   it('should allow explicit structuredOutputs override', async () => {
-    prepareJsonResponse({ content: '{"value":"Spark"}' });
+    prepareJsonFixtureResponse('groq-text');
 
     const model = provider('gemma2-9b-it');
 
@@ -689,28 +673,41 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'gemma2-9b-it',
-      messages: [{ role: 'user', content: 'Hello' }],
-      response_format: {
-        type: 'json_schema',
-        json_schema: {
-          strict: true,
-          name: 'response',
-          schema: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
           },
+        ],
+        "model": "gemma2-9b-it",
+        "response_format": {
+          "json_schema": {
+            "name": "response",
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "value",
+              ],
+              "type": "object",
+            },
+            "strict": true,
+          },
+          "type": "json_schema",
         },
-      },
-    });
+      }
+    `);
   });
 
   it('should send strict: false when strictJsonSchema is explicitly disabled', async () => {
-    prepareJsonResponse({ content: '{"value":"Spark"}' });
+    prepareJsonFixtureResponse('groq-text');
 
     const model = provider('gemma2-9b-it');
 
@@ -735,36 +732,46 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'gemma2-9b-it',
-      messages: [{ role: 'user', content: 'Hello' }],
-      response_format: {
-        type: 'json_schema',
-        json_schema: {
-          strict: false,
-          name: 'test-name',
-          description: 'test description',
-          schema: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
           },
+        ],
+        "model": "gemma2-9b-it",
+        "response_format": {
+          "json_schema": {
+            "description": "test description",
+            "name": "test-name",
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "value",
+              ],
+              "type": "object",
+            },
+            "strict": false,
+          },
+          "type": "json_schema",
         },
-      },
-    });
+      }
+    `);
   });
 
   it('should handle structured outputs with Kimi K2 model', async () => {
-    prepareJsonResponse({
-      content:
-        '{"recipe":{"name":"Spaghetti Aglio e Olio","ingredients":["spaghetti","garlic","olive oil","parmesan"],"instructions":["Boil pasta","Sauté garlic","Combine"]}}',
-    });
+    prepareJsonFixtureResponse('groq-text');
 
     const kimiModel = provider('moonshotai/kimi-k2-instruct-0905');
 
-    const result = await kimiModel.doGenerate({
+    await kimiModel.doGenerate({
       providerOptions: {
         groq: {
           structuredOutputs: true,
@@ -854,19 +861,10 @@ describe('doGenerate', () => {
         },
       }
     `);
-
-    expect(result.content).toMatchInlineSnapshot(`
-      [
-        {
-          "text": "{"recipe":{"name":"Spaghetti Aglio e Olio","ingredients":["spaghetti","garlic","olive oil","parmesan"],"instructions":["Boil pasta","Sauté garlic","Combine"]}}",
-          "type": "text",
-        },
-      ]
-    `);
   });
 
   it('should include warnings when structured outputs explicitly disabled but schema provided', async () => {
-    prepareJsonResponse({ content: '{"value":"test"}' });
+    prepareJsonFixtureResponse('groq-text');
 
     const { warnings } = await model.doGenerate({
       providerOptions: {
@@ -899,433 +897,89 @@ describe('doGenerate', () => {
   });
 
   it('should send request body', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('groq-text');
 
     const { request } = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(request).toStrictEqual({
-      body: '{"model":"gemma2-9b-it","messages":[{"role":"user","content":"Hello"}]}',
-    });
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": "{"model":"gemma2-9b-it","messages":[{"role":"user","content":"Hello"}]}",
+      }
+    `);
   });
 });
 
 describe('doStream', () => {
-  function prepareStreamResponse({
-    content = [],
-    finish_reason = 'stop',
-    headers,
-  }: {
-    content?: string[];
-    finish_reason?: string;
-    headers?: Record<string, string>;
-  }) {
-    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
+  function prepareChunksFixtureResponse(
+    filename: string,
+    { headers }: { headers?: Record<string, string> } = {},
+  ) {
+    const chunks = fs
+      .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
+      .split('\n')
+      .filter(line => line.trim().length > 0)
+      .map(line => `data: ${line}\n\n`);
+    chunks.push('data: [DONE]\n\n');
+
+    server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'stream-chunks',
       headers,
-      chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
-          `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
-        ...content.map(text => {
-          return (
-            `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
-            `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"${text}"},"finish_reason":null}]}\n\n`
-          );
-        }),
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
-          `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}"}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"gemma2-9b-it",` +
-          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"${finish_reason}"}],` +
-          `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
-          `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}}\n\n`,
-        'data: [DONE]\n\n',
-      ],
+      chunks,
     };
   }
 
-  it('should stream text deltas', async () => {
-    prepareStreamResponse({
-      content: ['Hello', ', ', 'World!'],
-      finish_reason: 'stop',
+  describe('text', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('groq-text');
     });
 
-    const { stream } = await model.doStream({
-      prompt: TEST_PROMPT,
-      includeRawChunks: false,
-    });
+    it('should stream text', async () => {
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
 
-    // note: space moved to last chunk bc of trimming
-    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
-      [
-        {
-          "type": "stream-start",
-          "warnings": [],
-        },
-        {
-          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "gemma2-9b-it",
-          "timestamp": 2023-12-15T16:17:00.000Z,
-          "type": "response-metadata",
-        },
-        {
-          "id": "txt-0",
-          "type": "text-start",
-        },
-        {
-          "delta": "Hello",
-          "id": "txt-0",
-          "type": "text-delta",
-        },
-        {
-          "delta": ", ",
-          "id": "txt-0",
-          "type": "text-delta",
-        },
-        {
-          "delta": "World!",
-          "id": "txt-0",
-          "type": "text-delta",
-        },
-        {
-          "id": "txt-0",
-          "type": "text-end",
-        },
-        {
-          "finishReason": {
-            "raw": "stop",
-            "unified": "stop",
-          },
-          "type": "finish",
-          "usage": {
-            "inputTokens": {
-              "cacheRead": undefined,
-              "cacheWrite": undefined,
-              "noCache": 18,
-              "total": 18,
-            },
-            "outputTokens": {
-              "reasoning": undefined,
-              "text": 439,
-              "total": 439,
-            },
-            "raw": {
-              "completion_tokens": 439,
-              "prompt_tokens": 18,
-              "total_tokens": 457,
-            },
-          },
-        },
-      ]
-    `);
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
   });
 
-  it('should stream reasoning deltas', async () => {
-    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
-      type: 'stream-chunks',
-      chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
-          `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
-          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"reasoning":"I think,"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
-          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"reasoning":"therefore I am."},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
-          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
-          `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"gemma2-9b-it",` +
-          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"stop"}],` +
-          `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
-          `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}}\n\n`,
-        'data: [DONE]\n\n',
-      ],
-    };
-
-    const { stream } = await model.doStream({
-      prompt: TEST_PROMPT,
-      includeRawChunks: false,
+  describe('tool call', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('groq-tool-call');
     });
 
-    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
-      [
-        {
-          "type": "stream-start",
-          "warnings": [],
-        },
-        {
-          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "gemma2-9b-it",
-          "timestamp": 2023-12-15T16:17:00.000Z,
-          "type": "response-metadata",
-        },
-        {
-          "id": "reasoning-0",
-          "type": "reasoning-start",
-        },
-        {
-          "delta": "I think,",
-          "id": "reasoning-0",
-          "type": "reasoning-delta",
-        },
-        {
-          "delta": "therefore I am.",
-          "id": "reasoning-0",
-          "type": "reasoning-delta",
-        },
-        {
-          "id": "reasoning-0",
-          "type": "reasoning-end",
-        },
-        {
-          "id": "txt-0",
-          "type": "text-start",
-        },
-        {
-          "delta": "Hello",
-          "id": "txt-0",
-          "type": "text-delta",
-        },
-        {
-          "id": "txt-0",
-          "type": "text-end",
-        },
-        {
-          "finishReason": {
-            "raw": "stop",
-            "unified": "stop",
-          },
-          "type": "finish",
-          "usage": {
-            "inputTokens": {
-              "cacheRead": undefined,
-              "cacheWrite": undefined,
-              "noCache": 18,
-              "total": 18,
-            },
-            "outputTokens": {
-              "reasoning": undefined,
-              "text": 439,
-              "total": 439,
-            },
-            "raw": {
-              "completion_tokens": 439,
-              "prompt_tokens": 18,
-              "total_tokens": 457,
-            },
-          },
-        },
-      ]
-    `);
+    it('should stream tool call', async () => {
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
   });
 
-  it('should stream reasoning tokens from completion_tokens_details', async () => {
-    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
-      type: 'stream-chunks',
-      chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"openai/gpt-oss-120b",` +
-          `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"openai/gpt-oss-120b",` +
-          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"42"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"openai/gpt-oss-120b",` +
-          `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"openai/gpt-oss-120b",` +
-          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"stop"}],` +
-          `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":79,"prompt_time":0.000211569,` +
-          `"completion_tokens":40,"completion_time":0.798181818,"total_tokens":119,"total_time":0.798393387,` +
-          `"completion_tokens_details":{"reasoning_tokens":21}}}}\n\n`,
-        'data: [DONE]\n\n',
-      ],
-    };
-
-    const { stream } = await model.doStream({
-      prompt: TEST_PROMPT,
-      includeRawChunks: false,
+  describe('reasoning', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('groq-reasoning');
     });
 
-    const chunks = await convertReadableStreamToArray(stream);
-    const finishChunk = chunks.find(chunk => chunk.type === 'finish');
+    it('should stream reasoning', async () => {
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
 
-    expect(finishChunk).toMatchInlineSnapshot(`
-      {
-        "finishReason": {
-          "raw": "stop",
-          "unified": "stop",
-        },
-        "type": "finish",
-        "usage": {
-          "inputTokens": {
-            "cacheRead": undefined,
-            "cacheWrite": undefined,
-            "noCache": 79,
-            "total": 79,
-          },
-          "outputTokens": {
-            "reasoning": 21,
-            "text": 19,
-            "total": 40,
-          },
-          "raw": {
-            "completion_tokens": 40,
-            "completion_tokens_details": {
-              "reasoning_tokens": 21,
-            },
-            "prompt_tokens": 79,
-            "total_tokens": 119,
-          },
-        },
-      }
-    `);
-  });
-
-  it('should stream tool deltas', async () => {
-    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
-      type: 'stream-chunks',
-      chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
-          `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":""}}]},` +
-          `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\""}}]},` +
-          `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"value"}}]},` +
-          `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
-          `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
-          `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
-          `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
-          `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
-          `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"gemma2-9b-it",` +
-          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}],` +
-          `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
-          `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}}\n\n`,
-        'data: [DONE]\n\n',
-      ],
-    };
-
-    const { stream } = await model.doStream({
-      tools: [
-        {
-          type: 'function',
-          name: 'test-tool',
-          inputSchema: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
-          },
-        },
-      ],
-      prompt: TEST_PROMPT,
-      includeRawChunks: false,
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
     });
-
-    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
-      [
-        {
-          "type": "stream-start",
-          "warnings": [],
-        },
-        {
-          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "gemma2-9b-it",
-          "timestamp": 2024-03-25T09:06:38.000Z,
-          "type": "response-metadata",
-        },
-        {
-          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolName": "test-tool",
-          "type": "tool-input-start",
-        },
-        {
-          "delta": "{"",
-          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "type": "tool-input-delta",
-        },
-        {
-          "delta": "value",
-          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "type": "tool-input-delta",
-        },
-        {
-          "delta": "":"",
-          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "type": "tool-input-delta",
-        },
-        {
-          "delta": "Spark",
-          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "type": "tool-input-delta",
-        },
-        {
-          "delta": "le",
-          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "type": "tool-input-delta",
-        },
-        {
-          "delta": " Day",
-          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "type": "tool-input-delta",
-        },
-        {
-          "delta": ""}",
-          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "type": "tool-input-delta",
-        },
-        {
-          "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "type": "tool-input-end",
-        },
-        {
-          "input": "{"value":"Sparkle Day"}",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolName": "test-tool",
-          "type": "tool-call",
-        },
-        {
-          "finishReason": {
-            "raw": "tool_calls",
-            "unified": "tool-calls",
-          },
-          "type": "finish",
-          "usage": {
-            "inputTokens": {
-              "cacheRead": undefined,
-              "cacheWrite": undefined,
-              "noCache": 18,
-              "total": 18,
-            },
-            "outputTokens": {
-              "reasoning": undefined,
-              "text": 439,
-              "total": 439,
-            },
-            "raw": {
-              "completion_tokens": 439,
-              "prompt_tokens": 18,
-              "total_tokens": 457,
-            },
-          },
-        },
-      ]
-    `);
   });
 
   it('should stream tool call deltas when tool call arguments are passed in the first chunk', async () => {
-    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'stream-chunks',
       chunks: [
         `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
@@ -1376,7 +1030,6 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
-      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1476,7 +1129,7 @@ describe('doStream', () => {
   });
 
   it('should not duplicate tool calls when there is an additional empty chunk after the tool call has been completed', async () => {
-    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'stream-chunks',
       chunks: [
         `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
@@ -1506,7 +1159,6 @@ describe('doStream', () => {
           `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
           `"function":{"arguments":" ai\\"}"}}]},"logprobs":null,"finish_reason":null}],` +
           `"usage":{"prompt_tokens":226,"total_tokens":245,"completion_tokens":19}}\n\n`,
-        // empty arguments chunk after the tool call has already been finished:
         `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
           `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
           `"function":{"arguments":""}}]},"logprobs":null,"finish_reason":"tool_calls","stop_reason":128008}],` +
@@ -1533,7 +1185,6 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
-      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1614,7 +1265,7 @@ describe('doStream', () => {
   });
 
   it('should stream tool call that is sent in one chunk', async () => {
-    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'stream-chunks',
       chunks: [
         `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
@@ -1644,7 +1295,6 @@ describe('doStream', () => {
         },
       ],
       prompt: TEST_PROMPT,
-      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1709,7 +1359,7 @@ describe('doStream', () => {
   });
 
   it('should handle error stream parts', async () => {
-    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'stream-chunks',
       chunks: [
         `data: {"error":{"message": "The server had an error processing your request. Sorry about that!","type":"invalid_request_error"}}\n\n`,
@@ -1719,7 +1369,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
-      includeRawChunks: false,
     });
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1763,15 +1412,13 @@ describe('doStream', () => {
   it.skipIf(isNodeVersion(20))(
     'should handle unparsable stream parts',
     async () => {
-      server.urls['https://api.groq.com/openai/v1/chat/completions'].response =
-        {
-          type: 'stream-chunks',
-          chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
-        };
+      server.urls[CHAT_COMPLETIONS_URL].response = {
+        type: 'stream-chunks',
+        chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
+      };
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
-        includeRawChunks: false,
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
@@ -1812,45 +1459,47 @@ describe('doStream', () => {
   );
 
   it('should expose the raw response headers', async () => {
-    prepareStreamResponse({
-      headers: {
-        'test-header': 'test-value',
-      },
+    prepareChunksFixtureResponse('groq-text', {
+      headers: { 'test-header': 'test-value' },
     });
 
     const { response } = await model.doStream({
       prompt: TEST_PROMPT,
-      includeRawChunks: false,
     });
 
-    expect(response?.headers).toStrictEqual({
-      // default headers:
-      'content-type': 'text/event-stream',
-      'cache-control': 'no-cache',
-      connection: 'keep-alive',
-
-      // custom header
-      'test-header': 'test-value',
-    });
+    expect(response?.headers).toMatchInlineSnapshot(`
+      {
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream",
+        "test-header": "test-value",
+      }
+    `);
   });
 
-  it('should pass the messages and the model', async () => {
-    prepareStreamResponse({ content: [] });
+  it('should send correct streaming request body', async () => {
+    prepareChunksFixtureResponse('groq-text');
 
     await model.doStream({
       prompt: TEST_PROMPT,
-      includeRawChunks: false,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      stream: true,
-      model: 'gemma2-9b-it',
-      messages: [{ role: 'user', content: 'Hello' }],
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gemma2-9b-it",
+        "stream": true,
+      }
+    `);
   });
 
   it('should pass headers', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareChunksFixtureResponse('groq-text');
 
     const provider = createGroq({
       apiKey: 'test-api-key',
@@ -1861,37 +1510,39 @@ describe('doStream', () => {
 
     await provider('gemma2-9b-it').doStream({
       prompt: TEST_PROMPT,
-      includeRawChunks: false,
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
     });
 
-    expect(server.calls[0].requestHeaders).toStrictEqual({
-      authorization: 'Bearer test-api-key',
-      'content-type': 'application/json',
-      'custom-provider-header': 'provider-header-value',
-      'custom-request-header': 'request-header-value',
-    });
+    expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+      {
+        "authorization": "Bearer test-api-key",
+        "content-type": "application/json",
+        "custom-provider-header": "provider-header-value",
+        "custom-request-header": "request-header-value",
+      }
+    `);
   });
 
   it('should send request body', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareChunksFixtureResponse('groq-text');
 
     const { request } = await model.doStream({
       prompt: TEST_PROMPT,
-      includeRawChunks: false,
     });
 
-    expect(request).toStrictEqual({
-      body: '{"model":"gemma2-9b-it","messages":[{"role":"user","content":"Hello"}],"stream":true}',
-    });
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": "{"model":"gemma2-9b-it","messages":[{"role":"user","content":"Hello"}],"stream":true}",
+      }
+    `);
   });
 });
 
 describe('doStream with raw chunks', () => {
   it('should stream raw chunks when includeRawChunks is true', async () => {
-    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'stream-chunks',
       chunks: [
         `data: {"id":"chatcmpl-123","object":"chat.completion.chunk","created":1234567890,"model":"gemma2-9b-it","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n`,

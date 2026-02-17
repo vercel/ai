@@ -106,23 +106,38 @@ export function addCacheControlToMessages({
 
 ## Using the Utility
 
-Integrate the utility into your agent using the `prepareStep` callback:
+Integrate the utility into your agent using the `prepareStep` callback with `generateText` and `maxSteps`:
 
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
 import { addCacheControlToMessages } from './add-cache-control-to-messages';
-import { agent } from 'your-agent-setup';
 
 async function main() {
-  const result = await agent({
+  const result = await generateText({
     model: anthropic('claude-sonnet-4-5'),
     prompt: 'Help me analyze this codebase and suggest improvements.',
+    maxSteps: 10,
+    tools: {
+      // your tools here
+      analyzeFile: tool({
+        description: 'Analyze a file in the codebase',
+        inputSchema: z.object({
+          path: z.string().describe('Path to the file'),
+        }),
+        execute: async ({ path }) => {
+          // implementation
+          return { analysis: `Analysis of ${path}` };
+        },
+      }),
+    },
     prepareStep: ({ messages, model }) => ({
       messages: addCacheControlToMessages({ messages, model }),
     }),
   });
 
-  console.log(result);
+  console.log(result.text);
 }
 
 main().catch(console.error);

@@ -10,6 +10,14 @@ The Black Forest Labs provider is available in the `@ai-sdk/black-forest-labs` m
 pnpm add @ai-sdk/black-forest-labs
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 You can import the default provider instance `blackForestLabs` from `@ai-sdk/black-forest-labs`:

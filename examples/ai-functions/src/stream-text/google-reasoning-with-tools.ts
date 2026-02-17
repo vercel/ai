@@ -1,4 +1,4 @@
-import { google } from '@ai-sdk/google';
+import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { streamText } from 'ai';
 import { z } from 'zod';
 import { run } from '../lib/run';
@@ -26,7 +26,7 @@ run(async () => {
           thinkingBudget: -1,
           includeThoughts: true,
         },
-      },
+      } satisfies GoogleLanguageModelOptions,
     },
   });
 

@@ -137,6 +137,9 @@ Mistral chat models support document OCR for PDF files.
 You can optionally set image and page limits using the provider options.
 
 ```ts
+import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
+import { generateText } from 'ai';
+
 const result = await generateText({
   model: mistral('mistral-small-latest'),
   messages: [
@@ -162,7 +165,7 @@ const result = await generateText({
     mistral: {
       documentImageLimit: 8,
       documentPageLimit: 64,
-    },
+    } satisfies MistralLanguageModelOptions,
   },
 });
 ```
@@ -171,26 +174,17 @@ const result = await generateText({
 
 Mistral offers reasoning models that provide step-by-step thinking capabilities:
 
-- **magistral-small-2506**: Smaller reasoning model for efficient step-by-step thinking
-- **magistral-medium-2506**: More powerful reasoning model balancing performance and cost
+- **magistral-small-2507**: Smaller reasoning model for efficient step-by-step thinking
+- **magistral-medium-2507**: More powerful reasoning model balancing performance and cost
 
-These models return content that includes `<think>...</think>` tags containing the reasoning process. To properly extract and separate the reasoning from the final answer, use the [extract reasoning middleware](/docs/reference/ai-sdk-core/extract-reasoning-middleware):
+These models return structured reasoning content that the AI SDK extracts automatically. The reasoning is available via the `reasoningText` property in the result:
 
 ```ts
 import { mistral } from '@ai-sdk/mistral';
-import {
-  extractReasoningMiddleware,
-  generateText,
-  wrapLanguageModel,
-} from 'ai';
+import { generateText } from 'ai';
 
 const result = await generateText({
-  model: wrapLanguageModel({
-    model: mistral('magistral-small-2506'),
-    middleware: extractReasoningMiddleware({
-      tagName: 'think',
-    }),
-  }),
+  model: mistral('magistral-small-2507'),
   prompt: 'What is 15 * 24?',
 });
 
@@ -201,7 +195,7 @@ console.log('ANSWER:', result.text);
 // Output: "360"
 ```
 
-The middleware automatically parses the `<think>` tags and provides separate `reasoningText` and `text` properties in the result.
+The SDK automatically parses Mistral's native reasoning format and provides separate `reasoningText` and `text` properties in the result. No middleware is needed.
 
 ### Example
 
@@ -248,7 +242,7 @@ console.log(JSON.stringify(result.object, null, 2));
 You can enable strict JSON Schema validation using a provider option:
 
 ```ts highlight="7-11"
-import { mistral } from '@ai-sdk/mistral';
+import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 
@@ -257,7 +251,7 @@ const result = await generateObject({
   providerOptions: {
     mistral: {
       strictJsonSchema: true, // reject outputs that don't strictly match the schema
-    },
+    } satisfies MistralLanguageModelOptions,
   },
   schema: z.object({
     title: z.string(),
@@ -281,8 +275,11 @@ const result = await generateObject({
 | `pixtral-large-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `mistral-large-latest`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `mistral-medium-latest` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `mistral-medium-2508`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `mistral-medium-2505`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `mistral-small-latest`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `magistral-small-2507`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `magistral-medium-2507` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `magistral-small-2506`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `magistral-medium-2506` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `ministral-3b-latest`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

@@ -216,14 +216,17 @@ README.md     build         data          node_modules  package.json  src       
         model,
         tools: {
           str_replace_editor: bedrockAnthropic.tools.textEditor_20241022({
-            async execute({ command, path, old_str, new_str }) {
+            async execute({ command, path, old_str, new_str, insert_text }) {
               switch (command) {
                 case 'view': {
                   return editorContent;
                 }
-                case 'create':
-                case 'insert': {
+                case 'create': {
                   editorContent = new_str!;
+                  return editorContent;
+                }
+                case 'insert': {
+                  editorContent = insert_text!;
                   return editorContent;
                 }
                 case 'str_replace': {

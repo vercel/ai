@@ -47,6 +47,7 @@ export async function createAgentUIStream<
     | StreamTextTransform<TOOLS>
     | Array<StreamTextTransform<TOOLS>>;
   onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
+  // TODO `originalMessages` is part of this for bc, omit in v7
 } & UIMessageStreamOptions<
   UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
 >): Promise<
@@ -74,5 +75,10 @@ export async function createAgentUIStream<
     onStepFinish,
   });
 
-  return result.toUIMessageStream(uiMessageStreamOptions);
+  return result.toUIMessageStream({
+    ...uiMessageStreamOptions,
+    // TODO reading `originalMessages` is here for bc, always use `validatedMessages` in v7
+    originalMessages:
+      uiMessageStreamOptions.originalMessages ?? validatedMessages,
+  });
 }

@@ -1,7 +1,7 @@
 import {
   azure,
   AzureResponsesReasoningProviderMetadata,
-  OpenAIResponsesProviderOptions,
+  OpenAILanguageModelResponsesOptions,
 } from '@ai-sdk/azure';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
@@ -14,7 +14,7 @@ run(async () => {
       azure: {
         reasoningEffort: 'low',
         reasoningSummary: 'detailed',
-      } satisfies OpenAIResponsesProviderOptions,
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
   });
 

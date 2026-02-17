@@ -72,7 +72,7 @@ const searchSourceSchema = z.discriminatedUnion('type', [
 ]);
 
 // xai-specific provider options
-export const xaiProviderOptions = z.object({
+export const xaiLanguageModelChatOptions = z.object({
   reasoningEffort: z.enum(['low', 'high']).optional(),
 
   /**
@@ -127,4 +127,6 @@ export const xaiProviderOptions = z.object({
     .optional(),
 });
 
-export type XaiProviderOptions = z.infer<typeof xaiProviderOptions>;
+export type XaiLanguageModelChatOptions = z.infer<
+  typeof xaiLanguageModelChatOptions
+>;

@@ -1,4 +1,7 @@
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import {
+  anthropic,
+  type AnthropicLanguageModelOptions,
+} from '@ai-sdk/anthropic';
 import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 import { z } from 'zod';
 
@@ -19,7 +22,7 @@ export const anthropicCodeExecutionAgent = new ToolLoopAgent({
           id: options?.containerId,
           skills: [{ type: 'anthropic', skillId: 'pdf' }],
         },
-      } satisfies AnthropicProviderOptions as any, // TODO rm any once JSONObject allows undefined
+      } satisfies AnthropicLanguageModelOptions as any, // TODO rm any once JSONObject allows undefined
     },
   }),
 });

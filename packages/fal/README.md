@@ -10,6 +10,14 @@ The fal provider is available in the `@ai-sdk/fal` module. You can install it wi
 npm i @ai-sdk/fal
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 You can import the default provider instance `fal` from `@ai-sdk/fal`:

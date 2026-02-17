@@ -172,7 +172,7 @@ describe('validateUIMessages', () => {
           }),
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
-        [AI_TypeValidationError: Type validation failed: Value: {"foo":123}.
+        [AI_TypeValidationError: Type validation failed for messages[0].metadata (id: "1"): Value: {"foo":123}.
         Error message: [
           {
             "expected": "string",
@@ -512,7 +512,7 @@ describe('validateUIMessages', () => {
           },
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
-        [AI_TypeValidationError: Type validation failed: Value: {"foo":123}.
+        [AI_TypeValidationError: Type validation failed for messages[0].parts[0].data (foo): Value: {"foo":123}.
         Error message: [
           {
             "expected": "string",
@@ -541,7 +541,7 @@ describe('validateUIMessages', () => {
           },
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
-        [AI_TypeValidationError: Type validation failed: Value: {"foo":"bar"}.
+        [AI_TypeValidationError: Type validation failed for messages[0].parts[0].data (bar): Value: {"foo":"bar"}.
         Error message: No data schema found for data part bar]
       `);
     });
@@ -1142,7 +1142,7 @@ describe('validateUIMessages', () => {
           },
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
-        [AI_TypeValidationError: Type validation failed: Value: {"foo":"bar"}.
+        [AI_TypeValidationError: Type validation failed for messages[0].parts[0].input (bar, id: "1"): Value: {"foo":"bar"}.
         Error message: No tool schema found for tool part bar]
       `);
     });
@@ -1170,7 +1170,7 @@ describe('validateUIMessages', () => {
           },
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
-        [AI_TypeValidationError: Type validation failed: Value: {"foo":123}.
+        [AI_TypeValidationError: Type validation failed for messages[0].parts[0].input (foo, id: "1"): Value: {"foo":123}.
         Error message: [
           {
             "expected": "string",
@@ -1208,7 +1208,7 @@ describe('validateUIMessages', () => {
           },
         }),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`
-        [AI_TypeValidationError: Type validation failed: Value: {"result":123}.
+        [AI_TypeValidationError: Type validation failed for messages[0].parts[0].output (foo, id: "1"): Value: {"result":123}.
         Error message: [
           {
             "expected": "string",

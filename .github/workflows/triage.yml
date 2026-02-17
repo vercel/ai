@@ -35,6 +35,8 @@ jobs:
         uses: actions/checkout@v5
         with:
           token: ${{ steps.app-token.outputs.token }}
+          ref: ${{ github.event.pull_request.base.ref }}
+          fetch-depth: 0
 
       - name: Fetch existing labels
         id: fetch-labels
@@ -47,10 +49,11 @@ jobs:
       - name: Get changed file paths
         id: get-changed-files
         run: |
-          git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
-          changed_files=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD)
-          echo "changed_files=$changed_files"
-          echo "changed_files=$changed_files" >> $GITHUB_OUTPUT
+          files=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...${{ github.event.pull_request.head.sha }})
+          echo "files=$files"
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$files" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Determine appropriate labels
         id: classify-issue

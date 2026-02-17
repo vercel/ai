@@ -14,7 +14,7 @@ import { falFailedResponseHandler } from './fal-error';
 import { FAL_EMOTIONS, FAL_LANGUAGE_BOOSTS } from './fal-api-types';
 import { FalSpeechModelId } from './fal-speech-settings';
 
-const falSpeechProviderOptionsSchema = z.looseObject({
+const falSpeechModelOptionsSchema = z.looseObject({
   voice_setting: z
     .object({
       speed: z.number().nullish(),
@@ -31,9 +31,7 @@ const falSpeechProviderOptionsSchema = z.looseObject({
   pronunciation_dict: z.record(z.string(), z.string()).nullish(),
 });
 
-export type FalSpeechCallOptions = z.infer<
-  typeof falSpeechProviderOptionsSchema
->;
+export type FalSpeechModelOptions = z.infer<typeof falSpeechModelOptionsSchema>;
 
 interface FalSpeechModelConfig extends FalConfig {
   _internal?: {
@@ -66,7 +64,7 @@ export class FalSpeechModel implements SpeechModelV3 {
     const falOptions = await parseProviderOptions({
       provider: 'fal',
       providerOptions,
-      schema: falSpeechProviderOptionsSchema,
+      schema: falSpeechModelOptionsSchema,
     });
 
     const requestBody = {

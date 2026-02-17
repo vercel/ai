@@ -1,3 +1,4 @@
+import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
@@ -13,7 +14,7 @@ run(async () => {
             threshold: 'BLOCK_LOW_AND_ABOVE',
           },
         ],
-      },
+      } satisfies GoogleLanguageModelOptions,
     },
     prompt: 'tell me a joke about a clown',
   });

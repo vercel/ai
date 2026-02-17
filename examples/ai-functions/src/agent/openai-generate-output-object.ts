@@ -1,4 +1,4 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { Output, ToolLoopAgent } from 'ai';
 import { run } from '../lib/run';
 import { z } from 'zod';
@@ -27,7 +27,7 @@ const agent = new ToolLoopAgent({
     providerOptions: {
       openai: {
         strictJsonSchema: options.strict,
-      } satisfies OpenAIResponsesProviderOptions,
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
   }),
 });

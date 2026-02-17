@@ -1,5 +1,5 @@
 import {
-  BlackForestLabsImageProviderOptions,
+  BlackForestLabsImageModelOptions,
   blackForestLabs,
 } from '@ai-sdk/black-forest-labs';
 import { generateImage } from 'ai';
@@ -15,7 +15,7 @@ run(async () => {
     providerOptions: {
       blackForestLabs: {
         outputFormat: 'png',
-      } satisfies BlackForestLabsImageProviderOptions,
+      } satisfies BlackForestLabsImageModelOptions,
     },
   });
 

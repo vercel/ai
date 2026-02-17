@@ -135,10 +135,10 @@ const model = openai('gpt-5');
 ```
 
 Further configuration can be done using OpenAI provider options.
-You can validate the provider options using the `OpenAIResponsesProviderOptions` type.
+You can validate the provider options using the `OpenAILanguageModelResponsesOptions` type.
 
 ```ts
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -149,7 +149,7 @@ const result = await generateText({
       store: false,
       user: 'user_123',
       // ...
-    } satisfies OpenAIResponsesProviderOptions,
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
   // ...
 });
@@ -292,7 +292,10 @@ The following OpenAI-specific metadata may be returned:
 For reasoning models like `gpt-5`, you can enable reasoning summaries to see the model's thought process. Different models support different summarizers—for example, `o4-mini` supports detailed summaries. Set `reasoningSummary: "auto"` to automatically receive the richest level available.
 
 ```ts highlight="8-9,16"
-import { openai } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
 const result = streamText({
@@ -301,7 +304,7 @@ const result = streamText({
   providerOptions: {
     openai: {
       reasoningSummary: 'detailed', // 'auto' for condensed or 'detailed' for comprehensive
-    },
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
 });
 
@@ -317,7 +320,10 @@ for await (const part of result.fullStream) {
 For non-streaming calls with `generateText`, the reasoning summaries are available in the `reasoning` field of the response:
 
 ```ts highlight="8-9,13"
-import { openai } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -326,7 +332,7 @@ const result = await generateText({
   providerOptions: {
     openai: {
       reasoningSummary: 'auto',
-    },
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
 });
 console.log('Reasoning:', result.reasoning);
@@ -339,7 +345,10 @@ Learn more about reasoning summaries in the [OpenAI documentation](https://platf
 You can control the length and detail of model responses using the `textVerbosity` parameter:
 
 ```ts
-import { openai } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -348,7 +357,7 @@ const result = await generateText({
   providerOptions: {
     openai: {
       textVerbosity: 'low', // 'low' for concise, 'medium' (default), or 'high' for verbose
-    },
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
 });
 ```
@@ -439,7 +448,7 @@ const result = await generateText({
     openai: {
       // optional: include results
       include: ['file_search_call.results'],
-    } satisfies OpenAIResponsesProviderOptions,
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
 });
 ```
@@ -1014,7 +1023,7 @@ This metadata includes the following fields:
 import {
   openai,
   type OpenaiResponsesReasoningProviderMetadata,
-  type OpenAIResponsesProviderOptions,
+  type OpenAILanguageModelResponsesOptions,
 } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
@@ -1025,7 +1034,7 @@ const result = await generateText({
     openai: {
       store: false,
       include: ['reasoning.encrypted_content'],
-    } satisfies OpenAIResponsesProviderOptions,
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
 });
 
@@ -1130,7 +1139,7 @@ OpenAI chat models support also some model specific provider options that are no
 You can pass them in the `providerOptions` argument:
 
 ```ts
-import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
+import { openai, type OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
 
 const model = openai.chat('gpt-5');
 
@@ -1143,7 +1152,7 @@ await generateText({
         '50256': -100,
       },
       user: 'test-user', // optional unique user identifier
-    } satisfies OpenAIChatLanguageModelOptions,
+    } satisfies OpenAILanguageModelChatOptions,
   },
 });
 ```
@@ -1261,7 +1270,7 @@ They support additional settings and response metadata:
 - You can use response `providerMetadata` to access the number of reasoning tokens that the model generated.
 
 ```ts highlight="4,7-11,17"
-import { openai } from '@ai-sdk/openai';
+import { openai, type OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const { text, usage, providerMetadata } = await generateText({
@@ -1270,7 +1279,7 @@ const { text, usage, providerMetadata } = await generateText({
   providerOptions: {
     openai: {
       reasoningEffort: 'low',
-    },
+    } satisfies OpenAILanguageModelChatOptions,
   },
 });
 
@@ -1293,7 +1302,7 @@ console.log('Usage:', {
   - `remove`: remove the system message from the messages.
 
 ```ts highlight="12"
-import { openai } from '@ai-sdk/openai';
+import { openai, type OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -1305,7 +1314,7 @@ const result = await generateText({
   providerOptions: {
     openai: {
       systemMessageMode: 'system',
-    },
+    } satisfies OpenAILanguageModelChatOptions,
   },
 });
 ```
@@ -1327,7 +1336,7 @@ Strict structured outputs are enabled by default.
 You can disable them by setting the `strictJsonSchema` option to `false`.
 
 ```ts highlight="7"
-import { openai, OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 
@@ -1336,7 +1345,7 @@ const result = await generateObject({
   providerOptions: {
     openai: {
       strictJsonSchema: false,
-    } satisfies OpenAIChatLanguageModelOptions,
+    } satisfies OpenAILanguageModelChatOptions,
   },
   schemaName: 'recipe',
   schemaDescription: 'A recipe for lasagna.',
@@ -1373,7 +1382,7 @@ OpenAI provides logprobs information for completion/chat models.
 You can access it in the `providerMetadata` object.
 
 ```ts highlight="11"
-import { openai } from '@ai-sdk/openai';
+import { openai, type OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -1384,7 +1393,7 @@ const result = await generateText({
       // this can also be a number,
       // refer to logprobs provider options section for more
       logprobs: true,
-    },
+    } satisfies OpenAILanguageModelChatOptions,
   },
 });
 
@@ -1510,7 +1519,7 @@ const result = streamText({
         type: 'content',
         content: existingCode,
       },
-    },
+    } satisfies OpenAILanguageModelChatOptions,
   },
 });
 ```
@@ -1574,7 +1583,7 @@ If you want to store a generation for use in the distillation process, you can a
 This will save the generation to the OpenAI platform for later use in distillation.
 
 ```typescript highlight="9-16"
-import { openai } from '@ai-sdk/openai';
+import { openai, type OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import 'dotenv/config';
 
@@ -1588,7 +1597,7 @@ async function main() {
         metadata: {
           custom: 'value',
         },
-      },
+      } satisfies OpenAILanguageModelChatOptions,
     },
   });
 
@@ -1630,7 +1639,7 @@ console.log(`usage:`, {
 To improve cache hit rates, you can manually control caching using the `promptCacheKey` option:
 
 ```ts highlight="7-11"
-import { openai } from '@ai-sdk/openai';
+import { openai, type OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const { text, usage, providerMetadata } = await generateText({
@@ -1639,7 +1648,7 @@ const { text, usage, providerMetadata } = await generateText({
   providerOptions: {
     openai: {
       promptCacheKey: 'my-custom-cache-key-123',
-    },
+    } satisfies OpenAILanguageModelChatOptions,
   },
 });
 
@@ -1652,7 +1661,7 @@ console.log(`usage:`, {
 For GPT-5.1 models, you can enable extended prompt caching that keeps cached prefixes active for up to 24 hours:
 
 ```ts highlight="7-12"
-import { openai } from '@ai-sdk/openai';
+import { openai, type OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const { text, usage, providerMetadata } = await generateText({
@@ -1662,7 +1671,7 @@ const { text, usage, providerMetadata } = await generateText({
     openai: {
       promptCacheKey: 'my-custom-cache-key-123',
       promptCacheRetention: '24h', // Extended caching for GPT-5.1
-    },
+    } satisfies OpenAILanguageModelChatOptions,
   },
 });
 
@@ -1729,7 +1738,7 @@ await model.doGenerate({
       },
       suffix: 'some text', // optional suffix that comes after a completion of inserted text
       user: 'test-user', // optional unique user identifier
-    },
+    } satisfies OpenAILanguageModelCompletionOptions,
   },
 });
 ```
@@ -1819,7 +1828,7 @@ OpenAI embedding models support several additional provider options.
 You can pass them as an options argument:
 
 ```ts
-import { openai } from '@ai-sdk/openai';
+import { openai, type OpenAIEmbeddingModelOptions } from '@ai-sdk/openai';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
@@ -1829,7 +1838,7 @@ const { embedding } = await embed({
     openai: {
       dimensions: 512, // optional, number of dimensions for the embedding
       user: 'test-user', // optional unique user identifier
-    },
+    } satisfies OpenAIEmbeddingModelOptions,
   },
 });
 ```
@@ -2009,12 +2018,14 @@ You can also pass additional provider-specific options using the `providerOption
 
 ```ts highlight="6"
 import { experimental_transcribe as transcribe } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { openai, type OpenAITranscriptionModelOptions } from '@ai-sdk/openai';
 
 const result = await transcribe({
   model: openai.transcription('whisper-1'),
   audio: new Uint8Array([1, 2, 3, 4]),
-  providerOptions: { openai: { language: 'en' } },
+  providerOptions: {
+    openai: { language: 'en' } satisfies OpenAITranscriptionModelOptions,
+  },
 });
 ```
 
@@ -2022,7 +2033,7 @@ To get word-level timestamps, specify the granularity:
 
 ```ts highlight="8-9"
 import { experimental_transcribe as transcribe } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { openai, type OpenAITranscriptionModelOptions } from '@ai-sdk/openai';
 
 const result = await transcribe({
   model: openai.transcription('whisper-1'),
@@ -2031,7 +2042,7 @@ const result = await transcribe({
     openai: {
       //timestampGranularities: ['word'],
       timestampGranularities: ['segment'],
-    },
+    } satisfies OpenAITranscriptionModelOptions,
   },
 });
 
@@ -2099,7 +2110,7 @@ You can also pass additional provider-specific options using the `providerOption
 
 ```ts highlight="7-9"
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { openai, type OpenAISpeechModelOptions } from '@ai-sdk/openai';
 
 const result = await generateSpeech({
   model: openai.speech('tts-1'),
@@ -2108,7 +2119,7 @@ const result = await generateSpeech({
   providerOptions: {
     openai: {
       speed: 1.2,
-    },
+    } satisfies OpenAISpeechModelOptions,
   },
 });
 ```

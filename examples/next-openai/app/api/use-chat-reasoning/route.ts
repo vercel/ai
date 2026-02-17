@@ -1,4 +1,4 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText } from 'ai';
 
 // Allow streaming responses up to 30 seconds
@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     providerOptions: {
       openai: {
         reasoningSummary: 'detailed', // 'auto' for condensed or 'detailed' for comprehensive
-      } satisfies OpenAIResponsesProviderOptions,
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
     onFinish: ({ request }) => {
       console.dir(request.body, { depth: null });

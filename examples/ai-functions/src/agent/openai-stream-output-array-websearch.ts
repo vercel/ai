@@ -1,4 +1,4 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { Output, ToolLoopAgent } from 'ai';
 import { z } from 'zod';
 import { print } from '../lib/print';
@@ -23,7 +23,7 @@ const agent = new ToolLoopAgent({
     openai: {
       reasoningEffort: 'medium',
       reasoningSummary: 'detailed',
-    } satisfies OpenAIResponsesProviderOptions,
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
   prepareCall: ({ options, ...rest }) => ({
     ...rest,

@@ -1,4 +1,4 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
 export const openaiBasicAgent = new ToolLoopAgent({
@@ -8,7 +8,7 @@ export const openaiBasicAgent = new ToolLoopAgent({
       reasoningEffort: 'medium',
       reasoningSummary: 'detailed',
       // store: false,
-    } satisfies OpenAIResponsesProviderOptions,
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
   onStepFinish: ({ request }) => {
     console.dir(request.body, { depth: Infinity });

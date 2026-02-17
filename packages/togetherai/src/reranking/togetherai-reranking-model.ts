@@ -14,7 +14,7 @@ import {
 } from './togetherai-reranking-api';
 import {
   TogetherAIRerankingModelId,
-  togetheraiRerankingOptionsSchema,
+  togetheraiRerankingModelOptionsSchema,
 } from './togetherai-reranking-options';
 
 type TogetherAIRerankingConfig = {
@@ -56,7 +56,7 @@ export class TogetherAIRerankingModel implements RerankingModelV3 {
     const rerankingOptions = await parseProviderOptions({
       provider: 'togetherai',
       providerOptions,
-      schema: togetheraiRerankingOptionsSchema,
+      schema: togetheraiRerankingModelOptionsSchema,
     });
 
     const {
