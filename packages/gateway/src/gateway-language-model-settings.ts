@@ -15,6 +15,11 @@ export type GatewayModelId =
   | 'alibaba/qwen3-next-80b-a3b-thinking'
   | 'alibaba/qwen3-vl-instruct'
   | 'alibaba/qwen3-vl-thinking'
+<<<<<<< HEAD
+=======
+  | 'alibaba/qwen3.5-plus'
+  | 'amazon/nova-2-lite'
+>>>>>>> 6bbd05b7c (chore(provider/gateway): update gateway model settings files (#12639))
   | 'amazon/nova-lite'
   | 'amazon/nova-micro'
   | 'amazon/nova-pro'
