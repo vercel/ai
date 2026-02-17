@@ -10,7 +10,6 @@ import {
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
-  delay,
   type FetchFunction,
   getFromApi,
   lazySchema,
@@ -255,8 +254,6 @@ interface KlingAIVideoModelConfig {
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
-    pollIntervalMs?: number;
-    pollTimeoutMs?: number;
   };
 }
 
@@ -272,121 +269,6 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
     readonly modelId: KlingAIVideoModelId,
     private readonly config: KlingAIVideoModelConfig,
   ) {}
-
-  async doGenerate(
-    options: Parameters<
-      NonNullable<Experimental_VideoModelV3['doGenerate']>
-    >[0],
-  ): Promise<
-    Awaited<ReturnType<NonNullable<Experimental_VideoModelV3['doGenerate']>>>
-  > {
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const warnings: SharedV3Warning[] = [];
-    const mode = detectMode(this.modelId);
-
-    const klingaiOptions = (await parseProviderOptions({
-      provider: 'klingai',
-      providerOptions: options.providerOptions,
-      schema: klingaiVideoModelOptionsSchema,
-    })) as KlingAIVideoModelOptions | undefined;
-
-    let body: Record<string, unknown>;
-
-    if (mode === 'motion-control') {
-      body = this.buildMotionControlBody(options, klingaiOptions, warnings);
-    } else if (mode === 't2v') {
-      body = this.buildT2VBody(options, klingaiOptions, warnings);
-    } else {
-      body = this.buildI2VBody(options, klingaiOptions, warnings);
-    }
-
-    this.addUniversalWarnings(options, warnings);
-
-    const endpointPath = modeEndpointMap[mode];
-
-    // Step 1: Create the task
-    const { value: createResponse, responseHeaders: createHeaders } =
-      await postJsonToApi({
-        url: `${this.config.baseURL}${endpointPath}`,
-        headers: combineHeaders(
-          await resolve(this.config.headers),
-          options.headers,
-        ),
-        body,
-        successfulResponseHandler: createJsonResponseHandler(
-          klingaiCreateTaskSchema,
-        ),
-        failedResponseHandler: klingaiFailedResponseHandler,
-        abortSignal: options.abortSignal,
-        fetch: this.config.fetch,
-      });
-
-    const taskId = createResponse.data?.task_id;
-    if (!taskId) {
-      throw new AISDKError({
-        name: 'KLINGAI_VIDEO_GENERATION_ERROR',
-        message: `No task_id returned from KlingAI API. Response: ${JSON.stringify(createResponse)}`,
-      });
-    }
-
-    // Step 2: Poll for task completion
-    const pollIntervalMs = this.config._internal?.pollIntervalMs ?? 5000; // 5 seconds
-    const pollTimeoutMs = this.config._internal?.pollTimeoutMs ?? 600000; // 10 minutes
-    const startTime = Date.now();
-    let finalResponse: KlingAITaskResponse | undefined;
-    let responseHeaders: Record<string, string> | undefined = createHeaders;
-
-    while (true) {
-      await delay(pollIntervalMs, { abortSignal: options.abortSignal });
-
-      if (Date.now() - startTime > pollTimeoutMs) {
-        throw new AISDKError({
-          name: 'KLINGAI_VIDEO_GENERATION_TIMEOUT',
-          message: `Video generation timed out after ${pollTimeoutMs}ms`,
-        });
-      }
-
-      const { value: statusResponse, responseHeaders: pollHeaders } =
-        await getFromApi({
-          url: `${this.config.baseURL}${endpointPath}/${taskId}`,
-          headers: combineHeaders(
-            await resolve(this.config.headers),
-            options.headers,
-          ),
-          successfulResponseHandler: createJsonResponseHandler(
-            klingaiTaskStatusSchema,
-          ),
-          failedResponseHandler: klingaiFailedResponseHandler,
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        });
-
-      responseHeaders = pollHeaders;
-      const taskStatus = statusResponse.data?.task_status;
-
-      if (taskStatus === 'succeed') {
-        finalResponse = statusResponse;
-        break;
-      }
-
-      if (taskStatus === 'failed') {
-        throw new AISDKError({
-          name: 'KLINGAI_VIDEO_GENERATION_FAILED',
-          message: `Video generation failed: ${statusResponse.data?.task_status_msg ?? 'Unknown error'}`,
-        });
-      }
-
-      // Continue polling for 'submitted' and 'processing' statuses
-    }
-
-    return this.buildCompletedResult(
-      finalResponse,
-      taskId,
-      responseHeaders,
-      warnings,
-      currentDate,
-    );
-  }
 
   async doStart(
     options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
@@ -505,9 +387,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   private addUniversalWarnings(
-    options: Parameters<
-      NonNullable<Experimental_VideoModelV3['doGenerate']>
-    >[0],
+    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
     warnings: SharedV3Warning[],
   ): void {
     if (options.resolution) {
@@ -609,9 +489,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   private buildT2VBody(
-    options: Parameters<
-      NonNullable<Experimental_VideoModelV3['doGenerate']>
-    >[0],
+    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV3Warning[],
   ): Record<string, unknown> {
@@ -670,9 +548,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   private buildI2VBody(
-    options: Parameters<
-      NonNullable<Experimental_VideoModelV3['doGenerate']>
-    >[0],
+    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV3Warning[],
   ): Record<string, unknown> {
@@ -752,9 +628,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   private buildMotionControlBody(
-    options: Parameters<
-      NonNullable<Experimental_VideoModelV3['doGenerate']>
-    >[0],
+    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV3Warning[],
   ): Record<string, unknown> {

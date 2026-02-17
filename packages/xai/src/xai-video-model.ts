@@ -9,7 +9,6 @@ import {
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
-  delay,
   type FetchFunction,
   getFromApi,
   parseProviderOptions,
@@ -30,8 +29,6 @@ interface XaiVideoModelConfig {
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
-    pollIntervalMs?: number;
-    pollTimeoutMs?: number;
   };
 }
 
@@ -194,142 +191,6 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
     }
 
     return { body, warnings, xaiOptions, isEdit };
-  }
-
-  private buildCompletedResult({
-    statusResponse,
-    requestId,
-    warnings,
-    currentDate,
-    responseHeaders,
-  }: {
-    statusResponse: {
-      video?: { url: string; duration?: number | null } | null;
-    };
-    requestId: string;
-    warnings: SharedV3Warning[];
-    currentDate: Date;
-    responseHeaders: Record<string, string> | undefined;
-  }) {
-    if (!statusResponse.video?.url) {
-      throw new AISDKError({
-        name: 'XAI_VIDEO_GENERATION_ERROR',
-        message: 'Video generation completed but no video URL was returned.',
-      });
-    }
-
-    return {
-      videos: [
-        {
-          type: 'url' as const,
-          url: statusResponse.video.url,
-          mediaType: 'video/mp4',
-        },
-      ],
-      warnings,
-      response: {
-        timestamp: currentDate,
-        modelId: this.modelId,
-        headers: responseHeaders,
-      },
-      providerMetadata: {
-        xai: {
-          requestId,
-          videoUrl: statusResponse.video.url,
-          ...(statusResponse.video.duration != null
-            ? { duration: statusResponse.video.duration }
-            : {}),
-        },
-      },
-    };
-  }
-
-  async doGenerate(
-    options: Parameters<
-      NonNullable<Experimental_VideoModelV3['doGenerate']>
-    >[0],
-  ): Promise<
-    Awaited<ReturnType<NonNullable<Experimental_VideoModelV3['doGenerate']>>>
-  > {
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { body, warnings, xaiOptions, isEdit } =
-      await this.buildRequestBody(options);
-
-    const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
-
-    // Step 1: Create video generation/edit request
-    const { value: createResponse } = await postJsonToApi({
-      url: `${baseURL}/videos/${isEdit ? 'edits' : 'generations'}`,
-      headers: combineHeaders(this.config.headers(), options.headers),
-      body,
-      failedResponseHandler: xaiFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        xaiCreateVideoResponseSchema,
-      ),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
-
-    const requestId = createResponse.request_id;
-    if (!requestId) {
-      throw new AISDKError({
-        name: 'XAI_VIDEO_GENERATION_ERROR',
-        message: `No request_id returned from xAI API. Response: ${JSON.stringify(createResponse)}`,
-      });
-    }
-
-    // Step 2: Poll for completion
-    const pollIntervalMs = this.config._internal?.pollIntervalMs ?? 5000;
-    const pollTimeoutMs = this.config._internal?.pollTimeoutMs ?? 600000;
-    const startTime = Date.now();
-    let responseHeaders: Record<string, string> | undefined;
-
-    while (true) {
-      await delay(pollIntervalMs, { abortSignal: options.abortSignal });
-
-      if (Date.now() - startTime > pollTimeoutMs) {
-        throw new AISDKError({
-          name: 'XAI_VIDEO_GENERATION_TIMEOUT',
-          message: `Video generation timed out after ${pollTimeoutMs}ms`,
-        });
-      }
-
-      const { value: statusResponse, responseHeaders: pollHeaders } =
-        await getFromApi({
-          url: `${baseURL}/videos/${requestId}`,
-          headers: combineHeaders(this.config.headers(), options.headers),
-          successfulResponseHandler: createJsonResponseHandler(
-            xaiVideoStatusResponseSchema,
-          ),
-          failedResponseHandler: xaiFailedResponseHandler,
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        });
-
-      responseHeaders = pollHeaders;
-
-      if (
-        statusResponse.status === 'done' ||
-        (statusResponse.status == null && statusResponse.video?.url)
-      ) {
-        return this.buildCompletedResult({
-          statusResponse,
-          requestId,
-          warnings,
-          currentDate,
-          responseHeaders,
-        });
-      }
-
-      if (statusResponse.status === 'expired') {
-        throw new AISDKError({
-          name: 'XAI_VIDEO_GENERATION_EXPIRED',
-          message: 'Video generation request expired.',
-        });
-      }
-
-      // 'pending' → continue polling
-    }
   }
 
   async doStart(
