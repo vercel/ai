@@ -1,6 +1,7 @@
 import type {
   Experimental_VideoModelV3,
   Experimental_VideoModelV3VideoData,
+  Experimental_VideoModelV3Webhook,
   SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
@@ -1351,17 +1352,19 @@ describe('experimental_generateVideo', () => {
 
     it('should use webhook flow when webhook is provided', async () => {
       let webhookUrlCapture: string | undefined;
-      let resolveWebhook: () => void;
-      const webhookReceived = new Promise<void>(resolve => {
-        resolveWebhook = resolve;
-      });
+      let resolveWebhook: (value: Experimental_VideoModelV3Webhook) => void;
+      const webhookReceived = new Promise<Experimental_VideoModelV3Webhook>(
+        resolve => {
+          resolveWebhook = resolve;
+        },
+      );
 
       const model = new MockVideoModelV3({
         doGenerate: undefined,
         doStart: async options => {
           webhookUrlCapture = options.webhookUrl;
           // Simulate async webhook notification
-          setTimeout(() => resolveWebhook!(), 10);
+          setTimeout(() => resolveWebhook!({ headers: {}, body: {} }), 10);
           return {
             operation: 'op-webhook',
             warnings: [],
@@ -1404,16 +1407,18 @@ describe('experimental_generateVideo', () => {
 
     it('should use webhook over poll when both are provided', async () => {
       let statusCallCount = 0;
-      let resolveWebhook: () => void;
-      const webhookReceived = new Promise<void>(resolve => {
-        resolveWebhook = resolve;
-      });
+      let resolveWebhook: (value: Experimental_VideoModelV3Webhook) => void;
+      const webhookReceived = new Promise<Experimental_VideoModelV3Webhook>(
+        resolve => {
+          resolveWebhook = resolve;
+        },
+      );
 
       const model = new MockVideoModelV3({
         doGenerate: undefined,
         doStart: async options => {
           expect(options.webhookUrl).toBe('https://example.com/webhook');
-          setTimeout(() => resolveWebhook!(), 10);
+          setTimeout(() => resolveWebhook!({ headers: {}, body: {} }), 10);
           return {
             operation: 'op-both',
             warnings: [],
