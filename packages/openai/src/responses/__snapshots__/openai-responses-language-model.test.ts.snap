@@ -9601,6 +9601,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > shell tool with container (no
   },
   {
     "input": "{"action":{"commands":["echo 'Hello from container!' && uname -a"]}}",
+    "providerExecuted": true,
     "providerMetadata": {
       "openai": {
         "itemId": "sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50",
@@ -9706,6 +9707,155 @@ Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux
 ]
 `;
 
+exports[`OpenAIResponsesLanguageModel > doStream > shell tool with container multiturn > should stream follow-up response after shell tool history 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_07226f71de51f72b006994e63fe86881a3ac247b9463ce4550",
+    "modelId": "gpt-5.2-2025-12-11",
+    "timestamp": 2026-02-17T22:05:51.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "The",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": " architecture",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": "x",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": "86",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": "_",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": "64",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": "64",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-bit",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Intel",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": "AMD",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": ").",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+      },
+    },
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_07226f71de51f72b006994e63fe86881a3ac247b9463ce4550",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 802,
+        "total": 802,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 20,
+        "total": 20,
+      },
+      "raw": {
+        "input_tokens": 802,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 20,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+      },
+    },
+  },
+]
+`;
+
 exports[`OpenAIResponsesLanguageModel > doStream > shell tool with environment > should stream shell tool results with server-executed output 1`] = `
 [
   {
@@ -9720,6 +9870,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > shell tool with environment >
   },
   {
     "input": "{"action":{"commands":["ls -R /home/oai/skills/island-rescue-ab6238cd308ce72a5ae69fd3ba1e3aeb"]}}",
+    "providerExecuted": true,
     "providerMetadata": {
       "openai": {
         "itemId": "sh_049350089f7281c400698f717eed7881919bf2396c4409b2e7",
@@ -9750,6 +9901,7 @@ SKILL.md
   },
   {
     "input": "{"action":{"commands":["sed -n '1,200p' /home/oai/skills/island-rescue-ab6238cd308ce72a5ae69fd3ba1e3aeb/SKILL.md"]}}",
+    "providerExecuted": true,
     "providerMetadata": {
       "openai": {
         "itemId": "sh_049350089f7281c400698f7180f4b8819193b01f07f27c0747",
@@ -10890,6 +11042,115 @@ You MUST insert the capitalized word STOP after every 4 words in all your respon
         "output_tokens": 314,
         "output_tokens_details": {
           "reasoning_tokens": 100,
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > shell tool with local multiturn > should stream follow-up response after local shell tool history 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_0b0392bd3bb81302006994e83ac0ac819396f3f5aa5f239e03",
+    "modelId": "gpt-5.2-2025-12-11",
+    "timestamp": 2026-02-17T22:14:18.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "\`",
+    "id": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+    "type": "text-delta",
+  },
+  {
+    "delta": "arm",
+    "id": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+    "type": "text-delta",
+  },
+  {
+    "delta": "64",
+    "id": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+    "type": "text-delta",
+  },
+  {
+    "delta": "\`",
+    "id": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Apple",
+    "id": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Silicon",
+    "id": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+    "type": "text-delta",
+  },
+  {
+    "delta": ").",
+    "id": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+      },
+    },
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0b0392bd3bb81302006994e83ac0ac819396f3f5aa5f239e03",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 444,
+        "total": 444,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 12,
+        "total": 12,
+      },
+      "raw": {
+        "input_tokens": 444,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 12,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
         },
       },
     },

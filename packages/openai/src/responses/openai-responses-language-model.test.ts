@@ -2618,6 +2618,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           [
             {
               "input": "{"action":{"commands":["echo 'Hello from container!' && uname -a"]}}",
+              "providerExecuted": true,
               "providerMetadata": {
                 "openai": {
                   "itemId": "sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50",
@@ -2656,6 +2657,330 @@ describe('OpenAIResponsesLanguageModel', () => {
 
           - The echo command printed: "Hello from container!"
           - The system is running Linux (kernel 6.1.0) on an x86_64 architecture.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('shell tool with container multiturn', () => {
+      let result: LanguageModelV3GenerateResult;
+
+      const MULTITURN_PROMPT: LanguageModelV3Prompt = [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Run uname -a' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call_abc123def456ghi789jkl012',
+              toolName: 'shell',
+              input: '{"action":{"commands":["uname -a"]}}',
+              providerExecuted: true,
+              providerMetadata: {
+                openai: {
+                  itemId:
+                    'sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50',
+                },
+              },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'call_abc123def456ghi789jkl012',
+              toolName: 'shell',
+              output: {
+                type: 'json',
+                value: {
+                  output: [
+                    {
+                      stdout:
+                        'Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux\n',
+                      stderr: '',
+                      outcome: { type: 'exit', exitCode: 0 },
+                    },
+                  ],
+                },
+              },
+            },
+            {
+              type: 'text',
+              text: 'Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux',
+              providerMetadata: {
+                openai: {
+                  itemId:
+                    'msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52',
+                },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'What architecture do you run in?' }],
+        },
+      ];
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-shell-container-multiturn.1');
+
+        result = await createModel('gpt-5.2').doGenerate({
+          prompt: MULTITURN_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {
+                environment: {
+                  type: 'containerAuto',
+                },
+              },
+            },
+          ],
+        });
+      });
+
+      it('should send request body with shell history converted to shell_call and shell_call_output', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Run uname -a",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+              {
+                "id": "sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50",
+                "type": "item_reference",
+              },
+              {
+                "call_id": "call_abc123def456ghi789jkl012",
+                "output": [
+                  {
+                    "outcome": {
+                      "exit_code": 0,
+                      "type": "exit",
+                    },
+                    "stderr": "",
+                    "stdout": "Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux
+          ",
+                  },
+                ],
+                "type": "shell_call_output",
+              },
+              {
+                "content": [
+                  {
+                    "text": "Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux",
+                    "type": "output_text",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "text": "What architecture do you run in?",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5.2",
+            "tools": [
+              {
+                "environment": {
+                  "type": "container_auto",
+                },
+                "type": "shell",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should return text content from the follow-up response', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_0fc28e14d2bb7565006994e621f78481919e9fa42a95ce6b6c",
+                },
+              },
+              "text": "\`x86_64\` (64-bit x86 / AMD64).",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('shell tool with local multiturn', () => {
+      let result: LanguageModelV3GenerateResult;
+
+      const MULTITURN_PROMPT: LanguageModelV3Prompt = [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Run uname -a' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call_abc123def456ghi789jkl012',
+              toolName: 'shell',
+              input: '{"action":{"commands":["uname -a"]}}',
+              providerMetadata: {
+                openai: {
+                  itemId:
+                    'sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50',
+                },
+              },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call_abc123def456ghi789jkl012',
+              toolName: 'shell',
+              output: {
+                type: 'json',
+                value: {
+                  output: [
+                    {
+                      stdout:
+                        'Darwin mac-host 24.6.0 Darwin Kernel Version 24.6.0 root:xnu-11417.60.45.601.5~1/RELEASE_ARM64_T6041 arm64\n',
+                      stderr: '',
+                      outcome: { type: 'exit', exitCode: 0 },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Darwin mac-host 24.6.0 Darwin Kernel Version 24.6.0 arm64',
+              providerMetadata: {
+                openai: {
+                  itemId:
+                    'msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52',
+                },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'What architecture do you run in?' }],
+        },
+      ];
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-shell-local-multiturn.1');
+
+        result = await createModel('gpt-5.2').doGenerate({
+          prompt: MULTITURN_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should send request body with shell history converted to item_reference and shell_call_output', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Run uname -a",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+              {
+                "id": "sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50",
+                "type": "item_reference",
+              },
+              {
+                "call_id": "call_abc123def456ghi789jkl012",
+                "output": [
+                  {
+                    "outcome": {
+                      "exit_code": 0,
+                      "type": "exit",
+                    },
+                    "stderr": "",
+                    "stdout": "Darwin mac-host 24.6.0 Darwin Kernel Version 24.6.0 root:xnu-11417.60.45.601.5~1/RELEASE_ARM64_T6041 arm64
+          ",
+                  },
+                ],
+                "type": "shell_call_output",
+              },
+              {
+                "content": [
+                  {
+                    "text": "Darwin mac-host 24.6.0 Darwin Kernel Version 24.6.0 arm64",
+                    "type": "output_text",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "text": "What architecture do you run in?",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5.2",
+            "tools": [
+              {
+                "type": "shell",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should return text content from the follow-up response', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_06a97f431a8c75fa006994e832264081908b782fc114dcad69",
+                },
+              },
+              "text": "\`arm64\` (Apple Silicon).",
               "type": "text",
             },
           ]
@@ -2718,6 +3043,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           [
             {
               "input": "{"action":{"commands":["ls -R /home/oai/skills/island-rescue-ab6238cd308ce72a5ae69fd3ba1e3aeb"]}}",
+              "providerExecuted": true,
               "providerMetadata": {
                 "openai": {
                   "itemId": "sh_01b6b3812d7541bd00698f71a351a08196acffc9543b76a179",
@@ -2748,6 +3074,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
             {
               "input": "{"action":{"commands":["sed -n '1,200p' /home/oai/skills/island-rescue-ab6238cd308ce72a5ae69fd3ba1e3aeb/SKILL.md"]}}",
+              "providerExecuted": true,
               "providerMetadata": {
                 "openai": {
                   "itemId": "sh_01b6b3812d7541bd00698f71a4c0e88196b89199531ef2ee07",
@@ -5110,6 +5437,181 @@ describe('OpenAIResponsesLanguageModel', () => {
                   type: 'containerAuto',
                 },
               },
+            },
+          ],
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('shell tool with container multiturn', () => {
+      it('should stream follow-up response after shell tool history', async () => {
+        prepareChunksFixtureResponse('openai-shell-container-multiturn.1');
+
+        const multiturnPrompt: LanguageModelV3Prompt = [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Run uname -a' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_abc123def456ghi789jkl012',
+                toolName: 'shell',
+                input: '{"action":{"commands":["uname -a"]}}',
+                providerExecuted: true,
+                providerMetadata: {
+                  openai: {
+                    itemId:
+                      'sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50',
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_abc123def456ghi789jkl012',
+                toolName: 'shell',
+                output: {
+                  type: 'json',
+                  value: {
+                    output: [
+                      {
+                        stdout:
+                          'Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux\n',
+                        stderr: '',
+                        outcome: { type: 'exit', exitCode: 0 },
+                      },
+                    ],
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: 'Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux',
+                providerMetadata: {
+                  openai: {
+                    itemId:
+                      'msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What architecture do you run in?' },
+            ],
+          },
+        ];
+
+        const result = await createModel('gpt-5.2').doStream({
+          prompt: multiturnPrompt,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {
+                environment: {
+                  type: 'containerAuto',
+                },
+              },
+            },
+          ],
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('shell tool with local multiturn', () => {
+      it('should stream follow-up response after local shell tool history', async () => {
+        prepareChunksFixtureResponse('openai-shell-local-multiturn.1');
+
+        const multiturnPrompt: LanguageModelV3Prompt = [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Run uname -a' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_abc123def456ghi789jkl012',
+                toolName: 'shell',
+                input: '{"action":{"commands":["uname -a"]}}',
+                providerMetadata: {
+                  openai: {
+                    itemId:
+                      'sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_abc123def456ghi789jkl012',
+                toolName: 'shell',
+                output: {
+                  type: 'json',
+                  value: {
+                    output: [
+                      {
+                        stdout:
+                          'Darwin mac-host 24.6.0 Darwin Kernel Version 24.6.0 root:xnu-11417.60.45.601.5~1/RELEASE_ARM64_T6041 arm64\n',
+                        stderr: '',
+                        outcome: { type: 'exit', exitCode: 0 },
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Darwin mac-host 24.6.0 Darwin Kernel Version 24.6.0 arm64',
+                providerMetadata: {
+                  openai: {
+                    itemId:
+                      'msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What architecture do you run in?' },
+            ],
+          },
+        ];
+
+        const result = await createModel('gpt-5.2').doStream({
+          prompt: multiturnPrompt,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {},
             },
           ],
         });
