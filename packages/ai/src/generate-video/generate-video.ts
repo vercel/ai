@@ -3,6 +3,7 @@ import type {
   Experimental_VideoModelV3CallOptions,
   Experimental_VideoModelV3File,
   Experimental_VideoModelV3StatusResult,
+  Experimental_VideoModelV3Webhook,
   SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
@@ -207,7 +208,10 @@ export async function experimental_generateVideo({
    * The factory should return a URL for the provider to send notifications to,
    * and a `received` promise that resolves when the notification arrives.
    */
-  webhook?: () => PromiseLike<{ url: string; received: Promise<void> }>;
+  webhook?: () => PromiseLike<{
+    url: string;
+    received: Promise<Experimental_VideoModelV3Webhook>;
+  }>;
 }): Promise<GenerateVideoResult> {
   const model = resolveVideoModel(modelArg);
 
@@ -440,7 +444,10 @@ async function executeStartStatusFlow({
       elapsedMs: number;
     }) => void | PromiseLike<void>;
   };
-  webhook?: () => PromiseLike<{ url: string; received: Promise<void> }>;
+  webhook?: () => PromiseLike<{
+    url: string;
+    received: Promise<Experimental_VideoModelV3Webhook>;
+  }>;
   abortSignal?: AbortSignal;
   headers?: Record<string, string | undefined>;
 }): Promise<{
@@ -457,7 +464,7 @@ async function executeStartStatusFlow({
 }> {
   // 1. If webhook, get the webhook URL and received promise
   let webhookUrl: string | undefined;
-  let webhookReceived: Promise<void> | undefined;
+  let webhookReceived: Promise<Experimental_VideoModelV3Webhook> | undefined;
 
   if (webhookFactory != null) {
     const { url, received } = await webhookFactory();

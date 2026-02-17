@@ -1,10 +1,5 @@
-import { JSONValue } from 'ai';
+import { type Experimental_VideoModelV3Webhook } from '@ai-sdk/provider';
 import { EventSource } from 'eventsource';
-
-type WebhookData = {
-  body: JSONValue;
-  headers: JSONValue;
-};
 
 /**
  * Creates a public webhook URL and returns a promise that resolves when a
@@ -17,7 +12,7 @@ type WebhookData = {
  */
 export async function createWebhook(): Promise<{
   url: string;
-  received: Promise<WebhookData>;
+  received: Promise<Experimental_VideoModelV3Webhook>;
 }> {
   // Create a new smee.io channel
   const response = await fetch('https://smee.io/new', {
@@ -33,18 +28,20 @@ export async function createWebhook(): Promise<{
   // Connect to the SSE stream and resolve when a webhook message arrives
   const events = new EventSource(url);
 
-  const received = new Promise<WebhookData>((resolve, reject) => {
-    events.addEventListener('message', msg => {
-      console.log('Received webhook event:');
-      const { body, ...headers } = JSON.parse(msg.data);
-      events.close();
-      resolve({ body, headers });
-    });
-    events.addEventListener('error', () => {
-      events.close();
-      reject(new Error('Webhook SSE connection error'));
-    });
-  });
+  const received = new Promise<Experimental_VideoModelV3Webhook>(
+    (resolve, reject) => {
+      events.addEventListener('message', msg => {
+        console.log('Received webhook event:');
+        const { body, ...headers } = JSON.parse(msg.data);
+        events.close();
+        resolve({ body, headers });
+      });
+      events.addEventListener('error', () => {
+        events.close();
+        reject(new Error('Webhook SSE connection error'));
+      });
+    },
+  );
 
   return { url, received };
 }
