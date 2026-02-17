@@ -804,7 +804,7 @@ describe('generateText', () => {
 
   describe('options.experimental_onStepStart', () => {
     it('should be called with correct data for a single step', async () => {
-      let stepStartEvent!: Parameters<GenerateTextOnStepStartCallback>[0];
+      let stepStartEvent!: Parameters<GenerateTextOnStepStartCallback<any>>[0];
 
       await generateText({
         model: new MockLanguageModelV3({
@@ -831,11 +831,13 @@ describe('generateText', () => {
           providerOptions: undefined,
         },
       ]);
+      expect(stepStartEvent.steps).toEqual([]);
     });
 
     it('should be called once per step in a multi-step tool loop', async () => {
-      const stepStartEvents: Parameters<GenerateTextOnStepStartCallback>[0][] =
-        [];
+      const stepStartEvents: Parameters<
+        GenerateTextOnStepStartCallback<any>
+      >[0][] = [];
       let responseCount = 0;
 
       await generateText({
@@ -923,8 +925,9 @@ describe('generateText', () => {
     });
 
     it('should reflect model changes from prepareStep', async () => {
-      const stepStartEvents: Parameters<GenerateTextOnStepStartCallback>[0][] =
-        [];
+      const stepStartEvents: Parameters<
+        GenerateTextOnStepStartCallback<any>
+      >[0][] = [];
       let responseCount = 0;
 
       const alternateModel = new MockLanguageModelV3({
@@ -982,6 +985,163 @@ describe('generateText', () => {
         provider: 'alternate-provider',
         modelId: 'alternate-model-id',
       });
+    });
+
+    it('should provide empty steps array on first step', async () => {
+      let stepStartEvent!: Parameters<GenerateTextOnStepStartCallback<any>>[0];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello!' }],
+            ...dummyResponseValues,
+          }),
+        }),
+        prompt: 'test-input',
+        experimental_onStepStart: async event => {
+          stepStartEvent = event;
+        },
+      });
+
+      expect(stepStartEvent.steps).toEqual([]);
+      expect(stepStartEvent.steps.length).toBe(0);
+    });
+
+    it('should provide previous step results in steps array for subsequent steps', async () => {
+      const stepStartEvents: Parameters<
+        GenerateTextOnStepStartCallback<any>
+      >[0][] = [];
+      let responseCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "step0" }',
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 1:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-2',
+                      toolName: 'tool1',
+                      input: '{ "value": "step1" }',
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 2:
+              default:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Final answer.' }],
+                };
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: stepCountIs(4),
+        experimental_onStepStart: async event => {
+          stepStartEvents.push(event);
+        },
+      });
+
+      expect(stepStartEvents.length).toBe(3);
+
+      // Step 0: no previous steps
+      expect(stepStartEvents[0].steps.length).toBe(0);
+
+      // Step 1: has step 0's result
+      expect(stepStartEvents[1].steps.length).toBe(1);
+      expect(stepStartEvents[1].steps[0].finishReason).toBe('tool-calls');
+      expect(stepStartEvents[1].steps[0].toolCalls.length).toBe(1);
+      expect(stepStartEvents[1].steps[0].toolCalls[0].toolName).toBe('tool1');
+      expect(stepStartEvents[1].steps[0].toolResults.length).toBe(1);
+      expect(stepStartEvents[1].steps[0].toolResults[0].output).toBe(
+        'step0-result',
+      );
+
+      // Step 2: has step 0 and step 1's results
+      expect(stepStartEvents[2].steps.length).toBe(2);
+      expect(stepStartEvents[2].steps[0].finishReason).toBe('tool-calls');
+      expect(stepStartEvents[2].steps[1].finishReason).toBe('tool-calls');
+      expect(stepStartEvents[2].steps[1].toolResults[0].output).toBe(
+        'step1-result',
+      );
+    });
+
+    it('should provide steps with correct text content from prior steps', async () => {
+      const stepStartEvents: Parameters<
+        GenerateTextOnStepStartCallback<any>
+      >[0][] = [];
+      let responseCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    { type: 'text', text: 'Thinking...' },
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "check" }',
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 1:
+              default:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Done.' }],
+                };
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: stepCountIs(3),
+        experimental_onStepStart: async event => {
+          stepStartEvents.push(event);
+        },
+      });
+
+      expect(stepStartEvents.length).toBe(2);
+
+      // Step 1 should see step 0's text
+      expect(stepStartEvents[1].steps[0].text).toBe('Thinking...');
     });
   });
 

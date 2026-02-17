@@ -135,7 +135,7 @@ export type GenerateTextOnStartCallback = (event: {
  *
  * @param event - The event that is passed to the callback.
  */
-export type GenerateTextOnStepStartCallback = (event: {
+export type GenerateTextOnStepStartCallback<TOOLS extends ToolSet> = (event: {
   readonly stepNumber: number;
 
   readonly model: {
@@ -148,6 +148,8 @@ export type GenerateTextOnStepStartCallback = (event: {
   readonly tools: Record<string, unknown> | undefined;
 
   readonly toolChoice: LanguageModelV3ToolChoice | undefined;
+
+  readonly steps: ReadonlyArray<StepResult<TOOLS>>;
 }) => PromiseLike<void> | void;
 
 /**
@@ -360,7 +362,7 @@ export async function generateText<
      * Callback that is called when a step (LLM call) begins,
      * before the provider is called.
      */
-    experimental_onStepStart?: GenerateTextOnStepStartCallback;
+    experimental_onStepStart?: GenerateTextOnStepStartCallback<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
@@ -660,6 +662,7 @@ export async function generateText<
                 promptMessages,
                 tools: tools as Record<string, unknown> | undefined,
                 toolChoice: stepToolChoice,
+                steps: [...steps],
               });
             } catch (_ignored) {
               // Errors in callbacks should not break the generation flow.
