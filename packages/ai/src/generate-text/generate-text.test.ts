@@ -34,6 +34,7 @@ import {
   generateText,
   GenerateTextOnFinishCallback,
   GenerateTextOnStartCallback,
+  GenerateTextOnStepStartCallback,
 } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
@@ -798,6 +799,189 @@ describe('generateText', () => {
       });
 
       expect(result.text).toBe('Hello, World!');
+    });
+  });
+
+  describe('options.experimental_onStepStart', () => {
+    it('should be called with correct data for a single step', async () => {
+      let stepStartEvent!: Parameters<GenerateTextOnStepStartCallback>[0];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello!' }],
+            ...dummyResponseValues,
+          }),
+        }),
+        prompt: 'test-input',
+        experimental_onStepStart: async event => {
+          stepStartEvent = event;
+        },
+      });
+
+      expect(stepStartEvent.stepNumber).toBe(0);
+      expect(stepStartEvent.model).toEqual({
+        provider: 'mock-provider',
+        modelId: 'mock-model-id',
+      });
+      expect(stepStartEvent.promptMessages).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test-input' }],
+          providerOptions: undefined,
+        },
+      ]);
+    });
+
+    it('should be called once per step in a multi-step tool loop', async () => {
+      const stepStartEvents: Parameters<GenerateTextOnStepStartCallback>[0][] =
+        [];
+      let responseCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "test" }',
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 1:
+              default:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Final answer.' }],
+                };
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: stepCountIs(3),
+        experimental_onStepStart: async event => {
+          stepStartEvents.push(event);
+        },
+      });
+
+      expect(stepStartEvents.length).toBe(2);
+      expect(stepStartEvents[0].stepNumber).toBe(0);
+      expect(stepStartEvents[1].stepNumber).toBe(1);
+    });
+
+    it('should be called before doGenerate on each step', async () => {
+      const callOrder: string[] = [];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            callOrder.push('doGenerate');
+            return {
+              content: [{ type: 'text', text: 'Hello!' }],
+              ...dummyResponseValues,
+            };
+          },
+        }),
+        prompt: 'test-input',
+        experimental_onStepStart: async () => {
+          callOrder.push('onStepStart');
+        },
+      });
+
+      expect(callOrder).toEqual(['onStepStart', 'doGenerate']);
+    });
+
+    it('should not break generation when callback throws', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello, World!' }],
+            ...dummyResponseValues,
+          }),
+        }),
+        prompt: 'test-input',
+        experimental_onStepStart: async () => {
+          throw new Error('callback error');
+        },
+      });
+
+      expect(result.text).toBe('Hello, World!');
+    });
+
+    it('should reflect model changes from prepareStep', async () => {
+      const stepStartEvents: Parameters<GenerateTextOnStepStartCallback>[0][] =
+        [];
+      let responseCount = 0;
+
+      const alternateModel = new MockLanguageModelV3({
+        provider: 'alternate-provider',
+        modelId: 'alternate-model-id',
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          content: [{ type: 'text', text: 'Final answer.' }],
+        }),
+      });
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            responseCount++;
+            return {
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: '{ "value": "test" }',
+                },
+              ],
+              finishReason: { unified: 'tool-calls', raw: undefined },
+            };
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: stepCountIs(3),
+        prepareStep: async ({ stepNumber }) => {
+          if (stepNumber === 1) {
+            return { model: alternateModel };
+          }
+          return undefined;
+        },
+        experimental_onStepStart: async event => {
+          stepStartEvents.push(event);
+        },
+      });
+
+      expect(stepStartEvents[0].model).toEqual({
+        provider: 'mock-provider',
+        modelId: 'mock-model-id',
+      });
+      expect(stepStartEvents[1].model).toEqual({
+        provider: 'alternate-provider',
+        modelId: 'alternate-model-id',
+      });
     });
   });
 
