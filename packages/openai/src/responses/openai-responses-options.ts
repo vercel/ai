@@ -303,6 +303,18 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
        * and defaults `systemMessageMode` to `developer` unless overridden.
        */
       forceReasoning: z.boolean().optional(),
+
+      /**
+       * Enable server-side context management (compaction).
+       */
+      contextManagement: z
+        .array(
+          z.object({
+            type: z.literal('compaction'),
+            compactThreshold: z.number(),
+          }),
+        )
+        .nullish(),
     }),
   ),
 );

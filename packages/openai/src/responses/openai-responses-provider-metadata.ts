@@ -30,6 +30,16 @@ export type OpenaiResponsesProviderMetadata = {
   openai: ResponsesProviderMetadata;
 };
 
+export type ResponsesCompactionProviderMetadata = {
+  type: 'compaction';
+  itemId: string;
+  encryptedContent?: string;
+};
+
+export type OpenaiResponsesCompactionProviderMetadata = {
+  openai: ResponsesCompactionProviderMetadata;
+};
+
 export type ResponsesTextProviderMetadata = {
   itemId: string;
   annotations?: Array<ResponsesOutputTextAnnotationProviderMetadata>;
