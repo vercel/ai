@@ -57,6 +57,39 @@ const stream = createUIMessageStream({
 });
 ```
 
+### With Tool Approval
+
+When using tools with `needsApproval: true`, you must pass `originalMessages` to both `createUIMessageStream` and `toUIMessageStream` for the `onFinish` callback to work correctly:
+
+```tsx
+const stream = createUIMessageStream({
+  originalMessages: messages, // Required for onFinish with tool approval
+  execute: async ({ writer }) => {
+    const result = streamText({
+      model: __MODEL__,
+      messages: convertToModelMessages(messages),
+      tools: myTools,
+    });
+
+    writer.merge(
+      result.toUIMessageStream({
+        originalMessages: messages, // Also required here
+      }),
+    );
+  },
+  onFinish: async ({ messages }) => {
+    // Save messages to database — works correctly with tool approval
+    await saveMessages(messages);
+  },
+});
+```
+
+<Note>
+  Without `originalMessages` on `createUIMessageStream`, the `onFinish`
+  callback will fail with a "No tool invocation found" error when processing
+  approved tool results.
+</Note>
+
 ## API Signature
 
 ### Parameters
@@ -103,7 +136,7 @@ const stream = createUIMessageStream({
       name: 'originalMessages',
       type: 'UIMessage[] | undefined',
       description:
-        'The original messages. If provided, persistence mode is assumed and a message ID is provided for the response message.',
+        'The original messages. If provided, persistence mode is assumed and a message ID is provided for the response message. **Required** when using `onFinish` with tools that have `needsApproval: true` — the finish handler needs the original messages to locate tool invocation parts. When using `writer.merge(result.toUIMessageStream())`, pass `originalMessages` to **both** `createUIMessageStream` and `toUIMessageStream`.',
     },
     {
       name: 'onFinish',
