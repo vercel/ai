@@ -1,5 +1,11 @@
 # @ai-sdk/prodia
 
+## 1.0.17
+
+### Patch Changes
+
+- 67b0c8e: feat(provider/prodia): add price param to API requests
+
 ## 1.0.16
 
 ### Patch Changes

@@ -2182,7 +2182,10 @@ function getModelCapabilities(modelId: string): {
   supportsStructuredOutput: boolean;
   isKnownModel: boolean;
 } {
-  if (modelId.includes('claude-opus-4-6')) {
+  if (
+    modelId.includes('claude-sonnet-4-6') ||
+    modelId.includes('claude-opus-4-6')
+  ) {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
