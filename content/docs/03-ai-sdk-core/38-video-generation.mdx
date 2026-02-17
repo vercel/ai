@@ -215,32 +215,32 @@ const { video } = await generateVideo({
   longer timeouts (60 seconds or more) depending on the model and video length.
 </Note>
 
-### Polling Timeout
+### Polling
 
-Video generation is an asynchronous process that can take several minutes to complete. Most providers use a polling mechanism where the SDK periodically checks if the video is ready. The default polling timeout is typically 5 minutes, which may not be sufficient for longer videos or certain models.
+Video generation is an asynchronous process that can take several minutes to complete. The SDK automatically polls the provider to check if the video is ready. You can configure the polling behavior:
 
-You can configure the polling timeout using provider-specific options. Each provider exports a type for its options that you can use with `satisfies` for type safety:
-
-```tsx highlight={"10-12"}
+```tsx highlight={"8-12"}
 import { experimental_generateVideo as generateVideo } from 'ai';
-import { fal, type FalVideoModelOptions } from '@ai-sdk/fal';
+import { fal } from '@ai-sdk/fal';
 
 const { video } = await generateVideo({
   model: fal.video('luma-dream-machine/ray-2'),
   prompt: 'A cinematic timelapse of a city from dawn to dusk',
   duration: 10,
-  providerOptions: {
-    fal: {
-      pollTimeoutMs: 600000, // 10 minutes
-    } satisfies FalVideoModelOptions,
+  poll: {
+    intervalMs: 5000, // Check every 5 seconds (default)
+    timeoutMs: 600000, // Timeout after 10 minutes (default)
+    backoff: 'exponential', // Double interval after each poll, capped at 60s
+    onAttempt: ({ attempt, elapsedMs }) => {
+      console.log(`Poll attempt ${attempt} (${elapsedMs}ms elapsed)`);
+    },
   },
 });
 ```
 
 <Note>
-  For production use, we recommend setting `pollTimeoutMs` to at least 10
-  minutes (600000ms) to account for varying generation times across different
-  models and video lengths.
+  For production use, consider using `backoff: 'exponential'` to reduce
+  unnecessary API calls while waiting for longer generations.
 </Note>
 
 ### Custom Headers
