@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.29
+
+### Patch Changes
+
+- e2ee705: feat: differentiate text vs image input tokens
+
 ## 3.0.28
 
 ### Patch Changes
