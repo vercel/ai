@@ -27,7 +27,7 @@ import type {
   LanguageModelV3,
   EmbeddingModelV3,
   ImageModelV3,
-  Experimental_VideoModelV3,
+  Experimental_VideoModelV3 as VideoModelV3,
   ProviderV3,
 } from '@ai-sdk/provider';
 import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
@@ -84,12 +84,12 @@ export interface GatewayProvider extends ProviderV3 {
   /**
    * Creates a model for generating videos.
    */
-  video(modelId: GatewayVideoModelId): Experimental_VideoModelV3;
+  video(modelId: GatewayVideoModelId): VideoModelV3;
 
   /**
    * Creates a model for generating videos.
    */
-  videoModel(modelId: GatewayVideoModelId): Experimental_VideoModelV3;
+  videoModel(modelId: GatewayVideoModelId): VideoModelV3;
 
   /**
    * Gateway-specific tools executed server-side.

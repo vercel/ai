@@ -1,7 +1,7 @@
 import { gateway } from '@ai-sdk/gateway';
 import {
   EmbeddingModelV3,
-  Experimental_VideoModelV3,
+  Experimental_VideoModelV3 as VideoModelV3,
   ImageModelV3,
   LanguageModelV3,
   ProviderV3,
@@ -123,9 +123,7 @@ export function resolveImageModel(model: ImageModel): ImageModelV3 {
   return getGlobalProvider().imageModel(model);
 }
 
-export function resolveVideoModel(
-  model: VideoModel,
-): Experimental_VideoModelV3 {
+export function resolveVideoModel(model: VideoModel): VideoModelV3 {
   if (typeof model === 'string') {
     const provider = getGlobalProvider();
     // TODO AI SDK v7
@@ -135,7 +133,7 @@ export function resolveVideoModel(
     if (!videoModel) {
       throw new Error(
         'The default provider does not support video models. ' +
-          'Please use a Experimental_VideoModelV3 object from a provider (e.g., vertex.video("model-id")).',
+          'Please use a VideoModelV3 object from a provider (e.g., vertex.video("model-id")).',
       );
     }
 

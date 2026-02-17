@@ -1,8 +1,8 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV3,
-  type Experimental_VideoModelV3OperationStartResult,
-  type Experimental_VideoModelV3OperationStatusResult,
+  type Experimental_VideoModelV3 as VideoModelV3,
+  type Experimental_VideoModelV3OperationStartResult as VideoModelV3OperationStartResult,
+  type Experimental_VideoModelV3OperationStatusResult as VideoModelV3OperationStatusResult,
   NoSuchModelError,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
@@ -257,7 +257,7 @@ interface KlingAIVideoModelConfig {
   };
 }
 
-export class KlingAIVideoModel implements Experimental_VideoModelV3 {
+export class KlingAIVideoModel implements VideoModelV3 {
   readonly specificationVersion = 'v3';
   readonly maxVideosPerCall = 1;
 
@@ -271,8 +271,8 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   ) {}
 
   async doStart(
-    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
-  ): Promise<Experimental_VideoModelV3OperationStartResult> {
+    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
+  ): Promise<VideoModelV3OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV3Warning[] = [];
     const mode = detectMode(this.modelId);
@@ -332,8 +332,8 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   async doStatus(
-    options: Parameters<NonNullable<Experimental_VideoModelV3['doStatus']>>[0],
-  ): Promise<Experimental_VideoModelV3OperationStatusResult> {
+    options: Parameters<NonNullable<VideoModelV3['doStatus']>>[0],
+  ): Promise<VideoModelV3OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { taskId, endpointPath } = options.operation as {
       taskId: string;
@@ -387,7 +387,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   private addUniversalWarnings(
-    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
+    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
     warnings: SharedV3Warning[],
   ): void {
     if (options.resolution) {
@@ -489,7 +489,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   private buildT2VBody(
-    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
+    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV3Warning[],
   ): Record<string, unknown> {
@@ -548,7 +548,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   private buildI2VBody(
-    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
+    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV3Warning[],
   ): Record<string, unknown> {
@@ -628,7 +628,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   private buildMotionControlBody(
-    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
+    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV3Warning[],
   ): Record<string, unknown> {

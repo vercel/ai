@@ -1,8 +1,8 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV3,
-  type Experimental_VideoModelV3OperationStartResult,
-  type Experimental_VideoModelV3OperationStatusResult,
+  type Experimental_VideoModelV3 as VideoModelV3,
+  type Experimental_VideoModelV3OperationStartResult as VideoModelV3OperationStartResult,
+  type Experimental_VideoModelV3OperationStatusResult as VideoModelV3OperationStatusResult,
   type SharedV3ProviderMetadata,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
@@ -129,7 +129,7 @@ function detectMode(modelId: string): 't2v' | 'i2v' | 'r2v' {
   return 't2v';
 }
 
-export class AlibabaVideoModel implements Experimental_VideoModelV3 {
+export class AlibabaVideoModel implements VideoModelV3 {
   readonly specificationVersion = 'v3';
   readonly maxVideosPerCall = 1;
 
@@ -143,7 +143,7 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
   ) {}
 
   private async buildRequest(
-    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
+    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
   ): Promise<{
     input: Record<string, unknown>;
     parameters: Record<string, unknown>;
@@ -338,8 +338,8 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
   }
 
   async doStart(
-    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
-  ): Promise<Experimental_VideoModelV3OperationStartResult> {
+    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
+  ): Promise<VideoModelV3OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { input, parameters, warnings } = await this.buildRequest(options);
 
@@ -385,8 +385,8 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
   }
 
   async doStatus(
-    options: Parameters<NonNullable<Experimental_VideoModelV3['doStatus']>>[0],
-  ): Promise<Experimental_VideoModelV3OperationStatusResult> {
+    options: Parameters<NonNullable<VideoModelV3['doStatus']>>[0],
+  ): Promise<VideoModelV3OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { taskId } = options.operation as { taskId: string };
 

@@ -1,5 +1,5 @@
 import {
-  Experimental_VideoModelV3,
+  Experimental_VideoModelV3 as VideoModelV3,
   NoSuchModelError,
   ProviderV3,
 } from '@ai-sdk/provider';
@@ -55,12 +55,12 @@ export interface ReplicateProvider extends ProviderV3 {
   /**
    * Creates a Replicate video generation model.
    */
-  video(modelId: ReplicateVideoModelId): Experimental_VideoModelV3;
+  video(modelId: ReplicateVideoModelId): VideoModelV3;
 
   /**
    * Creates a Replicate video generation model.
    */
-  videoModel(modelId: ReplicateVideoModelId): Experimental_VideoModelV3;
+  videoModel(modelId: ReplicateVideoModelId): VideoModelV3;
 }
 
 /**
