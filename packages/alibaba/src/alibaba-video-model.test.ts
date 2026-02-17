@@ -567,7 +567,7 @@ describe('AlibabaVideoModel', () => {
       };
     });
 
-    it('should throw on FAILED status', async () => {
+    it('should return error status on FAILED', async () => {
       server.urls[TASK_URL].response = {
         type: 'json-value',
         body: {
@@ -582,9 +582,16 @@ describe('AlibabaVideoModel', () => {
 
       const model = createModel();
 
-      await expect(
-        model.doStatus({ operation: { taskId: 'task-abc-123' } }),
-      ).rejects.toThrow(/failed/i);
+      const result = await model.doStatus({
+        operation: { taskId: 'task-abc-123' },
+      });
+
+      expect(result.status).toBe('error');
+      if (result.status === 'error') {
+        expect(result.error).toMatch(/failed/i);
+        expect(result.error).toContain('Content policy violation');
+        expect(result.response.modelId).toBe('wan2.6-t2v');
+      }
 
       // Reset
       server.urls[TASK_URL].response = {
@@ -593,7 +600,7 @@ describe('AlibabaVideoModel', () => {
       };
     });
 
-    it('should throw on CANCELED status', async () => {
+    it('should return error status on CANCELED', async () => {
       server.urls[TASK_URL].response = {
         type: 'json-value',
         body: {
@@ -607,9 +614,15 @@ describe('AlibabaVideoModel', () => {
 
       const model = createModel();
 
-      await expect(
-        model.doStatus({ operation: { taskId: 'task-abc-123' } }),
-      ).rejects.toThrow(/canceled/i);
+      const result = await model.doStatus({
+        operation: { taskId: 'task-abc-123' },
+      });
+
+      expect(result.status).toBe('error');
+      if (result.status === 'error') {
+        expect(result.error).toMatch(/canceled/i);
+        expect(result.response.modelId).toBe('wan2.6-t2v');
+      }
 
       // Reset
       server.urls[TASK_URL].response = {

@@ -370,10 +370,15 @@ export class KlingAIVideoModel implements VideoModelV3 {
     }
 
     if (taskStatus === 'failed') {
-      throw new AISDKError({
-        name: 'KLINGAI_VIDEO_GENERATION_FAILED',
-        message: `Video generation failed: ${statusResponse.data?.task_status_msg ?? 'Unknown error'}`,
-      });
+      return {
+        status: 'error' as const,
+        error: `Video generation failed: ${statusResponse.data?.task_status_msg ?? 'Unknown error'}`,
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
     }
 
     return {

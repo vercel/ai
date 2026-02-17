@@ -561,7 +561,7 @@ describe('GoogleVertexVideoModel', () => {
       expect(result.status).toBe('pending');
     });
 
-    it('should throw on operation error', async () => {
+    it('should return error status on operation error', async () => {
       const model = createMockModel({
         operationName: 'operations/my-op-123',
         operationError: {
@@ -571,12 +571,17 @@ describe('GoogleVertexVideoModel', () => {
         },
       });
 
-      await expect(
-        model.doStatus({
-          operation: { operationName: 'operations/my-op-123' },
-        }),
-      ).rejects.toMatchObject({
-        message: expect.stringContaining('Content policy violation'),
+      const result = await model.doStatus({
+        operation: { operationName: 'operations/my-op-123' },
+      });
+
+      expect(result.status).toBe('error');
+      expect(result.status === 'error' && result.error).toContain(
+        'Content policy violation',
+      );
+      expect(result).toHaveProperty('response');
+      expect(result.response).toMatchObject({
+        modelId: 'veo-2.0-generate-001',
       });
     });
 

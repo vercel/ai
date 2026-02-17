@@ -259,17 +259,27 @@ export class ReplicateVideoModel implements VideoModelV3 {
     });
 
     if (prediction.status === 'failed') {
-      throw new AISDKError({
-        name: 'REPLICATE_VIDEO_GENERATION_FAILED',
-        message: `Video generation failed: ${prediction.error ?? 'Unknown error'}`,
-      });
+      return {
+        status: 'error' as const,
+        error: `Video generation failed: ${prediction.error ?? 'Unknown error'}`,
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
     }
 
     if (prediction.status === 'canceled') {
-      throw new AISDKError({
-        name: 'REPLICATE_VIDEO_GENERATION_CANCELED',
-        message: 'Video generation was canceled',
-      });
+      return {
+        status: 'error' as const,
+        error: 'Video generation was canceled',
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
     }
 
     if (prediction.status === 'succeeded') {

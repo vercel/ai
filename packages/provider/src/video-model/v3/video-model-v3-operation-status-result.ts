@@ -61,4 +61,29 @@ export type VideoModelV3OperationStatusResult =
         modelId: string;
         headers: Record<string, string> | undefined;
       };
+    }
+  | {
+      /**
+       * The video generation failed.
+       */
+      status: 'error';
+
+      /**
+       * A human-readable error message describing why the generation failed.
+       */
+      error: string;
+
+      /**
+       * Additional provider-specific metadata.
+       */
+      providerMetadata?: SharedV3ProviderMetadata;
+
+      /**
+       * Response information for telemetry and debugging purposes.
+       */
+      response: {
+        timestamp: Date;
+        modelId: string;
+        headers: Record<string, string> | undefined;
+      };
     };

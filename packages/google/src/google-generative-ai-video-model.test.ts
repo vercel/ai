@@ -533,7 +533,8 @@ describe('GoogleGenerativeAIVideoModel', () => {
       expect(result.response.modelId).toBe('veo-3.1-generate-preview');
     });
 
-    it('should throw on operation error', async () => {
+    it('should return error status on operation error', async () => {
+      const testDate = new Date('2024-06-15T00:00:00Z');
       const model = new GoogleGenerativeAIVideoModel(
         'veo-3.1-generate-preview',
         {
@@ -557,16 +558,22 @@ describe('GoogleGenerativeAIVideoModel', () => {
               },
             );
           },
+          _internal: {
+            currentDate: () => testDate,
+          },
         },
       );
 
-      await expect(
-        model.doStatus({
-          operation: { operationName: 'operations/error-op' },
-        }),
-      ).rejects.toMatchObject({
-        message: expect.stringContaining('Content policy violation'),
+      const result = await model.doStatus({
+        operation: { operationName: 'operations/error-op' },
       });
+
+      expect(result.status).toBe('error');
+      if (result.status === 'error') {
+        expect(result.error).toContain('Content policy violation');
+        expect(result.response.timestamp).toStrictEqual(testDate);
+        expect(result.response.modelId).toBe('veo-3.1-generate-preview');
+      }
     });
 
     it('should throw when no videos in response', async () => {

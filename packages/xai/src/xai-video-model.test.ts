@@ -544,7 +544,8 @@ describe('XaiVideoModel', () => {
       };
     });
 
-    it('should throw on expired status', async () => {
+    it('should return error status on expired', async () => {
+      const testDate = new Date('2024-01-01T00:00:00Z');
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
         type: 'json-value',
         body: {
@@ -553,11 +554,23 @@ describe('XaiVideoModel', () => {
         },
       };
 
-      const model = createModel();
+      const model = createModel({
+        currentDate: () => testDate,
+      });
 
-      await expect(
-        model.doStatus({ operation: { requestId: 'req-123' } }),
-      ).rejects.toThrow('expired');
+      const result = await model.doStatus({
+        operation: { requestId: 'req-123' },
+      });
+
+      expect(result.status).toBe('error');
+      if (result.status === 'error') {
+        expect(result.error).toBe('Video generation request expired.');
+        expect(result.response).toStrictEqual({
+          timestamp: testDate,
+          modelId: 'grok-imagine-video',
+          headers: expect.any(Object),
+        });
+      }
 
       // Reset
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {

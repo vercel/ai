@@ -773,37 +773,37 @@ describe('ReplicateVideoModel', () => {
       expect(result.status).toBe('pending');
     });
 
-    it('should throw on failed status', async () => {
+    it('should return error status on failed prediction', async () => {
       const model = createStatusModel({
         predictionStatus: 'failed',
         error: 'GPU out of memory',
       });
 
-      await expect(
-        model.doStatus({
-          operation: {
-            getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
-          },
-        }),
-      ).rejects.toMatchObject({
-        message: expect.stringContaining('GPU out of memory'),
+      const result = await model.doStatus({
+        operation: {
+          getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
+        },
       });
+
+      expect(result.status).toBe('error');
+      expect(result.status === 'error' && result.error).toContain(
+        'GPU out of memory',
+      );
     });
 
-    it('should throw on canceled status', async () => {
+    it('should return error status on canceled prediction', async () => {
       const model = createStatusModel({
         predictionStatus: 'canceled',
       });
 
-      await expect(
-        model.doStatus({
-          operation: {
-            getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
-          },
-        }),
-      ).rejects.toMatchObject({
-        message: expect.stringContaining('canceled'),
+      const result = await model.doStatus({
+        operation: {
+          getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
+        },
       });
+
+      expect(result.status).toBe('error');
+      expect(result.status === 'error' && result.error).toContain('canceled');
     });
 
     it('should throw when no output on succeeded', async () => {

@@ -252,10 +252,15 @@ export class XaiVideoModel implements VideoModelV3 {
     });
 
     if (statusResponse.status === 'expired') {
-      throw new AISDKError({
-        name: 'XAI_VIDEO_GENERATION_EXPIRED',
-        message: 'Video generation request expired.',
-      });
+      return {
+        status: 'error' as const,
+        error: 'Video generation request expired.',
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
     }
 
     if (

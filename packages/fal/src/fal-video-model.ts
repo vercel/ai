@@ -1,5 +1,6 @@
 import {
   AISDKError,
+  APICallError,
   type Experimental_VideoModelV3 as VideoModelV3,
   type Experimental_VideoModelV3OperationStartResult as VideoModelV3OperationStartResult,
   type Experimental_VideoModelV3OperationStatusResult as VideoModelV3OperationStatusResult,
@@ -141,6 +142,18 @@ export class FalVideoModel implements VideoModelV3 {
             timestamp: currentDate,
             modelId: this.modelId,
             headers: undefined,
+          },
+        };
+      }
+
+      if (APICallError.isInstance(error)) {
+        return {
+          status: 'error' as const,
+          error: error.message,
+          response: {
+            timestamp: currentDate,
+            modelId: this.modelId,
+            headers: error.responseHeaders,
           },
         };
       }
