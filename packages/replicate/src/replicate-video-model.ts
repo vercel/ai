@@ -355,6 +355,12 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
       body: {
         input,
         ...(version != null ? { version } : {}),
+        ...(options.webhookUrl != null
+          ? {
+              webhook: options.webhookUrl,
+              webhook_events_filter: ['completed'],
+            }
+          : {}),
       },
       successfulResponseHandler: createJsonResponseHandler(
         replicatePredictionSchema,
