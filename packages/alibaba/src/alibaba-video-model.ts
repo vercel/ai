@@ -11,7 +11,6 @@ import {
   convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  delay,
   type FetchFunction,
   getFromApi,
   lazySchema,
@@ -69,8 +68,6 @@ interface AlibabaVideoModelConfig {
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
-    pollIntervalMs?: number;
-    pollTimeoutMs?: number;
   };
 }
 
@@ -146,9 +143,7 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
   ) {}
 
   private async buildRequest(
-    options: Parameters<
-      NonNullable<Experimental_VideoModelV3['doGenerate']>
-    >[0],
+    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
   ): Promise<{
     input: Record<string, unknown>;
     parameters: Record<string, unknown>;
@@ -339,113 +334,6 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
             : {}),
         },
       },
-    };
-  }
-
-  async doGenerate(
-    options: Parameters<
-      NonNullable<Experimental_VideoModelV3['doGenerate']>
-    >[0],
-  ): Promise<
-    Awaited<ReturnType<NonNullable<Experimental_VideoModelV3['doGenerate']>>>
-  > {
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { input, parameters, warnings, alibabaOptions } =
-      await this.buildRequest(options);
-
-    // Step 1: Create task
-    const { value: createResponse } = await postJsonToApi({
-      url: `${this.config.baseURL}/api/v1/services/aigc/video-generation/video-synthesis`,
-      headers: combineHeaders(
-        await resolve(this.config.headers),
-        options.headers,
-        {
-          'X-DashScope-Async': 'enable',
-        },
-      ),
-      body: {
-        model: this.modelId,
-        input,
-        parameters,
-      },
-      successfulResponseHandler: createJsonResponseHandler(
-        alibabaVideoCreateTaskSchema,
-      ),
-      failedResponseHandler: alibabaVideoFailedResponseHandler,
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
-
-    const taskId = createResponse.output?.task_id;
-    if (!taskId) {
-      throw new AISDKError({
-        name: 'ALIBABA_VIDEO_GENERATION_ERROR',
-        message: `No task_id returned from Alibaba API. Response: ${JSON.stringify(createResponse)}`,
-      });
-    }
-
-    // Step 2: Poll for task completion
-    const pollIntervalMs = this.config._internal?.pollIntervalMs ?? 5000;
-    const pollTimeoutMs = this.config._internal?.pollTimeoutMs ?? 600000;
-    const startTime = Date.now();
-    let finalResponse: AlibabaVideoTaskStatusResponse | undefined;
-    let responseHeaders: Record<string, string> | undefined;
-
-    while (true) {
-      await delay(pollIntervalMs, { abortSignal: options.abortSignal });
-
-      if (Date.now() - startTime > pollTimeoutMs) {
-        throw new AISDKError({
-          name: 'ALIBABA_VIDEO_GENERATION_TIMEOUT',
-          message: `Video generation timed out after ${pollTimeoutMs}ms`,
-        });
-      }
-
-      const { value: statusResponse, responseHeaders: pollHeaders } =
-        await getFromApi({
-          url: `${this.config.baseURL}/api/v1/tasks/${taskId}`,
-          headers: combineHeaders(
-            await resolve(this.config.headers),
-            options.headers,
-          ),
-          successfulResponseHandler: createJsonResponseHandler(
-            alibabaVideoTaskStatusSchema,
-          ),
-          failedResponseHandler: alibabaVideoFailedResponseHandler,
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        });
-
-      responseHeaders = pollHeaders;
-      const taskStatus = statusResponse.output?.task_status;
-
-      if (taskStatus === 'SUCCEEDED') {
-        finalResponse = statusResponse;
-        break;
-      }
-
-      if (taskStatus === 'FAILED' || taskStatus === 'CANCELED') {
-        throw new AISDKError({
-          name: 'ALIBABA_VIDEO_GENERATION_FAILED',
-          message: `Video generation ${taskStatus.toLowerCase()}. Task ID: ${taskId}. ${statusResponse.output?.message ?? ''}`,
-        });
-      }
-
-      // Continue polling for PENDING, RUNNING, UNKNOWN statuses
-    }
-
-    const result = this.buildCompletedResult(
-      finalResponse!,
-      responseHeaders,
-      warnings,
-      currentDate,
-    );
-
-    return {
-      videos: result.videos,
-      warnings: result.warnings,
-      response: result.response,
-      providerMetadata: result.providerMetadata,
     };
   }
 

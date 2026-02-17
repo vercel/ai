@@ -11,7 +11,6 @@ import {
   convertImageModelFileToDataUri,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  delay,
   getFromApi,
   lazySchema,
   parseProviderOptions,
@@ -57,8 +56,6 @@ export const falVideoModelOptionsSchema = lazySchema(() =>
 interface FalVideoModelConfig extends FalConfig {
   _internal?: {
     currentDate?: () => Date;
-    pollIntervalMs?: number;
-    pollTimeoutMs?: number;
   };
 }
 
@@ -78,74 +75,6 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
     readonly modelId: FalVideoModelId,
     private readonly config: FalVideoModelConfig,
   ) {}
-
-  async doGenerate(
-    options: Parameters<
-      NonNullable<Experimental_VideoModelV3['doGenerate']>
-    >[0],
-  ): Promise<
-    Awaited<ReturnType<NonNullable<Experimental_VideoModelV3['doGenerate']>>>
-  > {
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const warnings: SharedV3Warning[] = [];
-
-    const { body, falOptions } = await this.buildRequestBody(options);
-
-    const responseUrl = await this.submitToQueue(options, body);
-
-    const pollIntervalMs = this.config._internal?.pollIntervalMs ?? 2000; // 2 seconds
-    const pollTimeoutMs = this.config._internal?.pollTimeoutMs ?? 300000; // 5 minutes
-    const startTime = Date.now();
-    let response: FalVideoResponse;
-    let responseHeaders: Record<string, string> | undefined;
-
-    while (true) {
-      try {
-        const { value: statusResponse, responseHeaders: statusHeaders } =
-          await this.fetchStatus({
-            responseUrl,
-            headers: options.headers,
-            abortSignal: options.abortSignal,
-          });
-
-        response = statusResponse;
-        responseHeaders = statusHeaders;
-        break;
-      } catch (error) {
-        if (
-          error instanceof Error &&
-          error.message === 'Request is still in progress'
-        ) {
-          // Continue polling
-        } else {
-          throw error;
-        }
-      }
-
-      if (Date.now() - startTime > pollTimeoutMs) {
-        throw new AISDKError({
-          name: 'FAL_VIDEO_GENERATION_TIMEOUT',
-          message: `Video generation request timed out after ${pollTimeoutMs}ms`,
-        });
-      }
-
-      await delay(pollIntervalMs);
-
-      if (options.abortSignal?.aborted) {
-        throw new AISDKError({
-          name: 'FAL_VIDEO_GENERATION_ABORTED',
-          message: 'Video generation request was aborted',
-        });
-      }
-    }
-
-    return this.buildResult({
-      response,
-      responseHeaders,
-      warnings,
-      currentDate,
-    });
-  }
 
   async handleWebhookOption(
     options: Parameters<
@@ -223,9 +152,7 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
   }
 
   private async buildRequestBody(
-    options: Parameters<
-      NonNullable<Experimental_VideoModelV3['doGenerate']>
-    >[0],
+    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
   ): Promise<{
     body: Record<string, unknown>;
     falOptions: FalVideoModelOptions | undefined;

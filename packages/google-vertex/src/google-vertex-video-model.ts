@@ -10,7 +10,6 @@ import {
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
-  delay,
   type FetchFunction,
   lazySchema,
   parseProviderOptions,
@@ -49,8 +48,6 @@ interface GoogleVertexVideoModelConfig {
   generateId?: () => string;
   _internal?: {
     currentDate?: () => Date;
-    pollIntervalMs?: number;
-    pollTimeoutMs?: number;
   };
 }
 
@@ -72,9 +69,7 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
   ) {}
 
   private async buildRequest(
-    options: Parameters<
-      NonNullable<Experimental_VideoModelV3['doGenerate']>
-    >[0],
+    options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
   ): Promise<{
     instances: Array<Record<string, unknown>>;
     parameters: Record<string, unknown>;
@@ -272,112 +267,6 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
           videos: videoMetadata,
         },
       },
-    };
-  }
-
-  async doGenerate(
-    options: Parameters<
-      NonNullable<Experimental_VideoModelV3['doGenerate']>
-    >[0],
-  ): Promise<
-    Awaited<ReturnType<NonNullable<Experimental_VideoModelV3['doGenerate']>>>
-  > {
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-
-    const { instances, parameters, warnings, vertexOptions } =
-      await this.buildRequest(options);
-
-    const { value: operation } = await postJsonToApi({
-      url: `${this.config.baseURL}/models/${this.modelId}:predictLongRunning`,
-      headers: combineHeaders(
-        await resolve(this.config.headers),
-        options.headers,
-      ),
-      body: {
-        instances,
-        parameters,
-      },
-      successfulResponseHandler: createJsonResponseHandler(
-        vertexOperationSchema,
-      ),
-      failedResponseHandler: googleVertexFailedResponseHandler,
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
-
-    const operationName = operation.name;
-    if (!operationName) {
-      throw new AISDKError({
-        name: 'VERTEX_VIDEO_GENERATION_ERROR',
-        message: 'No operation name returned from API',
-      });
-    }
-
-    const pollIntervalMs = this.config._internal?.pollIntervalMs ?? 10000; // 10 seconds
-    const pollTimeoutMs = this.config._internal?.pollTimeoutMs ?? 600000; // 10 minutes
-
-    const startTime = Date.now();
-    let finalOperation = operation;
-    let responseHeaders: Record<string, string> | undefined;
-
-    while (!finalOperation.done) {
-      if (Date.now() - startTime > pollTimeoutMs) {
-        throw new AISDKError({
-          name: 'VERTEX_VIDEO_GENERATION_TIMEOUT',
-          message: `Video generation timed out after ${pollTimeoutMs}ms`,
-        });
-      }
-
-      await delay(pollIntervalMs);
-
-      if (options.abortSignal?.aborted) {
-        throw new AISDKError({
-          name: 'VERTEX_VIDEO_GENERATION_ABORTED',
-          message: 'Video generation request was aborted',
-        });
-      }
-
-      const { value: statusOperation, responseHeaders: pollHeaders } =
-        await postJsonToApi({
-          url: `${this.config.baseURL}/models/${this.modelId}:fetchPredictOperation`,
-          headers: combineHeaders(
-            await resolve(this.config.headers),
-            options.headers,
-          ),
-          body: {
-            operationName,
-          },
-          successfulResponseHandler: createJsonResponseHandler(
-            vertexOperationSchema,
-          ),
-          failedResponseHandler: googleVertexFailedResponseHandler,
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        });
-
-      finalOperation = statusOperation;
-      responseHeaders = pollHeaders;
-    }
-
-    if (finalOperation.error) {
-      throw new AISDKError({
-        name: 'VERTEX_VIDEO_GENERATION_FAILED',
-        message: `Video generation failed: ${finalOperation.error.message}`,
-      });
-    }
-
-    const result = this.buildCompletedResult({
-      finalOperation,
-      responseHeaders,
-      warnings,
-      currentDate,
-    });
-
-    return {
-      videos: result.videos,
-      warnings: result.warnings,
-      response: result.response,
-      providerMetadata: result.providerMetadata,
     };
   }
 
