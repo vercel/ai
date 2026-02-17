@@ -6,7 +6,7 @@ import { createWebhook } from '../lib/create-webhook';
 import { withSpinner } from '../lib/spinner';
 
 run(async () => {
-  const { video } = await withSpinner('Generating video...', () =>
+  const { video, warnings } = await withSpinner('Generating video...', () =>
     experimental_generateVideo({
       model: replicate.video('minimax/video-01'),
       prompt: 'A bumblebee on a dandelion in Bali surrounded by pollen dust.',
@@ -23,6 +23,10 @@ run(async () => {
       },
     }),
   );
+
+  if (warnings?.length) {
+    console.warn('\nWarnings:', warnings);
+  }
 
   await presentVideos([video]);
 });

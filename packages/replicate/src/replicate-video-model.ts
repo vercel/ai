@@ -333,6 +333,15 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
     };
   }
 
+  async handleWebhookOption(
+    options: Parameters<
+      NonNullable<Experimental_VideoModelV3['handleWebhookOption']>
+    >[0],
+  ) {
+    const { url, received } = await options.webhook();
+    return { webhookUrl: url, received };
+  }
+
   async doStart(
     options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
   ): Promise<Experimental_VideoModelV3StartResult> {

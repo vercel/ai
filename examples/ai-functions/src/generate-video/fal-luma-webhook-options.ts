@@ -6,7 +6,7 @@ import { createWebhook } from '../lib/create-webhook';
 import { withSpinner } from '../lib/spinner';
 
 run(async () => {
-  const { videos } = await withSpinner('Generating video...', () =>
+  const { videos, warnings } = await withSpinner('Generating video...', () =>
     experimental_generateVideo({
       model: fal.video('luma-dream-machine/ray-2'),
       prompt:
@@ -25,6 +25,10 @@ run(async () => {
       },
     }),
   );
+
+  if (warnings?.length) {
+    console.warn('\nWarnings:', warnings);
+  }
 
   await presentVideos(videos);
 });
