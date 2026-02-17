@@ -256,6 +256,11 @@ The following provider options are available:
 - **forceReasoning** _boolean_
   Force treating this model as a reasoning model. This is useful for "stealth" reasoning models (e.g. via a custom baseURL) where the model ID is not recognized by the SDK's allowlist. When enabled, the SDK applies reasoning-model parameter compatibility rules and defaults `systemMessageMode` to `developer` unless overridden.
 
+- **contextManagement** _Array&lt;object&gt;_
+  Enable server-side context management (compaction). When configured, the server automatically compresses conversation context when token usage crosses a specified threshold. Each object in the array should have:
+  - `type`: `'compaction'`
+  - `compactThreshold`: _number_ — the token count at which compaction is triggered
+
 The OpenAI responses provider also returns provider-specific metadata:
 
 For Responses models, you can type this metadata using `OpenaiResponsesProviderMetadata`:
@@ -1124,6 +1129,125 @@ for (const part of result.content) {
   original text content, such as `start_index` and `end_index`, are omitted, as
   are fields like `filename` that are directly available on the source object.
 </Note>
+
+#### Compaction
+
+The OpenAI Responses API supports server-side context compaction. When enabled, the server automatically compresses conversation context when token usage crosses a configured threshold. This is useful for long-running conversations or agent loops where you want to stay within token limits without manually managing context.
+
+The compaction item returned by the server is opaque and encrypted — it carries forward key prior state and reasoning into the next turn using fewer tokens. The AI SDK handles this automatically: compaction items are returned as text parts with special `providerMetadata`, and when passed back in subsequent requests they are sent as compaction input items.
+
+```ts highlight="7-11"
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('gpt-5.2'),
+  messages: conversationHistory,
+  providerOptions: {
+    openai: {
+      store: false,
+      contextManagement: [{ type: 'compaction', compactThreshold: 50000 }],
+    } satisfies OpenAILanguageModelResponsesOptions,
+  },
+});
+```
+
+**Configuration:**
+
+- **type** — Must be `'compaction'`
+- **compactThreshold** — The token count at which compaction is triggered. When the rendered input token count crosses this threshold, the server runs a compaction pass before continuing inference.
+
+<Note>
+  Server-side compaction is ZDR-friendly when you set `store: false` on your
+  requests.
+</Note>
+
+##### Detecting Compaction in Streams
+
+When using `streamText`, you can detect compaction by checking the `providerMetadata` on `text-start` and `text-end` events:
+
+```ts
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: openai.responses('gpt-5.2'),
+  messages: conversationHistory,
+  providerOptions: {
+    openai: {
+      store: false,
+      contextManagement: [{ type: 'compaction', compactThreshold: 50000 }],
+    } satisfies OpenAILanguageModelResponsesOptions,
+  },
+});
+
+for await (const part of result.fullStream) {
+  switch (part.type) {
+    case 'text-start': {
+      const isCompaction = part.providerMetadata?.openai?.type === 'compaction';
+      if (isCompaction) {
+        // ... your logic
+      }
+      break;
+    }
+    case 'text-end': {
+      const isCompaction = part.providerMetadata?.openai?.type === 'compaction';
+      if (isCompaction) {
+        // ... your logic
+      }
+      break;
+    }
+    case 'text-delta': {
+      process.stdout.write(part.text);
+      break;
+    }
+  }
+}
+```
+
+##### Compaction in UI Applications
+
+When using `useChat` or other UI hooks, compaction items appear as text parts with `providerMetadata`. You can detect and style them differently in your UI:
+
+```tsx
+{
+  message.parts.map((part, index) => {
+    if (part.type === 'text') {
+      const isCompaction =
+        (part.providerMetadata?.openai as { type?: string } | undefined)
+          ?.type === 'compaction';
+
+      if (isCompaction) {
+        return (
+          <div
+            key={index}
+            className="bg-yellow-100 border-l-4 border-yellow-500 p-2"
+          >
+            <span className="font-bold">[Context Compacted]</span>
+            <p className="text-sm text-yellow-700">
+              The server compressed the conversation context to reduce token
+              usage.
+            </p>
+          </div>
+        );
+      }
+      return <div key={index}>{part.text}</div>;
+    }
+  });
+}
+```
+
+The metadata includes the following fields:
+
+- **type** — Always `'compaction'`
+- **itemId** _string_ — The ID of the compaction item in the Responses API
+- **encryptedContent** _string_ (optional) — The encrypted compaction state. This is automatically sent back to the API when the message is included in subsequent requests.
 
 ### Chat Models
 
