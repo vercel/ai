@@ -30,7 +30,11 @@ import { Output } from '.';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { MockTracer } from '../test/mock-tracer';
-import { generateText, GenerateTextOnFinishCallback } from './generate-text';
+import {
+  generateText,
+  GenerateTextOnFinishCallback,
+  GenerateTextOnStartCallback,
+} from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
@@ -679,6 +683,121 @@ describe('generateText', () => {
 
       expect(result.steps[0].response).toMatchSnapshot();
       expect(result.response).toMatchSnapshot();
+    });
+  });
+
+  describe('options.experimental_onStart', () => {
+    it('should send correct information with text prompt', async () => {
+      let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello, World!' }],
+            ...dummyResponseValues,
+          }),
+        }),
+        prompt: 'test-input',
+        experimental_telemetry: {
+          functionId: 'test-function',
+          metadata: { customKey: 'customValue' },
+        },
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+      });
+
+      expect(startEvent).toEqual({
+        model: { provider: 'mock-provider', modelId: 'mock-model-id' },
+        system: undefined,
+        prompt: 'test-input',
+        messages: undefined,
+        settings: {
+          maxOutputTokens: undefined,
+          temperature: undefined,
+          topP: undefined,
+          topK: undefined,
+          presencePenalty: undefined,
+          frequencyPenalty: undefined,
+          stopSequences: undefined,
+          seed: undefined,
+          maxRetries: 2,
+        },
+        functionId: 'test-function',
+        metadata: { customKey: 'customValue' },
+      });
+    });
+
+    it('should send correct information with system and messages', async () => {
+      let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello!' }],
+            ...dummyResponseValues,
+          }),
+        }),
+        system: 'you are a helpful assistant',
+        messages: [{ role: 'user', content: 'test-message' }],
+        maxOutputTokens: 100,
+        temperature: 0.5,
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+      });
+
+      expect(startEvent.model).toEqual({
+        provider: 'mock-provider',
+        modelId: 'mock-model-id',
+      });
+      expect(startEvent.system).toBe('you are a helpful assistant');
+      expect(startEvent.prompt).toBeUndefined();
+      expect(startEvent.messages).toEqual([
+        { role: 'user', content: 'test-message' },
+      ]);
+      expect(startEvent.settings.maxOutputTokens).toBe(100);
+      expect(startEvent.settings.temperature).toBe(0.5);
+      expect(startEvent.settings.maxRetries).toBe(2);
+    });
+
+    it('should be called before doGenerate', async () => {
+      const callOrder: string[] = [];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            callOrder.push('doGenerate');
+            return {
+              content: [{ type: 'text', text: 'Hello!' }],
+              ...dummyResponseValues,
+            };
+          },
+        }),
+        prompt: 'test-input',
+        experimental_onStart: async () => {
+          callOrder.push('onStart');
+        },
+      });
+
+      expect(callOrder).toEqual(['onStart', 'doGenerate']);
+    });
+
+    it('should not break generation when callback throws', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello, World!' }],
+            ...dummyResponseValues,
+          }),
+        }),
+        prompt: 'test-input',
+        experimental_onStart: async () => {
+          throw new Error('callback error');
+        },
+      });
+
+      expect(result.text).toBe('Hello, World!');
     });
   });
 
