@@ -2,8 +2,8 @@ import type {
   Experimental_VideoModelV3 as VideoModelV3,
   Experimental_VideoModelV3CallOptions as VideoModelV3CallOptions,
   Experimental_VideoModelV3File as VideoModelV3File,
-  Experimental_VideoModelV3StatusResult as VideoModelV3StatusResult,
-  Experimental_VideoModelV3Webhook as VideoModelV3Webhook,
+  Experimental_VideoModelV3OperationStatusResult as VideoModelV3StatusResult,
+  Experimental_VideoModelV3OperationWebhook as VideoModelV3Webhook,
   SharedV3ProviderMetadata as SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {

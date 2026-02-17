@@ -1,8 +1,8 @@
 import {
   AISDKError,
   type Experimental_VideoModelV3,
-  type Experimental_VideoModelV3StartResult,
-  type Experimental_VideoModelV3StatusResult,
+  type Experimental_VideoModelV3OperationStartResult,
+  type Experimental_VideoModelV3OperationStatusResult,
   type SharedV3ProviderMetadata,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
@@ -451,7 +451,7 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
 
   async doStart(
     options: Parameters<NonNullable<Experimental_VideoModelV3['doStart']>>[0],
-  ): Promise<Experimental_VideoModelV3StartResult> {
+  ): Promise<Experimental_VideoModelV3OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { input, parameters, warnings } = await this.buildRequest(options);
 
@@ -498,7 +498,7 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
 
   async doStatus(
     options: Parameters<NonNullable<Experimental_VideoModelV3['doStatus']>>[0],
-  ): Promise<Experimental_VideoModelV3StatusResult> {
+  ): Promise<Experimental_VideoModelV3OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { taskId } = options.operation as { taskId: string };
 

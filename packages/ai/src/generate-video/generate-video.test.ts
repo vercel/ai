@@ -1,7 +1,7 @@
 import type {
   Experimental_VideoModelV3,
   Experimental_VideoModelV3VideoData,
-  Experimental_VideoModelV3Webhook,
+  Experimental_VideoModelV3OperationWebhook,
   SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
@@ -1352,12 +1352,13 @@ describe('experimental_generateVideo', () => {
 
     it('should use webhook flow when webhook is provided', async () => {
       let webhookUrlCapture: string | undefined;
-      let resolveWebhook: (value: Experimental_VideoModelV3Webhook) => void;
-      const webhookReceived = new Promise<Experimental_VideoModelV3Webhook>(
-        resolve => {
+      let resolveWebhook: (
+        value: Experimental_VideoModelV3OperationWebhook,
+      ) => void;
+      const webhookReceived =
+        new Promise<Experimental_VideoModelV3OperationWebhook>(resolve => {
           resolveWebhook = resolve;
-        },
-      );
+        });
 
       const model = new MockVideoModelV3({
         doGenerate: undefined,
@@ -1411,12 +1412,13 @@ describe('experimental_generateVideo', () => {
 
     it('should use webhook over poll when both are provided', async () => {
       let statusCallCount = 0;
-      let resolveWebhook: (value: Experimental_VideoModelV3Webhook) => void;
-      const webhookReceived = new Promise<Experimental_VideoModelV3Webhook>(
-        resolve => {
+      let resolveWebhook: (
+        value: Experimental_VideoModelV3OperationWebhook,
+      ) => void;
+      const webhookReceived =
+        new Promise<Experimental_VideoModelV3OperationWebhook>(resolve => {
           resolveWebhook = resolve;
-        },
-      );
+        });
 
       const model = new MockVideoModelV3({
         doGenerate: undefined,
@@ -1510,7 +1512,9 @@ describe('experimental_generateVideo', () => {
           webhookFactoryCalled = true;
           return {
             url: 'https://example.com/webhook',
-            received: new Promise<Experimental_VideoModelV3Webhook>(() => {}),
+            received: new Promise<Experimental_VideoModelV3OperationWebhook>(
+              () => {},
+            ),
           };
         },
       });

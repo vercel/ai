@@ -6,7 +6,7 @@ import type { VideoModelV3VideoData } from './video-model-v3';
  * Result returned by `doStatus` when checking the status of an
  * asynchronous video generation.
  */
-export type VideoModelV3StatusResult =
+export type VideoModelV3OperationStatusResult =
   | {
       /**
        * The video generation is still in progress.

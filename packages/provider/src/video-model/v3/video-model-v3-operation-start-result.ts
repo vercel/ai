@@ -4,7 +4,7 @@ import type { SharedV3Warning } from '../../shared/v3/shared-v3-warning';
 /**
  * Result returned by `doStart` when initiating an asynchronous video generation.
  */
-export type VideoModelV3StartResult = {
+export type VideoModelV3OperationStartResult = {
   /**
    * Opaque reference passed to `doStatus` to check the status of the
    * generation (e.g., a task ID or prediction URL).
