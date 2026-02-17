@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 2.0.41
+
+### Patch Changes
+
+- fe42fd3: feat(provider/anthropic): add support for new Claude Sonnet 4.6 model
+- 8b5473c: chore(provider/gateway): update gateway model settings files
+
 ## 2.0.40
 
 ### Patch Changes
