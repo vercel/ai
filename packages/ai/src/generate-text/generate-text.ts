@@ -173,16 +173,27 @@ export type GenerateTextOnToolCallStartCallback = (event: {
  *
  * @param event - The event that is passed to the callback.
  */
-export type GenerateTextOnToolCallFinishCallback = (event: {
-  readonly toolName: string;
-  readonly toolCallId: string;
-  readonly input: unknown;
-  readonly output: unknown | undefined;
-  readonly error: unknown | undefined;
-  readonly durationMs: number;
-  readonly functionId: string | undefined;
-  readonly experimental_context: unknown;
-}) => PromiseLike<void> | void;
+export type GenerateTextOnToolCallFinishCallback = (
+  event: {
+    readonly toolName: string;
+    readonly toolCallId: string;
+    readonly input: unknown;
+    readonly durationMs: number;
+    readonly functionId: string | undefined;
+    readonly experimental_context: unknown;
+  } & (
+    | {
+        readonly success: true;
+        readonly output: unknown;
+        readonly error?: never;
+      }
+    | {
+        readonly success: false;
+        readonly output?: never;
+        readonly error: unknown;
+      }
+  ),
+) => PromiseLike<void> | void;
 
 /**
  * Callback that is set using the `onStepFinish` option.

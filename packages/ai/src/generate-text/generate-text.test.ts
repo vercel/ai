@@ -1659,8 +1659,8 @@ describe('generateText', () => {
       expect(toolCallFinishEvents[0].toolName).toBe('tool1');
       expect(toolCallFinishEvents[0].toolCallId).toBe('call-1');
       expect(toolCallFinishEvents[0].input).toEqual({ value: 'test-arg' });
+      expect(toolCallFinishEvents[0].success).toBe(true);
       expect(toolCallFinishEvents[0].output).toBe('test-arg-result');
-      expect(toolCallFinishEvents[0].error).toBeUndefined();
       expect(toolCallFinishEvents[0].durationMs).toBeGreaterThanOrEqual(0);
     });
 
@@ -1702,7 +1702,7 @@ describe('generateText', () => {
       expect(toolCallFinishEvents.length).toBe(1);
       expect(toolCallFinishEvents[0].toolName).toBe('tool1');
       expect(toolCallFinishEvents[0].toolCallId).toBe('call-1');
-      expect(toolCallFinishEvents[0].output).toBeUndefined();
+      expect(toolCallFinishEvents[0].success).toBe(false);
       expect(toolCallFinishEvents[0].error).toBe(toolError);
       expect(toolCallFinishEvents[0].durationMs).toBeGreaterThanOrEqual(0);
     });
@@ -1844,6 +1844,7 @@ describe('generateText', () => {
       });
 
       expect(toolCallFinishEvents.length).toBe(1);
+      expect(toolCallFinishEvents[0].success).toBe(true);
       expect(toolCallFinishEvents[0].experimental_context).toEqual({
         traceId: 'trace-xyz',
         operation: 'test-op',
@@ -1887,6 +1888,7 @@ describe('generateText', () => {
       });
 
       expect(toolCallFinishEvents.length).toBe(1);
+      expect(toolCallFinishEvents[0].success).toBe(false);
       expect(toolCallFinishEvents[0].error).toBe(toolError);
       expect(toolCallFinishEvents[0].experimental_context).toEqual({
         errorTraceId: 'err-trace',
@@ -2046,7 +2048,9 @@ describe('generateText', () => {
       expect(toolCallStartEvents[0].toolCallId).toBe('call-1');
       expect(toolCallStartEvents[1].toolCallId).toBe('call-2');
 
+      expect(toolCallFinishEvents[0].success).toBe(true);
       expect(toolCallFinishEvents[0].output).toBe('step0-result');
+      expect(toolCallFinishEvents[1].success).toBe(true);
       expect(toolCallFinishEvents[1].output).toBe('step1-result');
     });
   });
