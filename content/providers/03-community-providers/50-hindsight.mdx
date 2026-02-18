@@ -90,25 +90,6 @@ const { text } = await generateText({
 });
 ```
 
-### streamText
-
-```ts
-import { streamText } from 'ai';
-import { openai } from '@ai-sdk/openai';
-
-const result = streamText({
-  model: openai('gpt-4o'),
-  tools,
-  maxSteps: 5,
-  system: 'You are a helpful assistant with long-term memory.',
-  prompt: 'What are my display preferences?',
-});
-
-for await (const chunk of result.textStream) {
-  process.stdout.write(chunk);
-}
-```
-
 ### ToolLoopAgent
 
 ```ts
