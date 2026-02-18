@@ -8,6 +8,7 @@ export {
   type ChatOnFinishCallback,
   type ChatOnToolCallCallback,
   type ChatRequestOptions,
+  type ChatResetToolApprovalFunction,
   type ChatState,
   type ChatStatus,
   type CreateUIMessage,

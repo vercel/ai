@@ -83,6 +83,15 @@ export type ChatAddToolApproveResponseFunction = ({
   reason?: string;
 }) => void | PromiseLike<void>;
 
+/**
+ * Function that can be called to reset a tool approval back to the requested state.
+ */
+export type ChatResetToolApprovalFunction = ({
+  id,
+}: {
+  id: string;
+}) => void | PromiseLike<void>;
+
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
 type ActiveResponse<UI_MESSAGE extends UIMessage> = {
@@ -478,6 +487,37 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             });
           }
         });
+      }
+    });
+
+  resetToolApproval: ChatResetToolApprovalFunction = async ({ id }) =>
+    this.jobExecutor.run(async () => {
+      const messages = this.state.messages;
+      const lastMessage = messages[messages.length - 1];
+
+      const updatePart = (
+        part: UIMessagePart<UIDataTypes, UITools>,
+      ): UIMessagePart<UIDataTypes, UITools> =>
+        isToolUIPart(part) &&
+        part.state === 'approval-responded' &&
+        part.approval.id === id
+          ? {
+              ...part,
+              state: 'approval-requested',
+              approval: { id },
+            }
+          : part;
+
+      // update the message to trigger an immediate UI update
+      this.state.replaceMessage(messages.length - 1, {
+        ...lastMessage,
+        parts: lastMessage.parts.map(updatePart),
+      });
+
+      // update the active response if it exists
+      if (this.activeResponse) {
+        this.activeResponse.state.message.parts =
+          this.activeResponse.state.message.parts.map(updatePart);
       }
     });
 

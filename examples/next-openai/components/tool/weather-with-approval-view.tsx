@@ -1,12 +1,17 @@
 import type { WeatherUIToolWithApprovalInvocation } from '@/tool/weather-tool-with-approval';
-import type { ChatAddToolApproveResponseFunction } from 'ai';
+import type {
+  ChatAddToolApproveResponseFunction,
+  ChatResetToolApprovalFunction,
+} from 'ai';
 
 export default function WeatherWithApprovalView({
   invocation,
   addToolApprovalResponse,
+  resetToolApproval,
 }: {
   invocation: WeatherUIToolWithApprovalInvocation;
   addToolApprovalResponse: ChatAddToolApproveResponseFunction;
+  resetToolApproval: ChatResetToolApprovalFunction;
 }) {
   switch (invocation.state) {
     case 'approval-requested':
@@ -43,7 +48,19 @@ export default function WeatherWithApprovalView({
       return (
         <div className="text-gray-500">
           Can I retrieve the weather for {invocation.input.city}?
-          <div>{invocation.approval.approved ? 'Approved' : 'Denied'}</div>
+          <div>
+            {invocation.approval.approved ? 'Approved' : 'Denied'}
+            <button
+              className="px-4 py-2 ml-2 text-white bg-gray-500 rounded transition-colors hover:bg-gray-600"
+              onClick={() =>
+                resetToolApproval({
+                  id: invocation.approval.id,
+                })
+              }
+            >
+              Reset
+            </button>
+          </div>
         </div>
       );
 
