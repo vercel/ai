@@ -153,6 +153,31 @@ export type GenerateTextOnStepStartCallback<TOOLS extends ToolSet> = (event: {
 }) => PromiseLike<void> | void;
 
 /**
+ * Callback that is set using the `experimental_onToolCallStart` option.
+ *
+ * @param event - The event that is passed to the callback.
+ */
+export type GenerateTextOnToolCallStartCallback = (event: {
+  readonly toolName: string;
+  readonly toolCallId: string;
+  readonly input: unknown;
+}) => PromiseLike<void> | void;
+
+/**
+ * Callback that is set using the `experimental_onToolCallFinish` option.
+ *
+ * @param event - The event that is passed to the callback.
+ */
+export type GenerateTextOnToolCallFinishCallback = (event: {
+  readonly toolName: string;
+  readonly toolCallId: string;
+  readonly input: unknown;
+  readonly output: unknown | undefined;
+  readonly error: unknown | undefined;
+  readonly durationMs: number;
+}) => PromiseLike<void> | void;
+
+/**
  * Callback that is set using the `onStepFinish` option.
  *
  * @param event - The step result along with the step number.
@@ -267,6 +292,8 @@ export async function generateText<
   _internal: { generateId = originalGenerateId } = {},
   experimental_onStart: onStart,
   experimental_onStepStart: onStepStart,
+  experimental_onToolCallStart: onToolCallStart,
+  experimental_onToolCallFinish: onToolCallFinish,
   onStepFinish,
   onFinish,
   ...settings
@@ -365,6 +392,16 @@ export async function generateText<
      * before the provider is called.
      */
     experimental_onStepStart?: GenerateTextOnStepStartCallback<NoInfer<TOOLS>>;
+
+    /**
+     * Callback that is called right before a tool's execute function runs.
+     */
+    experimental_onToolCallStart?: GenerateTextOnToolCallStartCallback;
+
+    /**
+     * Callback that is called right after a tool's execute function completes (or errors).
+     */
+    experimental_onToolCallFinish?: GenerateTextOnToolCallFinishCallback;
 
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
@@ -524,6 +561,8 @@ export async function generateText<
             messages: initialMessages,
             abortSignal: mergedAbortSignal,
             experimental_context,
+            onToolCallStart: onToolCallStart,
+            onToolCallFinish: onToolCallFinish,
           });
 
           const toolContent: Array<any> = [];
@@ -892,6 +931,8 @@ export async function generateText<
                   messages: stepInputMessages,
                   abortSignal: mergedAbortSignal,
                   experimental_context,
+                  onToolCallStart: onToolCallStart,
+                  onToolCallFinish: onToolCallFinish,
                 })),
               );
             }
@@ -1127,6 +1168,8 @@ async function executeTools<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   experimental_context,
+  onToolCallStart,
+  onToolCallFinish,
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
@@ -1135,6 +1178,8 @@ async function executeTools<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
+  onToolCallStart: GenerateTextOnToolCallStartCallback | undefined;
+  onToolCallFinish: GenerateTextOnToolCallFinishCallback | undefined;
 }): Promise<Array<ToolOutput<TOOLS>>> {
   const toolOutputs = await Promise.all(
     toolCalls.map(async toolCall =>
@@ -1146,6 +1191,8 @@ async function executeTools<TOOLS extends ToolSet>({
         messages,
         abortSignal,
         experimental_context,
+        onToolCallStart,
+        onToolCallFinish,
       }),
     ),
   );

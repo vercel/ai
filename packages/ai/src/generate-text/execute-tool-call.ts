@@ -4,6 +4,10 @@ import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import {
+  GenerateTextOnToolCallFinishCallback,
+  GenerateTextOnToolCallStartCallback,
+} from './generate-text';
 import { TypedToolCall } from './tool-call';
 import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
@@ -19,6 +23,8 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   abortSignal,
   experimental_context,
   onPreliminaryToolResult,
+  onToolCallStart,
+  onToolCallFinish,
 }: {
   toolCall: TypedToolCall<TOOLS>;
   tools: TOOLS | undefined;
@@ -28,6 +34,8 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
+  onToolCallStart?: GenerateTextOnToolCallStartCallback;
+  onToolCallFinish?: GenerateTextOnToolCallFinishCallback;
 }): Promise<ToolOutput<TOOLS> | undefined> {
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
@@ -57,6 +65,14 @@ export async function executeToolCall<TOOLS extends ToolSet>({
       let output: unknown;
 
       try {
+        await onToolCallStart?.({ toolName, toolCallId, input });
+      } catch (_ignored) {
+        // Errors in callbacks should not break the generation flow.
+      }
+
+      const startTime = performance.now();
+
+      try {
         const stream = executeTool({
           execute: tool.execute!.bind(tool),
           input,
@@ -81,6 +97,21 @@ export async function executeToolCall<TOOLS extends ToolSet>({
           }
         }
       } catch (error) {
+        const durationMs = performance.now() - startTime;
+
+        try {
+          await onToolCallFinish?.({
+            toolName,
+            toolCallId,
+            input,
+            output: undefined,
+            error,
+            durationMs,
+          });
+        } catch (_ignored) {
+          // Errors in callbacks should not break the generation flow.
+        }
+
         recordErrorOnSpan(span, error);
         return {
           type: 'tool-error',
@@ -93,6 +124,21 @@ export async function executeToolCall<TOOLS extends ToolSet>({
             ? { providerMetadata: toolCall.providerMetadata }
             : {}),
         } as TypedToolError<TOOLS>;
+      }
+
+      const durationMs = performance.now() - startTime;
+
+      try {
+        await onToolCallFinish?.({
+          toolName,
+          toolCallId,
+          input,
+          output,
+          error: undefined,
+          durationMs,
+        });
+      } catch (_ignored) {
+        // Errors in callbacks should not break the generation flow.
       }
 
       try {
