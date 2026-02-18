@@ -181,11 +181,13 @@ export async function convertToOpenAIResponsesInput({
                   providerOptionsName
                 ]?.encryptedContent as string;
 
-                input.push({
-                  type: 'compaction',
-                  id: id!,
-                  encrypted_content: encryptedContent,
-                } satisfies OpenAIResponsesCompactionItem);
+                if (id != null) {
+                  input.push({
+                    type: 'compaction',
+                    id,
+                    encrypted_content: encryptedContent,
+                  } satisfies OpenAIResponsesCompactionItem);
+                }
                 break;
               }
 
