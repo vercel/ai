@@ -15,6 +15,7 @@ export type { OpenAIEmbeddingModelOptions } from './embedding/openai-embedding-o
 export type { OpenAISpeechModelOptions } from './speech/openai-speech-options';
 export type { OpenAITranscriptionModelOptions } from './transcription/openai-transcription-options';
 export type {
+  OpenaiResponsesCompactionProviderMetadata,
   OpenaiResponsesProviderMetadata,
   OpenaiResponsesReasoningProviderMetadata,
   OpenaiResponsesTextProviderMetadata,
