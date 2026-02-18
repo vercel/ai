@@ -9,13 +9,15 @@ import { withSpinner } from '../lib/spinner';
 
 run(async () => {
   const { video } = await withSpinner(
-    'Generating text-to-video with seedance-1-0-pro...',
+    'Generating image-to-video with seedance-1-5-pro...',
     () =>
       generateVideo({
-        model: byteDance.video('seedance-1-0-pro-250528'),
-        prompt:
-          'Photorealistic style: Under a clear blue sky, a vast expanse of white daisy fields stretches out. The camera gradually zooms in and finally fixates on a close-up of a single daisy, with several glistening dewdrops resting on its petals.',
-        aspectRatio: '16:9',
+        model: byteDance.video('seedance-1-5-pro-251215'),
+        prompt: {
+          image:
+            'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-cat.png',
+          text: 'The cat slowly turns its head and blinks, then yawns lazily',
+        },
         duration: 5,
         providerOptions: {
           bytedance: {

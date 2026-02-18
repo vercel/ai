@@ -9,16 +9,21 @@ import { withSpinner } from '../lib/spinner';
 
 run(async () => {
   const { video } = await withSpinner(
-    'Generating text-to-video with seedance-1-0-pro...',
+    'Generating multi-reference image-to-video with seedance-1-0-lite...',
     () =>
       generateVideo({
-        model: byteDance.video('seedance-1-0-pro-250528'),
+        model: byteDance.video('seedance-1-0-lite-i2v-250428'),
         prompt:
-          'Photorealistic style: Under a clear blue sky, a vast expanse of white daisy fields stretches out. The camera gradually zooms in and finally fixates on a close-up of a single daisy, with several glistening dewdrops resting on its petals.',
+          'A boy wearing glasses and a blue T-shirt from [Image 1] and a corgi dog from [Image 2], sitting on the lawn from [Image 3], in 3D cartoon style',
         aspectRatio: '16:9',
         duration: 5,
         providerOptions: {
           bytedance: {
+            referenceImages: [
+              'https://ark-doc.tos-ap-southeast-1.bytepluses.com/doc_image/seelite_ref_1.png',
+              'https://ark-doc.tos-ap-southeast-1.bytepluses.com/doc_image/seelite_ref_2.png',
+              'https://ark-doc.tos-ap-southeast-1.bytepluses.com/doc_image/seelite_ref_3.png',
+            ],
             watermark: false,
             pollTimeoutMs: 600000,
           } satisfies ByteDanceVideoProviderOptions,

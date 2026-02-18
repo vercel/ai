@@ -9,16 +9,21 @@ import { withSpinner } from '../lib/spinner';
 
 run(async () => {
   const { video } = await withSpinner(
-    'Generating text-to-video with seedance-1-0-pro...',
+    'Generating first-and-last frame video with seedance-1-5-pro...',
     () =>
       generateVideo({
-        model: byteDance.video('seedance-1-0-pro-250528'),
-        prompt:
-          'Photorealistic style: Under a clear blue sky, a vast expanse of white daisy fields stretches out. The camera gradually zooms in and finally fixates on a close-up of a single daisy, with several glistening dewdrops resting on its petals.',
-        aspectRatio: '16:9',
+        model: byteDance.video('seedance-1-5-pro-251215'),
+        prompt: {
+          image:
+            'https://ark-doc.tos-ap-southeast-1.bytepluses.com/doc_image/seepro_first_frame.jpeg',
+          text: 'Create a 360-degree orbiting camera shot based on this photo',
+        },
         duration: 5,
         providerOptions: {
           bytedance: {
+            lastFrameImage:
+              'https://ark-doc.tos-ap-southeast-1.bytepluses.com/doc_image/seepro_last_frame.jpeg',
+            generateAudio: true,
             watermark: false,
             pollTimeoutMs: 600000,
           } satisfies ByteDanceVideoProviderOptions,

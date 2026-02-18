@@ -9,16 +9,19 @@ import { withSpinner } from '../lib/spinner';
 
 run(async () => {
   const { video } = await withSpinner(
-    'Generating text-to-video with seedance-1-0-pro...',
+    'Generating audio-video with seedance-1-5-pro...',
     () =>
       generateVideo({
-        model: byteDance.video('seedance-1-0-pro-250528'),
-        prompt:
-          'Photorealistic style: Under a clear blue sky, a vast expanse of white daisy fields stretches out. The camera gradually zooms in and finally fixates on a close-up of a single daisy, with several glistening dewdrops resting on its petals.',
-        aspectRatio: '16:9',
+        model: byteDance.video('seedance-1-5-pro-251215'),
+        prompt: {
+          image:
+            'https://ark-doc.tos-ap-southeast-1.bytepluses.com/doc_image/i2v_foxrgirl.png',
+          text: "A girl holding a fox, the girl opens her eyes, looks gently at the camera, the fox hugs affectionately, the camera slowly pulls out, the girl's hair is blown by the wind, and the sound of the wind can be heard",
+        },
         duration: 5,
         providerOptions: {
           bytedance: {
+            generateAudio: true,
             watermark: false,
             pollTimeoutMs: 600000,
           } satisfies ByteDanceVideoProviderOptions,

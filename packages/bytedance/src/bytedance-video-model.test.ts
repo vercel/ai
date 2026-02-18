@@ -21,7 +21,7 @@ function createBasicModel({
   headers,
   fetch,
   currentDate,
-  modelId = 'ep-test-model',
+  modelId = 'seedance-1-0-pro-250528',
 }: {
   headers?: Record<string, string | undefined>;
   fetch?: FetchFunction;
@@ -56,7 +56,7 @@ describe('ByteDanceVideoModel', () => {
           type: 'json-value',
           body: {
             id: 'test-task-id-123',
-            model: 'ep-test-model',
+            model: 'seedance-1-0-pro-250528',
             status: 'succeeded',
             content: {
               video_url: 'https://bytedance.cdn/files/video-output.mp4',
@@ -74,17 +74,25 @@ describe('ByteDanceVideoModel', () => {
       const model = createBasicModel();
 
       expect(model.provider).toBe('bytedance.video');
-      expect(model.modelId).toBe('ep-test-model');
+      expect(model.modelId).toBe('seedance-1-0-pro-250528');
       expect(model.specificationVersion).toBe('v3');
       expect(model.maxVideosPerCall).toBe(1);
     });
 
     it('should support different model IDs', () => {
       const model = createBasicModel({
-        modelId: 'ep-seedance-1.5-pro',
+        modelId: 'seedance-1-5-pro-251215',
       });
 
-      expect(model.modelId).toBe('ep-seedance-1.5-pro');
+      expect(model.modelId).toBe('seedance-1-5-pro-251215');
+    });
+
+    it('should support custom model IDs', () => {
+      const model = createBasicModel({
+        modelId: 'custom-model-id',
+      });
+
+      expect(model.modelId).toBe('custom-model-id');
     });
   });
 
@@ -95,7 +103,7 @@ describe('ByteDanceVideoModel', () => {
       await model.doGenerate({ ...defaultOptions });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'ep-test-model',
+        model: 'seedance-1-0-pro-250528',
         content: [
           {
             type: 'text',
@@ -114,7 +122,7 @@ describe('ByteDanceVideoModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'ep-test-model',
+        model: 'seedance-1-0-pro-250528',
         content: [
           {
             type: 'text',
@@ -134,7 +142,7 @@ describe('ByteDanceVideoModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'ep-test-model',
+        model: 'seedance-1-0-pro-250528',
         content: [
           {
             type: 'text',
@@ -154,7 +162,7 @@ describe('ByteDanceVideoModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'ep-test-model',
+        model: 'seedance-1-0-pro-250528',
         content: [
           {
             type: 'text',
@@ -165,7 +173,7 @@ describe('ByteDanceVideoModel', () => {
       });
     });
 
-    it('should pass resolution when provided', async () => {
+    it('should map WxH resolution to API format', async () => {
       const model = createBasicModel();
 
       await model.doGenerate({
@@ -174,14 +182,74 @@ describe('ByteDanceVideoModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'ep-test-model',
+        model: 'seedance-1-0-pro-250528',
         content: [
           {
             type: 'text',
             text: prompt,
           },
         ],
-        resolution: '1920x1080',
+        resolution: '1080p',
+      });
+    });
+
+    it('should map 720p resolution correctly', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        resolution: '1280x720',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'seedance-1-0-pro-250528',
+        content: [
+          {
+            type: 'text',
+            text: prompt,
+          },
+        ],
+        resolution: '720p',
+      });
+    });
+
+    it('should map 480p resolution correctly', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        resolution: '864x480',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'seedance-1-0-pro-250528',
+        content: [
+          {
+            type: 'text',
+            text: prompt,
+          },
+        ],
+        resolution: '480p',
+      });
+    });
+
+    it('should pass through unmapped resolution values', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        resolution: '720p',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'seedance-1-0-pro-250528',
+        content: [
+          {
+            type: 'text',
+            text: prompt,
+          },
+        ],
+        resolution: '720p',
       });
     });
 
@@ -228,6 +296,41 @@ describe('ByteDanceVideoModel', () => {
     });
   });
 
+  describe('warnings', () => {
+    it('should warn when fps is provided', async () => {
+      const model = createBasicModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        fps: 30,
+      });
+
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'fps',
+        details:
+          'ByteDance video models do not support custom FPS. Frame rate is fixed at 24 fps.',
+      });
+    });
+
+    it('should warn when n > 1', async () => {
+      const model = createBasicModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        n: 3,
+      });
+
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'n',
+        details:
+          'ByteDance video models do not support generating multiple videos per call. ' +
+          'Only 1 video will be generated.',
+      });
+    });
+  });
+
   describe('response metadata', () => {
     it('should include timestamp, headers and modelId in response', async () => {
       const testDate = new Date('2024-01-01T00:00:00Z');
@@ -239,7 +342,7 @@ describe('ByteDanceVideoModel', () => {
 
       expect(result.response).toStrictEqual({
         timestamp: testDate,
-        modelId: 'ep-test-model',
+        modelId: 'seedance-1-0-pro-250528',
         headers: expect.any(Object),
       });
     });
@@ -278,7 +381,7 @@ describe('ByteDanceVideoModel', () => {
 
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody).toMatchObject({
-        model: 'ep-test-model',
+        model: 'seedance-1-0-pro-250528',
         content: [
           {
             type: 'text',
@@ -307,7 +410,7 @@ describe('ByteDanceVideoModel', () => {
 
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody).toMatchObject({
-        model: 'ep-test-model',
+        model: 'seedance-1-0-pro-250528',
         content: [
           {
             type: 'text',
@@ -338,7 +441,7 @@ describe('ByteDanceVideoModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'ep-test-model',
+        model: 'seedance-1-0-pro-250528',
         content: [
           {
             type: 'text',
@@ -362,7 +465,7 @@ describe('ByteDanceVideoModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'ep-test-model',
+        model: 'seedance-1-0-pro-250528',
         content: [
           {
             type: 'text',
@@ -371,6 +474,182 @@ describe('ByteDanceVideoModel', () => {
         ],
         generate_audio: true,
       });
+    });
+
+    it('should pass cameraFixed as camera_fixed', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          bytedance: {
+            cameraFixed: true,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'seedance-1-0-pro-250528',
+        content: [
+          {
+            type: 'text',
+            text: prompt,
+          },
+        ],
+        camera_fixed: true,
+      });
+    });
+
+    it('should pass returnLastFrame as return_last_frame', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          bytedance: {
+            returnLastFrame: true,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'seedance-1-0-pro-250528',
+        content: [
+          {
+            type: 'text',
+            text: prompt,
+          },
+        ],
+        return_last_frame: true,
+      });
+    });
+
+    it('should pass serviceTier as service_tier', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          bytedance: {
+            serviceTier: 'flex',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'seedance-1-0-pro-250528',
+        content: [
+          {
+            type: 'text',
+            text: prompt,
+          },
+        ],
+        service_tier: 'flex',
+      });
+    });
+
+    it('should pass draft option', async () => {
+      const model = createBasicModel({
+        modelId: 'seedance-1-5-pro-251215',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          bytedance: {
+            draft: true,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'seedance-1-5-pro-251215',
+        content: [
+          {
+            type: 'text',
+            text: prompt,
+          },
+        ],
+        draft: true,
+      });
+    });
+
+    it('should add last frame image with role', async () => {
+      const model = createBasicModel({
+        modelId: 'seedance-1-5-pro-251215',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        image: {
+          type: 'url',
+          url: 'https://example.com/first-frame.png',
+        },
+        providerOptions: {
+          bytedance: {
+            lastFrameImage: 'https://example.com/last-frame.png',
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/first-frame.png' },
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/last-frame.png' },
+          role: 'last_frame',
+        },
+      ]);
+    });
+
+    it('should add reference images with role', async () => {
+      const model = createBasicModel({
+        modelId: 'seedance-1-0-lite-i2v-250428',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          bytedance: {
+            referenceImages: [
+              'https://example.com/ref1.png',
+              'https://example.com/ref2.png',
+              'https://example.com/ref3.png',
+            ],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/ref1.png' },
+          role: 'reference_image',
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/ref2.png' },
+          role: 'reference_image',
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/ref3.png' },
+          role: 'reference_image',
+        },
+      ]);
     });
 
     it('should pass through additional options', async () => {
@@ -387,7 +666,7 @@ describe('ByteDanceVideoModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'ep-test-model',
+        model: 'seedance-1-0-pro-250528',
         content: [
           {
             type: 'text',
@@ -419,7 +698,7 @@ describe('ByteDanceVideoModel', () => {
     });
 
     it('should throw error when task fails', async () => {
-      const model = new ByteDanceVideoModel('ep-test-model', {
+      const model = new ByteDanceVideoModel('seedance-1-0-pro-250528', {
         provider: 'bytedance.video',
         baseURL: 'https://ark.ap-southeast.bytepluses.com/api/v3',
         headers: () => ({ Authorization: 'Bearer test-key' }),
@@ -473,7 +752,7 @@ describe('ByteDanceVideoModel', () => {
     });
 
     it('should throw error when no video URL in response', async () => {
-      const model = new ByteDanceVideoModel('ep-test-model', {
+      const model = new ByteDanceVideoModel('seedance-1-0-pro-250528', {
         provider: 'bytedance.video',
         baseURL: 'https://ark.ap-southeast.bytepluses.com/api/v3',
         headers: () => ({ Authorization: 'Bearer test-key' }),
@@ -554,7 +833,7 @@ describe('ByteDanceVideoModel', () => {
     it('should poll until video is ready', async () => {
       let pollCount = 0;
 
-      const model = new ByteDanceVideoModel('ep-test-model', {
+      const model = new ByteDanceVideoModel('seedance-1-0-pro-250528', {
         provider: 'bytedance.video',
         baseURL: 'https://ark.ap-southeast.bytepluses.com/api/v3',
         headers: () => ({ Authorization: 'Bearer test-key' }),
@@ -634,7 +913,7 @@ describe('ByteDanceVideoModel', () => {
     });
 
     it('should timeout after pollTimeoutMs', async () => {
-      const model = new ByteDanceVideoModel('ep-test-model', {
+      const model = new ByteDanceVideoModel('seedance-1-0-pro-250528', {
         provider: 'bytedance.video',
         baseURL: 'https://ark.ap-southeast.bytepluses.com/api/v3',
         headers: () => ({ Authorization: 'Bearer test-key' }),
@@ -691,7 +970,7 @@ describe('ByteDanceVideoModel', () => {
     it('should respect abort signal', async () => {
       const abortController = new AbortController();
 
-      const model = new ByteDanceVideoModel('ep-test-model', {
+      const model = new ByteDanceVideoModel('seedance-1-0-pro-250528', {
         provider: 'bytedance.video',
         baseURL: 'https://ark.ap-southeast.bytepluses.com/api/v3',
         headers: () => ({ Authorization: 'Bearer test-key' }),

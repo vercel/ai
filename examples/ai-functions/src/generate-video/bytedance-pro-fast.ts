@@ -9,12 +9,12 @@ import { withSpinner } from '../lib/spinner';
 
 run(async () => {
   const { video } = await withSpinner(
-    'Generating text-to-video with seedance-1-0-pro...',
+    'Generating text-to-video with seedance-1-0-pro-fast...',
     () =>
       generateVideo({
-        model: byteDance.video('seedance-1-0-pro-250528'),
+        model: byteDance.video('seedance-1-0-pro-fast-251015'),
         prompt:
-          'Photorealistic style: Under a clear blue sky, a vast expanse of white daisy fields stretches out. The camera gradually zooms in and finally fixates on a close-up of a single daisy, with several glistening dewdrops resting on its petals.',
+          'A golden retriever puppy running through a sunlit meadow, chasing butterflies, cinematic slow motion',
         aspectRatio: '16:9',
         duration: 5,
         providerOptions: {
