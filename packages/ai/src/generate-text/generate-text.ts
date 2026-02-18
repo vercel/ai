@@ -111,17 +111,15 @@ export type GenerateTextOnStartCallback = (event: {
 
   readonly messages: Array<ModelMessage> | undefined;
 
-  readonly settings: {
-    readonly maxOutputTokens: number | undefined;
-    readonly temperature: number | undefined;
-    readonly topP: number | undefined;
-    readonly topK: number | undefined;
-    readonly presencePenalty: number | undefined;
-    readonly frequencyPenalty: number | undefined;
-    readonly stopSequences: string[] | undefined;
-    readonly seed: number | undefined;
-    readonly maxRetries: number;
-  };
+  readonly maxOutputTokens: number | undefined;
+  readonly temperature: number | undefined;
+  readonly topP: number | undefined;
+  readonly topK: number | undefined;
+  readonly presencePenalty: number | undefined;
+  readonly frequencyPenalty: number | undefined;
+  readonly stopSequences: string[] | undefined;
+  readonly seed: number | undefined;
+  readonly maxRetries: number;
 
   readonly functionId: string | undefined;
 
@@ -495,17 +493,15 @@ export async function generateText<
       system,
       prompt,
       messages,
-      settings: {
-        maxOutputTokens: callSettings.maxOutputTokens,
-        temperature: callSettings.temperature,
-        topP: callSettings.topP,
-        topK: callSettings.topK,
-        presencePenalty: callSettings.presencePenalty,
-        frequencyPenalty: callSettings.frequencyPenalty,
-        stopSequences: callSettings.stopSequences,
-        seed: callSettings.seed,
-        maxRetries,
-      },
+      maxOutputTokens: callSettings.maxOutputTokens,
+      temperature: callSettings.temperature,
+      topP: callSettings.topP,
+      topK: callSettings.topK,
+      presencePenalty: callSettings.presencePenalty,
+      frequencyPenalty: callSettings.frequencyPenalty,
+      stopSequences: callSettings.stopSequences,
+      seed: callSettings.seed,
+      maxRetries,
       functionId: telemetry?.functionId,
       metadata: telemetry?.metadata as Record<string, unknown> | undefined,
     });
