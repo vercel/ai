@@ -2438,6 +2438,9 @@ describe('AnthropicMessagesLanguageModel', () => {
           max_uses: 3,
           allowed_domains: ['arxiv.org', 'nature.com', 'mit.edu'],
         });
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+          'code-execution-web-tools-2026-02-09',
+        );
       });
 
       it('should pass web search configuration with blocked domains', async () => {
@@ -2916,6 +2919,9 @@ describe('AnthropicMessagesLanguageModel', () => {
           name: 'web_fetch',
           max_uses: 1,
         });
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+          'code-execution-web-tools-2026-02-09',
+        );
       });
 
       describe('text response without title', () => {

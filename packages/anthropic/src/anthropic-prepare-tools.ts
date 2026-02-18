@@ -252,7 +252,7 @@ export async function prepareTools({
             break;
           }
           case 'anthropic.web_fetch_20260209': {
-            betas.add('web-fetch-2026-02-09');
+            betas.add('code-execution-web-tools-2026-02-09');
             const args = await validateTypes({
               value: tool.args,
               schema: webFetch_20260209ArgsSchema,
@@ -286,6 +286,7 @@ export async function prepareTools({
             break;
           }
           case 'anthropic.web_search_20260209': {
+            betas.add('code-execution-web-tools-2026-02-09');
             const args = await validateTypes({
               value: tool.args,
               schema: webSearch_20260209ArgsSchema,

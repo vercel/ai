@@ -659,7 +659,9 @@ describe('prepareTools', () => {
       });
       expect(result).toMatchInlineSnapshot(`
         {
-          "betas": Set {},
+          "betas": Set {
+            "code-execution-web-tools-2026-02-09",
+          },
           "toolChoice": undefined,
           "toolWarnings": [],
           "tools": [
@@ -750,7 +752,7 @@ describe('prepareTools', () => {
       expect(result).toMatchInlineSnapshot(`
         {
           "betas": Set {
-            "web-fetch-2026-02-09",
+            "code-execution-web-tools-2026-02-09",
           },
           "toolChoice": undefined,
           "toolWarnings": [],
