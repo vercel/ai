@@ -302,16 +302,49 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
+              const resolvedResultToolName = toolNameMapping.toProviderToolName(
+                part.toolName,
+              );
+
+              /*
+               * Shell tool results are separate output items (shell_call_output)
+               * with their own item IDs distinct from the shell_call's item ID.
+               * Since the pipeline only preserves the shell_call's item ID in
+               * callProviderMetadata, we reconstruct the full shell_call_output
+               * instead of using an item_reference with the wrong ID.
+               */
+              if (hasShellTool && resolvedResultToolName === 'shell') {
+                if (part.output.type === 'json') {
+                  const parsedOutput = await validateTypes({
+                    value: part.output.value,
+                    schema: shellOutputSchema,
+                  });
+                  input.push({
+                    type: 'shell_call_output',
+                    call_id: part.toolCallId,
+                    output: parsedOutput.output.map(item => ({
+                      stdout: item.stdout,
+                      stderr: item.stderr,
+                      outcome:
+                        item.outcome.type === 'timeout'
+                          ? { type: 'timeout' as const }
+                          : {
+                              type: 'exit' as const,
+                              exit_code: item.outcome.exitCode,
+                            },
+                    })),
+                  });
+                }
+                break;
+              }
+
               if (store) {
                 const itemId =
                   (
-                    part as {
-                      providerMetadata?: {
-                        [providerOptionsName]?: { itemId?: string };
-                      };
-                    }
-                  ).providerMetadata?.[providerOptionsName]?.itemId ??
-                  part.toolCallId;
+                    part.providerOptions?.[providerOptionsName] as
+                      | { itemId?: string }
+                      | undefined
+                  )?.itemId ?? part.toolCallId;
                 input.push({ type: 'item_reference', id: itemId });
               } else {
                 warnings.push({
