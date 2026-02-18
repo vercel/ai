@@ -196,7 +196,7 @@ const agent = new ToolLoopAgent({
   model: __MODEL__,
   tools: createHindsightTools({ client, bankId: 'user-123' }),
   stopWhen: stepCountIs(10),
-  system: 'You are a helpful assistant with long-term memory.',
+  instructions: 'You are a helpful assistant with long-term memory.',
 });
 
 const result = await agent.generate({
