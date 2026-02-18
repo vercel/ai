@@ -91,39 +91,62 @@ const originalGenerateId = createIdGenerator({
  * Callback that is set using the `experimental_onStart` option.
  *
  * Called when the generateText operation begins, before any LLM calls.
+ * Use this callback for logging, analytics, or initializing state at the
+ * start of a generation.
  *
- * @param event - The event that is passed to the callback.
+ * @param event - The event object containing generation configuration.
  */
 export type GenerateTextOnStartCallback = (event: {
+  /** The model being used for generation. */
   readonly model: {
+    /** The provider identifier (e.g., 'openai', 'anthropic'). */
     readonly provider: string;
+    /** The specific model identifier (e.g., 'gpt-4o'). */
     readonly modelId: string;
   };
 
+  /** The system message(s) provided to the model. */
   readonly system:
     | string
     | SystemModelMessage
     | Array<SystemModelMessage>
     | undefined;
 
+  /** The prompt string or array of messages if using the prompt option. */
   readonly prompt: string | Array<ModelMessage> | undefined;
 
+  /** The messages array if using the messages option. */
   readonly messages: Array<ModelMessage> | undefined;
 
+  /** Maximum number of tokens to generate. */
   readonly maxOutputTokens: number | undefined;
+  /** Sampling temperature for generation. */
   readonly temperature: number | undefined;
+  /** Top-p (nucleus) sampling parameter. */
   readonly topP: number | undefined;
+  /** Top-k sampling parameter. */
   readonly topK: number | undefined;
+  /** Presence penalty for generation. */
   readonly presencePenalty: number | undefined;
+  /** Frequency penalty for generation. */
   readonly frequencyPenalty: number | undefined;
+  /** Sequences that will stop generation. */
   readonly stopSequences: string[] | undefined;
+  /** Random seed for reproducible generation. */
   readonly seed: number | undefined;
+  /** Maximum number of retries for failed requests. */
   readonly maxRetries: number;
 
+  /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
 
+  /** Additional metadata passed to the generation. */
   readonly metadata: Record<string, unknown> | undefined;
 
+  /**
+   * User-defined context object that flows through the entire generation lifecycle.
+   * Can be accessed and modified in `prepareStep` and tool `execute` functions.
+   */
   readonly experimental_context: unknown;
 }) => PromiseLike<void> | void;
 
@@ -131,65 +154,133 @@ export type GenerateTextOnStartCallback = (event: {
  * Callback that is set using the `experimental_onStepStart` option.
  *
  * Called when a step (LLM call) begins, before the provider is called.
+ * Each step represents a single LLM invocation. Multiple steps occur when
+ * using tool calls (the model may be called multiple times in a loop).
  *
- * @param event - The event that is passed to the callback.
+ * @param event - The event object containing step configuration.
+ * @param event.stepNumber - Zero-based index of the current step.
+ * @param event.model - The model being used for this step.
+ * @param event.model.provider - The provider identifier.
+ * @param event.model.modelId - The specific model identifier.
+ * @param event.messages - The messages that will be sent to the model for this step.
+ *   Uses the user-facing `ModelMessage` format.
+ * @param event.tools - The tools available for this step.
+ * @param event.toolChoice - The tool choice configuration for this step.
+ * @param event.steps - Array of results from previous steps (empty for first step).
+ * @param event.functionId - Identifier from telemetry settings for grouping related operations.
+ * @param event.experimental_context - User-defined context object. May be updated from
+ *   `prepareStep` between steps.
  */
 export type GenerateTextOnStepStartCallback<TOOLS extends ToolSet> = (event: {
+  /** Zero-based index of the current step. */
   readonly stepNumber: number;
 
+  /** The model being used for this step. */
   readonly model: {
+    /** The provider identifier. */
     readonly provider: string;
+    /** The specific model identifier. */
     readonly modelId: string;
   };
 
+  /**
+   * The messages that will be sent to the model for this step.
+   * Uses the user-facing `ModelMessage` format.
+   */
   readonly messages: Array<ModelMessage>;
 
+  /** The tools available for this step. */
   readonly tools: Record<string, unknown> | undefined;
 
+  /** The tool choice configuration for this step. */
   readonly toolChoice: LanguageModelV3ToolChoice | undefined;
 
+  /** Array of results from previous steps (empty for first step). */
   readonly steps: ReadonlyArray<StepResult<TOOLS>>;
 
+  /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
 
+  /**
+   * User-defined context object. May be updated from `prepareStep` between steps.
+   */
   readonly experimental_context: unknown;
 }) => PromiseLike<void> | void;
 
 /**
  * Callback that is set using the `experimental_onToolCallStart` option.
  *
- * @param event - The event that is passed to the callback.
+ * Called when a tool execution begins, before the tool's `execute` function is invoked.
+ * Use this for logging tool invocations, tracking tool usage, or pre-execution validation.
+ *
+ * @param event - The event object containing tool call information.
+ * @param event.toolName - The name of the tool being called.
+ * @param event.toolCallId - Unique identifier for this specific tool call.
+ * @param event.input - The parsed input arguments for the tool call.
+ * @param event.functionId - Identifier from telemetry settings for grouping related operations.
+ * @param event.experimental_context - User-defined context object flowing through the generation.
  */
 export type GenerateTextOnToolCallStartCallback = (event: {
+  /** The name of the tool being called. */
   readonly toolName: string;
+  /** Unique identifier for this specific tool call. */
   readonly toolCallId: string;
+  /** The parsed input arguments for the tool call. */
   readonly input: unknown;
+  /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
+  /** User-defined context object flowing through the generation. */
   readonly experimental_context: unknown;
 }) => PromiseLike<void> | void;
 
 /**
  * Callback that is set using the `experimental_onToolCallFinish` option.
  *
- * @param event - The event that is passed to the callback.
+ * Called when a tool execution completes, either successfully or with an error.
+ * Use this for logging tool results, tracking execution time, or error handling.
+ *
+ * The event uses a discriminated union on the `success` field:
+ * - When `success: true`: `output` contains the tool result, `error` is never present.
+ * - When `success: false`: `error` contains the error, `output` is never present.
+ *
+ * @param event - The event object containing tool call result information.
+ * @param event.toolName - The name of the tool that was called.
+ * @param event.toolCallId - Unique identifier for this specific tool call.
+ * @param event.input - The parsed input arguments that were passed to the tool.
+ * @param event.durationMs - Execution time of the tool call in milliseconds.
+ * @param event.functionId - Identifier from telemetry settings for grouping related operations.
+ * @param event.experimental_context - User-defined context object flowing through the generation.
+ * @param event.success - Discriminator indicating whether the tool call succeeded.
+ * @param event.output - The tool's return value (only present when `success: true`).
+ * @param event.error - The error that occurred (only present when `success: false`).
  */
 export type GenerateTextOnToolCallFinishCallback = (
   event: {
+    /** The name of the tool that was called. */
     readonly toolName: string;
+    /** Unique identifier for this specific tool call. */
     readonly toolCallId: string;
+    /** The parsed input arguments that were passed to the tool. */
     readonly input: unknown;
+    /** Execution time of the tool call in milliseconds. */
     readonly durationMs: number;
+    /** Identifier from telemetry settings for grouping related operations. */
     readonly functionId: string | undefined;
+    /** User-defined context object flowing through the generation. */
     readonly experimental_context: unknown;
   } & (
     | {
+        /** Indicates the tool call succeeded. */
         readonly success: true;
+        /** The tool's return value. */
         readonly output: unknown;
         readonly error?: never;
       }
     | {
+        /** Indicates the tool call failed. */
         readonly success: false;
         readonly output?: never;
+        /** The error that occurred during tool execution. */
         readonly error: unknown;
       }
   ),
@@ -198,11 +289,36 @@ export type GenerateTextOnToolCallFinishCallback = (
 /**
  * Callback that is set using the `onStepFinish` option.
  *
- * @param event - The step result along with the step number.
+ * Called when a step (LLM call) completes. The event includes all step result
+ * properties (text, tool calls, usage, etc.) along with additional metadata.
+ *
+ * @param event - The step result along with additional metadata.
+ *
+ * Inherited from StepResult:
+ * @param event.content - Array of content parts (text, tool calls, tool results, files, etc.).
+ * @param event.text - The generated text content.
+ * @param event.reasoning - Array of reasoning parts from the model.
+ * @param event.reasoningText - Combined reasoning text, or undefined if no reasoning.
+ * @param event.files - Array of generated files.
+ * @param event.sources - Array of sources used to generate the text.
+ * @param event.toolCalls - Array of tool calls made during this step.
+ * @param event.toolResults - Array of tool results from executed tools.
+ * @param event.finishReason - Unified reason why generation finished ('stop', 'tool-calls', etc.).
+ * @param event.usage - Token usage for this step (promptTokens, completionTokens, totalTokens).
+ * @param event.warnings - Warnings from the provider, if any.
+ * @param event.request - Request metadata (body, headers if available).
+ * @param event.response - Response metadata including messages and optional body.
+ * @param event.providerMetadata - Provider-specific metadata.
+ *
+ * Additional properties:
+ * @param event.stepNumber - Zero-based index of the completed step.
+ * @param event.functionId - Identifier from telemetry settings for grouping related operations.
  */
 export type GenerateTextOnStepFinishCallback<TOOLS extends ToolSet> = (
   event: StepResult<TOOLS> & {
+    /** Zero-based index of the completed step. */
     readonly stepNumber: number;
+    /** Identifier from telemetry settings for grouping related operations. */
     readonly functionId: string | undefined;
   },
 ) => Promise<void> | void;
@@ -210,22 +326,51 @@ export type GenerateTextOnStepFinishCallback<TOOLS extends ToolSet> = (
 /**
  * Callback that is set using the `onFinish` option.
  *
- * @param event - The event that is passed to the callback.
+ * Called when the entire generation completes (all steps finished).
+ * The event includes the final step's result properties along with
+ * aggregated data from all steps.
+ *
+ * @param event - The final result along with aggregated step data.
+ *
+ * Inherited from StepResult (reflects the final step):
+ * @param event.content - Array of content parts from the final step.
+ * @param event.text - The generated text from the final step.
+ * @param event.reasoning - Array of reasoning parts from the final step.
+ * @param event.reasoningText - Combined reasoning text from the final step.
+ * @param event.files - Array of generated files from the final step.
+ * @param event.sources - Array of sources from the final step.
+ * @param event.toolCalls - Array of tool calls from the final step.
+ * @param event.toolResults - Array of tool results from the final step.
+ * @param event.finishReason - Finish reason from the final step.
+ * @param event.usage - Token usage from the final step only.
+ * @param event.warnings - Warnings from the final step.
+ * @param event.request - Request metadata from the final step.
+ * @param event.response - Response metadata from the final step.
+ * @param event.providerMetadata - Provider metadata from the final step.
+ *
+ * Additional properties:
+ * @param event.steps - Array containing results from all steps in the generation.
+ * @param event.totalUsage - Aggregated token usage across all steps.
+ * @param event.experimental_context - The final state of the user-defined context object.
+ * @param event.functionId - Identifier from telemetry settings for grouping related operations.
  */
 export type GenerateTextOnFinishCallback<TOOLS extends ToolSet> = (
   event: StepResult<TOOLS> & {
     /**
-     * Details for all steps.
+     * Array containing results from all steps in the generation.
      */
     readonly steps: StepResult<TOOLS>[];
 
     /**
-     * Total usage for all steps. This is the sum of the usage of all steps.
+     * Aggregated token usage across all steps.
+     * This is the sum of the usage from each individual step.
      */
     readonly totalUsage: LanguageModelUsage;
 
     /**
-     * Context that is passed into tool execution.
+     * The final state of the user-defined context object.
+     * This reflects any modifications made during the generation lifecycle
+     * via `prepareStep` or tool execution.
      *
      * Experimental (can break in patch releases).
      *
@@ -233,6 +378,7 @@ export type GenerateTextOnFinishCallback<TOOLS extends ToolSet> = (
      */
     experimental_context: unknown;
 
+    /** Identifier from telemetry settings for grouping related operations. */
     readonly functionId: string | undefined;
   },
 ) => PromiseLike<void> | void;
@@ -277,6 +423,14 @@ export type GenerateTextOnFinishCallback<TOOLS extends ToolSet> = (
  * @param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
+ * @param experimental_context - User-defined context object that flows through the entire generation lifecycle.
+ * @param experimental_onStart - Callback invoked when generation begins, before any LLM calls.
+ * @param experimental_onStepStart - Callback invoked when each step begins, before the provider is called.
+ * Receives step number, messages (in ModelMessage format), tools, and context.
+ * @param experimental_onToolCallStart - Callback invoked before each tool execution begins.
+ * Receives tool name, call ID, input, and context.
+ * @param experimental_onToolCallFinish - Callback invoked after each tool execution completes.
+ * Uses a discriminated union: check `success` to determine if `output` or `error` is present.
  * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
  * @param onFinish - Callback that is called when all steps are finished and the response is complete.
  *

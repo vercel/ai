@@ -14,6 +14,17 @@ import { ToolSet } from './tool-set';
 import { TypedToolResult } from './tool-result';
 import { TypedToolError } from './tool-error';
 
+/**
+ * Executes a single tool call and manages its lifecycle callbacks.
+ *
+ * This function handles the complete tool execution flow:
+ * 1. Invokes `onToolCallStart` callback before execution
+ * 2. Executes the tool's `execute` function with proper context
+ * 3. Handles streaming outputs via `onPreliminaryToolResult`
+ * 4. Invokes `onToolCallFinish` callback with success or error result
+ *
+ * @returns The tool output (result or error), or undefined if the tool has no execute function.
+ */
 export async function executeToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
