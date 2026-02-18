@@ -101,28 +101,11 @@ describe('doGenerate', () => {
 
       expect(usage).toMatchInlineSnapshot(`
         {
-          "inputTokens": {
-            "cacheRead": 0,
-            "cacheWrite": 0,
-            "noCache": 24,
-            "total": 24,
-          },
-          "outputTokens": {
-            "reasoning": 1353,
-            "text": 315,
-            "total": 1668,
-          },
-          "raw": {
-            "completion_tokens": 1668,
-            "completion_tokens_details": {
-              "reasoning_tokens": 1353,
-            },
-            "prompt_tokens": 24,
-            "prompt_tokens_details": {
-              "cached_tokens": 0,
-            },
-            "total_tokens": 1692,
-          },
+          "cachedInputTokens": 0,
+          "inputTokens": 24,
+          "outputTokens": 1668,
+          "reasoningTokens": 1353,
+          "totalTokens": 1692,
         }
       `);
     });
@@ -164,29 +147,11 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
-        "inputTokens": {
-          "cacheRead": 80,
-          "cacheWrite": 20,
-          "noCache": 0,
-          "total": 100,
-        },
-        "outputTokens": {
-          "reasoning": 10,
-          "text": 40,
-          "total": 50,
-        },
-        "raw": {
-          "completion_tokens": 50,
-          "completion_tokens_details": {
-            "reasoning_tokens": 10,
-          },
-          "prompt_tokens": 100,
-          "prompt_tokens_details": {
-            "cache_creation_input_tokens": 20,
-            "cached_tokens": 80,
-          },
-          "total_tokens": 150,
-        },
+        "cachedInputTokens": 80,
+        "inputTokens": 100,
+        "outputTokens": 50,
+        "reasoningTokens": 10,
+        "totalTokens": 150,
       }
     `);
   });

@@ -142,9 +142,6 @@ export function convertToAlibabaChatMessages({
 
       case 'tool': {
         for (const toolResponse of content) {
-          if (toolResponse.type === 'tool-approval-response') {
-            continue;
-          }
           const output = toolResponse.output;
 
           let contentValue: string;
@@ -152,9 +149,6 @@ export function convertToAlibabaChatMessages({
             case 'text':
             case 'error-text':
               contentValue = output.value;
-              break;
-            case 'execution-denied':
-              contentValue = output.reason ?? 'Tool execution denied.';
               break;
             case 'content':
             case 'json':
