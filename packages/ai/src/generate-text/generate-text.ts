@@ -769,6 +769,7 @@ export async function generateText<
                   messages: stepInputMessages,
                   abortSignal: mergedAbortSignal,
                   experimental_context,
+                  currentModelResponse: currentModelResponse,
                 })),
               );
             }
@@ -982,6 +983,7 @@ async function executeTools<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   experimental_context,
+  currentModelResponse,
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
@@ -990,6 +992,7 @@ async function executeTools<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
+  currentModelResponse?: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 }): Promise<Array<ToolOutput<TOOLS>>> {
   const toolOutputs = await Promise.all(
     toolCalls.map(async toolCall =>
@@ -1001,6 +1004,7 @@ async function executeTools<TOOLS extends ToolSet>({
         messages,
         abortSignal,
         experimental_context,
+        currentModelResponse,
       }),
     ),
   );
