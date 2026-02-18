@@ -416,7 +416,7 @@ export type AnthropicTool =
       type: 'memory_20250818';
     }
   | {
-      type: 'web_fetch_20250910';
+      type: 'web_fetch_20250910' | 'web_fetch_20260209';
       name: string;
       max_uses?: number;
       allowed_domains?: string[];
@@ -426,7 +426,7 @@ export type AnthropicTool =
       cache_control: AnthropicCacheControl | undefined;
     }
   | {
-      type: 'web_search_20250305';
+      type: 'web_search_20250305' | 'web_search_20260209';
       name: string;
       max_uses?: number;
       allowed_domains?: string[];

@@ -26,7 +26,9 @@ import { CacheControlValidator } from './get-cache-control';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
 import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
 import { toolSearchRegex_20251119OutputSchema as toolSearchOutputSchema } from './tool/tool-search-regex_20251119';
+import { webFetch_20260209OutputSchema } from './tool/web-fetch-20260209';
 import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
+import { webSearch_20260209OutputSchema } from './tool/web-search_20260209';
 import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 
 function convertToString(data: LanguageModelV3DataContent): string {
@@ -114,6 +116,34 @@ export async function convertToAnthropicMessagesPrompt({
       title: anthropicOptions?.title,
       context: anthropicOptions?.context,
     };
+  }
+
+  async function validateWebFetchOutput(value: unknown) {
+    try {
+      return await validateTypes({
+        value,
+        schema: webFetch_20260209OutputSchema,
+      });
+    } catch {
+      return await validateTypes({
+        value,
+        schema: webFetch_20250910OutputSchema,
+      });
+    }
+  }
+
+  async function validateWebSearchOutput(value: unknown) {
+    try {
+      return await validateTypes({
+        value,
+        schema: webSearch_20260209OutputSchema,
+      });
+    } catch {
+      return await validateTypes({
+        value,
+        schema: webSearch_20250305OutputSchema,
+      });
+    }
   }
 
   for (let i = 0; i < blocks.length; i++) {
@@ -881,10 +911,9 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
-                  const webFetchOutput = await validateTypes({
-                    value: output.value,
-                    schema: webFetch_20250910OutputSchema,
-                  });
+                  const webFetchOutput = await validateWebFetchOutput(
+                    output.value,
+                  );
 
                   anthropicContent.push({
                     type: 'web_fetch_tool_result',
@@ -925,10 +954,9 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
-                  const webSearchOutput = await validateTypes({
-                    value: output.value,
-                    schema: webSearch_20250305OutputSchema,
-                  });
+                  const webSearchOutput = await validateWebSearchOutput(
+                    output.value,
+                  );
 
                   anthropicContent.push({
                     type: 'web_search_tool_result',
