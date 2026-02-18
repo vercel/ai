@@ -1843,7 +1843,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   controller.enqueue({
                     type: 'text-delta',
                     id: String(value.index),
-                    delta: value.delta.content,
+                    delta: value.delta.content ?? '',
                   });
 
                   return;
