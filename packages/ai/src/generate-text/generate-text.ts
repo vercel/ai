@@ -1,7 +1,6 @@
 import {
   LanguageModelV3,
   LanguageModelV3Content,
-  LanguageModelV3Prompt,
   LanguageModelV3ToolCall,
   LanguageModelV3ToolChoice,
 } from '@ai-sdk/provider';
@@ -141,7 +140,7 @@ export type GenerateTextOnStepStartCallback<TOOLS extends ToolSet> = (event: {
     readonly modelId: string;
   };
 
-  readonly promptMessages: LanguageModelV3Prompt;
+  readonly messages: Array<ModelMessage>;
 
   readonly tools: Record<string, unknown> | undefined;
 
@@ -689,6 +688,9 @@ export async function generateText<
                 activeTools: prepareStepResult?.activeTools ?? activeTools,
               });
 
+            const stepMessages =
+              prepareStepResult?.messages ?? stepInputMessages;
+
             try {
               await onStepStart?.({
                 stepNumber: steps.length,
@@ -696,7 +698,7 @@ export async function generateText<
                   provider: stepModel.provider,
                   modelId: stepModel.modelId,
                 },
-                promptMessages,
+                messages: stepMessages,
                 tools: tools as Record<string, unknown> | undefined,
                 toolChoice: stepToolChoice,
                 steps: [...steps],

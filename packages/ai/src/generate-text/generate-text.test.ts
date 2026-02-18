@@ -825,11 +825,10 @@ describe('generateText', () => {
         provider: 'mock-provider',
         modelId: 'mock-model-id',
       });
-      expect(stepStartEvent.promptMessages).toEqual([
+      expect(stepStartEvent.messages).toEqual([
         {
           role: 'user',
-          content: [{ type: 'text', text: 'test-input' }],
-          providerOptions: undefined,
+          content: 'test-input',
         },
       ]);
       expect(stepStartEvent.steps).toEqual([]);
