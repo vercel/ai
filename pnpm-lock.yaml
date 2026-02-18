@@ -65,6 +65,9 @@ importers:
 
   examples/ai-core:
     dependencies:
+      '@ai-sdk/alibaba':
+        specifier: workspace:*
+        version: link:../../packages/alibaba
       '@ai-sdk/amazon-bedrock':
         specifier: workspace:*
         version: link:../../packages/amazon-bedrock
