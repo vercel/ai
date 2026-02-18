@@ -582,7 +582,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     trigger: 'submit-message' | 'resume-stream' | 'regenerate-message';
     messageId?: string;
   } & ChatRequestOptions) {
-    this.setStatus({ status: 'submitted', error: undefined });
+    if (trigger !== 'resume-stream') {
+      this.setStatus({ status: 'submitted', error: undefined });
+    }
 
     const lastMessage = this.lastMessage;
 
@@ -621,6 +623,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         }
 
         stream = reconnect;
+        this.setStatus({ status: 'submitted', error: undefined });
       } else {
         stream = await this.transport.sendMessages({
           chatId: this.id,
