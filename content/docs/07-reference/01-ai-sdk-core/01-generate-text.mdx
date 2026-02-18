@@ -862,14 +862,192 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'experimental_onStart',
+      type: '(event: OnStartEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Callback that is called when the generateText operation begins, before any LLM calls are made. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+      properties: [
+        {
+          type: 'OnStartEvent',
+          parameters: [
+            {
+              name: 'model',
+              type: '{ provider: string; modelId: string }',
+              description: 'The model being used for the generation.',
+            },
+            {
+              name: 'system',
+              type: 'string | SystemModelMessage | SystemModelMessage[] | undefined',
+              description: 'The system prompt.',
+            },
+            {
+              name: 'prompt',
+              type: 'string | Array<ModelMessage> | undefined',
+              description: 'The input prompt.',
+            },
+            {
+              name: 'messages',
+              type: 'Array<ModelMessage> | undefined',
+              description: 'The input messages.',
+            },
+            {
+              name: 'settings',
+              type: 'object',
+              description:
+                'The call settings (maxOutputTokens, temperature, topP, topK, presencePenalty, frequencyPenalty, stopSequences, seed, maxRetries).',
+            },
+            {
+              name: 'functionId',
+              type: 'string | undefined',
+              description: 'The telemetry function ID, if set.',
+            },
+            {
+              name: 'metadata',
+              type: 'Record<string, unknown> | undefined',
+              description: 'The telemetry metadata, if set.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'experimental_onStepStart',
+      type: '(event: OnStepStartEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Callback that is called when a step (LLM call) begins, before the provider is called. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+      properties: [
+        {
+          type: 'OnStepStartEvent',
+          parameters: [
+            {
+              name: 'stepNumber',
+              type: 'number',
+              description:
+                'The zero-based index of the step that is about to start.',
+            },
+            {
+              name: 'model',
+              type: '{ provider: string; modelId: string }',
+              description: 'The model being used for this step.',
+            },
+            {
+              name: 'promptMessages',
+              type: 'LanguageModelV3Prompt',
+              description:
+                'The prompt messages that will be sent to the provider for this step.',
+            },
+            {
+              name: 'tools',
+              type: 'Record<string, unknown> | undefined',
+              description: 'The tools available for this step.',
+            },
+            {
+              name: 'toolChoice',
+              type: 'LanguageModelV3ToolChoice | undefined',
+              description: 'The tool choice setting for this step.',
+            },
+            {
+              name: 'steps',
+              type: 'Array<StepResult<TOOLS>>',
+              description: 'The steps that have been completed so far.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'experimental_onToolCallStart',
+      type: '(event: OnToolCallStartEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        "Callback that is called right before a tool's execute function runs. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
+      properties: [
+        {
+          type: 'OnToolCallStartEvent',
+          parameters: [
+            {
+              name: 'toolName',
+              type: 'string',
+              description: 'The name of the tool being called.',
+            },
+            {
+              name: 'toolCallId',
+              type: 'string',
+              description: 'The unique ID of the tool call.',
+            },
+            {
+              name: 'input',
+              type: 'unknown',
+              description: 'The input parameters for the tool call.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'experimental_onToolCallFinish',
+      type: '(event: OnToolCallFinishEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        "Callback that is called right after a tool's execute function completes (or errors). Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
+      properties: [
+        {
+          type: 'OnToolCallFinishEvent',
+          parameters: [
+            {
+              name: 'toolName',
+              type: 'string',
+              description: 'The name of the tool that was called.',
+            },
+            {
+              name: 'toolCallId',
+              type: 'string',
+              description: 'The unique ID of the tool call.',
+            },
+            {
+              name: 'input',
+              type: 'unknown',
+              description: 'The input parameters that were passed to the tool.',
+            },
+            {
+              name: 'output',
+              type: 'unknown | undefined',
+              description:
+                'The output returned by the tool. Undefined if the tool errored.',
+            },
+            {
+              name: 'error',
+              type: 'unknown | undefined',
+              description:
+                'The error thrown by the tool, if any. Undefined on success.',
+            },
+            {
+              name: 'durationMs',
+              type: 'number',
+              description:
+                'The wall-clock duration of the tool execution in milliseconds.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'onStepFinish',
-      type: '(result: OnStepFinishResult) => Promise<void> | void',
+      type: '(event: OnStepFinishEvent) => Promise<void> | void',
       isOptional: true,
       description: 'Callback that is called when a step is finished.',
       properties: [
         {
-          type: 'OnStepFinishResult',
+          type: 'OnStepFinishEvent',
           parameters: [
+            {
+              name: 'stepNumber',
+              type: 'number',
+              description:
+                'The zero-based index of the step that just finished.',
+            },
             {
               name: 'finishReason',
               type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
