@@ -147,6 +147,8 @@ export type GenerateTextOnStepStartCallback<TOOLS extends ToolSet> = (event: {
   readonly toolChoice: LanguageModelV3ToolChoice | undefined;
 
   readonly steps: ReadonlyArray<StepResult<TOOLS>>;
+
+  readonly functionId: string | undefined;
 }) => PromiseLike<void> | void;
 
 /**
@@ -158,6 +160,7 @@ export type GenerateTextOnToolCallStartCallback = (event: {
   readonly toolName: string;
   readonly toolCallId: string;
   readonly input: unknown;
+  readonly functionId: string | undefined;
 }) => PromiseLike<void> | void;
 
 /**
@@ -172,6 +175,7 @@ export type GenerateTextOnToolCallFinishCallback = (event: {
   readonly output: unknown | undefined;
   readonly error: unknown | undefined;
   readonly durationMs: number;
+  readonly functionId: string | undefined;
 }) => PromiseLike<void> | void;
 
 /**
@@ -182,6 +186,7 @@ export type GenerateTextOnToolCallFinishCallback = (event: {
 export type GenerateTextOnStepFinishCallback<TOOLS extends ToolSet> = (
   event: StepResult<TOOLS> & {
     readonly stepNumber: number;
+    readonly functionId: string | undefined;
   },
 ) => Promise<void> | void;
 
@@ -210,6 +215,8 @@ export type GenerateTextOnFinishCallback<TOOLS extends ToolSet> = (
      * @default undefined
      */
     experimental_context: unknown;
+
+    readonly functionId: string | undefined;
   },
 ) => PromiseLike<void> | void;
 
@@ -702,6 +709,7 @@ export async function generateText<
                 tools: tools as Record<string, unknown> | undefined,
                 toolChoice: stepToolChoice,
                 steps: [...steps],
+                functionId: telemetry?.functionId,
               });
             } catch (_ignored) {
               // Errors in callbacks should not break the generation flow.
@@ -1040,6 +1048,7 @@ export async function generateText<
               warnings: currentStepResult.warnings,
               providerMetadata: currentStepResult.providerMetadata,
               stepNumber,
+              functionId: telemetry?.functionId,
             });
           } finally {
             if (stepTimeoutId != null) {
@@ -1130,6 +1139,7 @@ export async function generateText<
           steps,
           totalUsage,
           experimental_context,
+          functionId: telemetry?.functionId,
         });
 
         // parse output only if the last step was finished with "stop":

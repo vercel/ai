@@ -65,7 +65,12 @@ export async function executeToolCall<TOOLS extends ToolSet>({
       let output: unknown;
 
       try {
-        await onToolCallStart?.({ toolName, toolCallId, input });
+        await onToolCallStart?.({
+          toolName,
+          toolCallId,
+          input,
+          functionId: telemetry?.functionId,
+        });
       } catch (_ignored) {
         // Errors in callbacks should not break the generation flow.
       }
@@ -107,6 +112,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
             output: undefined,
             error,
             durationMs,
+            functionId: telemetry?.functionId,
           });
         } catch (_ignored) {
           // Errors in callbacks should not break the generation flow.
@@ -136,6 +142,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
           output,
           error: undefined,
           durationMs,
+          functionId: telemetry?.functionId,
         });
       } catch (_ignored) {
         // Errors in callbacks should not break the generation flow.

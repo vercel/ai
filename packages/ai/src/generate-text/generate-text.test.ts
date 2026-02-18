@@ -1892,6 +1892,7 @@ describe('generateText', () => {
           "experimental_context": undefined,
           "files": [],
           "finishReason": "stop",
+          "functionId": undefined,
           "providerMetadata": undefined,
           "rawFinishReason": "stop",
           "reasoning": [],
