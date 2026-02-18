@@ -727,6 +727,30 @@ describe('generateText', () => {
         maxRetries: 2,
         functionId: 'test-function',
         metadata: { customKey: 'customValue' },
+        experimental_context: undefined,
+      });
+    });
+
+    it('should pass experimental_context', async () => {
+      let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello!' }],
+            ...dummyResponseValues,
+          }),
+        }),
+        prompt: 'test-input',
+        experimental_context: { userId: 'test-user', sessionId: '123' },
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+      });
+
+      expect(startEvent.experimental_context).toEqual({
+        userId: 'test-user',
+        sessionId: '123',
       });
     });
 
@@ -1143,6 +1167,94 @@ describe('generateText', () => {
       // Step 1 should see step 0's text
       expect(stepStartEvents[1].steps[0].text).toBe('Thinking...');
     });
+
+    it('should pass experimental_context', async () => {
+      let stepStartEvent!: Parameters<GenerateTextOnStepStartCallback<any>>[0];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello!' }],
+            ...dummyResponseValues,
+          }),
+        }),
+        prompt: 'test-input',
+        experimental_context: { userId: 'test-user', requestId: 'req-123' },
+        experimental_onStepStart: async event => {
+          stepStartEvent = event;
+        },
+      });
+
+      expect(stepStartEvent.experimental_context).toEqual({
+        userId: 'test-user',
+        requestId: 'req-123',
+      });
+    });
+
+    it('should pass updated experimental_context from prepareStep', async () => {
+      const stepStartEvents: Parameters<
+        GenerateTextOnStepStartCallback<any>
+      >[0][] = [];
+      let responseCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "test" }',
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 1:
+              default:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Done.' }],
+                };
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_context: { counter: 0 },
+        stopWhen: stepCountIs(3),
+        prepareStep: async ({ experimental_context, stepNumber }) => {
+          return {
+            experimental_context: {
+              counter: (experimental_context as any).counter + 1,
+              stepNumber,
+            },
+          };
+        },
+        experimental_onStepStart: async event => {
+          stepStartEvents.push(event);
+        },
+      });
+
+      expect(stepStartEvents[0].experimental_context).toEqual({
+        counter: 1,
+        stepNumber: 0,
+      });
+      expect(stepStartEvents[1].experimental_context).toEqual({
+        counter: 2,
+        stepNumber: 1,
+      });
+    });
   });
 
   describe('options.onStepFinish stepNumber', () => {
@@ -1468,6 +1580,46 @@ describe('generateText', () => {
 
       expect(toolCallStartEvents.length).toBe(0);
     });
+
+    it('should pass experimental_context', async () => {
+      const toolCallStartEvents: Parameters<GenerateTextOnToolCallStartCallback>[0][] =
+        [];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_context: { traceId: 'trace-abc', spanId: 'span-123' },
+        experimental_onToolCallStart: async event => {
+          toolCallStartEvents.push(event);
+        },
+      });
+
+      expect(toolCallStartEvents.length).toBe(1);
+      expect(toolCallStartEvents[0].experimental_context).toEqual({
+        traceId: 'trace-abc',
+        spanId: 'span-123',
+      });
+    });
   });
 
   describe('options.experimental_onToolCallFinish', () => {
@@ -1656,6 +1808,89 @@ describe('generateText', () => {
       });
 
       expect(toolCallFinishEvents.length).toBe(0);
+    });
+
+    it('should pass experimental_context on success', async () => {
+      const toolCallFinishEvents: Parameters<GenerateTextOnToolCallFinishCallback>[0][] =
+        [];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_context: { traceId: 'trace-xyz', operation: 'test-op' },
+        experimental_onToolCallFinish: async event => {
+          toolCallFinishEvents.push(event);
+        },
+      });
+
+      expect(toolCallFinishEvents.length).toBe(1);
+      expect(toolCallFinishEvents[0].experimental_context).toEqual({
+        traceId: 'trace-xyz',
+        operation: 'test-op',
+      });
+    });
+
+    it('should pass experimental_context on error', async () => {
+      const toolCallFinishEvents: Parameters<GenerateTextOnToolCallFinishCallback>[0][] =
+        [];
+      const toolError = new Error('Tool execution failed');
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async (): Promise<string> => {
+              throw toolError;
+            },
+          }),
+        },
+        prompt: 'test-input',
+        experimental_context: { errorTraceId: 'err-trace' },
+        experimental_onToolCallFinish: async event => {
+          toolCallFinishEvents.push(event);
+        },
+      });
+
+      expect(toolCallFinishEvents.length).toBe(1);
+      expect(toolCallFinishEvents[0].error).toBe(toolError);
+      expect(toolCallFinishEvents[0].experimental_context).toEqual({
+        errorTraceId: 'err-trace',
+      });
     });
   });
 

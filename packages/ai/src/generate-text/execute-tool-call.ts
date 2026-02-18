@@ -70,6 +70,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
           toolCallId,
           input,
           functionId: telemetry?.functionId,
+          experimental_context,
         });
       } catch (_ignored) {
         // Errors in callbacks should not break the generation flow.
@@ -113,6 +114,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
             error,
             durationMs,
             functionId: telemetry?.functionId,
+            experimental_context,
           });
         } catch (_ignored) {
           // Errors in callbacks should not break the generation flow.
@@ -143,6 +145,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
           error: undefined,
           durationMs,
           functionId: telemetry?.functionId,
+          experimental_context,
         });
       } catch (_ignored) {
         // Errors in callbacks should not break the generation flow.

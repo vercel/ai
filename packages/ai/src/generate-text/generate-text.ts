@@ -123,6 +123,8 @@ export type GenerateTextOnStartCallback = (event: {
   readonly functionId: string | undefined;
 
   readonly metadata: Record<string, unknown> | undefined;
+
+  readonly experimental_context: unknown;
 }) => PromiseLike<void> | void;
 
 /**
@@ -149,6 +151,8 @@ export type GenerateTextOnStepStartCallback<TOOLS extends ToolSet> = (event: {
   readonly steps: ReadonlyArray<StepResult<TOOLS>>;
 
   readonly functionId: string | undefined;
+
+  readonly experimental_context: unknown;
 }) => PromiseLike<void> | void;
 
 /**
@@ -161,6 +165,7 @@ export type GenerateTextOnToolCallStartCallback = (event: {
   readonly toolCallId: string;
   readonly input: unknown;
   readonly functionId: string | undefined;
+  readonly experimental_context: unknown;
 }) => PromiseLike<void> | void;
 
 /**
@@ -176,6 +181,7 @@ export type GenerateTextOnToolCallFinishCallback = (event: {
   readonly error: unknown | undefined;
   readonly durationMs: number;
   readonly functionId: string | undefined;
+  readonly experimental_context: unknown;
 }) => PromiseLike<void> | void;
 
 /**
@@ -510,6 +516,7 @@ export async function generateText<
       maxRetries,
       functionId: telemetry?.functionId,
       metadata: telemetry?.metadata as Record<string, unknown> | undefined,
+      experimental_context,
     });
   } catch (_ignored) {
     // Errors in callbacks should not break the generation flow.
@@ -710,6 +717,7 @@ export async function generateText<
                 toolChoice: stepToolChoice,
                 steps: [...steps],
                 functionId: telemetry?.functionId,
+                experimental_context,
               });
             } catch (_ignored) {
               // Errors in callbacks should not break the generation flow.
