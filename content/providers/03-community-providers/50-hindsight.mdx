@@ -39,16 +39,28 @@ Sign up and get your API URL from the [Hindsight dashboard](https://ui.hindsight
 
 <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
-    <Snippet text="pnpm add @vectorize-io/hindsight-ai-sdk @vectorize-io/hindsight-client" dark />
+    <Snippet
+      text="pnpm add @vectorize-io/hindsight-ai-sdk @vectorize-io/hindsight-client"
+      dark
+    />
   </Tab>
   <Tab>
-    <Snippet text="npm install @vectorize-io/hindsight-ai-sdk @vectorize-io/hindsight-client" dark />
+    <Snippet
+      text="npm install @vectorize-io/hindsight-ai-sdk @vectorize-io/hindsight-client"
+      dark
+    />
   </Tab>
   <Tab>
-    <Snippet text="yarn add @vectorize-io/hindsight-ai-sdk @vectorize-io/hindsight-client" dark />
+    <Snippet
+      text="yarn add @vectorize-io/hindsight-ai-sdk @vectorize-io/hindsight-client"
+      dark
+    />
   </Tab>
   <Tab>
-    <Snippet text="bun add @vectorize-io/hindsight-ai-sdk @vectorize-io/hindsight-client" dark />
+    <Snippet
+      text="bun add @vectorize-io/hindsight-ai-sdk @vectorize-io/hindsight-client"
+      dark
+    />
   </Tab>
 </Tabs>
 
@@ -174,41 +186,41 @@ const tools = createHindsightTools({
 
 ### `retain` options
 
-| Parameter | Type | Default | Description |
-| --------- | ---- | ------- | ----------- |
-| `async` | `boolean` | `false` | Fire-and-forget ingestion mode |
-| `tags` | `string[]` | — | Tags applied to all retained memories |
-| `metadata` | `Record<string, string>` | — | Metadata applied to all retained memories |
-| `description` | `string` | built-in | Override the default tool description |
+| Parameter     | Type                     | Default  | Description                               |
+| ------------- | ------------------------ | -------- | ----------------------------------------- |
+| `async`       | `boolean`                | `false`  | Fire-and-forget ingestion mode            |
+| `tags`        | `string[]`               | —        | Tags applied to all retained memories     |
+| `metadata`    | `Record<string, string>` | —        | Metadata applied to all retained memories |
+| `description` | `string`                 | built-in | Override the default tool description     |
 
 ### `recall` options
 
-| Parameter | Type | Default | Description |
-| --------- | ---- | ------- | ----------- |
-| `budget` | `'low' \| 'mid' \| 'high'` | `'mid'` | Retrieval depth and latency tradeoff |
-| `types` | `('world' \| 'experience' \| 'observation')[]` | all | Restrict results to specified fact types |
-| `maxTokens` | `number` | API default | Maximum total tokens returned |
-| `includeEntities` | `boolean` | `false` | Include entity observations in results |
-| `includeChunks` | `boolean` | `false` | Include raw source chunks in results |
-| `description` | `string` | built-in | Override the default tool description |
+| Parameter         | Type                                           | Default     | Description                              |
+| ----------------- | ---------------------------------------------- | ----------- | ---------------------------------------- |
+| `budget`          | `'low' \| 'mid' \| 'high'`                     | `'mid'`     | Retrieval depth and latency tradeoff     |
+| `types`           | `('world' \| 'experience' \| 'observation')[]` | all         | Restrict results to specified fact types |
+| `maxTokens`       | `number`                                       | API default | Maximum total tokens returned            |
+| `includeEntities` | `boolean`                                      | `false`     | Include entity observations in results   |
+| `includeChunks`   | `boolean`                                      | `false`     | Include raw source chunks in results     |
+| `description`     | `string`                                       | built-in    | Override the default tool description    |
 
 ### `reflect` options
 
-| Parameter | Type | Default | Description |
-| --------- | ---- | ------- | ----------- |
-| `budget` | `'low' \| 'mid' \| 'high'` | `'mid'` | Synthesis depth and latency tradeoff |
-| `maxTokens` | `number` | API default | Maximum response tokens |
-| `description` | `string` | built-in | Override the default tool description |
+| Parameter     | Type                       | Default     | Description                           |
+| ------------- | -------------------------- | ----------- | ------------------------------------- |
+| `budget`      | `'low' \| 'mid' \| 'high'` | `'mid'`     | Synthesis depth and latency tradeoff  |
+| `maxTokens`   | `number`                   | API default | Maximum response tokens               |
+| `description` | `string`                   | built-in    | Override the default tool description |
 
 ## Memory Tools
 
-| Tool | Description |
-| ---- | ----------- |
-| `retain` | Stores information in the memory bank |
-| `recall` | Searches memories using a query |
-| `reflect` | Synthesizes insights from stored memories |
-| `getMentalModel` | Retrieves a structured knowledge model |
-| `getDocument` | Retrieves a stored document by identifier |
+| Tool             | Description                               |
+| ---------------- | ----------------------------------------- |
+| `retain`         | Stores information in the memory bank     |
+| `recall`         | Searches memories using a query           |
+| `reflect`        | Synthesizes insights from stored memories |
+| `getMentalModel` | Retrieves a structured knowledge model    |
+| `getDocument`    | Retrieves a stored document by identifier |
 
 ## More Information
 
