@@ -3220,4 +3220,232 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
   });
+
+  describe('compaction', () => {
+    it('should convert compaction to item_reference when store is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: '',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_123',
+                    encryptedContent: 'encrypted_data_here',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "cmp_123",
+            "type": "item_reference",
+          },
+        ]
+      `);
+    });
+
+    it('should convert compaction to full compaction item when store is false', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: '',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_456',
+                    encryptedContent: 'encrypted_compaction_state',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "encrypted_content": "encrypted_compaction_state",
+            "id": "cmp_456",
+            "type": "compaction",
+          },
+        ]
+      `);
+    });
+
+    it('should skip compaction when hasConversation is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: '',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_789',
+                    encryptedContent: 'encrypted_data',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      // Compaction with itemId should be skipped when hasConversation is true
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
+    it('should handle compaction alongside regular text content', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Here is my response.',
+                providerOptions: {
+                  openai: {
+                    itemId: 'msg_001',
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: '',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_001',
+                    encryptedContent: 'encrypted_state',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Here is my response.",
+                "type": "output_text",
+              },
+            ],
+            "id": "msg_001",
+            "role": "assistant",
+          },
+          {
+            "encrypted_content": "encrypted_state",
+            "id": "cmp_001",
+            "type": "compaction",
+          },
+        ]
+      `);
+    });
+
+    it('should handle compaction with store: true alongside other content', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Response text',
+                providerOptions: {
+                  openai: {
+                    itemId: 'msg_002',
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: '',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_002',
+                    encryptedContent: 'encrypted_data',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      // Both should become item_references when store is true
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "msg_002",
+            "type": "item_reference",
+          },
+          {
+            "id": "cmp_002",
+            "type": "item_reference",
+          },
+        ]
+      `);
+    });
+  });
 });
