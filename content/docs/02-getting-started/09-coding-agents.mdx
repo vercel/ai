@@ -17,7 +17,9 @@ Install the AI SDK skill using `npx skills add`:
 npx skills add vercel/ai
 ```
 
-This adds the skill to your project's `.agents/skills` directory. From there, any agent that supports the [Agent Skills](https://agentskills.io) format will automatically discover it and load it when working on AI SDK tasks.
+This installs the skill into your agent's specific skills directory (e.g., `.claude/skills`, `.codex/skills`). If you select more than one agent, the CLI creates symlinks so each agent can discover the skill. Use `-a` to specify agents directly — for example, `-a amp` installs into the universal `.agents/skills` directory. Use `-y` for non-interactive installation.
+
+Once installed, any agent that supports the [Agent Skills](https://agentskills.io) format will automatically discover and load the skill when working on AI SDK tasks.
 
 <Note>
   Agent Skills use **progressive disclosure**: your agent loads only the skill's
