@@ -716,17 +716,15 @@ describe('generateText', () => {
         system: undefined,
         prompt: 'test-input',
         messages: undefined,
-        settings: {
-          maxOutputTokens: undefined,
-          temperature: undefined,
-          topP: undefined,
-          topK: undefined,
-          presencePenalty: undefined,
-          frequencyPenalty: undefined,
-          stopSequences: undefined,
-          seed: undefined,
-          maxRetries: 2,
-        },
+        maxOutputTokens: undefined,
+        temperature: undefined,
+        topP: undefined,
+        topK: undefined,
+        presencePenalty: undefined,
+        frequencyPenalty: undefined,
+        stopSequences: undefined,
+        seed: undefined,
+        maxRetries: 2,
         functionId: 'test-function',
         metadata: { customKey: 'customValue' },
       });
@@ -760,9 +758,9 @@ describe('generateText', () => {
       expect(startEvent.messages).toEqual([
         { role: 'user', content: 'test-message' },
       ]);
-      expect(startEvent.settings.maxOutputTokens).toBe(100);
-      expect(startEvent.settings.temperature).toBe(0.5);
-      expect(startEvent.settings.maxRetries).toBe(2);
+      expect(startEvent.maxOutputTokens).toBe(100);
+      expect(startEvent.temperature).toBe(0.5);
+      expect(startEvent.maxRetries).toBe(2);
     });
 
     it('should be called before doGenerate', async () => {
