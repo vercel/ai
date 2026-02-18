@@ -75,7 +75,7 @@ const tools = createHindsightTools({
 ```ts
 import { HindsightClient } from '@vectorize-io/hindsight-client';
 import { createHindsightTools } from '@vectorize-io/hindsight-ai-sdk';
-import { generateText } from 'ai';
+import { generateText, stepCountIs } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const client = new HindsightClient({ baseUrl: process.env.HINDSIGHT_API_URL });
@@ -84,7 +84,7 @@ const tools = createHindsightTools({ client, bankId: 'user-123' });
 const { text } = await generateText({
   model: openai('gpt-4o'),
   tools,
-  maxSteps: 5,
+  stopWhen: stepCountIs(5),
   system: 'You are a helpful assistant with long-term memory.',
   prompt: 'Remember that I prefer dark mode and large fonts.',
 });
@@ -104,7 +104,7 @@ const agent = new ToolLoopAgent({
   model: openai('gpt-4o'),
   tools: createHindsightTools({ client, bankId: 'user-123' }),
   stopWhen: stepCountIs(10),
-  system: 'You are a helpful assistant with long-term memory.',
+  instructions: 'You are a helpful assistant with long-term memory.',
 });
 
 const result = await agent.generate({
@@ -118,7 +118,7 @@ In multi-user applications, create tools inside your request handler so each req
 
 ```ts
 // app/api/chat/route.ts
-import { streamText } from 'ai';
+import { streamText, stepCountIs, convertToModelMessages } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { HindsightClient } from '@vectorize-io/hindsight-client';
 import { createHindsightTools } from '@vectorize-io/hindsight-ai-sdk';
@@ -138,10 +138,10 @@ export async function POST(req: Request) {
   return streamText({
     model: openai('gpt-4o'),
     tools,
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
     system: 'You are a helpful assistant with long-term memory.',
-    messages,
-  }).toDataStreamResponse();
+    messages: await convertToModelMessages(messages),
+  }).toUIMessageStreamResponse();
 }
 ```
 
