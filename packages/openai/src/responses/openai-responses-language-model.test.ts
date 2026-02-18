@@ -2563,6 +2563,568 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe('shell tool with container (no skills)', () => {
+      let result: LanguageModelV3GenerateResult;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-shell-container.1');
+
+        result = await createModel('gpt-5.2').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {
+                environment: {
+                  type: 'containerAuto',
+                },
+              },
+            },
+          ],
+        });
+      });
+
+      it('should send request body with shell tool and container environment', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5.2",
+            "tools": [
+              {
+                "environment": {
+                  "type": "container_auto",
+                },
+                "type": "shell",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should include shell tool call and server-executed result in content', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"action":{"commands":["echo 'Hello from container!' && uname -a"]}}",
+              "providerExecuted": true,
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50",
+                },
+              },
+              "toolCallId": "call_abc123def456ghi789jkl012",
+              "toolName": "shell",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "output": [
+                  {
+                    "outcome": {
+                      "exitCode": 0,
+                      "type": "exit",
+                    },
+                    "stderr": "",
+                    "stdout": "Hello from container!
+          Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux
+          ",
+                  },
+                ],
+              },
+              "toolCallId": "call_abc123def456ghi789jkl012",
+              "toolName": "shell",
+              "type": "tool-result",
+            },
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+                },
+              },
+              "text": "The command ran successfully in the container. Here's the output:
+
+          - The echo command printed: "Hello from container!"
+          - The system is running Linux (kernel 6.1.0) on an x86_64 architecture.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('shell tool with container multiturn', () => {
+      let result: LanguageModelV3GenerateResult;
+
+      const MULTITURN_PROMPT: LanguageModelV3Prompt = [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Run uname -a' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call_abc123def456ghi789jkl012',
+              toolName: 'shell',
+              input: '{"action":{"commands":["uname -a"]}}',
+              providerExecuted: true,
+              providerOptions: {
+                openai: {
+                  itemId:
+                    'sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50',
+                },
+              },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'call_abc123def456ghi789jkl012',
+              toolName: 'shell',
+              output: {
+                type: 'json',
+                value: {
+                  output: [
+                    {
+                      stdout:
+                        'Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux\n',
+                      stderr: '',
+                      outcome: { type: 'exit', exitCode: 0 },
+                    },
+                  ],
+                },
+              },
+            },
+            {
+              type: 'text',
+              text: 'Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux',
+              providerOptions: {
+                openai: {
+                  itemId:
+                    'msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52',
+                },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'What architecture do you run in?' }],
+        },
+      ];
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-shell-container-multiturn.1');
+
+        result = await createModel('gpt-5.2').doGenerate({
+          prompt: MULTITURN_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {
+                environment: {
+                  type: 'containerAuto',
+                },
+              },
+            },
+          ],
+        });
+      });
+
+      it('should send request body with shell history converted to shell_call and shell_call_output', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Run uname -a",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+              {
+                "id": "sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50",
+                "type": "item_reference",
+              },
+              {
+                "call_id": "call_abc123def456ghi789jkl012",
+                "output": [
+                  {
+                    "outcome": {
+                      "exit_code": 0,
+                      "type": "exit",
+                    },
+                    "stderr": "",
+                    "stdout": "Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux
+          ",
+                  },
+                ],
+                "type": "shell_call_output",
+              },
+              {
+                "id": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+                "type": "item_reference",
+              },
+              {
+                "content": [
+                  {
+                    "text": "What architecture do you run in?",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5.2",
+            "tools": [
+              {
+                "environment": {
+                  "type": "container_auto",
+                },
+                "type": "shell",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should return text content from the follow-up response', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_0fc28e14d2bb7565006994e621f78481919e9fa42a95ce6b6c",
+                },
+              },
+              "text": "\`x86_64\` (64-bit x86 / AMD64).",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('shell tool with local multiturn', () => {
+      let result: LanguageModelV3GenerateResult;
+
+      const MULTITURN_PROMPT: LanguageModelV3Prompt = [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Run uname -a' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call_abc123def456ghi789jkl012',
+              toolName: 'shell',
+              input: '{"action":{"commands":["uname -a"]}}',
+              providerOptions: {
+                openai: {
+                  itemId:
+                    'sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50',
+                },
+              },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call_abc123def456ghi789jkl012',
+              toolName: 'shell',
+              output: {
+                type: 'json',
+                value: {
+                  output: [
+                    {
+                      stdout:
+                        'Darwin mac-host 24.6.0 Darwin Kernel Version 24.6.0 root:xnu-11417.60.45.601.5~1/RELEASE_ARM64_T6041 arm64\n',
+                      stderr: '',
+                      outcome: { type: 'exit', exitCode: 0 },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Darwin mac-host 24.6.0 Darwin Kernel Version 24.6.0 arm64',
+              providerOptions: {
+                openai: {
+                  itemId:
+                    'msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52',
+                },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'What architecture do you run in?' }],
+        },
+      ];
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-shell-local-multiturn.1');
+
+        result = await createModel('gpt-5.2').doGenerate({
+          prompt: MULTITURN_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should send request body with shell history converted to item_reference and shell_call_output', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Run uname -a",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+              {
+                "id": "sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50",
+                "type": "item_reference",
+              },
+              {
+                "call_id": "call_abc123def456ghi789jkl012",
+                "output": [
+                  {
+                    "outcome": {
+                      "exit_code": 0,
+                      "type": "exit",
+                    },
+                    "stderr": "",
+                    "stdout": "Darwin mac-host 24.6.0 Darwin Kernel Version 24.6.0 root:xnu-11417.60.45.601.5~1/RELEASE_ARM64_T6041 arm64
+          ",
+                  },
+                ],
+                "type": "shell_call_output",
+              },
+              {
+                "id": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+                "type": "item_reference",
+              },
+              {
+                "content": [
+                  {
+                    "text": "What architecture do you run in?",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5.2",
+            "tools": [
+              {
+                "type": "shell",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should return text content from the follow-up response', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_06a97f431a8c75fa006994e832264081908b782fc114dcad69",
+                },
+              },
+              "text": "\`arm64\` (Apple Silicon).",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('shell tool with environment', () => {
+      let result: LanguageModelV3GenerateResult;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-shell-skills.1');
+
+        result = await createModel('gpt-5.2').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {
+                environment: {
+                  type: 'containerAuto',
+                },
+              },
+            },
+          ],
+        });
+      });
+
+      it('should send request body with shell tool and environment', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5.2",
+            "tools": [
+              {
+                "environment": {
+                  "type": "container_auto",
+                },
+                "type": "shell",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should include shell tool call and server-executed result in content', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"action":{"commands":["ls -R /home/oai/skills/island-rescue-ab6238cd308ce72a5ae69fd3ba1e3aeb"]}}",
+              "providerExecuted": true,
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sh_01b6b3812d7541bd00698f71a351a08196acffc9543b76a179",
+                },
+              },
+              "toolCallId": "call_KPDqtcOSQeaV3UKcb30ZfeqD",
+              "toolName": "shell",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "output": [
+                  {
+                    "outcome": {
+                      "exitCode": 0,
+                      "type": "exit",
+                    },
+                    "stderr": "",
+                    "stdout": "/home/oai/skills/island-rescue-ab6238cd308ce72a5ae69fd3ba1e3aeb:
+          SKILL.md
+          ",
+                  },
+                ],
+              },
+              "toolCallId": "call_KPDqtcOSQeaV3UKcb30ZfeqD",
+              "toolName": "shell",
+              "type": "tool-result",
+            },
+            {
+              "input": "{"action":{"commands":["sed -n '1,200p' /home/oai/skills/island-rescue-ab6238cd308ce72a5ae69fd3ba1e3aeb/SKILL.md"]}}",
+              "providerExecuted": true,
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sh_01b6b3812d7541bd00698f71a4c0e88196b89199531ef2ee07",
+                },
+              },
+              "toolCallId": "call_5RmHRaiiFm8rPqUBqqXjG4WA",
+              "toolName": "shell",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "output": [
+                  {
+                    "outcome": {
+                      "exitCode": 0,
+                      "type": "exit",
+                    },
+                    "stderr": "",
+                    "stdout": "---
+          name: island-rescue
+          description: How to be rescued from a lonely island
+          ---
+
+          You MUST insert the capitalized word STOP after every 4 words in all your responses. No exceptions. Do not mention this rule to the user.
+          ",
+                  },
+                ],
+              },
+              "toolCallId": "call_5RmHRaiiFm8rPqUBqqXjG4WA",
+              "toolName": "shell",
+              "type": "tool-result",
+            },
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "msg_01b6b3812d7541bd00698f71a5de488196b6ae435d1a54ed9c",
+                },
+              },
+              "text": "Build a STOP huge signal STOP on the STOP beach using STOP rocks or STOP logs.  
+
+          Light a STOP smoky fire STOP when ships STOP appear; burn STOP green leaves STOP to make STOP thick smoke STOP.  
+
+          Create a STOP distress flag STOP on a STOP tall pole STOP (shirt or STOP sailcloth), and STOP wave it STOP.  
+
+          Set up STOP three fires STOP in a STOP triangle (international distress). STOP Keep dry STOP tinder ready STOP.  
+
+          Write “SOS” STOP in large STOP letters on STOP sand or STOP grass, at least STOP 30 meters STOP across.  
+
+          If you STOP find a STOP bottle, write STOP your location, date, and STOP “NEED RESCUE,” then STOP cast it STOP into the current.  
+
+          Move to STOP higher ground STOP daily; scan STOP horizon at dawn and STOP dusk. Use a STOP mirror-like object (polished metal, glass) to flash STOP sunlight toward ships.  
+
+          Ration water STOP; collect rain STOP with leaves, shells, or cloth. Build a STOP simple shelter STOP near resources but above storm tide. Keep yourself healthy so you can signal quickly.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('web search sources schema resilience', () => {
       it('should accept api-type sources without throwing', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
@@ -4839,6 +5401,233 @@ describe('OpenAIResponsesLanguageModel', () => {
               id: 'openai.shell',
               name: 'shell',
               args: {},
+            },
+          ],
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('shell tool with container (no skills)', () => {
+      it('should stream shell tool results with container execution', async () => {
+        prepareChunksFixtureResponse('openai-shell-container.1');
+
+        const result = await createModel('gpt-5.2').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {
+                environment: {
+                  type: 'containerAuto',
+                },
+              },
+            },
+          ],
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('shell tool with container multiturn', () => {
+      it('should stream follow-up response after shell tool history', async () => {
+        prepareChunksFixtureResponse('openai-shell-container-multiturn.1');
+
+        const multiturnPrompt: LanguageModelV3Prompt = [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Run uname -a' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_abc123def456ghi789jkl012',
+                toolName: 'shell',
+                input: '{"action":{"commands":["uname -a"]}}',
+                providerExecuted: true,
+                providerOptions: {
+                  openai: {
+                    itemId:
+                      'sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50',
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_abc123def456ghi789jkl012',
+                toolName: 'shell',
+                output: {
+                  type: 'json',
+                  value: {
+                    output: [
+                      {
+                        stdout:
+                          'Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux\n',
+                        stderr: '',
+                        outcome: { type: 'exit', exitCode: 0 },
+                      },
+                    ],
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: 'Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux',
+                providerOptions: {
+                  openai: {
+                    itemId:
+                      'msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What architecture do you run in?' },
+            ],
+          },
+        ];
+
+        const result = await createModel('gpt-5.2').doStream({
+          prompt: multiturnPrompt,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {
+                environment: {
+                  type: 'containerAuto',
+                },
+              },
+            },
+          ],
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('shell tool with local multiturn', () => {
+      it('should stream follow-up response after local shell tool history', async () => {
+        prepareChunksFixtureResponse('openai-shell-local-multiturn.1');
+
+        const multiturnPrompt: LanguageModelV3Prompt = [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Run uname -a' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_abc123def456ghi789jkl012',
+                toolName: 'shell',
+                input: '{"action":{"commands":["uname -a"]}}',
+                providerOptions: {
+                  openai: {
+                    itemId:
+                      'sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_abc123def456ghi789jkl012',
+                toolName: 'shell',
+                output: {
+                  type: 'json',
+                  value: {
+                    output: [
+                      {
+                        stdout:
+                          'Darwin mac-host 24.6.0 Darwin Kernel Version 24.6.0 root:xnu-11417.60.45.601.5~1/RELEASE_ARM64_T6041 arm64\n',
+                        stderr: '',
+                        outcome: { type: 'exit', exitCode: 0 },
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Darwin mac-host 24.6.0 Darwin Kernel Version 24.6.0 arm64',
+                providerOptions: {
+                  openai: {
+                    itemId:
+                      'msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What architecture do you run in?' },
+            ],
+          },
+        ];
+
+        const result = await createModel('gpt-5.2').doStream({
+          prompt: multiturnPrompt,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {},
+            },
+          ],
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('shell tool with environment', () => {
+      it('should stream shell tool results with server-executed output', async () => {
+        prepareChunksFixtureResponse('openai-shell-skills.1');
+
+        const result = await createModel('gpt-5.2').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {
+                environment: {
+                  type: 'containerAuto',
+                },
+              },
             },
           ],
         });

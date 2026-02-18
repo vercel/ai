@@ -125,6 +125,10 @@ The following optional provider options are available for Anthropic models:
 
   Optional. See [Effort section](#effort) for more details.
 
+- `speed` _"fast" | "standard"_
+
+  Optional. See [Fast Mode section](#fast-mode) for more details.
+
 - `thinking` _object_
 
   Optional. See [Reasoning section](#reasoning) for more details.
@@ -191,6 +195,27 @@ const { text, usage } = await generateText({
 console.log(text); // resulting text
 console.log(usage); // token usage
 ```
+
+### Fast Mode
+
+Anthropic supports a [`speed` option](https://code.claude.com/docs/en/fast-mode) for `claude-opus-4-6` that enables faster inference with approximately 2.5x faster output token speeds.
+
+```ts highlight="8-10"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: anthropic('claude-opus-4-6'),
+  prompt: 'Write a short poem about the sea.',
+  providerOptions: {
+    anthropic: {
+      speed: 'fast',
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
+The `speed` option accepts `'fast'` or `'standard'` (default behavior).
 
 ### Reasoning
 
@@ -1128,8 +1153,9 @@ In this flow:
 3. Claude processes the results in code and generates the final response
 
 <Note>
-  Programmatic tool calling requires `claude-sonnet-4-5` or `claude-opus-4-5`
-  models and uses the `code_execution_20250825` tool.
+  Programmatic tool calling requires `claude-sonnet-4-6`, `claude-sonnet-4-5`,
+  `claude-opus-4-6`, or `claude-opus-4-5` models and uses the
+  `code_execution_20250825` tool.
 </Note>
 
 #### Container Persistence
@@ -1277,6 +1303,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 | Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         | Compaction          |
 | -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `claude-opus-4-6`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-sonnet-4-6`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
 | `claude-opus-4-5`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
 | `claude-haiku-4-5`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
 | `claude-sonnet-4-5`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
