@@ -48,7 +48,10 @@ async function main() {
   console.log('\n\nFinish reason:', await result.finishReason);
   console.log('Usage:', usage);
   if (thinkingBudget) {
-    console.log('Was budget respected?', (usage.reasoningTokens ?? 0) <= thinkingBudget);
+    console.log(
+      'Was budget respected?',
+      (usage.reasoningTokens ?? 0) <= thinkingBudget,
+    );
   }
 }
 
