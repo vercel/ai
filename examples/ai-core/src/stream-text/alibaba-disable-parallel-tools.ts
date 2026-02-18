@@ -22,9 +22,18 @@ async function main() {
         execute: async ({ location }) => {
           console.log(`[Executing] getWeather for ${location}...`);
           await new Promise(resolve => setTimeout(resolve, 500));
-          const temps: Record<string, number> = { Paris: 18, Tokyo: 24, London: 15 };
+          const temps: Record<string, number> = {
+            Paris: 18,
+            Tokyo: 24,
+            London: 15,
+          };
           const temp = temps[location] ?? 20;
-          return { location, temperature: temp, unit: 'celsius', condition: 'sunny' };
+          return {
+            location,
+            temperature: temp,
+            unit: 'celsius',
+            condition: 'sunny',
+          };
         },
       }),
     },

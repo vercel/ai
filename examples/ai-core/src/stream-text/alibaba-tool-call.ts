@@ -15,9 +15,18 @@ async function main() {
           location: z.string().describe('The location to get weather for'),
         }),
         execute: async ({ location }) => {
-          const temps: Record<string, number> = { Paris: 18, Tokyo: 24, London: 15 };
+          const temps: Record<string, number> = {
+            Paris: 18,
+            Tokyo: 24,
+            London: 15,
+          };
           const temp = temps[location] ?? 20;
-          return { location, temperature: temp, unit: 'celsius', condition: 'sunny' };
+          return {
+            location,
+            temperature: temp,
+            unit: 'celsius',
+            condition: 'sunny',
+          };
         },
       }),
     },
