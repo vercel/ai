@@ -13,6 +13,7 @@ import {
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
+  resolve,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -256,7 +257,10 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV3 {
 
     const { value: createResponse } = await postJsonToApi({
       url: createUrl,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: byteDanceFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -288,7 +292,10 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV3 {
       const { value: statusResponse, responseHeaders: statusHeaders } =
         await getFromApi({
           url: statusUrl,
-          headers: combineHeaders(this.config.headers(), options.headers),
+          headers: combineHeaders(
+            await resolve(this.config.headers),
+            options.headers,
+          ),
           failedResponseHandler: byteDanceFailedResponseHandler,
           successfulResponseHandler: createJsonResponseHandler(
             byteDanceStatusResponseSchema,
@@ -317,14 +324,7 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV3 {
         });
       }
 
-      await delay(pollIntervalMs);
-
-      if (options.abortSignal?.aborted) {
-        throw new AISDKError({
-          name: 'BYTEDANCE_VIDEO_GENERATION_ABORTED',
-          message: 'Video generation request was aborted',
-        });
-      }
+      await delay(pollIntervalMs, { abortSignal: options.abortSignal });
     }
 
     const videoUrl = response.content?.video_url;

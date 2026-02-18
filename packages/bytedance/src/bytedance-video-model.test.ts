@@ -238,7 +238,7 @@ describe('ByteDanceVideoModel', () => {
 
       await model.doGenerate({
         ...defaultOptions,
-        resolution: '720p',
+        resolution: '640x480',
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -249,7 +249,7 @@ describe('ByteDanceVideoModel', () => {
             text: prompt,
           },
         ],
-        resolution: '720p',
+        resolution: '640x480',
       });
     });
 

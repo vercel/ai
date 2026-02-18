@@ -1,8 +1,8 @@
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import type { FetchFunction, Resolvable } from '@ai-sdk/provider-utils';
 
 export interface ByteDanceConfig {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 }
