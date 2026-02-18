@@ -36,6 +36,8 @@ import {
   GenerateTextOnStartCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
+  GenerateTextOnToolCallStartCallback,
+  GenerateTextOnToolCallFinishCallback,
 } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
@@ -1278,6 +1280,542 @@ describe('generateText', () => {
       });
 
       expect(startStepNumbers).toEqual(finishStepNumbers);
+    });
+  });
+
+  describe('options.experimental_onToolCallStart', () => {
+    it('should be called with correct tool name, id, and input', async () => {
+      const toolCallStartEvents: Parameters<GenerateTextOnToolCallStartCallback>[0][] =
+        [];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test-arg" }',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallStart: async event => {
+          toolCallStartEvents.push(event);
+        },
+      });
+
+      expect(toolCallStartEvents.length).toBe(1);
+      expect(toolCallStartEvents[0].toolName).toBe('tool1');
+      expect(toolCallStartEvents[0].toolCallId).toBe('call-1');
+      expect(toolCallStartEvents[0].input).toEqual({ value: 'test-arg' });
+    });
+
+    it('should be called once per tool call in a multi-tool step', async () => {
+      const toolCallStartEvents: Parameters<GenerateTextOnToolCallStartCallback>[0][] =
+        [];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "a" }',
+              },
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-2',
+                toolName: 'tool1',
+                input: '{ "value": "b" }',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallStart: async event => {
+          toolCallStartEvents.push(event);
+        },
+      });
+
+      expect(toolCallStartEvents.length).toBe(2);
+      expect(toolCallStartEvents[0].toolCallId).toBe('call-1');
+      expect(toolCallStartEvents[1].toolCallId).toBe('call-2');
+    });
+
+    it('should be called before tool execution', async () => {
+      const callOrder: string[] = [];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              callOrder.push('execute');
+              return `${value}-result`;
+            },
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallStart: async () => {
+          callOrder.push('onToolCallStart');
+        },
+      });
+
+      expect(callOrder.indexOf('onToolCallStart')).toBeLessThan(
+        callOrder.indexOf('execute'),
+      );
+    });
+
+    it('should not break generation when callback throws', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallStart: async () => {
+          throw new Error('callback error');
+        },
+      });
+
+      expect(result.toolResults.length).toBe(1);
+      expect(result.toolResults[0].output).toBe('test-result');
+    });
+
+    it('should not fire for tools without execute', async () => {
+      const toolCallStartEvents: Parameters<GenerateTextOnToolCallStartCallback>[0][] =
+        [];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallStart: async event => {
+          toolCallStartEvents.push(event);
+        },
+      });
+
+      expect(toolCallStartEvents.length).toBe(0);
+    });
+  });
+
+  describe('options.experimental_onToolCallFinish', () => {
+    it('should be called with correct data on success', async () => {
+      const toolCallFinishEvents: Parameters<GenerateTextOnToolCallFinishCallback>[0][] =
+        [];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test-arg" }',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallFinish: async event => {
+          toolCallFinishEvents.push(event);
+        },
+      });
+
+      expect(toolCallFinishEvents.length).toBe(1);
+      expect(toolCallFinishEvents[0].toolName).toBe('tool1');
+      expect(toolCallFinishEvents[0].toolCallId).toBe('call-1');
+      expect(toolCallFinishEvents[0].input).toEqual({ value: 'test-arg' });
+      expect(toolCallFinishEvents[0].output).toBe('test-arg-result');
+      expect(toolCallFinishEvents[0].error).toBeUndefined();
+      expect(toolCallFinishEvents[0].durationMs).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should be called with error data when tool execution fails', async () => {
+      const toolCallFinishEvents: Parameters<GenerateTextOnToolCallFinishCallback>[0][] =
+        [];
+      const toolError = new Error('tool execution failed');
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async (): Promise<string> => {
+              throw toolError;
+            },
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallFinish: async event => {
+          toolCallFinishEvents.push(event);
+        },
+      });
+
+      expect(toolCallFinishEvents.length).toBe(1);
+      expect(toolCallFinishEvents[0].toolName).toBe('tool1');
+      expect(toolCallFinishEvents[0].toolCallId).toBe('call-1');
+      expect(toolCallFinishEvents[0].output).toBeUndefined();
+      expect(toolCallFinishEvents[0].error).toBe(toolError);
+      expect(toolCallFinishEvents[0].durationMs).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should have a positive durationMs', async () => {
+      const toolCallFinishEvents: Parameters<GenerateTextOnToolCallFinishCallback>[0][] =
+        [];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallFinish: async event => {
+          toolCallFinishEvents.push(event);
+        },
+      });
+
+      expect(toolCallFinishEvents[0].durationMs).toBeGreaterThanOrEqual(0);
+      expect(typeof toolCallFinishEvents[0].durationMs).toBe('number');
+    });
+
+    it('should not break generation when callback throws', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallFinish: async () => {
+          throw new Error('callback error');
+        },
+      });
+
+      expect(result.toolResults.length).toBe(1);
+      expect(result.toolResults[0].output).toBe('test-result');
+    });
+
+    it('should not fire for tools without execute', async () => {
+      const toolCallFinishEvents: Parameters<GenerateTextOnToolCallFinishCallback>[0][] =
+        [];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallFinish: async event => {
+          toolCallFinishEvents.push(event);
+        },
+      });
+
+      expect(toolCallFinishEvents.length).toBe(0);
+    });
+  });
+
+  describe('options.experimental_onToolCallStart and experimental_onToolCallFinish ordering', () => {
+    it('should call start before finish', async () => {
+      const callOrder: string[] = [];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallStart: async () => {
+          callOrder.push('onToolCallStart');
+        },
+        experimental_onToolCallFinish: async () => {
+          callOrder.push('onToolCallFinish');
+        },
+      });
+
+      expect(callOrder).toEqual(['onToolCallStart', 'onToolCallFinish']);
+    });
+
+    it('should fire both tool call callbacks before onStepFinish', async () => {
+      const callOrder: string[] = [];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: undefined },
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallStart: async () => {
+          callOrder.push('onToolCallStart');
+        },
+        experimental_onToolCallFinish: async () => {
+          callOrder.push('onToolCallFinish');
+        },
+        onStepFinish: async () => {
+          callOrder.push('onStepFinish');
+        },
+      });
+
+      expect(callOrder).toEqual([
+        'onToolCallStart',
+        'onToolCallFinish',
+        'onStepFinish',
+      ]);
+    });
+
+    it('should fire tool call callbacks for each tool in a multi-step loop', async () => {
+      const toolCallStartEvents: Parameters<GenerateTextOnToolCallStartCallback>[0][] =
+        [];
+      const toolCallFinishEvents: Parameters<GenerateTextOnToolCallFinishCallback>[0][] =
+        [];
+      let responseCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "step0" }',
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 1:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-2',
+                      toolName: 'tool1',
+                      input: '{ "value": "step1" }',
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 2:
+              default:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Done.' }],
+                };
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: stepCountIs(4),
+        experimental_onToolCallStart: async event => {
+          toolCallStartEvents.push(event);
+        },
+        experimental_onToolCallFinish: async event => {
+          toolCallFinishEvents.push(event);
+        },
+      });
+
+      expect(toolCallStartEvents.length).toBe(2);
+      expect(toolCallFinishEvents.length).toBe(2);
+
+      expect(toolCallStartEvents[0].toolCallId).toBe('call-1');
+      expect(toolCallStartEvents[1].toolCallId).toBe('call-2');
+
+      expect(toolCallFinishEvents[0].output).toBe('step0-result');
+      expect(toolCallFinishEvents[1].output).toBe('step1-result');
     });
   });
 
