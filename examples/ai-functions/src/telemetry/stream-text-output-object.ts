@@ -2,7 +2,7 @@ import { openai } from '@ai-sdk/openai';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
-import { generateObject } from 'ai';
+import { Output, streamText } from 'ai';
 import { z } from 'zod';
 import { run } from '../lib/run';
 
@@ -14,18 +14,20 @@ const sdk = new NodeSDK({
 sdk.start();
 
 run(async () => {
-  const result = await generateObject({
+  const result = streamText({
     model: openai('gpt-4o-mini'),
-    schema: z.object({
-      recipe: z.object({
-        name: z.string(),
-        ingredients: z.array(
-          z.object({
-            name: z.string(),
-            amount: z.string(),
-          }),
-        ),
-        steps: z.array(z.string()),
+    output: Output.object({
+      schema: z.object({
+        recipe: z.object({
+          name: z.string(),
+          ingredients: z.array(
+            z.object({
+              name: z.string(),
+              amount: z.string(),
+            }),
+          ),
+          steps: z.array(z.string()),
+        }),
       }),
     }),
     prompt: 'Generate a lasagna recipe.',
@@ -39,7 +41,10 @@ run(async () => {
     },
   });
 
-  console.log(JSON.stringify(result.object.recipe, null, 2));
+  for await (const partialOutput of result.partialOutputStream) {
+    console.clear();
+    console.log(partialOutput);
+  }
 
   await sdk.shutdown();
 });
