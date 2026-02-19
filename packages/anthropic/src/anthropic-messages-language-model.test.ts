@@ -5635,6 +5635,10 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const result = await convertReadableStreamToArray(stream);
 
+      // No parsing errors should occur (schema must accept null content)
+      const errors = result.filter(part => part.type === 'error');
+      expect(errors).toHaveLength(0);
+
       const compactionDeltas = result.filter(
         part => part.type === 'text-delta' && part.id === '0',
       );
