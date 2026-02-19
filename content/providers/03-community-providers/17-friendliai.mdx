@@ -7,7 +7,7 @@ description: Learn how to use the FriendliAI Provider for the AI SDK.
 
 The [FriendliAI](https://friendli.ai/) provider supports both open-source LLMs via [Friendli Serverless Endpoints](https://friendli.ai/products/serverless-endpoints) and custom models via [Dedicated Endpoints](https://friendli.ai/products/dedicated-endpoints).
 
-It creates language model objects that can be used with the `generateText` and `streamText` functions, and supports structured data generation with `Output`.
+It creates language model objects that can be used with the `generateText` and `streamText` functions, and supports structured data generation with [`Output`](/docs/reference/ai-sdk-core/output).
 
 ## Setup
 
@@ -203,7 +203,7 @@ const { text } = await generateText({
 console.log(text);
 ```
 
-FriendliAI language models can also be used in the `streamText` function and support structured data generation with `Output`
+FriendliAI language models can also be used in the `streamText` function and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
 ### Model Capabilities
