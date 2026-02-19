@@ -484,7 +484,9 @@ describe('streamText', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -581,7 +583,9 @@ describe('streamText', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -811,7 +815,9 @@ describe('streamText', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -920,7 +926,9 @@ describe('streamText', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -1051,7 +1059,9 @@ describe('streamText', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -1291,7 +1301,9 @@ describe('streamText', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -1587,7 +1599,9 @@ describe('streamText', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -3978,7 +3992,9 @@ describe('streamText', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -4285,7 +4301,7 @@ describe('streamText', () => {
   });
 
   describe('result.request', () => {
-    it('should resolve with request information by default', async () => {
+    it('should exclude request body by default', async () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
@@ -4307,40 +4323,40 @@ describe('streamText', () => {
           request: { body: 'test body' },
         }),
         prompt: 'test-input',
-      });
-
-      expect(await result.request).toStrictEqual({
-        body: 'test body',
-      });
-    });
-
-    it('should exclude request body when retention.requestBody is false', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata',
-              id: 'id-0',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
-            },
-            { type: 'text-start', id: '1' },
-            { type: 'text-delta', id: '1', delta: 'Hello' },
-            { type: 'text-end', id: '1' },
-            {
-              type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
-              usage: testUsage,
-            },
-          ]),
-          request: { body: 'test body' },
-        }),
-        prompt: 'test-input',
-        experimental_include: { requestBody: false },
       });
 
       expect(await result.request).toStrictEqual({
         body: undefined,
+      });
+    });
+
+    it('should include request body when include.requestBody is true', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+          request: { body: 'test body' },
+        }),
+        prompt: 'test-input',
+        include: { requestBody: true },
+      });
+
+      expect(await result.request).toStrictEqual({
+        body: 'test body',
       });
     });
   });
@@ -4519,7 +4535,9 @@ describe('streamText', () => {
             "finishReason": "stop",
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
-            "request": {},
+            "request": {
+              "body": undefined,
+            },
             "response": {
               "headers": undefined,
               "id": "id-0",
@@ -4653,7 +4671,9 @@ describe('streamText', () => {
             "finishReason": "stop",
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
-            "request": {},
+            "request": {
+              "body": undefined,
+            },
             "response": {
               "headers": undefined,
               "id": "id-0",
@@ -4732,7 +4752,9 @@ describe('streamText', () => {
             "finishReason": "stop",
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
-            "request": {},
+            "request": {
+              "body": undefined,
+            },
             "response": {
               "headers": undefined,
               "id": "id-0",
@@ -5154,7 +5176,9 @@ describe('streamText', () => {
           "rawFinishReason": "stop",
           "reasoning": [],
           "reasoningText": undefined,
-          "request": {},
+          "request": {
+            "body": undefined,
+          },
           "response": {
             "headers": {
               "call": "2",
@@ -5262,7 +5286,9 @@ describe('streamText', () => {
                 },
               },
               "rawFinishReason": "stop",
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "response": {
                 "headers": {
                   "call": "2",
@@ -5448,7 +5474,9 @@ describe('streamText', () => {
           "rawFinishReason": "stop",
           "reasoning": [],
           "reasoningText": undefined,
-          "request": {},
+          "request": {
+            "body": undefined,
+          },
           "response": {
             "headers": undefined,
             "id": "id-0",
@@ -5531,7 +5559,9 @@ describe('streamText', () => {
               "finishReason": "stop",
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -5675,7 +5705,9 @@ describe('streamText', () => {
           "rawFinishReason": "stop",
           "reasoning": [],
           "reasoningText": undefined,
-          "request": {},
+          "request": {
+            "body": undefined,
+          },
           "response": {
             "headers": undefined,
             "id": "id-0",
@@ -5739,7 +5771,9 @@ describe('streamText', () => {
               "finishReason": "stop",
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -6196,7 +6230,9 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -6267,7 +6303,9 @@ describe('streamText', () => {
                 },
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -6371,7 +6409,9 @@ describe('streamText', () => {
               "rawFinishReason": "stop",
               "reasoning": [],
               "reasoningText": undefined,
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "response": {
                 "headers": {
                   "call": "2",
@@ -6462,7 +6502,9 @@ describe('streamText', () => {
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "response": {
                     "headers": {
                       "call": "1",
@@ -6537,7 +6579,9 @@ describe('streamText', () => {
                   "finishReason": "stop",
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "response": {
                     "headers": {
                       "call": "2",
@@ -6688,7 +6732,9 @@ describe('streamText', () => {
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "response": {
                   "headers": {
                     "call": "1",
@@ -6763,7 +6809,9 @@ describe('streamText', () => {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "response": {
                   "headers": {
                     "call": "2",
@@ -6932,7 +6980,9 @@ describe('streamText', () => {
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "response": {
                   "headers": {
                     "call": "1",
@@ -7007,7 +7057,9 @@ describe('streamText', () => {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "response": {
                   "headers": {
                     "call": "2",
@@ -7511,7 +7563,9 @@ describe('streamText', () => {
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "response": {
                     "headers": {
                       "call": "1",
@@ -7581,7 +7635,9 @@ describe('streamText', () => {
                   "finishReason": "stop",
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "response": {
                     "headers": {
                       "call": "2",
@@ -7721,7 +7777,9 @@ describe('streamText', () => {
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "response": {
                     "headers": {
                       "call": "1",
@@ -7791,7 +7849,9 @@ describe('streamText', () => {
                   "finishReason": "stop",
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "response": {
                     "headers": {
                       "call": "2",
@@ -7984,7 +8044,9 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -8055,7 +8117,9 @@ describe('streamText', () => {
                 },
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -8159,7 +8223,9 @@ describe('streamText', () => {
               "rawFinishReason": "stop",
               "reasoning": [],
               "reasoningText": undefined,
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "response": {
                 "headers": {
                   "call": "2",
@@ -8250,7 +8316,9 @@ describe('streamText', () => {
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "response": {
                     "headers": {
                       "call": "1",
@@ -8325,7 +8393,9 @@ describe('streamText', () => {
                   "finishReason": "stop",
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "response": {
                     "headers": {
                       "call": "2",
@@ -8476,7 +8546,9 @@ describe('streamText', () => {
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "response": {
                   "headers": {
                     "call": "1",
@@ -8551,7 +8623,9 @@ describe('streamText', () => {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "response": {
                   "headers": {
                     "call": "2",
@@ -8716,7 +8790,9 @@ describe('streamText', () => {
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "response": {
                   "headers": {
                     "call": "1",
@@ -8791,7 +8867,9 @@ describe('streamText', () => {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "response": {
                   "headers": {
                     "call": "2",
@@ -9256,7 +9334,9 @@ describe('streamText', () => {
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "response": {
                     "headers": {
                       "call": "1",
@@ -9357,7 +9437,9 @@ describe('streamText', () => {
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "response": {
                     "headers": {
                       "call": "1",
@@ -9601,7 +9683,9 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -9870,7 +9954,9 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -11293,7 +11379,9 @@ describe('streamText', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -11402,7 +11490,9 @@ describe('streamText', () => {
             "finishReason": "stop",
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
-            "request": {},
+            "request": {
+              "body": undefined,
+            },
             "response": {
               "headers": undefined,
               "id": "id-0",
@@ -11894,7 +11984,9 @@ describe('streamText', () => {
               "finishReason": "stop",
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -11982,6 +12074,7 @@ describe('streamText', () => {
             request: { body: 'test body' },
           }),
           prompt: 'test-input',
+          include: { requestBody: true },
           experimental_transform: upperCaseTransform,
         });
 
@@ -12123,7 +12216,9 @@ describe('streamText', () => {
             "rawFinishReason": "stop",
             "reasoning": [],
             "reasoningText": undefined,
-            "request": {},
+            "request": {
+              "body": undefined,
+            },
             "response": {
               "headers": {
                 "call": "2",
@@ -12231,7 +12326,9 @@ describe('streamText', () => {
                   },
                 },
                 "rawFinishReason": "stop",
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "response": {
                   "headers": {
                     "call": "2",
@@ -12448,7 +12545,9 @@ describe('streamText', () => {
               },
             },
             "rawFinishReason": "stop",
-            "request": {},
+            "request": {
+              "body": undefined,
+            },
             "response": {
               "headers": {
                 "call": "2",
@@ -12829,7 +12928,9 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -12934,7 +13035,9 @@ describe('streamText', () => {
             "finishReason": "stop",
             "providerMetadata": undefined,
             "rawFinishReason": undefined,
-            "request": {},
+            "request": {
+              "body": undefined,
+            },
             "response": {
               "id": "response-id",
               "messages": [
@@ -13370,7 +13473,9 @@ describe('streamText', () => {
             "rawFinishReason": "stop",
             "reasoning": [],
             "reasoningText": undefined,
-            "request": {},
+            "request": {
+              "body": undefined,
+            },
             "response": {
               "headers": undefined,
               "id": "id-0",
@@ -13404,7 +13509,9 @@ describe('streamText', () => {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -14284,7 +14391,9 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -14490,7 +14599,9 @@ describe('streamText', () => {
               "finishReason": "stop",
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -14636,7 +14747,9 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -14872,7 +14985,9 @@ describe('streamText', () => {
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "response": {
                     "headers": undefined,
                     "id": "id-0",
@@ -14943,7 +15058,9 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -14998,7 +15115,9 @@ describe('streamText', () => {
                 },
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -15184,7 +15303,9 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -15433,7 +15554,9 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -15674,7 +15797,9 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -15913,7 +16038,9 @@ describe('streamText', () => {
               "finishReason": "stop",
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -16062,7 +16189,9 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -17370,7 +17499,9 @@ describe('streamText', () => {
                   "type": "start",
                 },
                 {
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "type": "start-step",
                   "warnings": [],
                 },
@@ -17458,7 +17589,9 @@ describe('streamText', () => {
                   },
                 },
                 {
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "type": "start-step",
                   "warnings": [],
                 },
@@ -17521,7 +17654,9 @@ describe('streamText', () => {
                   },
                 },
                 {
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "type": "start-step",
                   "warnings": [],
                 },
@@ -17584,7 +17719,9 @@ describe('streamText', () => {
                   },
                 },
                 {
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "type": "start-step",
                   "warnings": [],
                 },
@@ -17647,7 +17784,9 @@ describe('streamText', () => {
                   },
                 },
                 {
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "type": "start-step",
                   "warnings": [],
                 },
@@ -18219,7 +18358,9 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -18455,7 +18596,9 @@ describe('streamText', () => {
                 "type": "start",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -18916,7 +19059,9 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -19233,7 +19378,9 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -19536,7 +19683,9 @@ describe('streamText', () => {
                 "type": "tool-output-denied",
               },
               {
-                "request": {},
+                "request": {
+                  "body": undefined,
+                },
                 "type": "start-step",
                 "warnings": [],
               },
@@ -19698,7 +19847,9 @@ describe('streamText', () => {
                   "type": "start",
                 },
                 {
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "type": "start-step",
                   "warnings": [],
                 },

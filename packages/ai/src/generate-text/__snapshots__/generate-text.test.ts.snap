@@ -17,7 +17,9 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
   "rawFinishReason": "stop",
   "reasoning": [],
   "reasoningText": undefined,
-  "request": {},
+  "request": {
+    "body": undefined,
+  },
   "response": {
     "body": undefined,
     "headers": {
@@ -99,7 +101,9 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "finishReason": "tool-calls",
       "providerMetadata": undefined,
       "rawFinishReason": undefined,
-      "request": {},
+      "request": {
+        "body": undefined,
+      },
       "response": {
         "body": undefined,
         "headers": undefined,
@@ -167,7 +171,9 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "finishReason": "stop",
       "providerMetadata": undefined,
       "rawFinishReason": "stop",
-      "request": {},
+      "request": {
+        "body": undefined,
+      },
       "response": {
         "body": undefined,
         "headers": {
@@ -307,7 +313,9 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     "finishReason": "tool-calls",
     "providerMetadata": undefined,
     "rawFinishReason": undefined,
-    "request": {},
+    "request": {
+      "body": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": undefined,
@@ -375,7 +383,9 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     "finishReason": "stop",
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
-    "request": {},
+    "request": {
+      "body": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": {
@@ -521,7 +531,9 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
     "finishReason": "tool-calls",
     "providerMetadata": undefined,
     "rawFinishReason": undefined,
-    "request": {},
+    "request": {
+      "body": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": undefined,
@@ -589,7 +601,9 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
     "finishReason": "stop",
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
-    "request": {},
+    "request": {
+      "body": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": {
@@ -691,7 +705,9 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     "finishReason": "tool-calls",
     "providerMetadata": undefined,
     "rawFinishReason": undefined,
-    "request": {},
+    "request": {
+      "body": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": undefined,
@@ -759,7 +775,9 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     "finishReason": "stop",
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
-    "request": {},
+    "request": {
+      "body": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": {
@@ -905,7 +923,9 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     "finishReason": "tool-calls",
     "providerMetadata": undefined,
     "rawFinishReason": undefined,
-    "request": {},
+    "request": {
+      "body": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": undefined,
@@ -973,7 +993,9 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     "finishReason": "stop",
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
-    "request": {},
+    "request": {
+      "body": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": {
@@ -1305,7 +1327,7 @@ exports[`generateText > result.files > should contain files 1`] = `
 
 exports[`generateText > result.response > should contain response body and headers 1`] = `
 {
-  "body": "test body",
+  "body": undefined,
   "headers": {
     "custom-response-header": "response-header-value",
   },
@@ -1329,7 +1351,7 @@ exports[`generateText > result.response > should contain response body and heade
 
 exports[`generateText > result.response > should contain response body and headers 2`] = `
 {
-  "body": "test body",
+  "body": undefined,
   "headers": {
     "custom-response-header": "response-header-value",
   },
@@ -1497,7 +1519,9 @@ exports[`generateText > result.steps > should add the reasoning from the model r
     "finishReason": "stop",
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
-    "request": {},
+    "request": {
+      "body": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": undefined,
@@ -1589,7 +1613,9 @@ exports[`generateText > result.steps > should contain files 1`] = `
     "finishReason": "stop",
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
-    "request": {},
+    "request": {
+      "body": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": undefined,
@@ -1679,7 +1705,9 @@ exports[`generateText > result.steps > should contain sources 1`] = `
     "finishReason": "stop",
     "providerMetadata": undefined,
     "rawFinishReason": "stop",
-    "request": {},
+    "request": {
+      "body": undefined,
+    },
     "response": {
       "body": undefined,
       "headers": undefined,

@@ -286,7 +286,7 @@ export function streamText<
   onAbort,
   onStepFinish,
   experimental_context,
-  experimental_include: include,
+  include,
   _internal: { now = originalNow, generateId = originalGenerateId } = {},
   ...settings
 }: CallSettings &
@@ -435,13 +435,13 @@ export function streamText<
      * Disabling inclusion can help reduce memory usage when processing
      * large payloads like images.
      *
-     * By default, all data is included for backwards compatibility.
+     * By default, bodies are excluded to reduce memory usage.
      */
-    experimental_include?: {
+    include?: {
       /**
        * Whether to retain the request body in step results.
        * The request body can be large when sending images or files.
-       * @default true
+       * @default false
        */
       requestBody?: boolean;
     };
@@ -1474,7 +1474,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             // Conditionally include request.body based on include settings.
             // Large payloads (e.g., base64-encoded images) can cause memory issues.
             const stepRequest: LanguageModelRequestMetadata =
-              (include?.requestBody ?? true)
+              (include?.requestBody ?? false)
                 ? (request ?? {})
                 : { ...request, body: undefined };
             const stepToolCalls: TypedToolCall<TOOLS>[] = [];
