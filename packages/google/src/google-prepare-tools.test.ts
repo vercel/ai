@@ -196,8 +196,6 @@ it('should correctly prepare file search tool', () => {
   expect(result.toolWarnings).toEqual([]);
 });
 
-<<<<<<< HEAD
-=======
 it('should correctly prepare file search tool for gemini-3 models', () => {
   const result = prepareTools({
     tools: [
@@ -227,7 +225,6 @@ it('should correctly prepare file search tool for gemini-3 models', () => {
   expect(result.toolWarnings).toEqual([]);
 });
 
->>>>>>> 765b01381 (feat(provider/google): add support for `gemini-3.1-pro-preview` (#12695))
 it('should handle tool choice "auto"', () => {
   const result = prepareTools({
     tools: [

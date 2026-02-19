@@ -55,15 +55,11 @@ export type GatewayModelId =
   | 'google/gemini-2.5-flash-lite-preview-09-2025'
   | 'google/gemini-2.5-flash-preview-09-2025'
   | 'google/gemini-2.5-pro'
-<<<<<<< HEAD
-=======
   | 'google/gemini-3-flash'
-  | 'google/gemini-3.1-pro-preview'
   | 'google/gemini-3-pro-image'
->>>>>>> 765b01381 (feat(provider/google): add support for `gemini-3.1-pro-preview` (#12695))
   | 'google/gemini-3-pro-preview'
   | 'google/gemini-3-pro-image'
-  | 'google/gemini-3-flash'
+  | 'google/gemini-3.1-pro-preview'
   | 'inception/mercury-coder-small'
   | 'meituan/longcat-flash-chat'
   | 'meituan/longcat-flash-thinking'
