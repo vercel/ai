@@ -1,5 +1,41 @@
 # @ai-sdk/gateway
 
+## 3.0.51
+
+### Patch Changes
+
+- 765b013: feat(provider/google): add support for `gemini-3.1-pro-preview`
+
+## 3.0.50
+
+### Patch Changes
+
+- a433cd3: chore(provider/gateway): update gateway model settings files
+
+## 3.0.49
+
+### Patch Changes
+
+- 5f693c8: chore(provider/gateway): update gateway model settings files
+
+## 3.0.48
+
+### Patch Changes
+
+- 2a1c664: feat(provider/anthropic): add support for new Claude Sonnet 4.6 model
+
+## 3.0.47
+
+### Patch Changes
+
+- 6bbd05b: chore(provider/gateway): update gateway model settings files
+
+## 3.0.46
+
+### Patch Changes
+
+- f75f18c: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.45
 
 ### Patch Changes

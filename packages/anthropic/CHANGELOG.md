@@ -1,5 +1,17 @@
 # @ai-sdk/anthropic
 
+## 3.0.45
+
+### Patch Changes
+
+- 2a1c664: feat(provider/anthropic): add support for new Claude Sonnet 4.6 model
+
+## 3.0.44
+
+### Patch Changes
+
+- 23ac4a3: fix(provider/anthropic): minor follow up to support no-op speed standard
+
 ## 3.0.43
 
 ### Patch Changes
