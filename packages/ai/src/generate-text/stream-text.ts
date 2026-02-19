@@ -188,13 +188,19 @@ export type StreamTextOnFinishCallback<TOOLS extends ToolSet> = (
     readonly totalUsage: LanguageModelUsage;
 
     /**
-     * Context that is passed into tool execution.
+     * The final state of the user-defined context object.
      *
      * Experimental (can break in patch releases).
      *
      * @default undefined
      */
     experimental_context: unknown;
+
+    /** Identifier from telemetry settings for grouping related operations. */
+    readonly functionId: string | undefined;
+
+    /** Additional metadata from telemetry settings. */
+    readonly metadata: Record<string, unknown> | undefined;
   },
 ) => PromiseLike<void> | void;
 
