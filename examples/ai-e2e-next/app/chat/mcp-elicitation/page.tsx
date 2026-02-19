@@ -7,7 +7,7 @@ import {
   MCPElicitationUIMessage,
   ElicitationAction,
   ElicitationDataTypes,
-} from '../api/mcp-elicitation/types';
+} from '../api/chat/mcp-elicitation/types';
 import { isDataUIPart } from 'ai';
 
 export default function MCPElicitationChat() {
@@ -25,7 +25,7 @@ export default function MCPElicitationChat() {
 
   const { messages, sendMessage } = useChat<MCPElicitationUIMessage>({
     transport: new DefaultChatTransport({
-      api: '/api/mcp-elicitation',
+      api: '/api/chat/mcp-elicitation',
     }),
   });
 

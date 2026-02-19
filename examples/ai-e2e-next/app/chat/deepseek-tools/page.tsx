@@ -12,7 +12,7 @@ export default function ChatDeepSeekTools() {
   const { error, status, sendMessage, messages, regenerate } =
     useChat<DeepSeekToolsAgentMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-deepseek-tools',
+        api: '/api/chat/deepseek-tools',
       }),
     });
 

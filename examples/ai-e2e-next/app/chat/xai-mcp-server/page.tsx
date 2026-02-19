@@ -8,7 +8,7 @@ import { XaiMcpServerMessage } from '@/agent/xai/mcp-server-agent';
 export default function Chat() {
   const { error, status, sendMessage, messages, regenerate, stop } =
     useChat<XaiMcpServerMessage>({
-      transport: new DefaultChatTransport({ api: '/api/chat-xai-mcp-server' }),
+      transport: new DefaultChatTransport({ api: '/api/chat/xai-mcp-server' }),
     });
 
   return (

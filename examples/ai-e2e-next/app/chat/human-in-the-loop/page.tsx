@@ -6,23 +6,23 @@ import {
   getStaticToolName,
   isStaticToolUIPart,
 } from 'ai';
-import { tools } from '../api/use-chat-human-in-the-loop/tools';
+import { tools } from '../api/chat/human-in-the-loop/tools';
 import {
   APPROVAL,
   getToolsRequiringConfirmation,
-} from '../api/use-chat-human-in-the-loop/utils';
+} from '../api/chat/human-in-the-loop/utils';
 import { useState } from 'react';
 import {
   HumanInTheLoopUIMessage,
   MyTools,
-} from '../api/use-chat-human-in-the-loop/types';
+} from '../api/chat/human-in-the-loop/types';
 
 export default function Chat() {
   const [input, setInput] = useState('');
   const { messages, sendMessage, addToolOutput } =
     useChat<HumanInTheLoopUIMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/use-chat-human-in-the-loop',
+        api: '/api/chat/human-in-the-loop',
       }),
     });
 

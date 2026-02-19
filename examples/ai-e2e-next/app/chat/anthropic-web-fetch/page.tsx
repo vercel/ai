@@ -13,7 +13,7 @@ export default function TestAnthropicWebFetch() {
   const { error, status, sendMessage, messages, regenerate } =
     useChat<AnthropicWebFetchMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-anthropic-web-fetch',
+        api: '/api/chat/anthropic-web-fetch',
       }),
     });
 

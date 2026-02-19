@@ -21,7 +21,7 @@ export default function OpenPreviousResponseIdPage() {
   const { error, status, sendMessage, messages, regenerate } =
     useChat<PreviousResponseIdUIMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-openai-previous-response-id',
+        api: '/api/chat/openai-previous-response-id',
         prepareSendMessagesRequest: ({ messages }) => {
           // Send the newest message plus the previous provider metadata.
           const body: PreviousResponseIdRequestBody = {

@@ -7,7 +7,7 @@ import { useState } from 'react';
 export default function Page() {
   const [input, setInput] = useState('');
   const { messages, sendMessage } = useChat({
-    transport: new DefaultChatTransport({ api: '/api/mcp-zapier' }),
+    transport: new DefaultChatTransport({ api: '/api/chat/mcp-zapier' }),
   });
 
   return (

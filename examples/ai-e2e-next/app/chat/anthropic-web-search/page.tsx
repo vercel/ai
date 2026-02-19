@@ -13,7 +13,7 @@ export default function TestAnthropicWebSearch() {
   const { error, status, sendMessage, messages, regenerate } =
     useChat<AnthropicWebSearchMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-anthropic-web-search',
+        api: '/api/chat/anthropic-web-search',
       }),
     });
 

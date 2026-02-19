@@ -13,7 +13,7 @@ export default function TestToolApproval() {
   const { status, sendMessage, messages, addToolApprovalResponse } =
     useChat<DynamicWeatherWithApprovalAgentUIMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-tool-approval-dynamic',
+        api: '/api/chat/tool-approval-dynamic',
       }),
       sendAutomaticallyWhen:
         lastAssistantMessageIsCompleteWithApprovalResponses,

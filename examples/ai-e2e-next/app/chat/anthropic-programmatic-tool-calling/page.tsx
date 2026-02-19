@@ -11,7 +11,7 @@ export default function ChatAnthropicProgrammaticToolCalling() {
   const { error, status, sendMessage, messages, regenerate } =
     useChat<AnthropicProgrammaticToolCallingMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-anthropic-programmatic-tool-calling',
+        api: '/api/chat/anthropic-programmatic-tool-calling',
       }),
     });
 

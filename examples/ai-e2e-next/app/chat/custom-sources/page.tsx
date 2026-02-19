@@ -7,7 +7,7 @@ import { DefaultChatTransport } from 'ai';
 export default function Chat() {
   const { error, status, sendMessage, messages, regenerate, stop } = useChat({
     transport: new DefaultChatTransport({
-      api: '/api/use-chat-custom-sources',
+      api: '/api/chat/custom-sources',
     }),
   });
 

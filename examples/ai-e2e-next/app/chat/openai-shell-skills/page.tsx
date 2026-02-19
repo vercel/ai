@@ -13,7 +13,7 @@ export default function ChatOpenAIShellSkills() {
   const { status, sendMessage, messages, addToolApprovalResponse } =
     useChat<OpenAIShellSkillsMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-openai-shell-skills',
+        api: '/api/chat/openai-shell-skills',
       }),
       sendAutomaticallyWhen:
         lastAssistantMessageIsCompleteWithApprovalResponses,

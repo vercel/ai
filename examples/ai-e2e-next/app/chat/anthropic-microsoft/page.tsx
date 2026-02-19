@@ -15,7 +15,7 @@ export default function TestAnthropicWebFetch() {
   const { error, status, sendMessage, messages, regenerate } =
     useChat<AnthropicMicrosoftMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-anthropic-microsoft',
+        api: '/api/chat/anthropic-microsoft',
       }),
     });
 

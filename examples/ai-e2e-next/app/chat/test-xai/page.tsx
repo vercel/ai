@@ -6,7 +6,7 @@ import ChatInput from '@/components/chat-input';
 
 export default function TestXai() {
   const { error, status, sendMessage, messages, regenerate, stop } = useChat({
-    transport: new DefaultChatTransport({ api: '/api/chat-xai' }),
+    transport: new DefaultChatTransport({ api: '/api/chat/xai' }),
   });
 
   return (

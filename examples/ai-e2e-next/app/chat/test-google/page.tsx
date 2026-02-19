@@ -6,7 +6,7 @@ import ChatInput from '@/components/chat-input';
 
 export default function TestGoogle() {
   const { error, status, sendMessage, messages, regenerate, stop } = useChat({
-    transport: new DefaultChatTransport({ api: '/api/chat-google' }),
+    transport: new DefaultChatTransport({ api: '/api/chat/google' }),
   });
 
   return (

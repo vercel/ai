@@ -10,7 +10,7 @@ export default function TestOpenAIFileGenerationPDF() {
   const { status, sendMessage, messages } =
     useChat<OpenAIFetchPdfCustomToolMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-openai-fetch-pdf-custom-tool',
+        api: '/api/chat/openai-fetch-pdf-custom-tool',
       }),
     });
 

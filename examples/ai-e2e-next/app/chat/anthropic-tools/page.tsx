@@ -11,7 +11,7 @@ export default function TestAnthropicCodeExecution() {
   const { error, status, sendMessage, messages, regenerate } =
     useChat<AnthropicToolsAgentMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-anthropic-tools',
+        api: '/api/chat/anthropic-tools',
       }),
     });
 

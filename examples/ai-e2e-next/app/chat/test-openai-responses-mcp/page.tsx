@@ -5,12 +5,12 @@ import DynamicToolView from '@/components/tool/dynamic-tool-view';
 import OpenAIMCPView from '@/components/tool/openai-mcp-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { OpenAIResponsesMCPMessage } from '../api/chat-openai-responses-mcp/route';
+import { OpenAIResponsesMCPMessage } from '../api/chat/openai-responses-mcp/route';
 
 export default function TestOpenAIResponsesMCP() {
   const { status, sendMessage, messages } = useChat<OpenAIResponsesMCPMessage>({
     transport: new DefaultChatTransport({
-      api: '/api/chat-openai-responses-mcp',
+      api: '/api/chat/openai-responses-mcp',
     }),
   });
 

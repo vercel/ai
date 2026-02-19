@@ -11,7 +11,7 @@ export default function TestAnthropicCodeExecution() {
   const { error, status, sendMessage, messages, regenerate } =
     useChat<AnthropicMcpMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-anthropic-mcp',
+        api: '/api/chat/anthropic-mcp',
       }),
     });
 

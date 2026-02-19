@@ -11,7 +11,7 @@ export default function Chat() {
   const { error, status, sendMessage, messages, regenerate, stop } =
     useChat<MyMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/use-chat-message-metadata',
+        api: '/api/chat/message-metadata',
       }),
     });
 

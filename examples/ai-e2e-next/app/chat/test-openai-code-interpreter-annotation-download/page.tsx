@@ -11,7 +11,7 @@ export default function TestOpenAIWebSearch() {
   const { status, sendMessage, messages } =
     useChat<OpenAICodeInterpreterMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-openai-code-interpreter-annotation-download',
+        api: '/api/chat/openai-code-interpreter-annotation-download',
       }),
     });
 

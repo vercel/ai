@@ -11,7 +11,7 @@ export default function ChatXaiWebSearch() {
   const { error, status, sendMessage, messages, regenerate } =
     useChat<XaiWebSearchMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-xai-web-search',
+        api: '/api/chat/xai-web-search',
       }),
     });
 

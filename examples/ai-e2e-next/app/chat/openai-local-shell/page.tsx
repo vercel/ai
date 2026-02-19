@@ -13,7 +13,7 @@ export default function TestOpenAIWebSearch() {
   const { status, sendMessage, messages, addToolApprovalResponse } =
     useChat<OpenAILocalShellMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-openai-local-shell',
+        api: '/api/chat/openai-local-shell',
       }),
       sendAutomaticallyWhen:
         lastAssistantMessageIsCompleteWithApprovalResponses,

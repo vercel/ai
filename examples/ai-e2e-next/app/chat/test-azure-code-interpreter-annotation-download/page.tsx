@@ -11,7 +11,7 @@ export default function TestAzureOpenAICodeInterpreter() {
   const { status, sendMessage, messages } =
     useChat<AzureOpenAICodeInterpreterMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-azure-code-interpreter-annotation-download',
+        api: '/api/chat/azure-code-interpreter-annotation-download',
       }),
     });
 

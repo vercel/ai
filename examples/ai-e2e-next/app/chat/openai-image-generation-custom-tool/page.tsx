@@ -10,7 +10,7 @@ export default function TestOpenAIWebSearch() {
   const { status, sendMessage, messages } =
     useChat<OpenAIImageGenerationCustomToolMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-openai-image-generation-custom-tool',
+        api: '/api/chat/openai-image-generation-custom-tool',
       }),
     });
 

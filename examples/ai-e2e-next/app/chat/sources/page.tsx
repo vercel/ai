@@ -8,7 +8,7 @@ import { SourcesChatMessage } from '@/app/api/use-chat-sources/route';
 export default function Chat() {
   const { error, status, sendMessage, messages, regenerate, stop } =
     useChat<SourcesChatMessage>({
-      transport: new DefaultChatTransport({ api: '/api/use-chat-sources' }),
+      transport: new DefaultChatTransport({ api: '/api/chat/sources' }),
     });
 
   console.log(messages);

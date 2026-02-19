@@ -6,7 +6,7 @@ import ChatInput from '@/components/chat-input';
 
 export default function TestOpenAIResponses() {
   const { error, status, sendMessage, messages, regenerate, stop } = useChat({
-    transport: new DefaultChatTransport({ api: '/api/chat-openai-responses' }),
+    transport: new DefaultChatTransport({ api: '/api/chat/openai-responses' }),
   });
 
   return (

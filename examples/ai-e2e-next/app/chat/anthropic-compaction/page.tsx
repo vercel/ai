@@ -12,7 +12,7 @@ export default function Page() {
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
-        api: '/api/use-chat-anthropic-compaction',
+        api: '/api/chat/anthropic-compaction',
       }),
     [],
   );

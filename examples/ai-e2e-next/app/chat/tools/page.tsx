@@ -6,12 +6,12 @@ import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithToolCalls,
 } from 'ai';
-import { UseChatToolsMessage } from '../api/use-chat-tools/route';
+import { UseChatToolsMessage } from '../api/chat/tools/route';
 
 export default function Chat() {
   const { messages, sendMessage, addToolOutput, status } =
     useChat<UseChatToolsMessage>({
-      transport: new DefaultChatTransport({ api: '/api/use-chat-tools' }),
+      transport: new DefaultChatTransport({ api: '/api/chat/tools' }),
       sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
 
       // run client-side tools that are automatically executed:

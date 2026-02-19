@@ -6,7 +6,7 @@ import ChatInput from '@/components/chat-input';
 
 export default function TestPerplexity() {
   const { error, status, sendMessage, messages, regenerate, stop } = useChat({
-    transport: new DefaultChatTransport({ api: '/api/chat-perplexity' }),
+    transport: new DefaultChatTransport({ api: '/api/chat/perplexity' }),
   });
 
   return (

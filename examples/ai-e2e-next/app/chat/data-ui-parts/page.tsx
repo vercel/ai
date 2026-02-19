@@ -23,7 +23,7 @@ export default function Chat() {
   const { error, status, sendMessage, messages, regenerate, stop } =
     useChat<MyMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/use-chat-data-ui-parts',
+        api: '/api/chat/data-ui-parts',
       }),
       onData: dataPart => {
         console.log('dataPart', JSON.stringify(dataPart, null, 2));

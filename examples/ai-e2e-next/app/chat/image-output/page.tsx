@@ -6,7 +6,7 @@ import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {
   const { status, sendMessage, messages } = useChat({
-    transport: new DefaultChatTransport({ api: '/api/use-chat-image-output' }),
+    transport: new DefaultChatTransport({ api: '/api/chat/image-output' }),
   });
 
   return (

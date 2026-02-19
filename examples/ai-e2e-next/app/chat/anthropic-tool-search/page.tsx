@@ -13,7 +13,7 @@ export default function ChatAnthropicToolSearch() {
   const { error, status, sendMessage, messages, regenerate } =
     useChat<AnthropicToolSearchAgentMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-anthropic-tool-search',
+        api: '/api/chat/anthropic-tool-search',
       }),
     });
 

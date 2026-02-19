@@ -6,7 +6,7 @@ import { DefaultChatTransport } from 'ai';
 
 export default function Chat() {
   const { error, status, sendMessage, messages, regenerate, stop } = useChat({
-    transport: new DefaultChatTransport({ api: '/api/bedrock' }),
+    transport: new DefaultChatTransport({ api: '/api/chat/bedrock' }),
   });
 
   return (

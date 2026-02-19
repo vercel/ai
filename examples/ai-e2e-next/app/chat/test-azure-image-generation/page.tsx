@@ -10,7 +10,7 @@ export default function TestOpenAIImageGeneration() {
   const { status, sendMessage, messages } =
     useChat<AzureImageGenerationMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-azure-image-generation',
+        api: '/api/chat/azure-image-generation',
       }),
     });
 

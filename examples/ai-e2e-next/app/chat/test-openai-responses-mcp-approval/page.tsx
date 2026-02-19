@@ -5,7 +5,7 @@ import DynamicToolView from '@/components/tool/dynamic-tool-view';
 import OpenAIMCPApprovalView from '@/components/tool/openai-mcp-approval-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, UIMessage, isToolUIPart } from 'ai';
-import { OpenAIResponsesMCPApprovalMessage } from '../api/chat-openai-responses-mcp-approval/route';
+import { OpenAIResponsesMCPApprovalMessage } from '../api/chat/openai-responses-mcp-approval/route';
 
 // Custom helper that handles provider-executed tools (like OpenAI MCP)
 function lastAssistantMessageIsCompleteWithProviderExecutedApprovalResponses({
@@ -46,7 +46,7 @@ export default function TestOpenAIResponsesMCPApproval() {
   const { status, sendMessage, messages, addToolApprovalResponse } =
     useChat<OpenAIResponsesMCPApprovalMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-openai-responses-mcp-approval',
+        api: '/api/chat/openai-responses-mcp-approval',
       }),
       sendAutomaticallyWhen:
         lastAssistantMessageIsCompleteWithProviderExecutedApprovalResponses,

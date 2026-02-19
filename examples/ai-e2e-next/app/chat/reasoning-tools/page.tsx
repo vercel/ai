@@ -3,13 +3,13 @@
 import ChatInput from '@/components/chat-input';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { ReasoningToolsMessage } from '../api/use-chat-reasoning-tools/route';
+import { ReasoningToolsMessage } from '../api/chat/reasoning-tools/route';
 
 export default function Chat() {
   const { messages, sendMessage, addToolOutput, status } =
     useChat<ReasoningToolsMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/use-chat-reasoning-tools',
+        api: '/api/chat/reasoning-tools',
       }),
     });
 

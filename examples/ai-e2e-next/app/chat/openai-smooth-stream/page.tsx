@@ -11,7 +11,7 @@ export default function TestOpenAISmoothStream() {
   const { error, status, sendMessage, messages, regenerate } =
     useChat<OpenAIBasicMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-openai-smooth-stream',
+        api: '/api/chat/openai-smooth-stream',
       }),
     });
 

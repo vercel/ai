@@ -12,7 +12,7 @@ export default function ChatOpenAIApplyPatch() {
   const { error, status, sendMessage, messages, regenerate } =
     useChat<OpenAIApplyPatchMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-openai-apply-patch',
+        api: '/api/chat/openai-apply-patch',
       }),
     });
 

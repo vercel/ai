@@ -13,7 +13,7 @@ export default function TestOpenAIWebSearch() {
   const { error, status, sendMessage, messages, regenerate } =
     useChat<AzureWebSearchPreviewMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-azure-web-search-preview',
+        api: '/api/chat/azure-web-search-preview',
       }),
       onError: error => {
         console.error('Chat error:', error);

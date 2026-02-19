@@ -6,13 +6,13 @@ import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithToolCalls,
 } from 'ai';
-import { StreamingToolCallsMessage } from '../api/use-chat-streaming-tool-calls/route';
+import { StreamingToolCallsMessage } from '../api/chat/streaming-tool-calls/route';
 
 export default function Chat() {
   const { messages, status, sendMessage, addToolOutput } =
     useChat<StreamingToolCallsMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/use-chat-streaming-tool-calls',
+        api: '/api/chat/streaming-tool-calls',
       }),
 
       sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,

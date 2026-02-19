@@ -12,7 +12,7 @@ import WeatherValibotView from '@/components/tool/weather-valibot-view';
 export default function TestWeatherValibot() {
   const { status, sendMessage, messages } =
     useChat<WeatherValibotAgentUIMessage>({
-      transport: new DefaultChatTransport({ api: '/api/chat-weather-valibot' }),
+      transport: new DefaultChatTransport({ api: '/api/chat/weather-valibot' }),
       sendAutomaticallyWhen:
         lastAssistantMessageIsCompleteWithApprovalResponses,
     });

@@ -9,7 +9,7 @@ export default function ChatOpenAIShellContainer() {
   const { status, sendMessage, messages } =
     useChat<OpenAIShellContainerMessage>({
       transport: new DefaultChatTransport({
-        api: '/api/chat-openai-shell-container',
+        api: '/api/chat/openai-shell-container',
       }),
     });
 
