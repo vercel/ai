@@ -4,6 +4,7 @@ import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { now } from '../util/now';
 import {
   GenerateTextOnToolCallFinishCallback,
   GenerateTextOnToolCallStartCallback,
@@ -94,7 +95,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
         // Errors in callbacks should not break the generation flow.
       }
 
-      const startTime = performance.now();
+      const startTime = now();
 
       try {
         const stream = executeTool({
@@ -121,7 +122,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
           }
         }
       } catch (error) {
-        const durationMs = performance.now() - startTime;
+        const durationMs = now() - startTime;
 
         try {
           await onToolCallFinish?.({
@@ -157,7 +158,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
         } as TypedToolError<TOOLS>;
       }
 
-      const durationMs = performance.now() - startTime;
+      const durationMs = now() - startTime;
 
       try {
         await onToolCallFinish?.({
