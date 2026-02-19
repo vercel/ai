@@ -56,8 +56,13 @@ export type GatewayModelId =
   | 'google/gemini-2.5-flash-preview-09-2025'
   | 'google/gemini-2.5-pro'
   | 'google/gemini-3-flash'
+<<<<<<< HEAD
   | 'google/gemini-3-pro-preview'
   | 'google/gemini-3-pro-image'
+=======
+  | 'google/gemini-3-pro-image'
+  | 'google/gemini-3-pro-preview'
+>>>>>>> 363fa4428 (chore(provider/gateway): update gateway model settings files (#12711))
   | 'google/gemini-3.1-pro-preview'
   | 'inception/mercury-coder-small'
   | 'meituan/longcat-flash-chat'
