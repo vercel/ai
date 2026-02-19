@@ -708,8 +708,8 @@ const result = await generateText({
 
 #### Shell Tool
 
-The OpenAI Responses API supports the shell tool for GPT-5.1 models through the `openai.tools.shell` tool.
-The shell tool allows allows running bash commands and interacting with a command line.
+The OpenAI Responses API supports the shell tool through the `openai.tools.shell` tool.
+The shell tool allows running bash commands and interacting with a command line.
 The model proposes shell commands; your integration executes them and returns the outputs.
 
 <Note type="warning">
@@ -717,16 +717,18 @@ The model proposes shell commands; your integration executes them and returns th
   add strict allow-/deny-lists before forwarding a command to the system shell.
 </Note>
 
+The shell tool supports three environment modes that control where commands are executed:
+
+##### Local Execution (default)
+
+When no `environment` is specified (or `type: 'local'` is used), commands are executed locally via your `execute` callback:
+
 ```ts
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
 
 const result = await generateText({
-  model: openai('gpt-5.1'),
+  model: openai('gpt-5.2'),
   tools: {
     shell: openai.tools.shell({
       execute: async ({ action }) => {
@@ -739,11 +741,130 @@ const result = await generateText({
 });
 ```
 
-Your execute function must return an output array with results for each command:
+##### Hosted Container (auto)
+
+Set `environment.type` to `'containerAuto'` to run commands in an OpenAI-hosted container. No `execute` callback is needed — OpenAI handles execution server-side:
+
+```ts
+const result = await generateText({
+  model: openai('gpt-5.2'),
+  tools: {
+    shell: openai.tools.shell({
+      environment: {
+        type: 'containerAuto',
+        // optional configuration:
+        memoryLimit: '4g',
+        fileIds: ['file-abc123'],
+        networkPolicy: {
+          type: 'allowlist',
+          allowedDomains: ['example.com'],
+        },
+      },
+    }),
+  },
+  prompt: 'Install numpy and compute the eigenvalues of a 3x3 matrix.',
+});
+```
+
+The `containerAuto` environment supports:
+
+- **fileIds** _string[]_ - File IDs to make available in the container
+- **memoryLimit** _'1g' | '4g' | '16g' | '64g'_ - Memory limit for the container
+- **networkPolicy** - Network access policy:
+  - `{ type: 'disabled' }` — no network access
+  - `{ type: 'allowlist', allowedDomains: string[], domainSecrets?: Array<{ domain, name, value }> }` — allow specific domains with optional secrets
+
+##### Existing Container Reference
+
+Set `environment.type` to `'containerReference'` to use an existing container by ID:
+
+```ts
+const result = await generateText({
+  model: openai('gpt-5.2'),
+  tools: {
+    shell: openai.tools.shell({
+      environment: {
+        type: 'containerReference',
+        containerId: 'cntr_abc123',
+      },
+    }),
+  },
+  prompt: 'Check the status of running processes.',
+});
+```
+
+##### Execute Callback
+
+For local execution (default or `type: 'local'`), your execute function must return an output array with results for each command:
 
 - **stdout** _string_ - Standard output from the command
 - **stderr** _string_ - Standard error from the command
 - **outcome** - Either `{ type: 'timeout' }` or `{ type: 'exit', exitCode: number }`
+
+##### Skills
+
+[Skills](https://platform.openai.com/docs/guides/tools-skills) are versioned bundles of files with a `SKILL.md` manifest that extend the shell tool's capabilities. They can be attached to both `containerAuto` and `local` environments.
+
+**Container skills** support two formats — by reference (for skills uploaded to OpenAI) or inline (as a base64-encoded zip):
+
+```ts
+const result = await generateText({
+  model: openai('gpt-5.2'),
+  tools: {
+    shell: openai.tools.shell({
+      environment: {
+        type: 'containerAuto',
+        skills: [
+          // By reference:
+          { type: 'skillReference', skillId: 'skill_abc123' },
+          // Or inline:
+          {
+            type: 'inline',
+            name: 'my-skill',
+            description: 'What this skill does',
+            source: {
+              type: 'base64',
+              mediaType: 'application/zip',
+              data: readFileSync('./my-skill.zip').toString('base64'),
+            },
+          },
+        ],
+      },
+    }),
+  },
+  prompt: 'Use the skill to solve this problem.',
+});
+```
+
+**Local skills** point to a directory on disk containing a `SKILL.md` file:
+
+```ts
+const result = await generateText({
+  model: openai('gpt-5.2'),
+  tools: {
+    shell: openai.tools.shell({
+      execute: async ({ action }) => {
+        // ... your local execution implementation ...
+        return { output: results };
+      },
+      environment: {
+        type: 'local',
+        skills: [
+          {
+            name: 'my-skill',
+            description: 'What this skill does',
+            path: resolve('path/to/skill-directory'),
+          },
+        ],
+      },
+    }),
+  },
+  prompt: 'Use the skill to solve this problem.',
+  stopWhen: stepCountIs(5),
+});
+```
+
+For more details on creating skills, see the [OpenAI Skills documentation](https://platform.openai.com/docs/guides/tools-skills).
 
 #### Apply Patch Tool
 
