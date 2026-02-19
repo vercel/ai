@@ -1,0 +1,237 @@
+---
+title: Add Memory to an Agent
+description: Persist conversation history and inject memories into an agent so it can recall past interactions.
+tags: ['node', 'agent', 'memory']
+---
+
+# Add Memory to an Agent
+
+By default, every call to `generateText` or `streamText` is stateless — the model has no knowledge of previous turns. To build an agent that remembers, you need to:
+
+1. **Collect** messages from previous turns
+2. **Persist** them somewhere (in-process array, file, or database)
+3. **Inject** them back as the `messages` parameter on the next call
+
+This recipe covers both patterns: ephemeral in-process memory for single-session agents, and persistent cross-session memory backed by a JSON file.
+
+## In-Process Memory
+
+The simplest approach keeps the conversation history in a plain array. It lives only as long as the process is running, but it is sufficient for CLI tools and single-session agents.
+
+```ts
+import { generateText, tool, ModelMessage } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import * as readline from 'node:readline/promises';
+import { z } from 'zod';
+
+// Shared message history — grows with each turn
+const messages: ModelMessage[] = [];
+
+async function chat(userInput: string): Promise<string> {
+  // Append the new user turn
+  messages.push({ role: 'user', content: userInput });
+
+  const { text, response } = await generateText({
+    model: openai('gpt-4o'),
+    system: 'You are a helpful assistant. You remember everything said in this conversation.',
+    messages, // pass the full history on every call
+    tools: {
+      remember: tool({
+        description: 'Save an important fact the user wants you to remember.',
+        inputSchema: z.object({
+          fact: z.string().describe('The fact to remember'),
+        }),
+        execute: async ({ fact }) => {
+          // Append a system note so the fact is visible in future turns
+          messages.push({
+            role: 'system' as const,
+            content: `[Remembered]: ${fact}`,
+          });
+          return `Saved: "${fact}"`;
+        },
+      }),
+    },
+  });
+
+  // Append the assistant's reply to history
+  messages.push(...response.messages);
+
+  return text;
+}
+
+// Simple REPL loop
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+
+(async () => {
+  console.log('Agent ready. Type "exit" to quit.\n');
+  while (true) {
+    const input = await rl.question('You: ');
+    if (input.trim().toLowerCase() === 'exit') break;
+    const reply = await chat(input.trim());
+    console.log(`\nAssistant: ${reply}\n`);
+  }
+  rl.close();
+})();
+```
+
+### How It Works
+
+Each call to `chat` does three things:
+
+1. **Pushes** the user message onto `messages`.
+2. **Passes** the full array to `generateText` so the model sees the entire conversation.
+3. **Pushes** the assistant's response messages (which may include tool calls and results) back onto `messages`.
+
+The model now has the complete conversation context on every turn — no memory is lost between messages.
+
+## Persistent Cross-Session Memory
+
+In-process memory vanishes when the process exits. To survive restarts, serialize the message history to disk (or a database) and restore it on startup.
+
+```ts
+import { generateText, ModelMessage } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { readFile, writeFile } from 'node:fs/promises';
+import * as readline from 'node:readline/promises';
+
+const HISTORY_PATH = '.agent-history.json';
+
+// Load history from disk, or start fresh
+async function loadHistory(): Promise<ModelMessage[]> {
+  try {
+    const raw = await readFile(HISTORY_PATH, 'utf8');
+    return JSON.parse(raw) as ModelMessage[];
+  } catch {
+    return [];
+  }
+}
+
+// Persist history to disk after every turn
+async function saveHistory(messages: ModelMessage[]): Promise<void> {
+  // Keep only the last 100 messages to avoid unbounded growth
+  const trimmed = messages.slice(-100);
+  await writeFile(HISTORY_PATH, JSON.stringify(trimmed, null, 2), 'utf8');
+}
+
+async function main() {
+  const messages = await loadHistory();
+
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+
+  console.log('Agent ready (history restored). Type "exit" to quit.\n');
+
+  while (true) {
+    const input = await rl.question('You: ');
+    if (input.trim().toLowerCase() === 'exit') break;
+
+    messages.push({ role: 'user', content: input.trim() });
+
+    const { text, response } = await generateText({
+      model: openai('gpt-4o'),
+      system: 'You are a helpful assistant. You remember everything from past conversations.',
+      messages,
+    });
+
+    messages.push(...response.messages);
+    await saveHistory(messages);
+
+    console.log(`\nAssistant: ${text}\n`);
+  }
+
+  rl.close();
+}
+
+main().catch(console.error);
+```
+
+### Key Details
+
+| Concern | Approach |
+|---|---|
+| **History file** | `.agent-history.json` in the project root |
+| **Trimming** | Keep the last 100 messages to cap token usage and file size |
+| **Restore** | `loadHistory` is called once at startup; errors (missing file) produce an empty array |
+| **Save timing** | After every assistant turn so a crash never loses the last message |
+
+Add `.agent-history.json` to your `.gitignore` to avoid committing conversation data.
+
+## Injecting a System Summary (Token-Efficient Memory)
+
+Long conversation histories consume tokens on every call. A common optimization is to **summarize** older messages into the system prompt and keep only recent turns in the `messages` array.
+
+```ts
+import { generateText, ModelMessage } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const RECENT_TURNS = 10; // number of recent messages to keep verbatim
+
+async function summarizeHistory(messages: ModelMessage[]): Promise<string> {
+  if (messages.length === 0) return '';
+
+  const { text } = await generateText({
+    model: openai('gpt-4o-mini'),
+    system: 'Produce a concise bullet-point summary of this conversation for use as agent context.',
+    prompt: messages
+      .map(m => `${m.role}: ${typeof m.content === 'string' ? m.content : JSON.stringify(m.content)}`)
+      .join('\n'),
+  });
+
+  return text;
+}
+
+async function chatWithSummary(
+  allMessages: ModelMessage[],
+  userInput: string,
+  summary: string,
+): Promise<{ text: string; updatedMessages: ModelMessage[]; updatedSummary: string }> {
+  const recentMessages = allMessages.slice(-RECENT_TURNS);
+
+  recentMessages.push({ role: 'user', content: userInput });
+
+  const { text, response } = await generateText({
+    model: openai('gpt-4o'),
+    system: summary
+      ? `You are a helpful assistant.\n\nConversation summary so far:\n${summary}`
+      : 'You are a helpful assistant.',
+    messages: recentMessages,
+  });
+
+  const updatedMessages = [...allMessages, { role: 'user' as const, content: userInput }, ...response.messages];
+
+  // Re-summarize when history grows past a threshold
+  const updatedSummary =
+    updatedMessages.length > RECENT_TURNS * 2
+      ? await summarizeHistory(updatedMessages.slice(0, -RECENT_TURNS))
+      : summary;
+
+  return { text, updatedMessages, updatedSummary };
+}
+```
+
+This keeps the `messages` array short while the summary carries the semantic weight of earlier turns.
+
+## Setup
+
+Install the required packages:
+
+```bash
+pnpm add ai @ai-sdk/openai zod
+```
+
+Set your API key:
+
+```bash
+export OPENAI_API_KEY=your_key_here
+```
+
+Run the in-process example:
+
+```bash
+npx tsx agent.ts
+```
+
+## Learn More
+
+- [Build a Custom Memory Tool](/cookbook/guides/custom-memory-tool) — a deeper guide covering filesystem-backed memory with core, archival, and recall memory types
+- [`generateText` reference](/docs/reference/ai-sdk-core/generate-text) — full API for the `messages` parameter and `response.messages`
+- [Human-in-the-Loop](/cookbook/next/human-in-the-loop) — pause the agent loop for user approval before executing tool calls
