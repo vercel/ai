@@ -32,6 +32,13 @@ export function writeToServerResponse({
 
         // Respect backpressure: if write() returns false, wait for 'drain' event
         const canContinue = response.write(value);
+        if (
+          canContinue &&
+          'flush' in response &&
+          typeof (response as any).flush === 'function'
+        ) {
+          (response as any).flush();
+        }
         if (!canContinue) {
           await new Promise<void>(resolve => {
             response.once('drain', resolve);
