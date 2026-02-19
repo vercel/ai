@@ -22,9 +22,6 @@ export function convertAlibabaUsage(
     totalTokens: usage?.total_tokens ?? undefined,
     reasoningTokens:
       usage?.completion_tokens_details?.reasoning_tokens ?? undefined,
-    cachedInputTokens:
-      (usage?.prompt_tokens_details?.cached_tokens ?? 0) +
-        (usage?.prompt_tokens_details?.cache_creation_input_tokens ?? 0) ||
-      undefined,
+    cachedInputTokens: usage?.prompt_tokens_details?.cached_tokens ?? undefined,
   };
 }
