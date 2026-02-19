@@ -812,7 +812,9 @@ describe('generateText', () => {
 
   describe('options.experimental_onStepStart', () => {
     it('should be called with correct data for a single step', async () => {
-      let stepStartEvent!: Parameters<GenerateTextOnStepStartCallback<any>>[0];
+      let stepStartEvent!: Parameters<
+        GenerateTextOnStepStartCallback<any, any>
+      >[0];
 
       await generateText({
         model: new MockLanguageModelV3({
@@ -843,7 +845,7 @@ describe('generateText', () => {
 
     it('should be called once per step in a multi-step tool loop', async () => {
       const stepStartEvents: Parameters<
-        GenerateTextOnStepStartCallback<any>
+        GenerateTextOnStepStartCallback<any, any>
       >[0][] = [];
       let responseCount = 0;
 
@@ -933,7 +935,7 @@ describe('generateText', () => {
 
     it('should reflect model changes from prepareStep', async () => {
       const stepStartEvents: Parameters<
-        GenerateTextOnStepStartCallback<any>
+        GenerateTextOnStepStartCallback<any, any>
       >[0][] = [];
       let responseCount = 0;
 
@@ -995,7 +997,9 @@ describe('generateText', () => {
     });
 
     it('should provide empty steps array on first step', async () => {
-      let stepStartEvent!: Parameters<GenerateTextOnStepStartCallback<any>>[0];
+      let stepStartEvent!: Parameters<
+        GenerateTextOnStepStartCallback<any, any>
+      >[0];
 
       await generateText({
         model: new MockLanguageModelV3({
@@ -1016,7 +1020,7 @@ describe('generateText', () => {
 
     it('should provide previous step results in steps array for subsequent steps', async () => {
       const stepStartEvents: Parameters<
-        GenerateTextOnStepStartCallback<any>
+        GenerateTextOnStepStartCallback<any, any>
       >[0][] = [];
       let responseCount = 0;
 
@@ -1100,7 +1104,7 @@ describe('generateText', () => {
 
     it('should provide steps with correct text content from prior steps', async () => {
       const stepStartEvents: Parameters<
-        GenerateTextOnStepStartCallback<any>
+        GenerateTextOnStepStartCallback<any, any>
       >[0][] = [];
       let responseCount = 0;
 
@@ -1152,7 +1156,9 @@ describe('generateText', () => {
     });
 
     it('should pass experimental_context', async () => {
-      let stepStartEvent!: Parameters<GenerateTextOnStepStartCallback<any>>[0];
+      let stepStartEvent!: Parameters<
+        GenerateTextOnStepStartCallback<any, any>
+      >[0];
 
       await generateText({
         model: new MockLanguageModelV3({
@@ -1176,7 +1182,7 @@ describe('generateText', () => {
 
     it('should pass updated experimental_context from prepareStep', async () => {
       const stepStartEvents: Parameters<
-        GenerateTextOnStepStartCallback<any>
+        GenerateTextOnStepStartCallback<any, any>
       >[0][] = [];
       let responseCount = 0;
 
