@@ -25,7 +25,7 @@ This will start the server on `http://localhost:8085`.
 ### 2. Run the Next.js Application
 
 ```bash
-cd examples/next-openai
+cd examples/ai-e2e-next
 pnpm dev
 ```
 
