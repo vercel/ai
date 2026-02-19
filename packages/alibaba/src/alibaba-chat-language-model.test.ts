@@ -54,7 +54,7 @@ describe('doGenerate', () => {
         outputTokens: 1064,
         totalTokens: 1082,
         reasoningTokens: undefined,
-        cachedInputTokens: 0,
+        cachedInputTokens: undefined,
       });
     });
 
@@ -123,7 +123,6 @@ describe('doGenerate', () => {
 
       expect(usage).toMatchInlineSnapshot(`
         {
-          "cachedInputTokens": 0,
           "inputTokens": 24,
           "outputTokens": 1668,
           "reasoningTokens": 1353,
