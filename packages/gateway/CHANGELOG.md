@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.43
+
+### Patch Changes
+
+- 5e921ed: feat(provider/google): add support for `gemini-3.1-pro-preview`
+
 ## 2.0.42
 
 ### Patch Changes

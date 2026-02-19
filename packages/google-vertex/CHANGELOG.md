@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 3.0.106
+
+### Patch Changes
+
+- 5e921ed: feat(provider/google): add support for `gemini-3.1-pro-preview`
+- Updated dependencies [5e921ed]
+  - @ai-sdk/google@2.0.54
+
 ## 3.0.105
 
 ### Patch Changes
