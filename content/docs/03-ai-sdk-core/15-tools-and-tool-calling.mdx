@@ -901,7 +901,7 @@ You can use different strategies to repair the tool call:
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { generateObject, generateText, NoSuchToolError, tool } from 'ai';
+import { generateText, NoSuchToolError, Output, tool } from 'ai';
 
 const result = await generateText({
   model,
@@ -920,9 +920,9 @@ const result = await generateText({
 
     const tool = tools[toolCall.toolName as keyof typeof tools];
 
-    const { object: repairedArgs } = await generateObject({
+    const { output: repairedArgs } = await generateText({
       model: __MODEL__,
-      schema: tool.inputSchema,
+      output: Output.object({ schema: tool.inputSchema }),
       prompt: [
         `The model tried to call the tool "${toolCall.toolName}"` +
           ` with the following inputs:`,
@@ -942,7 +942,7 @@ const result = await generateText({
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { generateObject, generateText, NoSuchToolError, tool } from 'ai';
+import { generateText, NoSuchToolError, tool } from 'ai';
 
 const result = await generateText({
   model,
