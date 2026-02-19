@@ -5,6 +5,7 @@ import { StreamTextTransform } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 import { TimeoutConfiguration } from '../prompt/call-settings';
+import { ToolLoopAgentOnAbortCallback } from './tool-loop-agent-on-abort-callback';
 import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
 
 /**
@@ -56,6 +57,11 @@ export type AgentCallParameters<CALL_OPTIONS, TOOLS extends ToolSet = {}> = ([
      * Timeout in milliseconds. Can be specified as a number or as an object with `totalMs`.
      */
     timeout?: TimeoutConfiguration;
+
+    /**
+     * Callback that is called when the stream is aborted, either through the `abortSignal` or due to a timeout.
+     */
+    onAbort?: ToolLoopAgentOnAbortCallback<TOOLS>;
 
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.

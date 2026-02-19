@@ -86,6 +86,18 @@ const originalGenerateId = createIdGenerator({
 });
 
 /**
+ * Callback that is set using the `onAbort` option.
+ *
+ * @param event - The event that is passed to the callback.
+ */
+export type GenerateTextOnAbortCallback<TOOLS extends ToolSet> = (event: {
+  /**
+   * Details for all previously finished steps.
+   */
+  readonly steps: StepResult<TOOLS>[];
+}) => PromiseLike<void> | void;
+
+/**
  * Callback that is set using the `onStepFinish` option.
  *
  * @param stepResult - The result of the step.
@@ -162,6 +174,7 @@ export type GenerateTextOnFinishCallback<TOOLS extends ToolSet> = (
  * @param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
+ * @param onAbort - Callback that is called when the stream is aborted, either through the `abortSignal` or due to a timeout.
  * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
  * @param onFinish - Callback that is called when all steps are finished and the response is complete.
  *
@@ -196,6 +209,7 @@ export async function generateText<
   experimental_context,
   experimental_include: include,
   _internal: { generateId = originalGenerateId } = {},
+  onAbort,
   onStepFinish,
   onFinish,
   ...settings
@@ -282,6 +296,11 @@ export async function generateText<
      * A function that attempts to repair a tool call that failed to parse.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
+
+    /**
+     * Callback that is called when each step (LLM call) is finished, including intermediate steps.
+     */
+    onAbort?: GenerateTextOnAbortCallback<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.

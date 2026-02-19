@@ -440,6 +440,248 @@ describe('ToolLoopAgent', () => {
     });
   });
 
+  describe('onAbort', () => {
+    describe('generate', () => {
+      let mockModel: MockLanguageModelV3;
+
+      beforeEach(() => {
+        mockModel = new MockLanguageModelV3({
+          doGenerate: async () => {
+            return {
+              content: [{ type: 'text', text: 'reply' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: {
+                cachedInputTokens: undefined,
+                inputTokens: {
+                  total: 3,
+                  noCache: 3,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 10,
+                  text: 10,
+                  reasoning: undefined,
+                },
+              },
+              warnings: [],
+            };
+          },
+        });
+      });
+
+      it('should call onAbort from constructor', async () => {
+        const onAbortCalls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          onAbort: async () => {
+            onAbortCalls.push('constructor');
+          },
+        });
+
+        await agent.generate({
+          prompt: 'Hello, world!',
+        });
+
+        expect(onAbortCalls).toEqual(['constructor']);
+      });
+
+      it('should call onAbort from generate method', async () => {
+        const onAbortCalls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+        });
+
+        await agent.generate({
+          prompt: 'Hello, world!',
+          onAbort: async () => {
+            onAbortCalls.push('method');
+          },
+        });
+
+        expect(onAbortCalls).toEqual(['method']);
+      });
+
+      it('should call both constructor and method onAbort in correct order', async () => {
+        const onAbortCalls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          onAbort: async () => {
+            onAbortCalls.push('constructor');
+          },
+        });
+
+        await agent.generate({
+          prompt: 'Hello, world!',
+          onAbort: async () => {
+            onAbortCalls.push('method');
+          },
+        });
+
+        expect(onAbortCalls).toEqual(['constructor', 'method']);
+      });
+
+      it('should pass steps to onAbort callback', async () => {
+        let capturedSteps: unknown;
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+        });
+
+        await agent.generate({
+          prompt: 'Hello, world!',
+          onAbort: async ({ steps }) => {
+            capturedSteps = steps;
+          },
+        });
+
+        expect(capturedSteps).toMatchObject([
+          {
+            text: 'reply',
+            finishReason: 'stop',
+          },
+        ]);
+      });
+    });
+
+    describe('stream', () => {
+      let mockModel: MockLanguageModelV3;
+
+      beforeEach(() => {
+        mockModel = new MockLanguageModelV3({
+          doStream: async () => {
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'stream-start',
+                  warnings: [],
+                },
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-delta', id: '1', delta: ', ' },
+                { type: 'text-delta', id: '1', delta: `world!` },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: {
+                    inputTokens: {
+                      total: 3,
+                      noCache: 3,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 10,
+                      text: 10,
+                      reasoning: undefined,
+                    },
+                  },
+                  providerMetadata: {
+                    testProvider: { testKey: 'testValue' },
+                  },
+                },
+              ]),
+            };
+          },
+        });
+      });
+
+      it('should call onAbort from constructor', async () => {
+        const onAbortCalls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          onAbort: async () => {
+            onAbortCalls.push('constructor');
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+        });
+
+        await result.consumeStream();
+
+        expect(onAbortCalls).toEqual(['constructor']);
+      });
+
+      it('should call onAbort from stream method', async () => {
+        const onAbortCalls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+        });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+          onAbort: async () => {
+            onAbortCalls.push('method');
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(onAbortCalls).toEqual(['method']);
+      });
+
+      it('should call both constructor and method onAbort in correct order', async () => {
+        const onAbortCalls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          onAbort: async () => {
+            onAbortCalls.push('constructor');
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+          onAbort: async () => {
+            onAbortCalls.push('method');
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(onAbortCalls).toEqual(['constructor', 'method']);
+      });
+
+      it('should pass stepResult to onAbort callback', async () => {
+        let capturedSteps: unknown;
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+        });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+          onAbort: async ({ steps }) => {
+            capturedSteps = steps;
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(capturedSteps).toMatchObject([
+          {
+            text: 'Hello, world!',
+            finishReason: 'stop',
+          },
+        ]);
+      });
+    });
+  });
+
   describe('onStepFinish', () => {
     describe('generate', () => {
       let mockModel: MockLanguageModelV3;
