@@ -22,6 +22,7 @@ import {
   CallSettings,
   getStepTimeoutMs,
   getTotalTimeoutMs,
+  TimeoutConfiguration,
 } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
@@ -96,7 +97,10 @@ const originalGenerateId = createIdGenerator({
  *
  * @param event - The event object containing generation configuration.
  */
-export type GenerateTextOnStartCallback = (event: {
+export type GenerateTextOnStartCallback<
+  TOOLS extends ToolSet = ToolSet,
+  OUTPUT extends Output = Output,
+> = (event: {
   /** The model being used for generation. */
   readonly model: {
     /** The provider identifier (e.g., 'openai', 'anthropic'). */
@@ -118,6 +122,15 @@ export type GenerateTextOnStartCallback = (event: {
   /** The messages array if using the messages option. */
   readonly messages: Array<ModelMessage> | undefined;
 
+  /** The tools available for this generation. */
+  readonly tools: TOOLS | undefined;
+
+  /** The tool choice strategy for this generation. */
+  readonly toolChoice: ToolChoice<NoInfer<TOOLS>> | undefined;
+
+  /** Limits which tools are available for the model to call. */
+  readonly activeTools: Array<keyof TOOLS> | undefined;
+
   /** Maximum number of tokens to generate. */
   readonly maxOutputTokens: number | undefined;
   /** Sampling temperature for generation. */
@@ -136,6 +149,44 @@ export type GenerateTextOnStartCallback = (event: {
   readonly seed: number | undefined;
   /** Maximum number of retries for failed requests. */
   readonly maxRetries: number;
+
+  /**
+   * Timeout configuration for the generation.
+   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.
+   */
+  readonly timeout: TimeoutConfiguration | undefined;
+
+  /** Additional HTTP headers sent with the request. */
+  readonly headers: Record<string, string | undefined> | undefined;
+
+  /** Additional provider-specific options. */
+  readonly providerOptions: ProviderOptions | undefined;
+
+  /**
+   * Condition(s) for stopping the generation.
+   * When the condition is an array, any of the conditions can be met to stop.
+   */
+  readonly stopWhen:
+    | StopCondition<TOOLS>
+    | Array<StopCondition<TOOLS>>
+    | undefined;
+
+  /** The output specification for structured outputs, if configured. */
+  readonly output: OUTPUT | undefined;
+
+  /** Abort signal for cancelling the operation. */
+  readonly abortSignal: AbortSignal | undefined;
+
+  /**
+   * Settings for controlling what data is included in step results.
+   * `requestBody` and `responseBody` control whether these are retained.
+   */
+  readonly include:
+    | {
+        requestBody?: boolean;
+        responseBody?: boolean;
+      }
+    | undefined;
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
@@ -560,7 +611,7 @@ export async function generateText<
      * Callback that is called when the generateText operation begins,
      * before any LLM calls are made.
      */
-    experimental_onStart?: GenerateTextOnStartCallback;
+    experimental_onStart?: GenerateTextOnStartCallback<NoInfer<TOOLS>, OUTPUT>;
 
     /**
      * Callback that is called when a step (LLM call) begins,
@@ -670,6 +721,9 @@ export async function generateText<
       system,
       prompt,
       messages,
+      tools,
+      toolChoice,
+      activeTools,
       maxOutputTokens: callSettings.maxOutputTokens,
       temperature: callSettings.temperature,
       topP: callSettings.topP,
@@ -679,6 +733,13 @@ export async function generateText<
       stopSequences: callSettings.stopSequences,
       seed: callSettings.seed,
       maxRetries,
+      timeout,
+      headers,
+      providerOptions,
+      stopWhen,
+      output,
+      abortSignal,
+      include,
       functionId: telemetry?.functionId,
       metadata: telemetry?.metadata as Record<string, unknown> | undefined,
       experimental_context,

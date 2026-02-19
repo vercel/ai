@@ -711,24 +711,7 @@ describe('generateText', () => {
         },
       });
 
-      expect(startEvent).toEqual({
-        model: { provider: 'mock-provider', modelId: 'mock-model-id' },
-        system: undefined,
-        prompt: 'test-input',
-        messages: undefined,
-        maxOutputTokens: undefined,
-        temperature: undefined,
-        topP: undefined,
-        topK: undefined,
-        presencePenalty: undefined,
-        frequencyPenalty: undefined,
-        stopSequences: undefined,
-        seed: undefined,
-        maxRetries: 2,
-        functionId: 'test-function',
-        metadata: { customKey: 'customValue' },
-        experimental_context: undefined,
-      });
+      expect(startEvent).toMatchSnapshot();
     });
 
     it('should pass experimental_context', async () => {

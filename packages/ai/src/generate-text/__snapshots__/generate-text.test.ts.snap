@@ -1,5 +1,41 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`generateText > options.experimental_onStart > should send correct information with text prompt 1`] = `
+{
+  "abortSignal": undefined,
+  "activeTools": undefined,
+  "experimental_context": undefined,
+  "frequencyPenalty": undefined,
+  "functionId": "test-function",
+  "headers": undefined,
+  "include": undefined,
+  "maxOutputTokens": undefined,
+  "maxRetries": 2,
+  "messages": undefined,
+  "metadata": {
+    "customKey": "customValue",
+  },
+  "model": {
+    "modelId": "mock-model-id",
+    "provider": "mock-provider",
+  },
+  "output": undefined,
+  "presencePenalty": undefined,
+  "prompt": "test-input",
+  "providerOptions": undefined,
+  "seed": undefined,
+  "stopSequences": undefined,
+  "stopWhen": [Function],
+  "system": undefined,
+  "temperature": undefined,
+  "timeout": undefined,
+  "toolChoice": undefined,
+  "tools": undefined,
+  "topK": undefined,
+  "topP": undefined,
+}
+`;
+
 exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callbacks > onFinish should send correct information 1`] = `
 {
   "content": [
