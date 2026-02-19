@@ -6,7 +6,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: google('gemini-1.5-pro-latest'),
+    model: google('gemini-2.5-pro'),
     tools: {
       weather: weatherTool,
       cityAttractions: {
