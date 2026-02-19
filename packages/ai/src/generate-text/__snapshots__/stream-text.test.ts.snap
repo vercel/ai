@@ -38,6 +38,37 @@ exports[`streamText > options.experimental_onStart > should send correct informa
 }
 `;
 
+exports[`streamText > options.experimental_onToolCallStart > should be called with correct tool name, id, and input 1`] = `
+{
+  "abortSignal": undefined,
+  "experimental_context": undefined,
+  "functionId": undefined,
+  "messages": [
+    {
+      "content": "test-input",
+      "role": "user",
+    },
+  ],
+  "metadata": undefined,
+  "model": {
+    "modelId": "mock-model-id",
+    "provider": "mock-provider",
+  },
+  "stepNumber": 0,
+  "toolCall": {
+    "input": {
+      "value": "test-arg",
+    },
+    "providerExecuted": undefined,
+    "providerMetadata": undefined,
+    "title": undefined,
+    "toolCallId": "call-1",
+    "toolName": "tool1",
+    "type": "tool-call",
+  },
+}
+`;
+
 exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should record telemetry data for each step 1`] = `
 [
   {

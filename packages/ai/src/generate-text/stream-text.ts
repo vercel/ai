@@ -422,6 +422,87 @@ export type StreamTextOnStepStartCallback<
   readonly experimental_context: unknown;
 }) => PromiseLike<void> | void;
 
+export type StreamTextOnToolCallStartCallback<TOOLS extends ToolSet = ToolSet> =
+  (event: {
+    /** Zero-based index of the current step where this tool call occurs. */
+    readonly stepNumber: number | undefined;
+
+    /** The model being used for this step. */
+    readonly model:
+      | {
+          readonly provider: string;
+          readonly modelId: string;
+        }
+      | undefined;
+
+    /** The full tool call object. */
+    readonly toolCall: TypedToolCall<TOOLS>;
+
+    /** The conversation messages available at tool execution time. */
+    readonly messages: Array<ModelMessage>;
+
+    /** Signal for cancelling the operation. */
+    readonly abortSignal: AbortSignal | undefined;
+
+    /** Identifier from telemetry settings for grouping related operations. */
+    readonly functionId: string | undefined;
+
+    /** Additional metadata from telemetry settings. */
+    readonly metadata: Record<string, unknown> | undefined;
+
+    /** User-defined context object flowing through the generation. */
+    readonly experimental_context: unknown;
+  }) => PromiseLike<void> | void;
+
+export type StreamTextOnToolCallFinishCallback<
+  TOOLS extends ToolSet = ToolSet,
+> = (
+  event: {
+    /** Zero-based index of the current step where this tool call occurred. */
+    readonly stepNumber: number | undefined;
+
+    /** The model being used for this step. */
+    readonly model:
+      | {
+          readonly provider: string;
+          readonly modelId: string;
+        }
+      | undefined;
+
+    /** The full tool call object. */
+    readonly toolCall: TypedToolCall<TOOLS>;
+
+    /** The conversation messages available at tool execution time. */
+    readonly messages: Array<ModelMessage>;
+
+    /** Signal for cancelling the operation. */
+    readonly abortSignal: AbortSignal | undefined;
+
+    /** Execution time of the tool call in milliseconds. */
+    readonly durationMs: number;
+
+    /** Identifier from telemetry settings for grouping related operations. */
+    readonly functionId: string | undefined;
+
+    /** Additional metadata from telemetry settings. */
+    readonly metadata: Record<string, unknown> | undefined;
+
+    /** User-defined context object flowing through the generation. */
+    readonly experimental_context: unknown;
+  } & (
+    | {
+        readonly success: true;
+        readonly output: unknown;
+        readonly error?: never;
+      }
+    | {
+        readonly success: false;
+        readonly output?: never;
+        readonly error: unknown;
+      }
+  ),
+) => PromiseLike<void> | void;
+
 /**
  * Generate a text and call tools for a given prompt using a language model.
  *
@@ -503,6 +584,8 @@ export function streamText<
   onStepFinish,
   experimental_onStart: onStart,
   experimental_onStepStart: onStepStart,
+  experimental_onToolCallStart: onToolCallStart,
+  experimental_onToolCallFinish: onToolCallFinish,
   experimental_context,
   experimental_include: include,
   _internal: { now = originalNow, generateId = originalGenerateId } = {},
@@ -655,6 +738,20 @@ export function streamText<
     >;
 
     /**
+     * Callback that is called right before a tool's execute function runs.
+     */
+    experimental_onToolCallStart?: StreamTextOnToolCallStartCallback<
+      NoInfer<TOOLS>
+    >;
+
+    /**
+     * Callback that is called right after a tool's execute function completes (or errors).
+     */
+    experimental_onToolCallFinish?: StreamTextOnToolCallFinishCallback<
+      NoInfer<TOOLS>
+    >;
+
+    /**
      * Context that is passed into tool execution.
      *
      * Experimental (can break in patch releases).
@@ -733,6 +830,8 @@ export function streamText<
     onStepFinish,
     onStart,
     onStepStart,
+    onToolCallStart,
+    onToolCallFinish,
     now,
     generateId,
     experimental_context,
@@ -911,6 +1010,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     onStepFinish,
     onStart,
     onStepStart,
+    onToolCallStart,
+    onToolCallFinish,
     experimental_context,
     download,
     include,
@@ -958,6 +1059,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
     onStart: undefined | StreamTextOnStartCallback<TOOLS, OUTPUT>;
     onStepStart: undefined | StreamTextOnStepStartCallback<TOOLS, OUTPUT>;
+    onToolCallStart: undefined | StreamTextOnToolCallStartCallback<TOOLS>;
+    onToolCallFinish: undefined | StreamTextOnToolCallFinishCallback<TOOLS>;
   }) {
     this.outputSpecification = output;
     this.includeRawChunks = includeRawChunks;
@@ -1528,6 +1631,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   messages: initialMessages,
                   abortSignal,
                   experimental_context,
+                  stepNumber: recordedSteps.length,
+                  model: {
+                    provider: model.provider,
+                    modelId: model.modelId,
+                  },
+                  onToolCallStart,
+                  onToolCallFinish,
                   onPreliminaryToolResult: result => {
                     toolExecutionStepStreamController?.enqueue(result);
                   },
@@ -1809,6 +1919,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               abortSignal,
               experimental_context,
               generateId,
+              stepNumber: recordedSteps.length,
+              model: {
+                provider: stepModel.provider,
+                modelId: stepModel.modelId,
+              },
+              onToolCallStart,
+              onToolCallFinish,
             });
 
             // Conditionally include request.body based on include settings.

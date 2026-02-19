@@ -54,6 +54,8 @@ import {
   StreamTextOnFinishCallback,
   StreamTextOnStartCallback,
   StreamTextOnStepStartCallback,
+  StreamTextOnToolCallFinishCallback,
+  StreamTextOnToolCallStartCallback,
 } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
@@ -5431,6 +5433,825 @@ describe('streamText', () => {
 
       expect(stepStartEvent.functionId).toBe('test-function');
       expect(stepStartEvent.metadata).toEqual({ customKey: 'customValue' });
+    });
+  });
+
+  describe('options.experimental_onToolCallStart', () => {
+    it('should be called with correct tool name, id, and input', async () => {
+      const toolCallStartEvents: Parameters<
+        StreamTextOnToolCallStartCallback<any>
+      >[0][] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test-arg" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallStart: async event => {
+          toolCallStartEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(toolCallStartEvents.length).toBe(1);
+      expect(toolCallStartEvents[0]).toMatchSnapshot();
+    });
+
+    it('should be called once per tool call in a multi-tool step', async () => {
+      const toolCallStartEvents: Parameters<
+        StreamTextOnToolCallStartCallback<any>
+      >[0][] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "a" }',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-2',
+                toolName: 'tool1',
+                input: '{ "value": "b" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallStart: async event => {
+          toolCallStartEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(toolCallStartEvents.length).toBe(2);
+      expect(toolCallStartEvents[0].toolCall.toolCallId).toBe('call-1');
+      expect(toolCallStartEvents[1].toolCall.toolCallId).toBe('call-2');
+    });
+
+    it('should be called before tool execution', async () => {
+      const callOrder: string[] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              callOrder.push('execute');
+              return `${value}-result`;
+            },
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallStart: async () => {
+          callOrder.push('onToolCallStart');
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(callOrder.indexOf('onToolCallStart')).toBeLessThan(
+        callOrder.indexOf('execute'),
+      );
+    });
+
+    it('should not break generation when callback throws', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallStart: async () => {
+          throw new Error('callback error');
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      const toolResults = await result.toolResults;
+      expect(toolResults.length).toBe(1);
+      expect(toolResults[0].output).toBe('test-result');
+    });
+
+    it('should not fire for tools without execute', async () => {
+      const toolCallStartEvents: Parameters<
+        StreamTextOnToolCallStartCallback<any>
+      >[0][] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallStart: async event => {
+          toolCallStartEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(toolCallStartEvents.length).toBe(0);
+    });
+
+    it('should pass experimental_context', async () => {
+      const toolCallStartEvents: Parameters<
+        StreamTextOnToolCallStartCallback<any>
+      >[0][] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_context: { traceId: 'trace-abc', spanId: 'span-123' },
+        experimental_onToolCallStart: async event => {
+          toolCallStartEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(toolCallStartEvents.length).toBe(1);
+      expect(toolCallStartEvents[0].experimental_context).toEqual({
+        traceId: 'trace-abc',
+        spanId: 'span-123',
+      });
+    });
+  });
+
+  describe('options.experimental_onToolCallFinish', () => {
+    it('should be called with correct data on success', async () => {
+      const toolCallFinishEvents: Parameters<
+        StreamTextOnToolCallFinishCallback<any>
+      >[0][] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test-arg" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallFinish: async event => {
+          toolCallFinishEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(toolCallFinishEvents.length).toBe(1);
+      expect(toolCallFinishEvents[0].toolCall.toolName).toBe('tool1');
+      expect(toolCallFinishEvents[0].toolCall.toolCallId).toBe('call-1');
+      expect(toolCallFinishEvents[0].toolCall.input).toEqual({
+        value: 'test-arg',
+      });
+      expect(toolCallFinishEvents[0].success).toBe(true);
+      expect(toolCallFinishEvents[0].output).toBe('test-arg-result');
+      expect(toolCallFinishEvents[0].durationMs).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should be called with error data when tool execution fails', async () => {
+      const toolCallFinishEvents: Parameters<
+        StreamTextOnToolCallFinishCallback<any>
+      >[0][] = [];
+      const toolError = new Error('tool execution failed');
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async (): Promise<string> => {
+              throw toolError;
+            },
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallFinish: async event => {
+          toolCallFinishEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(toolCallFinishEvents.length).toBe(1);
+      expect(toolCallFinishEvents[0].toolCall.toolName).toBe('tool1');
+      expect(toolCallFinishEvents[0].toolCall.toolCallId).toBe('call-1');
+      expect(toolCallFinishEvents[0].success).toBe(false);
+      expect(toolCallFinishEvents[0].error).toBe(toolError);
+      expect(toolCallFinishEvents[0].durationMs).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should have a positive durationMs', async () => {
+      const toolCallFinishEvents: Parameters<
+        StreamTextOnToolCallFinishCallback<any>
+      >[0][] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallFinish: async event => {
+          toolCallFinishEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(toolCallFinishEvents[0].durationMs).toBeGreaterThanOrEqual(0);
+      expect(typeof toolCallFinishEvents[0].durationMs).toBe('number');
+    });
+
+    it('should not break generation when callback throws', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallFinish: async () => {
+          throw new Error('callback error');
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      const toolResults = await result.toolResults;
+      expect(toolResults.length).toBe(1);
+      expect(toolResults[0].output).toBe('test-result');
+    });
+
+    it('should not fire for tools without execute', async () => {
+      const toolCallFinishEvents: Parameters<
+        StreamTextOnToolCallFinishCallback<any>
+      >[0][] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallFinish: async event => {
+          toolCallFinishEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(toolCallFinishEvents.length).toBe(0);
+    });
+
+    it('should pass experimental_context on success', async () => {
+      const toolCallFinishEvents: Parameters<
+        StreamTextOnToolCallFinishCallback<any>
+      >[0][] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_context: { traceId: 'trace-xyz', operation: 'test-op' },
+        experimental_onToolCallFinish: async event => {
+          toolCallFinishEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(toolCallFinishEvents.length).toBe(1);
+      expect(toolCallFinishEvents[0].success).toBe(true);
+      expect(toolCallFinishEvents[0].experimental_context).toEqual({
+        traceId: 'trace-xyz',
+        operation: 'test-op',
+      });
+    });
+
+    it('should pass experimental_context on error', async () => {
+      const toolCallFinishEvents: Parameters<
+        StreamTextOnToolCallFinishCallback<any>
+      >[0][] = [];
+      const toolError = new Error('Tool execution failed');
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async (): Promise<string> => {
+              throw toolError;
+            },
+          }),
+        },
+        prompt: 'test-input',
+        experimental_context: { errorTraceId: 'err-trace' },
+        experimental_onToolCallFinish: async event => {
+          toolCallFinishEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(toolCallFinishEvents.length).toBe(1);
+      expect(toolCallFinishEvents[0].success).toBe(false);
+      expect(toolCallFinishEvents[0].error).toBe(toolError);
+      expect(toolCallFinishEvents[0].experimental_context).toEqual({
+        errorTraceId: 'err-trace',
+      });
+    });
+  });
+
+  describe('options.experimental_onToolCallStart and experimental_onToolCallFinish ordering', () => {
+    it('should call start before finish', async () => {
+      const callOrder: string[] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolCallStart: async () => {
+          callOrder.push('onToolCallStart');
+        },
+        experimental_onToolCallFinish: async () => {
+          callOrder.push('onToolCallFinish');
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(callOrder).toEqual(['onToolCallStart', 'onToolCallFinish']);
+    });
+
+    it('should fire tool call callbacks for each tool in a multi-step loop', async () => {
+      const toolCallStartEvents: Parameters<
+        StreamTextOnToolCallStartCallback<any>
+      >[0][] = [];
+      const toolCallFinishEvents: Parameters<
+        StreamTextOnToolCallFinishCallback<any>
+      >[0][] = [];
+      let callCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => {
+            switch (callCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-0',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "step0" }',
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 1:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-1',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-2',
+                      toolName: 'tool1',
+                      input: '{ "value": "step1" }',
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 2:
+              default:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-2',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'Done.' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: stepCountIs(4),
+        experimental_onToolCallStart: async event => {
+          toolCallStartEvents.push(event);
+        },
+        experimental_onToolCallFinish: async event => {
+          toolCallFinishEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(toolCallStartEvents.length).toBe(2);
+      expect(toolCallFinishEvents.length).toBe(2);
+
+      expect(toolCallStartEvents[0].toolCall.toolCallId).toBe('call-1');
+      expect(toolCallStartEvents[1].toolCall.toolCallId).toBe('call-2');
+
+      expect(toolCallFinishEvents[0].success).toBe(true);
+      expect(toolCallFinishEvents[0].output).toBe('step0-result');
+      expect(toolCallFinishEvents[1].success).toBe(true);
+      expect(toolCallFinishEvents[1].output).toBe('step1-result');
     });
   });
 
