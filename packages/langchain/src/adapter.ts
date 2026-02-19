@@ -888,9 +888,30 @@ export function baseMessagesToUIMessages(messages: BaseMessage[]): UIMessage[] {
  * Minimal type for LangGraph StateSnapshot.
  * Uses inline type to avoid requiring `@langchain/langgraph` as a runtime dependency.
  */
+interface InterruptActionRequest {
+  name: string;
+  args?: Record<string, unknown>;
+  arguments?: Record<string, unknown>;
+  id?: string;
+}
+
+interface InterruptValue {
+  actionRequests?: InterruptActionRequest[];
+  action_requests?: InterruptActionRequest[];
+}
+
+interface PregelInterrupt {
+  value?: InterruptValue | unknown;
+}
+
+interface PregelTask {
+  interrupts?: PregelInterrupt[];
+  [key: string]: unknown;
+}
+
 interface StateSnapshotLike {
   values: { messages?: BaseMessage[] } & Record<string, unknown>;
-  tasks?: Array<Record<string, unknown>>;
+  tasks?: PregelTask[];
 }
 
 /**
@@ -921,5 +942,67 @@ export function stateSnapshotToUIMessages(
   if (!Array.isArray(messages)) {
     return [];
   }
-  return baseMessagesToUIMessages(messages);
+  const uiMessages = baseMessagesToUIMessages(messages);
+
+  // Extract pending interrupts from snapshot tasks
+  const interruptParts = extractInterruptParts(snapshot.tasks);
+  if (interruptParts.length > 0) {
+    // Find or create the last assistant message to attach interrupt parts
+    let lastAssistant = uiMessages.findLast(m => m.role === 'assistant');
+    if (!lastAssistant) {
+      lastAssistant = {
+        id: generateId(),
+        role: 'assistant' as const,
+        parts: [],
+      };
+      uiMessages.push(lastAssistant);
+    }
+    lastAssistant.parts.push(...interruptParts);
+  }
+
+  return uiMessages;
+}
+
+function extractInterruptParts(tasks?: PregelTask[]): Array<{
+  type: 'dynamic-tool';
+  toolCallId: string;
+  toolName: string;
+  state: 'input-available';
+  input: Record<string, unknown>;
+}> {
+  if (!Array.isArray(tasks)) return [];
+
+  const parts: Array<{
+    type: 'dynamic-tool';
+    toolCallId: string;
+    toolName: string;
+    state: 'input-available';
+    input: Record<string, unknown>;
+  }> = [];
+
+  for (const task of tasks) {
+    if (!Array.isArray(task.interrupts)) continue;
+
+    for (const interrupt of task.interrupts) {
+      if (!interrupt.value || typeof interrupt.value !== 'object') continue;
+
+      const interruptValue = interrupt.value as InterruptValue;
+      const actionRequests =
+        interruptValue.actionRequests ?? interruptValue.action_requests;
+
+      if (!Array.isArray(actionRequests)) continue;
+
+      for (const request of actionRequests) {
+        parts.push({
+          type: 'dynamic-tool',
+          toolCallId: request.id ?? generateId(),
+          toolName: request.name,
+          state: 'input-available',
+          input: request.args ?? request.arguments ?? {},
+        });
+      }
+    }
+  }
+
+  return parts;
 }

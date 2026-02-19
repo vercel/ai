@@ -2672,4 +2672,148 @@ describe('stateSnapshotToUIMessages', () => {
       { type: 'text', text: 'I found 10 results about cats.' },
     ]);
   });
+
+  it('should handle pending interrupts from snapshot tasks', () => {
+    const snapshot = {
+      values: {
+        messages: [
+          new HumanMessage({ content: 'Send an email', id: 'h-1' }),
+          new AIMessage({
+            content: 'I will send the email now.',
+            id: 'ai-1',
+          }),
+        ],
+      },
+      tasks: [
+        {
+          id: 'task-1',
+          name: 'agent',
+          interrupts: [
+            {
+              value: {
+                action_requests: [
+                  {
+                    name: 'send_email',
+                    arguments: { to: 'user@example.com', body: 'Hello' },
+                    id: 'call-email-1',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const result = stateSnapshotToUIMessages(snapshot);
+
+    expect(result).toHaveLength(2);
+    expect(result[1].role).toBe('assistant');
+    // Last part should be the interrupt tool call
+    const lastPart = result[1].parts[result[1].parts.length - 1];
+    expect(lastPart).toMatchObject({
+      type: 'dynamic-tool',
+      toolCallId: 'call-email-1',
+      toolName: 'send_email',
+      state: 'input-available',
+      input: { to: 'user@example.com', body: 'Hello' },
+    });
+  });
+
+  it('should handle multiple interrupts with camelCase action requests', () => {
+    const snapshot = {
+      values: {
+        messages: [
+          new HumanMessage({ content: 'Do tasks', id: 'h-1' }),
+          new AIMessage({ content: '', id: 'ai-1' }),
+        ],
+      },
+      tasks: [
+        {
+          id: 'task-1',
+          name: 'agent',
+          interrupts: [
+            {
+              value: {
+                actionRequests: [
+                  {
+                    name: 'delete_file',
+                    args: { filename: 'temp.txt' },
+                    id: 'call-del-1',
+                  },
+                  {
+                    name: 'send_notification',
+                    args: { channel: '#general' },
+                    id: 'call-notif-1',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const result = stateSnapshotToUIMessages(snapshot);
+
+    expect(result[1].parts).toHaveLength(2);
+    expect(result[1].parts[0]).toMatchObject({
+      type: 'dynamic-tool',
+      toolCallId: 'call-del-1',
+      toolName: 'delete_file',
+      state: 'input-available',
+    });
+    expect(result[1].parts[1]).toMatchObject({
+      type: 'dynamic-tool',
+      toolCallId: 'call-notif-1',
+      toolName: 'send_notification',
+      state: 'input-available',
+    });
+  });
+
+  it('should create assistant message for interrupts when none exists', () => {
+    const snapshot = {
+      values: {
+        messages: [new HumanMessage({ content: 'Hello', id: 'h-1' })],
+      },
+      tasks: [
+        {
+          id: 'task-1',
+          name: 'agent',
+          interrupts: [
+            {
+              value: {
+                action_requests: [
+                  { name: 'confirm', arguments: {}, id: 'call-1' },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const result = stateSnapshotToUIMessages(snapshot);
+
+    expect(result).toHaveLength(2);
+    expect(result[1].role).toBe('assistant');
+    expect(result[1].parts[0]).toMatchObject({
+      type: 'dynamic-tool',
+      toolName: 'confirm',
+      state: 'input-available',
+    });
+  });
+
+  it('should ignore tasks without interrupts', () => {
+    const snapshot = {
+      values: {
+        messages: [
+          new HumanMessage({ content: 'Hello', id: 'h-1' }),
+          new AIMessage({ content: 'Hi!', id: 'ai-1' }),
+        ],
+      },
+      tasks: [{ id: 'task-1', name: 'agent' }],
+    };
+    const result = stateSnapshotToUIMessages(snapshot);
+
+    expect(result).toHaveLength(2);
+    expect(result[1].parts).toEqual([{ type: 'text', text: 'Hi!' }]);
+  });
 });
