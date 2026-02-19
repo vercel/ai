@@ -1,6 +1,6 @@
 import {
   EmbeddingModelV3,
-  Experimental_VideoModelV3,
+  Experimental_VideoModelV3 as VideoModelV3,
   ImageModelV3,
   LanguageModelV3,
   NoSuchModelError,
@@ -34,7 +34,7 @@ export function customProvider<
   TRANSCRIPTION_MODELS extends Record<string, TranscriptionModelV3>,
   SPEECH_MODELS extends Record<string, SpeechModelV3>,
   RERANKING_MODELS extends Record<string, RerankingModelV3>,
-  VIDEO_MODELS extends Record<string, Experimental_VideoModelV3>,
+  VIDEO_MODELS extends Record<string, VideoModelV3>,
 >({
   languageModels,
   embeddingModels,
@@ -62,7 +62,7 @@ export function customProvider<
   ): TranscriptionModelV3;
   rerankingModel(modelId: ExtractModelId<RERANKING_MODELS>): RerankingModelV3;
   speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV3;
-  videoModel(modelId: ExtractModelId<VIDEO_MODELS>): Experimental_VideoModelV3;
+  videoModel(modelId: ExtractModelId<VIDEO_MODELS>): VideoModelV3;
 } {
   const fallbackProvider = fallbackProviderArg
     ? asProviderV3(fallbackProviderArg)
@@ -146,9 +146,7 @@ export function customProvider<
 
       throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
     },
-    videoModel(
-      modelId: ExtractModelId<VIDEO_MODELS>,
-    ): Experimental_VideoModelV3 {
+    videoModel(modelId: ExtractModelId<VIDEO_MODELS>): VideoModelV3 {
       if (videoModels != null && modelId in videoModels) {
         return videoModels[modelId];
       }

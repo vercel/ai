@@ -1,13 +1,15 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV3,
+  type Experimental_VideoModelV3 as VideoModelV3,
+  type Experimental_VideoModelV3OperationStartResult as VideoModelV3OperationStartResult,
+  type Experimental_VideoModelV3OperationStatusResult as VideoModelV3OperationStatusResult,
+  type SharedV3ProviderMetadata,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
-  delay,
   type FetchFunction,
   lazySchema,
   parseProviderOptions,
@@ -21,10 +23,6 @@ import { googleVertexFailedResponseHandler } from './google-vertex-error';
 import type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
 
 export type GoogleVertexVideoModelOptions = {
-  // Polling configuration
-  pollIntervalMs?: number | null;
-  pollTimeoutMs?: number | null;
-
   // Video generation options
   personGeneration?: 'dont_allow' | 'allow_adult' | 'allow_all' | null;
   negativePrompt?: string | null;
@@ -53,7 +51,7 @@ interface GoogleVertexVideoModelConfig {
   };
 }
 
-export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
+export class GoogleVertexVideoModel implements VideoModelV3 {
   readonly specificationVersion = 'v3';
 
   get provider(): string {
@@ -70,10 +68,14 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
     private readonly config: GoogleVertexVideoModelConfig,
   ) {}
 
-  async doGenerate(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+  private async buildRequest(
+    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
+  ): Promise<{
+    instances: Array<Record<string, unknown>>;
+    parameters: Record<string, unknown>;
+    warnings: SharedV3Warning[];
+    vertexOptions: GoogleVertexVideoModelOptions | undefined;
+  }> {
     const warnings: SharedV3Warning[] = [];
 
     const vertexOptions = (await parseProviderOptions({
@@ -165,8 +167,6 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       for (const [key, value] of Object.entries(opts)) {
         if (
           ![
-            'pollIntervalMs',
-            'pollTimeoutMs',
             'personGeneration',
             'negativePrompt',
             'generateAudio',
@@ -179,85 +179,33 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
-    const { value: operation } = await postJsonToApi({
-      url: `${this.config.baseURL}/models/${this.modelId}:predictLongRunning`,
-      headers: combineHeaders(
-        await resolve(this.config.headers),
-        options.headers,
-      ),
-      body: {
-        instances,
-        parameters,
-      },
-      successfulResponseHandler: createJsonResponseHandler(
-        vertexOperationSchema,
-      ),
-      failedResponseHandler: googleVertexFailedResponseHandler,
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
+    return { instances, parameters, warnings, vertexOptions };
+  }
 
-    const operationName = operation.name;
-    if (!operationName) {
-      throw new AISDKError({
-        name: 'VERTEX_VIDEO_GENERATION_ERROR',
-        message: 'No operation name returned from API',
-      });
-    }
-
-    const pollIntervalMs = vertexOptions?.pollIntervalMs ?? 10000; // 10 seconds
-    const pollTimeoutMs = vertexOptions?.pollTimeoutMs ?? 600000; // 10 minutes
-
-    const startTime = Date.now();
-    let finalOperation = operation;
-    let responseHeaders: Record<string, string> | undefined;
-
-    while (!finalOperation.done) {
-      if (Date.now() - startTime > pollTimeoutMs) {
-        throw new AISDKError({
-          name: 'VERTEX_VIDEO_GENERATION_TIMEOUT',
-          message: `Video generation timed out after ${pollTimeoutMs}ms`,
-        });
-      }
-
-      await delay(pollIntervalMs);
-
-      if (options.abortSignal?.aborted) {
-        throw new AISDKError({
-          name: 'VERTEX_VIDEO_GENERATION_ABORTED',
-          message: 'Video generation request was aborted',
-        });
-      }
-
-      const { value: statusOperation, responseHeaders: pollHeaders } =
-        await postJsonToApi({
-          url: `${this.config.baseURL}/models/${this.modelId}:fetchPredictOperation`,
-          headers: combineHeaders(
-            await resolve(this.config.headers),
-            options.headers,
-          ),
-          body: {
-            operationName,
-          },
-          successfulResponseHandler: createJsonResponseHandler(
-            vertexOperationSchema,
-          ),
-          failedResponseHandler: googleVertexFailedResponseHandler,
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        });
-
-      finalOperation = statusOperation;
-      responseHeaders = pollHeaders;
-    }
-
-    if (finalOperation.error) {
-      throw new AISDKError({
-        name: 'VERTEX_VIDEO_GENERATION_FAILED',
-        message: `Video generation failed: ${finalOperation.error.message}`,
-      });
-    }
-
+  private buildCompletedResult({
+    finalOperation,
+    responseHeaders,
+    warnings,
+    currentDate,
+  }: {
+    finalOperation: VertexOperation;
+    responseHeaders: Record<string, string> | undefined;
+    warnings: SharedV3Warning[];
+    currentDate: Date;
+  }): {
+    status: 'completed';
+    videos: Array<
+      | { type: 'base64'; data: string; mediaType: string }
+      | { type: 'url'; url: string; mediaType: string }
+    >;
+    warnings: SharedV3Warning[];
+    providerMetadata: SharedV3ProviderMetadata;
+    response: {
+      timestamp: Date;
+      modelId: string;
+      headers: Record<string, string> | undefined;
+    };
+  } {
     const response = finalOperation.response;
     if (!response?.videos || response.videos.length === 0) {
       throw new AISDKError({
@@ -266,7 +214,6 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
-    // Process videos - Vertex returns base64 encoded videos or GCS URIs
     const videos: Array<
       | { type: 'base64'; data: string; mediaType: string }
       | { type: 'url'; url: string; mediaType: string }
@@ -307,6 +254,7 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
     }
 
     return {
+      status: 'completed',
       videos,
       warnings,
       response: {
@@ -320,6 +268,105 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
         },
       },
     };
+  }
+
+  async doStart(
+    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
+  ): Promise<VideoModelV3OperationStartResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+
+    const { instances, parameters, warnings } =
+      await this.buildRequest(options);
+
+    const { value: operation, responseHeaders } = await postJsonToApi({
+      url: `${this.config.baseURL}/models/${this.modelId}:predictLongRunning`,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      body: {
+        instances,
+        parameters,
+      },
+      successfulResponseHandler: createJsonResponseHandler(
+        vertexOperationSchema,
+      ),
+      failedResponseHandler: googleVertexFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const operationName = operation.name;
+    if (!operationName) {
+      throw new AISDKError({
+        name: 'VERTEX_VIDEO_GENERATION_ERROR',
+        message: 'No operation name returned from API',
+      });
+    }
+
+    return {
+      operation: { operationName },
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+    };
+  }
+
+  async doStatus(
+    options: Parameters<NonNullable<VideoModelV3['doStatus']>>[0],
+  ): Promise<VideoModelV3OperationStatusResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { operationName } = options.operation as { operationName: string };
+
+    const { value: statusOperation, responseHeaders } = await postJsonToApi({
+      url: `${this.config.baseURL}/models/${this.modelId}:fetchPredictOperation`,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      body: {
+        operationName,
+      },
+      successfulResponseHandler: createJsonResponseHandler(
+        vertexOperationSchema,
+      ),
+      failedResponseHandler: googleVertexFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    if (!statusOperation.done) {
+      return {
+        status: 'pending' as const,
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
+    }
+
+    if (statusOperation.error) {
+      return {
+        status: 'error' as const,
+        error: `Video generation failed: ${statusOperation.error.message}`,
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
+    }
+
+    return this.buildCompletedResult({
+      finalOperation: statusOperation,
+      responseHeaders,
+      warnings: [],
+      currentDate,
+    });
   }
 }
 
@@ -349,12 +396,12 @@ const vertexOperationSchema = z.object({
     .nullish(),
 });
 
+type VertexOperation = z.infer<typeof vertexOperationSchema>;
+
 const googleVertexVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
         personGeneration: z
           .enum(['dont_allow', 'allow_adult', 'allow_all'])
           .nullish(),

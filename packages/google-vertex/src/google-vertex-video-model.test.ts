@@ -16,11 +16,7 @@ const defaultOptions = {
   duration: undefined,
   fps: undefined,
   seed: undefined,
-  providerOptions: {
-    vertex: {
-      pollIntervalMs: 10, // Use short polling interval for tests
-    },
-  },
+  providerOptions: {},
 } as const;
 
 function createMockModel({
@@ -145,8 +141,20 @@ describe('GoogleVertexVideoModel', () => {
     });
   });
 
-  describe('doGenerate', () => {
-    it('should pass the correct parameters including prompt', async () => {
+  describe('doStart', () => {
+    it('should return operation with operationName', async () => {
+      const model = createMockModel({
+        operationName: 'operations/my-op-123',
+      });
+
+      const result = await model.doStart({ ...defaultOptions });
+
+      expect(result.operation).toStrictEqual({
+        operationName: 'operations/my-op-123',
+      });
+    });
+
+    it('should pass correct request body', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
         onRequest: (url, body) => {
@@ -156,7 +164,7 @@ describe('GoogleVertexVideoModel', () => {
         },
       });
 
-      await model.doGenerate({ ...defaultOptions });
+      await model.doStart({ ...defaultOptions });
 
       expect(capturedBody).toStrictEqual({
         instances: [{ prompt }],
@@ -174,7 +182,7 @@ describe('GoogleVertexVideoModel', () => {
         },
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         seed: 42,
       });
@@ -195,7 +203,7 @@ describe('GoogleVertexVideoModel', () => {
         },
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         aspectRatio: '16:9',
       });
@@ -216,7 +224,7 @@ describe('GoogleVertexVideoModel', () => {
         },
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         resolution: '1920x1080',
       });
@@ -237,7 +245,7 @@ describe('GoogleVertexVideoModel', () => {
         },
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         duration: 5,
       });
@@ -251,10 +259,6 @@ describe('GoogleVertexVideoModel', () => {
     it('should pass n as sampleCount', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
-        videos: [
-          { video: { bytesBase64Encoded: 'video1', mimeType: 'video/mp4' } },
-          { video: { bytesBase64Encoded: 'video2', mimeType: 'video/mp4' } },
-        ],
         onRequest: (url, body) => {
           if (url.includes(':predictLongRunning')) {
             capturedBody = body;
@@ -262,7 +266,7 @@ describe('GoogleVertexVideoModel', () => {
         },
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         n: 2,
       });
@@ -273,376 +277,15 @@ describe('GoogleVertexVideoModel', () => {
       });
     });
 
-    it('should return video with correct data (base64)', async () => {
-      const model = createMockModel({
-        videos: [
-          {
-            video: {
-              bytesBase64Encoded: 'base64-video-data',
-              mimeType: 'video/mp4',
-            },
-          },
-        ],
-      });
-
-      const result = await model.doGenerate({ ...defaultOptions });
-
-      expect(result.videos).toHaveLength(1);
-      expect(result.videos[0]).toStrictEqual({
-        type: 'base64',
-        data: 'base64-video-data',
-        mediaType: 'video/mp4',
-      });
-    });
-
-    it('should return video with GCS URI', async () => {
-      const model = createMockModel({
-        videos: [
-          {
-            video: {
-              gcsUri: 'gs://bucket/video.mp4',
-              mimeType: 'video/mp4',
-            },
-          },
-        ],
-      });
-
-      const result = await model.doGenerate({ ...defaultOptions });
-
-      expect(result.videos).toHaveLength(1);
-      expect(result.videos[0]).toStrictEqual({
-        type: 'url',
-        url: 'gs://bucket/video.mp4',
-        mediaType: 'video/mp4',
-      });
-    });
-
-    it('should return multiple videos', async () => {
-      const model = createMockModel({
-        videos: [
-          {
-            video: {
-              bytesBase64Encoded: 'video1-data',
-              mimeType: 'video/mp4',
-            },
-          },
-          {
-            video: {
-              bytesBase64Encoded: 'video2-data',
-              mimeType: 'video/mp4',
-            },
-          },
-        ],
-      });
-
-      const result = await model.doGenerate({
-        ...defaultOptions,
-        n: 2,
-      });
-
-      expect(result.videos).toHaveLength(2);
-      expect(result.videos[0]).toStrictEqual({
-        type: 'base64',
-        data: 'video1-data',
-        mediaType: 'video/mp4',
-      });
-      expect(result.videos[1]).toStrictEqual({
-        type: 'base64',
-        data: 'video2-data',
-        mediaType: 'video/mp4',
-      });
-    });
-
     it('should return warnings array', async () => {
       const model = createMockModel();
 
-      const result = await model.doGenerate({ ...defaultOptions });
+      const result = await model.doStart({ ...defaultOptions });
 
       expect(result.warnings).toStrictEqual([]);
     });
-  });
 
-  describe('response metadata', () => {
-    it('should include timestamp and modelId in response', async () => {
-      const testDate = new Date('2024-01-01T00:00:00Z');
-      const model = createMockModel({
-        currentDate: () => testDate,
-      });
-
-      const result = await model.doGenerate({ ...defaultOptions });
-
-      expect(result.response.timestamp).toStrictEqual(testDate);
-      expect(result.response.modelId).toBe('veo-2.0-generate-001');
-      expect(result.response.headers).toBeDefined();
-    });
-  });
-
-  describe('providerMetadata', () => {
-    it('should include video metadata', async () => {
-      const model = createMockModel({
-        videos: [
-          {
-            video: {
-              bytesBase64Encoded: 'video-data',
-              mimeType: 'video/mp4',
-            },
-          },
-        ],
-      });
-
-      const result = await model.doGenerate({ ...defaultOptions });
-
-      expect(result.providerMetadata).toStrictEqual({
-        'google-vertex': {
-          videos: [
-            {
-              mimeType: 'video/mp4',
-            },
-          ],
-        },
-      });
-    });
-
-    it('should include GCS URI in metadata', async () => {
-      const model = createMockModel({
-        videos: [
-          {
-            video: {
-              gcsUri: 'gs://bucket/video.mp4',
-              mimeType: 'video/mp4',
-            },
-          },
-        ],
-      });
-
-      const result = await model.doGenerate({ ...defaultOptions });
-
-      expect(result.providerMetadata).toStrictEqual({
-        'google-vertex': {
-          videos: [
-            {
-              gcsUri: 'gs://bucket/video.mp4',
-              mimeType: 'video/mp4',
-            },
-          ],
-        },
-      });
-    });
-  });
-
-  describe('Image-to-Video', () => {
-    it('should send image as bytesBase64Encoded', async () => {
-      let capturedBody: unknown;
-      const model = createMockModel({
-        onRequest: (url, body) => {
-          if (url.includes(':predictLongRunning')) {
-            capturedBody = body;
-          }
-        },
-      });
-
-      await model.doGenerate({
-        ...defaultOptions,
-        image: {
-          type: 'file',
-          data: 'base64-image-data',
-          mediaType: 'image/png',
-        },
-      });
-
-      expect(capturedBody).toMatchObject({
-        instances: [
-          {
-            prompt,
-            image: {
-              bytesBase64Encoded: 'base64-image-data',
-              mimeType: 'image/png',
-            },
-          },
-        ],
-        parameters: { sampleCount: 1 },
-      });
-    });
-
-    it('should warn when URL-based image is provided', async () => {
-      const model = createMockModel();
-
-      const result = await model.doGenerate({
-        ...defaultOptions,
-        image: {
-          type: 'url',
-          url: 'https://example.com/image.png',
-        },
-      });
-
-      expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0]).toMatchObject({
-        type: 'unsupported',
-        feature: 'URL-based image input',
-      });
-    });
-  });
-
-  describe('Provider Options', () => {
-    it('should pass personGeneration option', async () => {
-      let capturedBody: unknown;
-      const model = createMockModel({
-        onRequest: (url, body) => {
-          if (url.includes(':predictLongRunning')) {
-            capturedBody = body;
-          }
-        },
-      });
-
-      await model.doGenerate({
-        ...defaultOptions,
-        providerOptions: {
-          vertex: {
-            pollIntervalMs: 10,
-            personGeneration: 'allow_adult',
-          },
-        },
-      });
-
-      expect(capturedBody).toStrictEqual({
-        instances: [{ prompt }],
-        parameters: {
-          sampleCount: 1,
-          personGeneration: 'allow_adult',
-        },
-      });
-    });
-
-    it('should pass negativePrompt option', async () => {
-      let capturedBody: unknown;
-      const model = createMockModel({
-        onRequest: (url, body) => {
-          if (url.includes(':predictLongRunning')) {
-            capturedBody = body;
-          }
-        },
-      });
-
-      await model.doGenerate({
-        ...defaultOptions,
-        providerOptions: {
-          vertex: {
-            pollIntervalMs: 10,
-            negativePrompt: 'blurry, low quality',
-          },
-        },
-      });
-
-      expect(capturedBody).toStrictEqual({
-        instances: [{ prompt }],
-        parameters: {
-          sampleCount: 1,
-          negativePrompt: 'blurry, low quality',
-        },
-      });
-    });
-
-    it('should pass generateAudio option', async () => {
-      let capturedBody: unknown;
-      const model = createMockModel({
-        onRequest: (url, body) => {
-          if (url.includes(':predictLongRunning')) {
-            capturedBody = body;
-          }
-        },
-      });
-
-      await model.doGenerate({
-        ...defaultOptions,
-        providerOptions: {
-          vertex: {
-            pollIntervalMs: 10,
-            generateAudio: true,
-          },
-        },
-      });
-
-      expect(capturedBody).toStrictEqual({
-        instances: [{ prompt }],
-        parameters: {
-          sampleCount: 1,
-          generateAudio: true,
-        },
-      });
-    });
-
-    it('should pass gcsOutputDirectory option', async () => {
-      let capturedBody: unknown;
-      const model = createMockModel({
-        videos: [
-          {
-            video: {
-              gcsUri: 'gs://bucket/output/video.mp4',
-              mimeType: 'video/mp4',
-            },
-          },
-        ],
-        onRequest: (url, body) => {
-          if (url.includes(':predictLongRunning')) {
-            capturedBody = body;
-          }
-        },
-      });
-
-      await model.doGenerate({
-        ...defaultOptions,
-        providerOptions: {
-          vertex: {
-            pollIntervalMs: 10,
-            gcsOutputDirectory: 'gs://bucket/output/',
-          },
-        },
-      });
-
-      expect(capturedBody).toStrictEqual({
-        instances: [{ prompt }],
-        parameters: {
-          sampleCount: 1,
-          gcsOutputDirectory: 'gs://bucket/output/',
-        },
-      });
-    });
-
-    it('should pass referenceImages option', async () => {
-      let capturedBody: unknown;
-      const model = createMockModel({
-        onRequest: (url, body) => {
-          if (url.includes(':predictLongRunning')) {
-            capturedBody = body;
-          }
-        },
-      });
-
-      await model.doGenerate({
-        ...defaultOptions,
-        providerOptions: {
-          vertex: {
-            pollIntervalMs: 10,
-            referenceImages: [
-              { bytesBase64Encoded: 'reference-image-data' },
-              { gcsUri: 'gs://bucket/reference.png' },
-            ],
-          },
-        },
-      });
-
-      const body = capturedBody as {
-        instances: Array<{ referenceImages: unknown }>;
-      };
-      expect(body.instances[0].referenceImages).toStrictEqual([
-        { bytesBase64Encoded: 'reference-image-data' },
-        { gcsUri: 'gs://bucket/reference.png' },
-      ]);
-    });
-  });
-
-  describe('Error Handling', () => {
-    it('should throw error when no operation name is returned', async () => {
+    it('should throw when no operation name returned', async () => {
       const model = new GoogleVertexVideoModel('veo-2.0-generate-001', {
         provider: 'google-vertex',
         baseURL: 'https://api.example.com',
@@ -660,56 +303,303 @@ describe('GoogleVertexVideoModel', () => {
         },
       });
 
-      await expect(
-        model.doGenerate({ ...defaultOptions }),
-      ).rejects.toMatchObject({
+      await expect(model.doStart({ ...defaultOptions })).rejects.toMatchObject({
         message: 'No operation name returned from API',
       });
     });
 
-    it('should throw error when operation fails', async () => {
+    it('should include warnings and response metadata', async () => {
+      const testDate = new Date('2024-01-01T00:00:00Z');
       const model = createMockModel({
-        operationError: {
-          code: 400,
-          message: 'Invalid request',
-          status: 'INVALID_ARGUMENT',
-        },
+        currentDate: () => testDate,
       });
 
-      await expect(
-        model.doGenerate({ ...defaultOptions }),
-      ).rejects.toMatchObject({
-        message: expect.stringContaining('Invalid request'),
+      const result = await model.doStart({ ...defaultOptions });
+
+      expect(result.warnings).toStrictEqual([]);
+      expect(result.response.timestamp).toStrictEqual(testDate);
+      expect(result.response.modelId).toBe('veo-2.0-generate-001');
+    });
+
+    describe('Image-to-Video', () => {
+      it('should send image as bytesBase64Encoded', async () => {
+        let capturedBody: unknown;
+        const model = createMockModel({
+          onRequest: (url, body) => {
+            if (url.includes(':predictLongRunning')) {
+              capturedBody = body;
+            }
+          },
+        });
+
+        await model.doStart({
+          ...defaultOptions,
+          image: {
+            type: 'file',
+            data: 'base64-image-data',
+            mediaType: 'image/png',
+          },
+        });
+
+        expect(capturedBody).toMatchObject({
+          instances: [
+            {
+              prompt,
+              image: {
+                bytesBase64Encoded: 'base64-image-data',
+                mimeType: 'image/png',
+              },
+            },
+          ],
+          parameters: { sampleCount: 1 },
+        });
+      });
+
+      it('should warn when URL-based image is provided', async () => {
+        const model = createMockModel();
+
+        const result = await model.doStart({
+          ...defaultOptions,
+          image: {
+            type: 'url',
+            url: 'https://example.com/image.png',
+          },
+        });
+
+        expect(result.warnings).toHaveLength(1);
+        expect(result.warnings[0]).toMatchObject({
+          type: 'unsupported',
+          feature: 'URL-based image input',
+        });
       });
     });
 
-    it('should throw error when no videos in response', async () => {
-      const model = createMockModel({
-        videos: [],
+    describe('Provider Options', () => {
+      it('should pass personGeneration option', async () => {
+        let capturedBody: unknown;
+        const model = createMockModel({
+          onRequest: (url, body) => {
+            if (url.includes(':predictLongRunning')) {
+              capturedBody = body;
+            }
+          },
+        });
+
+        await model.doStart({
+          ...defaultOptions,
+          providerOptions: {
+            vertex: {
+              personGeneration: 'allow_adult',
+            },
+          },
+        });
+
+        expect(capturedBody).toStrictEqual({
+          instances: [{ prompt }],
+          parameters: {
+            sampleCount: 1,
+            personGeneration: 'allow_adult',
+          },
+        });
       });
 
-      await expect(
-        model.doGenerate({ ...defaultOptions }),
-      ).rejects.toMatchObject({
-        message: expect.stringContaining('No videos in response'),
+      it('should pass negativePrompt option', async () => {
+        let capturedBody: unknown;
+        const model = createMockModel({
+          onRequest: (url, body) => {
+            if (url.includes(':predictLongRunning')) {
+              capturedBody = body;
+            }
+          },
+        });
+
+        await model.doStart({
+          ...defaultOptions,
+          providerOptions: {
+            vertex: {
+              negativePrompt: 'blurry, low quality',
+            },
+          },
+        });
+
+        expect(capturedBody).toStrictEqual({
+          instances: [{ prompt }],
+          parameters: {
+            sampleCount: 1,
+            negativePrompt: 'blurry, low quality',
+          },
+        });
+      });
+
+      it('should pass generateAudio option', async () => {
+        let capturedBody: unknown;
+        const model = createMockModel({
+          onRequest: (url, body) => {
+            if (url.includes(':predictLongRunning')) {
+              capturedBody = body;
+            }
+          },
+        });
+
+        await model.doStart({
+          ...defaultOptions,
+          providerOptions: {
+            vertex: {
+              generateAudio: true,
+            },
+          },
+        });
+
+        expect(capturedBody).toStrictEqual({
+          instances: [{ prompt }],
+          parameters: {
+            sampleCount: 1,
+            generateAudio: true,
+          },
+        });
+      });
+
+      it('should pass gcsOutputDirectory option', async () => {
+        let capturedBody: unknown;
+        const model = createMockModel({
+          onRequest: (url, body) => {
+            if (url.includes(':predictLongRunning')) {
+              capturedBody = body;
+            }
+          },
+        });
+
+        await model.doStart({
+          ...defaultOptions,
+          providerOptions: {
+            vertex: {
+              gcsOutputDirectory: 'gs://bucket/output/',
+            },
+          },
+        });
+
+        expect(capturedBody).toStrictEqual({
+          instances: [{ prompt }],
+          parameters: {
+            sampleCount: 1,
+            gcsOutputDirectory: 'gs://bucket/output/',
+          },
+        });
+      });
+
+      it('should pass referenceImages option', async () => {
+        let capturedBody: unknown;
+        const model = createMockModel({
+          onRequest: (url, body) => {
+            if (url.includes(':predictLongRunning')) {
+              capturedBody = body;
+            }
+          },
+        });
+
+        await model.doStart({
+          ...defaultOptions,
+          providerOptions: {
+            vertex: {
+              referenceImages: [
+                { bytesBase64Encoded: 'reference-image-data' },
+                { gcsUri: 'gs://bucket/reference.png' },
+              ],
+            },
+          },
+        });
+
+        const body = capturedBody as {
+          instances: Array<{ referenceImages: unknown }>;
+        };
+        expect(body.instances[0].referenceImages).toStrictEqual([
+          { bytesBase64Encoded: 'reference-image-data' },
+          { gcsUri: 'gs://bucket/reference.png' },
+        ]);
       });
     });
   });
 
-  describe('Polling Behavior', () => {
-    it('should poll until operation is done', async () => {
-      let pollCount = 0;
+  describe('doStatus', () => {
+    it('should return completed with video data when done', async () => {
+      const model = createMockModel({
+        operationName: 'operations/my-op-123',
+        videos: [
+          {
+            video: {
+              bytesBase64Encoded: 'base64-video-data',
+              mimeType: 'video/mp4',
+            },
+          },
+        ],
+      });
+
+      const result = await model.doStatus({
+        operation: { operationName: 'operations/my-op-123' },
+      });
+
+      expect(result.status).toBe('completed');
+      expect(result.status === 'completed' && result.videos).toStrictEqual([
+        {
+          type: 'base64',
+          data: 'base64-video-data',
+          mediaType: 'video/mp4',
+        },
+      ]);
+    });
+
+    it('should return pending when not done', async () => {
+      const model = createMockModel({
+        operationName: 'operations/my-op-123',
+        pollsUntilDone: 3, // Never completes on first poll
+      });
+
+      const result = await model.doStatus({
+        operation: { operationName: 'operations/my-op-123' },
+      });
+
+      expect(result.status).toBe('pending');
+    });
+
+    it('should return error status on operation error', async () => {
+      const model = createMockModel({
+        operationName: 'operations/my-op-123',
+        operationError: {
+          code: 400,
+          message: 'Content policy violation',
+          status: 'FAILED_PRECONDITION',
+        },
+      });
+
+      const result = await model.doStatus({
+        operation: { operationName: 'operations/my-op-123' },
+      });
+
+      expect(result.status).toBe('error');
+      expect(result.status === 'error' && result.error).toContain(
+        'Content policy violation',
+      );
+      expect(result).toHaveProperty('response');
+      expect(result.response).toMatchObject({
+        modelId: 'veo-2.0-generate-001',
+      });
+    });
+
+    it('should use POST with operationName in body', async () => {
+      let capturedUrl: string | undefined;
+      let capturedBody: unknown;
+      let capturedMethod: string | undefined;
       const model = new GoogleVertexVideoModel('veo-2.0-generate-001', {
         provider: 'google-vertex',
         baseURL: 'https://api.example.com',
         headers: () => ({ 'api-key': 'test-key' }),
-        fetch: async url => {
+        fetch: async (url, init) => {
           const urlString = url.toString();
 
           if (urlString.includes(':predictLongRunning')) {
             return new Response(
               JSON.stringify({
-                name: 'operations/poll-test',
+                name: 'operations/check-post',
                 done: false,
               }),
               {
@@ -720,29 +610,20 @@ describe('GoogleVertexVideoModel', () => {
           }
 
           if (urlString.includes(':fetchPredictOperation')) {
-            pollCount++;
-
-            if (pollCount < 3) {
-              return new Response(
-                JSON.stringify({
-                  name: 'operations/poll-test',
-                  done: false,
-                }),
-                {
-                  status: 200,
-                  headers: { 'Content-Type': 'application/json' },
-                },
-              );
-            }
+            capturedUrl = urlString;
+            capturedBody = init?.body
+              ? JSON.parse(init.body as string)
+              : undefined;
+            capturedMethod = init?.method;
 
             return new Response(
               JSON.stringify({
-                name: 'operations/poll-test',
+                name: 'operations/check-post',
                 done: true,
                 response: {
                   videos: [
                     {
-                      bytesBase64Encoded: 'final-video',
+                      bytesBase64Encoded: 'video-data',
                       mimeType: 'video/mp4',
                     },
                   ],
@@ -759,140 +640,42 @@ describe('GoogleVertexVideoModel', () => {
         },
       });
 
-      const result = await model.doGenerate({ ...defaultOptions });
+      await model.doStatus({
+        operation: { operationName: 'operations/check-post' },
+      });
 
-      expect(pollCount).toBe(3);
-      expect(result.videos[0]).toMatchObject({
-        type: 'base64',
-        data: 'final-video',
+      expect(capturedUrl).toContain(':fetchPredictOperation');
+      expect(capturedMethod).toBe('POST');
+      expect(capturedBody).toStrictEqual({
+        operationName: 'operations/check-post',
       });
     });
 
-    it('should timeout after pollTimeoutMs', async () => {
-      const model = new GoogleVertexVideoModel('veo-2.0-generate-001', {
-        provider: 'google-vertex',
-        baseURL: 'https://api.example.com',
-        headers: () => ({ 'api-key': 'test-key' }),
-        fetch: async url => {
-          const urlString = url.toString();
-
-          if (urlString.includes(':predictLongRunning')) {
-            return new Response(
-              JSON.stringify({
-                name: 'operations/timeout-test',
-                done: false,
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              },
-            );
-          }
-
-          if (urlString.includes(':fetchPredictOperation')) {
-            return new Response(
-              JSON.stringify({
-                name: 'operations/timeout-test',
-                done: false,
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              },
-            );
-          }
-
-          return new Response('Not found', { status: 404 });
-        },
-      });
-
-      await expect(
-        model.doGenerate({
-          ...defaultOptions,
-          providerOptions: {
-            vertex: {
-              pollIntervalMs: 10,
-              pollTimeoutMs: 50,
-            },
-          },
-        }),
-      ).rejects.toMatchObject({
-        message: expect.stringContaining('timed out'),
-      });
-    });
-
-    it('should respect abort signal', async () => {
-      const abortController = new AbortController();
-
-      const model = new GoogleVertexVideoModel('veo-2.0-generate-001', {
-        provider: 'google-vertex',
-        baseURL: 'https://api.example.com',
-        headers: () => ({ 'api-key': 'test-key' }),
-        fetch: async url => {
-          const urlString = url.toString();
-
-          if (urlString.includes(':predictLongRunning')) {
-            return new Response(
-              JSON.stringify({
-                name: 'operations/abort-test',
-                done: false,
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              },
-            );
-          }
-
-          if (urlString.includes(':fetchPredictOperation')) {
-            abortController.abort();
-            return new Response(
-              JSON.stringify({
-                name: 'operations/abort-test',
-                done: false,
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              },
-            );
-          }
-
-          return new Response('Not found', { status: 404 });
-        },
-      });
-
-      await expect(
-        model.doGenerate({
-          ...defaultOptions,
-          providerOptions: {
-            vertex: {
-              pollIntervalMs: 10,
-            },
-          },
-          abortSignal: abortController.signal,
-        }),
-      ).rejects.toMatchObject({
-        message: expect.stringContaining('aborted'),
-      });
-    });
-  });
-
-  describe('Default Media Type', () => {
-    it('should default to video/mp4 when mimeType is not provided', async () => {
+    it('should return completed with GCS URI video', async () => {
       const model = createMockModel({
+        operationName: 'operations/gcs-op',
         videos: [
           {
             video: {
-              bytesBase64Encoded: 'video-data',
+              gcsUri: 'gs://bucket/video.mp4',
+              mimeType: 'video/mp4',
             },
           },
         ],
       });
 
-      const result = await model.doGenerate({ ...defaultOptions });
+      const result = await model.doStatus({
+        operation: { operationName: 'operations/gcs-op' },
+      });
 
-      expect(result.videos[0].mediaType).toBe('video/mp4');
+      expect(result.status).toBe('completed');
+      expect(result.status === 'completed' && result.videos).toStrictEqual([
+        {
+          type: 'url',
+          url: 'gs://bucket/video.mp4',
+          mediaType: 'video/mp4',
+        },
+      ]);
     });
   });
 });

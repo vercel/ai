@@ -16,11 +16,7 @@ const defaultOptions = {
   duration: undefined,
   fps: undefined,
   seed: undefined,
-  providerOptions: {
-    replicate: {
-      pollIntervalMs: 10, // Use short polling interval for tests
-    },
-  },
+  providerOptions: {},
 } as const;
 
 function createMockModel({
@@ -30,7 +26,6 @@ function createMockModel({
   predictionStatus = 'succeeded',
   output = 'https://replicate.delivery/video.mp4',
   error,
-  pollsUntilDone = 1,
   onRequest,
   apiToken = 'test-api-token',
   metrics = { predict_time: 25.5 },
@@ -41,7 +36,6 @@ function createMockModel({
   predictionStatus?: string;
   output?: string | null;
   error?: string;
-  pollsUntilDone?: number;
   onRequest?: (
     url: string,
     body: unknown,
@@ -50,8 +44,6 @@ function createMockModel({
   apiToken?: string;
   metrics?: { predict_time?: number | null } | null;
 } = {}) {
-  let pollCount = 0;
-
   return new ReplicateVideoModel(modelId, {
     provider: 'replicate.video',
     baseURL: 'https://api.replicate.com/v1',
@@ -73,13 +65,13 @@ function createMockModel({
         return new Response(
           JSON.stringify({
             id: predictionId,
-            status: pollsUntilDone === 0 ? predictionStatus : 'starting',
-            output: pollsUntilDone === 0 ? output : null,
-            error: pollsUntilDone === 0 ? error : null,
+            status: predictionStatus,
+            output,
+            error: error ?? null,
             urls: {
               get: `https://api.replicate.com/v1/predictions/${predictionId}`,
             },
-            metrics: pollsUntilDone === 0 ? metrics : null,
+            metrics,
           }),
           {
             status: 200,
@@ -89,33 +81,12 @@ function createMockModel({
       }
 
       if (urlString.includes(`/predictions/${predictionId}`)) {
-        pollCount++;
-
-        if (pollCount < pollsUntilDone) {
-          return new Response(
-            JSON.stringify({
-              id: predictionId,
-              status: 'processing',
-              output: null,
-              error: null,
-              urls: {
-                get: `https://api.replicate.com/v1/predictions/${predictionId}`,
-              },
-              metrics: null,
-            }),
-            {
-              status: 200,
-              headers: { 'Content-Type': 'application/json' },
-            },
-          );
-        }
-
         return new Response(
           JSON.stringify({
             id: predictionId,
             status: predictionStatus,
             output,
-            error,
+            error: error ?? null,
             urls: {
               get: `https://api.replicate.com/v1/predictions/${predictionId}`,
             },
@@ -156,11 +127,22 @@ describe('ReplicateVideoModel', () => {
     });
   });
 
-  describe('doGenerate', () => {
-    it('should pass the correct parameters including prompt', async () => {
+  describe('doStart', () => {
+    it('should return operation with getUrl', async () => {
+      const model = createMockModel({
+        predictionId: 'start-pred-123',
+      });
+
+      const result = await model.doStart({ ...defaultOptions });
+
+      expect(result.operation).toStrictEqual({
+        getUrl: 'https://api.replicate.com/v1/predictions/start-pred-123',
+      });
+    });
+
+    it('should pass correct request body', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
-        pollsUntilDone: 0,
         onRequest: (url, body) => {
           if (
             url.includes('/predictions') &&
@@ -171,18 +153,59 @@ describe('ReplicateVideoModel', () => {
         },
       });
 
-      await model.doGenerate({ ...defaultOptions });
+      await model.doStart({ ...defaultOptions });
 
       expect(capturedBody).toMatchObject({
         input: { prompt },
       });
     });
 
-    it('should use /models/{modelId}/predictions for models without version', async () => {
+    it('should NOT send prefer header', async () => {
+      let capturedHeaders: Record<string, string> = {};
+      const model = createMockModel({
+        onRequest: (url, _body, headers) => {
+          if (
+            url.includes('/predictions') &&
+            !url.includes('test-prediction')
+          ) {
+            capturedHeaders = headers;
+          }
+        },
+      });
+
+      await model.doStart({ ...defaultOptions });
+
+      expect(capturedHeaders.prefer).toBeUndefined();
+    });
+
+    it('should use correct URL for versioned models', async () => {
+      let capturedUrl: string = '';
+      let capturedBody: unknown;
+      const model = createMockModel({
+        modelId: 'stability-ai/stable-video-diffusion:abc123',
+        onRequest: (url, body) => {
+          if (
+            url.includes('/predictions') &&
+            !url.includes('test-prediction')
+          ) {
+            capturedUrl = url;
+            capturedBody = body;
+          }
+        },
+      });
+
+      await model.doStart({ ...defaultOptions });
+
+      expect(capturedUrl).toBe('https://api.replicate.com/v1/predictions');
+      expect(capturedBody).toMatchObject({
+        version: 'abc123',
+      });
+    });
+
+    it('should use /models/ URL for unversioned models', async () => {
       let capturedUrl: string = '';
       const model = createMockModel({
         modelId: 'minimax/video-01',
-        pollsUntilDone: 0,
         onRequest: url => {
           if (
             url.includes('/predictions') &&
@@ -193,42 +216,72 @@ describe('ReplicateVideoModel', () => {
         },
       });
 
-      await model.doGenerate({ ...defaultOptions });
+      await model.doStart({ ...defaultOptions });
 
       expect(capturedUrl).toBe(
         'https://api.replicate.com/v1/models/minimax/video-01/predictions',
       );
     });
 
-    it('should use /predictions with version for models with version', async () => {
-      let capturedUrl: string = '';
+    it('should return warnings and response metadata', async () => {
+      const testDate = new Date('2024-01-01T00:00:00Z');
+      const model = createMockModel({
+        currentDate: () => testDate,
+      });
+
+      const result = await model.doStart({ ...defaultOptions });
+
+      expect(result.warnings).toStrictEqual([]);
+      expect(result.response.timestamp).toStrictEqual(testDate);
+      expect(result.response.modelId).toBe('minimax/video-01');
+    });
+
+    it('should pass webhookUrl as webhook body parameter', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
-        modelId: 'stability-ai/stable-video-diffusion:abc123',
-        pollsUntilDone: 0,
         onRequest: (url, body) => {
           if (
             url.includes('/predictions') &&
             !url.includes('test-prediction')
           ) {
-            capturedUrl = url;
             capturedBody = body;
           }
         },
       });
 
-      await model.doGenerate({ ...defaultOptions });
-
-      expect(capturedUrl).toBe('https://api.replicate.com/v1/predictions');
-      expect(capturedBody).toMatchObject({
-        version: 'abc123',
+      await model.doStart({
+        ...defaultOptions,
+        webhookUrl: 'https://example.com/webhook',
       });
+
+      expect(capturedBody).toMatchObject({
+        webhook: 'https://example.com/webhook',
+        webhook_events_filter: ['completed'],
+      });
+    });
+
+    it('should NOT include webhook when webhookUrl is not provided', async () => {
+      let capturedBody: Record<string, unknown> = {};
+      const model = createMockModel({
+        onRequest: (url, body) => {
+          if (
+            url.includes('/predictions') &&
+            !url.includes('test-prediction')
+          ) {
+            capturedBody = body as Record<string, unknown>;
+          }
+        },
+      });
+
+      await model.doStart({ ...defaultOptions });
+
+      expect(capturedBody.webhook).toBeUndefined();
+      expect(capturedBody.webhook_events_filter).toBeUndefined();
     });
 
     it('should pass seed when provided', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
-        pollsUntilDone: 0,
         onRequest: (url, body) => {
           if (
             url.includes('/predictions') &&
@@ -239,7 +292,7 @@ describe('ReplicateVideoModel', () => {
         },
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         seed: 42,
       });
@@ -255,7 +308,6 @@ describe('ReplicateVideoModel', () => {
     it('should pass aspect ratio when provided', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
-        pollsUntilDone: 0,
         onRequest: (url, body) => {
           if (
             url.includes('/predictions') &&
@@ -266,7 +318,7 @@ describe('ReplicateVideoModel', () => {
         },
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         aspectRatio: '16:9',
       });
@@ -282,7 +334,6 @@ describe('ReplicateVideoModel', () => {
     it('should pass through 9:16 aspect ratio', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
-        pollsUntilDone: 0,
         onRequest: (url, body) => {
           if (
             url.includes('/predictions') &&
@@ -293,7 +344,7 @@ describe('ReplicateVideoModel', () => {
         },
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         aspectRatio: '9:16',
       });
@@ -309,7 +360,6 @@ describe('ReplicateVideoModel', () => {
     it('should pass through 1:1 aspect ratio', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
-        pollsUntilDone: 0,
         onRequest: (url, body) => {
           if (
             url.includes('/predictions') &&
@@ -320,7 +370,7 @@ describe('ReplicateVideoModel', () => {
         },
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         aspectRatio: '1:1',
       });
@@ -336,7 +386,6 @@ describe('ReplicateVideoModel', () => {
     it('should pass through other aspect ratios', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
-        pollsUntilDone: 0,
         onRequest: (url, body) => {
           if (
             url.includes('/predictions') &&
@@ -347,7 +396,7 @@ describe('ReplicateVideoModel', () => {
         },
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         aspectRatio: '4:3',
       });
@@ -363,7 +412,6 @@ describe('ReplicateVideoModel', () => {
     it('should pass resolution as size when provided', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
-        pollsUntilDone: 0,
         onRequest: (url, body) => {
           if (
             url.includes('/predictions') &&
@@ -374,7 +422,7 @@ describe('ReplicateVideoModel', () => {
         },
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         resolution: '1920x1080',
       });
@@ -390,7 +438,6 @@ describe('ReplicateVideoModel', () => {
     it('should pass duration when provided', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
-        pollsUntilDone: 0,
         onRequest: (url, body) => {
           if (
             url.includes('/predictions') &&
@@ -401,7 +448,7 @@ describe('ReplicateVideoModel', () => {
         },
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         duration: 5,
       });
@@ -417,7 +464,6 @@ describe('ReplicateVideoModel', () => {
     it('should pass fps when provided', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
-        pollsUntilDone: 0,
         onRequest: (url, body) => {
           if (
             url.includes('/predictions') &&
@@ -428,7 +474,7 @@ describe('ReplicateVideoModel', () => {
         },
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         fps: 30,
       });
@@ -441,70 +487,9 @@ describe('ReplicateVideoModel', () => {
       });
     });
 
-    it('should return video with correct data', async () => {
-      const model = createMockModel({
-        output: 'https://replicate.delivery/video-output.mp4',
-        pollsUntilDone: 0,
-      });
-
-      const result = await model.doGenerate({ ...defaultOptions });
-
-      expect(result.videos).toHaveLength(1);
-      expect(result.videos[0]).toStrictEqual({
-        type: 'url',
-        url: 'https://replicate.delivery/video-output.mp4',
-        mediaType: 'video/mp4',
-      });
-    });
-
-    it('should return warnings array', async () => {
-      const model = createMockModel({ pollsUntilDone: 0 });
-
-      const result = await model.doGenerate({ ...defaultOptions });
-
-      expect(result.warnings).toStrictEqual([]);
-    });
-  });
-
-  describe('response metadata', () => {
-    it('should include timestamp and modelId in response', async () => {
-      const testDate = new Date('2024-01-01T00:00:00Z');
-      const model = createMockModel({
-        currentDate: () => testDate,
-        pollsUntilDone: 0,
-      });
-
-      const result = await model.doGenerate({ ...defaultOptions });
-
-      expect(result.response.timestamp).toStrictEqual(testDate);
-      expect(result.response.modelId).toBe('minimax/video-01');
-    });
-  });
-
-  describe('providerMetadata', () => {
-    it('should include prediction metadata', async () => {
-      const model = createMockModel({
-        predictionId: 'test-pred-123',
-        metrics: { predict_time: 25.5 },
-        pollsUntilDone: 0,
-      });
-
-      const result = await model.doGenerate({ ...defaultOptions });
-
-      expect(result.providerMetadata).toMatchObject({
-        replicate: {
-          predictionId: 'test-pred-123',
-          metrics: { predict_time: 25.5 },
-        },
-      });
-    });
-  });
-
-  describe('Image-to-Video', () => {
     it('should send URL-based image directly', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
-        pollsUntilDone: 0,
         onRequest: (url, body) => {
           if (
             url.includes('/predictions') &&
@@ -515,7 +500,7 @@ describe('ReplicateVideoModel', () => {
         },
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         image: {
           type: 'url',
@@ -530,7 +515,6 @@ describe('ReplicateVideoModel', () => {
     it('should convert base64 image to data URI', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
-        pollsUntilDone: 0,
         onRequest: (url, body) => {
           if (
             url.includes('/predictions') &&
@@ -541,7 +525,7 @@ describe('ReplicateVideoModel', () => {
         },
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         image: {
           type: 'file',
@@ -553,13 +537,10 @@ describe('ReplicateVideoModel', () => {
       const body = capturedBody as { input: { image: string } };
       expect(body.input.image).toBe('data:image/png;base64,base64-image-data');
     });
-  });
 
-  describe('Provider Options', () => {
     it('should pass guidance_scale option', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
-        pollsUntilDone: 0,
         onRequest: (url, body) => {
           if (
             url.includes('/predictions') &&
@@ -570,11 +551,10 @@ describe('ReplicateVideoModel', () => {
         },
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         providerOptions: {
           replicate: {
-            pollIntervalMs: 10,
             guidance_scale: 7.5,
           },
         },
@@ -587,7 +567,6 @@ describe('ReplicateVideoModel', () => {
     it('should pass num_inference_steps option', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
-        pollsUntilDone: 0,
         onRequest: (url, body) => {
           if (
             url.includes('/predictions') &&
@@ -598,11 +577,10 @@ describe('ReplicateVideoModel', () => {
         },
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         providerOptions: {
           replicate: {
-            pollIntervalMs: 10,
             num_inference_steps: 50,
           },
         },
@@ -615,7 +593,6 @@ describe('ReplicateVideoModel', () => {
     it('should pass motion_bucket_id for Stable Video Diffusion', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
-        pollsUntilDone: 0,
         onRequest: (url, body) => {
           if (
             url.includes('/predictions') &&
@@ -626,11 +603,10 @@ describe('ReplicateVideoModel', () => {
         },
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         providerOptions: {
           replicate: {
-            pollIntervalMs: 10,
             motion_bucket_id: 127,
           },
         },
@@ -643,7 +619,6 @@ describe('ReplicateVideoModel', () => {
     it('should pass prompt_optimizer for MiniMax', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
-        pollsUntilDone: 0,
         onRequest: (url, body) => {
           if (
             url.includes('/predictions') &&
@@ -654,11 +629,10 @@ describe('ReplicateVideoModel', () => {
         },
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         providerOptions: {
           replicate: {
-            pollIntervalMs: 10,
             prompt_optimizer: true,
           },
         },
@@ -671,7 +645,6 @@ describe('ReplicateVideoModel', () => {
     it('should pass through custom options', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
-        pollsUntilDone: 0,
         onRequest: (url, body) => {
           if (
             url.includes('/predictions') &&
@@ -682,11 +655,10 @@ describe('ReplicateVideoModel', () => {
         },
       });
 
-      await model.doGenerate({
+      await model.doStart({
         ...defaultOptions,
         providerOptions: {
           replicate: {
-            pollIntervalMs: 10,
             custom_param: 'custom_value',
           },
         },
@@ -695,241 +667,203 @@ describe('ReplicateVideoModel', () => {
       const body = capturedBody as { input: Record<string, unknown> };
       expect(body.input.custom_param).toBe('custom_value');
     });
-
-    it('should use maxWaitTimeInSeconds in prefer header', async () => {
-      let capturedHeaders: Record<string, string> = {};
-      const model = createMockModel({
-        pollsUntilDone: 0,
-        onRequest: (url, body, headers) => {
-          if (
-            url.includes('/predictions') &&
-            !url.includes('test-prediction')
-          ) {
-            capturedHeaders = headers;
-          }
-        },
-      });
-
-      await model.doGenerate({
-        ...defaultOptions,
-        providerOptions: {
-          replicate: {
-            pollIntervalMs: 10,
-            maxWaitTimeInSeconds: 30,
-          },
-        },
-      });
-
-      expect(capturedHeaders.prefer).toBe('wait=30');
-    });
-
-    it('should use prefer: wait when maxWaitTimeInSeconds not provided', async () => {
-      let capturedHeaders: Record<string, string> = {};
-      const model = createMockModel({
-        pollsUntilDone: 0,
-        onRequest: (url, body, headers) => {
-          if (
-            url.includes('/predictions') &&
-            !url.includes('test-prediction')
-          ) {
-            capturedHeaders = headers;
-          }
-        },
-      });
-
-      await model.doGenerate({ ...defaultOptions });
-
-      expect(capturedHeaders.prefer).toBe('wait');
-    });
   });
 
-  describe('Error Handling', () => {
-    it('should throw error when prediction fails', async () => {
-      const model = createMockModel({
+  describe('doStatus', () => {
+    function createStatusModel({
+      predictionId = 'status-pred-123',
+      predictionStatus = 'succeeded',
+      output = 'https://replicate.delivery/video.mp4',
+      error,
+      currentDate,
+      metrics = { predict_time: 25.5 },
+      apiToken = 'test-api-token',
+    }: {
+      predictionId?: string;
+      predictionStatus?: string;
+      output?: string | null;
+      error?: string;
+      currentDate?: () => Date;
+      metrics?: { predict_time?: number | null } | null;
+      apiToken?: string;
+    } = {}) {
+      return new ReplicateVideoModel('minimax/video-01', {
+        provider: 'replicate.video',
+        baseURL: 'https://api.replicate.com/v1',
+        headers: () => ({
+          Authorization: `Bearer ${apiToken}`,
+        }),
+        fetch: async url => {
+          const urlString = url.toString();
+
+          if (urlString.includes(`/predictions/${predictionId}`)) {
+            return new Response(
+              JSON.stringify({
+                id: predictionId,
+                status: predictionStatus,
+                output,
+                error: error ?? null,
+                urls: {
+                  get: `https://api.replicate.com/v1/predictions/${predictionId}`,
+                },
+                metrics,
+              }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            );
+          }
+
+          return new Response('Not found', { status: 404 });
+        },
+        _internal: {
+          currentDate,
+        },
+      });
+    }
+
+    it('should return completed with video data when succeeded', async () => {
+      const model = createStatusModel({
+        predictionStatus: 'succeeded',
+        output: 'https://replicate.delivery/video-output.mp4',
+      });
+
+      const result = await model.doStatus({
+        operation: {
+          getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
+        },
+      });
+
+      expect(result.status).toBe('completed');
+      expect(result.status === 'completed' && result.videos).toStrictEqual([
+        {
+          type: 'url',
+          url: 'https://replicate.delivery/video-output.mp4',
+          mediaType: 'video/mp4',
+        },
+      ]);
+    });
+
+    it('should return pending when processing', async () => {
+      const model = createStatusModel({
+        predictionStatus: 'processing',
+      });
+
+      const result = await model.doStatus({
+        operation: {
+          getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
+        },
+      });
+
+      expect(result.status).toBe('pending');
+    });
+
+    it('should return pending when starting', async () => {
+      const model = createStatusModel({
+        predictionStatus: 'starting',
+      });
+
+      const result = await model.doStatus({
+        operation: {
+          getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
+        },
+      });
+
+      expect(result.status).toBe('pending');
+    });
+
+    it('should return error status on failed prediction', async () => {
+      const model = createStatusModel({
         predictionStatus: 'failed',
-        error: 'Video generation failed: insufficient credits',
-        pollsUntilDone: 0,
+        error: 'GPU out of memory',
       });
 
-      await expect(
-        model.doGenerate({ ...defaultOptions }),
-      ).rejects.toMatchObject({
-        message: expect.stringContaining('insufficient credits'),
+      const result = await model.doStatus({
+        operation: {
+          getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
+        },
       });
+
+      expect(result.status).toBe('error');
+      expect(result.status === 'error' && result.error).toContain(
+        'GPU out of memory',
+      );
     });
 
-    it('should throw error when prediction is canceled', async () => {
-      const model = createMockModel({
+    it('should return error status on canceled prediction', async () => {
+      const model = createStatusModel({
         predictionStatus: 'canceled',
-        pollsUntilDone: 0,
       });
 
-      await expect(
-        model.doGenerate({ ...defaultOptions }),
-      ).rejects.toMatchObject({
-        message: expect.stringContaining('canceled'),
+      const result = await model.doStatus({
+        operation: {
+          getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
+        },
       });
+
+      expect(result.status).toBe('error');
+      expect(result.status === 'error' && result.error).toContain('canceled');
     });
 
-    it('should throw error when no video URL in response', async () => {
-      const model = createMockModel({
+    it('should throw when no output on succeeded', async () => {
+      const model = createStatusModel({
+        predictionStatus: 'succeeded',
         output: null,
-        pollsUntilDone: 0,
       });
 
       await expect(
-        model.doGenerate({ ...defaultOptions }),
+        model.doStatus({
+          operation: {
+            getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
+          },
+        }),
       ).rejects.toMatchObject({
         message: 'No video URL in response',
       });
     });
-  });
 
-  describe('Polling Behavior', () => {
-    it('should poll until prediction is done', async () => {
-      let pollCount = 0;
-      const model = createMockModel({
-        pollsUntilDone: 3,
-        onRequest: url => {
-          if (url.includes('/predictions/test-prediction-id')) {
-            pollCount++;
-          }
-        },
-      });
-
-      const result = await model.doGenerate({ ...defaultOptions });
-
-      expect(pollCount).toBe(3);
-      expect(result.videos).toHaveLength(1);
-    });
-
-    it('should timeout after pollTimeoutMs', async () => {
-      const model = new ReplicateVideoModel('minimax/video-01', {
-        provider: 'replicate.video',
-        baseURL: 'https://api.replicate.com/v1',
-        headers: () => ({
-          Authorization: 'Bearer test-token',
-        }),
-        fetch: async url => {
-          const urlString = url.toString();
-
-          if (urlString.includes('/predictions')) {
-            return new Response(
-              JSON.stringify({
-                id: 'timeout-test',
-                status: 'processing',
-                output: null,
-                error: null,
-                urls: {
-                  get: 'https://api.replicate.com/v1/predictions/timeout-test',
-                },
-                metrics: null,
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              },
-            );
-          }
-
-          return new Response('Not found', { status: 404 });
-        },
-      });
-
-      await expect(
-        model.doGenerate({
-          ...defaultOptions,
-          providerOptions: {
-            replicate: {
-              pollIntervalMs: 10,
-              pollTimeoutMs: 50,
-            },
-          },
-        }),
-      ).rejects.toMatchObject({
-        message: expect.stringContaining('timed out'),
-      });
-    });
-
-    it('should respect abort signal', async () => {
-      const abortController = new AbortController();
-
-      const model = new ReplicateVideoModel('minimax/video-01', {
-        provider: 'replicate.video',
-        baseURL: 'https://api.replicate.com/v1',
-        headers: () => ({
-          Authorization: 'Bearer test-token',
-        }),
-        fetch: async url => {
-          const urlString = url.toString();
-
-          if (urlString.includes('/predictions')) {
-            if (urlString.includes('abort-test')) {
-              abortController.abort();
-            }
-
-            return new Response(
-              JSON.stringify({
-                id: 'abort-test',
-                status: 'processing',
-                output: null,
-                error: null,
-                urls: {
-                  get: 'https://api.replicate.com/v1/predictions/abort-test',
-                },
-                metrics: null,
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              },
-            );
-          }
-
-          return new Response('Not found', { status: 404 });
-        },
-      });
-
-      await expect(
-        model.doGenerate({
-          ...defaultOptions,
-          providerOptions: {
-            replicate: {
-              pollIntervalMs: 10,
-            },
-          },
-          abortSignal: abortController.signal,
-        }),
-      ).rejects.toMatchObject({
-        message: expect.stringContaining('aborted'),
-      });
-    });
-
-    it('should handle immediate success (pollsUntilDone=0)', async () => {
-      const model = createMockModel({
-        pollsUntilDone: 0,
-        output: 'https://replicate.delivery/immediate-video.mp4',
-      });
-
-      const result = await model.doGenerate({ ...defaultOptions });
-
-      expect(result.videos[0]).toMatchObject({
-        type: 'url',
-        url: 'https://replicate.delivery/immediate-video.mp4',
-      });
-    });
-  });
-
-  describe('Media Type', () => {
-    it('should always return video/mp4 as media type', async () => {
-      const model = createMockModel({
+    it('should include providerMetadata', async () => {
+      const model = createStatusModel({
+        predictionId: 'meta-pred-456',
+        predictionStatus: 'succeeded',
         output: 'https://replicate.delivery/video.mp4',
-        pollsUntilDone: 0,
+        metrics: { predict_time: 30.2 },
       });
 
-      const result = await model.doGenerate({ ...defaultOptions });
+      const result = await model.doStatus({
+        operation: {
+          getUrl: 'https://api.replicate.com/v1/predictions/meta-pred-456',
+        },
+      });
 
-      expect(result.videos[0].mediaType).toBe('video/mp4');
+      expect(result.status).toBe('completed');
+      if (result.status === 'completed') {
+        expect(result.providerMetadata).toMatchObject({
+          replicate: {
+            predictionId: 'meta-pred-456',
+            metrics: { predict_time: 30.2 },
+            videos: [{ url: 'https://replicate.delivery/video.mp4' }],
+          },
+        });
+      }
+    });
+
+    it('should include response metadata', async () => {
+      const testDate = new Date('2024-06-15T12:00:00Z');
+      const model = createStatusModel({
+        currentDate: () => testDate,
+        predictionStatus: 'processing',
+      });
+
+      const result = await model.doStatus({
+        operation: {
+          getUrl: 'https://api.replicate.com/v1/predictions/status-pred-123',
+        },
+      });
+
+      expect(result.response.timestamp).toStrictEqual(testDate);
+      expect(result.response.modelId).toBe('minimax/video-01');
     });
   });
 });

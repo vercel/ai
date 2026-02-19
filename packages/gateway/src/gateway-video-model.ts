@@ -1,8 +1,8 @@
 import type {
-  Experimental_VideoModelV3,
-  Experimental_VideoModelV3CallOptions,
-  Experimental_VideoModelV3File,
-  Experimental_VideoModelV3VideoData,
+  Experimental_VideoModelV3 as VideoModelV3,
+  Experimental_VideoModelV3CallOptions as VideoModelV3CallOptions,
+  Experimental_VideoModelV3File as VideoModelV3File,
+  Experimental_VideoModelV3VideoData as VideoModelV3VideoData,
   SharedV3ProviderMetadata,
   SharedV3Warning,
 } from '@ai-sdk/provider';
@@ -20,7 +20,7 @@ import type { GatewayConfig } from './gateway-config';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 
-export class GatewayVideoModel implements Experimental_VideoModelV3 {
+export class GatewayVideoModel implements VideoModelV3 {
   readonly specificationVersion = 'v3' as const;
   // Set a very large number to prevent client-side splitting of requests
   readonly maxVideosPerCall = Number.MAX_SAFE_INTEGER;
@@ -49,8 +49,8 @@ export class GatewayVideoModel implements Experimental_VideoModelV3 {
     providerOptions,
     headers,
     abortSignal,
-  }: Experimental_VideoModelV3CallOptions): Promise<{
-    videos: Array<Experimental_VideoModelV3VideoData>;
+  }: VideoModelV3CallOptions): Promise<{
+    videos: Array<VideoModelV3VideoData>;
     warnings: Array<SharedV3Warning>;
     providerMetadata?: SharedV3ProviderMetadata;
     response: {
@@ -123,7 +123,7 @@ export class GatewayVideoModel implements Experimental_VideoModelV3 {
   }
 }
 
-function maybeEncodeVideoFile(file: Experimental_VideoModelV3File) {
+function maybeEncodeVideoFile(file: VideoModelV3File) {
   if (file.type === 'file' && file.data instanceof Uint8Array) {
     return {
       ...file,

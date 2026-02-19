@@ -2,10 +2,11 @@ import { type FalVideoModelOptions, fal } from '@ai-sdk/fal';
 import { experimental_generateVideo } from 'ai';
 import { presentVideos } from '../lib/present-video';
 import { run } from '../lib/run';
+import { createWebhook } from '../lib/create-webhook';
 import { withSpinner } from '../lib/spinner';
 
 run(async () => {
-  const { videos } = await withSpinner('Generating video...', () =>
+  const { videos, warnings } = await withSpinner('Generating video...', () =>
     experimental_generateVideo({
       model: fal.video('luma-dream-machine/ray-2'),
       prompt:
@@ -17,8 +18,17 @@ run(async () => {
           resolution: '540p',
         } satisfies FalVideoModelOptions,
       },
+      webhook: async () => {
+        const { url, received } = await createWebhook();
+        console.log(`\nWaiting for webhook via ${url}`);
+        return { url, received };
+      },
     }),
   );
+
+  if (warnings?.length) {
+    console.warn('\nWarnings:', warnings);
+  }
 
   await presentVideos(videos);
 });

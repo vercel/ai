@@ -147,6 +147,54 @@ console.log(videos);
       description:
         'Custom download function for fetching videos from URLs. Use `createDownload()` from `ai` to create a download function with custom size limits, e.g. `createDownload({ maxBytes: 50 * 1024 * 1024 })`. Default: built-in download with 2 GiB limit.',
     },
+    {
+      name: 'poll',
+      type: 'object',
+      isOptional: true,
+      description:
+        'Polling configuration for the asynchronous start/status flow.',
+      properties: [
+        {
+          type: 'object',
+          parameters: [
+            {
+              name: 'intervalMs',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Interval between status checks in milliseconds. Default: 5000.',
+            },
+            {
+              name: 'timeoutMs',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Maximum time to wait for completion in milliseconds. Default: 600000 (10 minutes).',
+            },
+            {
+              name: 'backoff',
+              type: "'none' | 'exponential'",
+              isOptional: true,
+              description:
+                "Backoff strategy for polling. 'none' uses a fixed interval. 'exponential' doubles the interval after each poll, capped at 60 seconds. Default: 'none'.",
+            },
+            {
+              name: 'onAttempt',
+              type: '(event: { attempt: number; elapsedMs: number }) => void | PromiseLike<void>',
+              isOptional: true,
+              description: 'Callback invoked before each poll attempt.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'webhook',
+      type: '() => PromiseLike<{ url: string; received: Promise<VideoModelV3OperationWebhook> }>',
+      isOptional: true,
+      description:
+        'Webhook factory for providers that support webhook notifications. When provided and the model supports webhooks, the SDK uses the webhook instead of polling. The factory should return a URL for the provider to notify and a `received` promise that resolves when the notification arrives.',
+    },
   ]}
 />
 

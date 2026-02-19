@@ -1,6 +1,8 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV3,
+  type Experimental_VideoModelV3 as VideoModelV3,
+  type Experimental_VideoModelV3OperationStartResult as VideoModelV3OperationStartResult,
+  type Experimental_VideoModelV3OperationStatusResult as VideoModelV3OperationStatusResult,
   NoSuchModelError,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
@@ -8,7 +10,6 @@ import {
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
-  delay,
   type FetchFunction,
   getFromApi,
   lazySchema,
@@ -74,18 +75,6 @@ export type KlingAIVideoModelOptions = {
    * - `'pro'`: Professional mode — higher quality but longer generation time.
    */
   mode?: 'std' | 'pro' | null;
-
-  /**
-   * Polling interval in milliseconds for checking task status.
-   * Default: 5000 (5 seconds).
-   */
-  pollIntervalMs?: number | null;
-
-  /**
-   * Maximum time in milliseconds to wait for video generation.
-   * Default: 600000 (10 minutes).
-   */
-  pollTimeoutMs?: number | null;
 
   // --- T2V and I2V options ---
 
@@ -256,8 +245,6 @@ const klingaiVideoModelOptionsSchema = lazySchema(() =>
     z
       .object({
         mode: z.enum(['std', 'pro']).nullish(),
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
         // T2V and I2V
         negativePrompt: z.string().nullish(),
         sound: z.enum(['on', 'off']).nullish(),
@@ -338,8 +325,6 @@ const klingaiVideoModelOptionsSchema = lazySchema(() =>
  */
 const HANDLED_PROVIDER_OPTIONS = new Set([
   'mode',
-  'pollIntervalMs',
-  'pollTimeoutMs',
   'negativePrompt',
   'sound',
   'cfgScale',
@@ -368,7 +353,7 @@ interface KlingAIVideoModelConfig {
   };
 }
 
-export class KlingAIVideoModel implements Experimental_VideoModelV3 {
+export class KlingAIVideoModel implements VideoModelV3 {
   readonly specificationVersion = 'v3';
   readonly maxVideosPerCall = 1;
 
@@ -381,9 +366,9 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
     private readonly config: KlingAIVideoModelConfig,
   ) {}
 
-  async doGenerate(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
+  async doStart(
+    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
+  ): Promise<VideoModelV3OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV3Warning[] = [];
     const mode = detectMode(this.modelId);
@@ -404,7 +389,108 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
       body = this.buildI2VBody(options, klingaiOptions, warnings);
     }
 
-    // Warn about universally unsupported standard options
+    this.addUniversalWarnings(options, warnings);
+
+    const endpointPath = modeEndpointMap[mode];
+
+    const { value: createResponse, responseHeaders } = await postJsonToApi({
+      url: `${this.config.baseURL}${endpointPath}`,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      body,
+      successfulResponseHandler: createJsonResponseHandler(
+        klingaiCreateTaskSchema,
+      ),
+      failedResponseHandler: klingaiFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const taskId = createResponse.data?.task_id;
+    if (!taskId) {
+      throw new AISDKError({
+        name: 'KLINGAI_VIDEO_GENERATION_ERROR',
+        message: `No task_id returned from KlingAI API. Response: ${JSON.stringify(createResponse)}`,
+      });
+    }
+
+    return {
+      operation: { taskId, endpointPath },
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+    };
+  }
+
+  async doStatus(
+    options: Parameters<NonNullable<VideoModelV3['doStatus']>>[0],
+  ): Promise<VideoModelV3OperationStatusResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { taskId, endpointPath } = options.operation as {
+      taskId: string;
+      endpointPath: string;
+    };
+
+    const { value: statusResponse, responseHeaders } = await getFromApi({
+      url: `${this.config.baseURL}${endpointPath}/${taskId}`,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      successfulResponseHandler: createJsonResponseHandler(
+        klingaiTaskStatusSchema,
+      ),
+      failedResponseHandler: klingaiFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const taskStatus = statusResponse.data?.task_status;
+
+    if (taskStatus === 'succeed') {
+      return {
+        status: 'completed',
+        ...this.buildCompletedResult(
+          statusResponse,
+          taskId,
+          responseHeaders,
+          [],
+          currentDate,
+        ),
+      };
+    }
+
+    if (taskStatus === 'failed') {
+      return {
+        status: 'error' as const,
+        error: `Video generation failed: ${statusResponse.data?.task_status_msg ?? 'Unknown error'}`,
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
+    }
+
+    return {
+      status: 'pending',
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+    };
+  }
+
+  private addUniversalWarnings(
+    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
+    warnings: SharedV3Warning[],
+  ): void {
     if (options.resolution) {
       warnings.push({
         type: 'unsupported',
@@ -439,84 +525,15 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
           'Only 1 video will be generated.',
       });
     }
+  }
 
-    const endpointPath = modeEndpointMap[mode];
-
-    // Step 1: Create the task
-    const { value: createResponse, responseHeaders: createHeaders } =
-      await postJsonToApi({
-        url: `${this.config.baseURL}${endpointPath}`,
-        headers: combineHeaders(
-          await resolve(this.config.headers),
-          options.headers,
-        ),
-        body,
-        successfulResponseHandler: createJsonResponseHandler(
-          klingaiCreateTaskSchema,
-        ),
-        failedResponseHandler: klingaiFailedResponseHandler,
-        abortSignal: options.abortSignal,
-        fetch: this.config.fetch,
-      });
-
-    const taskId = createResponse.data?.task_id;
-    if (!taskId) {
-      throw new AISDKError({
-        name: 'KLINGAI_VIDEO_GENERATION_ERROR',
-        message: `No task_id returned from KlingAI API. Response: ${JSON.stringify(createResponse)}`,
-      });
-    }
-
-    // Step 2: Poll for task completion
-    const pollIntervalMs = klingaiOptions?.pollIntervalMs ?? 5000; // 5 seconds
-    const pollTimeoutMs = klingaiOptions?.pollTimeoutMs ?? 600000; // 10 minutes
-    const startTime = Date.now();
-    let finalResponse: KlingAITaskResponse | undefined;
-    let responseHeaders: Record<string, string> | undefined = createHeaders;
-
-    while (true) {
-      await delay(pollIntervalMs, { abortSignal: options.abortSignal });
-
-      if (Date.now() - startTime > pollTimeoutMs) {
-        throw new AISDKError({
-          name: 'KLINGAI_VIDEO_GENERATION_TIMEOUT',
-          message: `Video generation timed out after ${pollTimeoutMs}ms`,
-        });
-      }
-
-      const { value: statusResponse, responseHeaders: pollHeaders } =
-        await getFromApi({
-          url: `${this.config.baseURL}${endpointPath}/${taskId}`,
-          headers: combineHeaders(
-            await resolve(this.config.headers),
-            options.headers,
-          ),
-          successfulResponseHandler: createJsonResponseHandler(
-            klingaiTaskStatusSchema,
-          ),
-          failedResponseHandler: klingaiFailedResponseHandler,
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        });
-
-      responseHeaders = pollHeaders;
-      const taskStatus = statusResponse.data?.task_status;
-
-      if (taskStatus === 'succeed') {
-        finalResponse = statusResponse;
-        break;
-      }
-
-      if (taskStatus === 'failed') {
-        throw new AISDKError({
-          name: 'KLINGAI_VIDEO_GENERATION_FAILED',
-          message: `Video generation failed: ${statusResponse.data?.task_status_msg ?? 'Unknown error'}`,
-        });
-      }
-
-      // Continue polling for 'submitted' and 'processing' statuses
-    }
-
+  private buildCompletedResult(
+    finalResponse: KlingAITaskResponse,
+    taskId: string,
+    responseHeaders: Record<string, string> | undefined,
+    warnings: SharedV3Warning[],
+    currentDate: Date,
+  ) {
     if (!finalResponse?.data?.task_result?.videos?.length) {
       throw new AISDKError({
         name: 'KLINGAI_VIDEO_GENERATION_ERROR',
@@ -573,7 +590,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   private buildT2VBody(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV3Warning[],
   ): Record<string, unknown> {
@@ -650,7 +667,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   private buildI2VBody(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV3Warning[],
   ): Record<string, unknown> {
@@ -753,7 +770,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   private buildMotionControlBody(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV3Warning[],
   ): Record<string, unknown> {

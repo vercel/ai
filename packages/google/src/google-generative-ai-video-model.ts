@@ -1,13 +1,15 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV3,
+  type Experimental_VideoModelV3 as VideoModelV3,
+  type Experimental_VideoModelV3OperationStartResult as VideoModelV3OperationStartResult,
+  type Experimental_VideoModelV3OperationStatusResult as VideoModelV3OperationStatusResult,
+  type SharedV3ProviderMetadata,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
-  delay,
   type FetchFunction,
   getFromApi,
   lazySchema,
@@ -22,10 +24,6 @@ import { googleFailedResponseHandler } from './google-error';
 import type { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
 
 export type GoogleVideoModelOptions = {
-  // Polling configuration
-  pollIntervalMs?: number | null;
-  pollTimeoutMs?: number | null;
-
   // Video generation options
   personGeneration?: 'dont_allow' | 'allow_adult' | 'allow_all' | null;
   negativePrompt?: string | null;
@@ -50,7 +48,7 @@ interface GoogleGenerativeAIVideoModelConfig {
   };
 }
 
-export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
+export class GoogleGenerativeAIVideoModel implements VideoModelV3 {
   readonly specificationVersion = 'v3';
 
   get provider(): string {
@@ -67,10 +65,14 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
     private readonly config: GoogleGenerativeAIVideoModelConfig,
   ) {}
 
-  async doGenerate(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+  private async buildRequest(
+    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
+  ): Promise<{
+    instances: Array<Record<string, unknown>>;
+    parameters: Record<string, unknown>;
+    warnings: SharedV3Warning[];
+    googleOptions: GoogleVideoModelOptions | undefined;
+  }> {
     const warnings: SharedV3Warning[] = [];
 
     const googleOptions = (await parseProviderOptions({
@@ -169,95 +171,34 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
 
       for (const [key, value] of Object.entries(opts)) {
         if (
-          ![
-            'pollIntervalMs',
-            'pollTimeoutMs',
-            'personGeneration',
-            'negativePrompt',
-            'referenceImages',
-          ].includes(key)
+          !['personGeneration', 'negativePrompt', 'referenceImages'].includes(
+            key,
+          )
         ) {
           parameters[key] = value;
         }
       }
     }
 
-    const { value: operation } = await postJsonToApi({
-      url: `${this.config.baseURL}/models/${this.modelId}:predictLongRunning`,
-      headers: combineHeaders(
-        await resolve(this.config.headers),
-        options.headers,
-      ),
-      body: {
-        instances,
-        parameters,
-      },
-      successfulResponseHandler: createJsonResponseHandler(
-        googleOperationSchema,
-      ),
-      failedResponseHandler: googleFailedResponseHandler,
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
+    return { instances, parameters, warnings, googleOptions };
+  }
 
-    const operationName = operation.name;
-    if (!operationName) {
-      throw new AISDKError({
-        name: 'GOOGLE_VIDEO_GENERATION_ERROR',
-        message: 'No operation name returned from API',
-      });
-    }
-
-    const pollIntervalMs = googleOptions?.pollIntervalMs ?? 10000; // 10 seconds (per Google docs)
-    const pollTimeoutMs = googleOptions?.pollTimeoutMs ?? 600000; // 10 minutes
-
-    const startTime = Date.now();
-    let finalOperation = operation;
-    let responseHeaders: Record<string, string> | undefined;
-
-    while (!finalOperation.done) {
-      if (Date.now() - startTime > pollTimeoutMs) {
-        throw new AISDKError({
-          name: 'GOOGLE_VIDEO_GENERATION_TIMEOUT',
-          message: `Video generation timed out after ${pollTimeoutMs}ms`,
-        });
-      }
-
-      await delay(pollIntervalMs);
-
-      if (options.abortSignal?.aborted) {
-        throw new AISDKError({
-          name: 'GOOGLE_VIDEO_GENERATION_ABORTED',
-          message: 'Video generation request was aborted',
-        });
-      }
-
-      const { value: statusOperation, responseHeaders: pollHeaders } =
-        await getFromApi({
-          url: `${this.config.baseURL}/${operationName}`,
-          headers: combineHeaders(
-            await resolve(this.config.headers),
-            options.headers,
-          ),
-          successfulResponseHandler: createJsonResponseHandler(
-            googleOperationSchema,
-          ),
-          failedResponseHandler: googleFailedResponseHandler,
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        });
-
-      finalOperation = statusOperation;
-      responseHeaders = pollHeaders;
-    }
-
-    if (finalOperation.error) {
-      throw new AISDKError({
-        name: 'GOOGLE_VIDEO_GENERATION_FAILED',
-        message: `Video generation failed: ${finalOperation.error.message}`,
-      });
-    }
-
+  private async buildCompletedResult(
+    finalOperation: z.infer<typeof googleOperationSchema>,
+    responseHeaders: Record<string, string> | undefined,
+    warnings: SharedV3Warning[],
+    currentDate: Date,
+  ): Promise<{
+    status: 'completed';
+    videos: Array<{ type: 'url'; url: string; mediaType: string }>;
+    warnings: SharedV3Warning[];
+    providerMetadata: SharedV3ProviderMetadata;
+    response: {
+      timestamp: Date;
+      modelId: string;
+      headers: Record<string, string> | undefined;
+    };
+  }> {
     const response = finalOperation.response;
     if (
       !response?.generateVideoResponse?.generatedSamples ||
@@ -303,6 +244,7 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
     }
 
     return {
+      status: 'completed',
       videos,
       warnings,
       response: {
@@ -316,6 +258,101 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
         },
       },
     };
+  }
+
+  async doStart(
+    options: Parameters<NonNullable<VideoModelV3['doStart']>>[0],
+  ): Promise<VideoModelV3OperationStartResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { instances, parameters, warnings } =
+      await this.buildRequest(options);
+
+    const { value: operation, responseHeaders } = await postJsonToApi({
+      url: `${this.config.baseURL}/models/${this.modelId}:predictLongRunning`,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      body: {
+        instances,
+        parameters,
+      },
+      successfulResponseHandler: createJsonResponseHandler(
+        googleOperationSchema,
+      ),
+      failedResponseHandler: googleFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const operationName = operation.name;
+    if (!operationName) {
+      throw new AISDKError({
+        name: 'GOOGLE_VIDEO_GENERATION_ERROR',
+        message: 'No operation name returned from API',
+      });
+    }
+
+    return {
+      operation: { operationName },
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+    };
+  }
+
+  async doStatus(
+    options: Parameters<NonNullable<VideoModelV3['doStatus']>>[0],
+  ): Promise<VideoModelV3OperationStatusResult> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { operationName } = options.operation as { operationName: string };
+
+    const { value: statusOperation, responseHeaders } = await getFromApi({
+      url: `${this.config.baseURL}/${operationName}`,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      successfulResponseHandler: createJsonResponseHandler(
+        googleOperationSchema,
+      ),
+      failedResponseHandler: googleFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    if (!statusOperation.done) {
+      return {
+        status: 'pending',
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
+    }
+
+    if (statusOperation.error) {
+      return {
+        status: 'error' as const,
+        error: `Video generation failed: ${statusOperation.error.message}`,
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
+    }
+
+    return this.buildCompletedResult(
+      statusOperation,
+      responseHeaders,
+      [],
+      currentDate,
+    );
   }
 }
 
@@ -354,8 +391,6 @@ const googleVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
         personGeneration: z
           .enum(['dont_allow', 'allow_adult', 'allow_all'])
           .nullish(),

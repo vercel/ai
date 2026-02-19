@@ -10,7 +10,6 @@ run(async () => {
       model: replicate.video('openai/sora-2'),
       prompt:
         'Green parrots against the San Francisco skyline in a post-apocalyptic future setting at night with neon glowing signs downtown.',
-      aspectRatio: '16:9',
       providerOptions: {
         replicate: {
           pollTimeoutMs: 600000, // 10 minutes
