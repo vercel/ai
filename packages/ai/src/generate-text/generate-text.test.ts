@@ -1383,8 +1383,9 @@ describe('generateText', () => {
 
   describe('options.experimental_onToolCallStart', () => {
     it('should be called with correct tool name, id, and input', async () => {
-      const toolCallStartEvents: Parameters<GenerateTextOnToolCallStartCallback>[0][] =
-        [];
+      const toolCallStartEvents: Parameters<
+        GenerateTextOnToolCallStartCallback<any>
+      >[0][] = [];
 
       await generateText({
         model: new MockLanguageModelV3({
@@ -1415,14 +1416,13 @@ describe('generateText', () => {
       });
 
       expect(toolCallStartEvents.length).toBe(1);
-      expect(toolCallStartEvents[0].toolName).toBe('tool1');
-      expect(toolCallStartEvents[0].toolCallId).toBe('call-1');
-      expect(toolCallStartEvents[0].input).toEqual({ value: 'test-arg' });
+      expect(toolCallStartEvents[0]).toMatchSnapshot();
     });
 
     it('should be called once per tool call in a multi-tool step', async () => {
-      const toolCallStartEvents: Parameters<GenerateTextOnToolCallStartCallback>[0][] =
-        [];
+      const toolCallStartEvents: Parameters<
+        GenerateTextOnToolCallStartCallback<any>
+      >[0][] = [];
 
       await generateText({
         model: new MockLanguageModelV3({
@@ -1460,8 +1460,8 @@ describe('generateText', () => {
       });
 
       expect(toolCallStartEvents.length).toBe(2);
-      expect(toolCallStartEvents[0].toolCallId).toBe('call-1');
-      expect(toolCallStartEvents[1].toolCallId).toBe('call-2');
+      expect(toolCallStartEvents[0].toolCall.toolCallId).toBe('call-1');
+      expect(toolCallStartEvents[1].toolCall.toolCallId).toBe('call-2');
     });
 
     it('should be called before tool execution', async () => {
@@ -1537,8 +1537,9 @@ describe('generateText', () => {
     });
 
     it('should not fire for tools without execute', async () => {
-      const toolCallStartEvents: Parameters<GenerateTextOnToolCallStartCallback>[0][] =
-        [];
+      const toolCallStartEvents: Parameters<
+        GenerateTextOnToolCallStartCallback<any>
+      >[0][] = [];
 
       await generateText({
         model: new MockLanguageModelV3({
@@ -1571,8 +1572,9 @@ describe('generateText', () => {
     });
 
     it('should pass experimental_context', async () => {
-      const toolCallStartEvents: Parameters<GenerateTextOnToolCallStartCallback>[0][] =
-        [];
+      const toolCallStartEvents: Parameters<
+        GenerateTextOnToolCallStartCallback<any>
+      >[0][] = [];
 
       await generateText({
         model: new MockLanguageModelV3({
@@ -1613,8 +1615,9 @@ describe('generateText', () => {
 
   describe('options.experimental_onToolCallFinish', () => {
     it('should be called with correct data on success', async () => {
-      const toolCallFinishEvents: Parameters<GenerateTextOnToolCallFinishCallback>[0][] =
-        [];
+      const toolCallFinishEvents: Parameters<
+        GenerateTextOnToolCallFinishCallback<any>
+      >[0][] = [];
 
       await generateText({
         model: new MockLanguageModelV3({
@@ -1645,17 +1648,20 @@ describe('generateText', () => {
       });
 
       expect(toolCallFinishEvents.length).toBe(1);
-      expect(toolCallFinishEvents[0].toolName).toBe('tool1');
-      expect(toolCallFinishEvents[0].toolCallId).toBe('call-1');
-      expect(toolCallFinishEvents[0].input).toEqual({ value: 'test-arg' });
+      expect(toolCallFinishEvents[0].toolCall.toolName).toBe('tool1');
+      expect(toolCallFinishEvents[0].toolCall.toolCallId).toBe('call-1');
+      expect(toolCallFinishEvents[0].toolCall.input).toEqual({
+        value: 'test-arg',
+      });
       expect(toolCallFinishEvents[0].success).toBe(true);
       expect(toolCallFinishEvents[0].output).toBe('test-arg-result');
       expect(toolCallFinishEvents[0].durationMs).toBeGreaterThanOrEqual(0);
     });
 
     it('should be called with error data when tool execution fails', async () => {
-      const toolCallFinishEvents: Parameters<GenerateTextOnToolCallFinishCallback>[0][] =
-        [];
+      const toolCallFinishEvents: Parameters<
+        GenerateTextOnToolCallFinishCallback<any>
+      >[0][] = [];
       const toolError = new Error('tool execution failed');
 
       await generateText({
@@ -1689,16 +1695,17 @@ describe('generateText', () => {
       });
 
       expect(toolCallFinishEvents.length).toBe(1);
-      expect(toolCallFinishEvents[0].toolName).toBe('tool1');
-      expect(toolCallFinishEvents[0].toolCallId).toBe('call-1');
+      expect(toolCallFinishEvents[0].toolCall.toolName).toBe('tool1');
+      expect(toolCallFinishEvents[0].toolCall.toolCallId).toBe('call-1');
       expect(toolCallFinishEvents[0].success).toBe(false);
       expect(toolCallFinishEvents[0].error).toBe(toolError);
       expect(toolCallFinishEvents[0].durationMs).toBeGreaterThanOrEqual(0);
     });
 
     it('should have a positive durationMs', async () => {
-      const toolCallFinishEvents: Parameters<GenerateTextOnToolCallFinishCallback>[0][] =
-        [];
+      const toolCallFinishEvents: Parameters<
+        GenerateTextOnToolCallFinishCallback<any>
+      >[0][] = [];
 
       await generateText({
         model: new MockLanguageModelV3({
@@ -1766,8 +1773,9 @@ describe('generateText', () => {
     });
 
     it('should not fire for tools without execute', async () => {
-      const toolCallFinishEvents: Parameters<GenerateTextOnToolCallFinishCallback>[0][] =
-        [];
+      const toolCallFinishEvents: Parameters<
+        GenerateTextOnToolCallFinishCallback<any>
+      >[0][] = [];
 
       await generateText({
         model: new MockLanguageModelV3({
@@ -1800,8 +1808,9 @@ describe('generateText', () => {
     });
 
     it('should pass experimental_context on success', async () => {
-      const toolCallFinishEvents: Parameters<GenerateTextOnToolCallFinishCallback>[0][] =
-        [];
+      const toolCallFinishEvents: Parameters<
+        GenerateTextOnToolCallFinishCallback<any>
+      >[0][] = [];
 
       await generateText({
         model: new MockLanguageModelV3({
@@ -1841,8 +1850,9 @@ describe('generateText', () => {
     });
 
     it('should pass experimental_context on error', async () => {
-      const toolCallFinishEvents: Parameters<GenerateTextOnToolCallFinishCallback>[0][] =
-        [];
+      const toolCallFinishEvents: Parameters<
+        GenerateTextOnToolCallFinishCallback<any>
+      >[0][] = [];
       const toolError = new Error('Tool execution failed');
 
       await generateText({
@@ -1968,10 +1978,12 @@ describe('generateText', () => {
     });
 
     it('should fire tool call callbacks for each tool in a multi-step loop', async () => {
-      const toolCallStartEvents: Parameters<GenerateTextOnToolCallStartCallback>[0][] =
-        [];
-      const toolCallFinishEvents: Parameters<GenerateTextOnToolCallFinishCallback>[0][] =
-        [];
+      const toolCallStartEvents: Parameters<
+        GenerateTextOnToolCallStartCallback<any>
+      >[0][] = [];
+      const toolCallFinishEvents: Parameters<
+        GenerateTextOnToolCallFinishCallback<any>
+      >[0][] = [];
       let responseCount = 0;
 
       await generateText({
@@ -2034,8 +2046,8 @@ describe('generateText', () => {
       expect(toolCallStartEvents.length).toBe(2);
       expect(toolCallFinishEvents.length).toBe(2);
 
-      expect(toolCallStartEvents[0].toolCallId).toBe('call-1');
-      expect(toolCallStartEvents[1].toolCallId).toBe('call-2');
+      expect(toolCallStartEvents[0].toolCall.toolCallId).toBe('call-1');
+      expect(toolCallStartEvents[1].toolCall.toolCallId).toBe('call-2');
 
       expect(toolCallFinishEvents[0].success).toBe(true);
       expect(toolCallFinishEvents[0].output).toBe('step0-result');

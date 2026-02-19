@@ -309,21 +309,39 @@ export type GenerateTextOnStepStartCallback<
  * Use this for logging tool invocations, tracking tool usage, or pre-execution validation.
  *
  * @param event - The event object containing tool call information.
- * @param event.toolName - The name of the tool being called.
- * @param event.toolCallId - Unique identifier for this specific tool call.
- * @param event.input - The parsed input arguments for the tool call.
+ * @param event.stepNumber - Zero-based index of the current step where this tool call occurs.
+ * @param event.model - Information about the model being used (provider and modelId).
+ * @param event.toolCall - The full tool call object containing toolName, toolCallId, input, and metadata.
+ * @param event.messages - The conversation messages available at tool execution time.
+ * @param event.abortSignal - Signal for cancelling the operation.
  * @param event.functionId - Identifier from telemetry settings for grouping related operations.
+ * @param event.metadata - Additional metadata from telemetry settings.
  * @param event.experimental_context - User-defined context object flowing through the generation.
  */
-export type GenerateTextOnToolCallStartCallback = (event: {
-  /** The name of the tool being called. */
-  readonly toolName: string;
-  /** Unique identifier for this specific tool call. */
-  readonly toolCallId: string;
-  /** The parsed input arguments for the tool call. */
-  readonly input: unknown;
+export type GenerateTextOnToolCallStartCallback<
+  TOOLS extends ToolSet = ToolSet,
+> = (event: {
+  /** Zero-based index of the current step where this tool call occurs. May be undefined in streaming contexts. */
+  readonly stepNumber: number | undefined;
+  /** Information about the model being used. May be undefined in streaming contexts. */
+  readonly model:
+    | {
+        /** The provider of the model. */
+        readonly provider: string;
+        /** The ID of the model. */
+        readonly modelId: string;
+      }
+    | undefined;
+  /** The full tool call object. */
+  readonly toolCall: TypedToolCall<TOOLS>;
+  /** The conversation messages available at tool execution time. */
+  readonly messages: Array<ModelMessage>;
+  /** Signal for cancelling the operation. */
+  readonly abortSignal: AbortSignal | undefined;
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
+  /** Additional metadata from telemetry settings. */
+  readonly metadata: Record<string, unknown> | undefined;
   /** User-defined context object flowing through the generation. */
   readonly experimental_context: unknown;
 }) => PromiseLike<void> | void;
@@ -339,28 +357,46 @@ export type GenerateTextOnToolCallStartCallback = (event: {
  * - When `success: false`: `error` contains the error, `output` is never present.
  *
  * @param event - The event object containing tool call result information.
- * @param event.toolName - The name of the tool that was called.
- * @param event.toolCallId - Unique identifier for this specific tool call.
- * @param event.input - The parsed input arguments that were passed to the tool.
+ * @param event.stepNumber - Zero-based index of the current step where this tool call occurred.
+ * @param event.model - Information about the model being used (provider and modelId).
+ * @param event.toolCall - The full tool call object containing toolName, toolCallId, input, and metadata.
+ * @param event.messages - The conversation messages available at tool execution time.
+ * @param event.abortSignal - Signal for cancelling the operation.
  * @param event.durationMs - Execution time of the tool call in milliseconds.
  * @param event.functionId - Identifier from telemetry settings for grouping related operations.
+ * @param event.metadata - Additional metadata from telemetry settings.
  * @param event.experimental_context - User-defined context object flowing through the generation.
  * @param event.success - Discriminator indicating whether the tool call succeeded.
  * @param event.output - The tool's return value (only present when `success: true`).
  * @param event.error - The error that occurred (only present when `success: false`).
  */
-export type GenerateTextOnToolCallFinishCallback = (
+export type GenerateTextOnToolCallFinishCallback<
+  TOOLS extends ToolSet = ToolSet,
+> = (
   event: {
-    /** The name of the tool that was called. */
-    readonly toolName: string;
-    /** Unique identifier for this specific tool call. */
-    readonly toolCallId: string;
-    /** The parsed input arguments that were passed to the tool. */
-    readonly input: unknown;
+    /** Zero-based index of the current step where this tool call occurred. May be undefined in streaming contexts. */
+    readonly stepNumber: number | undefined;
+    /** Information about the model being used. May be undefined in streaming contexts. */
+    readonly model:
+      | {
+          /** The provider of the model. */
+          readonly provider: string;
+          /** The ID of the model. */
+          readonly modelId: string;
+        }
+      | undefined;
+    /** The full tool call object. */
+    readonly toolCall: TypedToolCall<TOOLS>;
+    /** The conversation messages available at tool execution time. */
+    readonly messages: Array<ModelMessage>;
+    /** Signal for cancelling the operation. */
+    readonly abortSignal: AbortSignal | undefined;
     /** Execution time of the tool call in milliseconds. */
     readonly durationMs: number;
     /** Identifier from telemetry settings for grouping related operations. */
     readonly functionId: string | undefined;
+    /** Additional metadata from telemetry settings. */
+    readonly metadata: Record<string, unknown> | undefined;
     /** User-defined context object flowing through the generation. */
     readonly experimental_context: unknown;
   } & (
@@ -669,12 +705,16 @@ export async function generateText<
     /**
      * Callback that is called right before a tool's execute function runs.
      */
-    experimental_onToolCallStart?: GenerateTextOnToolCallStartCallback;
+    experimental_onToolCallStart?: GenerateTextOnToolCallStartCallback<
+      NoInfer<TOOLS>
+    >;
 
     /**
      * Callback that is called right after a tool's execute function completes (or errors).
      */
-    experimental_onToolCallFinish?: GenerateTextOnToolCallFinishCallback;
+    experimental_onToolCallFinish?: GenerateTextOnToolCallFinishCallback<
+      NoInfer<TOOLS>
+    >;
 
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
@@ -843,6 +883,8 @@ export async function generateText<
             messages: initialMessages,
             abortSignal: mergedAbortSignal,
             experimental_context,
+            stepNumber: 0,
+            model: { provider: model.provider, modelId: model.modelId },
             onToolCallStart: onToolCallStart,
             onToolCallFinish: onToolCallFinish,
           });
@@ -1236,6 +1278,11 @@ export async function generateText<
                   messages: stepInputMessages,
                   abortSignal: mergedAbortSignal,
                   experimental_context,
+                  stepNumber: steps.length,
+                  model: {
+                    provider: stepModel.provider,
+                    modelId: stepModel.modelId,
+                  },
                   onToolCallStart: onToolCallStart,
                   onToolCallFinish: onToolCallFinish,
                 })),
@@ -1475,6 +1522,8 @@ async function executeTools<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   experimental_context,
+  stepNumber,
+  model,
   onToolCallStart,
   onToolCallFinish,
 }: {
@@ -1485,8 +1534,10 @@ async function executeTools<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
-  onToolCallStart: GenerateTextOnToolCallStartCallback | undefined;
-  onToolCallFinish: GenerateTextOnToolCallFinishCallback | undefined;
+  stepNumber: number;
+  model: { provider: string; modelId: string };
+  onToolCallStart: GenerateTextOnToolCallStartCallback<TOOLS> | undefined;
+  onToolCallFinish: GenerateTextOnToolCallFinishCallback<TOOLS> | undefined;
 }): Promise<Array<ToolOutput<TOOLS>>> {
   const toolOutputs = await Promise.all(
     toolCalls.map(async toolCall =>
@@ -1498,6 +1549,8 @@ async function executeTools<TOOLS extends ToolSet>({
         messages,
         abortSignal,
         experimental_context,
+        stepNumber,
+        model,
         onToolCallStart,
         onToolCallFinish,
       }),

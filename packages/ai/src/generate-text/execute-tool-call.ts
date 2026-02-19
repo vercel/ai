@@ -33,6 +33,8 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   experimental_context,
+  stepNumber,
+  model,
   onPreliminaryToolResult,
   onToolCallStart,
   onToolCallFinish,
@@ -44,9 +46,11 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
+  stepNumber?: number;
+  model?: { provider: string; modelId: string };
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
-  onToolCallStart?: GenerateTextOnToolCallStartCallback;
-  onToolCallFinish?: GenerateTextOnToolCallFinishCallback;
+  onToolCallStart?: GenerateTextOnToolCallStartCallback<TOOLS>;
+  onToolCallFinish?: GenerateTextOnToolCallFinishCallback<TOOLS>;
 }): Promise<ToolOutput<TOOLS> | undefined> {
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
@@ -77,10 +81,13 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 
       try {
         await onToolCallStart?.({
-          toolName,
-          toolCallId,
-          input,
+          stepNumber,
+          model,
+          toolCall,
+          messages,
+          abortSignal,
           functionId: telemetry?.functionId,
+          metadata: telemetry?.metadata as Record<string, unknown> | undefined,
           experimental_context,
         });
       } catch (_ignored) {
@@ -118,13 +125,18 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 
         try {
           await onToolCallFinish?.({
-            toolName,
-            toolCallId,
-            input,
+            stepNumber,
+            model,
+            toolCall,
+            messages,
+            abortSignal,
             success: false,
             error,
             durationMs,
             functionId: telemetry?.functionId,
+            metadata: telemetry?.metadata as
+              | Record<string, unknown>
+              | undefined,
             experimental_context,
           });
         } catch (_ignored) {
@@ -149,13 +161,16 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 
       try {
         await onToolCallFinish?.({
-          toolName,
-          toolCallId,
-          input,
+          stepNumber,
+          model,
+          toolCall,
+          messages,
+          abortSignal,
           success: true,
           output,
           durationMs,
           functionId: telemetry?.functionId,
+          metadata: telemetry?.metadata as Record<string, unknown> | undefined,
           experimental_context,
         });
       } catch (_ignored) {
