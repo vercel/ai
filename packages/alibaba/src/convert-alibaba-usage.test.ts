@@ -19,7 +19,17 @@ describe('convertAlibabaUsage', () => {
     expect(result.inputTokens).toBe(200);
     expect(result.outputTokens).toBe(75);
     expect(result.totalTokens).toBe(275);
-    expect(result.cachedInputTokens).toBe(120);
+    expect(result.cachedInputTokens).toBe(170);
     expect(result.reasoningTokens).toBe(25);
+  });
+
+  it('should return undefined for cachedInputTokens when both cache fields are absent', () => {
+    const result = convertAlibabaUsage({
+      prompt_tokens: 100,
+      completion_tokens: 50,
+      total_tokens: 150,
+    });
+
+    expect(result.cachedInputTokens).toBeUndefined();
   });
 });
