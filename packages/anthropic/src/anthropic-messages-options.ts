@@ -19,6 +19,7 @@ export type AnthropicMessagesModelId =
   | 'claude-sonnet-4-20250514'
   | 'claude-sonnet-4-5-20250929'
   | 'claude-sonnet-4-5'
+  | 'claude-sonnet-4-6'
   | 'claude-opus-4-6'
   | (string & {});
 
@@ -84,11 +85,11 @@ export const anthropicLanguageModelOptions = z.object({
   thinking: z
     .discriminatedUnion('type', [
       z.object({
-        /** for Opus 4.6 and newer models */
+        /** for Sonnet 4.6, Opus 4.6, and newer models */
         type: z.literal('adaptive'),
       }),
       z.object({
-        /** for models before Opus 4.6 */
+        /** for models before Opus 4.6, except Sonnet 4.6 still supports it */
         type: z.literal('enabled'),
         budgetTokens: z.number().optional(),
       }),
