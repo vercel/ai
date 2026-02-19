@@ -32,6 +32,7 @@ export {
   type StreamTextOnFinishCallback,
   type StreamTextOnStartCallback,
   type StreamTextOnStepFinishCallback,
+  type StreamTextOnStepStartCallback,
   type StreamTextTransform,
 } from './stream-text';
 export type {

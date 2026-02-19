@@ -1,6 +1,7 @@
 import {
   getErrorMessage,
   LanguageModelV3,
+  LanguageModelV3ToolChoice,
   SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -322,6 +323,106 @@ export type StreamTextOnStartCallback<
 }) => PromiseLike<void> | void;
 
 /**
+ * Callback that is set using the `experimental_onStepStart` option.
+ *
+ * Called when a step (LLM call) begins, before the provider is called.
+ * Each step represents a single LLM invocation. Multiple steps occur when
+ * using tool calls (the model may be called multiple times in a loop).
+ *
+ * @param event - The event object containing step configuration.
+ */
+export type StreamTextOnStepStartCallback<
+  TOOLS extends ToolSet = ToolSet,
+  OUTPUT extends Output = Output,
+> = (event: {
+  /** Zero-based index of the current step. */
+  readonly stepNumber: number;
+
+  /** The model being used for this step. */
+  readonly model: {
+    /** The provider identifier. */
+    readonly provider: string;
+    /** The specific model identifier. */
+    readonly modelId: string;
+  };
+
+  /**
+   * The system message for this step.
+   */
+  readonly system:
+    | string
+    | SystemModelMessage
+    | Array<SystemModelMessage>
+    | undefined;
+
+  /**
+   * The messages that will be sent to the model for this step.
+   * Uses the user-facing `ModelMessage` format.
+   * May be overridden by prepareStep.
+   */
+  readonly messages: Array<ModelMessage>;
+
+  /** The tools available for this generation. */
+  readonly tools: TOOLS | undefined;
+
+  /** The tool choice configuration for this step. */
+  readonly toolChoice: LanguageModelV3ToolChoice | undefined;
+
+  /** Limits which tools are available for this step. */
+  readonly activeTools: Array<keyof TOOLS> | undefined;
+
+  /** Array of results from previous steps (empty for first step). */
+  readonly steps: ReadonlyArray<StepResult<TOOLS>>;
+
+  /** Additional provider-specific options for this step. */
+  readonly providerOptions: ProviderOptions | undefined;
+
+  /**
+   * Timeout configuration for the generation.
+   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.
+   */
+  readonly timeout: TimeoutConfiguration | undefined;
+
+  /** Additional HTTP headers sent with the request. */
+  readonly headers: Record<string, string | undefined> | undefined;
+
+  /**
+   * Condition(s) for stopping the generation.
+   * When the condition is an array, any of the conditions can be met to stop.
+   */
+  readonly stopWhen:
+    | StopCondition<TOOLS>
+    | Array<StopCondition<TOOLS>>
+    | undefined;
+
+  /** The output specification for structured outputs, if configured. */
+  readonly output: OUTPUT | undefined;
+
+  /** Abort signal for cancelling the operation. */
+  readonly abortSignal: AbortSignal | undefined;
+
+  /**
+   * Settings for controlling what data is included in step results.
+   */
+  readonly include:
+    | {
+        requestBody?: boolean;
+      }
+    | undefined;
+
+  /** Identifier from telemetry settings for grouping related operations. */
+  readonly functionId: string | undefined;
+
+  /** Additional metadata from telemetry settings. */
+  readonly metadata: Record<string, unknown> | undefined;
+
+  /**
+   * User-defined context object. May be updated from `prepareStep` between steps.
+   */
+  readonly experimental_context: unknown;
+}) => PromiseLike<void> | void;
+
+/**
  * Generate a text and call tools for a given prompt using a language model.
  *
  * This function streams the output. If you do not want to stream the output, use `generateText` instead.
@@ -401,6 +502,7 @@ export function streamText<
   onAbort,
   onStepFinish,
   experimental_onStart: onStart,
+  experimental_onStepStart: onStepStart,
   experimental_context,
   experimental_include: include,
   _internal: { now = originalNow, generateId = originalGenerateId } = {},
@@ -544,6 +646,15 @@ export function streamText<
     experimental_onStart?: StreamTextOnStartCallback<NoInfer<TOOLS>, OUTPUT>;
 
     /**
+     * Callback that is called when a step (LLM call) begins,
+     * before the provider is called.
+     */
+    experimental_onStepStart?: StreamTextOnStepStartCallback<
+      NoInfer<TOOLS>,
+      OUTPUT
+    >;
+
+    /**
      * Context that is passed into tool execution.
      *
      * Experimental (can break in patch releases).
@@ -621,6 +732,7 @@ export function streamText<
     onAbort,
     onStepFinish,
     onStart,
+    onStepStart,
     now,
     generateId,
     experimental_context,
@@ -798,6 +910,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     onAbort,
     onStepFinish,
     onStart,
+    onStepStart,
     experimental_context,
     download,
     include,
@@ -844,6 +957,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     onAbort: undefined | StreamTextOnAbortCallback<TOOLS>;
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
     onStart: undefined | StreamTextOnStartCallback<TOOLS, OUTPUT>;
+    onStepStart: undefined | StreamTextOnStepStartCallback<TOOLS, OUTPUT>;
   }) {
     this.outputSpecification = output;
     this.includeRawChunks = includeRawChunks;
@@ -1563,20 +1677,60 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               download,
             });
 
+            const stepActiveTools =
+              prepareStepResult?.activeTools ?? activeTools;
+
             const { toolChoice: stepToolChoice, tools: stepTools } =
               await prepareToolsAndToolChoice({
                 tools,
                 toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-                activeTools: prepareStepResult?.activeTools ?? activeTools,
+                activeTools: stepActiveTools,
               });
 
             experimental_context =
               prepareStepResult?.experimental_context ?? experimental_context;
 
+            const stepMessages =
+              prepareStepResult?.messages ?? stepInputMessages;
+
+            const stepSystem =
+              prepareStepResult?.system ?? initialPrompt.system;
+
             const stepProviderOptions = mergeObjects(
               providerOptions,
               prepareStepResult?.providerOptions,
             );
+
+            try {
+              await onStepStart?.({
+                stepNumber: recordedSteps.length,
+                model: {
+                  provider: stepModel.provider,
+                  modelId: stepModel.modelId,
+                },
+                system: stepSystem,
+                messages: stepMessages,
+                tools,
+                toolChoice: stepToolChoice,
+                activeTools: stepActiveTools,
+                steps: [...recordedSteps],
+                providerOptions: stepProviderOptions,
+                timeout,
+                headers,
+                stopWhen,
+                output,
+                abortSignal: originalAbortSignal,
+                include,
+                functionId: telemetry?.functionId,
+                metadata: telemetry?.metadata as
+                  | Record<string, unknown>
+                  | undefined,
+                experimental_context,
+              });
+            } catch (_ignored) {
+              // Errors in callbacks should not break the generation flow.
+            }
+
             const {
               result: { stream, response, request },
               doStreamSpan,
