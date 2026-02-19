@@ -12,6 +12,12 @@ export type EmbeddingModelV3CallOptions = {
   abortSignal?: AbortSignal;
 
   /**
+   * The number of dimensions the resulting output embeddings should have.
+   * Only supported by some models and providers.
+   */
+  dimensions?: number;
+
+  /**
    * Additional provider-specific options. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
