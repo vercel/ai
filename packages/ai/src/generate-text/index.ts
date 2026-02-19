@@ -1,7 +1,11 @@
 export {
   generateText,
   type GenerateTextOnFinishCallback,
+  type GenerateTextOnStartCallback,
+  type GenerateTextOnStepStartCallback,
   type GenerateTextOnStepFinishCallback,
+  type GenerateTextOnToolCallStartCallback,
+  type GenerateTextOnToolCallFinishCallback,
 } from './generate-text';
 export type { ContentPart } from './content-part';
 export type { GenerateTextResult } from './generate-text-result';

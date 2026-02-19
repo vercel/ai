@@ -715,30 +715,33 @@ The errors that you get in this case look like this:
 By default, structured outputs are enabled (and for tool calling they are required).
 You can disable structured outputs for object generation as a workaround:
 
-```ts highlight="6,11"
+```ts highlight="7,12"
 import { vertex } from '@ai-sdk/google-vertex';
 import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
+import { generateText, Output } from 'ai';
 
-const result = await generateObject({
+const result = await generateText({
   model: vertex('gemini-1.5-pro'),
   providerOptions: {
     vertex: {
       structuredOutputs: false,
     } satisfies GoogleLanguageModelOptions,
   },
-  schema: z.object({
-    name: z.string(),
-    age: z.number(),
-    contact: z.union([
-      z.object({
-        type: z.literal('email'),
-        value: z.string(),
-      }),
-      z.object({
-        type: z.literal('phone'),
-        value: z.string(),
-      }),
-    ]),
+  output: Output.object({
+    schema: z.object({
+      name: z.string(),
+      age: z.number(),
+      contact: z.union([
+        z.object({
+          type: z.literal('email'),
+          value: z.string(),
+        }),
+        z.object({
+          type: z.literal('phone'),
+          value: z.string(),
+        }),
+      ]),
+    }),
   }),
   prompt: 'Generate an example person for testing.',
 });
@@ -1403,13 +1406,14 @@ const { text } = await generateText({
 });
 ```
 
-Anthropic language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
+Anthropic language models can also be used in the `streamText` function
+and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
 <Note>
   The Anthropic API returns streaming tool calls all at once after a delay. This
-  causes the `streamObject` function to generate the object fully after a delay
-  instead of streaming it incrementally.
+  causes structured output generation to complete fully after a delay instead of
+  streaming incrementally.
 </Note>
 
 The following optional provider options are available for Anthropic models:
@@ -1466,8 +1470,8 @@ In the messages and message parts, you can use the `providerOptions` property to
 You need to set the `anthropic` property in the `providerOptions` object to `{ cacheControl: { type: 'ephemeral' } }` to set a cache control breakpoint.
 
 The cache creation input tokens are then returned in the `providerMetadata` object
-for `generateText` and `generateObject`, again under the `anthropic` property.
-When you use `streamText` or `streamObject`, the response contains a promise
+for `generateText`, again under the `anthropic` property.
+When you use `streamText`, the response contains a promise
 that resolves to the metadata. Alternatively you can receive it in the
 `onFinish` callback.
 

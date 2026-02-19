@@ -917,6 +917,16 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
+            stepNumber: recordedSteps.length,
+            model: {
+              provider: model.provider,
+              modelId: model.modelId,
+            },
+            functionId: telemetry?.functionId,
+            metadata: telemetry?.metadata as
+              | Record<string, unknown>
+              | undefined,
+            experimental_context,
             content: recordedContent,
             finishReason: part.finishReason,
             rawFinishReason: part.rawFinishReason,
@@ -987,6 +997,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           // call onFinish callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
           await onFinish?.({
+            stepNumber: finalStep.stepNumber,
+            model: finalStep.model,
+            functionId: finalStep.functionId,
+            metadata: finalStep.metadata,
+            experimental_context: finalStep.experimental_context,
             finishReason: finalStep.finishReason,
             rawFinishReason: finalStep.rawFinishReason,
             totalUsage,
@@ -1008,7 +1023,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             warnings: finalStep.warnings,
             providerMetadata: finalStep.providerMetadata,
             steps: recordedSteps,
-            experimental_context,
           });
 
           // Add response information to the root span:

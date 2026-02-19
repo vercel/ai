@@ -1,5 +1,18 @@
 # ai
 
+## 6.0.93
+
+### Patch Changes
+
+- d3769ec: feat(ai): add experimental callbacks in generateText
+
+## 6.0.92
+
+### Patch Changes
+
+- Updated dependencies [765b013]
+  - @ai-sdk/gateway@3.0.51
+
 ## 6.0.91
 
 ### Patch Changes

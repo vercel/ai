@@ -103,7 +103,8 @@ const { text } = await generateText({
 });
 ```
 
-Anthropic language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
+Anthropic language models can also be used in the `streamText` function
+and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
 The following optional provider options are available for Anthropic models:
@@ -438,8 +439,8 @@ In the messages and message parts, you can use the `providerOptions` property to
 You need to set the `anthropic` property in the `providerOptions` object to `{ cacheControl: { type: 'ephemeral' } }` to set a cache control breakpoint.
 
 The cache creation input tokens are then returned in the `providerMetadata` object
-for `generateText` and `generateObject`, again under the `anthropic` property.
-When you use `streamText` or `streamObject`, the response contains a promise
+for `generateText`, again under the `anthropic` property.
+When you use `streamText`, the response contains a promise
 that resolves to the metadata. Alternatively you can receive it in the
 `onFinish` callback.
 
@@ -980,7 +981,7 @@ The web fetch tool supports several configuration options:
 
 Web search errors are handled differently depending on whether you're using streaming or non-streaming:
 
-**Non-streaming (`generateText`, `generateObject`):**
+**Non-streaming (`generateText`):**
 Web search errors throw exceptions that you can catch:
 
 ```ts
@@ -1000,7 +1001,7 @@ try {
 }
 ```
 
-**Streaming (`streamText`, `streamObject`):**
+**Streaming (`streamText`):**
 Web search errors are delivered as error parts in the stream:
 
 ```ts
@@ -1052,7 +1053,7 @@ const result = await generateText({
 
 Code execution errors are handled differently depending on whether you're using streaming or non-streaming:
 
-**Non-streaming (`generateText`, `generateObject`):**
+**Non-streaming (`generateText`):**
 Code execution errors are delivered as tool result parts in the response:
 
 ```ts
@@ -1077,7 +1078,7 @@ toolErrors?.forEach(error => {
 });
 ```
 
-**Streaming (`streamText`, `streamObject`):**
+**Streaming (`streamText`):**
 Code execution errors are delivered as error parts in the stream:
 
 ```ts
