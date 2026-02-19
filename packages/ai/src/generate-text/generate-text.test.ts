@@ -2133,6 +2133,7 @@ describe('generateText', () => {
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
+          "metadata": undefined,
           "providerMetadata": undefined,
           "rawFinishReason": "stop",
           "reasoning": [],

@@ -81,6 +81,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
   "files": [],
   "finishReason": "stop",
   "functionId": undefined,
+  "metadata": undefined,
   "providerMetadata": undefined,
   "rawFinishReason": "stop",
   "reasoning": [],

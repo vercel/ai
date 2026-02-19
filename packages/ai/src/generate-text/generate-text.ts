@@ -498,6 +498,7 @@ export type GenerateTextOnStepFinishCallback<TOOLS extends ToolSet> = (
  * @param event.totalUsage - Aggregated token usage across all steps.
  * @param event.experimental_context - The final state of the user-defined context object.
  * @param event.functionId - Identifier from telemetry settings for grouping related operations.
+ * @param event.metadata - Additional metadata from telemetry settings.
  */
 export type GenerateTextOnFinishCallback<TOOLS extends ToolSet> = (
   event: StepResult<TOOLS> & {
@@ -525,6 +526,9 @@ export type GenerateTextOnFinishCallback<TOOLS extends ToolSet> = (
 
     /** Identifier from telemetry settings for grouping related operations. */
     readonly functionId: string | undefined;
+
+    /** Additional metadata from telemetry settings. */
+    readonly metadata: Record<string, unknown> | undefined;
   },
 ) => PromiseLike<void> | void;
 
@@ -1508,6 +1512,7 @@ export async function generateText<
           totalUsage,
           experimental_context,
           functionId: telemetry?.functionId,
+          metadata: telemetry?.metadata as Record<string, unknown> | undefined,
         });
 
         // parse output only if the last step was finished with "stop":
