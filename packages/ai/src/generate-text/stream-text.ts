@@ -9,7 +9,9 @@ import {
   DelayedPromise,
   IdGenerator,
   isAbortError,
+  ModelMessage,
   ProviderOptions,
+  SystemModelMessage,
   ToolApprovalResponse,
   ToolContent,
 } from '@ai-sdk/provider-utils';
@@ -23,6 +25,7 @@ import {
   getChunkTimeoutMs,
   getStepTimeoutMs,
   getTotalTimeoutMs,
+  TimeoutConfiguration,
 } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
@@ -207,6 +210,118 @@ export type StreamTextOnAbortCallback<TOOLS extends ToolSet> = (event: {
 }) => PromiseLike<void> | void;
 
 /**
+ * Callback that is set using the `experimental_onStart` option.
+ *
+ * Called when the streamText operation begins, before any LLM calls.
+ * Use this callback for logging, analytics, or initializing state at the
+ * start of a generation.
+ *
+ * @param event - The event object containing generation configuration.
+ */
+export type StreamTextOnStartCallback<
+  TOOLS extends ToolSet = ToolSet,
+  OUTPUT extends Output = Output,
+> = (event: {
+  /** The model being used for generation. */
+  readonly model: {
+    /** The provider identifier (e.g., 'openai', 'anthropic'). */
+    readonly provider: string;
+    /** The specific model identifier (e.g., 'gpt-4o'). */
+    readonly modelId: string;
+  };
+
+  /** The system message(s) provided to the model. */
+  readonly system:
+    | string
+    | SystemModelMessage
+    | Array<SystemModelMessage>
+    | undefined;
+
+  /** The prompt string or array of messages if using the prompt option. */
+  readonly prompt: string | Array<ModelMessage> | undefined;
+
+  /** The messages array if using the messages option. */
+  readonly messages: Array<ModelMessage> | undefined;
+
+  /** The tools available for this generation. */
+  readonly tools: TOOLS | undefined;
+
+  /** The tool choice strategy for this generation. */
+  readonly toolChoice: ToolChoice<NoInfer<TOOLS>> | undefined;
+
+  /** Limits which tools are available for the model to call. */
+  readonly activeTools: Array<keyof TOOLS> | undefined;
+
+  /** Maximum number of tokens to generate. */
+  readonly maxOutputTokens: number | undefined;
+  /** Sampling temperature for generation. */
+  readonly temperature: number | undefined;
+  /** Top-p (nucleus) sampling parameter. */
+  readonly topP: number | undefined;
+  /** Top-k sampling parameter. */
+  readonly topK: number | undefined;
+  /** Presence penalty for generation. */
+  readonly presencePenalty: number | undefined;
+  /** Frequency penalty for generation. */
+  readonly frequencyPenalty: number | undefined;
+  /** Sequences that will stop generation. */
+  readonly stopSequences: string[] | undefined;
+  /** Random seed for reproducible generation. */
+  readonly seed: number | undefined;
+  /** Maximum number of retries for failed requests. */
+  readonly maxRetries: number;
+
+  /**
+   * Timeout configuration for the generation.
+   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.
+   */
+  readonly timeout: TimeoutConfiguration | undefined;
+
+  /** Additional HTTP headers sent with the request. */
+  readonly headers: Record<string, string | undefined> | undefined;
+
+  /** Additional provider-specific options. */
+  readonly providerOptions: ProviderOptions | undefined;
+
+  /**
+   * Condition(s) for stopping the generation.
+   * When the condition is an array, any of the conditions can be met to stop.
+   */
+  readonly stopWhen:
+    | StopCondition<TOOLS>
+    | Array<StopCondition<TOOLS>>
+    | undefined;
+
+  /** The output specification for structured outputs, if configured. */
+  readonly output: OUTPUT | undefined;
+
+  /** Abort signal for cancelling the operation. */
+  readonly abortSignal: AbortSignal | undefined;
+
+  /**
+   * Settings for controlling what data is included in step results.
+   * `requestBody` controls whether the request body is retained.
+   */
+  readonly include:
+    | {
+        requestBody?: boolean;
+      }
+    | undefined;
+
+  /** Identifier from telemetry settings for grouping related operations. */
+  readonly functionId: string | undefined;
+
+  /** Additional metadata passed to the generation. */
+  readonly metadata: Record<string, unknown> | undefined;
+
+  /**
+   * User-defined context object that flows through the entire generation lifecycle.
+   * Can be accessed and modified in `prepareStep` and tool `execute` functions.
+   */
+  readonly experimental_context: unknown;
+}) => PromiseLike<void> | void;
+
+/**
  * Generate a text and call tools for a given prompt using a language model.
  *
  * This function streams the output. If you do not want to stream the output, use `generateText` instead.
@@ -285,6 +400,7 @@ export function streamText<
   onFinish,
   onAbort,
   onStepFinish,
+  experimental_onStart: onStart,
   experimental_context,
   experimental_include: include,
   _internal: { now = originalNow, generateId = originalGenerateId } = {},
@@ -422,6 +538,12 @@ export function streamText<
     onStepFinish?: StreamTextOnStepFinishCallback<TOOLS>;
 
     /**
+     * Callback that is called when the streamText operation begins,
+     * before any LLM calls are made.
+     */
+    experimental_onStart?: StreamTextOnStartCallback<NoInfer<TOOLS>, OUTPUT>;
+
+    /**
      * Context that is passed into tool execution.
      *
      * Experimental (can break in patch releases).
@@ -490,11 +612,15 @@ export function streamText<
     providerOptions,
     prepareStep,
     includeRawChunks,
+    timeout,
+    stopWhen,
+    originalAbortSignal: abortSignal,
     onChunk,
     onError,
     onFinish,
     onAbort,
     onStepFinish,
+    onStart,
     now,
     generateId,
     experimental_context,
@@ -663,11 +789,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     includeRawChunks,
     now,
     generateId,
+    timeout,
+    stopWhen,
+    originalAbortSignal,
     onChunk,
     onError,
     onFinish,
     onAbort,
     onStepFinish,
+    onStart,
     experimental_context,
     download,
     include,
@@ -697,6 +827,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     includeRawChunks: boolean;
     now: () => number;
     generateId: () => string;
+    timeout: TimeoutConfiguration | undefined;
+    stopWhen:
+      | StopCondition<NoInfer<TOOLS>>
+      | Array<StopCondition<NoInfer<TOOLS>>>
+      | undefined;
+    originalAbortSignal: AbortSignal | undefined;
     experimental_context: unknown;
     download: DownloadFunction | undefined;
     include: { requestBody?: boolean } | undefined;
@@ -707,6 +843,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     onFinish: undefined | StreamTextOnFinishCallback<TOOLS>;
     onAbort: undefined | StreamTextOnAbortCallback<TOOLS>;
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
+    onStart: undefined | StreamTextOnStartCallback<TOOLS, OUTPUT>;
   }) {
     this.outputSpecification = output;
     this.includeRawChunks = includeRawChunks;
@@ -1176,6 +1313,41 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           prompt,
           messages,
         } as Prompt);
+
+        try {
+          await onStart?.({
+            model: { provider: model.provider, modelId: model.modelId },
+            system,
+            prompt,
+            messages,
+            tools,
+            toolChoice,
+            activeTools,
+            maxOutputTokens: callSettings.maxOutputTokens,
+            temperature: callSettings.temperature,
+            topP: callSettings.topP,
+            topK: callSettings.topK,
+            presencePenalty: callSettings.presencePenalty,
+            frequencyPenalty: callSettings.frequencyPenalty,
+            stopSequences: callSettings.stopSequences,
+            seed: callSettings.seed,
+            maxRetries,
+            timeout,
+            headers,
+            providerOptions,
+            stopWhen,
+            output,
+            abortSignal: originalAbortSignal,
+            include,
+            functionId: telemetry?.functionId,
+            metadata: telemetry?.metadata as
+              | Record<string, unknown>
+              | undefined,
+            experimental_context,
+          });
+        } catch (_ignored) {
+          // Errors in callbacks should not break the generation flow.
+        }
 
         const initialMessages = initialPrompt.messages;
         const initialResponseMessages: Array<ResponseMessage> = [];
