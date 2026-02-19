@@ -5,7 +5,7 @@ import { createMCPClient } from '@ai-sdk/mcp';
 
 export async function POST(req: Request) {
   const requestUrl = new URL(req.url);
-  const url = new URL('/mcp/server', requestUrl.origin);
+  const url = new URL('/chat/mcp/server', requestUrl.origin);
   const transport = new StreamableHTTPClientTransport(url);
 
   const [client, { messages }] = await Promise.all([

@@ -26,7 +26,7 @@ export function Chat({
 
   return (
     <div className="flex flex-col gap-8 py-24 mx-auto w-full max-w-md stretch">
-      <Link href={`/use-chat-resume/${id}`} target="_noblank">
+      <Link href={`/chat/resume/${id}`} target="_noblank">
         Chat Id: {id}
       </Link>
 

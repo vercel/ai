@@ -3,5 +3,5 @@ import { createChat } from '@util/chat-store';
 
 export default async function ChatPage() {
   const chatId = await createChat();
-  redirect(`/use-chat-persistence/${chatId}`);
+  redirect(`/chat/persistence-metadata/${chatId}`);
 }

@@ -12,7 +12,7 @@ import {
 
 export default function Chat() {
   const { error, status, sendMessage, messages, regenerate, stop } = useChat({
-    transport: new DefaultChatTransport({ api: '/mcp/chat' }),
+    transport: new DefaultChatTransport({ api: '/chat/mcp/chat' }),
   });
 
   return (

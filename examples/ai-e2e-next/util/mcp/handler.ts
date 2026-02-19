@@ -42,7 +42,7 @@ function initializeMcpApiHandler({
   return async function mcpApiHandler(req: NextRequest, res: ServerResponse) {
     const url = new URL(req.url || '', 'https://example.com');
 
-    if (url.pathname === '/mcp/server') {
+    if (url.pathname === '/chat/mcp/server') {
       if (req.method === 'GET') {
         console.log('Received GET MCP request');
         res.writeHead(405, { 'Content-Type': 'application/json' }).end(
