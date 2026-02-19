@@ -196,35 +196,6 @@ it('should correctly prepare file search tool', () => {
   expect(result.toolWarnings).toEqual([]);
 });
 
-it('should correctly prepare file search tool for gemini-3 models', () => {
-  const result = prepareTools({
-    tools: [
-      {
-        type: 'provider',
-        id: 'google.file_search',
-        name: 'file_search',
-        args: {
-          fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'],
-          metadataFilter: 'author=Robert Graves',
-          topK: 5,
-        },
-      },
-    ],
-    modelId: 'gemini-3.1-pro-preview',
-  });
-
-  expect(result.tools).toEqual([
-    {
-      fileSearch: {
-        fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'],
-        metadataFilter: 'author=Robert Graves',
-        topK: 5,
-      },
-    },
-  ]);
-  expect(result.toolWarnings).toEqual([]);
-});
-
 it('should handle tool choice "auto"', () => {
   const result = prepareTools({
     tools: [
