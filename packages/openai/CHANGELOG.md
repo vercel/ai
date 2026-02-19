@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.30
+
+### Patch Changes
+
+- ff12133: feat(provider/openai): support native skills and hosted shell
+
 ## 3.0.29
 
 ### Patch Changes

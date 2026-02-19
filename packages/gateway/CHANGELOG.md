@@ -1,5 +1,17 @@
 # @ai-sdk/gateway
 
+## 3.0.51
+
+### Patch Changes
+
+- 765b013: feat(provider/google): add support for `gemini-3.1-pro-preview`
+
+## 3.0.50
+
+### Patch Changes
+
+- a433cd3: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.49
 
 ### Patch Changes
