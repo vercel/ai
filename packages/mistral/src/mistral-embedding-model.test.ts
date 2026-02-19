@@ -124,4 +124,13 @@ describe('doEmbed', () => {
       `ai-sdk/mistral/0.0.0-test`,
     );
   });
+
+  it('should throw UnsupportedFunctionalityError when dimensions is set', async () => {
+    await expect(
+      provider.embedding('mistral-embed').doEmbed({
+        values: testValues,
+        dimensions: 256,
+      }),
+    ).rejects.toThrow("'dimensions' functionality not supported.");
+  });
 });

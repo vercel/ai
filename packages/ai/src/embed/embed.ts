@@ -33,6 +33,7 @@ import { VERSION } from '../version';
 export async function embed({
   model: modelArg,
   value,
+  dimensions,
   providerOptions,
   maxRetries: maxRetriesArg,
   abortSignal,
@@ -48,6 +49,12 @@ export async function embed({
    * The value that should be embedded.
    */
   value: string;
+
+  /**
+   * The number of dimensions the resulting output embeddings should have.
+   * Only supported by some models and providers.
+   */
+  dimensions?: number;
 
   /**
    * Maximum number of retries per embedding model call. Set to 0 to disable retries.
@@ -133,6 +140,7 @@ export async function embed({
             fn: async doEmbedSpan => {
               const modelResponse = await model.doEmbed({
                 values: [value],
+                dimensions,
                 abortSignal,
                 headers: headersWithUserAgent,
                 providerOptions,
