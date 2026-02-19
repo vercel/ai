@@ -957,7 +957,25 @@ export function stateSnapshotToUIMessages(
       };
       uiMessages.push(lastAssistant);
     }
-    lastAssistant.parts.push(...interruptParts);
+    // Deduplicate: skip interrupt parts that already exist on the assistant
+    // (e.g., when the AI message's tool_calls match the interrupt's actionRequests)
+    const existingToolCallIds = new Set<string>();
+    const existingToolParts = new Set<string>();
+    for (const part of lastAssistant.parts) {
+      if (part.type === 'dynamic-tool') {
+        existingToolCallIds.add(part.toolCallId);
+        existingToolParts.add(`${part.toolName}:${JSON.stringify(part.input)}`);
+      }
+    }
+    for (const interruptPart of interruptParts) {
+      const toolCallKey = `${interruptPart.toolName}:${JSON.stringify(interruptPart.input)}`;
+      if (
+        !existingToolCallIds.has(interruptPart.toolCallId) &&
+        !existingToolParts.has(toolCallKey)
+      ) {
+        lastAssistant.parts.push(interruptPart);
+      }
+    }
   }
 
   return uiMessages;

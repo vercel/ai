@@ -2801,6 +2801,55 @@ describe('stateSnapshotToUIMessages', () => {
     });
   });
 
+  it('should deduplicate interrupt parts matching existing tool calls', () => {
+    const snapshot = {
+      values: {
+        messages: [
+          new HumanMessage({ content: 'Send email', id: 'h-1' }),
+          new AIMessage({
+            content: '',
+            id: 'ai-1',
+            tool_calls: [
+              {
+                id: 'call-email-1',
+                name: 'send_email',
+                args: { to: 'user@example.com' },
+              },
+            ],
+          }),
+        ],
+      },
+      tasks: [
+        {
+          id: 'task-1',
+          name: 'agent',
+          interrupts: [
+            {
+              value: {
+                action_requests: [
+                  {
+                    name: 'send_email',
+                    arguments: { to: 'user@example.com' },
+                    id: 'call-email-1',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const result = stateSnapshotToUIMessages(snapshot);
+
+    // Should have only one dynamic-tool part, not duplicated
+    const toolParts = result[1].parts.filter(p => p.type === 'dynamic-tool');
+    expect(toolParts).toHaveLength(1);
+    expect(toolParts[0]).toMatchObject({
+      toolCallId: 'call-email-1',
+      toolName: 'send_email',
+    });
+  });
+
   it('should ignore tasks without interrupts', () => {
     const snapshot = {
       values: {
