@@ -152,65 +152,69 @@ console.log('\nUsage:', await result.usage);
 console.log('Finish reason:', await result.finishReason);
 ```
 
-### Generate Object
+### Structured Output
 
 ```ts
 import { aihubmix } from '@aihubmix/ai-sdk-provider';
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
-const result = await generateObject({
+const result = await generateText({
   model: aihubmix('gpt-4o-mini'),
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(
-        z.object({
-          name: z.string(),
-          amount: z.string(),
-        }),
-      ),
-      steps: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(
+          z.object({
+            name: z.string(),
+            amount: z.string(),
+          }),
+        ),
+        steps: z.array(z.string()),
+      }),
     }),
   }),
   prompt: 'Generate a lasagna recipe.',
 });
 
-console.log(JSON.stringify(result.object.recipe, null, 2));
+console.log(JSON.stringify(result.output.recipe, null, 2));
 console.log('Token usage:', result.usage);
 console.log('Finish reason:', result.finishReason);
 ```
 
-### Stream Object
+### Streaming Structured Output
 
 ```ts
 import { aihubmix } from '@aihubmix/ai-sdk-provider';
-import { streamObject } from 'ai';
+import { streamText, Output } from 'ai';
 import { z } from 'zod';
 
-const result = streamObject({
+const result = streamText({
   model: aihubmix('gpt-4o-mini'),
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(
-        z.object({
-          name: z.string(),
-          amount: z.string(),
-        }),
-      ),
-      steps: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(
+          z.object({
+            name: z.string(),
+            amount: z.string(),
+          }),
+        ),
+        steps: z.array(z.string()),
+      }),
     }),
   }),
   prompt: 'Generate a lasagna recipe.',
 });
 
-for await (const objectPart of result.partialObjectStream) {
+for await (const objectPart of result.partialOutputStream) {
   console.log(objectPart);
 }
 
 console.log('Token usage:', await result.usage);
-console.log('Final object:', await result.object);
+console.log('Final object:', await result.output);
 ```
 
 ### Embed Many
