@@ -331,13 +331,14 @@ export async function POST(request: Request) {
 
 ### Track Step Progress
 
-Use `onStepFinish` to track each step's progress, including token usage:
+Use `onStepFinish` to track each step's progress, including token usage.
+The callback receives a `stepNumber` (zero-based) to identify which step just completed:
 
 ```ts
 const result = await myAgent.generate({
   prompt: 'Research and summarize the latest AI trends',
-  onStepFinish: async ({ usage, finishReason, toolCalls }) => {
-    console.log('Step completed:', {
+  onStepFinish: async ({ stepNumber, usage, finishReason, toolCalls }) => {
+    console.log(`Step ${stepNumber} completed:`, {
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
       finishReason,
@@ -352,18 +353,18 @@ You can also define `onStepFinish` in the constructor for agent-wide tracking. W
 ```ts
 const agent = new ToolLoopAgent({
   model: __MODEL__,
-  onStepFinish: async ({ usage }) => {
+  onStepFinish: async ({ stepNumber, usage }) => {
     // Agent-wide logging
-    console.log('Agent step:', usage.totalTokens);
+    console.log(`Agent step ${stepNumber}:`, usage.totalTokens);
   },
 });
 
 // Method-level callback runs after constructor callback
 const result = await agent.generate({
   prompt: 'Hello',
-  onStepFinish: async ({ usage }) => {
+  onStepFinish: async ({ stepNumber, usage }) => {
     // Per-call tracking (e.g., for billing)
-    await trackUsage(usage);
+    await trackUsage(stepNumber, usage);
   },
 });
 ```
