@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const { object: summary } = await generateObject({
-    model: google('gemini-1.5-pro-latest'),
+    model: google('gemini-2.5-pro'),
     schema: z.object({
       title: z.string(),
       authors: z.array(z.string()),

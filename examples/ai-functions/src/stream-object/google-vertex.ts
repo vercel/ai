@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = streamObject({
-    model: vertex('gemini-1.5-pro'),
+    model: vertex('gemini-2.5-pro'),
     schema: z.object({
       characters: z.array(
         z.object({
