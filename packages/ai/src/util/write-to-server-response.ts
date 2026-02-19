@@ -35,9 +35,9 @@ export function writeToServerResponse({
         if (
           canContinue &&
           'flush' in response &&
-          typeof (response as any).flush === 'function'
+          typeof response.flush === 'function'
         ) {
-          (response as any).flush();
+          response.flush();
         }
         if (!canContinue) {
           await new Promise<void>(resolve => {
