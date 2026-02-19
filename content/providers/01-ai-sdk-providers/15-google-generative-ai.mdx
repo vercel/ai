@@ -165,7 +165,11 @@ The following optional provider options are available for Google Generative AI m
 
   - **thinkingLevel** _'low' | 'high'_
 
+<<<<<<< HEAD
     Optional. Controls the thinking depth for Gemini 3 models. Use 'low' for faster responses or 'high' for deeper reasoning. Only supported by Gemini 3 models (`gemini-3-pro-preview` and later).
+=======
+    Optional. Controls the thinking depth for Gemini 3 models. Gemini 3.1 Pro supports 'low', 'medium', and 'high', Gemini 3 Pro supports 'low' and 'high', while Gemini 3 Flash supports all four levels: 'minimal', 'low', 'medium', and 'high'. Only supported by Gemini 3 models.
+>>>>>>> 765b01381 (feat(provider/google): add support for `gemini-3.1-pro-preview` (#12695))
 
   - **thinkingBudget** _number_
 
@@ -212,7 +216,7 @@ For Gemini 3 models, use the `thinkingLevel` parameter to control the depth of r
 import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
-const model = google('gemini-3-pro-preview');
+const model = google('gemini-3.1-pro-preview');
 
 const { text, reasoning } = await generateText({
   model: model,
@@ -938,6 +942,7 @@ The following Zod features are known to not work with Google Generative AI:
 
 | Model                                 | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Google Search       | URL Context         |
 | ------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gemini-3.1-pro-preview`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-3-pro-preview`                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.5-pro`                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.5-flash`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

@@ -5,7 +5,11 @@ import { z } from 'zod';
 
 async function main() {
   const { text } = await generateText({
+<<<<<<< HEAD:examples/ai-core/src/generate-text/google-vertex-tool-call.ts
     model: vertex('gemini-1.5-pro'),
+=======
+    model: vertex('gemini-3.1-pro-preview'),
+>>>>>>> 765b01381 (feat(provider/google): add support for `gemini-3.1-pro-preview` (#12695)):examples/ai-functions/src/generate-text/google-vertex-tool-call.ts
     prompt: 'What is the weather in New York City? ',
     tools: {
       weather: tool({

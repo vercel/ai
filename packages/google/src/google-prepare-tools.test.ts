@@ -196,6 +196,38 @@ it('should correctly prepare file search tool', () => {
   expect(result.toolWarnings).toEqual([]);
 });
 
+<<<<<<< HEAD
+=======
+it('should correctly prepare file search tool for gemini-3 models', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.file_search',
+        name: 'file_search',
+        args: {
+          fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'],
+          metadataFilter: 'author=Robert Graves',
+          topK: 5,
+        },
+      },
+    ],
+    modelId: 'gemini-3.1-pro-preview',
+  });
+
+  expect(result.tools).toEqual([
+    {
+      fileSearch: {
+        fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'],
+        metadataFilter: 'author=Robert Graves',
+        topK: 5,
+      },
+    },
+  ]);
+  expect(result.toolWarnings).toEqual([]);
+});
+
+>>>>>>> 765b01381 (feat(provider/google): add support for `gemini-3.1-pro-preview` (#12695))
 it('should handle tool choice "auto"', () => {
   const result = prepareTools({
     tools: [
@@ -391,7 +423,7 @@ it('should handle gemini-3 modelId for provider-defined tools correctly', () => 
         args: {},
       },
     ],
-    modelId: 'gemini-3-pro-preview',
+    modelId: 'gemini-3.1-pro-preview',
   });
   expect(result.tools).toEqual([{ googleSearch: {} }]);
   expect(result.toolConfig).toBeUndefined();
