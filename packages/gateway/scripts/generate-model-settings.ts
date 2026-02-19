@@ -2,13 +2,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as z4 from 'zod/v4';
 
-const MODALITIES = ['language', 'embedding', 'image'] as const;
 const API_URL = 'https://ai-gateway.vercel.sh/v1/models';
 const OUTPUT_DIR = path.join(__dirname, '..', 'src');
 
 const modelSchema = z4.object({
   id: z4.string(),
-  type: z4.enum(MODALITIES),
+  type: z4.string(),
 });
 
 const modelsResponseSchema = z4.object({
@@ -16,10 +15,9 @@ const modelsResponseSchema = z4.object({
 });
 
 type ModelsResponse = z4.infer<typeof modelsResponseSchema>;
-type Modality = (typeof MODALITIES)[number];
 
 const MODALITY_CONFIG: Record<
-  Modality,
+  string,
   { outputFile: string; typeName: string }
 > = {
   language: {
@@ -33,6 +31,10 @@ const MODALITY_CONFIG: Record<
   image: {
     outputFile: 'gateway-image-model-settings.ts',
     typeName: 'GatewayImageModelId',
+  },
+  video: {
+    outputFile: 'gateway-video-model-settings.ts',
+    typeName: 'GatewayVideoModelId',
   },
 };
 
@@ -67,28 +69,44 @@ function generateTypeFile(modelIds: string[], typeName: string): string {
   return lines.join('\n') + '\n';
 }
 
+function getModalityConfig(type: string): {
+  outputFile: string;
+  typeName: string;
+} {
+  if (MODALITY_CONFIG[type]) {
+    return MODALITY_CONFIG[type];
+  }
+  const capitalized = type.charAt(0).toUpperCase() + type.slice(1);
+  return {
+    outputFile: `gateway-${type}-model-settings.ts`,
+    typeName: `Gateway${capitalized}ModelId`,
+  };
+}
+
 async function main() {
   const response = await fetchModels();
 
-  const modelsByModality = Object.fromEntries(
-    MODALITIES.map(modality => [modality, [] as string[]]),
-  ) as Record<Modality, string[]>;
+  const modelsByType: Record<string, string[]> = {};
 
   for (const model of response.data) {
-    modelsByModality[model.type].push(model.id);
+    if (!modelsByType[model.type]) {
+      modelsByType[model.type] = [];
+    }
+    modelsByType[model.type].push(model.id);
   }
 
-  for (const modality of MODALITIES) {
-    const config = MODALITY_CONFIG[modality];
-    const modelIds = modelsByModality[modality];
+  for (const [type, modelIds] of Object.entries(modelsByType)) {
+    const config = getModalityConfig(type);
+    const outputPath = path.join(OUTPUT_DIR, config.outputFile);
 
-    if (modelIds.length === 0) {
-      throw new Error(`No ${modality} models found`);
+    if (!fs.existsSync(outputPath)) {
+      console.error(
+        `Skipping unknown type '${type}' — no existing file at ${config.outputFile}`,
+      );
+      continue;
     }
 
     const content = generateTypeFile(modelIds, config.typeName);
-    const outputPath = path.join(OUTPUT_DIR, config.outputFile);
-
     fs.writeFileSync(outputPath, content, 'utf-8');
     console.log(
       `Generated ${config.outputFile} with ${modelIds.length} models`,
