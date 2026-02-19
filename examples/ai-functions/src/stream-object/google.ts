@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = streamObject({
-    model: google('gemini-1.5-pro-002'),
+    model: google('gemini-2.5-pro'),
     schema: z.object({
       characters: z.array(
         z.object({
