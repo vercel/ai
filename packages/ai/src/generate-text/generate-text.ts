@@ -443,14 +443,28 @@ export type GenerateTextOnToolCallFinishCallback<
  *
  * Additional properties:
  * @param event.stepNumber - Zero-based index of the completed step.
+ * @param event.model - Information about the model that produced this step (provider and modelId).
  * @param event.functionId - Identifier from telemetry settings for grouping related operations.
+ * @param event.metadata - Additional metadata from telemetry settings.
+ * @param event.experimental_context - User-defined context object flowing through the generation.
  */
 export type GenerateTextOnStepFinishCallback<TOOLS extends ToolSet> = (
   event: StepResult<TOOLS> & {
     /** Zero-based index of the completed step. */
     readonly stepNumber: number;
+    /** Information about the model that produced this step. */
+    readonly model: {
+      /** The provider of the model. */
+      readonly provider: string;
+      /** The ID of the model. */
+      readonly modelId: string;
+    };
     /** Identifier from telemetry settings for grouping related operations. */
     readonly functionId: string | undefined;
+    /** Additional metadata from telemetry settings. */
+    readonly metadata: Record<string, unknown> | undefined;
+    /** User-defined context object flowing through the generation. */
+    readonly experimental_context: unknown;
   },
 ) => Promise<void> | void;
 
@@ -1394,7 +1408,15 @@ export async function generateText<
               warnings: currentStepResult.warnings,
               providerMetadata: currentStepResult.providerMetadata,
               stepNumber,
+              model: {
+                provider: stepModel.provider,
+                modelId: stepModel.modelId,
+              },
               functionId: telemetry?.functionId,
+              metadata: telemetry?.metadata as
+                | Record<string, unknown>
+                | undefined,
+              experimental_context,
             });
           } finally {
             if (stepTimeoutId != null) {
