@@ -1,5 +1,25 @@
 # @ai-sdk/xai
 
+## 3.0.57
+
+### Patch Changes
+
+- 56dfdf6: feat (provider/xai): add video support
+
+## 3.0.56
+
+### Patch Changes
+
+- 7ccb902: fix(provider/xai): handle inconsistent cached token reporting
+
+## 3.0.55
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+  - @ai-sdk/openai-compatible@2.0.30
+
 ## 3.0.54
 
 ### Patch Changes

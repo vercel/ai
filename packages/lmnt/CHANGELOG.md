@@ -1,5 +1,18 @@
 # @ai-sdk/lmnt
 
+## 2.0.20
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+
+## 2.0.19
+
+### Patch Changes
+
+- 242696c: feat: normalize and export provider specific model options type names for existing schemas
+
 ## 2.0.18
 
 ### Patch Changes

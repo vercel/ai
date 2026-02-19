@@ -1,5 +1,24 @@
 # @ai-sdk/openai
 
+## 3.0.30
+
+### Patch Changes
+
+- ff12133: feat(provider/openai): support native skills and hosted shell
+
+## 3.0.29
+
+### Patch Changes
+
+- e2ee705: feat: differentiate text vs image input tokens
+
+## 3.0.28
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+
 ## 3.0.27
 
 ### Patch Changes

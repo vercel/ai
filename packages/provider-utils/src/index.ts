@@ -11,6 +11,10 @@ export { convertImageModelFileToDataUri } from './convert-image-model-file-to-da
 export { convertToFormData } from './convert-to-form-data';
 export { downloadBlob } from './download-blob';
 export { DownloadError } from './download-error';
+export {
+  readResponseWithSizeLimit,
+  DEFAULT_MAX_DOWNLOAD_SIZE,
+} from './read-response-with-size-limit';
 export * from './fetch-function';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';

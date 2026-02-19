@@ -24,6 +24,7 @@ import {
   GoogleGenerativeAIImageSettings,
 } from './google-generative-ai-image-settings';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
+import type { GoogleLanguageModelOptions } from './google-generative-ai-options';
 
 interface GoogleGenerativeAIImageModelConfig {
   provider: string;
@@ -272,9 +273,18 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
       providerOptions: {
         google: {
           responseModalities: ['IMAGE'],
-          imageConfig: aspectRatio ? { aspectRatio } : undefined,
-          ...((providerOptions?.google as Record<string, unknown>) ?? {}),
-        },
+          imageConfig: aspectRatio
+            ? {
+                aspectRatio: aspectRatio as NonNullable<
+                  GoogleLanguageModelOptions['imageConfig']
+                >['aspectRatio'],
+              }
+            : undefined,
+          ...((providerOptions?.google as Omit<
+            GoogleLanguageModelOptions,
+            'responseModalities' | 'imageConfig'
+          >) ?? {}),
+        } satisfies GoogleLanguageModelOptions,
       },
       headers,
       abortSignal,

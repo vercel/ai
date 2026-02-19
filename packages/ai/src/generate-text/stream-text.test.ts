@@ -4516,7 +4516,14 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
+            "experimental_context": undefined,
             "finishReason": "stop",
+            "functionId": undefined,
+            "metadata": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "request": {},
@@ -4587,6 +4594,7 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "stepNumber": 0,
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -4650,7 +4658,14 @@ describe('streamText', () => {
                 "url": "https://example.com/2",
               },
             ],
+            "experimental_context": undefined,
             "finishReason": "stop",
+            "functionId": undefined,
+            "metadata": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "request": {},
@@ -4672,6 +4687,7 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "stepNumber": 0,
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -4729,7 +4745,14 @@ describe('streamText', () => {
                 "type": "file",
               },
             ],
+            "experimental_context": undefined,
             "finishReason": "stop",
+            "functionId": undefined,
+            "metadata": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "request": {},
@@ -4763,6 +4786,7 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "stepNumber": 0,
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -5146,6 +5170,12 @@ describe('streamText', () => {
           "experimental_context": undefined,
           "files": [],
           "finishReason": "stop",
+          "functionId": undefined,
+          "metadata": undefined,
+          "model": {
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+          },
           "providerMetadata": {
             "testProvider": {
               "testKey": "testValue",
@@ -5225,6 +5255,7 @@ describe('streamText', () => {
               "type": "tool-result",
             },
           ],
+          "stepNumber": 0,
           "steps": [
             DefaultStepResult {
               "content": [
@@ -5255,7 +5286,14 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
+              "experimental_context": undefined,
               "finishReason": "stop",
+              "functionId": undefined,
+              "metadata": undefined,
+              "model": {
+                "modelId": "mock-model-id",
+                "provider": "mock-provider",
+              },
               "providerMetadata": {
                 "testProvider": {
                   "testKey": "testValue",
@@ -5307,6 +5345,7 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "stepNumber": 0,
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -5444,6 +5483,12 @@ describe('streamText', () => {
           "experimental_context": undefined,
           "files": [],
           "finishReason": "stop",
+          "functionId": undefined,
+          "metadata": undefined,
+          "model": {
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+          },
           "providerMetadata": undefined,
           "rawFinishReason": "stop",
           "reasoning": [],
@@ -5495,6 +5540,7 @@ describe('streamText', () => {
           ],
           "staticToolCalls": [],
           "staticToolResults": [],
+          "stepNumber": 0,
           "steps": [
             DefaultStepResult {
               "content": [
@@ -5528,7 +5574,14 @@ describe('streamText', () => {
                   "url": "https://example.com/2",
                 },
               ],
+              "experimental_context": undefined,
               "finishReason": "stop",
+              "functionId": undefined,
+              "metadata": undefined,
+              "model": {
+                "modelId": "mock-model-id",
+                "provider": "mock-provider",
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "request": {},
@@ -5550,6 +5603,7 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "stepNumber": 0,
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -5671,6 +5725,12 @@ describe('streamText', () => {
             },
           ],
           "finishReason": "stop",
+          "functionId": undefined,
+          "metadata": undefined,
+          "model": {
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+          },
           "providerMetadata": undefined,
           "rawFinishReason": "stop",
           "reasoning": [],
@@ -5709,6 +5769,7 @@ describe('streamText', () => {
           "sources": [],
           "staticToolCalls": [],
           "staticToolResults": [],
+          "stepNumber": 0,
           "steps": [
             DefaultStepResult {
               "content": [
@@ -5736,7 +5797,14 @@ describe('streamText', () => {
                   "type": "file",
                 },
               ],
+              "experimental_context": undefined,
               "finishReason": "stop",
+              "functionId": undefined,
+              "metadata": undefined,
+              "model": {
+                "modelId": "mock-model-id",
+                "provider": "mock-provider",
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "request": {},
@@ -5770,6 +5838,7 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "stepNumber": 0,
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -6367,6 +6436,12 @@ describe('streamText', () => {
               "experimental_context": undefined,
               "files": [],
               "finishReason": "stop",
+              "functionId": undefined,
+              "metadata": undefined,
+              "model": {
+                "modelId": "mock-model-id",
+                "provider": "mock-provider",
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "reasoning": [],
@@ -6429,6 +6504,7 @@ describe('streamText', () => {
               "sources": [],
               "staticToolCalls": [],
               "staticToolResults": [],
+              "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
                   "content": [
@@ -6459,7 +6535,14 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
+                  "experimental_context": undefined,
                   "finishReason": "tool-calls",
+                  "functionId": undefined,
+                  "metadata": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {},
@@ -6507,6 +6590,7 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "stepNumber": 0,
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -6534,7 +6618,14 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
+                  "experimental_context": undefined,
                   "finishReason": "stop",
+                  "functionId": undefined,
+                  "metadata": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
                   "request": {},
@@ -6592,6 +6683,7 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:01.000Z,
                   },
+                  "stepNumber": 1,
                   "usage": {
                     "cachedInputTokens": 0,
                     "inputTokenDetails": {
@@ -6685,7 +6777,14 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
+                "experimental_context": undefined,
                 "finishReason": "tool-calls",
+                "functionId": undefined,
+                "metadata": undefined,
+                "model": {
+                  "modelId": "mock-model-id",
+                  "provider": "mock-provider",
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "request": {},
@@ -6733,6 +6832,7 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "stepNumber": 0,
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -6760,7 +6860,14 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
+                "experimental_context": undefined,
                 "finishReason": "stop",
+                "functionId": undefined,
+                "metadata": undefined,
+                "model": {
+                  "modelId": "mock-model-id",
+                  "provider": "mock-provider",
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "request": {},
@@ -6818,6 +6925,7 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:01.000Z,
                 },
+                "stepNumber": 1,
                 "usage": {
                   "cachedInputTokens": 0,
                   "inputTokenDetails": {
@@ -6929,7 +7037,14 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
+                "experimental_context": undefined,
                 "finishReason": "tool-calls",
+                "functionId": undefined,
+                "metadata": undefined,
+                "model": {
+                  "modelId": "mock-model-id",
+                  "provider": "mock-provider",
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "request": {},
@@ -6977,6 +7092,7 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "stepNumber": 0,
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -7004,7 +7120,14 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
+                "experimental_context": undefined,
                 "finishReason": "stop",
+                "functionId": undefined,
+                "metadata": undefined,
+                "model": {
+                  "modelId": "mock-model-id",
+                  "provider": "mock-provider",
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "request": {},
@@ -7062,6 +7185,7 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:01.000Z,
                 },
+                "stepNumber": 1,
                 "usage": {
                   "cachedInputTokens": 0,
                   "inputTokenDetails": {
@@ -7508,7 +7632,16 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
+                  "experimental_context": {
+                    "context": "state2",
+                  },
                   "finishReason": "tool-calls",
+                  "functionId": undefined,
+                  "metadata": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {},
@@ -7551,6 +7684,7 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "stepNumber": 0,
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -7578,7 +7712,16 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
+                  "experimental_context": {
+                    "context": "state3",
+                  },
                   "finishReason": "stop",
+                  "functionId": undefined,
+                  "metadata": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
                   "request": {},
@@ -7631,6 +7774,7 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:01.000Z,
                   },
+                  "stepNumber": 1,
                   "usage": {
                     "cachedInputTokens": 0,
                     "inputTokenDetails": {
@@ -7718,7 +7862,16 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
+                  "experimental_context": {
+                    "context": "state2",
+                  },
                   "finishReason": "tool-calls",
+                  "functionId": undefined,
+                  "metadata": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {},
@@ -7761,6 +7914,7 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "stepNumber": 0,
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -7788,7 +7942,16 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
+                  "experimental_context": {
+                    "context": "state3",
+                  },
                   "finishReason": "stop",
+                  "functionId": undefined,
+                  "metadata": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
                   "request": {},
@@ -7841,6 +8004,7 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:01.000Z,
                   },
+                  "stepNumber": 1,
                   "usage": {
                     "cachedInputTokens": 0,
                     "inputTokenDetails": {
@@ -8155,6 +8319,12 @@ describe('streamText', () => {
               "experimental_context": undefined,
               "files": [],
               "finishReason": "stop",
+              "functionId": undefined,
+              "metadata": undefined,
+              "model": {
+                "modelId": "mock-model-id",
+                "provider": "mock-provider",
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "reasoning": [],
@@ -8217,6 +8387,7 @@ describe('streamText', () => {
               "sources": [],
               "staticToolCalls": [],
               "staticToolResults": [],
+              "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
                   "content": [
@@ -8247,7 +8418,14 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
+                  "experimental_context": undefined,
                   "finishReason": "tool-calls",
+                  "functionId": undefined,
+                  "metadata": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {},
@@ -8295,6 +8473,7 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "stepNumber": 0,
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -8322,7 +8501,14 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
+                  "experimental_context": undefined,
                   "finishReason": "stop",
+                  "functionId": undefined,
+                  "metadata": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
                   "request": {},
@@ -8380,6 +8566,7 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:01.000Z,
                   },
+                  "stepNumber": 1,
                   "usage": {
                     "cachedInputTokens": 0,
                     "inputTokenDetails": {
@@ -8473,7 +8660,14 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
+                "experimental_context": undefined,
                 "finishReason": "tool-calls",
+                "functionId": undefined,
+                "metadata": undefined,
+                "model": {
+                  "modelId": "mock-model-id",
+                  "provider": "mock-provider",
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "request": {},
@@ -8521,6 +8715,7 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "stepNumber": 0,
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -8548,7 +8743,14 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
+                "experimental_context": undefined,
                 "finishReason": "stop",
+                "functionId": undefined,
+                "metadata": undefined,
+                "model": {
+                  "modelId": "mock-model-id",
+                  "provider": "mock-provider",
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "request": {},
@@ -8606,6 +8808,7 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:01.000Z,
                 },
+                "stepNumber": 1,
                 "usage": {
                   "cachedInputTokens": 0,
                   "inputTokenDetails": {
@@ -8713,7 +8916,14 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
+                "experimental_context": undefined,
                 "finishReason": "tool-calls",
+                "functionId": undefined,
+                "metadata": undefined,
+                "model": {
+                  "modelId": "mock-model-id",
+                  "provider": "mock-provider",
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "request": {},
@@ -8761,6 +8971,7 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "stepNumber": 0,
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -8788,7 +8999,14 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
+                "experimental_context": undefined,
                 "finishReason": "stop",
+                "functionId": undefined,
+                "metadata": undefined,
+                "model": {
+                  "modelId": "mock-model-id",
+                  "provider": "mock-provider",
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "request": {},
@@ -8846,6 +9064,7 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:01.000Z,
                 },
+                "stepNumber": 1,
                 "usage": {
                   "cachedInputTokens": 0,
                   "inputTokenDetails": {
@@ -9253,7 +9472,14 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
+                  "experimental_context": undefined,
                   "finishReason": "tool-calls",
+                  "functionId": undefined,
+                  "metadata": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {},
@@ -9301,6 +9527,7 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "stepNumber": 0,
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -9354,7 +9581,14 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
+                  "experimental_context": undefined,
                   "finishReason": "tool-calls",
+                  "functionId": undefined,
+                  "metadata": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {},
@@ -9402,6 +9636,7 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "stepNumber": 0,
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -11399,7 +11634,14 @@ describe('streamText', () => {
                 "type": "tool-error",
               },
             ],
+            "experimental_context": undefined,
             "finishReason": "stop",
+            "functionId": undefined,
+            "metadata": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "request": {},
@@ -11440,6 +11682,7 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "stepNumber": 0,
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -11891,7 +12134,14 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
+              "experimental_context": undefined,
               "finishReason": "stop",
+              "functionId": undefined,
+              "metadata": undefined,
+              "model": {
+                "modelId": "mock-model-id",
+                "provider": "mock-provider",
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "request": {},
@@ -11937,6 +12187,7 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "stepNumber": 0,
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -12115,6 +12366,12 @@ describe('streamText', () => {
             "experimental_context": undefined,
             "files": [],
             "finishReason": "stop",
+            "functionId": undefined,
+            "metadata": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
             "providerMetadata": {
               "testProvider": {
                 "testKey": "TEST VALUE",
@@ -12194,6 +12451,7 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
             ],
+            "stepNumber": 0,
             "steps": [
               DefaultStepResult {
                 "content": [
@@ -12224,7 +12482,14 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
+                "experimental_context": undefined,
                 "finishReason": "stop",
+                "functionId": undefined,
+                "metadata": undefined,
+                "model": {
+                  "modelId": "mock-model-id",
+                  "provider": "mock-provider",
+                },
                 "providerMetadata": {
                   "testProvider": {
                     "testKey": "TEST VALUE",
@@ -12276,6 +12541,7 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "stepNumber": 0,
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -12441,7 +12707,14 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
             ],
+            "experimental_context": undefined,
             "finishReason": "stop",
+            "functionId": undefined,
+            "metadata": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
             "providerMetadata": {
               "testProvider": {
                 "testKey": "TEST VALUE",
@@ -12493,6 +12766,7 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "stepNumber": 0,
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -12931,7 +13205,14 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
+            "experimental_context": undefined,
             "finishReason": "stop",
+            "functionId": undefined,
+            "metadata": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
             "providerMetadata": undefined,
             "rawFinishReason": undefined,
             "request": {},
@@ -12952,6 +13233,7 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "stepNumber": 0,
             "usage": {
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
@@ -13366,6 +13648,12 @@ describe('streamText', () => {
             "experimental_context": undefined,
             "files": [],
             "finishReason": "stop",
+            "functionId": undefined,
+            "metadata": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "reasoning": [],
@@ -13392,6 +13680,7 @@ describe('streamText', () => {
             "sources": [],
             "staticToolCalls": [],
             "staticToolResults": [],
+            "stepNumber": 0,
             "steps": [
               DefaultStepResult {
                 "content": [
@@ -13401,7 +13690,14 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
+                "experimental_context": undefined,
                 "finishReason": "stop",
+                "functionId": undefined,
+                "metadata": undefined,
+                "model": {
+                  "modelId": "mock-model-id",
+                  "provider": "mock-provider",
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "request": {},
@@ -13423,6 +13719,7 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "stepNumber": 0,
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -14487,7 +14784,14 @@ describe('streamText', () => {
                   "type": "reasoning",
                 },
               ],
+              "experimental_context": undefined,
               "finishReason": "stop",
+              "functionId": undefined,
+              "metadata": undefined,
+              "model": {
+                "modelId": "mock-model-id",
+                "provider": "mock-provider",
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "request": {},
@@ -14524,6 +14828,7 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "stepNumber": 0,
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -14869,7 +15174,14 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
+                  "experimental_context": undefined,
                   "finishReason": "tool-calls",
+                  "functionId": undefined,
+                  "metadata": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {},
@@ -14910,6 +15222,7 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "stepNumber": 0,
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -15910,7 +16223,14 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
+              "experimental_context": undefined,
               "finishReason": "stop",
+              "functionId": undefined,
+              "metadata": undefined,
+              "model": {
+                "modelId": "mock-model-id",
+                "provider": "mock-provider",
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "request": {},
@@ -15955,6 +16275,7 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "stepNumber": 0,
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {

@@ -1,4 +1,5 @@
-import { EmbeddingModelV3Embedding } from '@ai-sdk/provider';
+import fs from 'node:fs';
+
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createOpenAI } from '../openai-provider';
 import { describe, it, expect, vi } from 'vitest';
@@ -7,10 +8,6 @@ vi.mock('../version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const dummyEmbeddings = [
-  [0.1, 0.2, 0.3, 0.4, 0.5],
-  [0.6, 0.7, 0.8, 0.9, 1.0],
-];
 const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
 const provider = createOpenAI({ apiKey: 'test-api-key' });
@@ -20,100 +17,121 @@ const server = createTestServer({
   'https://api.openai.com/v1/embeddings': {},
 });
 
-describe('doEmbed', () => {
-  function prepareJsonResponse({
-    embeddings = dummyEmbeddings,
-    usage = { prompt_tokens: 8, total_tokens: 8 },
+function prepareJsonFixtureResponse(
+  filename: string,
+  headers?: Record<string, string>,
+) {
+  server.urls['https://api.openai.com/v1/embeddings'].response = {
+    type: 'json-value',
     headers,
-  }: {
-    embeddings?: EmbeddingModelV3Embedding[];
-    usage?: { prompt_tokens: number; total_tokens: number };
-    headers?: Record<string, string>;
-  } = {}) {
-    server.urls['https://api.openai.com/v1/embeddings'].response = {
-      type: 'json-value',
-      headers,
-      body: {
-        object: 'list',
-        data: embeddings.map((embedding, i) => ({
-          object: 'embedding',
-          index: i,
-          embedding,
-        })),
-        model: 'text-embedding-3-large',
-        usage,
-      },
-    };
-  }
+    body: JSON.parse(
+      fs.readFileSync(`src/embedding/__fixtures__/${filename}.json`, 'utf8'),
+    ),
+  };
+}
 
+describe('doEmbed', () => {
   it('should extract embedding', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-embedding');
 
     const { embeddings } = await model.doEmbed({ values: testValues });
 
-    expect(embeddings).toStrictEqual(dummyEmbeddings);
+    expect(embeddings).toMatchInlineSnapshot(`
+      [
+        [
+          0.0057293195,
+          -0.012727811,
+          0.020042092,
+          -0.013437585,
+          0.022833068,
+        ],
+        [
+          -0.037104916,
+          -0.05178114,
+          -0.008340587,
+          0.001164541,
+          -0.0035253682,
+        ],
+      ]
+    `);
   });
 
-  it('should expose the raw response', async () => {
-    prepareJsonResponse({
-      headers: {
-        'test-header': 'test-value',
-      },
+  it('should expose the raw response headers', async () => {
+    prepareJsonFixtureResponse('openai-embedding', {
+      'test-header': 'test-value',
     });
 
     const { response } = await model.doEmbed({ values: testValues });
 
-    expect(response?.headers).toStrictEqual({
-      // default headers:
-      'content-length': '236',
-      'content-type': 'application/json',
+    expect(response?.headers).toMatchInlineSnapshot(`
+      {
+        "content-length": "327",
+        "content-type": "application/json",
+        "test-header": "test-value",
+      }
+    `);
+  });
 
-      // custom header
-      'test-header': 'test-value',
-    });
+  it('should expose the raw response body', async () => {
+    prepareJsonFixtureResponse('openai-embedding');
+
+    const { response } = await model.doEmbed({ values: testValues });
+
     expect(response).toMatchSnapshot();
   });
 
   it('should extract usage', async () => {
-    prepareJsonResponse({
-      usage: { prompt_tokens: 20, total_tokens: 20 },
-    });
+    prepareJsonFixtureResponse('openai-embedding');
 
     const { usage } = await model.doEmbed({ values: testValues });
 
-    expect(usage).toStrictEqual({ tokens: 20 });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "tokens": 12,
+      }
+    `);
   });
 
   it('should pass the model and the values', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-embedding');
 
     await model.doEmbed({ values: testValues });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'text-embedding-3-large',
-      input: testValues,
-      encoding_format: 'float',
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "encoding_format": "float",
+        "input": [
+          "sunny day at the beach",
+          "rainy day in the city",
+        ],
+        "model": "text-embedding-3-large",
+      }
+    `);
   });
 
   it('should pass the dimensions setting', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-embedding');
 
     await provider.embedding('text-embedding-3-large').doEmbed({
       values: testValues,
       providerOptions: { openai: { dimensions: 64 } },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'text-embedding-3-large',
-      input: testValues,
-      encoding_format: 'float',
-      dimensions: 64,
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "dimensions": 64,
+        "encoding_format": "float",
+        "input": [
+          "sunny day at the beach",
+          "rainy day in the city",
+        ],
+        "model": "text-embedding-3-large",
+      }
+    `);
   });
 
   it('should pass headers', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-embedding');
 
     const provider = createOpenAI({
       apiKey: 'test-api-key',

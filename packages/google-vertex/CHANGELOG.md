@@ -1,5 +1,52 @@
 # @ai-sdk/google-vertex
 
+## 4.0.60
+
+### Patch Changes
+
+- 765b013: feat(provider/google): add support for `gemini-3.1-pro-preview`
+- Updated dependencies [765b013]
+  - @ai-sdk/google@3.0.30
+
+## 4.0.59
+
+### Patch Changes
+
+- 2a1c664: feat(provider/anthropic): add support for new Claude Sonnet 4.6 model
+- Updated dependencies [2a1c664]
+  - @ai-sdk/anthropic@3.0.45
+
+## 4.0.58
+
+### Patch Changes
+
+- Updated dependencies [23ac4a3]
+  - @ai-sdk/anthropic@3.0.44
+
+## 4.0.57
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+  - @ai-sdk/anthropic@3.0.43
+  - @ai-sdk/google@3.0.29
+
+## 4.0.56
+
+### Patch Changes
+
+- 5a307f5: feat(provider/google-vertex): allow using Gemini image models with `generateImage`
+- Updated dependencies [5a307f5]
+  - @ai-sdk/google@3.0.28
+
+## 4.0.55
+
+### Patch Changes
+
+- Updated dependencies [051361b]
+  - @ai-sdk/google@3.0.27
+
 ## 4.0.54
 
 ### Patch Changes

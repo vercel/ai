@@ -20,7 +20,7 @@ import { RevaiTranscriptionModelId } from './revai-transcription-options';
 import { RevaiTranscriptionAPITypes } from './revai-api-types';
 
 // https://docs.rev.ai/api/asynchronous/reference/#operation/SubmitTranscriptionJob
-const revaiProviderOptionsSchema = z.object({
+const revaiTranscriptionModelOptionsSchema = z.object({
   /**
    * Optional metadata string to associate with the transcription job.
    */
@@ -210,8 +210,8 @@ const revaiProviderOptionsSchema = z.object({
   forced_alignment: z.boolean().nullish().default(false),
 });
 
-export type RevaiTranscriptionCallOptions = z.infer<
-  typeof revaiProviderOptionsSchema
+export type RevaiTranscriptionModelOptions = z.infer<
+  typeof revaiTranscriptionModelOptionsSchema
 >;
 
 interface RevaiTranscriptionModelConfig extends RevaiConfig {
@@ -243,7 +243,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV3 {
     const revaiOptions = await parseProviderOptions({
       provider: 'revai',
       providerOptions,
-      schema: revaiProviderOptionsSchema,
+      schema: revaiTranscriptionModelOptionsSchema,
     });
 
     // Create form data with base fields

@@ -304,15 +304,17 @@ Amazon Bedrock supports citations for document-based inputs across compatible mo
 
 ```ts
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import fs from 'fs';
 
-const result = await generateObject({
+const result = await generateText({
   model: bedrock('apac.anthropic.claude-sonnet-4-20250514-v1:0'),
-  schema: z.object({
-    summary: z.string().describe('Summary of the PDF document'),
-    keyPoints: z.array(z.string()).describe('Key points from the PDF'),
+  output: Output.object({
+    schema: z.object({
+      summary: z.string().describe('Summary of the PDF document'),
+      keyPoints: z.array(z.string()).describe('Key points from the PDF'),
+    }),
   }),
   messages: [
     {
@@ -337,7 +339,7 @@ const result = await generateObject({
   ],
 });
 
-console.log('Response:', result.object);
+console.log('Response:', result.output);
 ```
 
 ### Cache Points
@@ -450,6 +452,21 @@ console.log(
 //   cacheWriteInputTokens: 42,
 // }
 ```
+
+### Provider Metadata
+
+The following Bedrock-specific metadata may be returned in `providerMetadata.bedrock`:
+
+- **trace** _(optional)_
+  Guardrail tracing information (when tracing is enabled).
+- **performanceConfig** _(optional)_
+  Performance configuration, e.g. `{ latency: 'optimized' }`.
+- **serviceTier** _(optional)_
+  Service tier information, e.g. `{ type: 'on-demand' }`.
+- **usage** _(optional)_
+  Cache token usage details including `cacheWriteInputTokens` and `cacheDetails`.
+- **stopSequence** _string | null_
+  The stop sequence that triggered the stop, if any.
 
 ## Reasoning
 
@@ -769,6 +786,7 @@ You can pass them as an options argument:
 
 ```ts
 import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { type AmazonBedrockEmbeddingModelOptions } from '@ai-sdk/amazon-bedrock';
 import { embed } from 'ai';
 
 const model = bedrock.embedding('amazon.titan-embed-text-v2:0');
@@ -780,7 +798,7 @@ const { embedding } = await embed({
     bedrock: {
       dimensions: 512, // optional, number of dimensions for the embedding
       normalize: true, // optional, normalize the output embeddings
-    },
+    } satisfies AmazonBedrockEmbeddingModelOptions,
   },
 });
 ```
@@ -801,6 +819,7 @@ Amazon Nova embedding models support additional provider options:
 
 ```ts
 import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { type AmazonBedrockEmbeddingModelOptions } from '@ai-sdk/amazon-bedrock';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
@@ -811,7 +830,7 @@ const { embedding } = await embed({
       embeddingDimension: 1024, // optional, number of dimensions
       embeddingPurpose: 'TEXT_RETRIEVAL', // optional, purpose of embedding
       truncate: 'END', // optional, truncation behavior
-    },
+    } satisfies AmazonBedrockEmbeddingModelOptions,
   },
 });
 ```
@@ -836,6 +855,7 @@ Cohere embedding models on Bedrock require an `inputType` and support truncation
 
 ```ts
 import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { type AmazonBedrockEmbeddingModelOptions } from '@ai-sdk/amazon-bedrock';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
@@ -845,7 +865,7 @@ const { embedding } = await embed({
     bedrock: {
       inputType: 'search_document', // required for Cohere
       truncate: 'END', // optional, truncation behavior
-    },
+    } satisfies AmazonBedrockEmbeddingModelOptions,
   },
 });
 ```

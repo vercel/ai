@@ -25,7 +25,4 @@ If a provider has multiple implementations for the same model type, add a qualif
 
 ## Provider Method Names
 
-For the Provider v2 interface, we require fully specified names with a "Model" suffix,
-e.g. `languageModel(id)` or `imageModel(id)`.
-However, for DX reasons it is very useful to have shorter alias names,
-e.g. `.chat(id)` or `.image(id)`.
+For the Provider v3 interface, we require fully specified names with a "Model" suffix, e.g. `languageModel(id)` or `imageModel(id)`. These help with clarity for both developers and agents.

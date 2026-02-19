@@ -1,5 +1,18 @@
 # @ai-sdk/klingai
 
+## 3.0.4
+
+### Patch Changes
+
+- 3b19702: feat (provider/klingai): add kling v3.0 t2v and i2v support
+
+## 3.0.3
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+
 ## 3.0.2
 
 ### Patch Changes

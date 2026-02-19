@@ -7,7 +7,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-3-7-sonnet-20250219'),
+    model: anthropic('claude-sonnet-4-6'),
     prompt: 'How many "r"s are in the word "strawberry"?',
     temperature: 0.5, // should get ignored (warning)
     providerOptions: {
