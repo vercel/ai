@@ -53,6 +53,7 @@ import {
   streamText,
   StreamTextOnFinishCallback,
   StreamTextOnStartCallback,
+  StreamTextOnStepStartCallback,
 } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
@@ -5113,6 +5114,323 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(startEvent.include).toEqual({ requestBody: false });
+    });
+  });
+
+  describe('options.experimental_onStepStart', () => {
+    it('should be called with correct data for a single step', async () => {
+      let stepStartEvent!: Parameters<
+        StreamTextOnStepStartCallback<any, any>
+      >[0];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_onStepStart: async event => {
+          stepStartEvent = event;
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(stepStartEvent.stepNumber).toBe(0);
+      expect(stepStartEvent.model).toEqual({
+        provider: 'mock-provider',
+        modelId: 'mock-model-id',
+      });
+      expect(stepStartEvent.messages).toEqual([
+        {
+          role: 'user',
+          content: 'test-input',
+        },
+      ]);
+      expect(stepStartEvent.steps).toEqual([]);
+    });
+
+    it('should be called once per step in a multi-step tool loop', async () => {
+      const stepStartEvents: Parameters<
+        StreamTextOnStepStartCallback<any, any>
+      >[0][] = [];
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata' as const,
+                      id: 'id-0',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    {
+                      type: 'tool-call' as const,
+                      id: 'call-1',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "test" }',
+                    },
+                    {
+                      type: 'finish' as const,
+                      finishReason: {
+                        unified: 'tool-calls' as const,
+                        raw: undefined,
+                      },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 1:
+              default:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata' as const,
+                      id: 'id-1',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(1000),
+                    },
+                    { type: 'text-start' as const, id: '1' },
+                    {
+                      type: 'text-delta' as const,
+                      id: '1',
+                      delta: 'Final answer.',
+                    },
+                    { type: 'text-end' as const, id: '1' },
+                    {
+                      type: 'finish' as const,
+                      finishReason: {
+                        unified: 'stop' as const,
+                        raw: 'stop',
+                      },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: stepCountIs(3),
+        experimental_onStepStart: async event => {
+          stepStartEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(stepStartEvents.length).toBe(2);
+      expect(stepStartEvents[0].stepNumber).toBe(0);
+      expect(stepStartEvents[1].stepNumber).toBe(1);
+    });
+
+    it('should be called before doStream on each step', async () => {
+      const callOrder: string[] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => {
+            callOrder.push('doStream');
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'stream-start',
+                  warnings: [],
+                },
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello!' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        experimental_onStepStart: async () => {
+          callOrder.push('onStepStart');
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(callOrder).toEqual(['onStepStart', 'doStream']);
+    });
+
+    it('should not break generation when callback throws', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_onStepStart: async () => {
+          throw new Error('callback error');
+        },
+        onError: () => {},
+      });
+
+      expect(await result.text).toBe('Hello, world!');
+    });
+
+    it('should reflect model changes from prepareStep', async () => {
+      const stepStartEvents: Parameters<
+        StreamTextOnStepStartCallback<any, any>
+      >[0][] = [];
+      let responseCount = 0;
+
+      const alternateModel = new MockLanguageModelV3({
+        provider: 'alternate-provider',
+        modelId: 'alternate-model-id',
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata' as const,
+              id: 'id-1',
+              modelId: 'alternate-model-id',
+              timestamp: new Date(1000),
+            },
+            { type: 'text-start' as const, id: '1' },
+            { type: 'text-delta' as const, id: '1', delta: 'Final answer.' },
+            { type: 'text-end' as const, id: '1' },
+            {
+              type: 'finish' as const,
+              finishReason: { unified: 'stop' as const, raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+      });
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => {
+            responseCount++;
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'response-metadata' as const,
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                {
+                  type: 'tool-call' as const,
+                  id: 'call-1',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: '{ "value": "test" }',
+                },
+                {
+                  type: 'finish' as const,
+                  finishReason: {
+                    unified: 'tool-calls' as const,
+                    raw: undefined,
+                  },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: stepCountIs(3),
+        prepareStep: async ({ stepNumber }) => {
+          if (stepNumber === 1) {
+            return { model: alternateModel };
+          }
+          return undefined;
+        },
+        experimental_onStepStart: async event => {
+          stepStartEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(stepStartEvents[0].model).toEqual({
+        provider: 'mock-provider',
+        modelId: 'mock-model-id',
+      });
+      expect(stepStartEvents[1].model).toEqual({
+        provider: 'alternate-provider',
+        modelId: 'alternate-model-id',
+      });
+    });
+
+    it('should expose providerOptions and experimental_context', async () => {
+      let stepStartEvent!: Parameters<
+        StreamTextOnStepStartCallback<any, any>
+      >[0];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        providerOptions: { openai: { logprobs: true } },
+        experimental_context: { userId: 'test-user' },
+        experimental_onStepStart: async event => {
+          stepStartEvent = event;
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(stepStartEvent.providerOptions).toEqual({
+        openai: { logprobs: true },
+      });
+      expect(stepStartEvent.experimental_context).toEqual({
+        userId: 'test-user',
+      });
+    });
+
+    it('should expose functionId and metadata from telemetry', async () => {
+      let stepStartEvent!: Parameters<
+        StreamTextOnStepStartCallback<any, any>
+      >[0];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_telemetry: {
+          functionId: 'test-function',
+          metadata: { customKey: 'customValue' },
+        },
+        experimental_onStepStart: async event => {
+          stepStartEvent = event;
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(stepStartEvent.functionId).toBe('test-function');
+      expect(stepStartEvent.metadata).toEqual({ customKey: 'customValue' });
     });
   });
 
