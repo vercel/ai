@@ -181,6 +181,8 @@ exports[`streamObject > telemetry > should not record telemetry inputs / outputs
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
+      "gen_ai.operation.name": "chat",
+      "gen_ai.provider.name": "mock-provider",
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.response.finish_reasons": [
         "stop",
@@ -200,7 +202,7 @@ exports[`streamObject > telemetry > should not record telemetry inputs / outputs
         "name": "ai.stream.firstChunk",
       },
     ],
-    "name": "ai.streamObject.doStream",
+    "name": "chat mock-model-id",
   },
 ]
 `;
@@ -266,6 +268,10 @@ exports[`streamObject > telemetry > should record telemetry data when enabled 1`
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
+      "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"prompt"}]}]",
+      "gen_ai.operation.name": "chat",
+      "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"{ \\"content\\": \\"Hello, world!\\" }"}],"finish_reason":"stop"}]",
+      "gen_ai.provider.name": "mock-provider",
       "gen_ai.request.frequency_penalty": 0.3,
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.request.presence_penalty": 0.4,
@@ -291,7 +297,7 @@ exports[`streamObject > telemetry > should record telemetry data when enabled 1`
         "name": "ai.stream.firstChunk",
       },
     ],
-    "name": "ai.streamObject.doStream",
+    "name": "chat mock-model-id",
   },
 ]
 `;

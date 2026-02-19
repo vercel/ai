@@ -13,7 +13,7 @@ import {
   ToolApprovalResponse,
   ToolContent,
 } from '@ai-sdk/provider-utils';
-import { Span } from '@opentelemetry/api';
+import { Span, SpanKind } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
@@ -38,6 +38,12 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import {
+  convertToOTelGenAIInputMessages,
+  convertToOTelGenAIOutputMessages,
+  convertToOTelGenAIToolDefinitions,
+  getGenAIOperationName,
+} from '../telemetry/convert-to-otel-genai-messages';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
 import { LanguageModelRequestMetadata } from '../types';
@@ -1391,13 +1397,19 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               providerOptions,
               prepareStepResult?.providerOptions,
             );
+            // Determine the GenAI operation name for OTel compliance
+            const genAIOperationName = getGenAIOperationName(
+              'ai.streamText.doStream',
+            );
+
             const {
               result: { stream, response, request },
               doStreamSpan,
               startTimestampMs,
             } = await retry(() =>
               recordSpan({
-                name: 'ai.streamText.doStream',
+                name: `${genAIOperationName} ${stepModel.modelId}`,
+                kind: SpanKind.CLIENT,
                 attributes: selectTelemetryAttributes({
                   telemetry,
                   attributes: {
@@ -1424,7 +1436,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                           : undefined,
                     },
 
-                    // standardized gen-ai llm span attributes:
+                    'gen_ai.operation.name': genAIOperationName,
+                    'gen_ai.provider.name': stepModel.provider,
                     'gen_ai.system': stepModel.provider,
                     'gen_ai.request.model': stepModel.modelId,
                     'gen_ai.request.frequency_penalty':
@@ -1436,6 +1449,20 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     'gen_ai.request.temperature': callSettings.temperature,
                     'gen_ai.request.top_k': callSettings.topK,
                     'gen_ai.request.top_p': callSettings.topP,
+                    'gen_ai.input.messages': {
+                      input: () =>
+                        JSON.stringify(
+                          convertToOTelGenAIInputMessages(promptMessages),
+                        ),
+                    },
+                    'gen_ai.tool.definitions': {
+                      input: () =>
+                        stepTools
+                          ? JSON.stringify(
+                              convertToOTelGenAIToolDefinitions(stepTools),
+                            )
+                          : undefined,
+                    },
                   },
                 }),
                 tracer,
@@ -1751,7 +1778,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                             'ai.usage.cachedInputTokens':
                               stepUsage.cachedInputTokens,
 
-                            // standardized gen-ai llm span attributes:
                             'gen_ai.response.finish_reasons': [
                               stepFinishReason,
                             ],
@@ -1760,6 +1786,20 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                             'gen_ai.usage.input_tokens': stepUsage.inputTokens,
                             'gen_ai.usage.output_tokens':
                               stepUsage.outputTokens,
+                            'gen_ai.output.messages': {
+                              output: () =>
+                                JSON.stringify(
+                                  convertToOTelGenAIOutputMessages({
+                                    text: activeText || undefined,
+                                    toolCalls: stepToolCalls.map(tc => ({
+                                      toolCallId: tc.toolCallId,
+                                      toolName: tc.toolName,
+                                      input: tc.input,
+                                    })),
+                                    finishReason: stepFinishReason,
+                                  }),
+                                ),
+                            },
                           },
                         }),
                       );
