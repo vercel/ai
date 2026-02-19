@@ -44,9 +44,6 @@ prompt: |
   external — issue caused by something outside the ai sdk.
   resumability — resumable streams and recovery.
 
-  version labels (prs only):
-  major — breaking changes. minor — new features. backport — should be backported.
-
   workflow labels:
   type:batch — coordinated changes across packages.
   type:epic — large tracked initiatives.
@@ -58,3 +55,6 @@ prompt: |
   issues about useChat, useCompletion, hooks → ai/ui.
   docs-only prs → documentation.
   dependency updates → maintenance.
+
+  Important: do not apply these labels, they are for humans only.
+  major, minor, backport
