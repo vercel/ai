@@ -974,6 +974,128 @@ describe('doGenerate', () => {
       `);
     });
 
+    it('should pass top-level thinking effort', async () => {
+      prepareJsonResponse({ content: '{"value":"test"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        thinking: { type: 'enabled', effort: 'low' },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "gpt-5",
+          "reasoning_effort": "low",
+        }
+      `);
+    });
+
+    it('should allow disabling thinking via top-level settings', async () => {
+      prepareJsonResponse({ content: '{"value":"test"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        thinking: { type: 'disabled' },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "gpt-5",
+          "reasoning_effort": "none",
+        }
+      `);
+    });
+
+    it('should prioritize top-level thinking over providerOptions reasoningEffort', async () => {
+      prepareJsonResponse({ content: '{"value":"test"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        thinking: { type: 'enabled', effort: 'medium' },
+        providerOptions: {
+          'test-provider': { reasoningEffort: 'high' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "gpt-5",
+          "reasoning_effort": "medium",
+        }
+      `);
+    });
+
+    it('should warn when thinking.budgetTokens is provided', async () => {
+      prepareJsonResponse({ content: '{"value":"test"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      const { warnings } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        thinking: { type: 'enabled', effort: 'high', budgetTokens: 1024 },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "gpt-5",
+          "reasoning_effort": "high",
+        }
+      `);
+
+      expect(warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'thinking.budgetTokens',
+        details:
+          'thinking.budgetTokens is not supported by OpenAI-compatible chat APIs',
+      });
+    });
+
     it('should not duplicate reasoningEffort in request body', async () => {
       prepareJsonResponse({ content: '{"value":"test"}' });
 

@@ -3,6 +3,7 @@ import { SharedV3ProviderOptions } from '../../shared/v3/shared-v3-provider-opti
 import { LanguageModelV3FunctionTool } from './language-model-v3-function-tool';
 import { LanguageModelV3Prompt } from './language-model-v3-prompt';
 import { LanguageModelV3ProviderTool } from './language-model-v3-provider-tool';
+import { LanguageModelV3Thinking } from './language-model-v3-thinking';
 import { LanguageModelV3ToolChoice } from './language-model-v3-tool-choice';
 
 export type LanguageModelV3CallOptions = {
@@ -89,6 +90,13 @@ export type LanguageModelV3CallOptions = {
    * by the model, calls will generate deterministic results.
    */
   seed?: number;
+
+  /**
+   * Top-level thinking / reasoning configuration.
+   *
+   * Providers that do not support thinking may ignore this setting and emit warnings.
+   */
+  thinking?: LanguageModelV3Thinking;
 
   /**
    * The tools that are available for the model.

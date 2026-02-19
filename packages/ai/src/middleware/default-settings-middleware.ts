@@ -18,6 +18,7 @@ export function defaultSettingsMiddleware({
     frequencyPenalty?: LanguageModelV3CallOptions['frequencyPenalty'];
     responseFormat?: LanguageModelV3CallOptions['responseFormat'];
     seed?: LanguageModelV3CallOptions['seed'];
+    thinking?: LanguageModelV3CallOptions['thinking'];
     tools?: LanguageModelV3CallOptions['tools'];
     toolChoice?: LanguageModelV3CallOptions['toolChoice'];
     headers?: LanguageModelV3CallOptions['headers'];
@@ -27,7 +28,17 @@ export function defaultSettingsMiddleware({
   return {
     specificationVersion: 'v3',
     transformParams: async ({ params }) => {
-      return mergeObjects(settings, params) as LanguageModelV3CallOptions;
+      const mergedParams = mergeObjects(
+        settings,
+        params,
+      ) as LanguageModelV3CallOptions;
+
+      // `thinking` is a discriminated union and must be replaced atomically.
+      if (params.thinking != null) {
+        mergedParams.thinking = params.thinking;
+      }
+
+      return mergedParams;
     },
   };
 }

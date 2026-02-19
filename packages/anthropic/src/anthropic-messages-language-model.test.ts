@@ -119,6 +119,60 @@ describe('AnthropicMessagesLanguageModel', () => {
         `);
       });
 
+      it('should pass top-level thinking and effort settings', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          thinking: {
+            type: 'enabled',
+            effort: 'low',
+            budgetTokens: 2048,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          thinking: {
+            type: 'enabled',
+            budget_tokens: 2048,
+          },
+          output_config: {
+            effort: 'low',
+          },
+        });
+
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should prioritize top-level thinking over providerOptions thinking', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          thinking: {
+            type: 'enabled',
+            effort: 'high',
+            budgetTokens: 1500,
+          },
+          providerOptions: {
+            anthropic: {
+              thinking: { type: 'disabled' },
+              effort: 'low',
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          thinking: {
+            type: 'enabled',
+            budget_tokens: 1500,
+          },
+          output_config: {
+            effort: 'high',
+          },
+        });
+      });
+
       it('should extract reasoning response', async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
           type: 'json-value',
