@@ -1011,7 +1011,7 @@ The errors that you get in this case look like this:
 By default, structured outputs are enabled (and for tool calling they are required).
 You can disable structured outputs for object generation as a workaround:
 
-```ts highlight="4,9"
+```ts highlight="3,8"
 const { output } = await generateText({
   model: google('gemini-2.5-flash'),
   providerOptions: {
