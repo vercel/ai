@@ -156,5 +156,4 @@ export type GatewayModelId =
   | 'zai/glm-4.7'
   | 'zai/glm-4.7-flashx'
   | 'zai/glm-5'
-  | 'github-bug'
   | (string & {});
