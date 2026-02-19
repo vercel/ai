@@ -123,6 +123,7 @@ describe('doGenerate', () => {
 
       expect(usage).toMatchInlineSnapshot(`
         {
+          "cachedInputTokens": undefined,
           "inputTokens": 24,
           "outputTokens": 1668,
           "reasoningTokens": 1353,
