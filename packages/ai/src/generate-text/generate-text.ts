@@ -423,49 +423,10 @@ export type GenerateTextOnToolCallFinishCallback<
  * Called when a step (LLM call) completes. The event includes all step result
  * properties (text, tool calls, usage, etc.) along with additional metadata.
  *
- * @param event - The step result along with additional metadata.
- *
- * Inherited from StepResult:
- * @param event.content - Array of content parts (text, tool calls, tool results, files, etc.).
- * @param event.text - The generated text content.
- * @param event.reasoning - Array of reasoning parts from the model.
- * @param event.reasoningText - Combined reasoning text, or undefined if no reasoning.
- * @param event.files - Array of generated files.
- * @param event.sources - Array of sources used to generate the text.
- * @param event.toolCalls - Array of tool calls made during this step.
- * @param event.toolResults - Array of tool results from executed tools.
- * @param event.finishReason - Unified reason why generation finished ('stop', 'tool-calls', etc.).
- * @param event.usage - Token usage for this step (promptTokens, completionTokens, totalTokens).
- * @param event.warnings - Warnings from the provider, if any.
- * @param event.request - Request metadata (body, headers if available).
- * @param event.response - Response metadata including messages and optional body.
- * @param event.providerMetadata - Provider-specific metadata.
- *
- * Additional properties:
- * @param event.stepNumber - Zero-based index of the completed step.
- * @param event.model - Information about the model that produced this step (provider and modelId).
- * @param event.functionId - Identifier from telemetry settings for grouping related operations.
- * @param event.metadata - Additional metadata from telemetry settings.
- * @param event.experimental_context - User-defined context object flowing through the generation.
+ * @param stepResult - The result of the step.
  */
 export type GenerateTextOnStepFinishCallback<TOOLS extends ToolSet> = (
-  event: StepResult<TOOLS> & {
-    /** Zero-based index of the completed step. */
-    readonly stepNumber: number;
-    /** Information about the model that produced this step. */
-    readonly model: {
-      /** The provider of the model. */
-      readonly provider: string;
-      /** The ID of the model. */
-      readonly modelId: string;
-    };
-    /** Identifier from telemetry settings for grouping related operations. */
-    readonly functionId: string | undefined;
-    /** Additional metadata from telemetry settings. */
-    readonly metadata: Record<string, unknown> | undefined;
-    /** User-defined context object flowing through the generation. */
-    readonly experimental_context: unknown;
-  },
+  stepResult: StepResult<TOOLS>,
 ) => Promise<void> | void;
 
 /**
@@ -1372,7 +1333,19 @@ export async function generateText<
                   : undefined,
             };
 
+            const stepNumber = steps.length;
+
             const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
+              stepNumber,
+              model: {
+                provider: stepModel.provider,
+                modelId: stepModel.modelId,
+              },
+              functionId: telemetry?.functionId,
+              metadata: telemetry?.metadata as
+                | Record<string, unknown>
+                | undefined,
+              experimental_context,
               content: stepContent,
               finishReason: currentModelResponse.finishReason.unified,
               rawFinishReason: currentModelResponse.finishReason.raw,
@@ -1389,39 +1362,8 @@ export async function generateText<
               model: stepModel.modelId,
             });
 
-            const stepNumber = steps.length;
             steps.push(currentStepResult);
-            await onStepFinish?.({
-              finishReason: currentStepResult.finishReason,
-              rawFinishReason: currentStepResult.rawFinishReason,
-              usage: currentStepResult.usage,
-              content: currentStepResult.content,
-              text: currentStepResult.text,
-              reasoningText: currentStepResult.reasoningText,
-              reasoning: currentStepResult.reasoning,
-              files: currentStepResult.files,
-              sources: currentStepResult.sources,
-              toolCalls: currentStepResult.toolCalls,
-              staticToolCalls: currentStepResult.staticToolCalls,
-              dynamicToolCalls: currentStepResult.dynamicToolCalls,
-              toolResults: currentStepResult.toolResults,
-              staticToolResults: currentStepResult.staticToolResults,
-              dynamicToolResults: currentStepResult.dynamicToolResults,
-              request: currentStepResult.request,
-              response: currentStepResult.response,
-              warnings: currentStepResult.warnings,
-              providerMetadata: currentStepResult.providerMetadata,
-              stepNumber,
-              model: {
-                provider: stepModel.provider,
-                modelId: stepModel.modelId,
-              },
-              functionId: telemetry?.functionId,
-              metadata: telemetry?.metadata as
-                | Record<string, unknown>
-                | undefined,
-              experimental_context,
-            });
+            await onStepFinish?.(currentStepResult);
           } finally {
             if (stepTimeoutId != null) {
               clearTimeout(stepTimeoutId);
@@ -1489,6 +1431,11 @@ export async function generateText<
         );
 
         await onFinish?.({
+          stepNumber: lastStep.stepNumber,
+          model: lastStep.model,
+          functionId: lastStep.functionId,
+          metadata: lastStep.metadata,
+          experimental_context: lastStep.experimental_context,
           finishReason: lastStep.finishReason,
           rawFinishReason: lastStep.rawFinishReason,
           usage: lastStep.usage,
@@ -1510,9 +1457,6 @@ export async function generateText<
           providerMetadata: lastStep.providerMetadata,
           steps,
           totalUsage,
-          experimental_context,
-          functionId: telemetry?.functionId,
-          metadata: telemetry?.metadata as Record<string, unknown> | undefined,
         });
 
         // parse output only if the last step was finished with "stop":

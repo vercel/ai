@@ -2134,6 +2134,10 @@ describe('generateText', () => {
           "finishReason": "stop",
           "functionId": undefined,
           "metadata": undefined,
+          "model": {
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+          },
           "providerMetadata": undefined,
           "rawFinishReason": "stop",
           "reasoning": [],
@@ -2210,6 +2214,7 @@ describe('generateText', () => {
               "type": "tool-result",
             },
           ],
+          "stepNumber": 0,
           "steps": [
             DefaultStepResult {
               "content": [
@@ -2239,7 +2244,14 @@ describe('generateText', () => {
                   "type": "tool-result",
                 },
               ],
+              "experimental_context": undefined,
               "finishReason": "stop",
+              "functionId": undefined,
+              "metadata": undefined,
+              "model": {
+                "modelId": "mock-model-id",
+                "provider": "mock-provider",
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "request": {},
@@ -2288,6 +2300,7 @@ describe('generateText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "stepNumber": 0,
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -2750,7 +2763,16 @@ describe('generateText', () => {
                       "type": "tool-result",
                     },
                   ],
+                  "experimental_context": {
+                    "context": "state2",
+                  },
                   "finishReason": "tool-calls",
+                  "functionId": undefined,
+                  "metadata": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {},
@@ -2792,6 +2814,7 @@ describe('generateText', () => {
                     "modelId": "test-response-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "stepNumber": 0,
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -2818,7 +2841,16 @@ describe('generateText', () => {
                       "type": "text",
                     },
                   ],
+                  "experimental_context": {
+                    "context": "state3",
+                  },
                   "finishReason": "stop",
+                  "functionId": undefined,
+                  "metadata": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
                   "request": {},
@@ -2872,6 +2904,7 @@ describe('generateText', () => {
                     "modelId": "test-response-model-id",
                     "timestamp": 1970-01-01T00:00:10.000Z,
                   },
+                  "stepNumber": 1,
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -2959,7 +2992,16 @@ describe('generateText', () => {
                       "type": "tool-result",
                     },
                   ],
+                  "experimental_context": {
+                    "context": "state2",
+                  },
                   "finishReason": "tool-calls",
+                  "functionId": undefined,
+                  "metadata": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {},
@@ -3001,6 +3043,7 @@ describe('generateText', () => {
                     "modelId": "test-response-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "stepNumber": 0,
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -3027,7 +3070,16 @@ describe('generateText', () => {
                       "type": "text",
                     },
                   ],
+                  "experimental_context": {
+                    "context": "state3",
+                  },
                   "finishReason": "stop",
+                  "functionId": undefined,
+                  "metadata": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
                   "request": {},
@@ -3081,6 +3133,7 @@ describe('generateText', () => {
                     "modelId": "test-response-model-id",
                     "timestamp": 1970-01-01T00:00:10.000Z,
                   },
+                  "stepNumber": 1,
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -3403,7 +3456,14 @@ describe('generateText', () => {
                       "type": "tool-result",
                     },
                   ],
+                  "experimental_context": undefined,
                   "finishReason": "tool-calls",
+                  "functionId": undefined,
+                  "metadata": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {},
@@ -3445,6 +3505,7 @@ describe('generateText', () => {
                     "modelId": "test-response-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "stepNumber": 0,
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -3493,7 +3554,14 @@ describe('generateText', () => {
                       "type": "tool-result",
                     },
                   ],
+                  "experimental_context": undefined,
                   "finishReason": "tool-calls",
+                  "functionId": undefined,
+                  "metadata": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {},
@@ -3535,6 +3603,7 @@ describe('generateText', () => {
                     "modelId": "test-response-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "stepNumber": 0,
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -6829,7 +6898,14 @@ describe('generateText', () => {
                   "type": "tool-result",
                 },
               ],
+              "experimental_context": undefined,
               "finishReason": "tool-calls",
+              "functionId": undefined,
+              "metadata": undefined,
+              "model": {
+                "modelId": "mock-model-id",
+                "provider": "mock-provider",
+              },
               "providerMetadata": undefined,
               "rawFinishReason": undefined,
               "request": {},
@@ -6875,6 +6951,7 @@ describe('generateText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "stepNumber": 0,
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
