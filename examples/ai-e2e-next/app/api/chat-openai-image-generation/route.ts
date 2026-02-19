@@ -1,5 +1,5 @@
 import { createAgentUIStreamResponse } from 'ai';
-import { openaiImageGenerationAgent } from '@/agent/openai-image-generation-agent';
+import { openaiImageGenerationAgent } from '@/agent/openai/image-generation-agent';
 
 export async function POST(req: Request) {
   const body = await req.json();

@@ -1,4 +1,4 @@
-import { anthropicCodeExecutionAgent } from '@/agent/anthropic-code-execution-agent';
+import { anthropicCodeExecutionAgent } from '@/agent/anthropic/code-execution-agent';
 import { AnthropicMessageMetadata } from '@ai-sdk/anthropic';
 import { createAgentUIStreamResponse, UIMessage, validateUIMessages } from 'ai';
 

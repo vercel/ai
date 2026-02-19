@@ -1,6 +1,6 @@
 'use client';
 
-import { AnthropicToolsAgentMessage } from '@/agent/anthropic-tools-agent';
+import { AnthropicToolsAgentMessage } from '@/agent/anthropic/tools-agent';
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import WeatherView from '@/components/tool/weather-view';

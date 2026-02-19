@@ -1,4 +1,4 @@
-import { openaiShellContainerAgent } from '@/agent/openai-shell-container-agent';
+import { openaiShellContainerAgent } from '@/agent/openai/shell-container-agent';
 import { createAgentUIStreamResponse } from 'ai';
 
 export async function POST(req: Request) {

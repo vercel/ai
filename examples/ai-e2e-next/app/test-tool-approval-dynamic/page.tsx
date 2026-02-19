@@ -1,6 +1,6 @@
 'use client';
 
-import { DynamicWeatherWithApprovalAgentUIMessage } from '@/agent/dynamic-weather-with-approval-agent';
+import { DynamicWeatherWithApprovalAgentUIMessage } from '@/agent/anthropic/dynamic-weather-with-approval-agent';
 import ChatInput from '@/components/chat-input';
 import DynamicToolWithApprovalView from '@/components/tool/dynamic-tool-with-approval-view';
 import { useChat } from '@ai-sdk/react';

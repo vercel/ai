@@ -1,6 +1,6 @@
 'use client';
 
-import { AnthropicWebSearchMessage } from '@/agent/anthropic-web-search-agent';
+import { AnthropicWebSearchMessage } from '@/agent/anthropic/web-search-agent';
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import { ReasoningView } from '@/components/reasoning-view';

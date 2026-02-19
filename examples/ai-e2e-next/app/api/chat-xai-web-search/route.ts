@@ -1,4 +1,4 @@
-import { xaiWebSearchAgent } from '@/agent/xai-web-search-agent';
+import { xaiWebSearchAgent } from '@/agent/xai/web-search-agent';
 import { createAgentUIStreamResponse } from 'ai';
 
 export async function POST(req: Request) {

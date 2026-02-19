@@ -3,7 +3,7 @@
 import ChatInput from '@/components/chat-input';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { XaiMcpServerMessage } from '@/agent/xai-mcp-server-agent';
+import { XaiMcpServerMessage } from '@/agent/xai/mcp-server-agent';
 
 export default function Chat() {
   const { error, status, sendMessage, messages, regenerate, stop } =

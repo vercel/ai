@@ -1,4 +1,4 @@
-import { anthropicToolSearchAgent } from '@/agent/anthropic-tool-search-agent';
+import { anthropicToolSearchAgent } from '@/agent/anthropic/tool-search-agent';
 import { createAgentUIStreamResponse } from 'ai';
 
 export async function POST(request: Request) {

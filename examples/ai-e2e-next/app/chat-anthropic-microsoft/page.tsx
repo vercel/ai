@@ -1,6 +1,6 @@
 'use client';
 
-import { AnthropicMicrosoftMessage } from '@/agent/anthropic-microsoft-agent';
+import { AnthropicMicrosoftMessage } from '@/agent/anthropic/microsoft-agent';
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import { ReasoningView } from '@/components/reasoning-view';

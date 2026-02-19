@@ -1,6 +1,6 @@
 'use client';
 
-import { DeepSeekToolsAgentMessage } from '@/agent/deepseek-tools-agent';
+import { DeepSeekToolsAgentMessage } from '@/agent/deepseek/tools-agent';
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import { ReasoningView } from '@/components/reasoning-view';

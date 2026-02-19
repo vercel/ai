@@ -6,7 +6,7 @@ import {
   lastAssistantMessageIsCompleteWithApprovalResponses,
 } from 'ai';
 import ChatInput from '@/components/chat-input';
-import { OpenAIShellSkillsMessage } from '@/agent/openai-shell-skills-agent';
+import { OpenAIShellSkillsMessage } from '@/agent/openai/shell-skills-agent';
 import ShellView from '@/components/tool/openai-shell-view';
 
 export default function ChatOpenAIShellSkills() {

@@ -1,4 +1,4 @@
-import { weatherWithApprovalAgent } from '@/agent/weather-with-approval-agent';
+import { weatherWithApprovalAgent } from '@/agent/anthropic/weather-with-approval-agent';
 import { createAgentUIStreamResponse } from 'ai';
 
 export async function POST(request: Request) {

@@ -1,4 +1,4 @@
-import { dynamicWeatherWithApprovalAgent } from '@/agent/dynamic-weather-with-approval-agent';
+import { dynamicWeatherWithApprovalAgent } from '@/agent/anthropic/dynamic-weather-with-approval-agent';
 import { createAgentUIStreamResponse } from 'ai';
 
 export async function POST(request: Request) {

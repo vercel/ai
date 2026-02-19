@@ -1,4 +1,4 @@
-import { openaiBasicAgent } from '@/agent/openai-basic-agent';
+import { openaiBasicAgent } from '@/agent/openai/basic-agent';
 import { createAgentUIStreamResponse, smoothStream } from 'ai';
 
 export async function POST(req: Request) {

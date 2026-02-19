@@ -1,4 +1,4 @@
-import { xaiMcpServerAgent } from '@/agent/xai-mcp-server-agent';
+import { xaiMcpServerAgent } from '@/agent/xai/mcp-server-agent';
 import { createAgentUIStreamResponse } from 'ai';
 
 export async function POST(req: Request) {

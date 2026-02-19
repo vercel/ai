@@ -1,4 +1,4 @@
-import { SendEmailUIToolInvocation } from '@/agent/anthropic-tool-search-agent';
+import { SendEmailUIToolInvocation } from '@/agent/anthropic/tool-search-agent';
 
 export default function SendEmailView({
   invocation,

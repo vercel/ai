@@ -1,4 +1,4 @@
-import { openaiShellAgent } from '@/agent/openai-shell-agent';
+import { openaiShellAgent } from '@/agent/openai/shell-agent';
 import { createAgentUIStreamResponse } from 'ai';
 
 export async function POST(req: Request) {

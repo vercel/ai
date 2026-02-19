@@ -1,6 +1,6 @@
 'use client';
 
-import { XaiWebSearchMessage } from '@/agent/xai-web-search-agent';
+import { XaiWebSearchMessage } from '@/agent/xai/web-search-agent';
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import SourcesView from '@/components/sources-view';

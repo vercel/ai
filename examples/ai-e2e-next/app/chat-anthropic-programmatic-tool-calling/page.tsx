@@ -1,6 +1,6 @@
 'use client';
 
-import { AnthropicProgrammaticToolCallingMessage } from '@/agent/anthropic-programmatic-tool-calling-agent';
+import { AnthropicProgrammaticToolCallingMessage } from '@/agent/anthropic/programmatic-tool-calling-agent';
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import AnthropicCodeExecutionView from '@/components/tool/anthropic-code-execution-view';

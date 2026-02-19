@@ -1,6 +1,6 @@
 'use client';
 
-import { OpenAICodeInterpreterMessage } from '@/agent/openai-code-interpreter-agent';
+import { OpenAICodeInterpreterMessage } from '@/agent/openai/code-interpreter-agent';
 import ChatInput from '@/components/chat-input';
 import CodeInterpreterView from '@/components/tool/openai-code-interpreter-view';
 import { ResponsesText } from '@/components/tool/responses-text';

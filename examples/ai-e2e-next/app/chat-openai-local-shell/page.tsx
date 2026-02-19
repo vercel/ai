@@ -6,7 +6,7 @@ import {
   lastAssistantMessageIsCompleteWithApprovalResponses,
 } from 'ai';
 import ChatInput from '@/components/chat-input';
-import { OpenAILocalShellMessage } from '@/agent/openai-local-shell-agent';
+import { OpenAILocalShellMessage } from '@/agent/openai/local-shell-agent';
 import LocalShellView from '@/components/tool/openai-local-shell-view';
 
 export default function TestOpenAIWebSearch() {

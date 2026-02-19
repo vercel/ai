@@ -1,6 +1,6 @@
 'use client';
 
-import { OpenAIBasicMessage } from '@/agent/openai-basic-agent';
+import { OpenAIBasicMessage } from '@/agent/openai/basic-agent';
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import { ReasoningView } from '@/components/reasoning-view';

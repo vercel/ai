@@ -3,7 +3,7 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import ChatInput from '@/components/chat-input';
-import { OpenAIShellContainerSkillsMessage } from '@/agent/openai-shell-container-skills-agent';
+import { OpenAIShellContainerSkillsMessage } from '@/agent/openai/shell-container-skills-agent';
 
 export default function ChatOpenAIShellContainerSkills() {
   const { status, sendMessage, messages } =

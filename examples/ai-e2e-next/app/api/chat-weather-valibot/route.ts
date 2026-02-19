@@ -1,4 +1,4 @@
-import { weatherValibotAgent } from '@/agent/weather-valibot-agent';
+import { weatherValibotAgent } from '@/agent/anthropic/weather-valibot-agent';
 import { createAgentUIStreamResponse } from 'ai';
 
 export async function POST(request: Request) {

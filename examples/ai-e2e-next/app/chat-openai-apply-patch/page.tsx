@@ -1,6 +1,6 @@
 'use client';
 
-import { OpenAIApplyPatchMessage } from '@/agent/openai-apply-patch-agent';
+import { OpenAIApplyPatchMessage } from '@/agent/openai/apply-patch-agent';
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import { ReasoningView } from '@/components/reasoning-view';

@@ -1,4 +1,4 @@
-import { openaiApplyPatchAgent } from '@/agent/openai-apply-patch-agent';
+import { openaiApplyPatchAgent } from '@/agent/openai/apply-patch-agent';
 import { createAgentUIStreamResponse } from 'ai';
 
 export async function POST(req: Request) {

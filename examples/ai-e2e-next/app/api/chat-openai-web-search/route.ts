@@ -1,4 +1,4 @@
-import { openaiWebSearchAgent } from '@/agent/openai-web-search-agent';
+import { openaiWebSearchAgent } from '@/agent/openai/web-search-agent';
 import { createAgentUIStreamResponse } from 'ai';
 
 export async function POST(req: Request) {
