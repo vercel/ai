@@ -968,19 +968,50 @@ To see `generateText` in action, check out [these examples](#examples).
           type: 'OnToolCallStartEvent',
           parameters: [
             {
-              name: 'toolName',
-              type: 'string',
-              description: 'The name of the tool being called.',
+              name: 'stepNumber',
+              type: 'number | undefined',
+              description:
+                'The zero-based index of the current step where this tool call occurs. May be undefined in streaming contexts.',
             },
             {
-              name: 'toolCallId',
-              type: 'string',
-              description: 'The unique ID of the tool call.',
+              name: 'model',
+              type: '{ provider: string; modelId: string } | undefined',
+              description:
+                'Information about the model being used. May be undefined in streaming contexts.',
             },
             {
-              name: 'input',
+              name: 'toolCall',
+              type: 'TypedToolCall<TOOLS>',
+              description:
+                'The full tool call object containing toolName, toolCallId, input, and metadata.',
+            },
+            {
+              name: 'messages',
+              type: 'Array<ModelMessage>',
+              description:
+                'The conversation messages available at tool execution time.',
+            },
+            {
+              name: 'abortSignal',
+              type: 'AbortSignal | undefined',
+              description: 'Signal for cancelling the operation.',
+            },
+            {
+              name: 'functionId',
+              type: 'string | undefined',
+              description:
+                'Identifier from telemetry settings for grouping related operations.',
+            },
+            {
+              name: 'metadata',
+              type: 'Record<string, unknown> | undefined',
+              description: 'Additional metadata from telemetry settings.',
+            },
+            {
+              name: 'experimental_context',
               type: 'unknown',
-              description: 'The input parameters for the tool call.',
+              description:
+                'User-defined context object flowing through the generation.',
             },
           ],
         },
@@ -991,43 +1022,80 @@ To see `generateText` in action, check out [these examples](#examples).
       type: '(event: OnToolCallFinishEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        "Callback that is called right after a tool's execute function completes (or errors). Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
+        "Callback that is called right after a tool's execute function completes (or errors). Uses a discriminated union on the `success` field: when `success: true`, `output` contains the tool result; when `success: false`, `error` contains the error. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
       properties: [
         {
           type: 'OnToolCallFinishEvent',
           parameters: [
             {
-              name: 'toolName',
-              type: 'string',
-              description: 'The name of the tool that was called.',
-            },
-            {
-              name: 'toolCallId',
-              type: 'string',
-              description: 'The unique ID of the tool call.',
-            },
-            {
-              name: 'input',
-              type: 'unknown',
-              description: 'The input parameters that were passed to the tool.',
-            },
-            {
-              name: 'output',
-              type: 'unknown | undefined',
+              name: 'stepNumber',
+              type: 'number | undefined',
               description:
-                'The output returned by the tool. Undefined if the tool errored.',
+                'The zero-based index of the current step where this tool call occurred. May be undefined in streaming contexts.',
             },
             {
-              name: 'error',
-              type: 'unknown | undefined',
+              name: 'model',
+              type: '{ provider: string; modelId: string } | undefined',
               description:
-                'The error thrown by the tool, if any. Undefined on success.',
+                'Information about the model being used. May be undefined in streaming contexts.',
+            },
+            {
+              name: 'toolCall',
+              type: 'TypedToolCall<TOOLS>',
+              description:
+                'The full tool call object containing toolName, toolCallId, input, and metadata.',
+            },
+            {
+              name: 'messages',
+              type: 'Array<ModelMessage>',
+              description:
+                'The conversation messages available at tool execution time.',
+            },
+            {
+              name: 'abortSignal',
+              type: 'AbortSignal | undefined',
+              description: 'Signal for cancelling the operation.',
             },
             {
               name: 'durationMs',
               type: 'number',
               description:
                 'The wall-clock duration of the tool execution in milliseconds.',
+            },
+            {
+              name: 'functionId',
+              type: 'string | undefined',
+              description:
+                'Identifier from telemetry settings for grouping related operations.',
+            },
+            {
+              name: 'metadata',
+              type: 'Record<string, unknown> | undefined',
+              description: 'Additional metadata from telemetry settings.',
+            },
+            {
+              name: 'experimental_context',
+              type: 'unknown',
+              description:
+                'User-defined context object flowing through the generation.',
+            },
+            {
+              name: 'success',
+              type: 'boolean',
+              description:
+                'Discriminator indicating whether the tool call succeeded. When true, output is available. When false, error is available.',
+            },
+            {
+              name: 'output',
+              type: 'unknown',
+              description:
+                "The tool's return value (only present when `success: true`).",
+            },
+            {
+              name: 'error',
+              type: 'unknown',
+              description:
+                'The error that occurred during tool execution (only present when `success: false`).',
             },
           ],
         },
@@ -1047,6 +1115,29 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'number',
               description:
                 'The zero-based index of the step that just finished.',
+            },
+            {
+              name: 'model',
+              type: '{ provider: string; modelId: string }',
+              description:
+                'Information about the model that produced this step.',
+            },
+            {
+              name: 'functionId',
+              type: 'string | undefined',
+              description:
+                'Identifier from telemetry settings for grouping related operations.',
+            },
+            {
+              name: 'metadata',
+              type: 'Record<string, unknown> | undefined',
+              description: 'Additional metadata from telemetry settings.',
+            },
+            {
+              name: 'experimental_context',
+              type: 'unknown',
+              description:
+                'User-defined context object flowing through the generation.',
             },
             {
               name: 'finishReason',
@@ -1333,6 +1424,28 @@ To see `generateText` in action, check out [these examples](#examples).
         {
           type: 'OnFinishResult',
           parameters: [
+            {
+              name: 'stepNumber',
+              type: 'number',
+              description: 'The zero-based index of the final step.',
+            },
+            {
+              name: 'model',
+              type: '{ provider: string; modelId: string }',
+              description:
+                'Information about the model that produced the final step.',
+            },
+            {
+              name: 'functionId',
+              type: 'string | undefined',
+              description:
+                'Identifier from telemetry settings for grouping related operations.',
+            },
+            {
+              name: 'metadata',
+              type: 'Record<string, unknown> | undefined',
+              description: 'Additional metadata from telemetry settings.',
+            },
             {
               name: 'finishReason',
               type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
@@ -2030,6 +2143,34 @@ To see `generateText` in action, check out [these examples](#examples).
         {
           type: 'StepResult',
           parameters: [
+            {
+              name: 'stepNumber',
+              type: 'number',
+              description: 'The zero-based index of this step.',
+            },
+            {
+              name: 'model',
+              type: '{ provider: string; modelId: string }',
+              description:
+                'Information about the model that produced this step.',
+            },
+            {
+              name: 'functionId',
+              type: 'string | undefined',
+              description:
+                'Identifier from telemetry settings for grouping related operations.',
+            },
+            {
+              name: 'metadata',
+              type: 'Record<string, unknown> | undefined',
+              description: 'Additional metadata from telemetry settings.',
+            },
+            {
+              name: 'experimental_context',
+              type: 'unknown',
+              description:
+                'User-defined context object flowing through the generation.',
+            },
             {
               name: 'content',
               type: 'Array<ContentPart<TOOLS>>',
