@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: google('gemini-2.0-flash-exp'),
+    model: google('gemini-2.5-flash-image'),
     prompt: 'Generate an image of a comic cat',
   });
 

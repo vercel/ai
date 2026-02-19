@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const { output } = await generateText({
-    model: vertex('gemini-1.5-flash'),
+    model: vertex('gemini-2.5-flash'),
     output: Output.object({
       schema: z.object({
         name: z.string(),
