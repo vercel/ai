@@ -18,6 +18,7 @@ import { AgentCallParameters } from './agent';
 import { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-on-finish-callback';
 import { ToolLoopAgentOnStartCallback } from './tool-loop-agent-on-start-callback';
 import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
+import { ToolLoopAgentOnStepStartCallback } from './tool-loop-agent-on-step-start-callback';
 
 /**
  * Configuration options for an agent.
@@ -94,6 +95,14 @@ export type ToolLoopAgentSettings<
    * Callback that is called when the agent operation begins, before any LLM calls.
    */
   experimental_onStart?: ToolLoopAgentOnStartCallback<NoInfer<TOOLS>, OUTPUT>;
+
+  /**
+   * Callback that is called when a step (LLM call) begins, before the provider is called.
+   */
+  experimental_onStepStart?: ToolLoopAgentOnStepStartCallback<
+    NoInfer<TOOLS>,
+    OUTPUT
+  >;
 
   /**
    * Callback that is called when each step (LLM call) is finished, including intermediate steps.

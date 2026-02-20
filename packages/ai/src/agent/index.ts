@@ -6,6 +6,7 @@ export {
 export { type ToolLoopAgentOnFinishCallback } from './tool-loop-agent-on-finish-callback';
 export { type ToolLoopAgentOnStartCallback } from './tool-loop-agent-on-start-callback';
 export { type ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
+export { type ToolLoopAgentOnStepStartCallback } from './tool-loop-agent-on-step-start-callback';
 export {
   type ToolLoopAgentSettings,
 

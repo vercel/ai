@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { ToolLoopAgent } from './tool-loop-agent';
 import { ToolLoopAgentOnStartCallback } from './tool-loop-agent-on-start-callback';
+import { ToolLoopAgentOnStepStartCallback } from './tool-loop-agent-on-step-start-callback';
 
 describe('ToolLoopAgent', () => {
   describe('generate', () => {
@@ -633,6 +634,176 @@ describe('ToolLoopAgent', () => {
         expect(startEvent.messages).toEqual([
           { role: 'user', content: 'test-message' },
         ]);
+      });
+    });
+  });
+
+  describe('experimental_onStepStart', () => {
+    describe('generate', () => {
+      let mockModel: MockLanguageModelV3;
+
+      beforeEach(() => {
+        mockModel = new MockLanguageModelV3({
+          doGenerate: async () => {
+            return {
+              content: [{ type: 'text', text: 'reply' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: {
+                cachedInputTokens: undefined,
+                inputTokens: {
+                  total: 3,
+                  noCache: 3,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 10,
+                  text: 10,
+                  reasoning: undefined,
+                },
+              },
+              warnings: [],
+            };
+          },
+        });
+      });
+
+      it('should call experimental_onStepStart from constructor', async () => {
+        const onStepStartCalls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          experimental_onStepStart: async () => {
+            onStepStartCalls.push('constructor');
+          },
+        });
+
+        await agent.generate({
+          prompt: 'Hello, world!',
+        });
+
+        expect(onStepStartCalls).toEqual(['constructor']);
+      });
+
+      it('should call experimental_onStepStart from generate method', async () => {
+        const onStepStartCalls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+        });
+
+        await agent.generate({
+          prompt: 'Hello, world!',
+          experimental_onStepStart: async () => {
+            onStepStartCalls.push('method');
+          },
+        });
+
+        expect(onStepStartCalls).toEqual(['method']);
+      });
+
+      it('should call both constructor and method experimental_onStepStart in correct order', async () => {
+        const onStepStartCalls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          experimental_onStepStart: async () => {
+            onStepStartCalls.push('constructor');
+          },
+        });
+
+        await agent.generate({
+          prompt: 'Hello, world!',
+          experimental_onStepStart: async () => {
+            onStepStartCalls.push('method');
+          },
+        });
+
+        expect(onStepStartCalls).toEqual(['constructor', 'method']);
+      });
+
+      it('should be called before doGenerate', async () => {
+        const callOrder: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV3({
+            doGenerate: async () => {
+              callOrder.push('doGenerate');
+              return {
+                content: [{ type: 'text', text: 'reply' }],
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: {
+                  cachedInputTokens: undefined,
+                  inputTokens: {
+                    total: 3,
+                    noCache: 3,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: {
+                    total: 10,
+                    text: 10,
+                    reasoning: undefined,
+                  },
+                },
+                warnings: [],
+              };
+            },
+          }),
+        });
+
+        await agent.generate({
+          prompt: 'Hello, world!',
+          experimental_onStepStart: async () => {
+            callOrder.push('onStepStart');
+          },
+        });
+
+        expect(callOrder).toEqual(['onStepStart', 'doGenerate']);
+      });
+
+      it('should not break generation when callback throws', async () => {
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+        });
+
+        const result = await agent.generate({
+          prompt: 'Hello, world!',
+          experimental_onStepStart: async () => {
+            throw new Error('callback error');
+          },
+        });
+
+        expect(result.text).toBe('reply');
+      });
+
+      it('should pass correct event information', async () => {
+        let stepStartEvent!: Parameters<ToolLoopAgentOnStepStartCallback>[0];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          instructions: 'You are a helpful assistant',
+          experimental_context: { userId: 'test-user' },
+        });
+
+        await agent.generate({
+          prompt: 'Hello, world!',
+          experimental_onStepStart: async event => {
+            stepStartEvent = event;
+          },
+        });
+
+        expect(stepStartEvent.stepNumber).toBe(0);
+        expect(stepStartEvent.model).toEqual({
+          provider: 'mock-provider',
+          modelId: 'mock-model-id',
+        });
+        expect(stepStartEvent.system).toBe('You are a helpful assistant');
+        expect(stepStartEvent.messages).toBeDefined();
+        expect(stepStartEvent.steps).toEqual([]);
+        expect(stepStartEvent.experimental_context).toEqual({
+          userId: 'test-user',
+        });
       });
     });
   });
