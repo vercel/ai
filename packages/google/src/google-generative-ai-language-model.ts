@@ -929,12 +929,14 @@ const usageSchema = z.object({
 // https://ai.google.dev/api/generate-content#UrlRetrievalMetadata
 export const getUrlContextMetadataSchema = () =>
   z.object({
-    urlMetadata: z.array(
-      z.object({
-        retrievedUrl: z.string(),
-        urlRetrievalStatus: z.string(),
-      }),
-    ),
+    urlMetadata: z
+      .array(
+        z.object({
+          retrievedUrl: z.string(),
+          urlRetrievalStatus: z.string(),
+        }),
+      )
+      .nullish(),
   });
 
 const responseSchema = lazySchema(() =>
