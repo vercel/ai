@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.92
+
+### Patch Changes
+
+- c680a01: fix(openai): add changeset and tests for per-image usage metadata
+
 ## 2.0.91
 
 ### Patch Changes
