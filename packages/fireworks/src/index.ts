@@ -10,7 +10,10 @@ export type {
   FireworksEmbeddingModelOptions as FireworksEmbeddingProviderOptions,
 } from './fireworks-embedding-options';
 export { FireworksImageModel } from './fireworks-image-model';
-export type { FireworksImageModelId } from './fireworks-image-options';
+export type {
+  FireworksImageModelId,
+  FireworksImageModelOptions,
+} from './fireworks-image-options';
 export { fireworks, createFireworks } from './fireworks-provider';
 export type {
   FireworksProvider,
