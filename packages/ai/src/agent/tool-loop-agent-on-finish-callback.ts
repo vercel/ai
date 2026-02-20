@@ -27,5 +27,11 @@ export type ToolLoopAgentOnFinishCallback<TOOLS extends ToolSet = {}> = (
      * @default undefined
      */
     experimental_context: unknown;
+
+    /** Identifier from telemetry settings for grouping related operations. */
+    readonly functionId: string | undefined;
+
+    /** Additional metadata from telemetry settings. */
+    readonly metadata: Record<string, unknown> | undefined;
   },
 ) => PromiseLike<void> | void;
