@@ -292,7 +292,9 @@ describe('extractReasoningMiddleware', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -434,7 +436,9 @@ describe('extractReasoningMiddleware', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -584,7 +588,9 @@ describe('extractReasoningMiddleware', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -724,7 +730,9 @@ describe('extractReasoningMiddleware', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -823,7 +831,9 @@ describe('extractReasoningMiddleware', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },
@@ -953,7 +963,9 @@ describe('extractReasoningMiddleware', () => {
               "type": "start",
             },
             {
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "type": "start-step",
               "warnings": [],
             },

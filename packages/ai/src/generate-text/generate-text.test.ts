@@ -624,7 +624,7 @@ describe('generateText', () => {
   });
 
   describe('result.request', () => {
-    it('should contain request body by default', async () => {
+    it('should exclude request body by default', async () => {
       const result = await generateText({
         model: new MockLanguageModelV3({
           doGenerate: async ({}) => ({
@@ -636,30 +636,30 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'prompt',
-      });
-
-      expect(result.request).toStrictEqual({
-        body: 'test body',
-      });
-    });
-
-    it('should exclude request body when retention.requestBody is false', async () => {
-      const result = await generateText({
-        model: new MockLanguageModelV3({
-          doGenerate: async ({}) => ({
-            ...dummyResponseValues,
-            content: [{ type: 'text', text: 'Hello, world!' }],
-            request: {
-              body: 'test body',
-            },
-          }),
-        }),
-        prompt: 'prompt',
-        experimental_include: { requestBody: false },
       });
 
       expect(result.request).toStrictEqual({
         body: undefined,
+      });
+    });
+
+    it('should include request body when include.requestBody is true', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({}) => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            request: {
+              body: 'test body',
+            },
+          }),
+        }),
+        prompt: 'prompt',
+        include: { requestBody: true },
+      });
+
+      expect(result.request).toStrictEqual({
+        body: 'test body',
       });
     });
   });
@@ -2142,7 +2142,9 @@ describe('generateText', () => {
           "rawFinishReason": "stop",
           "reasoning": [],
           "reasoningText": undefined,
-          "request": {},
+          "request": {
+            "body": undefined,
+          },
           "response": {
             "body": undefined,
             "headers": {
@@ -2254,7 +2256,9 @@ describe('generateText', () => {
               },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "response": {
                 "body": undefined,
                 "headers": {
@@ -2775,7 +2779,9 @@ describe('generateText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "response": {
                     "body": undefined,
                     "headers": undefined,
@@ -2853,7 +2859,9 @@ describe('generateText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "response": {
                     "body": undefined,
                     "headers": {
@@ -3004,7 +3012,9 @@ describe('generateText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "response": {
                     "body": undefined,
                     "headers": undefined,
@@ -3082,7 +3092,9 @@ describe('generateText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "response": {
                     "body": undefined,
                     "headers": {
@@ -3466,7 +3478,9 @@ describe('generateText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "response": {
                     "body": undefined,
                     "headers": undefined,
@@ -3564,7 +3578,9 @@ describe('generateText', () => {
                   },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
-                  "request": {},
+                  "request": {
+                    "body": undefined,
+                  },
                   "response": {
                     "body": undefined,
                     "headers": undefined,
@@ -6908,7 +6924,9 @@ describe('generateText', () => {
               },
               "providerMetadata": undefined,
               "rawFinishReason": undefined,
-              "request": {},
+              "request": {
+                "body": undefined,
+              },
               "response": {
                 "body": undefined,
                 "headers": undefined,
