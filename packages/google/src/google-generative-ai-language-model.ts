@@ -569,6 +569,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                     type: 'file',
                     mediaType: part.inlineData.mimeType,
                     data: part.inlineData.data,
+                    providerMetadata: part.thoughtSignature
+                      ? {
+                          google: { thoughtSignature: part.thoughtSignature },
+                        }
+                      : undefined,
                   });
                 }
               }
