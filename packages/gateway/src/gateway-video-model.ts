@@ -6,11 +6,13 @@ import type {
   SharedV3ProviderMetadata,
   SharedV3Warning,
 } from '@ai-sdk/provider';
+import { APICallError } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
   createJsonErrorResponseHandler,
+  parseJsonEventStream,
   postJsonToApi,
   resolve,
   type Resolvable,
@@ -72,6 +74,7 @@ export class GatewayVideoModel implements Experimental_VideoModelV3 {
           headers ?? {},
           this.getModelConfigHeaders(),
           await resolve(this.config.o11yHeaders),
+          { accept: 'text/event-stream' },
         ),
         body: {
           prompt,
@@ -84,9 +87,7 @@ export class GatewayVideoModel implements Experimental_VideoModelV3 {
           ...(providerOptions && { providerOptions }),
           ...(image && { image: maybeEncodeVideoFile(image) }),
         },
-        successfulResponseHandler: createJsonResponseHandler(
-          gatewayVideoResponseSchema,
-        ),
+        successfulResponseHandler: createVideoResponseHandler(),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
           errorToMessage: data => data,
@@ -176,3 +177,120 @@ const gatewayVideoResponseSchema = z.object({
     .record(z.string(), providerMetadataEntrySchema)
     .optional(),
 });
+
+/**
+ * SSE event schema: discriminated union of success and error payloads.
+ * Used with `parseJsonEventStream` to parse the single SSE data event
+ * sent after heartbeat comments.
+ */
+const videoSSEEventSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('result'),
+    videos: z.array(gatewayVideoDataSchema),
+    warnings: z.array(gatewayVideoWarningSchema).optional(),
+    providerMetadata: z
+      .record(z.string(), providerMetadataEntrySchema)
+      .optional(),
+  }),
+  z.object({
+    type: z.literal('error'),
+    message: z.string(),
+    errorType: z.string(),
+    statusCode: z.number(),
+    param: z.unknown().nullable(),
+  }),
+]);
+
+/**
+ * Creates a response handler that supports both SSE (with heartbeat keep-alive)
+ * and plain JSON responses. Checks Content-Type to determine the format:
+ * - `text/event-stream`: parse SSE events via `parseJsonEventStream`
+ * - otherwise: fall back to `createJsonResponseHandler` for plain JSON
+ */
+function createVideoResponseHandler() {
+  const jsonHandler = createJsonResponseHandler(gatewayVideoResponseSchema);
+
+  return async ({
+    response,
+    url,
+    requestBodyValues,
+  }: {
+    url: string;
+    requestBodyValues: unknown;
+    response: Response;
+  }) => {
+    const contentType = response.headers.get('content-type') ?? '';
+
+    if (contentType.includes('text/event-stream')) {
+      if (response.body == null) {
+        throw new APICallError({
+          message: 'SSE response body is empty',
+          url,
+          requestBodyValues,
+          statusCode: response.status,
+        });
+      }
+
+      const eventStream = parseJsonEventStream({
+        stream: response.body,
+        schema: videoSSEEventSchema,
+      });
+
+      const reader = eventStream.getReader();
+      const { done, value: parseResult } = await reader.read();
+      reader.releaseLock();
+
+      if (done || !parseResult) {
+        throw new APICallError({
+          message: 'SSE stream ended without a data event',
+          url,
+          requestBodyValues,
+          statusCode: response.status,
+        });
+      }
+
+      if (!parseResult.success) {
+        throw new APICallError({
+          message: 'Failed to parse video SSE event',
+          cause: parseResult.error,
+          url,
+          requestBodyValues,
+          statusCode: response.status,
+        });
+      }
+
+      const event = parseResult.value;
+
+      if (event.type === 'error') {
+        throw new APICallError({
+          message: event.message,
+          statusCode: event.statusCode,
+          url,
+          requestBodyValues,
+          responseHeaders: Object.fromEntries([...response.headers]),
+          responseBody: JSON.stringify(event),
+          data: {
+            error: {
+              message: event.message,
+              type: event.errorType,
+              param: event.param,
+            },
+          },
+        });
+      }
+
+      // event.type === 'result'
+      return {
+        value: {
+          videos: event.videos,
+          warnings: event.warnings,
+          providerMetadata: event.providerMetadata,
+        },
+        responseHeaders: Object.fromEntries([...response.headers]),
+      };
+    }
+
+    // JSON fallback for servers without SSE support
+    return jsonHandler({ response, url, requestBodyValues });
+  };
+}
