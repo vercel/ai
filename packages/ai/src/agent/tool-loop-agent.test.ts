@@ -3,6 +3,7 @@ import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { ToolLoopAgent } from './tool-loop-agent';
+import { ToolLoopAgentOnStartCallback } from './tool-loop-agent-on-start-callback';
 
 describe('ToolLoopAgent', () => {
   describe('generate', () => {
@@ -437,6 +438,202 @@ describe('ToolLoopAgent', () => {
         },
       ]
     `);
+    });
+  });
+
+  describe('experimental_onStart', () => {
+    describe('generate', () => {
+      let doGenerateOptions: LanguageModelV3CallOptions | undefined;
+      let mockModel: MockLanguageModelV3;
+
+      beforeEach(() => {
+        doGenerateOptions = undefined;
+        mockModel = new MockLanguageModelV3({
+          doGenerate: async options => {
+            doGenerateOptions = options;
+            return {
+              content: [{ type: 'text', text: 'reply' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: {
+                cachedInputTokens: undefined,
+                inputTokens: {
+                  total: 3,
+                  noCache: 3,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 10,
+                  text: 10,
+                  reasoning: undefined,
+                },
+              },
+              warnings: [],
+            };
+          },
+        });
+      });
+
+      it('should call experimental_onStart from constructor', async () => {
+        const onStartCalls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          experimental_onStart: async () => {
+            onStartCalls.push('constructor');
+          },
+        });
+
+        await agent.generate({
+          prompt: 'Hello, world!',
+        });
+
+        expect(onStartCalls).toEqual(['constructor']);
+      });
+
+      it('should call experimental_onStart from generate method', async () => {
+        const onStartCalls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+        });
+
+        await agent.generate({
+          prompt: 'Hello, world!',
+          experimental_onStart: async () => {
+            onStartCalls.push('method');
+          },
+        });
+
+        expect(onStartCalls).toEqual(['method']);
+      });
+
+      it('should call both constructor and method experimental_onStart in correct order', async () => {
+        const onStartCalls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          experimental_onStart: async () => {
+            onStartCalls.push('constructor');
+          },
+        });
+
+        await agent.generate({
+          prompt: 'Hello, world!',
+          experimental_onStart: async () => {
+            onStartCalls.push('method');
+          },
+        });
+
+        expect(onStartCalls).toEqual(['constructor', 'method']);
+      });
+
+      it('should be called before doGenerate', async () => {
+        const callOrder: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV3({
+            doGenerate: async () => {
+              callOrder.push('doGenerate');
+              return {
+                content: [{ type: 'text', text: 'reply' }],
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: {
+                  cachedInputTokens: undefined,
+                  inputTokens: {
+                    total: 3,
+                    noCache: 3,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: {
+                    total: 10,
+                    text: 10,
+                    reasoning: undefined,
+                  },
+                },
+                warnings: [],
+              };
+            },
+          }),
+        });
+
+        await agent.generate({
+          prompt: 'Hello, world!',
+          experimental_onStart: async () => {
+            callOrder.push('onStart');
+          },
+        });
+
+        expect(callOrder).toEqual(['onStart', 'doGenerate']);
+      });
+
+      it('should not break generation when callback throws', async () => {
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+        });
+
+        const result = await agent.generate({
+          prompt: 'Hello, world!',
+          experimental_onStart: async () => {
+            throw new Error('callback error');
+          },
+        });
+
+        expect(result.text).toBe('reply');
+      });
+
+      it('should pass correct event information', async () => {
+        let startEvent!: Parameters<ToolLoopAgentOnStartCallback>[0];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          instructions: 'You are a helpful assistant',
+          temperature: 0.7,
+          maxOutputTokens: 500,
+          experimental_context: { userId: 'test-user' },
+        });
+
+        await agent.generate({
+          prompt: 'Hello, world!',
+          experimental_onStart: async event => {
+            startEvent = event;
+          },
+        });
+
+        expect(startEvent.model).toEqual({
+          provider: 'mock-provider',
+          modelId: 'mock-model-id',
+        });
+        expect(startEvent.system).toBe('You are a helpful assistant');
+        expect(startEvent.prompt).toBe('Hello, world!');
+        expect(startEvent.messages).toBeUndefined();
+        expect(startEvent.temperature).toBe(0.7);
+        expect(startEvent.maxOutputTokens).toBe(500);
+        expect(startEvent.experimental_context).toEqual({
+          userId: 'test-user',
+        });
+      });
+
+      it('should pass messages when using messages option', async () => {
+        let startEvent!: Parameters<ToolLoopAgentOnStartCallback>[0];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+        });
+
+        await agent.generate({
+          messages: [{ role: 'user', content: 'test-message' }],
+          experimental_onStart: async event => {
+            startEvent = event;
+          },
+        });
+
+        expect(startEvent.prompt).toBeUndefined();
+        expect(startEvent.messages).toEqual([
+          { role: 'user', content: 'test-message' },
+        ]);
+      });
     });
   });
 
