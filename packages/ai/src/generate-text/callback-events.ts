@@ -1,17 +1,17 @@
-import { LanguageModelV3ToolChoice } from '@ai-sdk/provider';
-import {
+import type { LanguageModelV3ToolChoice } from '@ai-sdk/provider';
+import type {
   ModelMessage,
   ProviderOptions,
   SystemModelMessage,
 } from '@ai-sdk/provider-utils';
-import { TimeoutConfiguration } from '../prompt/call-settings';
-import { ToolChoice } from '../types/language-model';
-import { LanguageModelUsage } from '../types/usage';
-import { Output } from './output';
-import { StepResult } from './step-result';
-import { StopCondition } from './stop-condition';
-import { TypedToolCall } from './tool-call';
-import { ToolSet } from './tool-set';
+import type { TimeoutConfiguration } from '../prompt/call-settings';
+import type { ToolChoice } from '../types/language-model';
+import type { LanguageModelUsage } from '../types/usage';
+import type { Output } from './output';
+import type { StepResult } from './step-result';
+import type { StopCondition } from './stop-condition';
+import type { TypedToolCall } from './tool-call';
+import type { ToolSet } from './tool-set';
 
 /**
  * Common model information used across callback events.

@@ -54,7 +54,7 @@ import { DownloadFunction } from '../util/download/download-function';
 import { mergeObjects } from '../util/merge-objects';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
-import {
+import type {
   OnFinishEvent,
   OnStartEvent,
   OnStepFinishEvent,

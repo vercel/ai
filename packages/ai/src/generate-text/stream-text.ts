@@ -81,7 +81,7 @@ import { mergeObjects } from '../util/merge-objects';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { collectToolApprovals } from './collect-tool-approvals';
-import {
+import type {
   OnFinishEvent,
   OnStartEvent,
   OnStepFinishEvent,
