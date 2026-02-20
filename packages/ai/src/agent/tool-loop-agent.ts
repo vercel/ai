@@ -1,19 +1,12 @@
 import { generateText } from '../generate-text/generate-text';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { Output } from '../generate-text/output';
-import { StepResult } from '../generate-text/step-result';
 import { stepCountIs } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 import { Prompt } from '../prompt';
 import { Agent, AgentCallParameters, AgentStreamParameters } from './agent';
-import { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-on-finish-callback';
-import { ToolLoopAgentOnStartCallback } from './tool-loop-agent-on-start-callback';
-import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
-import { ToolLoopAgentOnStepStartCallback } from './tool-loop-agent-on-step-start-callback';
-import { ToolLoopAgentOnToolCallFinishCallback } from './tool-loop-agent-on-tool-call-finish-callback';
-import { ToolLoopAgentOnToolCallStartCallback } from './tool-loop-agent-on-tool-call-start-callback';
 import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 
 /**
@@ -108,94 +101,17 @@ export class ToolLoopAgent<
     };
   }
 
-  private mergeOnStartCallbacks(
-    methodCallback: ToolLoopAgentOnStartCallback<TOOLS, OUTPUT> | undefined,
-  ): ToolLoopAgentOnStartCallback<TOOLS, OUTPUT> | undefined {
-    const constructorCallback = this.settings.experimental_onStart;
-
-    if (methodCallback && constructorCallback) {
-      return async event => {
-        await constructorCallback(event);
+  private mergeCallbacks<T extends (event: any) => PromiseLike<void> | void>(
+    settingsCallback: T | undefined,
+    methodCallback: T | undefined,
+  ): T | undefined {
+    if (methodCallback && settingsCallback) {
+      return (async (event: Parameters<T>[0]) => {
+        await settingsCallback(event);
         await methodCallback(event);
-      };
+      }) as unknown as T;
     }
-
-    return methodCallback ?? constructorCallback;
-  }
-
-  private mergeOnStepStartCallbacks(
-    methodCallback: ToolLoopAgentOnStepStartCallback<TOOLS, OUTPUT> | undefined,
-  ): ToolLoopAgentOnStepStartCallback<TOOLS, OUTPUT> | undefined {
-    const constructorCallback = this.settings.experimental_onStepStart;
-
-    if (methodCallback && constructorCallback) {
-      return async event => {
-        await constructorCallback(event);
-        await methodCallback(event);
-      };
-    }
-
-    return methodCallback ?? constructorCallback;
-  }
-
-  private mergeOnToolCallStartCallbacks(
-    methodCallback: ToolLoopAgentOnToolCallStartCallback<TOOLS> | undefined,
-  ): ToolLoopAgentOnToolCallStartCallback<TOOLS> | undefined {
-    const constructorCallback = this.settings.experimental_onToolCallStart;
-
-    if (methodCallback && constructorCallback) {
-      return async event => {
-        await constructorCallback(event);
-        await methodCallback(event);
-      };
-    }
-
-    return methodCallback ?? constructorCallback;
-  }
-
-  private mergeOnToolCallFinishCallbacks(
-    methodCallback: ToolLoopAgentOnToolCallFinishCallback<TOOLS> | undefined,
-  ): ToolLoopAgentOnToolCallFinishCallback<TOOLS> | undefined {
-    const constructorCallback = this.settings.experimental_onToolCallFinish;
-
-    if (methodCallback && constructorCallback) {
-      return async event => {
-        await constructorCallback(event);
-        await methodCallback(event);
-      };
-    }
-
-    return methodCallback ?? constructorCallback;
-  }
-
-  private mergeOnStepFinishCallbacks(
-    methodCallback: ToolLoopAgentOnStepFinishCallback<TOOLS> | undefined,
-  ): ToolLoopAgentOnStepFinishCallback<TOOLS> | undefined {
-    const constructorCallback = this.settings.onStepFinish;
-
-    if (methodCallback && constructorCallback) {
-      return async (stepResult: StepResult<TOOLS>) => {
-        await constructorCallback(stepResult);
-        await methodCallback(stepResult);
-      };
-    }
-
-    return methodCallback ?? constructorCallback;
-  }
-
-  private mergeOnFinishCallbacks(
-    methodCallback: ToolLoopAgentOnFinishCallback<TOOLS> | undefined,
-  ): ToolLoopAgentOnFinishCallback<TOOLS> | undefined {
-    const constructorCallback = this.settings.onFinish;
-
-    if (methodCallback && constructorCallback) {
-      return async event => {
-        await constructorCallback(event);
-        await methodCallback(event);
-      };
-    }
-
-    return methodCallback ?? constructorCallback;
+    return methodCallback ?? settingsCallback;
   }
 
   /**
@@ -218,18 +134,27 @@ export class ToolLoopAgent<
       ...(await this.prepareCall(options)),
       abortSignal,
       timeout,
-      experimental_onStart: this.mergeOnStartCallbacks(experimental_onStart),
-      experimental_onStepStart: this.mergeOnStepStartCallbacks(
+      experimental_onStart: this.mergeCallbacks(
+        this.settings.experimental_onStart,
+        experimental_onStart,
+      ),
+      experimental_onStepStart: this.mergeCallbacks(
+        this.settings.experimental_onStepStart,
         experimental_onStepStart,
       ),
-      experimental_onToolCallStart: this.mergeOnToolCallStartCallbacks(
+      experimental_onToolCallStart: this.mergeCallbacks(
+        this.settings.experimental_onToolCallStart,
         experimental_onToolCallStart,
       ),
-      experimental_onToolCallFinish: this.mergeOnToolCallFinishCallbacks(
+      experimental_onToolCallFinish: this.mergeCallbacks(
+        this.settings.experimental_onToolCallFinish,
         experimental_onToolCallFinish,
       ),
-      onStepFinish: this.mergeOnStepFinishCallbacks(onStepFinish),
-      onFinish: this.mergeOnFinishCallbacks(onFinish),
+      onStepFinish: this.mergeCallbacks(
+        this.settings.onStepFinish,
+        onStepFinish,
+      ),
+      onFinish: this.mergeCallbacks(this.settings.onFinish, onFinish),
     });
   }
 
@@ -255,8 +180,11 @@ export class ToolLoopAgent<
       abortSignal,
       timeout,
       experimental_transform,
-      onStepFinish: this.mergeOnStepFinishCallbacks(onStepFinish),
-      onFinish: this.mergeOnFinishCallbacks(onFinish),
+      onStepFinish: this.mergeCallbacks(
+        this.settings.onStepFinish,
+        onStepFinish,
+      ),
+      onFinish: this.mergeCallbacks(this.settings.onFinish, onFinish),
     });
   }
 }

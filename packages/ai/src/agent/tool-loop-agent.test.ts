@@ -494,7 +494,11 @@ describe('ToolLoopAgent', () => {
           prompt: 'Hello, world!',
         });
 
-        expect(onStartCalls).toEqual(['constructor']);
+        expect(onStartCalls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+          ]
+        `);
       });
 
       it('should call experimental_onStart from generate method', async () => {
@@ -511,7 +515,11 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(onStartCalls).toEqual(['method']);
+        expect(onStartCalls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
       });
 
       it('should call both constructor and method experimental_onStart in correct order', async () => {
@@ -531,7 +539,12 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(onStartCalls).toEqual(['constructor', 'method']);
+        expect(onStartCalls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+            "method",
+          ]
+        `);
       });
 
       it('should be called before doGenerate', async () => {
@@ -571,7 +584,12 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(callOrder).toEqual(['onStart', 'doGenerate']);
+        expect(callOrder).toMatchInlineSnapshot(`
+          [
+            "onStart",
+            "doGenerate",
+          ]
+        `);
       });
 
       it('should not break generation when callback throws', async () => {
@@ -607,18 +625,30 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(startEvent.model).toEqual({
-          provider: 'mock-provider',
-          modelId: 'mock-model-id',
-        });
-        expect(startEvent.system).toBe('You are a helpful assistant');
-        expect(startEvent.prompt).toBe('Hello, world!');
-        expect(startEvent.messages).toBeUndefined();
-        expect(startEvent.temperature).toBe(0.7);
-        expect(startEvent.maxOutputTokens).toBe(500);
-        expect(startEvent.experimental_context).toEqual({
-          userId: 'test-user',
-        });
+        expect({
+          model: startEvent.model,
+          system: startEvent.system,
+          prompt: startEvent.prompt,
+          messages: startEvent.messages,
+          temperature: startEvent.temperature,
+          maxOutputTokens: startEvent.maxOutputTokens,
+          experimental_context: startEvent.experimental_context,
+        }).toMatchInlineSnapshot(`
+          {
+            "experimental_context": {
+              "userId": "test-user",
+            },
+            "maxOutputTokens": 500,
+            "messages": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
+            "prompt": "Hello, world!",
+            "system": "You are a helpful assistant",
+            "temperature": 0.7,
+          }
+        `);
       });
 
       it('should pass messages when using messages option', async () => {
@@ -635,10 +665,15 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(startEvent.prompt).toBeUndefined();
-        expect(startEvent.messages).toEqual([
-          { role: 'user', content: 'test-message' },
-        ]);
+        expect(startEvent.prompt).toMatchInlineSnapshot(`undefined`);
+        expect(startEvent.messages).toMatchInlineSnapshot(`
+          [
+            {
+              "content": "test-message",
+              "role": "user",
+            },
+          ]
+        `);
       });
     });
   });
@@ -687,7 +722,11 @@ describe('ToolLoopAgent', () => {
           prompt: 'Hello, world!',
         });
 
-        expect(onStepStartCalls).toEqual(['constructor']);
+        expect(onStepStartCalls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+          ]
+        `);
       });
 
       it('should call experimental_onStepStart from generate method', async () => {
@@ -704,7 +743,11 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(onStepStartCalls).toEqual(['method']);
+        expect(onStepStartCalls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
       });
 
       it('should call both constructor and method experimental_onStepStart in correct order', async () => {
@@ -724,7 +767,12 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(onStepStartCalls).toEqual(['constructor', 'method']);
+        expect(onStepStartCalls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+            "method",
+          ]
+        `);
       });
 
       it('should be called before doGenerate', async () => {
@@ -764,7 +812,12 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(callOrder).toEqual(['onStepStart', 'doGenerate']);
+        expect(callOrder).toMatchInlineSnapshot(`
+          [
+            "onStepStart",
+            "doGenerate",
+          ]
+        `);
       });
 
       it('should not break generation when callback throws', async () => {
@@ -798,17 +851,28 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(stepStartEvent.stepNumber).toBe(0);
-        expect(stepStartEvent.model).toEqual({
-          provider: 'mock-provider',
-          modelId: 'mock-model-id',
-        });
-        expect(stepStartEvent.system).toBe('You are a helpful assistant');
-        expect(stepStartEvent.messages).toBeDefined();
-        expect(stepStartEvent.steps).toEqual([]);
-        expect(stepStartEvent.experimental_context).toEqual({
-          userId: 'test-user',
-        });
+        expect({
+          stepNumber: stepStartEvent.stepNumber,
+          model: stepStartEvent.model,
+          system: stepStartEvent.system,
+          messagesLength: stepStartEvent.messages.length,
+          steps: stepStartEvent.steps,
+          experimental_context: stepStartEvent.experimental_context,
+        }).toMatchInlineSnapshot(`
+          {
+            "experimental_context": {
+              "userId": "test-user",
+            },
+            "messagesLength": 1,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
+            "stepNumber": 0,
+            "steps": [],
+            "system": "You are a helpful assistant",
+          }
+        `);
       });
     });
   });
@@ -857,7 +921,11 @@ describe('ToolLoopAgent', () => {
           prompt: 'Hello, world!',
         });
 
-        expect(onStepFinishCalls).toEqual(['constructor']);
+        expect(onStepFinishCalls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+          ]
+        `);
       });
 
       it('should call onStepFinish from generate method', async () => {
@@ -874,7 +942,11 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(onStepFinishCalls).toEqual(['method']);
+        expect(onStepFinishCalls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
       });
 
       it('should call both constructor and method onStepFinish in correct order', async () => {
@@ -894,11 +966,16 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(onStepFinishCalls).toEqual(['constructor', 'method']);
+        expect(onStepFinishCalls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+            "method",
+          ]
+        `);
       });
 
       it('should pass stepResult to onStepFinish callback', async () => {
-        let capturedStepResult: unknown;
+        let capturedStepResult: any;
 
         const agent = new ToolLoopAgent({
           model: mockModel,
@@ -911,10 +988,21 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(capturedStepResult).toMatchObject({
-          text: 'reply',
-          finishReason: 'stop',
-        });
+        expect({
+          finishReason: capturedStepResult.finishReason,
+          stepNumber: capturedStepResult.stepNumber,
+          text: capturedStepResult.text,
+          inputTokens: capturedStepResult.usage.inputTokens,
+          outputTokens: capturedStepResult.usage.outputTokens,
+        }).toMatchInlineSnapshot(`
+          {
+            "finishReason": "stop",
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "stepNumber": 0,
+            "text": "reply",
+          }
+        `);
       });
     });
 
@@ -983,7 +1071,11 @@ describe('ToolLoopAgent', () => {
 
         await result.consumeStream();
 
-        expect(onStepFinishCalls).toEqual(['constructor']);
+        expect(onStepFinishCalls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+          ]
+        `);
       });
 
       it('should call onStepFinish from stream method', async () => {
@@ -1002,7 +1094,11 @@ describe('ToolLoopAgent', () => {
 
         await result.consumeStream();
 
-        expect(onStepFinishCalls).toEqual(['method']);
+        expect(onStepFinishCalls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
       });
 
       it('should call both constructor and method onStepFinish in correct order', async () => {
@@ -1024,11 +1120,16 @@ describe('ToolLoopAgent', () => {
 
         await result.consumeStream();
 
-        expect(onStepFinishCalls).toEqual(['constructor', 'method']);
+        expect(onStepFinishCalls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+            "method",
+          ]
+        `);
       });
 
       it('should pass stepResult to onStepFinish callback', async () => {
-        let capturedStepResult: unknown;
+        let capturedStepResult: any;
 
         const agent = new ToolLoopAgent({
           model: mockModel,
@@ -1043,10 +1144,27 @@ describe('ToolLoopAgent', () => {
 
         await result.consumeStream();
 
-        expect(capturedStepResult).toMatchObject({
-          text: 'Hello, world!',
-          finishReason: 'stop',
-        });
+        expect({
+          finishReason: capturedStepResult.finishReason,
+          stepNumber: capturedStepResult.stepNumber,
+          text: capturedStepResult.text,
+          inputTokens: capturedStepResult.usage.inputTokens,
+          outputTokens: capturedStepResult.usage.outputTokens,
+          providerMetadata: capturedStepResult.providerMetadata,
+        }).toMatchInlineSnapshot(`
+          {
+            "finishReason": "stop",
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "providerMetadata": {
+              "testProvider": {
+                "testKey": "testValue",
+              },
+            },
+            "stepNumber": 0,
+            "text": "Hello, world!",
+          }
+        `);
       });
     });
   });
@@ -1121,7 +1239,11 @@ describe('ToolLoopAgent', () => {
 
         await agent.generate({ prompt: 'test' });
 
-        expect(calls).toEqual(['constructor']);
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+          ]
+        `);
       });
 
       it('should call experimental_onToolCallStart from generate method', async () => {
@@ -1145,7 +1267,11 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(calls).toEqual(['method']);
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
       });
 
       it('should call both constructor and method in correct order', async () => {
@@ -1172,7 +1298,12 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(calls).toEqual(['constructor', 'method']);
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+            "method",
+          ]
+        `);
       });
 
       it('should pass correct event information', async () => {
@@ -1196,9 +1327,28 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(event.toolCall.toolName).toBe('testTool');
-        expect(event.toolCall.toolCallId).toBe('call-1');
-        expect(event.stepNumber).toBe(0);
+        expect({
+          stepNumber: event.stepNumber,
+          model: event.model,
+          toolCallName: event.toolCall.toolName,
+          toolCallId: event.toolCall.toolCallId,
+          toolCallInput: event.toolCall.input,
+          messagesLength: event.messages.length,
+        }).toMatchInlineSnapshot(`
+          {
+            "messagesLength": 1,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
+            "stepNumber": 0,
+            "toolCallId": "call-1",
+            "toolCallInput": {
+              "value": "test",
+            },
+            "toolCallName": "testTool",
+          }
+        `);
       });
     });
   });
@@ -1304,7 +1454,11 @@ describe('ToolLoopAgent', () => {
 
         await agent.generate({ prompt: 'test' });
 
-        expect(calls).toEqual(['constructor']);
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+          ]
+        `);
       });
 
       it('should call experimental_onToolCallFinish from generate method', async () => {
@@ -1328,7 +1482,11 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(calls).toEqual(['method']);
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
       });
 
       it('should call both constructor and method in correct order', async () => {
@@ -1355,7 +1513,12 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(calls).toEqual(['constructor', 'method']);
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+            "method",
+          ]
+        `);
       });
 
       it('should pass correct event information on success', async () => {
@@ -1379,14 +1542,33 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(event.toolCall.toolName).toBe('testTool');
-        expect(event.toolCall.toolCallId).toBe('call-1');
-        expect(event.success).toBe(true);
-        if (event.success) {
-          expect(event.output).toBe('hello-result');
-        }
         expect(event.durationMs).toBeGreaterThanOrEqual(0);
-        expect(event.stepNumber).toBe(0);
+        expect({
+          stepNumber: event.stepNumber,
+          model: event.model,
+          toolCallName: event.toolCall.toolName,
+          toolCallId: event.toolCall.toolCallId,
+          toolCallInput: event.toolCall.input,
+          success: event.success,
+          output: event.success ? event.output : undefined,
+          messagesLength: event.messages.length,
+        }).toMatchInlineSnapshot(`
+          {
+            "messagesLength": 1,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
+            "output": "hello-result",
+            "stepNumber": 0,
+            "success": true,
+            "toolCallId": "call-1",
+            "toolCallInput": {
+              "value": "hello",
+            },
+            "toolCallName": "testTool",
+          }
+        `);
       });
     });
   });
@@ -1433,7 +1615,11 @@ describe('ToolLoopAgent', () => {
 
         await agent.generate({ prompt: 'test' });
 
-        expect(calls).toEqual(['constructor']);
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+          ]
+        `);
       });
 
       it('should call onFinish from generate method', async () => {
@@ -1450,7 +1636,11 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(calls).toEqual(['method']);
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
       });
 
       it('should call both constructor and method in correct order', async () => {
@@ -1470,7 +1660,12 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(calls).toEqual(['constructor', 'method']);
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+            "method",
+          ]
+        `);
       });
 
       it('should pass correct event information', async () => {
@@ -1487,10 +1682,21 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(event.text).toBe('reply');
-        expect(event.finishReason).toBe('stop');
-        expect(event.steps).toHaveLength(1);
-        expect(event.totalUsage).toBeDefined();
+        expect({
+          text: event.text,
+          finishReason: event.finishReason,
+          stepsLength: event.steps.length,
+          inputTokens: event.totalUsage.inputTokens,
+          outputTokens: event.totalUsage.outputTokens,
+        }).toMatchInlineSnapshot(`
+          {
+            "finishReason": "stop",
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "stepsLength": 1,
+            "text": "reply",
+          }
+        `);
       });
     });
 
@@ -1556,7 +1762,11 @@ describe('ToolLoopAgent', () => {
         const result = await agent.stream({ prompt: 'test' });
         await result.consumeStream();
 
-        expect(calls).toEqual(['constructor']);
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+          ]
+        `);
       });
 
       it('should call onFinish from stream method', async () => {
@@ -1575,7 +1785,11 @@ describe('ToolLoopAgent', () => {
 
         await result.consumeStream();
 
-        expect(calls).toEqual(['method']);
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
       });
 
       it('should call both constructor and method in correct order', async () => {
@@ -1597,7 +1811,12 @@ describe('ToolLoopAgent', () => {
 
         await result.consumeStream();
 
-        expect(calls).toEqual(['constructor', 'method']);
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+            "method",
+          ]
+        `);
       });
 
       it('should pass correct event information', async () => {
@@ -1616,10 +1835,21 @@ describe('ToolLoopAgent', () => {
 
         await result.consumeStream();
 
-        expect(event.text).toBe('Hello, world!');
-        expect(event.finishReason).toBe('stop');
-        expect(event.steps).toHaveLength(1);
-        expect(event.totalUsage).toBeDefined();
+        expect({
+          text: event.text,
+          finishReason: event.finishReason,
+          stepsLength: event.steps.length,
+          inputTokens: event.totalUsage.inputTokens,
+          outputTokens: event.totalUsage.outputTokens,
+        }).toMatchInlineSnapshot(`
+          {
+            "finishReason": "stop",
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "stepsLength": 1,
+            "text": "Hello, world!",
+          }
+        `);
       });
     });
   });
