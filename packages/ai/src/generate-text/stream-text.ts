@@ -19,6 +19,7 @@ import {
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
+import { emit } from '../events/emitter';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import {
@@ -1028,7 +1029,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             providerMetadata: part.providerMetadata,
           });
 
-          await onStepFinish?.(currentStepResult);
+          emit('ai:stepFinish', currentStepResult);
+
+          try {
+            await onStepFinish?.(currentStepResult);
+          } catch (_ignored) {
+            // Errors in callbacks should not break the generation flow.
+          }
 
           logWarnings({
             warnings: recordedWarnings,
@@ -1084,7 +1091,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           // call onFinish callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
-          await onFinish?.({
+          const onFinishEvent = {
             stepNumber: finalStep.stepNumber,
             model: finalStep.model,
             functionId: finalStep.functionId,
@@ -1111,7 +1118,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             warnings: finalStep.warnings,
             providerMetadata: finalStep.providerMetadata,
             steps: recordedSteps,
-          });
+          };
+
+          emit('ai:finish', onFinishEvent);
+
+          try {
+            await onFinish?.(onFinishEvent);
+          } catch (_ignored) {
+            // Errors in callbacks should not break the generation flow.
+          }
 
           // Add response information to the root span:
           rootSpan.setAttributes(
@@ -1271,34 +1286,38 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           messages,
         } as Prompt);
 
+        const onStartEvent = {
+          model: modelInfo,
+          system,
+          prompt,
+          messages,
+          tools,
+          toolChoice,
+          activeTools,
+          maxOutputTokens: callSettings.maxOutputTokens,
+          temperature: callSettings.temperature,
+          topP: callSettings.topP,
+          topK: callSettings.topK,
+          presencePenalty: callSettings.presencePenalty,
+          frequencyPenalty: callSettings.frequencyPenalty,
+          stopSequences: callSettings.stopSequences,
+          seed: callSettings.seed,
+          maxRetries,
+          timeout,
+          headers,
+          providerOptions,
+          stopWhen,
+          output,
+          abortSignal: originalAbortSignal,
+          include,
+          ...callbackTelemetryProps,
+          experimental_context,
+        };
+
+        emit('ai:start', onStartEvent);
+
         try {
-          await onStart?.({
-            model: modelInfo,
-            system,
-            prompt,
-            messages,
-            tools,
-            toolChoice,
-            activeTools,
-            maxOutputTokens: callSettings.maxOutputTokens,
-            temperature: callSettings.temperature,
-            topP: callSettings.topP,
-            topK: callSettings.topK,
-            presencePenalty: callSettings.presencePenalty,
-            frequencyPenalty: callSettings.frequencyPenalty,
-            stopSequences: callSettings.stopSequences,
-            seed: callSettings.seed,
-            maxRetries,
-            timeout,
-            headers,
-            providerOptions,
-            stopWhen,
-            output,
-            abortSignal: originalAbortSignal,
-            include,
-            ...callbackTelemetryProps,
-            experimental_context,
-          });
+          await onStart?.(onStartEvent);
         } catch (_ignored) {
           // Errors in callbacks should not break the generation flow.
         }
@@ -1549,26 +1568,30 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               prepareStepResult?.providerOptions,
             );
 
+            const onStepStartEvent = {
+              stepNumber: recordedSteps.length,
+              model: stepModelInfo,
+              system: stepSystem,
+              messages: stepMessages,
+              tools,
+              toolChoice: stepToolChoice,
+              activeTools: stepActiveTools,
+              steps: [...recordedSteps],
+              providerOptions: stepProviderOptions,
+              timeout,
+              headers,
+              stopWhen,
+              output,
+              abortSignal: originalAbortSignal,
+              include,
+              ...callbackTelemetryProps,
+              experimental_context,
+            };
+
+            emit('ai:stepStart', onStepStartEvent);
+
             try {
-              await onStepStart?.({
-                stepNumber: recordedSteps.length,
-                model: stepModelInfo,
-                system: stepSystem,
-                messages: stepMessages,
-                tools,
-                toolChoice: stepToolChoice,
-                activeTools: stepActiveTools,
-                steps: [...recordedSteps],
-                providerOptions: stepProviderOptions,
-                timeout,
-                headers,
-                stopWhen,
-                output,
-                abortSignal: originalAbortSignal,
-                include,
-                ...callbackTelemetryProps,
-                experimental_context,
-              });
+              await onStepStart?.(onStepStartEvent);
             } catch (_ignored) {
               // Errors in callbacks should not break the generation flow.
             }
