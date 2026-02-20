@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.46
+
+### Patch Changes
+
+- b094c07: fix compaction_delta streaming schema to allow null content
+
 ## 3.0.45
 
 ### Patch Changes
