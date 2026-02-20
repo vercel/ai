@@ -3,7 +3,7 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import ChatInput from '@/components/chat-input';
-import { OpenAICodeInterpreterMessage } from '@/app/api/chat-openai-code-interpreter-annotation-download/route';
+import { OpenAICodeInterpreterMessage } from '@/app/api/chat/openai-code-interpreter-annotation-download/route';
 import CodeInterpreterView from '@/components/tool/openai-code-interpreter-view';
 import { ResponsesText } from '@/components/tool/responses-text';
 

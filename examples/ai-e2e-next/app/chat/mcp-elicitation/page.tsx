@@ -7,7 +7,7 @@ import {
   MCPElicitationUIMessage,
   ElicitationAction,
   ElicitationDataTypes,
-} from '../api/chat/mcp-elicitation/types';
+} from '@/app/api/chat/mcp-elicitation/types';
 import { isDataUIPart } from 'ai';
 
 export default function MCPElicitationChat() {

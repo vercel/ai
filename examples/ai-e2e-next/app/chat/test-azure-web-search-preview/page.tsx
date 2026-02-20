@@ -6,7 +6,7 @@ import { ReasoningView } from '@/components/reasoning-view';
 import SourcesView from '@/components/sources-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { AzureWebSearchPreviewMessage } from '@/app/api/chat-azure-web-search-preview/route';
+import { AzureWebSearchPreviewMessage } from '@/app/api/chat/azure-web-search-preview/route';
 import AzureWebSearchPreviewView from '@/components/tool/azure-web-search-preview-view';
 
 export default function TestOpenAIWebSearch() {

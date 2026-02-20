@@ -3,7 +3,7 @@
 import {
   PreviousResponseIdRequestBody,
   PreviousResponseIdUIMessage,
-} from '@/app/api/chat-openai-previous-response-id/route';
+} from '@/app/api/chat/openai-previous-response-id/route';
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import { ReasoningView } from '@/components/reasoning-view';
