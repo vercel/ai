@@ -10,10 +10,6 @@ import {
   getUrlContextMetadataSchema,
 } from './google-generative-ai-language-model';
 
-import {
-  GoogleGenerativeAIGroundingMetadata,
-  GoogleGenerativeAIUrlContextMetadata,
-} from './google-generative-ai-prompt';
 import { createGoogleGenerativeAI } from './google-provider';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as fs from 'fs';
@@ -344,54 +340,6 @@ describe('doGenerate', () => {
       ),
     };
   }
-
-  const prepareJsonResponse = ({
-    content = '',
-    usage = {
-      promptTokenCount: 1,
-      candidatesTokenCount: 2,
-      totalTokenCount: 3,
-    },
-    headers,
-    groundingMetadata,
-    url = TEST_URL_GEMINI_PRO,
-  }: {
-    content?: string;
-    usage?: {
-      promptTokenCount: number;
-      candidatesTokenCount: number;
-      totalTokenCount: number;
-    };
-    headers?: Record<string, string>;
-    groundingMetadata?: GoogleGenerativeAIGroundingMetadata;
-    url?:
-      | typeof TEST_URL_GEMINI_PRO
-      | typeof TEST_URL_GEMINI_2_0_PRO
-      | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
-      | typeof TEST_URL_GEMINI_1_0_PRO
-      | typeof TEST_URL_GEMINI_1_5_FLASH;
-  }) => {
-    server.urls[url].response = {
-      type: 'json-value',
-      headers,
-      body: {
-        candidates: [
-          {
-            content: {
-              parts: [{ text: content }],
-              role: 'model',
-            },
-            finishReason: 'STOP',
-            index: 0,
-            safetyRatings: SAFETY_RATINGS,
-            ...(groundingMetadata && { groundingMetadata }),
-          },
-        ],
-        promptFeedback: { safetyRatings: SAFETY_RATINGS },
-        usageMetadata: usage,
-      },
-    };
-  };
 
   describe('text', () => {
     beforeEach(() => {
@@ -1008,16 +956,38 @@ describe('doGenerate', () => {
   });
 
   it('should extract sources from grounding metadata', async () => {
-    prepareJsonResponse({
-      content: 'test response',
-      groundingMetadata: {
-        groundingChunks: [
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
           {
-            web: { uri: 'https://source.example.com', title: 'Source Title' },
+            content: {
+              parts: [{ text: 'test response' }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+            groundingMetadata: {
+              groundingChunks: [
+                {
+                  web: {
+                    uri: 'https://source.example.com',
+                    title: 'Source Title',
+                  },
+                },
+              ],
+            },
           },
         ],
+        promptFeedback: { safetyRatings: SAFETY_RATINGS },
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 2,
+          totalTokenCount: 3,
+        },
       },
-    });
+    };
 
     const { content } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1042,30 +1012,52 @@ describe('doGenerate', () => {
   });
 
   it('should extract sources from RAG retrievedContext chunks', async () => {
-    prepareJsonResponse({
-      content: 'test response with RAG',
-      groundingMetadata: {
-        groundingChunks: [
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
           {
-            web: { uri: 'https://web.example.com', title: 'Web Source' },
-          },
-          {
-            retrievedContext: {
-              uri: 'gs://rag-corpus/document.pdf',
-              title: 'RAG Document',
-              text: 'Retrieved context...',
+            content: {
+              parts: [{ text: 'test response with RAG' }],
+              role: 'model',
             },
-          },
-          {
-            retrievedContext: {
-              uri: 'https://external-rag-source.com/page',
-              title: 'External RAG Source',
-              text: 'External retrieved context...',
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+            groundingMetadata: {
+              groundingChunks: [
+                {
+                  web: {
+                    uri: 'https://web.example.com',
+                    title: 'Web Source',
+                  },
+                },
+                {
+                  retrievedContext: {
+                    uri: 'gs://rag-corpus/document.pdf',
+                    title: 'RAG Document',
+                    text: 'Retrieved context...',
+                  },
+                },
+                {
+                  retrievedContext: {
+                    uri: 'https://external-rag-source.com/page',
+                    title: 'External RAG Source',
+                    text: 'External retrieved context...',
+                  },
+                },
+              ],
             },
           },
         ],
+        promptFeedback: { safetyRatings: SAFETY_RATINGS },
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 2,
+          totalTokenCount: 3,
+        },
       },
-    });
+    };
 
     const { content } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1105,27 +1097,45 @@ describe('doGenerate', () => {
   });
 
   it('should extract sources from File Search retrievedContext (new format)', async () => {
-    prepareJsonResponse({
-      content: 'test response with File Search',
-      groundingMetadata: {
-        groundingChunks: [
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
           {
-            retrievedContext: {
-              text: 'Sample content for testing...',
-              fileSearchStore: 'fileSearchStores/test-store-xyz',
-              title: 'Test Document',
+            content: {
+              parts: [{ text: 'test response with File Search' }],
+              role: 'model',
             },
-          },
-          {
-            retrievedContext: {
-              text: 'Another document content...',
-              fileSearchStore: 'fileSearchStores/another-store-abc',
-              // Missing title - should default to 'Unknown Document'
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+            groundingMetadata: {
+              groundingChunks: [
+                {
+                  retrievedContext: {
+                    text: 'Sample content for testing...',
+                    fileSearchStore: 'fileSearchStores/test-store-xyz',
+                    title: 'Test Document',
+                  },
+                },
+                {
+                  retrievedContext: {
+                    text: 'Another document content...',
+                    fileSearchStore: 'fileSearchStores/another-store-abc',
+                  },
+                },
+              ],
             },
           },
         ],
+        promptFeedback: { safetyRatings: SAFETY_RATINGS },
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 2,
+          totalTokenCount: 3,
+        },
       },
-    });
+    };
 
     const { content } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1159,25 +1169,42 @@ describe('doGenerate', () => {
   });
 
   it('should handle URL sources with undefined title correctly', async () => {
-    prepareJsonResponse({
-      content: 'test response with URLs',
-      groundingMetadata: {
-        groundingChunks: [
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
           {
-            web: {
-              uri: 'https://example.com/page1',
-              // No title provided
+            content: {
+              parts: [{ text: 'test response with URLs' }],
+              role: 'model',
             },
-          },
-          {
-            retrievedContext: {
-              uri: 'https://example.com/page2',
-              // No title provided
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+            groundingMetadata: {
+              groundingChunks: [
+                {
+                  web: {
+                    uri: 'https://example.com/page1',
+                  },
+                },
+                {
+                  retrievedContext: {
+                    uri: 'https://example.com/page2',
+                  },
+                },
+              ],
             },
           },
         ],
+        promptFeedback: { safetyRatings: SAFETY_RATINGS },
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 2,
+          totalTokenCount: 3,
+        },
       },
-    });
+    };
 
     const { content } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1209,25 +1236,44 @@ describe('doGenerate', () => {
   });
 
   it('should extract sources from maps grounding metadata', async () => {
-    prepareJsonResponse({
-      content: 'test response with Maps',
-      groundingMetadata: {
-        groundingChunks: [
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
           {
-            maps: {
-              uri: 'https://maps.google.com/maps?cid=12345',
-              title: 'Best Italian Restaurant',
-              placeId: 'ChIJ12345',
+            content: {
+              parts: [{ text: 'test response with Maps' }],
+              role: 'model',
             },
-          },
-          {
-            maps: {
-              uri: 'https://maps.google.com/maps?cid=67890',
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+            groundingMetadata: {
+              groundingChunks: [
+                {
+                  maps: {
+                    uri: 'https://maps.google.com/maps?cid=12345',
+                    title: 'Best Italian Restaurant',
+                    placeId: 'ChIJ12345',
+                  },
+                },
+                {
+                  maps: {
+                    uri: 'https://maps.google.com/maps?cid=67890',
+                  },
+                },
+              ],
             },
           },
         ],
+        promptFeedback: { safetyRatings: SAFETY_RATINGS },
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 2,
+          totalTokenCount: 3,
+        },
       },
-    });
+    };
 
     const { content } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1259,31 +1305,50 @@ describe('doGenerate', () => {
   });
 
   it('should handle mixed source types with correct title defaults', async () => {
-    prepareJsonResponse({
-      content: 'test response with mixed sources',
-      groundingMetadata: {
-        groundingChunks: [
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
           {
-            web: { uri: 'https://web.example.com' },
-          },
-          {
-            retrievedContext: {
-              uri: 'https://external.example.com',
+            content: {
+              parts: [{ text: 'test response with mixed sources' }],
+              role: 'model',
             },
-          },
-          {
-            retrievedContext: {
-              uri: 'gs://bucket/document.pdf',
-            },
-          },
-          {
-            retrievedContext: {
-              fileSearchStore: 'fileSearchStores/store-123',
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+            groundingMetadata: {
+              groundingChunks: [
+                {
+                  web: { uri: 'https://web.example.com' },
+                },
+                {
+                  retrievedContext: {
+                    uri: 'https://external.example.com',
+                  },
+                },
+                {
+                  retrievedContext: {
+                    uri: 'gs://bucket/document.pdf',
+                  },
+                },
+                {
+                  retrievedContext: {
+                    fileSearchStore: 'fileSearchStores/store-123',
+                  },
+                },
+              ],
             },
           },
         ],
+        promptFeedback: { safetyRatings: SAFETY_RATINGS },
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 2,
+          totalTokenCount: 3,
+        },
       },
-    });
+    };
 
     const { content } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1550,37 +1615,56 @@ describe('doGenerate', () => {
   });
 
   it('should expose grounding metadata in provider metadata', async () => {
-    prepareJsonResponse({
-      content: 'test response',
-      groundingMetadata: {
-        webSearchQueries: ["What's the weather in Chicago this weekend?"],
-        searchEntryPoint: {
-          renderedContent: 'Sample rendered content for search results',
-        },
-        groundingChunks: [
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
           {
-            web: {
-              uri: 'https://example.com/weather',
-              title: 'Chicago Weather Forecast',
+            content: {
+              parts: [{ text: 'test response' }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+            groundingMetadata: {
+              webSearchQueries: ["What's the weather in Chicago this weekend?"],
+              searchEntryPoint: {
+                renderedContent: 'Sample rendered content for search results',
+              },
+              groundingChunks: [
+                {
+                  web: {
+                    uri: 'https://example.com/weather',
+                    title: 'Chicago Weather Forecast',
+                  },
+                },
+              ],
+              groundingSupports: [
+                {
+                  segment: {
+                    startIndex: 0,
+                    endIndex: 65,
+                    text: 'Chicago weather changes rapidly, so layers let you adjust easily.',
+                  },
+                  groundingChunkIndices: [0],
+                  confidenceScores: [0.99],
+                },
+              ],
+              retrievalMetadata: {
+                webDynamicRetrievalScore: 0.96879,
+              },
             },
           },
         ],
-        groundingSupports: [
-          {
-            segment: {
-              startIndex: 0,
-              endIndex: 65,
-              text: 'Chicago weather changes rapidly, so layers let you adjust easily.',
-            },
-            groundingChunkIndices: [0],
-            confidenceScores: [0.99],
-          },
-        ],
-        retrievalMetadata: {
-          webDynamicRetrievalScore: 0.96879,
+        promptFeedback: { safetyRatings: SAFETY_RATINGS },
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 2,
+          totalTokenCount: 3,
         },
       },
-    });
+    };
 
     const { providerMetadata } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3016,53 +3100,6 @@ describe('doStream', () => {
     };
   }
 
-  const prepareStreamResponse = ({
-    content,
-    headers,
-    groundingMetadata,
-    urlContextMetadata,
-    url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
-  }: {
-    content: string[];
-    headers?: Record<string, string>;
-    groundingMetadata?: GoogleGenerativeAIGroundingMetadata;
-    urlContextMetadata?: GoogleGenerativeAIUrlContextMetadata;
-    url?:
-      | typeof TEST_URL_GEMINI_PRO
-      | typeof TEST_URL_GEMINI_2_0_PRO
-      | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
-      | typeof TEST_URL_GEMINI_1_0_PRO
-      | typeof TEST_URL_GEMINI_1_5_FLASH;
-  }) => {
-    server.urls[url].response = {
-      headers,
-      type: 'stream-chunks',
-      chunks: content.map(
-        (text, index) =>
-          `data: ${JSON.stringify({
-            candidates: [
-              {
-                content: { parts: [{ text }], role: 'model' },
-                finishReason: 'STOP',
-                index: 0,
-                safetyRatings: SAFETY_RATINGS,
-                ...(groundingMetadata && { groundingMetadata }),
-                ...(urlContextMetadata && { urlContextMetadata }),
-              },
-            ],
-            // Include usage metadata only in the last chunk
-            ...(index === content.length - 1 && {
-              usageMetadata: {
-                promptTokenCount: 294,
-                candidatesTokenCount: 233,
-                totalTokenCount: 527,
-              },
-            }),
-          })}\n\n`,
-      ),
-    };
-  };
-
   describe('text', () => {
     beforeEach(() => {
       prepareChunksFixtureResponse('google-text');
@@ -3194,37 +3231,56 @@ describe('doStream', () => {
   });
 
   it('should expose grounding metadata in provider metadata on finish', async () => {
-    prepareStreamResponse({
-      content: ['test'],
-      groundingMetadata: {
-        webSearchQueries: ["What's the weather in Chicago this weekend?"],
-        searchEntryPoint: {
-          renderedContent: 'Sample rendered content for search results',
-        },
-        groundingChunks: [
-          {
-            web: {
-              uri: 'https://example.com/weather',
-              title: 'Chicago Weather Forecast',
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'test' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+              groundingMetadata: {
+                webSearchQueries: [
+                  "What's the weather in Chicago this weekend?",
+                ],
+                searchEntryPoint: {
+                  renderedContent: 'Sample rendered content for search results',
+                },
+                groundingChunks: [
+                  {
+                    web: {
+                      uri: 'https://example.com/weather',
+                      title: 'Chicago Weather Forecast',
+                    },
+                  },
+                ],
+                groundingSupports: [
+                  {
+                    segment: {
+                      startIndex: 0,
+                      endIndex: 65,
+                      text: 'Chicago weather changes rapidly, so layers let you adjust easily.',
+                    },
+                    groundingChunkIndices: [0],
+                    confidenceScores: [0.99],
+                  },
+                ],
+                retrievalMetadata: {
+                  webDynamicRetrievalScore: 0.96879,
+                },
+              },
             },
+          ],
+          usageMetadata: {
+            promptTokenCount: 294,
+            candidatesTokenCount: 233,
+            totalTokenCount: 527,
           },
-        ],
-        groundingSupports: [
-          {
-            segment: {
-              startIndex: 0,
-              endIndex: 65,
-              text: 'Chicago weather changes rapidly, so layers let you adjust easily.',
-            },
-            groundingChunkIndices: [0],
-            confidenceScores: [0.99],
-          },
-        ],
-        retrievalMetadata: {
-          webDynamicRetrievalScore: 0.96879,
-        },
-      },
-    });
+        })}\n\n`,
+      ],
+    };
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
@@ -3276,17 +3332,34 @@ describe('doStream', () => {
   });
 
   it('should expose url context metadata in provider metadata on finish', async () => {
-    prepareStreamResponse({
-      content: ['test'],
-      urlContextMetadata: {
-        urlMetadata: [
-          {
-            retrievedUrl: 'https://example.com/weather',
-            urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'test' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+              urlContextMetadata: {
+                urlMetadata: [
+                  {
+                    retrievedUrl: 'https://example.com/weather',
+                    urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
+                  },
+                ],
+              },
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 294,
+            candidatesTokenCount: 233,
+            totalTokenCount: 527,
           },
-        ],
-      },
-    });
+        })}\n\n`,
+      ],
+    };
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
@@ -3636,10 +3709,26 @@ describe('doStream', () => {
     });
 
     it('should use googleSearch for gemini-2.0-pro', async () => {
-      prepareStreamResponse({
-        content: [''],
-        url: TEST_URL_GEMINI_2_0_PRO,
-      });
+      server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: '' }], role: 'model' },
+                finishReason: 'STOP',
+                index: 0,
+                safetyRatings: SAFETY_RATINGS,
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 294,
+              candidatesTokenCount: 233,
+              totalTokenCount: 527,
+            },
+          })}\n\n`,
+        ],
+      };
 
       const gemini2Pro = provider.languageModel('gemini-2.0-pro');
       await gemini2Pro.doStream({
@@ -3661,10 +3750,26 @@ describe('doStream', () => {
     });
 
     it('should use googleSearch for gemini-2.0-flash-exp', async () => {
-      prepareStreamResponse({
-        content: [''],
-        url: TEST_URL_GEMINI_2_0_FLASH_EXP,
-      });
+      server.urls[TEST_URL_GEMINI_2_0_FLASH_EXP].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: '' }], role: 'model' },
+                finishReason: 'STOP',
+                index: 0,
+                safetyRatings: SAFETY_RATINGS,
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 294,
+              candidatesTokenCount: 233,
+              totalTokenCount: 527,
+            },
+          })}\n\n`,
+        ],
+      };
 
       const gemini2Flash = provider.languageModel('gemini-2.0-flash-exp');
 
@@ -3687,10 +3792,26 @@ describe('doStream', () => {
     });
 
     it('should use googleSearchRetrieval for non-gemini-2 models', async () => {
-      prepareStreamResponse({
-        content: [''],
-        url: TEST_URL_GEMINI_1_0_PRO,
-      });
+      server.urls[TEST_URL_GEMINI_1_0_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: '' }], role: 'model' },
+                finishReason: 'STOP',
+                index: 0,
+                safetyRatings: SAFETY_RATINGS,
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 294,
+              candidatesTokenCount: 233,
+              totalTokenCount: 527,
+            },
+          })}\n\n`,
+        ],
+      };
 
       const geminiPro = provider.languageModel('gemini-1.0-pro');
       await geminiPro.doStream({
@@ -3712,10 +3833,26 @@ describe('doStream', () => {
     });
 
     it('should use dynamic retrieval for gemini-1-5', async () => {
-      prepareStreamResponse({
-        content: [''],
-        url: TEST_URL_GEMINI_1_5_FLASH,
-      });
+      server.urls[TEST_URL_GEMINI_1_5_FLASH].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: '' }], role: 'model' },
+                finishReason: 'STOP',
+                index: 0,
+                safetyRatings: SAFETY_RATINGS,
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 294,
+              candidatesTokenCount: 233,
+              totalTokenCount: 527,
+            },
+          })}\n\n`,
+        ],
+      };
 
       const geminiPro = provider.languageModel('gemini-1.5-flash');
 
@@ -3751,19 +3888,39 @@ describe('doStream', () => {
   });
 
   it('should stream source events', async () => {
-    prepareStreamResponse({
-      content: ['Some initial text'],
-      groundingMetadata: {
-        groundingChunks: [
-          {
-            web: {
-              uri: 'https://source.example.com',
-              title: 'Source Title',
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Some initial text' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+              groundingMetadata: {
+                groundingChunks: [
+                  {
+                    web: {
+                      uri: 'https://source.example.com',
+                      title: 'Source Title',
+                    },
+                  },
+                ],
+              },
             },
+          ],
+          usageMetadata: {
+            promptTokenCount: 294,
+            candidatesTokenCount: 233,
+            totalTokenCount: 527,
           },
-        ],
-      },
-    });
+        })}\n\n`,
+      ],
+    };
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
