@@ -27,7 +27,7 @@
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch --tsconfig tsconfig.build.json",
-    "clean": "del-cli dist docs *.tsbuildinfo",
+    "clean": "del-cli dist docs skills *.tsbuildinfo",
     "prepack": "cp -r ../../content/docs ./docs && cp -r ../../skills ./skills",
     "postpack": "del-cli docs skills",
     "lint": "eslint \"./**/*.ts*\"",
