@@ -179,6 +179,18 @@ export function prepareTools({
             });
           }
           break;
+        case 'google.external_api':
+          if (isGemini2orNewer) {
+            googleTools.push({ retrieval: { externalApi: { ...tool.args } } });
+          } else {
+            toolWarnings.push({
+              type: 'unsupported',
+              feature: `provider-defined tool ${tool.id}`,
+              details:
+                'The External API tool is not supported with other Gemini models than Gemini 2.',
+            });
+          }
+          break;
         default:
           toolWarnings.push({
             type: 'unsupported',
