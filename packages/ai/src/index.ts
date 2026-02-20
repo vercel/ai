@@ -27,6 +27,7 @@ export {
 export * from './agent';
 export * from './embed';
 export * from './error';
+export * from './events';
 export * from './generate-image';
 export * from './generate-object';
 export * from './generate-speech';

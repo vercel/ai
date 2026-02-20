@@ -15,6 +15,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { NoOutputGeneratedError } from '../error';
+import { emit } from '../events/emitter';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
@@ -479,35 +480,39 @@ export async function generateText<
     messages,
   } as Prompt);
 
+  const onStartEvent = {
+    model: modelInfo,
+    system,
+    prompt,
+    messages,
+    tools,
+    toolChoice,
+    activeTools,
+    maxOutputTokens: callSettings.maxOutputTokens,
+    temperature: callSettings.temperature,
+    topP: callSettings.topP,
+    topK: callSettings.topK,
+    presencePenalty: callSettings.presencePenalty,
+    frequencyPenalty: callSettings.frequencyPenalty,
+    stopSequences: callSettings.stopSequences,
+    seed: callSettings.seed,
+    maxRetries,
+    timeout,
+    headers,
+    providerOptions,
+    stopWhen,
+    output,
+    abortSignal,
+    include,
+    functionId: telemetry?.functionId,
+    metadata: telemetry?.metadata as Record<string, unknown> | undefined,
+    experimental_context,
+  };
+
+  emit('ai:start', onStartEvent);
+
   try {
-    await onStart?.({
-      model: modelInfo,
-      system,
-      prompt,
-      messages,
-      tools,
-      toolChoice,
-      activeTools,
-      maxOutputTokens: callSettings.maxOutputTokens,
-      temperature: callSettings.temperature,
-      topP: callSettings.topP,
-      topK: callSettings.topK,
-      presencePenalty: callSettings.presencePenalty,
-      frequencyPenalty: callSettings.frequencyPenalty,
-      stopSequences: callSettings.stopSequences,
-      seed: callSettings.seed,
-      maxRetries,
-      timeout,
-      headers,
-      providerOptions,
-      stopWhen,
-      output,
-      abortSignal,
-      include,
-      functionId: telemetry?.functionId,
-      metadata: telemetry?.metadata as Record<string, unknown> | undefined,
-      experimental_context,
-    });
+    await onStart?.(onStartEvent);
   } catch (_ignored) {
     // Errors in callbacks should not break the generation flow.
   }
@@ -712,29 +717,33 @@ export async function generateText<
               prepareStepResult?.providerOptions,
             );
 
+            const onStepStartEvent = {
+              stepNumber: steps.length,
+              model: stepModelInfo,
+              system: stepSystem,
+              messages: stepMessages,
+              tools,
+              toolChoice: stepToolChoice,
+              activeTools: stepActiveTools,
+              steps: [...steps],
+              providerOptions: stepProviderOptions,
+              timeout,
+              headers,
+              stopWhen,
+              output,
+              abortSignal,
+              include,
+              functionId: telemetry?.functionId,
+              metadata: telemetry?.metadata as
+                | Record<string, unknown>
+                | undefined,
+              experimental_context,
+            };
+
+            emit('ai:stepStart', onStepStartEvent);
+
             try {
-              await onStepStart?.({
-                stepNumber: steps.length,
-                model: stepModelInfo,
-                system: stepSystem,
-                messages: stepMessages,
-                tools,
-                toolChoice: stepToolChoice,
-                activeTools: stepActiveTools,
-                steps: [...steps],
-                providerOptions: stepProviderOptions,
-                timeout,
-                headers,
-                stopWhen,
-                output,
-                abortSignal,
-                include,
-                functionId: telemetry?.functionId,
-                metadata: telemetry?.metadata as
-                  | Record<string, unknown>
-                  | undefined,
-                experimental_context,
-              });
+              await onStepStart?.(onStepStartEvent);
             } catch (_ignored) {
               // Errors in callbacks should not break the generation flow.
             }
@@ -1056,7 +1065,14 @@ export async function generateText<
             });
 
             steps.push(currentStepResult);
-            await onStepFinish?.(currentStepResult);
+
+            emit('ai:stepFinish', currentStepResult);
+
+            try {
+              await onStepFinish?.(currentStepResult);
+            } catch (_ignored) {
+              // Errors in callbacks should not break the generation flow.
+            }
           } finally {
             if (stepTimeoutId != null) {
               clearTimeout(stepTimeoutId);
@@ -1123,7 +1139,7 @@ export async function generateText<
           } as LanguageModelUsage,
         );
 
-        await onFinish?.({
+        const onFinishEvent = {
           stepNumber: lastStep.stepNumber,
           model: lastStep.model,
           functionId: lastStep.functionId,
@@ -1150,7 +1166,15 @@ export async function generateText<
           providerMetadata: lastStep.providerMetadata,
           steps,
           totalUsage,
-        });
+        };
+
+        emit('ai:finish', onFinishEvent);
+
+        try {
+          await onFinish?.(onFinishEvent);
+        } catch (_ignored) {
+          // Errors in callbacks should not break the generation flow.
+        }
 
         // parse output only if the last step was finished with "stop":
         let resolvedOutput;

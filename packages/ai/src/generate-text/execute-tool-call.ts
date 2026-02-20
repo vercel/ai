@@ -1,5 +1,6 @@
 import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
+import { emit } from '../events/emitter';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
@@ -91,6 +92,8 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     fn: async span => {
       let output: unknown;
 
+      emit('ai:toolCallStart', baseCallbackEvent);
+
       try {
         await onToolCallStart?.(baseCallbackEvent);
       } catch (_ignored) {
@@ -126,13 +129,17 @@ export async function executeToolCall<TOOLS extends ToolSet>({
       } catch (error) {
         const durationMs = now() - startTime;
 
+        const onToolCallFinishErrorEvent = {
+          ...baseCallbackEvent,
+          success: false as const,
+          error,
+          durationMs,
+        };
+
+        emit('ai:toolCallFinish', onToolCallFinishErrorEvent);
+
         try {
-          await onToolCallFinish?.({
-            ...baseCallbackEvent,
-            success: false,
-            error,
-            durationMs,
-          });
+          await onToolCallFinish?.(onToolCallFinishErrorEvent);
         } catch (_ignored) {
           // Errors in callbacks should not break the generation flow.
         }
@@ -153,13 +160,17 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 
       const durationMs = now() - startTime;
 
+      const onToolCallFinishSuccessEvent = {
+        ...baseCallbackEvent,
+        success: true as const,
+        output,
+        durationMs,
+      };
+
+      emit('ai:toolCallFinish', onToolCallFinishSuccessEvent);
+
       try {
-        await onToolCallFinish?.({
-          ...baseCallbackEvent,
-          success: true,
-          output,
-          durationMs,
-        });
+        await onToolCallFinish?.(onToolCallFinishSuccessEvent);
       } catch (_ignored) {
         // Errors in callbacks should not break the generation flow.
       }
