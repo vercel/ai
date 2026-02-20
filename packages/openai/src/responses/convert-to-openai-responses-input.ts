@@ -1,7 +1,6 @@
 import {
   LanguageModelV2CallWarning,
   LanguageModelV2Prompt,
-  LanguageModelV2ToolCallPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -14,7 +13,6 @@ import {
   localShellInputSchema,
   localShellOutputSchema,
 } from '../tool/local-shell';
-import { webSearchOutputSchema } from '../tool/web-search';
 import {
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
@@ -137,7 +135,6 @@ export async function convertToOpenAIResponsesInput({
 
       case 'assistant': {
         const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
-        const toolCallParts: Record<string, LanguageModelV2ToolCallPart> = {};
 
         for (const part of content) {
           switch (part.type) {
@@ -161,23 +158,15 @@ export async function convertToOpenAIResponsesInput({
               break;
             }
             case 'tool-call': {
-              toolCallParts[part.toolCallId] = part;
-
               if (part.providerExecuted) {
                 break;
               }
 
-              const id = part.providerOptions?.openai?.itemId as
-                | string
-                | undefined;
-
-              // item references reduce the payload size
-              if (store && id != null) {
-                input.push({ type: 'item_reference', id });
-                break;
-              }
-
               if (hasLocalShellTool && part.toolName === 'local_shell') {
+                const itemId = part.providerOptions?.openai?.itemId as
+                  | string
+                  | undefined;
+
                 const parsedInput = await validateTypes({
                   value: part.input,
                   schema: localShellInputSchema,
@@ -185,7 +174,7 @@ export async function convertToOpenAIResponsesInput({
                 input.push({
                   type: 'local_shell_call',
                   call_id: part.toolCallId,
-                  id: id!,
+                  id: itemId!,
                   action: {
                     type: 'exec',
                     command: parsedInput.action.command,
@@ -204,7 +193,6 @@ export async function convertToOpenAIResponsesInput({
                 call_id: part.toolCallId,
                 name: part.toolName,
                 arguments: JSON.stringify(part.input),
-                id,
               });
               break;
             }
