@@ -105,6 +105,60 @@ const result = await generateText({
 });
 ```
 
+### Lifecycle callbacks (experimental)
+
+<Note type="warning">
+  Experimental callbacks are subject to breaking changes in incremental package
+  releases.
+</Note>
+
+`generateText` provides several experimental lifecycle callbacks that let you hook into different phases of the generation process.
+These are useful for logging, observability, debugging, and custom telemetry.
+Errors thrown inside these callbacks are silently caught and do not break the generation flow.
+
+```tsx
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const result = await generateText({
+  model: __MODEL__,
+  prompt: 'What is the weather in San Francisco?',
+  tools: {
+    // ... your tools
+  },
+
+  experimental_onStart({ model, settings, functionId }) {
+    console.log('Generation started', { model, functionId });
+  },
+
+  experimental_onStepStart({ stepNumber, model, promptMessages }) {
+    console.log(`Step ${stepNumber} starting`, { model: model.modelId });
+  },
+
+  experimental_onToolCallStart({ toolName, toolCallId, input }) {
+    console.log(`Tool call starting: ${toolName}`, { toolCallId });
+  },
+
+  experimental_onToolCallFinish({ toolName, durationMs, error }) {
+    console.log(`Tool call finished: ${toolName} (${durationMs}ms)`, {
+      success: !error,
+    });
+  },
+
+  onStepFinish({ stepNumber, finishReason, usage }) {
+    console.log(`Step ${stepNumber} finished`, { finishReason, usage });
+  },
+});
+```
+
+The available lifecycle callbacks are:
+
+- **`experimental_onStart`**: Called once when the `generateText` operation begins, before any LLM calls. Receives model info, prompt, settings, and telemetry metadata.
+- **`experimental_onStepStart`**: Called before each step (LLM call). Receives the step number, model, prompt messages being sent, tools, and prior steps.
+- **`experimental_onToolCallStart`**: Called right before a tool's `execute` function runs. Receives the tool name, call ID, and input.
+- **`experimental_onToolCallFinish`**: Called right after a tool's `execute` function completes or errors. Receives the tool name, call ID, input, output (or undefined on error), error (or undefined on success), and `durationMs`.
+- **`onStepFinish`**: Called after each step finishes. Now also includes `stepNumber` (zero-based index of the completed step).
+
 ## `streamText`
 
 Depending on your model and prompt, it can take a large language model (LLM) up to a minute to finish generating its response. This delay can be unacceptable for interactive use cases such as chatbots or real-time applications, where users expect immediate responses.

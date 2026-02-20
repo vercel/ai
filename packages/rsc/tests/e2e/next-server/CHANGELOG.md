@@ -4,6 +4,19 @@
 
 ### Patch Changes
 
+- ai@6.0.94
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [d3769ec]
+  - ai@6.0.93
+
+## 0.0.1
+
+### Patch Changes
+
 - ai@6.0.92
 
 ## 0.0.1

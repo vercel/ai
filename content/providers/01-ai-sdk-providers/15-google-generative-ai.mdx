@@ -101,7 +101,8 @@ const { text } = await generateText({
 });
 ```
 
-Google Generative AI language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
+Google Generative AI language models can also be used in the `streamText` function
+and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
 Google Generative AI also supports some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
@@ -1011,26 +1012,28 @@ By default, structured outputs are enabled (and for tool calling they are requir
 You can disable structured outputs for object generation as a workaround:
 
 ```ts highlight="3,8"
-const { object } = await generateObject({
+const { output } = await generateText({
   model: google('gemini-2.5-flash'),
   providerOptions: {
     google: {
       structuredOutputs: false,
     } satisfies GoogleLanguageModelOptions,
   },
-  schema: z.object({
-    name: z.string(),
-    age: z.number(),
-    contact: z.union([
-      z.object({
-        type: z.literal('email'),
-        value: z.string(),
-      }),
-      z.object({
-        type: z.literal('phone'),
-        value: z.string(),
-      }),
-    ]),
+  output: Output.object({
+    schema: z.object({
+      name: z.string(),
+      age: z.number(),
+      contact: z.union([
+        z.object({
+          type: z.literal('email'),
+          value: z.string(),
+        }),
+        z.object({
+          type: z.literal('phone'),
+          value: z.string(),
+        }),
+      ]),
+    }),
   }),
   prompt: 'Generate an example person for testing.',
 });
