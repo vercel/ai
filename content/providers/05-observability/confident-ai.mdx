@@ -170,10 +170,10 @@ import { openai } from '@ai-sdk/openai';
 import { configureAiSdkTracing } from 'deepeval-ts';
 
 const tracer = configureAiSdkTracing({
-  name: "AI SDK Confident AI Tracing",
+  name: 'AI SDK Confident AI Tracing',
   threadId: 'thread-123',
   userId: 'user-456',
-  environment: "production"
+  environment: 'production',
 });
 
 const { text } = await generateText({
@@ -217,7 +217,9 @@ Logging prompts allows you to monitor what prompts are running in production and
 ![Prompt Observability on Confident AI](https://confident-docs.s3.us-east-1.amazonaws.com/llm-tracing:prompt-logging.png)
 
 <Note>
-  Make sure to **`pull` the prompt** before passing it to `configureAiSdkTracing`. Without pulling first, the prompt version will not be visible on Confident AI.
+  Make sure to **`pull` the prompt** before passing it to
+  `configureAiSdkTracing`. Without pulling first, the prompt version will not be
+  visible on Confident AI.
 </Note>
 
 ## Online Evaluations
