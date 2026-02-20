@@ -11,6 +11,8 @@ import { Agent, AgentCallParameters, AgentStreamParameters } from './agent';
 import { ToolLoopAgentOnStartCallback } from './tool-loop-agent-on-start-callback';
 import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
 import { ToolLoopAgentOnStepStartCallback } from './tool-loop-agent-on-step-start-callback';
+import { ToolLoopAgentOnToolCallFinishCallback } from './tool-loop-agent-on-tool-call-finish-callback';
+import { ToolLoopAgentOnToolCallStartCallback } from './tool-loop-agent-on-tool-call-start-callback';
 import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 
 /**
@@ -63,6 +65,8 @@ export class ToolLoopAgent<
       | 'instructions'
       | 'experimental_onStart'
       | 'experimental_onStepStart'
+      | 'experimental_onToolCallStart'
+      | 'experimental_onToolCallFinish'
       | 'onStepFinish'
     > &
       Prompt
@@ -70,6 +74,8 @@ export class ToolLoopAgent<
     const {
       experimental_onStart: _settingsOnStart,
       experimental_onStepStart: _settingsOnStepStart,
+      experimental_onToolCallStart: _settingsOnToolCallStart,
+      experimental_onToolCallFinish: _settingsOnToolCallFinish,
       onStepFinish: _settingsOnStepFinish,
       ...settingsWithoutCallbacks
     } = this.settings;
@@ -129,6 +135,36 @@ export class ToolLoopAgent<
     return methodCallback ?? constructorCallback;
   }
 
+  private mergeOnToolCallStartCallbacks(
+    methodCallback: ToolLoopAgentOnToolCallStartCallback<TOOLS> | undefined,
+  ): ToolLoopAgentOnToolCallStartCallback<TOOLS> | undefined {
+    const constructorCallback = this.settings.experimental_onToolCallStart;
+
+    if (methodCallback && constructorCallback) {
+      return async event => {
+        await constructorCallback(event);
+        await methodCallback(event);
+      };
+    }
+
+    return methodCallback ?? constructorCallback;
+  }
+
+  private mergeOnToolCallFinishCallbacks(
+    methodCallback: ToolLoopAgentOnToolCallFinishCallback<TOOLS> | undefined,
+  ): ToolLoopAgentOnToolCallFinishCallback<TOOLS> | undefined {
+    const constructorCallback = this.settings.experimental_onToolCallFinish;
+
+    if (methodCallback && constructorCallback) {
+      return async event => {
+        await constructorCallback(event);
+        await methodCallback(event);
+      };
+    }
+
+    return methodCallback ?? constructorCallback;
+  }
+
   private mergeOnStepFinishCallbacks(
     methodCallback: ToolLoopAgentOnStepFinishCallback<TOOLS> | undefined,
   ): ToolLoopAgentOnStepFinishCallback<TOOLS> | undefined {
@@ -152,6 +188,8 @@ export class ToolLoopAgent<
     timeout,
     experimental_onStart,
     experimental_onStepStart,
+    experimental_onToolCallStart,
+    experimental_onToolCallFinish,
     onStepFinish,
     ...options
   }: AgentCallParameters<CALL_OPTIONS, TOOLS>): Promise<
@@ -164,6 +202,12 @@ export class ToolLoopAgent<
       experimental_onStart: this.mergeOnStartCallbacks(experimental_onStart),
       experimental_onStepStart: this.mergeOnStepStartCallbacks(
         experimental_onStepStart,
+      ),
+      experimental_onToolCallStart: this.mergeOnToolCallStartCallbacks(
+        experimental_onToolCallStart,
+      ),
+      experimental_onToolCallFinish: this.mergeOnToolCallFinishCallbacks(
+        experimental_onToolCallFinish,
       ),
       onStepFinish: this.mergeOnStepFinishCallbacks(onStepFinish),
     });
@@ -178,6 +222,8 @@ export class ToolLoopAgent<
     experimental_transform,
     experimental_onStart: _onStart,
     experimental_onStepStart: _onStepStart,
+    experimental_onToolCallStart: _onToolCallStart,
+    experimental_onToolCallFinish: _onToolCallFinish,
     onStepFinish,
     ...options
   }: AgentStreamParameters<CALL_OPTIONS, TOOLS>): Promise<

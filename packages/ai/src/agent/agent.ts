@@ -8,6 +8,8 @@ import { TimeoutConfiguration } from '../prompt/call-settings';
 import { ToolLoopAgentOnStartCallback } from './tool-loop-agent-on-start-callback';
 import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
 import { ToolLoopAgentOnStepStartCallback } from './tool-loop-agent-on-step-start-callback';
+import { ToolLoopAgentOnToolCallFinishCallback } from './tool-loop-agent-on-tool-call-finish-callback';
+import { ToolLoopAgentOnToolCallStartCallback } from './tool-loop-agent-on-tool-call-start-callback';
 
 /**
  * Parameters for calling an agent.
@@ -68,6 +70,16 @@ export type AgentCallParameters<CALL_OPTIONS, TOOLS extends ToolSet = {}> = ([
      * Callback that is called when a step (LLM call) begins, before the provider is called.
      */
     experimental_onStepStart?: ToolLoopAgentOnStepStartCallback<TOOLS>;
+
+    /**
+     * Callback that is called before each tool execution begins.
+     */
+    experimental_onToolCallStart?: ToolLoopAgentOnToolCallStartCallback<TOOLS>;
+
+    /**
+     * Callback that is called after each tool execution completes.
+     */
+    experimental_onToolCallFinish?: ToolLoopAgentOnToolCallFinishCallback<TOOLS>;
 
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.

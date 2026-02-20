@@ -1,10 +1,14 @@
 import { LanguageModelV3CallOptions } from '@ai-sdk/provider';
+import { tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod/v4';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { ToolLoopAgent } from './tool-loop-agent';
 import { ToolLoopAgentOnStartCallback } from './tool-loop-agent-on-start-callback';
 import { ToolLoopAgentOnStepStartCallback } from './tool-loop-agent-on-step-start-callback';
+import { ToolLoopAgentOnToolCallFinishCallback } from './tool-loop-agent-on-tool-call-finish-callback';
+import { ToolLoopAgentOnToolCallStartCallback } from './tool-loop-agent-on-tool-call-start-callback';
 
 describe('ToolLoopAgent', () => {
   describe('generate', () => {
@@ -1042,6 +1046,346 @@ describe('ToolLoopAgent', () => {
           text: 'Hello, world!',
           finishReason: 'stop',
         });
+      });
+    });
+  });
+
+  describe('experimental_onToolCallStart', () => {
+    describe('generate', () => {
+      const dummyResponseValues = {
+        usage: {
+          cachedInputTokens: undefined,
+          inputTokens: {
+            total: 3,
+            noCache: 3,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: 10,
+            text: 10,
+            reasoning: undefined,
+          },
+        },
+        warnings: [],
+      };
+
+      function createToolCallMockModel() {
+        let callCount = 0;
+        return new MockLanguageModelV3({
+          doGenerate: async () => {
+            if (callCount++ === 0) {
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'tool-call' as const,
+                    toolCallType: 'function' as const,
+                    toolCallId: 'call-1',
+                    toolName: 'testTool',
+                    input: '{ "value": "test" }',
+                  },
+                ],
+                finishReason: {
+                  unified: 'tool-calls' as const,
+                  raw: undefined,
+                },
+              };
+            }
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text' as const, text: 'done' }],
+              finishReason: { unified: 'stop' as const, raw: 'stop' },
+            };
+          },
+        });
+      }
+
+      it('should call experimental_onToolCallStart from constructor', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+          experimental_onToolCallStart: async () => {
+            calls.push('constructor');
+          },
+        });
+
+        await agent.generate({ prompt: 'test' });
+
+        expect(calls).toEqual(['constructor']);
+      });
+
+      it('should call experimental_onToolCallStart from generate method', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+        });
+
+        await agent.generate({
+          prompt: 'test',
+          experimental_onToolCallStart: async () => {
+            calls.push('method');
+          },
+        });
+
+        expect(calls).toEqual(['method']);
+      });
+
+      it('should call both constructor and method in correct order', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+          experimental_onToolCallStart: async () => {
+            calls.push('constructor');
+          },
+        });
+
+        await agent.generate({
+          prompt: 'test',
+          experimental_onToolCallStart: async () => {
+            calls.push('method');
+          },
+        });
+
+        expect(calls).toEqual(['constructor', 'method']);
+      });
+
+      it('should pass correct event information', async () => {
+        let event!: Parameters<ToolLoopAgentOnToolCallStartCallback>[0];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+        });
+
+        await agent.generate({
+          prompt: 'test',
+          experimental_onToolCallStart: async e => {
+            event = e;
+          },
+        });
+
+        expect(event.toolCall.toolName).toBe('testTool');
+        expect(event.toolCall.toolCallId).toBe('call-1');
+        expect(event.stepNumber).toBe(0);
+      });
+    });
+  });
+
+  describe('experimental_onToolCallFinish', () => {
+    describe('generate', () => {
+      const dummyResponseValues = {
+        usage: {
+          cachedInputTokens: undefined,
+          inputTokens: {
+            total: 3,
+            noCache: 3,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: 10,
+            text: 10,
+            reasoning: undefined,
+          },
+        },
+        warnings: [],
+      };
+
+      function createToolCallMockModel() {
+        let callCount = 0;
+        return new MockLanguageModelV3({
+          doGenerate: async () => {
+            if (callCount++ === 0) {
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'tool-call' as const,
+                    toolCallType: 'function' as const,
+                    toolCallId: 'call-1',
+                    toolName: 'testTool',
+                    input: '{ "value": "test" }',
+                  },
+                ],
+                finishReason: {
+                  unified: 'tool-calls' as const,
+                  raw: undefined,
+                },
+              };
+            }
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text' as const, text: 'done' }],
+              finishReason: { unified: 'stop' as const, raw: 'stop' },
+            };
+          },
+        });
+      }
+
+      function createToolCallMockModelWithInput(input: string) {
+        let callCount = 0;
+        return new MockLanguageModelV3({
+          doGenerate: async () => {
+            if (callCount++ === 0) {
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'tool-call' as const,
+                    toolCallType: 'function' as const,
+                    toolCallId: 'call-1',
+                    toolName: 'testTool',
+                    input,
+                  },
+                ],
+                finishReason: {
+                  unified: 'tool-calls' as const,
+                  raw: undefined,
+                },
+              };
+            }
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text' as const, text: 'done' }],
+              finishReason: { unified: 'stop' as const, raw: 'stop' },
+            };
+          },
+        });
+      }
+
+      it('should call experimental_onToolCallFinish from constructor', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+          experimental_onToolCallFinish: async () => {
+            calls.push('constructor');
+          },
+        });
+
+        await agent.generate({ prompt: 'test' });
+
+        expect(calls).toEqual(['constructor']);
+      });
+
+      it('should call experimental_onToolCallFinish from generate method', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+        });
+
+        await agent.generate({
+          prompt: 'test',
+          experimental_onToolCallFinish: async () => {
+            calls.push('method');
+          },
+        });
+
+        expect(calls).toEqual(['method']);
+      });
+
+      it('should call both constructor and method in correct order', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+          experimental_onToolCallFinish: async () => {
+            calls.push('constructor');
+          },
+        });
+
+        await agent.generate({
+          prompt: 'test',
+          experimental_onToolCallFinish: async () => {
+            calls.push('method');
+          },
+        });
+
+        expect(calls).toEqual(['constructor', 'method']);
+      });
+
+      it('should pass correct event information on success', async () => {
+        let event!: Parameters<ToolLoopAgentOnToolCallFinishCallback>[0];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallMockModelWithInput('{ "value": "hello" }'),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+        });
+
+        await agent.generate({
+          prompt: 'test',
+          experimental_onToolCallFinish: async e => {
+            event = e;
+          },
+        });
+
+        expect(event.toolCall.toolName).toBe('testTool');
+        expect(event.toolCall.toolCallId).toBe('call-1');
+        expect(event.success).toBe(true);
+        if (event.success) {
+          expect(event.output).toBe('hello-result');
+        }
+        expect(event.durationMs).toBeGreaterThanOrEqual(0);
+        expect(event.stepNumber).toBe(0);
       });
     });
   });

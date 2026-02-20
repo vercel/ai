@@ -19,6 +19,8 @@ import { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-on-finish-callb
 import { ToolLoopAgentOnStartCallback } from './tool-loop-agent-on-start-callback';
 import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
 import { ToolLoopAgentOnStepStartCallback } from './tool-loop-agent-on-step-start-callback';
+import { ToolLoopAgentOnToolCallFinishCallback } from './tool-loop-agent-on-tool-call-finish-callback';
+import { ToolLoopAgentOnToolCallStartCallback } from './tool-loop-agent-on-tool-call-start-callback';
 
 /**
  * Configuration options for an agent.
@@ -102,6 +104,20 @@ export type ToolLoopAgentSettings<
   experimental_onStepStart?: ToolLoopAgentOnStepStartCallback<
     NoInfer<TOOLS>,
     OUTPUT
+  >;
+
+  /**
+   * Callback that is called before each tool execution begins.
+   */
+  experimental_onToolCallStart?: ToolLoopAgentOnToolCallStartCallback<
+    NoInfer<TOOLS>
+  >;
+
+  /**
+   * Callback that is called after each tool execution completes.
+   */
+  experimental_onToolCallFinish?: ToolLoopAgentOnToolCallFinishCallback<
+    NoInfer<TOOLS>
   >;
 
   /**
