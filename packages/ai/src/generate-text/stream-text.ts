@@ -81,6 +81,14 @@ import { mergeObjects } from '../util/merge-objects';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { collectToolApprovals } from './collect-tool-approvals';
+import {
+  OnFinishEvent,
+  OnStartEvent,
+  OnStepFinishEvent,
+  OnStepStartEvent,
+  OnToolCallFinishEvent,
+  OnToolCallStartEvent,
+} from './callback-events';
 import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
 import { Output, text } from './output';
@@ -145,7 +153,7 @@ export type StreamTextOnErrorCallback = (event: {
  * @param stepResult - The result of the step.
  */
 export type StreamTextOnStepFinishCallback<TOOLS extends ToolSet> = (
-  stepResult: StepResult<TOOLS>,
+  event: OnStepFinishEvent<TOOLS>,
 ) => PromiseLike<void> | void;
 
 /**
@@ -176,32 +184,7 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
  * @param event - The event that is passed to the callback.
  */
 export type StreamTextOnFinishCallback<TOOLS extends ToolSet> = (
-  event: StepResult<TOOLS> & {
-    /**
-     * Details for all steps.
-     */
-    readonly steps: StepResult<TOOLS>[];
-
-    /**
-     * Total usage for all steps. This is the sum of the usage of all steps.
-     */
-    readonly totalUsage: LanguageModelUsage;
-
-    /**
-     * The final state of the user-defined context object.
-     *
-     * Experimental (can break in patch releases).
-     *
-     * @default undefined
-     */
-    experimental_context: unknown;
-
-    /** Identifier from telemetry settings for grouping related operations. */
-    readonly functionId: string | undefined;
-
-    /** Additional metadata from telemetry settings. */
-    readonly metadata: Record<string, unknown> | undefined;
-  },
+  event: OnFinishEvent<TOOLS>,
 ) => PromiseLike<void> | void;
 
 /**
@@ -217,6 +200,11 @@ export type StreamTextOnAbortCallback<TOOLS extends ToolSet> = (event: {
 }) => PromiseLike<void> | void;
 
 /**
+ * Include settings for streamText (requestBody only).
+ */
+type StreamTextIncludeSettings = { requestBody?: boolean };
+
+/**
  * Callback that is set using the `experimental_onStart` option.
  *
  * Called when the streamText operation begins, before any LLM calls.
@@ -228,105 +216,9 @@ export type StreamTextOnAbortCallback<TOOLS extends ToolSet> = (event: {
 export type StreamTextOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
   OUTPUT extends Output = Output,
-> = (event: {
-  /** The model being used for generation. */
-  readonly model: {
-    /** The provider identifier (e.g., 'openai', 'anthropic'). */
-    readonly provider: string;
-    /** The specific model identifier (e.g., 'gpt-4o'). */
-    readonly modelId: string;
-  };
-
-  /** The system message(s) provided to the model. */
-  readonly system:
-    | string
-    | SystemModelMessage
-    | Array<SystemModelMessage>
-    | undefined;
-
-  /** The prompt string or array of messages if using the prompt option. */
-  readonly prompt: string | Array<ModelMessage> | undefined;
-
-  /** The messages array if using the messages option. */
-  readonly messages: Array<ModelMessage> | undefined;
-
-  /** The tools available for this generation. */
-  readonly tools: TOOLS | undefined;
-
-  /** The tool choice strategy for this generation. */
-  readonly toolChoice: ToolChoice<NoInfer<TOOLS>> | undefined;
-
-  /** Limits which tools are available for the model to call. */
-  readonly activeTools: Array<keyof TOOLS> | undefined;
-
-  /** Maximum number of tokens to generate. */
-  readonly maxOutputTokens: number | undefined;
-  /** Sampling temperature for generation. */
-  readonly temperature: number | undefined;
-  /** Top-p (nucleus) sampling parameter. */
-  readonly topP: number | undefined;
-  /** Top-k sampling parameter. */
-  readonly topK: number | undefined;
-  /** Presence penalty for generation. */
-  readonly presencePenalty: number | undefined;
-  /** Frequency penalty for generation. */
-  readonly frequencyPenalty: number | undefined;
-  /** Sequences that will stop generation. */
-  readonly stopSequences: string[] | undefined;
-  /** Random seed for reproducible generation. */
-  readonly seed: number | undefined;
-  /** Maximum number of retries for failed requests. */
-  readonly maxRetries: number;
-
-  /**
-   * Timeout configuration for the generation.
-   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.
-   */
-  readonly timeout: TimeoutConfiguration | undefined;
-
-  /** Additional HTTP headers sent with the request. */
-  readonly headers: Record<string, string | undefined> | undefined;
-
-  /** Additional provider-specific options. */
-  readonly providerOptions: ProviderOptions | undefined;
-
-  /**
-   * Condition(s) for stopping the generation.
-   * When the condition is an array, any of the conditions can be met to stop.
-   */
-  readonly stopWhen:
-    | StopCondition<TOOLS>
-    | Array<StopCondition<TOOLS>>
-    | undefined;
-
-  /** The output specification for structured outputs, if configured. */
-  readonly output: OUTPUT | undefined;
-
-  /** Abort signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
-  /**
-   * Settings for controlling what data is included in step results.
-   * `requestBody` controls whether the request body is retained.
-   */
-  readonly include:
-    | {
-        requestBody?: boolean;
-      }
-    | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-
-  /** Additional metadata passed to the generation. */
-  readonly metadata: Record<string, unknown> | undefined;
-
-  /**
-   * User-defined context object that flows through the entire generation lifecycle.
-   * Can be accessed and modified in `prepareStep` and tool `execute` functions.
-   */
-  readonly experimental_context: unknown;
-}) => PromiseLike<void> | void;
+> = (
+  event: OnStartEvent<TOOLS, OUTPUT, StreamTextIncludeSettings>,
+) => PromiseLike<void> | void;
 
 /**
  * Callback that is set using the `experimental_onStepStart` option.
@@ -340,174 +232,16 @@ export type StreamTextOnStartCallback<
 export type StreamTextOnStepStartCallback<
   TOOLS extends ToolSet = ToolSet,
   OUTPUT extends Output = Output,
-> = (event: {
-  /** Zero-based index of the current step. */
-  readonly stepNumber: number;
-
-  /** The model being used for this step. */
-  readonly model: {
-    /** The provider identifier. */
-    readonly provider: string;
-    /** The specific model identifier. */
-    readonly modelId: string;
-  };
-
-  /**
-   * The system message for this step.
-   */
-  readonly system:
-    | string
-    | SystemModelMessage
-    | Array<SystemModelMessage>
-    | undefined;
-
-  /**
-   * The messages that will be sent to the model for this step.
-   * Uses the user-facing `ModelMessage` format.
-   * May be overridden by prepareStep.
-   */
-  readonly messages: Array<ModelMessage>;
-
-  /** The tools available for this generation. */
-  readonly tools: TOOLS | undefined;
-
-  /** The tool choice configuration for this step. */
-  readonly toolChoice: LanguageModelV3ToolChoice | undefined;
-
-  /** Limits which tools are available for this step. */
-  readonly activeTools: Array<keyof TOOLS> | undefined;
-
-  /** Array of results from previous steps (empty for first step). */
-  readonly steps: ReadonlyArray<StepResult<TOOLS>>;
-
-  /** Additional provider-specific options for this step. */
-  readonly providerOptions: ProviderOptions | undefined;
-
-  /**
-   * Timeout configuration for the generation.
-   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.
-   */
-  readonly timeout: TimeoutConfiguration | undefined;
-
-  /** Additional HTTP headers sent with the request. */
-  readonly headers: Record<string, string | undefined> | undefined;
-
-  /**
-   * Condition(s) for stopping the generation.
-   * When the condition is an array, any of the conditions can be met to stop.
-   */
-  readonly stopWhen:
-    | StopCondition<TOOLS>
-    | Array<StopCondition<TOOLS>>
-    | undefined;
-
-  /** The output specification for structured outputs, if configured. */
-  readonly output: OUTPUT | undefined;
-
-  /** Abort signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
-  /**
-   * Settings for controlling what data is included in step results.
-   */
-  readonly include:
-    | {
-        requestBody?: boolean;
-      }
-    | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, unknown> | undefined;
-
-  /**
-   * User-defined context object. May be updated from `prepareStep` between steps.
-   */
-  readonly experimental_context: unknown;
-}) => PromiseLike<void> | void;
+> = (
+  event: OnStepStartEvent<TOOLS, OUTPUT, StreamTextIncludeSettings>,
+) => PromiseLike<void> | void;
 
 export type StreamTextOnToolCallStartCallback<TOOLS extends ToolSet = ToolSet> =
-  (event: {
-    /** Zero-based index of the current step where this tool call occurs. */
-    readonly stepNumber: number | undefined;
-
-    /** The model being used for this step. */
-    readonly model:
-      | {
-          readonly provider: string;
-          readonly modelId: string;
-        }
-      | undefined;
-
-    /** The full tool call object. */
-    readonly toolCall: TypedToolCall<TOOLS>;
-
-    /** The conversation messages available at tool execution time. */
-    readonly messages: Array<ModelMessage>;
-
-    /** Signal for cancelling the operation. */
-    readonly abortSignal: AbortSignal | undefined;
-
-    /** Identifier from telemetry settings for grouping related operations. */
-    readonly functionId: string | undefined;
-
-    /** Additional metadata from telemetry settings. */
-    readonly metadata: Record<string, unknown> | undefined;
-
-    /** User-defined context object flowing through the generation. */
-    readonly experimental_context: unknown;
-  }) => PromiseLike<void> | void;
+  (event: OnToolCallStartEvent<TOOLS>) => PromiseLike<void> | void;
 
 export type StreamTextOnToolCallFinishCallback<
   TOOLS extends ToolSet = ToolSet,
-> = (
-  event: {
-    /** Zero-based index of the current step where this tool call occurred. */
-    readonly stepNumber: number | undefined;
-
-    /** The model being used for this step. */
-    readonly model:
-      | {
-          readonly provider: string;
-          readonly modelId: string;
-        }
-      | undefined;
-
-    /** The full tool call object. */
-    readonly toolCall: TypedToolCall<TOOLS>;
-
-    /** The conversation messages available at tool execution time. */
-    readonly messages: Array<ModelMessage>;
-
-    /** Signal for cancelling the operation. */
-    readonly abortSignal: AbortSignal | undefined;
-
-    /** Execution time of the tool call in milliseconds. */
-    readonly durationMs: number;
-
-    /** Identifier from telemetry settings for grouping related operations. */
-    readonly functionId: string | undefined;
-
-    /** Additional metadata from telemetry settings. */
-    readonly metadata: Record<string, unknown> | undefined;
-
-    /** User-defined context object flowing through the generation. */
-    readonly experimental_context: unknown;
-  } & (
-    | {
-        readonly success: true;
-        readonly output: unknown;
-        readonly error?: never;
-      }
-    | {
-        readonly success: false;
-        readonly output?: never;
-        readonly error: unknown;
-      }
-  ),
-) => PromiseLike<void> | void;
+> = (event: OnToolCallFinishEvent<TOOLS>) => PromiseLike<void> | void;
 
 /**
  * Generate a text and call tools for a given prompt using a language model.
