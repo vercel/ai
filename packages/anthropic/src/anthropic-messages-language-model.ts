@@ -40,6 +40,7 @@ import {
   Citation,
 } from './anthropic-messages-api';
 import {
+  AnthropicFilePartProviderOptions,
   AnthropicMessagesModelId,
   anthropicLanguageModelOptions,
 } from './anthropic-messages-options';
@@ -77,7 +78,30 @@ function createCitationSource(
     };
   }
 
-  if (citation.type !== 'page_location' && citation.type !== 'char_location') {
+  if (citation.type === 'search_result_location') {
+    return {
+      type: 'source' as const,
+      sourceType: 'document' as const,
+      id: generateId(),
+      mediaType: 'text/plain',
+      title: citation.title,
+      providerMetadata: {
+        anthropic: {
+          citedText: citation.cited_text,
+          source: citation.source,
+          searchResultIndex: citation.search_result_index,
+          startBlockIndex: citation.start_block_index,
+          endBlockIndex: citation.end_block_index,
+        },
+      } satisfies SharedV3ProviderMetadata,
+    };
+  }
+
+  if (
+    citation.type !== 'page_location' &&
+    citation.type !== 'char_location' &&
+    citation.type !== 'content_block_location'
+  ) {
     return;
   }
 
@@ -102,11 +126,17 @@ function createCitationSource(
               startPageNumber: citation.start_page_number,
               endPageNumber: citation.end_page_number,
             }
-          : {
-              citedText: citation.cited_text,
-              startCharIndex: citation.start_char_index,
-              endCharIndex: citation.end_char_index,
-            },
+          : citation.type === 'content_block_location'
+            ? {
+                citedText: citation.cited_text,
+                startBlockIndex: citation.start_block_index,
+                endBlockIndex: citation.end_block_index,
+              }
+            : {
+                citedText: citation.cited_text,
+                startCharIndex: citation.start_char_index,
+                endCharIndex: citation.end_char_index,
+              },
     } satisfies SharedV3ProviderMetadata,
   };
 }
@@ -686,10 +716,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     filename?: string;
     mediaType: string;
   }> {
+    // Only document parts are included here so document_index stays aligned.
+    // search_result citations use search_result_location instead of document_index.
     const isCitationPart = (part: {
       type: string;
       mediaType?: string;
-      providerOptions?: { anthropic?: { citations?: { enabled?: boolean } } };
+      providerOptions?: {
+        anthropic?: {
+          citations?: { enabled?: boolean };
+          title?: string;
+          type?: string;
+        };
+      };
     }) => {
       if (part.type !== 'file') {
         return false;
@@ -706,7 +744,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       const citationsConfig = anthropic?.citations as
         | { enabled?: boolean }
         | undefined;
-      return citationsConfig?.enabled ?? false;
+      if (citationsConfig?.enabled !== true) {
+        return false;
+      }
+
+      if (anthropic?.type === 'search_result') {
+        return false;
+      }
+
+      return true;
     };
 
     return prompt
@@ -716,8 +762,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       .map(part => {
         // TypeScript knows this is a file part due to our filter
         const filePart = part as Extract<typeof part, { type: 'file' }>;
+        const anthropic = filePart.providerOptions?.anthropic as
+          | AnthropicFilePartProviderOptions
+          | null
+          | undefined;
         return {
-          title: filePart.filename ?? 'Untitled Document',
+          title: anthropic?.title ?? filePart.filename ?? 'Untitled Document',
           filename: filePart.filename,
           mediaType: filePart.mediaType,
         };
