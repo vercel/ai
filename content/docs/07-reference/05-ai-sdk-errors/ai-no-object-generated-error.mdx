@@ -26,10 +26,10 @@ It can arise due to the following reasons:
 You can check if an error is an instance of `AI_NoObjectGeneratedError` using:
 
 ```typescript
-import { generateObject, NoObjectGeneratedError } from 'ai';
+import { generateText, NoObjectGeneratedError, Output } from 'ai';
 
 try {
-  await generateObject({ model, schema, prompt });
+  await generateText({ model, output: Output.object({ schema }), prompt });
 } catch (error) {
   if (NoObjectGeneratedError.isInstance(error)) {
     console.log('NoObjectGeneratedError');
