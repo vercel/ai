@@ -1928,6 +1928,178 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
+    it('should handle citation with missing documentInfo (document_index out of bounds)', async () => {
+      const localProvider = createAnthropic({
+        apiKey: 'test-api-key',
+        generateId: () => 'test-missing-doc-id',
+      });
+      const localModel = localProvider('claude-3-haiku-20240307');
+
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'json-value',
+        body: {
+          id: 'msg_missing_doc_info',
+          type: 'message',
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Here is the cited information.',
+              citations: [
+                {
+                  type: 'char_location',
+                  cited_text: 'some cited text',
+                  document_index: 99,
+                  document_title: 'Title From Citation',
+                  start_char_index: 0,
+                  end_char_index: 15,
+                },
+              ],
+            },
+          ],
+          model: 'claude-3-haiku-20240307',
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: { input_tokens: 4, output_tokens: 20 },
+        },
+      };
+
+      const result = await localModel.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'VGVzdA==',
+                mediaType: 'text/plain',
+                filename: 'test.txt',
+                providerOptions: {
+                  anthropic: {
+                    citations: { enabled: true },
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: 'What does this say?',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "Here is the cited information.",
+            "type": "text",
+          },
+          {
+            "filename": undefined,
+            "id": "test-missing-doc-id",
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "anthropic": {
+                "citedText": "some cited text",
+                "endCharIndex": 15,
+                "startCharIndex": 0,
+              },
+            },
+            "sourceType": "document",
+            "title": "Title From Citation",
+            "type": "source",
+          },
+        ]
+      `);
+    });
+
+    it('should handle citation with missing documentInfo and no document_title', async () => {
+      const localProvider = createAnthropic({
+        apiKey: 'test-api-key',
+        generateId: () => 'test-missing-doc-no-title-id',
+      });
+      const localModel = localProvider('claude-3-haiku-20240307');
+
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'json-value',
+        body: {
+          id: 'msg_missing_doc_info_no_title',
+          type: 'message',
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Here is the cited information.',
+              citations: [
+                {
+                  type: 'page_location',
+                  cited_text: 'some cited text',
+                  document_index: 99,
+                  document_title: null,
+                  start_page_number: 1,
+                  end_page_number: 2,
+                },
+              ],
+            },
+          ],
+          model: 'claude-3-haiku-20240307',
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: { input_tokens: 4, output_tokens: 20 },
+        },
+      };
+
+      const result = await localModel.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'VGVzdA==',
+                mediaType: 'text/plain',
+                filename: 'test.txt',
+                providerOptions: {
+                  anthropic: {
+                    citations: { enabled: true },
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: 'What does this say?',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "Here is the cited information.",
+            "type": "text",
+          },
+          {
+            "filename": undefined,
+            "id": "test-missing-doc-no-title-id",
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "anthropic": {
+                "citedText": "some cited text",
+                "endPageNumber": 2,
+                "startPageNumber": 1,
+              },
+            },
+            "sourceType": "document",
+            "title": "Unknown document",
+            "type": "source",
+          },
+        ]
+      `);
+    });
+
     describe('function tool', () => {
       it('should extract tool calls', async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
@@ -6741,6 +6913,67 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
           ]
         `);
+      });
+
+      it('should handle streaming citation with missing documentInfo', async () => {
+        const mockProvider = createAnthropic({
+          apiKey: 'test-api-key',
+          generateId: mockId(),
+        });
+        const modelWithMockId = mockProvider('claude-3-haiku-20240307');
+
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_stream_missing_doc","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":10,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Here is cited info."}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"citations_delta","citation":{"type":"char_location","cited_text":"cited info","document_index":99,"document_title":"Streamed Title","start_char_index":8,"end_char_index":19}}}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":50}}\n\n`,
+            `data: {"type":"message_stop"}\n\n`,
+          ],
+        };
+
+        const { stream } = await modelWithMockId.doStream({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: 'VGVzdA==',
+                  mediaType: 'text/plain',
+                  filename: 'test.txt',
+                  providerOptions: {
+                    anthropic: {
+                      citations: { enabled: true },
+                    },
+                  },
+                },
+                {
+                  type: 'text',
+                  text: 'What does this say?',
+                },
+              ],
+            },
+          ],
+        });
+
+        const result = await convertReadableStreamToArray(stream);
+
+        // Find the source element in the stream
+        const sourceElement = result.find(
+          (part: LanguageModelV3StreamPart) => part.type === 'source',
+        );
+        expect(sourceElement).toBeDefined();
+        expect(sourceElement).toMatchObject({
+          type: 'source',
+          sourceType: 'document',
+          mediaType: 'text/plain',
+          title: 'Streamed Title',
+          filename: undefined,
+        });
       });
     });
     describe('mcp servers', () => {
