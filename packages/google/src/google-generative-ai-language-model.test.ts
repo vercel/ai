@@ -1549,6 +1549,59 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should handle response with no candidates (blocked by promptFeedback)', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        promptFeedback: {
+          blockReason: 'PROHIBITED_CONTENT',
+          blockReasonMessage:
+            'The prompt is blocked due to prohibited contents',
+        },
+        usageMetadata: {
+          promptTokenCount: 1974,
+          totalTokenCount: 1974,
+        },
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toEqual([]);
+    expect(result.finishReason).toEqual({
+      unified: 'content-filter',
+      raw: 'PROHIBITED_CONTENT',
+    });
+    expect(result.usage).toEqual({
+      inputTokens: {
+        total: 1974,
+        noCache: 1974,
+        cacheRead: 0,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: 0,
+        text: 0,
+        reasoning: 0,
+      },
+      raw: {
+        promptTokenCount: 1974,
+        totalTokenCount: 1974,
+      },
+    });
+    expect(result.providerMetadata?.google.promptFeedback)
+      .toMatchInlineSnapshot(`
+      {
+        "blockReason": "PROHIBITED_CONTENT",
+        "blockReasonMessage": "The prompt is blocked due to prohibited contents",
+      }
+    `);
+    expect(result.providerMetadata?.google.groundingMetadata).toBeNull();
+    expect(result.providerMetadata?.google.safetyRatings).toBeNull();
+  });
+
   it('should expose grounding metadata in provider metadata', async () => {
     prepareJsonResponse({
       content: 'test response',
@@ -3393,6 +3446,79 @@ describe('doStream', () => {
           },
         ],
       }
+    `);
+  });
+
+  it('should handle stream with no candidates (blocked by promptFeedback)', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+            blockReasonMessage:
+              'The prompt is blocked due to prohibited contents',
+          },
+          usageMetadata: {
+            promptTokenCount: 1974,
+            totalTokenCount: 1974,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "finishReason": {
+            "raw": "PROHIBITED_CONTENT",
+            "unified": "content-filter",
+          },
+          "providerMetadata": {
+            "google": {
+              "groundingMetadata": null,
+              "promptFeedback": {
+                "blockReason": "PROHIBITED_CONTENT",
+                "blockReasonMessage": "The prompt is blocked due to prohibited contents",
+              },
+              "safetyRatings": null,
+              "urlContextMetadata": null,
+              "usageMetadata": {
+                "promptTokenCount": 1974,
+                "totalTokenCount": 1974,
+              },
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 1974,
+              "total": 1974,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 0,
+              "total": 0,
+            },
+            "raw": {
+              "promptTokenCount": 1974,
+              "totalTokenCount": 1974,
+            },
+          },
+        },
+      ]
     `);
   });
 
