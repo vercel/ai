@@ -17,7 +17,7 @@ export function Chat({
   const { error, status, sendMessage, messages, regenerate, stop } = useChat({
     id,
     messages: initialMessages,
-    transport: new DefaultChatTransport({ api: '/api/use-chat-resume' }),
+    transport: new DefaultChatTransport({ api: '/api/chat/resume' }),
     onError: error => {
       console.error('Error streaming text:', error);
     },

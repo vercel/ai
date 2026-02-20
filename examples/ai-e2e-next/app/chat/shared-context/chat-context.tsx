@@ -15,7 +15,7 @@ const ChatContext = createContext<ChatContextValue | undefined>(undefined);
 function createChat() {
   return new Chat<UIMessage>({
     transport: new DefaultChatTransport({
-      api: '/api/chat-shared-context',
+      api: '/api/chat/shared-context',
     }),
   });
 }

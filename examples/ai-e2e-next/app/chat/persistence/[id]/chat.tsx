@@ -12,7 +12,7 @@ export default function Chat({
     id, // use the provided chatId
     messages: initialMessages,
     transport: new DefaultChatTransport({
-      api: '/api/use-chat-persistence',
+      api: '/api/chat/persistence',
     }),
   });
 

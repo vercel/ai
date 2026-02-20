@@ -12,7 +12,7 @@ export default function Chat({
     id,
     messages: initialMessages,
     transport: new DefaultChatTransport({
-      api: '/api/use-chat-persistence-single-message',
+      api: '/api/chat/persistence-single-message',
       // only send the last message to the server:
       prepareSendMessagesRequest({ messages, id }) {
         return { body: { message: messages[messages.length - 1], id } };

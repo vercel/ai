@@ -17,7 +17,7 @@ export default function Chat({
     id, // use the provided chatId
     messages: initialMessages,
     transport: new DefaultChatTransport({
-      api: '/api/use-chat-persistence-metadata',
+      api: '/api/chat/persistence-metadata',
     }),
     messageMetadataSchema: zodSchema(
       z.object({

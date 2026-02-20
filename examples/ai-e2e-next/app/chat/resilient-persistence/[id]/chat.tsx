@@ -13,7 +13,7 @@ export default function Chat({
     id,
     messages: initialMessages,
     transport: new DefaultChatTransport({
-      api: '/api/use-chat-resilient-persistence',
+      api: '/api/chat/resilient-persistence',
     }),
     generateId: createIdGenerator({ prefix: 'msgc', size: 16 }), // id format for client-side messages
   });
