@@ -4,6 +4,14 @@ import {
   ProviderOptions,
   SystemModelMessage,
 } from '@ai-sdk/provider-utils';
+import type {
+  OnFinishEvent,
+  OnStartEvent,
+  OnStepFinishEvent,
+  OnStepStartEvent,
+  OnToolCallFinishEvent,
+  OnToolCallStartEvent,
+} from '../generate-text/callback-events';
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
 import { StopCondition } from '../generate-text/stop-condition';
@@ -15,12 +23,32 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types/language-model';
 import { DownloadFunction } from '../util/download/download-function';
 import { AgentCallParameters } from './agent';
-import { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-on-finish-callback';
-import { ToolLoopAgentOnStartCallback } from './tool-loop-agent-on-start-callback';
-import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
-import { ToolLoopAgentOnStepStartCallback } from './tool-loop-agent-on-step-start-callback';
-import { ToolLoopAgentOnToolCallFinishCallback } from './tool-loop-agent-on-tool-call-finish-callback';
-import { ToolLoopAgentOnToolCallStartCallback } from './tool-loop-agent-on-tool-call-start-callback';
+
+export type ToolLoopAgentOnStartCallback<
+  TOOLS extends ToolSet = ToolSet,
+  OUTPUT extends Output = Output,
+> = (event: OnStartEvent<TOOLS, OUTPUT>) => PromiseLike<void> | void;
+
+export type ToolLoopAgentOnStepStartCallback<
+  TOOLS extends ToolSet = ToolSet,
+  OUTPUT extends Output = Output,
+> = (event: OnStepStartEvent<TOOLS, OUTPUT>) => PromiseLike<void> | void;
+
+export type ToolLoopAgentOnToolCallStartCallback<
+  TOOLS extends ToolSet = ToolSet,
+> = (event: OnToolCallStartEvent<TOOLS>) => PromiseLike<void> | void;
+
+export type ToolLoopAgentOnToolCallFinishCallback<
+  TOOLS extends ToolSet = ToolSet,
+> = (event: OnToolCallFinishEvent<TOOLS>) => PromiseLike<void> | void;
+
+export type ToolLoopAgentOnStepFinishCallback<TOOLS extends ToolSet = {}> = (
+  stepResult: OnStepFinishEvent<TOOLS>,
+) => Promise<void> | void;
+
+export type ToolLoopAgentOnFinishCallback<TOOLS extends ToolSet = {}> = (
+  event: OnFinishEvent<TOOLS>,
+) => PromiseLike<void> | void;
 
 /**
  * Configuration options for an agent.

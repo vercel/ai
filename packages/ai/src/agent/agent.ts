@@ -5,12 +5,14 @@ import { StreamTextTransform } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 import { TimeoutConfiguration } from '../prompt/call-settings';
-import { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-on-finish-callback';
-import { ToolLoopAgentOnStartCallback } from './tool-loop-agent-on-start-callback';
-import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
-import { ToolLoopAgentOnStepStartCallback } from './tool-loop-agent-on-step-start-callback';
-import { ToolLoopAgentOnToolCallFinishCallback } from './tool-loop-agent-on-tool-call-finish-callback';
-import { ToolLoopAgentOnToolCallStartCallback } from './tool-loop-agent-on-tool-call-start-callback';
+import type {
+  ToolLoopAgentOnFinishCallback,
+  ToolLoopAgentOnStartCallback,
+  ToolLoopAgentOnStepFinishCallback,
+  ToolLoopAgentOnStepStartCallback,
+  ToolLoopAgentOnToolCallFinishCallback,
+  ToolLoopAgentOnToolCallStartCallback,
+} from './tool-loop-agent-settings';
 
 /**
  * Parameters for calling an agent.

@@ -785,6 +785,34 @@ for await (const chunk of stream.textStream) {
         'Optional stream transformation(s). They are applied in the order provided and must maintain the stream structure. See `streamText` docs for details.',
     },
     {
+      name: 'experimental_onStart',
+      type: 'ToolLoopAgentOnStartCallback',
+      isOptional: true,
+      description:
+        'Callback that is called when the agent operation begins, before any LLM calls are made. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).',
+    },
+    {
+      name: 'experimental_onStepStart',
+      type: 'ToolLoopAgentOnStepStartCallback',
+      isOptional: true,
+      description:
+        'Callback that is called when a step (LLM call) begins, before the provider is called. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).',
+    },
+    {
+      name: 'experimental_onToolCallStart',
+      type: 'ToolLoopAgentOnToolCallStartCallback',
+      isOptional: true,
+      description:
+        "Callback that is called right before a tool's execute function runs. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
+    },
+    {
+      name: 'experimental_onToolCallFinish',
+      type: 'ToolLoopAgentOnToolCallFinishCallback',
+      isOptional: true,
+      description:
+        "Callback that is called right after a tool's execute function completes (or errors). If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
+    },
+    {
       name: 'onStepFinish',
       type: 'ToolLoopAgentOnStepFinishCallback',
       isOptional: true,
@@ -800,14 +828,6 @@ for await (const chunk of stream.textStream) {
     },
   ]}
 />
-
-<Note>
-  `experimental_onStart`, `experimental_onStepStart`,
-  `experimental_onToolCallStart`, and `experimental_onToolCallFinish` are
-  accepted in `stream()` for API compatibility but are not currently forwarded
-  to the underlying `streamText` call. Use `generate()` for full lifecycle
-  callback support.
-</Note>
 
 #### Returns
 

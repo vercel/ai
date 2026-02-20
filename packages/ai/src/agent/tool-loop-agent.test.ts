@@ -5,11 +5,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { ToolLoopAgent } from './tool-loop-agent';
-import { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-on-finish-callback';
-import { ToolLoopAgentOnStartCallback } from './tool-loop-agent-on-start-callback';
-import { ToolLoopAgentOnStepStartCallback } from './tool-loop-agent-on-step-start-callback';
-import { ToolLoopAgentOnToolCallFinishCallback } from './tool-loop-agent-on-tool-call-finish-callback';
-import { ToolLoopAgentOnToolCallStartCallback } from './tool-loop-agent-on-tool-call-start-callback';
+import type {
+  ToolLoopAgentOnFinishCallback,
+  ToolLoopAgentOnStartCallback,
+  ToolLoopAgentOnStepStartCallback,
+  ToolLoopAgentOnToolCallFinishCallback,
+  ToolLoopAgentOnToolCallStartCallback,
+} from './tool-loop-agent-settings';
 
 describe('ToolLoopAgent', () => {
   describe('generate', () => {
@@ -676,6 +678,165 @@ describe('ToolLoopAgent', () => {
         `);
       });
     });
+
+    describe('stream', () => {
+      let mockModel: MockLanguageModelV3;
+
+      beforeEach(() => {
+        mockModel = new MockLanguageModelV3({
+          doStream: async () => {
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: {
+                    inputTokens: {
+                      total: 3,
+                      noCache: 3,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 10,
+                      text: 10,
+                      reasoning: undefined,
+                    },
+                  },
+                  providerMetadata: {
+                    testProvider: { testKey: 'testValue' },
+                  },
+                },
+              ]),
+            };
+          },
+        });
+      });
+
+      it('should call experimental_onStart from constructor', async () => {
+        const onStartCalls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          experimental_onStart: async () => {
+            onStartCalls.push('constructor');
+          },
+        });
+
+        const result = await agent.stream({ prompt: 'Hello, world!' });
+        await result.consumeStream();
+
+        expect(onStartCalls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+          ]
+        `);
+      });
+
+      it('should call experimental_onStart from stream method', async () => {
+        const onStartCalls: string[] = [];
+
+        const agent = new ToolLoopAgent({ model: mockModel });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+          experimental_onStart: async () => {
+            onStartCalls.push('method');
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(onStartCalls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
+      });
+
+      it('should call both constructor and method experimental_onStart in correct order', async () => {
+        const onStartCalls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          experimental_onStart: async () => {
+            onStartCalls.push('constructor');
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+          experimental_onStart: async () => {
+            onStartCalls.push('method');
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(onStartCalls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+            "method",
+          ]
+        `);
+      });
+
+      it('should pass correct event information', async () => {
+        let startEvent!: Parameters<ToolLoopAgentOnStartCallback>[0];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          instructions: 'You are a helpful assistant',
+          temperature: 0.7,
+          maxOutputTokens: 500,
+          experimental_context: { userId: 'test-user' },
+        });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+          experimental_onStart: async event => {
+            startEvent = event;
+          },
+        });
+
+        await result.consumeStream();
+
+        expect({
+          model: startEvent.model,
+          system: startEvent.system,
+          prompt: startEvent.prompt,
+          messages: startEvent.messages,
+          temperature: startEvent.temperature,
+          maxOutputTokens: startEvent.maxOutputTokens,
+          experimental_context: startEvent.experimental_context,
+        }).toMatchInlineSnapshot(`
+          {
+            "experimental_context": {
+              "userId": "test-user",
+            },
+            "maxOutputTokens": 500,
+            "messages": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
+            "prompt": "Hello, world!",
+            "system": "You are a helpful assistant",
+            "temperature": 0.7,
+          }
+        `);
+      });
+    });
   });
 
   describe('experimental_onStepStart', () => {
@@ -850,6 +1011,161 @@ describe('ToolLoopAgent', () => {
             stepStartEvent = event;
           },
         });
+
+        expect({
+          stepNumber: stepStartEvent.stepNumber,
+          model: stepStartEvent.model,
+          system: stepStartEvent.system,
+          messagesLength: stepStartEvent.messages.length,
+          steps: stepStartEvent.steps,
+          experimental_context: stepStartEvent.experimental_context,
+        }).toMatchInlineSnapshot(`
+          {
+            "experimental_context": {
+              "userId": "test-user",
+            },
+            "messagesLength": 1,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
+            "stepNumber": 0,
+            "steps": [],
+            "system": "You are a helpful assistant",
+          }
+        `);
+      });
+    });
+
+    describe('stream', () => {
+      let mockModel: MockLanguageModelV3;
+
+      beforeEach(() => {
+        mockModel = new MockLanguageModelV3({
+          doStream: async () => {
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: {
+                    inputTokens: {
+                      total: 3,
+                      noCache: 3,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 10,
+                      text: 10,
+                      reasoning: undefined,
+                    },
+                  },
+                  providerMetadata: {
+                    testProvider: { testKey: 'testValue' },
+                  },
+                },
+              ]),
+            };
+          },
+        });
+      });
+
+      it('should call experimental_onStepStart from constructor', async () => {
+        const onStepStartCalls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          experimental_onStepStart: async () => {
+            onStepStartCalls.push('constructor');
+          },
+        });
+
+        const result = await agent.stream({ prompt: 'Hello, world!' });
+        await result.consumeStream();
+
+        expect(onStepStartCalls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+          ]
+        `);
+      });
+
+      it('should call experimental_onStepStart from stream method', async () => {
+        const onStepStartCalls: string[] = [];
+
+        const agent = new ToolLoopAgent({ model: mockModel });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+          experimental_onStepStart: async () => {
+            onStepStartCalls.push('method');
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(onStepStartCalls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
+      });
+
+      it('should call both constructor and method experimental_onStepStart in correct order', async () => {
+        const onStepStartCalls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          experimental_onStepStart: async () => {
+            onStepStartCalls.push('constructor');
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+          experimental_onStepStart: async () => {
+            onStepStartCalls.push('method');
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(onStepStartCalls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+            "method",
+          ]
+        `);
+      });
+
+      it('should pass correct event information', async () => {
+        let stepStartEvent!: Parameters<ToolLoopAgentOnStepStartCallback>[0];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          instructions: 'You are a helpful assistant',
+          experimental_context: { userId: 'test-user' },
+        });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+          experimental_onStepStart: async event => {
+            stepStartEvent = event;
+          },
+        });
+
+        await result.consumeStream();
 
         expect({
           stepNumber: stepStartEvent.stepNumber,
@@ -1307,7 +1623,7 @@ describe('ToolLoopAgent', () => {
       });
 
       it('should pass correct event information', async () => {
-        let event!: Parameters<ToolLoopAgentOnToolCallStartCallback>[0];
+        let event!: Parameters<ToolLoopAgentOnToolCallStartCallback<any>>[0];
 
         const agent = new ToolLoopAgent({
           model: createToolCallMockModel(),
@@ -1342,6 +1658,207 @@ describe('ToolLoopAgent', () => {
               "provider": "mock-provider",
             },
             "stepNumber": 0,
+            "toolCallId": "call-1",
+            "toolCallInput": {
+              "value": "test",
+            },
+            "toolCallName": "testTool",
+          }
+        `);
+      });
+    });
+
+    describe('stream', () => {
+      const dummyStreamFinish = {
+        type: 'finish' as const,
+        finishReason: { unified: 'stop' as const, raw: 'stop' },
+        usage: {
+          inputTokens: {
+            total: 3,
+            noCache: 3,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: 10,
+            text: 10,
+            reasoning: undefined,
+          },
+        },
+        providerMetadata: {},
+      };
+
+      function createToolCallStreamMockModel() {
+        let callCount = 0;
+        return new MockLanguageModelV3({
+          doStream: async () => {
+            if (callCount++ === 0) {
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'stream-start', warnings: [] },
+                  {
+                    type: 'response-metadata',
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-1',
+                    toolName: 'testTool',
+                    input: '{ "value": "test" }',
+                  },
+                  {
+                    ...dummyStreamFinish,
+                    finishReason: {
+                      unified: 'tool-calls' as const,
+                      raw: undefined,
+                    },
+                  },
+                ]),
+              };
+            }
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'id-1',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'done' },
+                { type: 'text-end', id: '1' },
+                dummyStreamFinish,
+              ]),
+            };
+          },
+        });
+      }
+
+      it('should call experimental_onToolCallStart from constructor', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallStreamMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+          experimental_onToolCallStart: async () => {
+            calls.push('constructor');
+          },
+        });
+
+        const result = await agent.stream({ prompt: 'test' });
+        await result.consumeStream();
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+          ]
+        `);
+      });
+
+      it('should call experimental_onToolCallStart from stream method', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallStreamMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'test',
+          experimental_onToolCallStart: async () => {
+            calls.push('method');
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
+      });
+
+      it('should call both constructor and method in correct order', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallStreamMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+          experimental_onToolCallStart: async () => {
+            calls.push('constructor');
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'test',
+          experimental_onToolCallStart: async () => {
+            calls.push('method');
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+            "method",
+          ]
+        `);
+      });
+
+      it('should pass correct event information', async () => {
+        let event!: Parameters<ToolLoopAgentOnToolCallStartCallback<any>>[0];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallStreamMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'test',
+          experimental_onToolCallStart: async e => {
+            event = e;
+          },
+        });
+
+        await result.consumeStream();
+
+        expect({
+          toolCallName: event.toolCall.toolName,
+          toolCallId: event.toolCall.toolCallId,
+          toolCallInput: event.toolCall.input,
+          messagesLength: event.messages.length,
+        }).toMatchInlineSnapshot(`
+          {
+            "messagesLength": 1,
             "toolCallId": "call-1",
             "toolCallInput": {
               "value": "test",
@@ -1561,6 +2078,212 @@ describe('ToolLoopAgent', () => {
             },
             "output": "hello-result",
             "stepNumber": 0,
+            "success": true,
+            "toolCallId": "call-1",
+            "toolCallInput": {
+              "value": "hello",
+            },
+            "toolCallName": "testTool",
+          }
+        `);
+      });
+    });
+
+    describe('stream', () => {
+      const dummyStreamFinish = {
+        type: 'finish' as const,
+        finishReason: { unified: 'stop' as const, raw: 'stop' },
+        usage: {
+          inputTokens: {
+            total: 3,
+            noCache: 3,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: 10,
+            text: 10,
+            reasoning: undefined,
+          },
+        },
+        providerMetadata: {},
+      };
+
+      function createToolCallStreamMockModel() {
+        let callCount = 0;
+        return new MockLanguageModelV3({
+          doStream: async () => {
+            if (callCount++ === 0) {
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'stream-start', warnings: [] },
+                  {
+                    type: 'response-metadata',
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-1',
+                    toolName: 'testTool',
+                    input: '{ "value": "hello" }',
+                  },
+                  {
+                    ...dummyStreamFinish,
+                    finishReason: {
+                      unified: 'tool-calls' as const,
+                      raw: undefined,
+                    },
+                  },
+                ]),
+              };
+            }
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'id-1',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'done' },
+                { type: 'text-end', id: '1' },
+                dummyStreamFinish,
+              ]),
+            };
+          },
+        });
+      }
+
+      it('should call experimental_onToolCallFinish from constructor', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallStreamMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+          experimental_onToolCallFinish: async () => {
+            calls.push('constructor');
+          },
+        });
+
+        const result = await agent.stream({ prompt: 'test' });
+        await result.consumeStream();
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+          ]
+        `);
+      });
+
+      it('should call experimental_onToolCallFinish from stream method', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallStreamMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'test',
+          experimental_onToolCallFinish: async () => {
+            calls.push('method');
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
+      });
+
+      it('should call both constructor and method in correct order', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallStreamMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+          experimental_onToolCallFinish: async () => {
+            calls.push('constructor');
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'test',
+          experimental_onToolCallFinish: async () => {
+            calls.push('method');
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+            "method",
+          ]
+        `);
+      });
+
+      it('should pass correct event information on success', async () => {
+        let event!: Parameters<ToolLoopAgentOnToolCallFinishCallback>[0];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallStreamMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'test',
+          experimental_onToolCallFinish: async e => {
+            event = e;
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(event.durationMs).toBeGreaterThanOrEqual(0);
+        expect({
+          toolCallName: event.toolCall.toolName,
+          toolCallId: event.toolCall.toolCallId,
+          toolCallInput: event.toolCall.input,
+          success: event.success,
+          output: event.success ? event.output : undefined,
+          messagesLength: event.messages.length,
+        }).toMatchInlineSnapshot(`
+          {
+            "messagesLength": 1,
+            "output": "hello-result",
             "success": true,
             "toolCallId": "call-1",
             "toolCallInput": {

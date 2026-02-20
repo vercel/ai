@@ -165,10 +165,10 @@ export class ToolLoopAgent<
     abortSignal,
     timeout,
     experimental_transform,
-    experimental_onStart: _onStart,
-    experimental_onStepStart: _onStepStart,
-    experimental_onToolCallStart: _onToolCallStart,
-    experimental_onToolCallFinish: _onToolCallFinish,
+    experimental_onStart,
+    experimental_onStepStart,
+    experimental_onToolCallStart,
+    experimental_onToolCallFinish,
     onStepFinish,
     onFinish,
     ...options
@@ -180,6 +180,22 @@ export class ToolLoopAgent<
       abortSignal,
       timeout,
       experimental_transform,
+      experimental_onStart: this.mergeCallbacks(
+        this.settings.experimental_onStart,
+        experimental_onStart,
+      ),
+      experimental_onStepStart: this.mergeCallbacks(
+        this.settings.experimental_onStepStart,
+        experimental_onStepStart,
+      ),
+      experimental_onToolCallStart: this.mergeCallbacks(
+        this.settings.experimental_onToolCallStart,
+        experimental_onToolCallStart,
+      ),
+      experimental_onToolCallFinish: this.mergeCallbacks(
+        this.settings.experimental_onToolCallFinish,
+        experimental_onToolCallFinish,
+      ),
       onStepFinish: this.mergeCallbacks(
         this.settings.onStepFinish,
         onStepFinish,
