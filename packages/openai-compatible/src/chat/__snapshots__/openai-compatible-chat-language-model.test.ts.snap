@@ -298,6 +298,78 @@ Finally, structure it as: <function_call>{"action": "weather", "action_input": {
 }
 `;
 
+exports[`doStream > Azure text (fixture) > should stream text content with Azure SSE format 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "",
+    "modelId": "",
+    "timestamp": 1970-01-01T00:00:00.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "txt-0",
+    "type": "text-start",
+  },
+  {
+    "delta": "Hello",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " World",
+    "id": "txt-0",
+    "type": "text-delta",
+  },
+  {
+    "id": "txt-0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": "stop",
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "test-provider": {
+        "acceptedPredictionTokens": 0,
+        "rejectedPredictionTokens": 0,
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 15,
+        "total": 15,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 5,
+        "total": 5,
+      },
+      "raw": {
+        "completion_tokens": 5,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0,
+        },
+        "prompt_tokens": 15,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "total_tokens": 20,
+      },
+    },
+  },
+]
+`;
+
 exports[`doStream > text (fixture) > should stream text content 1`] = `
 [
   {
