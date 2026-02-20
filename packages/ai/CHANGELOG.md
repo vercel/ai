@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.96
+
+### Patch Changes
+
+- 30c9de6: feat(ai): experimental callbacks for streamText
+
 ## 6.0.95
 
 ### Patch Changes
