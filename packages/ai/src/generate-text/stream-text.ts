@@ -1012,14 +1012,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             stepNumber: recordedSteps.length,
-            model: {
-              provider: model.provider,
-              modelId: model.modelId,
-            },
-            functionId: telemetry?.functionId,
-            metadata: telemetry?.metadata as
-              | Record<string, unknown>
-              | undefined,
+            model: modelInfo,
+            ...callbackTelemetryProps,
             experimental_context,
             content: recordedContent,
             finishReason: part.finishReason,
@@ -1038,8 +1032,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           logWarnings({
             warnings: recordedWarnings,
-            provider: model.provider,
-            model: model.modelId,
+            provider: modelInfo.provider,
+            model: modelInfo.modelId,
           });
 
           recordedSteps.push(currentStepResult);
@@ -1247,6 +1241,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
     const self = this;
 
+    const modelInfo = { provider: model.provider, modelId: model.modelId };
+    const callbackTelemetryProps = {
+      functionId: telemetry?.functionId,
+      metadata: telemetry?.metadata as Record<string, unknown> | undefined,
+    };
+
     recordSpan({
       name: 'ai.streamText',
       attributes: selectTelemetryAttributes({
@@ -1273,7 +1273,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
         try {
           await onStart?.({
-            model: { provider: model.provider, modelId: model.modelId },
+            model: modelInfo,
             system,
             prompt,
             messages,
@@ -1296,10 +1296,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             output,
             abortSignal: originalAbortSignal,
             include,
-            functionId: telemetry?.functionId,
-            metadata: telemetry?.metadata as
-              | Record<string, unknown>
-              | undefined,
+            ...callbackTelemetryProps,
             experimental_context,
           });
         } catch (_ignored) {
@@ -1372,10 +1369,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   abortSignal,
                   experimental_context,
                   stepNumber: recordedSteps.length,
-                  model: {
-                    provider: model.provider,
-                    modelId: model.modelId,
-                  },
+                  model: modelInfo,
                   onToolCallStart,
                   onToolCallFinish,
                   onPreliminaryToolResult: result => {
@@ -1517,6 +1511,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             const stepModel = resolveLanguageModel(
               prepareStepResult?.model ?? model,
             );
+            const stepModelInfo = {
+              provider: stepModel.provider,
+              modelId: stepModel.modelId,
+            };
 
             const promptMessages = await convertToLanguageModelPrompt({
               prompt: {
@@ -1554,10 +1552,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             try {
               await onStepStart?.({
                 stepNumber: recordedSteps.length,
-                model: {
-                  provider: stepModel.provider,
-                  modelId: stepModel.modelId,
-                },
+                model: stepModelInfo,
                 system: stepSystem,
                 messages: stepMessages,
                 tools,
@@ -1571,10 +1566,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 output,
                 abortSignal: originalAbortSignal,
                 include,
-                functionId: telemetry?.functionId,
-                metadata: telemetry?.metadata as
-                  | Record<string, unknown>
-                  | undefined,
+                ...callbackTelemetryProps,
                 experimental_context,
               });
             } catch (_ignored) {
@@ -1660,10 +1652,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               experimental_context,
               generateId,
               stepNumber: recordedSteps.length,
-              model: {
-                provider: stepModel.provider,
-                modelId: stepModel.modelId,
-              },
+              model: stepModelInfo,
               onToolCallStart,
               onToolCallFinish,
             });
@@ -1690,7 +1679,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               {
                 id: generateId(),
                 timestamp: new Date(),
-                modelId: model.modelId,
+                modelId: modelInfo.modelId,
               };
 
             // raw text as it comes from the provider. recorded for telemetry.

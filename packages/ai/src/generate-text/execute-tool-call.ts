@@ -60,6 +60,17 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     return undefined;
   }
 
+  const baseCallbackEvent = {
+    stepNumber,
+    model,
+    toolCall,
+    messages,
+    abortSignal,
+    functionId: telemetry?.functionId,
+    metadata: telemetry?.metadata as Record<string, unknown> | undefined,
+    experimental_context,
+  };
+
   return recordSpan({
     name: 'ai.toolCall',
     attributes: selectTelemetryAttributes({
@@ -81,16 +92,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
       let output: unknown;
 
       try {
-        await onToolCallStart?.({
-          stepNumber,
-          model,
-          toolCall,
-          messages,
-          abortSignal,
-          functionId: telemetry?.functionId,
-          metadata: telemetry?.metadata as Record<string, unknown> | undefined,
-          experimental_context,
-        });
+        await onToolCallStart?.(baseCallbackEvent);
       } catch (_ignored) {
         // Errors in callbacks should not break the generation flow.
       }
@@ -126,19 +128,10 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 
         try {
           await onToolCallFinish?.({
-            stepNumber,
-            model,
-            toolCall,
-            messages,
-            abortSignal,
+            ...baseCallbackEvent,
             success: false,
             error,
             durationMs,
-            functionId: telemetry?.functionId,
-            metadata: telemetry?.metadata as
-              | Record<string, unknown>
-              | undefined,
-            experimental_context,
           });
         } catch (_ignored) {
           // Errors in callbacks should not break the generation flow.
@@ -162,17 +155,10 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 
       try {
         await onToolCallFinish?.({
-          stepNumber,
-          model,
-          toolCall,
-          messages,
-          abortSignal,
+          ...baseCallbackEvent,
           success: true,
           output,
           durationMs,
-          functionId: telemetry?.functionId,
-          metadata: telemetry?.metadata as Record<string, unknown> | undefined,
-          experimental_context,
         });
       } catch (_ignored) {
         // Errors in callbacks should not break the generation flow.
