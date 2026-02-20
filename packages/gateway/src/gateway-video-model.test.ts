@@ -87,13 +87,15 @@ describe('GatewayVideoModel', () => {
       >;
       providerMetadata?: Record<string, unknown>;
     } = {}) {
+      const ssePayload = {
+        type: 'result',
+        videos,
+        ...(warnings && { warnings }),
+        ...(providerMetadata && { providerMetadata }),
+      };
       server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos,
-          ...(warnings && { warnings }),
-          ...(providerMetadata && { providerMetadata }),
-        },
+        type: 'stream-chunks',
+        chunks: [`data: ${JSON.stringify(ssePayload)}\n\n`],
       };
     }
 
