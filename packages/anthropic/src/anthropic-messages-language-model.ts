@@ -279,6 +279,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       ...(anthropicOptions?.speed && {
         speed: anthropicOptions.speed,
       }),
+      ...(anthropicOptions?.cacheControl && {
+        cache_control: anthropicOptions.cacheControl,
+      }),
 
       // structured output:
       ...(useStructuredOutput &&
