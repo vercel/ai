@@ -355,7 +355,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       }),
       ...(anthropicOptions?.cacheControl && {
         cache_control: anthropicOptions.cacheControl,
-      })
+      }),
 
       // structured output:
       ...(useStructuredOutput &&
