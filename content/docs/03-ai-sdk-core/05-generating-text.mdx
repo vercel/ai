@@ -297,6 +297,62 @@ const result = streamText({
 });
 ```
 
+### Lifecycle callbacks (experimental)
+
+<Note type="warning">
+  Experimental callbacks are subject to breaking changes in incremental package
+  releases.
+</Note>
+
+`streamText` provides several experimental lifecycle callbacks that let you hook into different phases of the streaming process.
+These are useful for logging, observability, debugging, and custom telemetry.
+Errors thrown inside these callbacks are silently caught and do not break the streaming flow.
+
+```tsx
+import { streamText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const result = streamText({
+  model: __MODEL__,
+  prompt: 'What is the weather in San Francisco?',
+  tools: {
+    // ... your tools
+  },
+
+  experimental_onStart({ model, system, prompt, messages }) {
+    console.log('Streaming started', { model, prompt });
+  },
+
+  experimental_onStepStart({ stepNumber, model, messages }) {
+    console.log(`Step ${stepNumber} starting`, { model: model.modelId });
+  },
+
+  experimental_onToolCallStart({ toolCall }) {
+    console.log(`Tool call starting: ${toolCall.toolName}`, {
+      toolCallId: toolCall.toolCallId,
+    });
+  },
+
+  experimental_onToolCallFinish({ toolCall, durationMs, success, error }) {
+    console.log(`Tool call finished: ${toolCall.toolName} (${durationMs}ms)`, {
+      success,
+    });
+  },
+
+  onStepFinish({ finishReason, usage }) {
+    console.log('Step finished', { finishReason, usage });
+  },
+});
+```
+
+The available lifecycle callbacks are:
+
+- **`experimental_onStart`**: Called once when the `streamText` operation begins, before any LLM calls. Receives model info, prompt, settings, and telemetry metadata.
+- **`experimental_onStepStart`**: Called before each step (LLM call). Receives the step number, model, messages being sent, tools, and prior steps.
+- **`experimental_onToolCallStart`**: Called right before a tool's `execute` function runs. Receives the tool call object, messages, and context.
+- **`experimental_onToolCallFinish`**: Called right after a tool's `execute` function completes or errors. Receives the tool call object, `durationMs`, and a discriminated union with `success`/`output` or `success`/`error`.
+- **`onStepFinish`**: Called after each step finishes. Receives the finish reason, usage, and other step details.
+
 ### `fullStream` property
 
 You can read a stream with all events using the `fullStream` property.
