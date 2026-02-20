@@ -151,6 +151,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   input: unknown;
                   rawInput?: unknown;
                   errorText: string;
+                  errorCode?: string;
                   providerExecuted?: boolean;
                   providerMetadata?: ProviderMetadata;
                 }
@@ -170,6 +171,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.input = anyOptions.input;
               anyPart.output = anyOptions.output;
               anyPart.errorText = anyOptions.errorText;
+              if (anyOptions.errorCode !== undefined) {
+                anyPart.errorCode = anyOptions.errorCode;
+              }
               anyPart.rawInput = anyOptions.rawInput;
               anyPart.preliminary = anyOptions.preliminary;
               if (options.title !== undefined) {
@@ -192,6 +196,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 output: anyOptions.output,
                 rawInput: anyOptions.rawInput,
                 errorText: anyOptions.errorText,
+                ...(anyOptions.errorCode !== undefined
+                  ? { errorCode: anyOptions.errorCode }
+                  : {}),
                 providerExecuted: anyOptions.providerExecuted,
                 preliminary: anyOptions.preliminary,
                 ...(anyOptions.providerMetadata != null
@@ -228,6 +235,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   state: 'output-error';
                   input: unknown;
                   errorText: string;
+                  errorCode?: string;
                   providerMetadata?: ProviderMetadata;
                 }
             ),
@@ -247,6 +255,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.input = anyOptions.input;
               anyPart.output = anyOptions.output;
               anyPart.errorText = anyOptions.errorText;
+              if (anyOptions.errorCode !== undefined) {
+                anyPart.errorCode = anyOptions.errorCode;
+              }
               anyPart.rawInput = anyOptions.rawInput ?? anyPart.rawInput;
               anyPart.preliminary = anyOptions.preliminary;
               if (options.title !== undefined) {
@@ -268,6 +279,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 input: anyOptions.input,
                 output: anyOptions.output,
                 errorText: anyOptions.errorText,
+                ...(anyOptions.errorCode !== undefined
+                  ? { errorCode: anyOptions.errorCode }
+                  : {}),
                 preliminary: anyOptions.preliminary,
                 providerExecuted: anyOptions.providerExecuted,
                 title: options.title,
@@ -641,6 +655,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   state: 'output-error',
                   input: (toolInvocation as any).input,
                   errorText: chunk.errorText,
+                  errorCode: chunk.errorCode,
                   providerExecuted: chunk.providerExecuted,
                   title: toolInvocation.title,
                 });
@@ -652,6 +667,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   input: (toolInvocation as any).input,
                   rawInput: (toolInvocation as any).rawInput,
                   errorText: chunk.errorText,
+                  errorCode: chunk.errorCode,
                   providerExecuted: chunk.providerExecuted,
                   title: toolInvocation.title,
                 });
