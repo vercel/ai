@@ -2055,6 +2055,37 @@ importers:
         specifier: 3.25.76
         version: 3.25.76
 
+  packages/durable-agent:
+    dependencies:
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+      ai:
+        specifier: workspace:*
+        version: link:../ai
+    devDependencies:
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      eslint-config-vercel-ai:
+        specifier: workspace:*
+        version: link:../../tools/eslint-config
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.8.3)(yaml@2.7.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
   packages/elevenlabs:
     dependencies:
       '@ai-sdk/provider':
