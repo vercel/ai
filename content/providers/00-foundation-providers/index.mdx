@@ -1,0 +1,72 @@
+---
+title: AI SDK Providers
+description: Learn how to use AI SDK providers.
+---
+
+# AI SDK Providers
+
+The AI SDK comes with several providers that you can use to interact with different language models:
+
+<OfficialModelCards />
+
+There are also [community providers](./community-providers) that have been created using the [Language Model Specification](./community-providers/custom-providers).
+
+<CommunityModelCards />
+
+## Provider support
+
+Not all providers support all AI SDK features. Here's a quick comparison of the capabilities of popular models:
+
+| Provider                                                                 | Model                                               | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------------------------------------------------------------------ | --------------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-5.2-pro`                                       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-5.2`                                           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-5.1`                                           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-5.1-codex`                                     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-5`                                             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-5-mini`                                        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-4.1`                                           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-4.1-mini`                                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-4o`                                            | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [OpenAI](/providers/ai-sdk-providers/openai)                             | `gpt-4o-mini`                                       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Alibaba](/providers/ai-sdk-providers/alibaba)                           | `qwen3-max`                                         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Alibaba](/providers/ai-sdk-providers/alibaba)                           | `qwen-plus`                                         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-opus-4-6`                                   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-sonnet-4-6`                                 | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-opus-4-5`                                   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-sonnet-4-5`                                 | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-haiku-4-5`                                  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-opus-4-1`                                   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-sonnet-4-0`                                 | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-3-7-sonnet-latest`                          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Anthropic](/providers/ai-sdk-providers/anthropic)                       | `claude-3-5-haiku-latest`                           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Cohere](/providers/ai-sdk-providers/cohere)                             | `command-a-03-2025`                                 | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Cohere](/providers/ai-sdk-providers/cohere)                             | `command-a-reasoning-08-2025`                       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Cohere](/providers/ai-sdk-providers/cohere)                             | `command-r-plus`                                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Cohere](/providers/ai-sdk-providers/cohere)                             | `command-r`                                         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [DeepSeek](/providers/ai-sdk-providers/deepseek)                         | `deepseek-chat`                                     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [DeepSeek](/providers/ai-sdk-providers/deepseek)                         | `deepseek-reasoner`                                 | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Google Generative AI](/providers/ai-sdk-providers/google-generative-ai) | `gemini-3.1-pro-preview`                            | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Google Generative AI](/providers/ai-sdk-providers/google-generative-ai) | `gemini-3-pro-preview`                              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Google Generative AI](/providers/ai-sdk-providers/google-generative-ai) | `gemini-2.5-pro`                                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Google Generative AI](/providers/ai-sdk-providers/google-generative-ai) | `gemini-2.5-flash`                                  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Mistral](/providers/ai-sdk-providers/mistral)                           | `pixtral-large-latest`                              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Mistral](/providers/ai-sdk-providers/mistral)                           | `mistral-large-latest`                              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Mistral](/providers/ai-sdk-providers/mistral)                           | `magistral-medium-2506`                             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Mistral](/providers/ai-sdk-providers/mistral)                           | `magistral-small-2506`                              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Mistral](/providers/ai-sdk-providers/mistral)                           | `mistral-small-latest`                              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Mistral](/providers/ai-sdk-providers/mistral)                           | `ministral-8b-latest`                               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Moonshot AI](/providers/ai-sdk-providers/moonshotai)                    | `kimi-k2.5`                                         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Moonshot AI](/providers/ai-sdk-providers/moonshotai)                    | `kimi-k2-thinking`                                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [Vercel](/providers/ai-sdk-providers/vercel)                             | `v0-1.0-md`                                         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [xAI Grok](/providers/ai-sdk-providers/xai)                              | `grok-4-fast-reasoning`                             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [xAI Grok](/providers/ai-sdk-providers/xai)                              | `grok-4`                                            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [xAI Grok](/providers/ai-sdk-providers/xai)                              | `grok-3`                                            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [xAI Grok](/providers/ai-sdk-providers/xai)                              | `grok-3-fast`                                       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [xAI Grok](/providers/ai-sdk-providers/xai)                              | `grok-3-mini`                                       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| [xAI Grok](/providers/ai-sdk-providers/xai)                              | `grok-2-vision-1212`                                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+<Note>
+  This table is not exhaustive. Additional models can be found in the provider
+  documentation pages and on the provider websites.
+</Note>
