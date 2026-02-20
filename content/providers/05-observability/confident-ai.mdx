@@ -5,13 +5,13 @@ description: Trace and Evaluate your LLM applications using Confident AI
 
 # Confident AI Observability
 
-[Confident AI](https://confident-ai.com/) is an LLM observability and evaluation platform for monitoring and improving AI applications in both development and production.
+[Confident AI](https://confident-ai.com/) is an LLM observability and evaluation platform for teams to build reliable AI applications in both development and production.
 
 The `deepeval-ts` package integrates with the AI SDK's `experimental_telemetry` API to provide tracing, online evaluations, and session analytics.
 
 ## Setup
 
-The `deepeval-ts` package provides a `configureAiSdkTracing` helper that returns a tracer compatible with the AI SDK's telemetry API. Here's how you can setup observability for your LLM application in 3 simple steps:
+To enable tracing, install `deepeval-ts`, configure your API key, and initialize a tracer using `configureAiSdkTracing`.
 
 ### 1. Install deepeval-ts
 
@@ -29,7 +29,7 @@ CONFIDENT_API_KEY="YOUR-PROJECT-API-KEY"
 
 ### 3. Configure Tracing
 
-To set up tracing with Confident AI, you can simply import and call the `configureAiSdkTracing` function to get a `tracer`:
+Import and call `configureAiSdkTracing` to create a `tracer`:
 
 ```typescript
 import { configureAiSdkTracing } from 'deepeval-ts';
@@ -39,7 +39,7 @@ const tracer = configureAiSdkTracing();
 
 ## Tracing Your Application
 
-Pass the `tracer` into the `experimental_telemetry` field of any AI SDK call to record your traces in Confident AI.
+You can now pass the `tracer` object into the `experimental_telemetry` field of any AI SDK call to get your traces on the Confident AI platform.
 
 Here are some of the examples on how to trace various AI SDK functions using Confident AI's tracer:
 
@@ -212,6 +212,10 @@ const { text } = await generateText({
 });
 ```
 
+Logging prompts allows you to monitor what prompts are running in production and which ones are performing best overtime:
+
+![Prompt Observability on Confident AI](https://confident-docs.s3.us-east-1.amazonaws.com/llm-tracing:prompt-logging.png)
+
 <Note>
   Make sure to **`pull` the prompt** before passing it to `configureAiSdkTracing`. Without pulling first, the prompt version will not be visible on Confident AI.
 </Note>
@@ -257,4 +261,5 @@ You can find a more comprehensive guide on AI SDK tracing with `deepeval-ts` in 
 - [LLM Tracing](https://www.confident-ai.com/docs/llm-tracing/introduction)
 - [Online Evaluations](https://www.confident-ai.com/docs/llm-tracing/online-evals)
 - [Prompt Management](https://www.confident-ai.com/docs/llm-evaluation/prompt-management/version-prompts)
+- [DeepEval Discord](https://discord.gg/a3K9c8GRGt)
 - [AI SDK Telemetry documentation](/docs/ai-sdk-core/telemetry)
