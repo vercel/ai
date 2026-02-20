@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.53
+
+### Patch Changes
+
+- 73b7e09: feat (provider/gateway): add SSE support for video generation with heartbeat keep-alive
+
 ## 3.0.52
 
 ### Patch Changes
