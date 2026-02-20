@@ -16,6 +16,7 @@ import { LanguageModel, ToolChoice } from '../types/language-model';
 import { DownloadFunction } from '../util/download/download-function';
 import { AgentCallParameters } from './agent';
 import { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-on-finish-callback';
+import { ToolLoopAgentOnStartCallback } from './tool-loop-agent-on-start-callback';
 import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
 
 /**
@@ -88,6 +89,11 @@ export type ToolLoopAgentSettings<
    * A function that attempts to repair a tool call that failed to parse.
    */
   experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
+
+  /**
+   * Callback that is called when the agent operation begins, before any LLM calls.
+   */
+  experimental_onStart?: ToolLoopAgentOnStartCallback<NoInfer<TOOLS>, OUTPUT>;
 
   /**
    * Callback that is called when each step (LLM call) is finished, including intermediate steps.
