@@ -10,11 +10,13 @@ import {
   convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  parseProviderOptions,
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
 import {
   BedrockImageModelId,
+  amazonBedrockImageModelOptions,
   modelMaxImagesPerCall,
 } from './bedrock-image-settings';
 import { BedrockErrorSchema } from './bedrock-error';
@@ -64,32 +66,38 @@ export class BedrockImageModel implements ImageModelV3 {
     const warnings: Array<SharedV3Warning> = [];
     const [width, height] = size ? size.split('x').map(Number) : [];
 
+    const bedrockOptions = await parseProviderOptions({
+      provider: 'bedrock',
+      providerOptions,
+      schema: amazonBedrockImageModelOptions,
+    });
+
     const hasFiles = files != null && files.length > 0;
 
     // Build image generation config (common to most modes)
-    const imageGenerationConfig = {
+    const imageGenerationConfig: Record<string, unknown> = {
       ...(width ? { width } : {}),
       ...(height ? { height } : {}),
       ...(seed ? { seed } : {}),
       ...(n ? { numberOfImages: n } : {}),
-      ...(providerOptions?.bedrock?.quality
-        ? { quality: providerOptions.bedrock.quality }
-        : {}),
-      ...(providerOptions?.bedrock?.cfgScale
-        ? { cfgScale: providerOptions.bedrock.cfgScale }
-        : {}),
     };
+    if (bedrockOptions?.quality != null) {
+      imageGenerationConfig.quality = bedrockOptions.quality;
+    }
+    if (bedrockOptions?.cfgScale != null) {
+      imageGenerationConfig.cfgScale = bedrockOptions.cfgScale;
+    }
 
     let args: Record<string, unknown>;
 
     if (hasFiles) {
       // Check if mask is actually provided (has valid data, not just an empty object)
       const hasMask = mask?.type != null;
-      const hasMaskPrompt = providerOptions?.bedrock?.maskPrompt != null;
+      const hasMaskPrompt = bedrockOptions?.maskPrompt != null;
 
       // Determine task type from provider options, or infer from mask presence
       const taskType =
-        providerOptions?.bedrock?.taskType ??
+        bedrockOptions?.taskType ??
         (hasMask || hasMaskPrompt ? 'INPAINTING' : 'IMAGE_VARIATION');
 
       const sourceImageBase64 = getBase64Data(files[0]);
@@ -99,16 +107,16 @@ export class BedrockImageModel implements ImageModelV3 {
           const inPaintingParams: Record<string, unknown> = {
             image: sourceImageBase64,
             ...(prompt ? { text: prompt } : {}),
-            ...(providerOptions?.bedrock?.negativeText
-              ? { negativeText: providerOptions.bedrock.negativeText }
-              : {}),
           };
+          if (bedrockOptions?.negativeText != null) {
+            inPaintingParams.negativeText = bedrockOptions.negativeText;
+          }
 
           // Handle mask - can be either a maskImage or maskPrompt
           if (hasMask) {
             inPaintingParams.maskImage = getBase64Data(mask);
           } else if (hasMaskPrompt) {
-            inPaintingParams.maskPrompt = providerOptions.bedrock.maskPrompt;
+            inPaintingParams.maskPrompt = bedrockOptions.maskPrompt;
           }
 
           args = {
@@ -123,19 +131,19 @@ export class BedrockImageModel implements ImageModelV3 {
           const outPaintingParams: Record<string, unknown> = {
             image: sourceImageBase64,
             ...(prompt ? { text: prompt } : {}),
-            ...(providerOptions?.bedrock?.negativeText
-              ? { negativeText: providerOptions.bedrock.negativeText }
-              : {}),
-            ...(providerOptions?.bedrock?.outPaintingMode
-              ? { outPaintingMode: providerOptions.bedrock.outPaintingMode }
-              : {}),
           };
+          if (bedrockOptions?.negativeText != null) {
+            outPaintingParams.negativeText = bedrockOptions.negativeText;
+          }
+          if (bedrockOptions?.outPaintingMode != null) {
+            outPaintingParams.outPaintingMode = bedrockOptions.outPaintingMode;
+          }
 
           // Outpainting requires a maskImage (white pixels = area to change)
           if (hasMask) {
             outPaintingParams.maskImage = getBase64Data(mask);
           } else if (hasMaskPrompt) {
-            outPaintingParams.maskPrompt = providerOptions.bedrock.maskPrompt;
+            outPaintingParams.maskPrompt = bedrockOptions.maskPrompt;
           }
 
           args = {
@@ -164,16 +172,14 @@ export class BedrockImageModel implements ImageModelV3 {
           const imageVariationParams: Record<string, unknown> = {
             images,
             ...(prompt ? { text: prompt } : {}),
-            ...(providerOptions?.bedrock?.negativeText
-              ? { negativeText: providerOptions.bedrock.negativeText }
-              : {}),
-            ...(providerOptions?.bedrock?.similarityStrength != null
-              ? {
-                  similarityStrength:
-                    providerOptions.bedrock.similarityStrength,
-                }
-              : {}),
           };
+          if (bedrockOptions?.negativeText != null) {
+            imageVariationParams.negativeText = bedrockOptions.negativeText;
+          }
+          if (bedrockOptions?.similarityStrength != null) {
+            imageVariationParams.similarityStrength =
+              bedrockOptions.similarityStrength;
+          }
 
           args = {
             taskType: 'IMAGE_VARIATION',
@@ -188,21 +194,19 @@ export class BedrockImageModel implements ImageModelV3 {
       }
     } else {
       // Standard image generation mode
+      const textToImageParams: Record<string, unknown> = {
+        text: prompt,
+      };
+      if (bedrockOptions?.negativeText != null) {
+        textToImageParams.negativeText = bedrockOptions.negativeText;
+      }
+      if (bedrockOptions?.style != null) {
+        textToImageParams.style = bedrockOptions.style;
+      }
+
       args = {
         taskType: 'TEXT_IMAGE',
-        textToImageParams: {
-          text: prompt,
-          ...(providerOptions?.bedrock?.negativeText
-            ? {
-                negativeText: providerOptions.bedrock.negativeText,
-              }
-            : {}),
-          ...(providerOptions?.bedrock?.style
-            ? {
-                style: providerOptions.bedrock.style,
-              }
-            : {}),
-        },
+        textToImageParams,
         imageGenerationConfig,
       };
     }
