@@ -1,0 +1,175 @@
+---
+title: Spanora
+description: Measure, trace, and debug your AI SDK application with Spanora
+---
+
+# Spanora Observability
+
+**Spanora** is an OpenTelemetry-native observability platform for AI systems.
+With AI SDK telemetry, you can capture model calls, token usage, latency, tool executions, and cost signals in one place.
+
+Spanora supports two integration styles with the AI SDK:
+
+- **Automatic setup (recommended):** use the Spanora setup skill to integrate your project automatically.
+- **Manual setup:** install and configure the SDK directly in your code.
+
+## Automatic Setup (Recommended)
+
+The fastest path is Spanora's setup skill.
+
+### 1. Create a Spanora API Key
+
+First, sign in to Spanora and create an API key:
+
+- [Create a Spanora account](https://spanora.ai)
+- [Create an API key](https://spanora.ai/api-keys)
+
+### 2. Install the Spanora Skill
+
+```bash
+npx skills add spanora/skills
+```
+
+### 3. Ask Your AI Coding Agent to Integrate Spanora
+
+```text
+Integrate Spanora into this project
+```
+
+The skill detects your package manager and AI SDK usage, installs needed dependencies, and applies the best instrumentation pattern automatically.
+
+### 4. Add Your API Key
+
+```bash filename=".env"
+SPANORA_API_KEY="your-spanora-api-key"
+```
+
+## Manual Setup
+
+Use this path if you prefer direct setup in code.
+
+### 1. Install Dependencies
+
+Install the base packages:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @spanora-ai/sdk ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @spanora-ai/sdk ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @spanora-ai/sdk ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @spanora-ai/sdk ai" dark />
+  </Tab>
+</Tabs>
+
+Keep using your existing AI SDK provider package.
+
+### 2. Add Environment Variable
+
+```bash filename=".env"
+SPANORA_API_KEY="your-spanora-api-key"
+```
+
+### 3. Initialize Spanora Once at Startup
+
+```typescript
+import { init } from '@spanora-ai/sdk';
+
+init({
+  apiKey: process.env.SPANORA_API_KEY,
+});
+```
+
+For short-lived scripts or CLIs, import `shutdown` from `@spanora-ai/sdk` and call `await shutdown()` before exit to flush traces.
+
+### 4. Enable AI SDK Telemetry on Calls
+
+The example below assumes `model` is your existing AI SDK model instance from any provider.
+
+```typescript
+import { init, track, trackToolHandler } from '@spanora-ai/sdk';
+import { generateText, stepCountIs, tool } from 'ai';
+import { z } from 'zod';
+
+init({ apiKey: process.env.SPANORA_API_KEY });
+
+const model = yourModel;
+
+const result = await track(
+  {
+    agent: 'support-agent',
+    userId: 'user-123',
+    orgId: 'org-456',
+  },
+  () =>
+    generateText({
+      model,
+      prompt: 'What is the weather in Paris?',
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'support-reply',
+        metadata: { environment: 'production' },
+      },
+      tools: {
+        getWeather: tool({
+          description: 'Get weather by city',
+          inputSchema: z.object({ city: z.string() }),
+          execute: trackToolHandler('getWeather', async ({ city }) => ({
+            city,
+            condition: 'sunny',
+            temperature: 22,
+          })),
+        }),
+      },
+      stopWhen: stepCountIs(3),
+    }),
+);
+
+console.log(result.text);
+```
+
+### 5. Manual Wrapper Fallback (When `experimental_telemetry` Is Not Available)
+
+If a flow cannot use `experimental_telemetry` (for example custom agent wrappers), use `trackVercelAI`:
+
+```typescript
+import { init, track } from '@spanora-ai/sdk';
+import { trackVercelAI } from '@spanora-ai/sdk/vercel-ai';
+import { generateText } from 'ai';
+
+init({ apiKey: process.env.SPANORA_API_KEY });
+
+const model = yourModel;
+
+const result = await track({ agent: 'manual-agent' }, () =>
+  trackVercelAI({ prompt: 'Summarize this ticket in one sentence.' }, () =>
+    generateText({
+      model,
+      prompt: 'Summarize this ticket in one sentence.',
+    }),
+  ),
+);
+
+console.log(result.text);
+```
+
+
+## What You'll See in Spanora
+
+After setup, Spanora shows:
+
+- **Trace timelines** for full AI request flows.
+- **LLM span details** including model, prompts, outputs, token usage, and duration.
+- **Tool spans** for wrapped tool executions.
+- **Cost and reliability signals** to help optimize model and prompt choices.
+
+## Additional Resources
+
+- [Spanora Vercel AI SDK integration docs](https://spanora.ai/docs/integrations/vercel-ai)
+- [Spanora SDK reference](https://spanora.ai/docs/sdk)
+- [Spanora OTEL attributes reference](https://spanora.ai/docs/sdk/attributes)
