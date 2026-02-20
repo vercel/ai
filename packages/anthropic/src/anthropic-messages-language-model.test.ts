@@ -5679,6 +5679,40 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    it('should handle compaction_delta with null content', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_test","type":"message","role":"assistant","model":"claude-3-haiku-20240307","stop_sequence":null,"usage":{"input_tokens":100,"output_tokens":0},"content":[],"stop_reason":null}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"compaction","content":null}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"compaction_delta","content":null}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"compaction_delta","content":"Summary of conversation."}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":10}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      // No parsing errors should occur (schema must accept null content)
+      const errors = result.filter(part => part.type === 'error');
+      expect(errors).toHaveLength(0);
+
+      const compactionDeltas = result.filter(
+        part => part.type === 'text-delta' && part.id === '0',
+      );
+      // null content delta should be skipped, only the string delta comes through
+      expect(compactionDeltas).toHaveLength(1);
+      expect((compactionDeltas[0] as { delta: string }).delta).toBe(
+        'Summary of conversation.',
+      );
+    });
+
     it('should stream tool deltas', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
