@@ -127,6 +127,7 @@ pnpm tsx src/stream-text/openai.ts    # Run a specific example
 - **Type tests**: `*.test-d.ts` for type-level tests
 - **Fixtures**: Store in `__fixtures__` subfolders
 - **Snapshots**: Store in `__snapshots__` subfolders
+- **Prefer snapshots**: When writing unit tests, prefer inline snapshots or real snapshots over manual assertions for complex data structures
 
 ### Zod Usage
 
@@ -244,7 +245,7 @@ These guidelines outline typical artifacts for different task types. Use judgmen
 A complete bug fix typically includes:
 
 1. **Reproduction example**: Create/update an example in `examples/` that demonstrates the bug before fixing
-2. **Unit tests**: Add tests that would fail without the fix (regression tests)
+2. **Unit tests**: Add tests that would fail without the fix (regression tests), using `toMatchSnapshot()` function
 3. **Implementation**: Fix the bug
 4. **Manual verification**: Run the reproduction example to confirm the fix
 5. **Changeset**: Describe what was broken and how it's fixed
@@ -255,7 +256,7 @@ A complete feature typically includes:
 
 1. **Implementation**: Build the feature
 2. **Examples**: Add usage examples in `examples/` demonstrating the feature
-3. **Unit tests**: Comprehensive test coverage for new functionality
+3. **Unit tests**: Comprehensive test coverage for new functionality, using `toMatchSnapshot()` function
 4. **Documentation**: Update relevant docs in `content/` for public APIs
 5. **Changeset**: Describe the feature for release notes
 
