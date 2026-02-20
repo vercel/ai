@@ -1453,11 +1453,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 }
 
                 case 'compaction_delta': {
-                  controller.enqueue({
-                    type: 'text-delta',
-                    id: String(value.index),
-                    delta: value.delta.content,
-                  });
+                  if (value.delta.content != null) {
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: String(value.index),
+                      delta: value.delta.content,
+                    });
+                  }
 
                   return;
                 }
