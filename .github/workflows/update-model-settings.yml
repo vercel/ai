@@ -12,10 +12,18 @@ permissions:
 
 jobs:
   update-models:
-    name: Update Gateway Model Settings
+    name: Update Gateway Model Settings (${{ matrix.target-branch }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
     if: github.repository_owner == 'vercel'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target-branch: main
+            branch-prefix: update-gateway-models
+          - target-branch: release-v5.0
+            branch-prefix: update-gateway-models-v5
 
     steps:
       - name: Create access token for GitHub App
@@ -39,7 +47,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v5
         with:
-          ref: main
+          ref: ${{ matrix.target-branch }}
           token: ${{ steps.app-token.outputs.token }}
           fetch-depth: 0
 
@@ -85,12 +93,18 @@ jobs:
           WORD3=$(tr -dc 'a-z' < /dev/urandom | head -c 5)
           CHANGESET_FILE=".changeset/${WORD1}-${WORD2}-${WORD3}.md"
 
-          cat > "$CHANGESET_FILE" << 'EOF'
+          if [ "${{ matrix.target-branch }}" == "release-v5.0" ]; then
+            CHANGESET_TITLE="Backport: chore(provider/gateway): update gateway model settings files"
+          else
+            CHANGESET_TITLE="chore(provider/gateway): update gateway model settings files"
+          fi
+
+          cat > "$CHANGESET_FILE" << EOF
           ---
           '@ai-sdk/gateway': patch
           ---
 
-          chore(provider/gateway): update gateway model settings files
+          $CHANGESET_TITLE
           EOF
 
           echo "Created changeset: $CHANGESET_FILE"
@@ -100,7 +114,7 @@ jobs:
         if: steps.check-changes.outputs.has-changes == 'true'
         id: create-branch
         run: |
-          BRANCH_NAME="update-gateway-models-$(date +%Y%m%d-%H%M)"
+          BRANCH_NAME="${{ matrix.branch-prefix }}-$(date +%Y%m%d-%H%M)"
           git checkout -b "$BRANCH_NAME"
           git add .
           git commit -m "chore(provider/gateway): update gateway model settings files"
@@ -111,14 +125,17 @@ jobs:
         if: steps.check-changes.outputs.has-changes == 'true'
         id: create-pr
         run: |
-          PR_TITLE="chore(provider/gateway): update gateway model settings files"
+          if [ "${{ matrix.target-branch }}" == "release-v5.0" ]; then
+            PR_TITLE="Backport: chore(provider/gateway): update gateway model settings files"
+          else
+            PR_TITLE="chore(provider/gateway): update gateway model settings files"
+          fi
 
           PR_URL=$(gh pr create \
             --title "$PR_TITLE" \
             --body "This is an automated update of the gateway model settings files." \
-            --base main \
+            --base ${{ matrix.target-branch }} \
             --head "${{ steps.create-branch.outputs.branch-name }}" \
-            --label backport \
             --reviewer R-Taneja \
             --reviewer sylviezhang37)
 
@@ -140,18 +157,19 @@ jobs:
         run: |
           if [ "${{ steps.generate-model-settings-script.outcome }}" != "success" ]; then
             curl "$SLACK_PULL_REQUEST_REVIEW_URL" -X POST -H "Content-Type: application/json" \
-              -d "{\"channel_id\": \"$CHANNEL_ID\", \"title\": \"Gateway model settings update failed. Please check the workflow.\", \"reviewer\": \"$REVIEWER\"}"
+              -d "{\"channel_id\": \"$CHANNEL_ID\", \"title\": \"Gateway model settings update ($TARGET_BRANCH) failed. Please check the workflow.\", \"reviewer\": \"$REVIEWER\"}"
           elif [ "$HAS_CHANGES" == "true" ]; then
             curl "$SLACK_PULL_REQUEST_REVIEW_URL" -X POST -H "Content-Type: application/json" \
               -d "{\"channel_id\": \"$CHANNEL_ID\", \"title\": \"$TITLE\", \"reviewer\": \"$REVIEWER\", \"url\": \"$URL\"}"
           else
             curl "$SLACK_PULL_REQUEST_REVIEW_URL" -X POST -H "Content-Type: application/json" \
-              -d "{\"channel_id\": \"$CHANNEL_ID\", \"title\": \"Gateway model settings update completed. No changes detected.\", \"reviewer\": \"$REVIEWER\"}"
+              -d "{\"channel_id\": \"$CHANNEL_ID\", \"title\": \"Gateway model settings update ($TARGET_BRANCH) completed. No changes detected.\", \"reviewer\": \"$REVIEWER\"}"
           fi
         env:
           SLACK_PULL_REQUEST_REVIEW_URL: ${{ secrets.SLACK_PULL_REQUEST_REVIEW_URL }}
           HAS_CHANGES: ${{ steps.check-changes.outputs.has-changes }}
           TITLE: ${{ steps.create-pr.outputs.pr-title }}
           URL: ${{ steps.create-pr.outputs.pr-url }}
+          TARGET_BRANCH: ${{ matrix.target-branch }}
           CHANNEL_ID: 'C099VQB75TP'
           REVIEWER: 'U0A54KMV02E'
