@@ -83,17 +83,15 @@ function createCitationSource(
 
   const documentInfo = citationDocuments[citation.document_index];
 
-  if (!documentInfo) {
-    return;
-  }
-
   return {
     type: 'source' as const,
     sourceType: 'document' as const,
     id: generateId(),
-    mediaType: documentInfo.mediaType,
-    title: citation.document_title ?? documentInfo.title,
-    filename: documentInfo.filename,
+    mediaType: documentInfo ? documentInfo.mediaType : 'text/plain',
+    title:
+      citation.document_title ??
+      (documentInfo ? documentInfo.title : 'Unknown document'),
+    filename: documentInfo?.filename,
     providerMetadata: {
       anthropic:
         citation.type === 'page_location'
