@@ -18,12 +18,24 @@ export type GoogleGenerativeAIContent = {
   parts: Array<GoogleGenerativeAIContentPart>;
 };
 
+export type GoogleGenerativeAIVideoMetadata = {
+  startOffset?: string;
+  endOffset?: string;
+  fps?: number;
+};
+
 export type GoogleGenerativeAIContentPart =
   | { text: string; thought?: boolean; thoughtSignature?: string }
-  | { inlineData: { mimeType: string; data: string } }
+  | {
+      inlineData: { mimeType: string; data: string };
+      videoMetadata?: GoogleGenerativeAIVideoMetadata;
+    }
   | { functionCall: { name: string; args: unknown }; thoughtSignature?: string }
   | { functionResponse: { name: string; response: unknown } }
-  | { fileData: { mimeType: string; fileUri: string } };
+  | {
+      fileData: { mimeType: string; fileUri: string };
+      videoMetadata?: GoogleGenerativeAIVideoMetadata;
+    };
 
 export type GoogleGenerativeAIGroundingMetadata = GroundingMetadataSchema;
 

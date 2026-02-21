@@ -617,3 +617,134 @@ describe('tool results with thought signatures', () => {
     expect(result.contents[1].parts[0]).not.toHaveProperty('thoughtSignature');
   });
 });
+
+describe('videoMetadata on file parts', () => {
+  it('should include videoMetadata alongside fileData for URL file parts', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: new URL('https://www.youtube.com/watch?v=example'),
+            mediaType: 'video/mp4',
+            providerOptions: {
+              google: {
+                videoMetadata: {
+                  startOffset: '60s',
+                  endOffset: '600s',
+                  fps: 1,
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      fileData: {
+        mimeType: 'video/mp4',
+        fileUri: 'https://www.youtube.com/watch?v=example',
+      },
+      videoMetadata: {
+        startOffset: '60s',
+        endOffset: '600s',
+        fps: 1,
+      },
+    });
+  });
+
+  it('should include videoMetadata alongside inlineData for base64 file parts', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: 'AAECAw==',
+            mediaType: 'video/mp4',
+            providerOptions: {
+              google: {
+                videoMetadata: {
+                  startOffset: '10s',
+                  endOffset: '20s',
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      inlineData: {
+        mimeType: 'video/mp4',
+        data: 'AAECAw==',
+      },
+      videoMetadata: {
+        startOffset: '10s',
+        endOffset: '20s',
+      },
+    });
+  });
+
+  it('should not include videoMetadata when providerOptions are absent', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: new URL('https://storage.googleapis.com/bucket/video.mp4'),
+            mediaType: 'video/mp4',
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      fileData: {
+        mimeType: 'video/mp4',
+        fileUri: 'https://storage.googleapis.com/bucket/video.mp4',
+      },
+    });
+  });
+
+  it('should resolve videoMetadata from google namespace when using vertex providerOptionsName', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: new URL('https://storage.googleapis.com/bucket/video.mp4'),
+              mediaType: 'video/mp4',
+              providerOptions: {
+                google: {
+                  videoMetadata: {
+                    startOffset: '30s',
+                    endOffset: '90s',
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsName: 'vertex' },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      fileData: {
+        mimeType: 'video/mp4',
+        fileUri: 'https://storage.googleapis.com/bucket/video.mp4',
+      },
+      videoMetadata: {
+        startOffset: '30s',
+        endOffset: '90s',
+      },
+    });
+  });
+});
