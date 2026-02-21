@@ -97,7 +97,14 @@ const generateRunId = (): string => {
  * });
  * ```
  */
-export const devToolsMiddleware = (): LanguageModelV3Middleware => {
+export interface DevToolsMiddlewareOptions {
+  /** Optional run ID to group related steps. Auto-generated if not provided. */
+  runId?: string;
+}
+
+export const devToolsMiddleware = (
+  options?: DevToolsMiddlewareOptions,
+): LanguageModelV3Middleware => {
   if (process.env.NODE_ENV === 'production') {
     throw new Error(
       '@ai-sdk/devtools should not be used in production. ' +
@@ -108,7 +115,7 @@ export const devToolsMiddleware = (): LanguageModelV3Middleware => {
   // Register signal handlers once for cleanup on process exit
   registerSignalHandlers();
 
-  const runId = generateRunId();
+  const runId = options?.runId ?? generateRunId();
   let runCreated = false;
   let stepCounter = 0;
 

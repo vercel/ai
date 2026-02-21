@@ -1,1 +1,4 @@
-export { devToolsMiddleware } from './middleware.js';
+export {
+  devToolsMiddleware,
+  type DevToolsMiddlewareOptions,
+} from './middleware.js';
