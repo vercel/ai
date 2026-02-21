@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: google('gemini-1.5-flash'),
+    model: google('gemini-2.5-flash'),
     messages: [
       {
         role: 'user',

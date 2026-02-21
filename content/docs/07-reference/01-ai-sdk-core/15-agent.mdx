@@ -66,9 +66,29 @@ export type AgentCallParameters<CALL_OPTIONS, TOOLS extends ToolSet = {}> = ([
      */
     timeout?: number | { totalMs?: number };
     /**
+     * Callback that is called when the agent operation begins, before any LLM calls.
+     */
+    experimental_onStart?: ToolLoopAgentOnStartCallback<TOOLS>;
+    /**
+     * Callback that is called when a step (LLM call) begins, before the provider is called.
+     */
+    experimental_onStepStart?: ToolLoopAgentOnStepStartCallback<TOOLS>;
+    /**
+     * Callback that is called before each tool execution begins.
+     */
+    experimental_onToolCallStart?: ToolLoopAgentOnToolCallStartCallback<TOOLS>;
+    /**
+     * Callback that is called after each tool execution completes.
+     */
+    experimental_onToolCallFinish?: ToolLoopAgentOnToolCallFinishCallback<TOOLS>;
+    /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
      */
     onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
+    /**
+     * Callback that is called when all steps are finished and the response is complete.
+     */
+    onFinish?: ToolLoopAgentOnFinishCallback<TOOLS>;
   };
 
 /**
@@ -142,7 +162,12 @@ Both `generate()` and `stream()` accept an `AgentCallParameters<CALL_OPTIONS, TO
 - `options` (optional): Additional call options when `CALL_OPTIONS` is not `never`
 - `abortSignal` (optional): An `AbortSignal` to cancel the operation
 - `timeout` (optional): A timeout in milliseconds. Can be specified as a number or as an object with a `totalMs` property. The call will be aborted if it takes longer than the specified timeout. Can be used alongside `abortSignal`.
+- `experimental_onStart` (optional): Callback invoked when the agent operation begins, before any LLM calls. Experimental.
+- `experimental_onStepStart` (optional): Callback invoked when a step (LLM call) begins, before the provider is called. Experimental.
+- `experimental_onToolCallStart` (optional): Callback invoked right before a tool's execute function runs. Experimental.
+- `experimental_onToolCallFinish` (optional): Callback invoked right after a tool's execute function completes or errors. Experimental.
 - `onStepFinish` (optional): A callback invoked after each agent step (LLM/tool call) completes. Useful for tracking token usage or logging.
+- `onFinish` (optional): A callback invoked when all steps are finished and the response is complete.
 
 ## Example: Custom Agent Implementation
 

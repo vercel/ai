@@ -12,7 +12,7 @@ The provider implements `LanguageModelV2` by forwarding requests through MCP's [
 - **Server-Side AI Integration**: Enable MCP servers to call language models directly through AI SDK's standard interface
 - **No Direct Model Management**: Forward AI requests to MCP clients, eliminating the need for multiple API keys
 - **Model Flexibility**: Let MCP clients decide which model to use based on preferences (cost, speed, intelligence)
-- **Seamless AI SDK Compatibility**: Support for `generateText`, `streamText`, `generateObject`, and experimental tool calling
+- **Seamless AI SDK Compatibility**: Support for `generateText`, `streamText`, structured output with [`Output`](/docs/reference/ai-sdk-core/output), and experimental tool calling
 - **Client Sampling Support**: Add sampling capability to any MCP client with built-in helpers
 - **Agentic Tools**: Transform simple MCP tools into intelligent agents that can reason and make decisions
 
@@ -248,7 +248,7 @@ const transport = new StdioServerTransport();
 await server.connect(transport);
 ```
 
-### `generateObject`
+### Structured Output
 
 Generate structured objects using the MCP Sampling Provider:
 
@@ -260,7 +260,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { createMCPSamplingProvider } from '@mcpc-tech/mcp-sampling-ai-provider';
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
 const server = new Server(
@@ -296,17 +296,16 @@ server.setRequestHandler(CallToolRequestSchema, async request => {
       }),
     });
 
-    const { object } = await generateObject({
-      mode: 'json',
+    const { output } = await generateText({
       model: provider.languageModel({
         modelPreferences: { hints: [{ name: 'gpt-5-mini' }] },
       }),
-      schema: recipeSchema,
+      output: Output.object({ schema: recipeSchema }),
       prompt: 'Generate a delicious lasagna recipe.',
     });
 
     return {
-      content: [{ type: 'text', text: JSON.stringify(object, null, 2) }],
+      content: [{ type: 'text', text: JSON.stringify(output, null, 2) }],
     };
   }
 });
