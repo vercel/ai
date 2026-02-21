@@ -103,6 +103,7 @@ import {
   runToolsTransformation,
   SingleRequestTextStreamPart,
 } from './run-tools-transformation';
+import { serializeFilePartsForTelemetry } from './serialize-file-parts-for-telemetry';
 import { DefaultStepResult, StepResult } from './step-result';
 import {
   isStopConditionMet,
@@ -970,7 +971,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         }
 
         if (part.type === 'file') {
-          recordedContent.push({ type: 'file', file: part.file });
+          recordedContent.push({
+            type: 'file',
+            file: part.file,
+          });
         }
 
         if (part.type === 'source') {
@@ -1921,6 +1925,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                             },
                             'ai.response.toolCalls': {
                               output: () => stepToolCallsJson,
+                            },
+                            'ai.response.files': {
+                              output: () =>
+                                serializeFilePartsForTelemetry(recordedContent),
                             },
                             'ai.response.id': stepResponse.id,
                             'ai.response.model': stepResponse.modelId,
