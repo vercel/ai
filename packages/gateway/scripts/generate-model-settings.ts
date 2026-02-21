@@ -100,10 +100,9 @@ async function main() {
     const outputPath = path.join(OUTPUT_DIR, config.outputFile);
 
     if (!fs.existsSync(outputPath)) {
-      console.error(
-        `Skipping unknown type '${type}' — no existing file at ${config.outputFile}`,
+      throw new Error(
+        `Output file does not exist for type '${type}': ${config.outputFile}`,
       );
-      continue;
     }
 
     const content = generateTypeFile(modelIds, config.typeName);
