@@ -70,7 +70,7 @@ export const anthropicLanguageModelOptions = z.object({
   /**
    * Determines how structured outputs are generated.
    *
-   * - `outputFormat`: Use the `output_format` parameter to specify the structured output format.
+   * - `outputFormat`: Use the `output_config.format` parameter to specify the structured output format.
    * - `jsonTool`: Use a special 'json' tool to specify the structured output format.
    * - `auto`: Use 'outputFormat' when supported, otherwise use 'jsonTool' (default).
    */
