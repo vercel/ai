@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.97
+
+### Patch Changes
+
+- ebfdad1: feat(ai): experimental callbacks in ToolLoopAgent
+
 ## 6.0.96
 
 ### Patch Changes
