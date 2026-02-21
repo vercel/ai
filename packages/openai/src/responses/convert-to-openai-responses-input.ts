@@ -406,7 +406,8 @@ export async function convertToOpenAIResponsesInput({
                   if (reasoningMessage === undefined) {
                     reasoningMessages[reasoningId] = {
                       type: 'reasoning',
-                      id: reasoningId,
+                      // Omit id when store: false (Azure requires this)
+                      ...(store ? { id: reasoningId } : {}),
                       encrypted_content:
                         providerOptions?.reasoningEncryptedContent,
                       summary: summaryParts,
