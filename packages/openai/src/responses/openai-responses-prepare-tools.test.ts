@@ -3,6 +3,174 @@ import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 
 describe('prepareResponsesTools', () => {
+  describe('function tools strict mode', () => {
+    it('should pass through strict mode when strict is true', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "A test function",
+              "name": "testFunction",
+              "parameters": {
+                "properties": {},
+                "type": "object",
+              },
+              "strict": true,
+              "type": "function",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should pass through strict mode when strict is false', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: false,
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "A test function",
+              "name": "testFunction",
+              "parameters": {
+                "properties": {},
+                "type": "object",
+              },
+              "strict": false,
+              "type": "function",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should not include strict mode when strict is undefined', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "A test function",
+              "name": "testFunction",
+              "parameters": {
+                "properties": {},
+                "type": "object",
+              },
+              "type": "function",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should pass through strict mode for multiple tools with different strict settings', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'strictTool',
+            description: 'A strict tool',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+          {
+            type: 'function',
+            name: 'nonStrictTool',
+            description: 'A non-strict tool',
+            inputSchema: { type: 'object', properties: {} },
+            strict: false,
+          },
+          {
+            type: 'function',
+            name: 'defaultTool',
+            description: 'A tool without strict setting',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "A strict tool",
+              "name": "strictTool",
+              "parameters": {
+                "properties": {},
+                "type": "object",
+              },
+              "strict": true,
+              "type": "function",
+            },
+            {
+              "description": "A non-strict tool",
+              "name": "nonStrictTool",
+              "parameters": {
+                "properties": {},
+                "type": "object",
+              },
+              "strict": false,
+              "type": "function",
+            },
+            {
+              "description": "A tool without strict setting",
+              "name": "defaultTool",
+              "parameters": {
+                "properties": {},
+                "type": "object",
+              },
+              "type": "function",
+            },
+          ],
+        }
+      `);
+    });
+  });
+
   describe('code interpreter', () => {
     it('should prepare code interpreter tool with no container (auto mode)', async () => {
       const result = await prepareResponsesTools({
@@ -15,7 +183,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -48,7 +215,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -80,7 +246,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -119,7 +284,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -154,7 +318,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -188,7 +351,6 @@ describe('prepareResponsesTools', () => {
           type: 'tool',
           toolName: 'code_interpreter',
         },
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -234,7 +396,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -253,7 +414,6 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
-              "strict": true,
               "type": "function",
             },
             {
@@ -285,7 +445,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -322,7 +481,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: { type: 'tool', toolName: 'image_generation' },
-        strictJsonSchema: false,
       });
 
       expect(result.tools).toMatchInlineSnapshot(`
@@ -357,7 +515,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -386,7 +543,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -419,7 +575,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -452,7 +607,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -496,7 +650,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -542,7 +695,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -582,7 +734,6 @@ describe('prepareResponsesTools', () => {
           type: 'tool',
           toolName: 'web_search',
         },
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -629,7 +780,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -648,7 +798,6 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
-              "strict": true,
               "type": "function",
             },
             {
@@ -657,6 +806,485 @@ describe('prepareResponsesTools', () => {
               "search_context_size": "medium",
               "type": "web_search",
               "user_location": undefined,
+            },
+          ],
+        }
+      `);
+    });
+  });
+
+  describe('shell', () => {
+    it('should prepare shell tool without environment args', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {},
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare shell tool with containerAuto without skills', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'containerAuto',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": undefined,
+                "skills": undefined,
+                "type": "container_auto",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare shell tool with containerAuto and skillReference skills', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'containerAuto',
+                skills: [
+                  {
+                    type: 'skillReference',
+                    skillId: 'skill_abc',
+                    version: '1.0.0',
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": undefined,
+                "skills": [
+                  {
+                    "skill_id": "skill_abc",
+                    "type": "skill_reference",
+                    "version": "1.0.0",
+                  },
+                ],
+                "type": "container_auto",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare shell tool with containerAuto and inline skill', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'containerAuto',
+                skills: [
+                  {
+                    type: 'inline',
+                    name: 'my-skill',
+                    description: 'A test skill',
+                    source: {
+                      type: 'base64',
+                      mediaType: 'application/zip',
+                      data: 'dGVzdA==',
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": undefined,
+                "skills": [
+                  {
+                    "description": "A test skill",
+                    "name": "my-skill",
+                    "source": {
+                      "data": "dGVzdA==",
+                      "media_type": "application/zip",
+                      "type": "base64",
+                    },
+                    "type": "inline",
+                  },
+                ],
+                "type": "container_auto",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare shell tool with containerAuto and networkPolicy disabled', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'containerAuto',
+                networkPolicy: { type: 'disabled' },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": {
+                  "type": "disabled",
+                },
+                "skills": undefined,
+                "type": "container_auto",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare shell tool with containerAuto and networkPolicy allowlist with domain secrets', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'containerAuto',
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com', 'api.test.org'],
+                  domainSecrets: [
+                    {
+                      domain: 'api.test.org',
+                      name: 'API_KEY',
+                      value: 'secret123',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": {
+                  "allowed_domains": [
+                    "example.com",
+                    "api.test.org",
+                  ],
+                  "domain_secrets": [
+                    {
+                      "domain": "api.test.org",
+                      "name": "API_KEY",
+                      "value": "secret123",
+                    },
+                  ],
+                  "type": "allowlist",
+                },
+                "skills": undefined,
+                "type": "container_auto",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare shell tool with containerAuto, fileIds, and memoryLimit', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'containerAuto',
+                fileIds: ['file-1', 'file-2'],
+                memoryLimit: '16g',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "file_ids": [
+                  "file-1",
+                  "file-2",
+                ],
+                "memory_limit": "16g",
+                "network_policy": undefined,
+                "skills": undefined,
+                "type": "container_auto",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare shell tool with containerReference', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'containerReference',
+                containerId: 'ctr_abc123',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "container_id": "ctr_abc123",
+                "type": "container_reference",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+    it('should prepare shell tool with local environment and skills', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'local',
+                skills: [
+                  {
+                    name: 'calculator',
+                    description: 'Perform math calculations',
+                    path: '/path/to/calculator',
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "skills": [
+                  {
+                    "description": "Perform math calculations",
+                    "name": "calculator",
+                    "path": "/path/to/calculator",
+                  },
+                ],
+                "type": "local",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare shell tool with local environment without explicit type', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                skills: [
+                  {
+                    name: 'calculator',
+                    description: 'Perform math calculations',
+                    path: '/path/to/calculator',
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "skills": [
+                  {
+                    "description": "Perform math calculations",
+                    "name": "calculator",
+                    "path": "/path/to/calculator",
+                  },
+                ],
+                "type": "local",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare shell tool with local environment without skills', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'local',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "skills": undefined,
+                "type": "local",
+              },
+              "type": "shell",
             },
           ],
         }
@@ -676,7 +1304,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -706,7 +1333,6 @@ describe('prepareResponsesTools', () => {
           type: 'tool',
           toolName: 'apply_patch',
         },
-        strictJsonSchema: false,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -746,7 +1372,6 @@ describe('prepareResponsesTools', () => {
           },
         ],
         toolChoice: undefined,
-        strictJsonSchema: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -765,7 +1390,6 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
-              "strict": true,
               "type": "function",
             },
             {

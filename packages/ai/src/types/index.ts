@@ -2,6 +2,7 @@ export type { JSONSchema7 } from '@ai-sdk/provider';
 export type { Embedding, EmbeddingModel } from './embedding-model';
 export type { EmbeddingModelMiddleware } from './embedding-model-middleware';
 export type { ImageModel, ImageModelProviderMetadata } from './image-model';
+export type { ImageModelMiddleware } from './image-model-middleware';
 export type { ImageModelResponseMetadata } from './image-model-response-metadata';
 export type { JSONValue } from './json-value';
 export type {

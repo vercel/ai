@@ -24,13 +24,15 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-2.0-flash-exp'
   | 'gemini-2.5-pro'
   | 'gemini-2.5-flash'
-  | 'gemini-2.5-flash-image-preview'
+  | 'gemini-2.5-flash-image'
   | 'gemini-2.5-flash-lite'
   | 'gemini-2.5-flash-lite-preview-09-2025'
   | 'gemini-2.5-flash-preview-04-17'
   | 'gemini-2.5-flash-preview-09-2025'
+  | 'gemini-3.1-pro-preview'
   | 'gemini-3-pro-preview'
   | 'gemini-3-pro-image-preview'
+  | 'gemini-3-flash-preview'
   // latest version
   // https://ai.google.dev/gemini-api/docs/models#latest
   | 'gemini-pro-latest'
@@ -44,7 +46,7 @@ export type GoogleGenerativeAIModelId =
   | 'gemma-3-27b-it'
   | (string & {});
 
-export const googleGenerativeAIProviderOptions = lazySchema(() =>
+export const googleLanguageModelOptions = lazySchema(() =>
   zodSchema(
     z.object({
       responseModalities: z.array(z.enum(['TEXT', 'IMAGE'])).optional(),
@@ -54,7 +56,9 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
           thinkingBudget: z.number().optional(),
           includeThoughts: z.boolean().optional(),
           // https://ai.google.dev/gemini-api/docs/gemini-3?thinking=high#thinking_level
-          thinkingLevel: z.enum(['low', 'medium', 'high']).optional(),
+          thinkingLevel: z
+            .enum(['minimal', 'low', 'medium', 'high'])
+            .optional(),
         })
         .optional(),
 
@@ -164,10 +168,27 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
           imageSize: z.enum(['1K', '2K', '4K']).optional(),
         })
         .optional(),
+
+      /**
+       * Optional. Configuration for grounding retrieval.
+       * Used to provide location context for Google Maps and Google Search grounding.
+       *
+       * https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/grounding-with-google-maps
+       */
+      retrievalConfig: z
+        .object({
+          latLng: z
+            .object({
+              latitude: z.number(),
+              longitude: z.number(),
+            })
+            .optional(),
+        })
+        .optional(),
     }),
   ),
 );
 
-export type GoogleGenerativeAIProviderOptions = InferSchema<
-  typeof googleGenerativeAIProviderOptions
+export type GoogleLanguageModelOptions = InferSchema<
+  typeof googleLanguageModelOptions
 >;

@@ -1,11 +1,13 @@
 import {
   APICallError,
   LanguageModelV3,
-  SharedV3Warning,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
+  LanguageModelV3StreamResult,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -19,10 +21,14 @@ import {
 import { z } from 'zod/v4';
 import { HuggingFaceConfig } from '../huggingface-config';
 import { huggingfaceFailedResponseHandler } from '../huggingface-error';
+import {
+  convertHuggingFaceResponsesUsage,
+  HuggingFaceResponsesUsage,
+} from './convert-huggingface-responses-usage';
 import { convertToHuggingFaceResponsesMessages } from './convert-to-huggingface-responses-messages';
-import { mapHuggingFaceResponsesFinishReason } from './map-huggingface-responses-finish-reason';
-import { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
 import { prepareResponsesTools } from './huggingface-responses-prepare-tools';
+import { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
+import { mapHuggingFaceResponsesFinishReason } from './map-huggingface-responses-finish-reason';
 
 export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -58,7 +64,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     responseFormat,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+  }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
 
     if (topK != null) {
@@ -144,8 +150,8 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -300,17 +306,13 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapHuggingFaceResponsesFinishReason(
-        response.incomplete_details?.reason ?? 'stop',
-      ),
-      usage: {
-        inputTokens: response.usage?.input_tokens ?? 0,
-        outputTokens: response.usage?.output_tokens ?? 0,
-        totalTokens:
-          response.usage?.total_tokens ??
-          (response.usage?.input_tokens ?? 0) +
-            (response.usage?.output_tokens ?? 0),
+      finishReason: {
+        unified: mapHuggingFaceResponsesFinishReason(
+          response.incomplete_details?.reason ?? 'stop',
+        ),
+        raw: response.incomplete_details?.reason ?? undefined,
       },
+      usage: convertHuggingFaceResponsesUsage(response.usage),
       request: { body },
       response: {
         id: response.id,
@@ -329,8 +331,8 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -353,13 +355,12 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
-    let responseId: string | null = null;
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
     };
+    let responseId: string | null = null;
+    let usage: HuggingFaceResponsesUsage | undefined = undefined;
 
     return {
       stream: response.pipeThrough(
@@ -373,7 +374,10 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
 
           transform(chunk, controller) {
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = {
+                unified: 'error',
+                raw: undefined,
+              };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -461,16 +465,14 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
 
             if (isResponseCompletedChunk(value)) {
               responseId = value.response.id;
-              finishReason = mapHuggingFaceResponsesFinishReason(
-                value.response.incomplete_details?.reason ?? 'stop',
-              );
+              finishReason = {
+                unified: mapHuggingFaceResponsesFinishReason(
+                  value.response.incomplete_details?.reason ?? 'stop',
+                ),
+                raw: value.response.incomplete_details?.reason ?? undefined,
+              };
               if (value.response.usage) {
-                usage.inputTokens = value.response.usage.input_tokens;
-                usage.outputTokens = value.response.usage.output_tokens;
-                usage.totalTokens =
-                  value.response.usage.total_tokens ??
-                  value.response.usage.input_tokens +
-                    value.response.usage.output_tokens;
+                usage = value.response.usage;
               }
               return;
             }
@@ -506,7 +508,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              usage: convertHuggingFaceResponsesUsage(usage),
               providerMetadata: {
                 huggingface: {
                   responseId,

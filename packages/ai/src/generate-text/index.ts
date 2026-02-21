@@ -1,12 +1,18 @@
 export {
   generateText,
   type GenerateTextOnFinishCallback,
+  type GenerateTextOnStartCallback,
+  type GenerateTextOnStepStartCallback,
   type GenerateTextOnStepFinishCallback,
+  type GenerateTextOnToolCallStartCallback,
+  type GenerateTextOnToolCallFinishCallback,
 } from './generate-text';
+export type { ContentPart } from './content-part';
 export type { GenerateTextResult } from './generate-text-result';
-export type {
-  GeneratedFile as Experimental_GeneratedImage, // Image for backwards compatibility, TODO remove in v5
-  GeneratedFile,
+export {
+  DefaultGeneratedFile,
+  type GeneratedFile as Experimental_GeneratedImage, // Image for backwards compatibility, TODO remove in v7
+  type GeneratedFile,
 } from './generated-file';
 export * as Output from './output';
 export type {
@@ -24,7 +30,11 @@ export {
   type StreamTextOnChunkCallback,
   type StreamTextOnErrorCallback,
   type StreamTextOnFinishCallback,
+  type StreamTextOnStartCallback,
   type StreamTextOnStepFinishCallback,
+  type StreamTextOnStepStartCallback,
+  type StreamTextOnToolCallFinishCallback,
+  type StreamTextOnToolCallStartCallback,
   type StreamTextTransform,
 } from './stream-text';
 export type {

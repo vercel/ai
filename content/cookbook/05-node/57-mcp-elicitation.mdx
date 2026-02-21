@@ -13,10 +13,7 @@ Elicitation is a mechanism where MCP servers can request additional information 
 This example shows how to set up an MCP client to handle elicitation requests from a server that needs to collect user input.
 
 ```ts
-import {
-  experimental_createMCPClient as createMCPClient,
-  ElicitationRequestSchema,
-} from '@ai-sdk/mcp';
+import { createMCPClient, ElicitationRequestSchema } from '@ai-sdk/mcp';
 import { generateText } from 'ai';
 
 // Create the MCP client with elicitation capability enabled

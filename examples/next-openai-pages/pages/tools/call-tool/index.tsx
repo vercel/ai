@@ -1,5 +1,5 @@
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, isToolUIPart } from 'ai';
+import { DefaultChatTransport, isStaticToolUIPart } from 'ai';
 import { useState } from 'react';
 
 export default function Page() {
@@ -18,7 +18,7 @@ export default function Page() {
             {message.parts.map((part, index) => {
               if (part.type === 'text') {
                 return <div key={index}>{part.text}</div>;
-              } else if (isToolUIPart(part)) {
+              } else if (isStaticToolUIPart(part)) {
                 return <div key={index}>{JSON.stringify(part.input)}</div>;
               }
             })}

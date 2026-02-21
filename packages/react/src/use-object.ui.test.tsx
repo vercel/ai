@@ -273,6 +273,86 @@ describe('text stream', () => {
     });
   });
 
+  it('should send headers from async function', async () => {
+    server.urls['/api/use-object'].response = {
+      type: 'stream-chunks',
+      chunks: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
+    };
+
+    const TestComponentWithAsyncHeaders = () => {
+      const { submit } = experimental_useObject({
+        api: '/api/use-object',
+        schema: z.object({ content: z.string() }),
+        headers: async () => {
+          // Simulate async token fetch
+          await new Promise(resolve => setTimeout(resolve, 10));
+          return {
+            Authorization: 'Bearer ASYNC_TOKEN',
+            'X-Request-ID': 'async-123',
+          };
+        },
+      });
+
+      return (
+        <button
+          data-testid="submit-async-headers"
+          onClick={() => submit('test-input')}
+        >
+          Submit
+        </button>
+      );
+    };
+
+    render(<TestComponentWithAsyncHeaders />);
+    await userEvent.click(screen.getByTestId('submit-async-headers'));
+
+    await waitFor(() => {
+      expect(server.calls[0].requestHeaders).toStrictEqual({
+        'content-type': 'application/json',
+        authorization: 'Bearer ASYNC_TOKEN',
+        'x-request-id': 'async-123',
+      });
+    });
+  });
+
+  it('should send headers from sync function', async () => {
+    server.urls['/api/use-object'].response = {
+      type: 'stream-chunks',
+      chunks: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
+    };
+
+    const TestComponentWithSyncFunctionHeaders = () => {
+      const { submit } = experimental_useObject({
+        api: '/api/use-object',
+        schema: z.object({ content: z.string() }),
+        headers: () => ({
+          Authorization: 'Bearer SYNC_TOKEN',
+          'X-Request-ID': 'sync-456',
+        }),
+      });
+
+      return (
+        <button
+          data-testid="submit-sync-headers"
+          onClick={() => submit('test-input')}
+        >
+          Submit
+        </button>
+      );
+    };
+
+    render(<TestComponentWithSyncFunctionHeaders />);
+    await userEvent.click(screen.getByTestId('submit-sync-headers'));
+
+    await waitFor(() => {
+      expect(server.calls[0].requestHeaders).toStrictEqual({
+        'content-type': 'application/json',
+        authorization: 'Bearer SYNC_TOKEN',
+        'x-request-id': 'sync-456',
+      });
+    });
+  });
+
   it('should send custom credentials', async () => {
     server.urls['/api/use-object'].response = {
       type: 'stream-chunks',

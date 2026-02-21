@@ -3,6 +3,7 @@ import { codeInterpreter } from './tool/code-interpreter';
 import { fileSearch } from './tool/file-search';
 import { imageGeneration } from './tool/image-generation';
 import { localShell } from './tool/local-shell';
+import { shell } from './tool/shell';
 import { webSearch } from './tool/web-search';
 import { webSearchPreview } from './tool/web-search-preview';
 import { mcp } from './tool/mcp';
@@ -63,6 +64,19 @@ export const openaiTools = {
    * Supported models: `gpt-5-codex` and `codex-mini-latest`
    */
   localShell,
+
+  /**
+   * The shell tool allows the model to interact with your local computer through
+   * a controlled command-line interface. The model proposes shell commands; your
+   * integration executes them and returns the outputs.
+   *
+   * Available through the Responses API for use with GPT-5.1.
+   *
+   * WARNING: Running arbitrary shell commands can be dangerous. Always sandbox
+   * execution or add strict allow-/deny-lists before forwarding a command to
+   * the system shell.
+   */
+  shell,
 
   /**
    * Web search allows models to access up-to-date information from the internet

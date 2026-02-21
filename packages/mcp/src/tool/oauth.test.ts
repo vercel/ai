@@ -1144,6 +1144,7 @@ describe('refreshAuthorization', () => {
         method: 'POST',
         headers: new Headers({
           'Content-Type': 'application/x-www-form-urlencoded',
+          Accept: 'application/json',
         }),
       }),
     );

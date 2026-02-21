@@ -22,6 +22,14 @@ The Perplexity provider is available in the `@ai-sdk/perplexity` module. You can
 npm i @ai-sdk/perplexity
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 You can import the default provider instance `perplexity` from `@ai-sdk/perplexity`:

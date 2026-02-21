@@ -3,5 +3,10 @@ export type {
   DeepSeekProvider,
   DeepSeekProviderSettings,
 } from './deepseek-provider';
-export type { OpenAICompatibleErrorData as DeepSeekErrorData } from '@ai-sdk/openai-compatible';
 export { VERSION } from './version';
+export type {
+  DeepSeekLanguageModelOptions,
+  /** @deprecated Use `DeepSeekLanguageModelOptions` instead. */
+  DeepSeekLanguageModelOptions as DeepSeekChatOptions,
+} from './chat/deepseek-chat-options';
+export type { DeepSeekErrorData } from './chat/deepseek-chat-api-types';

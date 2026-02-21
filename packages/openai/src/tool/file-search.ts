@@ -11,8 +11,8 @@ import {
 
 const comparisonFilterSchema = z.object({
   key: z.string(),
-  type: z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte']),
-  value: z.union([z.string(), z.number(), z.boolean()]),
+  type: z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin']),
+  value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
 });
 
 const compoundFilterSchema: z.ZodType<any> = z.object({

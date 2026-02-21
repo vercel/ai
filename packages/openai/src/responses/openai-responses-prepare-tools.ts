@@ -8,6 +8,7 @@ import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
 import { fileSearchArgsSchema } from '../tool/file-search';
 import { imageGenerationArgsSchema } from '../tool/image-generation';
 import { mcpArgsSchema } from '../tool/mcp';
+import { shellArgsSchema } from '../tool/shell';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
 import { OpenAIResponsesTool } from './openai-responses-api';
@@ -15,11 +16,9 @@ import { OpenAIResponsesTool } from './openai-responses-api';
 export async function prepareResponsesTools({
   tools,
   toolChoice,
-  strictJsonSchema,
 }: {
   tools: LanguageModelV3CallOptions['tools'];
   toolChoice: LanguageModelV3CallOptions['toolChoice'] | undefined;
-  strictJsonSchema: boolean;
 }): Promise<{
   tools?: Array<OpenAIResponsesTool>;
   toolChoice?:
@@ -55,7 +54,7 @@ export async function prepareResponsesTools({
           name: tool.name,
           description: tool.description,
           parameters: tool.inputSchema,
-          strict: strictJsonSchema,
+          ...(tool.strict != null ? { strict: tool.strict } : {}),
         });
         break;
       case 'provider': {
@@ -84,6 +83,20 @@ export async function prepareResponsesTools({
           case 'openai.local_shell': {
             openaiTools.push({
               type: 'local_shell',
+            });
+            break;
+          }
+          case 'openai.shell': {
+            const args = await validateTypes({
+              value: tool.args,
+              schema: shellArgsSchema,
+            });
+
+            openaiTools.push({
+              type: 'shell',
+              ...(args.environment && {
+                environment: mapShellEnvironment(args.environment),
+              }),
             });
             break;
           }
@@ -171,6 +184,26 @@ export async function prepareResponsesTools({
               schema: mcpArgsSchema,
             });
 
+            const mapApprovalFilter = (filter: { toolNames?: string[] }) => ({
+              tool_names: filter.toolNames,
+            });
+
+            const requireApproval = args.requireApproval;
+            const requireApprovalParam:
+              | 'always'
+              | 'never'
+              | {
+                  never?: { tool_names?: string[] };
+                }
+              | undefined =
+              requireApproval == null
+                ? undefined
+                : typeof requireApproval === 'string'
+                  ? requireApproval
+                  : requireApproval.never != null
+                    ? { never: mapApprovalFilter(requireApproval.never) }
+                    : undefined;
+
             openaiTools.push({
               type: 'mcp',
               server_label: args.serverLabel,
@@ -185,7 +218,7 @@ export async function prepareResponsesTools({
               authorization: args.authorization,
               connector_id: args.connectorId,
               headers: args.headers,
-              require_approval: 'never',
+              require_approval: requireApprovalParam ?? 'never',
               server_description: args.serverDescription,
               server_url: args.serverUrl,
             });
@@ -237,4 +270,109 @@ export async function prepareResponsesTools({
       });
     }
   }
+}
+
+function mapShellEnvironment(environment: {
+  type?: string;
+  [key: string]: unknown;
+}): NonNullable<
+  Extract<OpenAIResponsesTool, { type: 'shell' }>['environment']
+> {
+  if (environment.type === 'containerReference') {
+    const env = environment as {
+      type: 'containerReference';
+      containerId: string;
+    };
+    return {
+      type: 'container_reference',
+      container_id: env.containerId,
+    };
+  }
+
+  if (environment.type === 'containerAuto') {
+    const env = environment as {
+      type: 'containerAuto';
+      fileIds?: string[];
+      memoryLimit?: '1g' | '4g' | '16g' | '64g';
+      networkPolicy?: {
+        type: string;
+        allowedDomains?: string[];
+        domainSecrets?: Array<{
+          domain: string;
+          name: string;
+          value: string;
+        }>;
+      };
+      skills?: Array<{
+        type: string;
+        skillId?: string;
+        version?: string;
+        name?: string;
+        description?: string;
+        source?: { type: string; mediaType: string; data: string };
+      }>;
+    };
+
+    return {
+      type: 'container_auto',
+      file_ids: env.fileIds,
+      memory_limit: env.memoryLimit,
+      network_policy:
+        env.networkPolicy == null
+          ? undefined
+          : env.networkPolicy.type === 'disabled'
+            ? { type: 'disabled' as const }
+            : {
+                type: 'allowlist' as const,
+                allowed_domains: env.networkPolicy.allowedDomains!,
+                domain_secrets: env.networkPolicy.domainSecrets,
+              },
+      skills: mapShellSkills(env.skills),
+    };
+  }
+
+  const env = environment as {
+    type?: 'local';
+    skills?: Array<{
+      name: string;
+      description: string;
+      path: string;
+    }>;
+  };
+  return {
+    type: 'local',
+    skills: env.skills,
+  };
+}
+
+function mapShellSkills(
+  skills:
+    | Array<{
+        type: string;
+        skillId?: string;
+        version?: string;
+        name?: string;
+        description?: string;
+        source?: { type: string; mediaType: string; data: string };
+      }>
+    | undefined,
+) {
+  return skills?.map(skill =>
+    skill.type === 'skillReference'
+      ? {
+          type: 'skill_reference' as const,
+          skill_id: skill.skillId!,
+          version: skill.version,
+        }
+      : {
+          type: 'inline' as const,
+          name: skill.name!,
+          description: skill.description!,
+          source: {
+            type: 'base64' as const,
+            media_type: skill.source!.mediaType as 'application/zip',
+            data: skill.source!.data,
+          },
+        },
+  );
 }

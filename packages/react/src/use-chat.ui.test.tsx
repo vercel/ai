@@ -6,12 +6,12 @@ import {
 } from '@ai-sdk/test-server/with-vitest';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import '@testing-library/jest-dom/vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   DefaultChatTransport,
   FinishReason,
-  isToolUIPart,
+  isStaticToolUIPart,
   TextStreamChatTransport,
   UIMessage,
   UIMessageChunk,
@@ -756,7 +756,7 @@ describe('onToolCall', () => {
       <div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
-            {m.parts.filter(isToolUIPart).map((toolPart, toolIdx) => (
+            {m.parts.filter(isStaticToolUIPart).map((toolPart, toolIdx) => (
               <div key={toolIdx} data-testid={`tool-${toolIdx}`}>
                 {JSON.stringify(toolPart)}
               </div>
@@ -822,6 +822,57 @@ describe('onToolCall', () => {
       });
     });
   });
+
+  it('should call the latest onToolCall after prop change (no stale closure)', async () => {
+    const onToolCallA = vi.fn(async () => {});
+    const onToolCallB = vi.fn(async () => {});
+
+    const Test = () => {
+      const [useB, setUseB] = React.useState(false);
+      const { sendMessage } = useChat({
+        onToolCall: useB ? onToolCallB : onToolCallA,
+      });
+
+      return (
+        <div>
+          <button data-testid="toggle" onClick={() => setUseB(true)} />
+          <button
+            data-testid="do-send"
+            onClick={() => {
+              sendMessage({
+                parts: [{ text: 'hi', type: 'text' }],
+              });
+            }}
+          />
+        </div>
+      );
+    };
+
+    render(<Test />);
+
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatChunk({
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          input: { testArg: 'test-value' },
+        }),
+      ],
+    };
+
+    await userEvent.click(screen.getByTestId('toggle'));
+    const sendButtons = screen.getAllByTestId('do-send');
+    await userEvent.click(sendButtons[sendButtons.length - 1]);
+
+    await vi.waitUntil(() => onToolCallB.mock.calls.length > 0, {
+      timeout: 2000,
+    });
+
+    expect(onToolCallA).toHaveBeenCalledTimes(0);
+    expect(onToolCallB).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('tool invocations', () => {
@@ -834,7 +885,7 @@ describe('tool invocations', () => {
       <div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
-            {m.parts.filter(isToolUIPart).map((toolPart, toolIdx) => {
+            {m.parts.filter(isStaticToolUIPart).map((toolPart, toolIdx) => {
               return (
                 <div key={toolIdx}>
                   <div data-testid={`tool-invocation-${toolIdx}`}>
@@ -1976,6 +2027,137 @@ describe('resume ongoing stream and return assistant message', () => {
   });
 });
 
+describe('resume with no active stream should not flash submitted status', () => {
+  setupTestComponent(
+    () => {
+      const { messages, status } = useChat({
+        id: '123',
+        messages: [
+          {
+            id: 'msg_123',
+            role: 'user',
+            parts: [{ type: 'text', text: 'hi' }],
+          },
+        ],
+        generateId: mockId(),
+        resume: true,
+      });
+
+      const statusHistoryRef = useRef<string[]>([]);
+      if (statusHistoryRef.current.at(-1) !== status) {
+        statusHistoryRef.current.push(status);
+      }
+
+      return (
+        <div>
+          {messages.map((m, idx) => (
+            <div data-testid={`message-${idx}`} key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
+            </div>
+          ))}
+
+          <div data-testid="status">{status}</div>
+          <div data-testid="status-history">
+            {statusHistoryRef.current.join(',')}
+          </div>
+        </div>
+      );
+    },
+    {
+      init: TestComponent => {
+        server.urls['/api/chat/123/stream'].response = {
+          type: 'empty',
+          status: 204,
+        };
+
+        return <TestComponent />;
+      },
+    },
+  );
+
+  it('should not transition to submitted when no active stream exists', async () => {
+    await waitFor(() => {
+      expect(server.calls.length).toBe(1);
+    });
+
+    expect(screen.getByTestId('status')).toHaveTextContent('ready');
+    expect(screen.getByTestId('status-history')).not.toHaveTextContent(
+      'submitted',
+    );
+  });
+});
+
+describe('resume with server error should set error status without flashing submitted', () => {
+  const onErrorCalls: Error[] = [];
+
+  setupTestComponent(
+    () => {
+      const { status, error } = useChat({
+        id: '123',
+        messages: [
+          {
+            id: 'msg_123',
+            role: 'user',
+            parts: [{ type: 'text', text: 'hi' }],
+          },
+        ],
+        generateId: mockId(),
+        resume: true,
+        onError(err) {
+          onErrorCalls.push(err);
+        },
+      });
+
+      const statusHistoryRef = useRef<string[]>([]);
+      if (statusHistoryRef.current.at(-1) !== status) {
+        statusHistoryRef.current.push(status);
+      }
+
+      return (
+        <div>
+          <div data-testid="status">{status}</div>
+          <div data-testid="status-history">
+            {statusHistoryRef.current.join(',')}
+          </div>
+          {error && <div data-testid="error">{error.toString()}</div>}
+        </div>
+      );
+    },
+    {
+      init: TestComponent => {
+        server.urls['/api/chat/123/stream'].response = {
+          type: 'error',
+          status: 500,
+          body: 'Internal server error',
+        };
+
+        return <TestComponent />;
+      },
+    },
+  );
+
+  beforeEach(() => {
+    onErrorCalls.length = 0;
+  });
+
+  it('should set error status and call onError', async () => {
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('error');
+    });
+
+    expect(screen.getByTestId('error')).toHaveTextContent(
+      'Internal server error',
+    );
+    expect(screen.getByTestId('status-history')).not.toHaveTextContent(
+      'submitted',
+    );
+    expect(onErrorCalls).toHaveLength(1);
+  });
+});
+
 describe('stop', () => {
   setupTestComponent(() => {
     const { messages, sendMessage, stop, status } = useChat({
@@ -2313,6 +2495,71 @@ describe('chat instance changes', () => {
     await userEvent.click(screen.getByTestId('do-change-chat'));
 
     expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
+  });
+
+  it('should handle streaming correctly when the id changes', async () => {
+    const controller = new TestResponseController();
+    server.urls['/api/chat'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    // First, change the ID
+    await userEvent.click(screen.getByTestId('do-change-chat'));
+
+    // Then send a message
+    await userEvent.click(screen.getByTestId('do-send'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+    });
+
+    controller.write(formatChunk({ type: 'text-start', id: '0' }));
+    controller.write(
+      formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+    );
+
+    // Verify streaming is working - text should appear immediately
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toContainEqual(
+        expect.objectContaining({
+          role: 'assistant',
+          parts: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'text',
+              text: 'Hello',
+            }),
+          ]),
+        }),
+      );
+    });
+
+    controller.write(formatChunk({ type: 'text-delta', id: '0', delta: ',' }));
+    controller.write(
+      formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+    );
+    controller.write(formatChunk({ type: 'text-delta', id: '0', delta: '.' }));
+    controller.write(formatChunk({ type: 'text-end', id: '0' }));
+    controller.close();
+
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toContainEqual(
+        expect.objectContaining({
+          role: 'assistant',
+          parts: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'text',
+              text: 'Hello, world.',
+              state: 'done',
+            }),
+          ]),
+        }),
+      );
+    });
   });
 });
 

@@ -4,7 +4,7 @@ import { BedrockStopReason } from './bedrock-api-types';
 export function mapBedrockFinishReason(
   finishReason: BedrockStopReason,
   isJsonResponseFromTool?: boolean,
-): LanguageModelV3FinishReason {
+): LanguageModelV3FinishReason['unified'] {
   switch (finishReason) {
     case 'stop_sequence':
     case 'end_turn':
@@ -17,6 +17,6 @@ export function mapBedrockFinishReason(
     case 'tool_use':
       return isJsonResponseFromTool ? 'stop' : 'tool-calls';
     default:
-      return 'unknown';
+      return 'other';
   }
 }

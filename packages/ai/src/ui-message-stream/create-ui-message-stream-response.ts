@@ -4,6 +4,18 @@ import { UI_MESSAGE_STREAM_HEADERS } from './ui-message-stream-headers';
 import { UIMessageChunk } from './ui-message-chunks';
 import { UIMessageStreamResponseInit } from './ui-message-stream-response-init';
 
+/**
+ * Creates a Response object from a UI message stream.
+ * The stream is transformed to Server-Sent Events (SSE) format.
+ *
+ * @param options.status - The HTTP status code for the response.
+ * @param options.statusText - The HTTP status text for the response.
+ * @param options.headers - Additional HTTP headers to include in the response.
+ * @param options.stream - The UI message chunk stream to send.
+ * @param options.consumeSseStream - Optional callback to consume a copy of the SSE stream independently.
+ *
+ * @returns A `Response` object with the UI message stream as the body.
+ */
 export function createUIMessageStreamResponse({
   status,
   statusText,

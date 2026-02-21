@@ -12,10 +12,10 @@ export type { GoogleVertexAnthropicProvider };
 export interface GoogleVertexAnthropicProviderSettings
   extends GoogleVertexAnthropicProviderSettingsOriginal {
   /**
- Optional. The Authentication options provided by google-auth-library.
-Complete list of authentication options is documented in the
-GoogleAuthOptions interface:
-https://github.com/googleapis/google-auth-library-nodejs/blob/main/src/auth/googleauth.ts.
+   * Optional. The Authentication options provided by google-auth-library.
+   * Complete list of authentication options is documented in the
+   * GoogleAuthOptions interface:
+   * https://github.com/googleapis/google-auth-library-nodejs/blob/main/src/auth/googleauth.ts.
    */
   googleAuthOptions?: GoogleAuthOptions;
 }
@@ -35,6 +35,6 @@ export function createVertexAnthropic(
 }
 
 /**
-Default Google Vertex Anthropic provider instance.
+ * Default Google Vertex Anthropic provider instance.
  */
 export const vertexAnthropic = createVertexAnthropic();

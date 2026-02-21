@@ -100,9 +100,22 @@ describe('HuggingFaceResponsesLanguageModel', () => {
 
         expect(result.usage).toMatchInlineSnapshot(`
           {
-            "inputTokens": 12,
-            "outputTokens": 25,
-            "totalTokens": 37,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 12,
+              "total": 12,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 25,
+              "total": 25,
+            },
+            "raw": {
+              "input_tokens": 12,
+              "output_tokens": 25,
+              "total_tokens": 37,
+            },
           }
         `);
       });
@@ -197,9 +210,18 @@ describe('HuggingFaceResponsesLanguageModel', () => {
 
         expect(result.usage).toMatchInlineSnapshot(`
           {
-            "inputTokens": 0,
-            "outputTokens": 0,
-            "totalTokens": 0,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           }
         `);
       });
@@ -525,7 +547,10 @@ describe('HuggingFaceResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "huggingface": {
                 "responseId": "resp_test",
@@ -533,9 +558,22 @@ describe('HuggingFaceResponsesLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "inputTokens": 12,
-              "outputTokens": 25,
-              "totalTokens": 37,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 12,
+                "total": 12,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 25,
+                "total": 25,
+              },
+              "raw": {
+                "input_tokens": 12,
+                "output_tokens": 25,
+                "total_tokens": 37,
+              },
             },
           },
         ]
@@ -564,9 +602,18 @@ describe('HuggingFaceResponsesLanguageModel', () => {
 
       expect(finishChunk?.usage).toMatchInlineSnapshot(`
         {
-          "inputTokens": undefined,
-          "outputTokens": undefined,
-          "totalTokens": undefined,
+          "inputTokens": {
+            "cacheRead": undefined,
+            "cacheWrite": undefined,
+            "noCache": undefined,
+            "total": undefined,
+          },
+          "outputTokens": {
+            "reasoning": undefined,
+            "text": undefined,
+            "total": undefined,
+          },
+          "raw": undefined,
         }
       `);
     });
@@ -617,7 +664,12 @@ describe('HuggingFaceResponsesLanguageModel', () => {
 
       expect(errorChunk).toBeDefined();
       expect(errorChunk?.type).toBe('error');
-      expect(finishChunk?.finishReason).toBe('error');
+      expect(finishChunk?.finishReason).toMatchInlineSnapshot(`
+        {
+          "raw": undefined,
+          "unified": "error",
+        }
+      `);
     });
 
     it('should send correct streaming request', async () => {
@@ -945,7 +997,10 @@ describe('HuggingFaceResponsesLanguageModel', () => {
             "type": "tool-result",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "huggingface": {
                 "responseId": "resp_tool_stream",
@@ -953,9 +1008,22 @@ describe('HuggingFaceResponsesLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "inputTokens": 20,
-              "outputTokens": 15,
-              "totalTokens": 35,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 20,
+                "total": 20,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 15,
+                "total": 15,
+              },
+              "raw": {
+                "input_tokens": 20,
+                "output_tokens": 15,
+                "total_tokens": 35,
+              },
             },
           },
         ]
@@ -1253,7 +1321,10 @@ describe('HuggingFaceResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "huggingface": {
                 "responseId": "resp_reasoning_stream",
@@ -1261,9 +1332,22 @@ describe('HuggingFaceResponsesLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "inputTokens": 10,
-              "outputTokens": 20,
-              "totalTokens": 30,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 10,
+                "total": 10,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 20,
+                "total": 20,
+              },
+              "raw": {
+                "input_tokens": 10,
+                "output_tokens": 20,
+                "total_tokens": 30,
+              },
             },
           },
         ]

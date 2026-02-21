@@ -1,4 +1,5 @@
 import {
+  InvalidArgumentError,
   LanguageModelV3,
   NoSuchModelError,
   ProviderV3,
@@ -18,13 +19,13 @@ import { anthropicTools } from './anthropic-tools';
 
 export interface AnthropicProvider extends ProviderV3 {
   /**
-Creates a model for text generation.
-*/
+   * Creates a model for text generation.
+   */
   (modelId: AnthropicMessagesModelId): LanguageModelV3;
 
   /**
-Creates a model for text generation.
-*/
+   * Creates a model for text generation.
+   */
   languageModel(modelId: AnthropicMessagesModelId): LanguageModelV3;
 
   chat(modelId: AnthropicMessagesModelId): LanguageModelV3;
@@ -32,33 +33,46 @@ Creates a model for text generation.
   messages(modelId: AnthropicMessagesModelId): LanguageModelV3;
 
   /**
-Anthropic-specific computer use tool.
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
+
+  /**
+   * Anthropic-specific computer use tool.
    */
   tools: typeof anthropicTools;
 }
 
 export interface AnthropicProviderSettings {
   /**
-Use a different URL prefix for API calls, e.g. to use proxy servers.
-The default prefix is `https://api.anthropic.com/v1`.
+   * Use a different URL prefix for API calls, e.g. to use proxy servers.
+   * The default prefix is `https://api.anthropic.com/v1`.
    */
   baseURL?: string;
 
   /**
-API key that is being send using the `x-api-key` header.
-It defaults to the `ANTHROPIC_API_KEY` environment variable.
+   * API key that is being send using the `x-api-key` header.
+   * It defaults to the `ANTHROPIC_API_KEY` environment variable.
+   * Only one of `apiKey` or `authToken` is required.
    */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Auth token that is being sent using the `Authorization: Bearer` header.
+   * It defaults to the `ANTHROPIC_AUTH_TOKEN` environment variable.
+   * Only one of `apiKey` or `authToken` is required.
+   */
+  authToken?: string;
+
+  /**
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   generateId?: () => string;
@@ -71,7 +85,7 @@ or to provide a custom fetch implementation for e.g. testing.
 }
 
 /**
-Create an Anthropic provider instance.
+ * Create an Anthropic provider instance.
  */
 export function createAnthropic(
   options: AnthropicProviderSettings = {},
@@ -86,19 +100,35 @@ export function createAnthropic(
 
   const providerName = options.name ?? 'anthropic.messages';
 
-  const getHeaders = () =>
-    withUserAgentSuffix(
+  // Only error if both are explicitly provided in options
+  if (options.apiKey && options.authToken) {
+    throw new InvalidArgumentError({
+      argument: 'apiKey/authToken',
+      message:
+        'Both apiKey and authToken were provided. Please use only one authentication method.',
+    });
+  }
+
+  const getHeaders = () => {
+    const authHeaders: Record<string, string> = options.authToken
+      ? { Authorization: `Bearer ${options.authToken}` }
+      : {
+          'x-api-key': loadApiKey({
+            apiKey: options.apiKey,
+            environmentVariableName: 'ANTHROPIC_API_KEY',
+            description: 'Anthropic',
+          }),
+        };
+
+    return withUserAgentSuffix(
       {
         'anthropic-version': '2023-06-01',
-        'x-api-key': loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'ANTHROPIC_API_KEY',
-          description: 'Anthropic',
-        }),
+        ...authHeaders,
         ...options.headers,
       },
       `ai-sdk/anthropic/${VERSION}`,
     );
+  };
 
   const createChatModel = (modelId: AnthropicMessagesModelId) =>
     new AnthropicMessagesLanguageModel(modelId, {
@@ -109,6 +139,7 @@ export function createAnthropic(
       generateId: options.generateId ?? generateId,
       supportedUrls: () => ({
         'image/*': [/^https?:\/\/.*$/],
+        'application/pdf': [/^https?:\/\/.*$/],
       }),
     });
 
@@ -130,6 +161,7 @@ export function createAnthropic(
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
@@ -140,6 +172,6 @@ export function createAnthropic(
 }
 
 /**
-Default Anthropic provider instance.
+ * Default Anthropic provider instance.
  */
 export const anthropic = createAnthropic();

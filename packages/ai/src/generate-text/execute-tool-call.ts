@@ -4,12 +4,28 @@ import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { now } from '../util/now';
+import {
+  GenerateTextOnToolCallFinishCallback,
+  GenerateTextOnToolCallStartCallback,
+} from './generate-text';
 import { TypedToolCall } from './tool-call';
 import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
 import { TypedToolResult } from './tool-result';
 import { TypedToolError } from './tool-error';
 
+/**
+ * Executes a single tool call and manages its lifecycle callbacks.
+ *
+ * This function handles the complete tool execution flow:
+ * 1. Invokes `onToolCallStart` callback before execution
+ * 2. Executes the tool's `execute` function with proper context
+ * 3. Handles streaming outputs via `onPreliminaryToolResult`
+ * 4. Invokes `onToolCallFinish` callback with success or error result
+ *
+ * @returns The tool output (result or error), or undefined if the tool has no execute function.
+ */
 export async function executeToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
@@ -18,7 +34,11 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   experimental_context,
+  stepNumber,
+  model,
   onPreliminaryToolResult,
+  onToolCallStart,
+  onToolCallFinish,
 }: {
   toolCall: TypedToolCall<TOOLS>;
   tools: TOOLS | undefined;
@@ -27,7 +47,11 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
+  stepNumber?: number;
+  model?: { provider: string; modelId: string };
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
+  onToolCallStart?: GenerateTextOnToolCallStartCallback<TOOLS>;
+  onToolCallFinish?: GenerateTextOnToolCallFinishCallback<TOOLS>;
 }): Promise<ToolOutput<TOOLS> | undefined> {
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
@@ -35,6 +59,17 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   if (tool?.execute == null) {
     return undefined;
   }
+
+  const baseCallbackEvent = {
+    stepNumber,
+    model,
+    toolCall,
+    messages,
+    abortSignal,
+    functionId: telemetry?.functionId,
+    metadata: telemetry?.metadata as Record<string, unknown> | undefined,
+    experimental_context,
+  };
 
   return recordSpan({
     name: 'ai.toolCall',
@@ -55,6 +90,14 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     tracer,
     fn: async span => {
       let output: unknown;
+
+      try {
+        await onToolCallStart?.(baseCallbackEvent);
+      } catch (_ignored) {
+        // Errors in callbacks should not break the generation flow.
+      }
+
+      const startTime = now();
 
       try {
         const stream = executeTool({
@@ -81,6 +124,19 @@ export async function executeToolCall<TOOLS extends ToolSet>({
           }
         }
       } catch (error) {
+        const durationMs = now() - startTime;
+
+        try {
+          await onToolCallFinish?.({
+            ...baseCallbackEvent,
+            success: false,
+            error,
+            durationMs,
+          });
+        } catch (_ignored) {
+          // Errors in callbacks should not break the generation flow.
+        }
+
         recordErrorOnSpan(span, error);
         return {
           type: 'tool-error',
@@ -93,6 +149,19 @@ export async function executeToolCall<TOOLS extends ToolSet>({
             ? { providerMetadata: toolCall.providerMetadata }
             : {}),
         } as TypedToolError<TOOLS>;
+      }
+
+      const durationMs = now() - startTime;
+
+      try {
+        await onToolCallFinish?.({
+          ...baseCallbackEvent,
+          success: true,
+          output,
+          durationMs,
+        });
+      } catch (_ignored) {
+        // Errors in callbacks should not break the generation flow.
       }
 
       try {

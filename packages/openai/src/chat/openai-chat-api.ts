@@ -48,10 +48,12 @@ export const openaiChatResponseSchema = lazySchema(() =>
               .array(
                 z.object({
                   type: z.literal('url_citation'),
-                  start_index: z.number(),
-                  end_index: z.number(),
-                  url: z.string(),
-                  title: z.string(),
+                  url_citation: z.object({
+                    start_index: z.number(),
+                    end_index: z.number(),
+                    url: z.string(),
+                    title: z.string(),
+                  }),
                 }),
               )
               .nullish(),
@@ -133,10 +135,12 @@ export const openaiChatChunkSchema = lazySchema(() =>
                   .array(
                     z.object({
                       type: z.literal('url_citation'),
-                      start_index: z.number(),
-                      end_index: z.number(),
-                      url: z.string(),
-                      title: z.string(),
+                      url_citation: z.object({
+                        start_index: z.number(),
+                        end_index: z.number(),
+                        url: z.string(),
+                        title: z.string(),
+                      }),
                     }),
                   )
                   .nullish(),

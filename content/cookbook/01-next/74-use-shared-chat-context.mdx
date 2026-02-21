@@ -168,11 +168,11 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: 'openai/gpt-4o-mini',
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();
 }
 ```
 
-<GithubLink link="https://github.com/vercel/ai/tree/main/examples/next-openai/app/use-chat-shared-context" />
+<GithubLink link="https://github.com/vercel/ai/tree/main/examples/ai-e2e-next/app/chat/shared-context" />

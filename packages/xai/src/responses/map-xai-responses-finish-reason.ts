@@ -2,7 +2,7 @@ import { LanguageModelV3FinishReason } from '@ai-sdk/provider';
 
 export function mapXaiResponsesFinishReason(
   finishReason: string | null | undefined,
-): LanguageModelV3FinishReason {
+): LanguageModelV3FinishReason['unified'] {
   switch (finishReason) {
     case 'stop':
     case 'completed':
@@ -15,6 +15,6 @@ export function mapXaiResponsesFinishReason(
     case 'content_filter':
       return 'content-filter';
     default:
-      return 'unknown';
+      return 'other';
   }
 }

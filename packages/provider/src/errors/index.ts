@@ -11,5 +11,6 @@ export { LoadSettingError } from './load-setting-error';
 export { NoContentGeneratedError } from './no-content-generated-error';
 export { NoSuchModelError } from './no-such-model-error';
 export { TooManyEmbeddingValuesForCallError } from './too-many-embedding-values-for-call-error';
+export type { TypeValidationContext } from './type-validation-error';
 export { TypeValidationError } from './type-validation-error';
 export { UnsupportedFunctionalityError } from './unsupported-functionality-error';

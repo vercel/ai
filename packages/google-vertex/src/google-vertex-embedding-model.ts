@@ -13,7 +13,7 @@ import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
 import {
   GoogleVertexEmbeddingModelId,
-  googleVertexEmbeddingProviderOptions,
+  googleVertexEmbeddingModelOptions,
 } from './google-vertex-embedding-options';
 import { GoogleVertexConfig } from './google-vertex-config';
 
@@ -45,13 +45,21 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV3 {
   }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
     Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
   > {
-    // Parse provider options
-    const googleOptions =
-      (await parseProviderOptions({
+    let googleOptions = await parseProviderOptions({
+      provider: 'vertex',
+      providerOptions,
+      schema: googleVertexEmbeddingModelOptions,
+    });
+
+    if (googleOptions == null) {
+      googleOptions = await parseProviderOptions({
         provider: 'google',
         providerOptions,
-        schema: googleVertexEmbeddingProviderOptions,
-      })) ?? {};
+        schema: googleVertexEmbeddingModelOptions,
+      });
+    }
+
+    googleOptions = googleOptions ?? {};
 
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
@@ -95,6 +103,7 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV3 {
     });
 
     return {
+      warnings: [],
       embeddings: response.predictions.map(
         prediction => prediction.embeddings.values,
       ),

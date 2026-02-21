@@ -3,6 +3,8 @@ import {
   ToolApprovalRequest,
   ToolApprovalResponse,
 } from '@ai-sdk/provider-utils';
+import { InvalidToolApprovalError } from '../error/invalid-tool-approval-error';
+import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { TypedToolCall } from './tool-call';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
@@ -79,14 +81,28 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
     const approvalRequest =
       toolApprovalRequestsByApprovalId[approvalResponse.approvalId];
 
-    if (toolResults[approvalRequest!.toolCallId] != null) {
+    if (approvalRequest == null) {
+      throw new InvalidToolApprovalError({
+        approvalId: approvalResponse.approvalId,
+      });
+    }
+
+    if (toolResults[approvalRequest.toolCallId] != null) {
       continue;
+    }
+
+    const toolCall = toolCallsByToolCallId[approvalRequest.toolCallId];
+    if (toolCall == null) {
+      throw new ToolCallNotFoundForApprovalError({
+        toolCallId: approvalRequest.toolCallId,
+        approvalId: approvalRequest.approvalId,
+      });
     }
 
     const approval: CollectedToolApprovals<TOOLS> = {
       approvalRequest,
       approvalResponse,
-      toolCall: toolCallsByToolCallId[approvalRequest!.toolCallId],
+      toolCall,
     };
 
     if (approvalResponse.approved) {

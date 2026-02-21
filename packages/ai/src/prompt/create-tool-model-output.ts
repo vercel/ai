@@ -1,15 +1,19 @@
 import { getErrorMessage, JSONValue } from '@ai-sdk/provider';
 import { Tool, ToolResultOutput } from '@ai-sdk/provider-utils';
 
-export function createToolModelOutput({
+export async function createToolModelOutput({
+  toolCallId,
+  input,
   output,
   tool,
   errorMode,
 }: {
+  toolCallId: string;
+  input: unknown;
   output: unknown;
   tool: Tool | undefined;
   errorMode: 'none' | 'text' | 'json';
-}): ToolResultOutput {
+}): Promise<ToolResultOutput> {
   if (errorMode === 'text') {
     return { type: 'error-text', value: getErrorMessage(output) };
   } else if (errorMode === 'json') {
@@ -17,7 +21,7 @@ export function createToolModelOutput({
   }
 
   if (tool?.toModelOutput) {
-    return tool.toModelOutput(output);
+    return await tool.toModelOutput({ toolCallId, input, output });
   }
 
   return typeof output === 'string'

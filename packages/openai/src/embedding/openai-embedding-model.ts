@@ -12,7 +12,7 @@ import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import {
   OpenAIEmbeddingModelId,
-  openaiEmbeddingProviderOptions,
+  openaiEmbeddingModelOptions,
 } from './openai-embedding-options';
 import { openaiTextEmbeddingResponseSchema } from './openai-embedding-api';
 
@@ -55,7 +55,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV3 {
       (await parseProviderOptions({
         provider: 'openai',
         providerOptions,
-        schema: openaiEmbeddingProviderOptions,
+        schema: openaiEmbeddingModelOptions,
       })) ?? {};
 
     const {
@@ -84,6 +84,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV3 {
     });
 
     return {
+      warnings: [],
       embeddings: response.data.map(item => item.embedding),
       usage: response.usage
         ? { tokens: response.usage.prompt_tokens }

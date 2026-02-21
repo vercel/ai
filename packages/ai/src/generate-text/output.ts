@@ -16,8 +16,14 @@ import { LanguageModelResponseMetadata } from '../types/language-model-response-
 import { LanguageModelUsage } from '../types/usage';
 import { DeepPartial } from '../util/deep-partial';
 import { parsePartialJson } from '../util/parse-partial-json';
+import { EnrichedStreamPart } from './stream-text';
 
-export interface Output<OUTPUT = any, PARTIAL = any> {
+export interface Output<OUTPUT = any, PARTIAL = any, ELEMENT = any> {
+  /**
+   * The name of the output mode.
+   */
+  name: string;
+
   /**
    * The response format to use for the model.
    */
@@ -41,6 +47,13 @@ export interface Output<OUTPUT = any, PARTIAL = any> {
   parsePartialOutput(options: {
     text: string;
   }): Promise<{ partial: PARTIAL } | undefined>;
+
+  /**
+   * Creates a stream transform that emits individual elements as they complete.
+   */
+  createElementStreamTransform():
+    | TransformStream<EnrichedStreamPart<any, PARTIAL>, ELEMENT>
+    | undefined;
 }
 
 /**
@@ -49,7 +62,8 @@ export interface Output<OUTPUT = any, PARTIAL = any> {
  *
  * @returns An output specification for generating text.
  */
-export const text = (): Output<string, string> => ({
+export const text = (): Output<string, string, never> => ({
+  name: 'text',
   responseFormat: Promise.resolve({ type: 'text' }),
 
   async parseCompleteOutput({ text }: { text: string }) {
@@ -59,6 +73,10 @@ export const text = (): Output<string, string> => ({
   async parsePartialOutput({ text }: { text: string }) {
     return { partial: text };
   },
+
+  createElementStreamTransform() {
+    return undefined;
+  },
 });
 
 /**
@@ -66,20 +84,38 @@ export const text = (): Output<string, string> => ({
  * When the model generates a text response, it will return an object that matches the schema.
  *
  * @param schema - The schema of the object to generate.
+ * @param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+ * @param description - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
  *
  * @returns An output specification for generating objects with the specified schema.
  */
 export const object = <OBJECT>({
   schema: inputSchema,
+  name,
+  description,
 }: {
   schema: FlexibleSchema<OBJECT>;
-}): Output<OBJECT, DeepPartial<OBJECT>> => {
+  /**
+   * Optional name of the output that should be generated.
+   * Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+   */
+  name?: string;
+  /**
+   * Optional description of the output that should be generated.
+   * Used by some providers for additional LLM guidance, e.g. via tool or schema description.
+   */
+  description?: string;
+}): Output<OBJECT, DeepPartial<OBJECT>, never> => {
   const schema = asSchema(inputSchema);
 
   return {
+    name: 'object',
+
     responseFormat: resolve(schema.jsonSchema).then(jsonSchema => ({
       type: 'json' as const,
       schema: jsonSchema,
+      ...(name != null && { name }),
+      ...(description != null && { description }),
     })),
 
     async parseCompleteOutput(
@@ -140,6 +176,10 @@ export const object = <OBJECT>({
         }
       }
     },
+
+    createElementStreamTransform() {
+      return undefined;
+    },
   };
 };
 
@@ -148,17 +188,33 @@ export const object = <OBJECT>({
  * When the model generates a text response, it will return an array of elements.
  *
  * @param element - The schema of the array elements to generate.
+ * @param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+ * @param description - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
  *
  * @returns An output specification for generating an array of elements.
  */
 export const array = <ELEMENT>({
   element: inputElementSchema,
+  name,
+  description,
 }: {
   element: FlexibleSchema<ELEMENT>;
-}): Output<Array<ELEMENT>, Array<ELEMENT>> => {
+  /**
+   * Optional name of the output that should be generated.
+   * Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+   */
+  name?: string;
+  /**
+   * Optional description of the output that should be generated.
+   * Used by some providers for additional LLM guidance, e.g. via tool or schema description.
+   */
+  description?: string;
+}): Output<Array<ELEMENT>, Array<ELEMENT>, ELEMENT> => {
   const elementSchema = asSchema(inputElementSchema);
 
   return {
+    name: 'array',
+
     // JSON schema that describes an array of elements:
     responseFormat: resolve(elementSchema.jsonSchema).then(jsonSchema => {
       // remove $schema from schema.jsonSchema:
@@ -175,6 +231,8 @@ export const array = <ELEMENT>({
           required: ['elements'],
           additionalProperties: false,
         },
+        ...(name != null && { name }),
+        ...(description != null && { description }),
       };
     }),
 
@@ -285,6 +343,28 @@ export const array = <ELEMENT>({
         }
       }
     },
+
+    createElementStreamTransform() {
+      let publishedElements = 0;
+
+      return new TransformStream<
+        EnrichedStreamPart<any, Array<ELEMENT>>,
+        ELEMENT
+      >({
+        transform({ partialOutput }, controller) {
+          if (partialOutput != null) {
+            // Only enqueue new elements that haven't been published yet
+            for (
+              ;
+              publishedElements < partialOutput.length;
+              publishedElements++
+            ) {
+              controller.enqueue(partialOutput[publishedElements]);
+            }
+          }
+        },
+      });
+    },
   };
 };
 
@@ -293,15 +373,31 @@ export const array = <ELEMENT>({
  * When the model generates a text response, it will return a one of the choice options.
  *
  * @param options - The available choices.
+ * @param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+ * @param description - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
  *
  * @returns An output specification for generating a choice.
  */
 export const choice = <CHOICE extends string>({
   options: choiceOptions,
+  name,
+  description,
 }: {
   options: Array<CHOICE>;
-}): Output<CHOICE, CHOICE> => {
+  /**
+   * Optional name of the output that should be generated.
+   * Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+   */
+  name?: string;
+  /**
+   * Optional description of the output that should be generated.
+   * Used by some providers for additional LLM guidance, e.g. via tool or schema description.
+   */
+  description?: string;
+}): Output<CHOICE, CHOICE, never> => {
   return {
+    name: 'choice',
+
     // JSON schema that describes an enumeration:
     responseFormat: Promise.resolve({
       type: 'json',
@@ -314,6 +410,8 @@ export const choice = <CHOICE extends string>({
         required: ['result'],
         additionalProperties: false,
       },
+      ...(name != null && { name }),
+      ...(description != null && { description }),
     } as const),
 
     async parseCompleteOutput(
@@ -403,6 +501,10 @@ export const choice = <CHOICE extends string>({
         }
       }
     },
+
+    createElementStreamTransform() {
+      return undefined;
+    },
   };
 };
 
@@ -410,12 +512,33 @@ export const choice = <CHOICE extends string>({
  * Output specification for unstructured JSON generation.
  * When the model generates a text response, it will return a JSON object.
  *
+ * @param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+ * @param description - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
+ *
  * @returns An output specification for generating JSON.
  */
-export const json = (): Output<JSONValue, JSONValue> => {
+export const json = ({
+  name,
+  description,
+}: {
+  /**
+   * Optional name of the output that should be generated.
+   * Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+   */
+  name?: string;
+  /**
+   * Optional description of the output that should be generated.
+   * Used by some providers for additional LLM guidance, e.g. via tool or schema description.
+   */
+  description?: string;
+} = {}): Output<JSONValue, JSONValue, never> => {
   return {
+    name: 'json',
+
     responseFormat: Promise.resolve({
       type: 'json' as const,
+      ...(name != null && { name }),
+      ...(description != null && { description }),
     }),
 
     async parseCompleteOutput(
@@ -458,6 +581,10 @@ export const json = (): Output<JSONValue, JSONValue> => {
             : { partial: result.value };
         }
       }
+    },
+
+    createElementStreamTransform() {
+      return undefined;
     },
   };
 };

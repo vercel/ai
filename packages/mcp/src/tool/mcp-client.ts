@@ -1,10 +1,15 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
+import { JSONSchema7, JSONValue } from '@ai-sdk/provider';
 import {
+  asSchema,
   dynamicTool,
+  FlexibleSchema,
   jsonSchema,
+  safeParseJSON,
+  safeValidateTypes,
   Tool,
   tool,
-  ToolCallOptions,
+  ToolExecutionOptions,
+  ToolResultOutput,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { MCPClientError } from '../error/mcp-client-error';
@@ -51,9 +56,42 @@ import {
   ServerCapabilities,
   SUPPORTED_PROTOCOL_VERSIONS,
   ToolSchemas,
+  ToolMeta,
 } from './types';
 
 const CLIENT_VERSION = '1.0.0';
+
+function mcpToModelOutput({
+  output,
+}: {
+  toolCallId: string;
+  input: unknown;
+  output: unknown;
+}): ToolResultOutput {
+  const result = output as CallToolResult;
+
+  if (!('content' in result) || !Array.isArray(result.content)) {
+    return { type: 'json', value: result as JSONValue };
+  }
+
+  const convertedContent = result.content.map(
+    (part: { type: string; [key: string]: unknown }) => {
+      if (part.type === 'text' && 'text' in part) {
+        return { type: 'text' as const, text: part.text as string };
+      }
+      if (part.type === 'image' && 'data' in part && 'mimeType' in part) {
+        return {
+          type: 'image-data' as const,
+          data: part.data as string,
+          mediaType: part.mimeType as string,
+        };
+      }
+      return { type: 'text' as const, text: JSON.stringify(part) };
+    },
+  );
+
+  return { type: 'content', value: convertedContent };
+}
 
 export interface MCPClientConfig {
   /** Transport configuration for connecting to the MCP server */
@@ -85,6 +123,22 @@ export interface MCPClient {
     schemas?: TOOL_SCHEMAS;
   }): Promise<McpToolSet<TOOL_SCHEMAS>>;
 
+  /**
+   * Lists available tools from the MCP server.
+   */
+  listTools(options?: {
+    params?: PaginatedRequest['params'];
+    options?: RequestOptions;
+  }): Promise<ListToolsResult>;
+
+  /**
+   * Creates AI SDK tools from tool definitions.
+   */
+  toolsFromDefinitions<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>(
+    definitions: ListToolsResult,
+    options?: { schemas?: TOOL_SCHEMAS },
+  ): McpToolSet<TOOL_SCHEMAS>;
+
   listResources(options?: {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
@@ -99,12 +153,12 @@ export interface MCPClient {
     options?: RequestOptions;
   }): Promise<ListResourceTemplatesResult>;
 
-  listPrompts(options?: {
+  experimental_listPrompts(options?: {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   }): Promise<ListPromptsResult>;
 
-  getPrompt(args: {
+  experimental_getPrompt(args: {
     name: string;
     arguments?: Record<string, unknown>;
     options?: RequestOptions;
@@ -345,22 +399,18 @@ class DefaultMCPClient implements MCPClient {
     });
   }
 
-  private async listTools({
+  async listTools({
     params,
     options,
   }: {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   } = {}): Promise<ListToolsResult> {
-    try {
-      return this.request({
-        request: { method: 'tools/list', params },
-        resultSchema: ListToolsResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'tools/list', params },
+      resultSchema: ListToolsResultSchema,
+      options,
+    });
   }
 
   private async callTool({
@@ -370,7 +420,7 @@ class DefaultMCPClient implements MCPClient {
   }: {
     name: string;
     args: Record<string, unknown>;
-    options?: ToolCallOptions;
+    options?: ToolExecutionOptions;
   }): Promise<CallToolResult> {
     try {
       return this.request({
@@ -484,7 +534,8 @@ class DefaultMCPClient implements MCPClient {
   }
 
   /**
-   * Returns a set of AI SDK tools from the MCP server
+   * Returns a set of AI SDK tools from the MCP server.
+   * This fetches tool definitions and wraps them with execute functions.
    * @returns A record of tool names to their implementations
    */
   async tools<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>({
@@ -492,57 +543,129 @@ class DefaultMCPClient implements MCPClient {
   }: {
     schemas?: TOOL_SCHEMAS;
   } = {}): Promise<McpToolSet<TOOL_SCHEMAS>> {
-    const tools: Record<string, Tool> = {};
+    const definitions = await this.listTools();
+    return this.toolsFromDefinitions(definitions, {
+      schemas,
+    } as { schemas?: TOOL_SCHEMAS });
+  }
 
-    try {
-      const listToolsResult = await this.listTools();
-      for (const {
-        name,
-        description,
-        inputSchema,
-        annotations,
-      } of listToolsResult.tools) {
-        const title = annotations?.title;
-        if (schemas !== 'automatic' && !(name in schemas)) {
-          continue;
-        }
+  /**
+   * Creates AI SDK tools from tool definitions without fetching from the server.
+   */
+  toolsFromDefinitions<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>(
+    definitions: ListToolsResult,
+    { schemas = 'automatic' }: { schemas?: TOOL_SCHEMAS } = {} as {
+      schemas?: TOOL_SCHEMAS;
+    },
+  ): McpToolSet<TOOL_SCHEMAS> {
+    const tools: Record<string, Tool & { _meta?: ToolMeta }> = {};
 
-        const self = this;
-
-        const execute = async (
-          args: any,
-          options: ToolCallOptions,
-        ): Promise<CallToolResult> => {
-          options?.abortSignal?.throwIfAborted();
-          return self.callTool({ name, args, options });
-        };
-
-        const toolWithExecute =
-          schemas === 'automatic'
-            ? dynamicTool({
-                description,
-                title,
-                inputSchema: jsonSchema({
-                  ...inputSchema,
-                  properties: inputSchema.properties ?? {},
-                  additionalProperties: false,
-                } as JSONSchema7),
-                execute,
-              })
-            : tool({
-                description,
-                title,
-                inputSchema: schemas[name].inputSchema,
-                execute,
-              });
-
-        tools[name] = toolWithExecute;
+    for (const {
+      name,
+      title,
+      description,
+      inputSchema,
+      annotations,
+      _meta,
+    } of definitions.tools) {
+      const resolvedTitle = title ?? annotations?.title;
+      if (schemas !== 'automatic' && !(name in schemas)) {
+        continue;
       }
 
-      return tools as McpToolSet<TOOL_SCHEMAS>;
-    } catch (error) {
-      throw error;
+      const self = this;
+      const outputSchema =
+        schemas !== 'automatic' ? schemas[name]?.outputSchema : undefined;
+
+      const execute = async (
+        args: any,
+        options: ToolExecutionOptions,
+      ): Promise<unknown> => {
+        options?.abortSignal?.throwIfAborted();
+        const result = await self.callTool({ name, args, options });
+
+        if (outputSchema != null) {
+          return self.extractStructuredContent(result, outputSchema, name);
+        }
+
+        return result;
+      };
+
+      const toolWithExecute =
+        schemas === 'automatic'
+          ? dynamicTool({
+              description,
+              title: resolvedTitle,
+              inputSchema: jsonSchema({
+                ...inputSchema,
+                properties: inputSchema.properties ?? {},
+                additionalProperties: false,
+              } as JSONSchema7),
+              execute,
+              toModelOutput: mcpToModelOutput,
+            })
+          : tool({
+              description,
+              title: resolvedTitle,
+              inputSchema: schemas[name].inputSchema,
+              ...(outputSchema != null ? { outputSchema } : {}),
+              execute,
+              toModelOutput: mcpToModelOutput,
+            });
+
+      tools[name] = { ...toolWithExecute, _meta };
     }
+
+    return tools as McpToolSet<TOOL_SCHEMAS>;
+  }
+
+  /**
+   * Extracts and validates structuredContent from a tool result.
+   */
+  private async extractStructuredContent(
+    result: CallToolResult,
+    outputSchema: FlexibleSchema<unknown>,
+    toolName: string,
+  ): Promise<unknown> {
+    if ('structuredContent' in result && result.structuredContent != null) {
+      const validationResult = await safeValidateTypes({
+        value: result.structuredContent,
+        schema: asSchema(outputSchema),
+      });
+
+      if (!validationResult.success) {
+        throw new MCPClientError({
+          message: `Tool "${toolName}" returned structuredContent that does not match the expected outputSchema`,
+          cause: validationResult.error,
+        });
+      }
+
+      return validationResult.value;
+    }
+
+    // Fallback
+    if ('content' in result && Array.isArray(result.content)) {
+      const textContent = result.content.find(c => c.type === 'text');
+      if (textContent && 'text' in textContent) {
+        const parseResult = await safeParseJSON({
+          text: textContent.text,
+          schema: outputSchema,
+        });
+
+        if (!parseResult.success) {
+          throw new MCPClientError({
+            message: `Tool "${toolName}" returned content that does not match the expected outputSchema`,
+            cause: parseResult.error,
+          });
+        }
+
+        return parseResult.value;
+      }
+    }
+
+    throw new MCPClientError({
+      message: `Tool "${toolName}" did not return structuredContent or parseable text content`,
+    });
   }
 
   listResources({
@@ -573,7 +696,7 @@ class DefaultMCPClient implements MCPClient {
     return this.listResourceTemplatesInternal({ options });
   }
 
-  listPrompts({
+  experimental_listPrompts({
     params,
     options,
   }: {
@@ -583,7 +706,7 @@ class DefaultMCPClient implements MCPClient {
     return this.listPromptsInternal({ params, options });
   }
 
-  getPrompt({
+  experimental_getPrompt({
     name,
     arguments: args,
     options,

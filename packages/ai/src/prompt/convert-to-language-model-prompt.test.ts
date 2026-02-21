@@ -75,6 +75,45 @@ describe('convertToLanguageModelPrompt', () => {
         ]
       `);
     });
+
+    it('should convert an array of SystemModelMessage system messages', async () => {
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          system: [
+            { role: 'system', content: 'INSTRUCTIONS' },
+            { role: 'system', content: 'INSTRUCTIONS 2' },
+          ],
+          messages: [{ role: 'user', content: 'Hello, world!' }],
+        },
+        supportedUrls: {},
+        download: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": "INSTRUCTIONS",
+            "providerOptions": undefined,
+            "role": "system",
+          },
+          {
+            "content": "INSTRUCTIONS 2",
+            "providerOptions": undefined,
+            "role": "system",
+          },
+          {
+            "content": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "user",
+          },
+        ]
+      `);
+    });
   });
 
   describe('user message', () => {

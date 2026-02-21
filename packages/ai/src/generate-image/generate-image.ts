@@ -1,5 +1,15 @@
-import { ImageModelV3, ImageModelV3ProviderMetadata } from '@ai-sdk/provider';
-import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import {
+  ImageModelV3,
+  ImageModelV3CallOptions,
+  ImageModelV3File,
+  ImageModelV3ProviderMetadata,
+} from '@ai-sdk/provider';
+import {
+  convertBase64ToUint8Array,
+  DataContent,
+  ProviderOptions,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
   DefaultGeneratedFile,
@@ -18,27 +28,38 @@ import {
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { GenerateImageResult } from './generate-image-result';
+import { convertDataContentToUint8Array } from '../prompt/data-content';
+import { splitDataUrl } from '../prompt/split-data-url';
+
+export type GenerateImagePrompt =
+  | string
+  | {
+      images: Array<DataContent>;
+      text?: string;
+      mask?: DataContent;
+    };
 
 /**
-Generates images using an image model.
-
-@param model - The image model to use.
-@param prompt - The prompt that should be used to generate the image.
-@param n - Number of images to generate. Default: 1.
-@param size - Size of the images to generate. Must have the format `{width}x{height}`.
-@param aspectRatio - Aspect ratio of the images to generate. Must have the format `{width}:{height}`.
-@param seed - Seed for the image generation.
-@param providerOptions - Additional provider-specific options that are passed through to the provider
-as body parameters.
-@param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
-@param abortSignal - An optional abort signal that can be used to cancel the call.
-@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
-
-@returns A result object that contains the generated images.
+ * Generates images using an image model.
+ *
+ * @param model - The image model to use.
+ * @param prompt - The prompt that should be used to generate the image.
+ * @param n - Number of images to generate. Default: 1.
+ * @param maxImagesPerCall - Maximum number of images to generate in a single API call.
+ * @param size - Size of the images to generate. Must have the format `{width}x{height}`.
+ * @param aspectRatio - Aspect ratio of the images to generate. Must have the format `{width}:{height}`.
+ * @param seed - Seed for the image generation.
+ * @param providerOptions - Additional provider-specific options that are passed through to the provider
+ * as body parameters.
+ * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+ * @param abortSignal - An optional abort signal that can be used to cancel the call.
+ * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+ *
+ * @returns A result object that contains the generated images.
  */
 export async function generateImage({
   model: modelArg,
-  prompt,
+  prompt: promptArg,
   n = 1,
   maxImagesPerCall,
   size,
@@ -50,72 +71,72 @@ export async function generateImage({
   headers,
 }: {
   /**
-The image model to use.
-     */
+   * The image model to use.
+   */
   model: ImageModel;
 
   /**
-The prompt that should be used to generate the image.
+   * The prompt that should be used to generate the image.
    */
-  prompt: string;
+  prompt: GenerateImagePrompt;
 
   /**
-Number of images to generate.
+   * Number of images to generate.
    */
   n?: number;
 
   /**
-Number of images to generate.
+   * Maximum number of images to generate in a single API call. If not provided, the model's default will be used.
    */
   maxImagesPerCall?: number;
 
   /**
-Size of the images to generate. Must have the format `{width}x{height}`. If not provided, the default size will be used.
+   * Size of the images to generate. Must have the format `{width}x{height}`. If not provided, the default size will be used.
    */
   size?: `${number}x${number}`;
 
   /**
-Aspect ratio of the images to generate. Must have the format `{width}:{height}`. If not provided, the default aspect ratio will be used.
+   * Aspect ratio of the images to generate. Must have the format `{width}:{height}`. If not provided, the default aspect ratio will be used.
    */
   aspectRatio?: `${number}:${number}`;
 
   /**
-Seed for the image generation. If not provided, the default seed will be used.
+   * Seed for the image generation. If not provided, the default seed will be used.
    */
   seed?: number;
 
   /**
-Additional provider-specific options that are passed through to the provider
-as body parameters.
-
-The outer record is keyed by the provider name, and the inner
-record is keyed by the provider-specific metadata key.
-```ts
-{
-  "openai": {
-    "style": "vivid"
-  }
-}
-```
-     */
+   * Additional provider-specific options that are passed through to the provider
+   * as body parameters.
+   *
+   * The outer record is keyed by the provider name, and the inner
+   * record is keyed by the provider-specific metadata key.
+   * ```ts
+   * {
+   * "openai": {
+   * "style": "vivid"
+   * }
+   * }
+   * ```
+   */
   providerOptions?: ProviderOptions;
 
   /**
-Maximum number of retries per embedding model call. Set to 0 to disable retries.
-
-@default 2
+   * Maximum number of retries per image model call. Set to 0 to disable retries.
+   *
+   * @default 2
    */
   maxRetries?: number;
 
   /**
-Abort signal.
- */
+   * Abort signal.
+   */
   abortSignal?: AbortSignal;
 
   /**
-Additional headers to include in the request.
-Only applicable for HTTP-based providers.
- */
+   * Additional headers to include in the request.
+   * Only applicable for HTTP-based providers.
+   */
   headers?: Record<string, string>;
 }): Promise<GenerateImageResult> {
   const model = resolveImageModel(modelArg);
@@ -148,9 +169,13 @@ Only applicable for HTTP-based providers.
 
   const results = await Promise.all(
     callImageCounts.map(async callImageCount =>
-      retry(() =>
-        model.doGenerate({
+      retry(() => {
+        const { prompt, files, mask } = normalizePrompt(promptArg);
+
+        return model.doGenerate({
           prompt,
+          files,
+          mask,
           n: callImageCount,
           abortSignal,
           headers: headersWithUserAgent,
@@ -158,8 +183,8 @@ Only applicable for HTTP-based providers.
           aspectRatio,
           seed,
           providerOptions: providerOptions ?? {},
-        }),
-      ),
+        });
+      }),
     ),
   );
 
@@ -278,4 +303,59 @@ async function invokeModelMaxImagesPerCall(model: ImageModelV3) {
   return model.maxImagesPerCall({
     modelId: model.modelId,
   });
+}
+
+function normalizePrompt(
+  prompt: GenerateImagePrompt,
+): Pick<ImageModelV3CallOptions, 'prompt' | 'files' | 'mask'> {
+  if (typeof prompt === 'string') {
+    return { prompt, files: undefined, mask: undefined };
+  }
+
+  return {
+    prompt: prompt.text,
+    files: prompt.images.map(toImageModelV3File),
+    mask: prompt.mask ? toImageModelV3File(prompt.mask) : undefined,
+  };
+}
+
+function toImageModelV3File(dataContent: DataContent): ImageModelV3File {
+  if (typeof dataContent === 'string' && dataContent.startsWith('http')) {
+    return {
+      type: 'url',
+      url: dataContent,
+    };
+  }
+
+  // Handle data URLs
+  if (typeof dataContent === 'string' && dataContent.startsWith('data:')) {
+    const { mediaType: dataUrlMediaType, base64Content } =
+      splitDataUrl(dataContent);
+
+    if (base64Content != null) {
+      const uint8Data = convertBase64ToUint8Array(base64Content);
+      return {
+        type: 'file',
+        data: uint8Data,
+        mediaType:
+          dataUrlMediaType ||
+          detectMediaType({
+            data: uint8Data,
+            signatures: imageMediaTypeSignatures,
+          }) ||
+          'image/png',
+      };
+    }
+  }
+
+  const uint8Data = convertDataContentToUint8Array(dataContent);
+  return {
+    type: 'file',
+    data: uint8Data,
+    mediaType:
+      detectMediaType({
+        data: uint8Data,
+        signatures: imageMediaTypeSignatures,
+      }) || 'image/png',
+  };
 }

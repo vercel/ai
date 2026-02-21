@@ -19,8 +19,18 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
   },
   "usage": {
     "cachedInputTokens": undefined,
+    "inputTokenDetails": {
+      "cacheReadTokens": undefined,
+      "cacheWriteTokens": undefined,
+      "noCacheTokens": 3,
+    },
     "inputTokens": 3,
+    "outputTokenDetails": {
+      "reasoningTokens": undefined,
+      "textTokens": 10,
+    },
     "outputTokens": 10,
+    "raw": undefined,
     "reasoningTokens": undefined,
     "totalTokens": 13,
   },
@@ -41,8 +51,18 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
   },
   "usage": {
     "cachedInputTokens": undefined,
+    "inputTokenDetails": {
+      "cacheReadTokens": undefined,
+      "cacheWriteTokens": undefined,
+      "noCacheTokens": 3,
+    },
     "inputTokens": 3,
+    "outputTokenDetails": {
+      "reasoningTokens": undefined,
+      "textTokens": 10,
+    },
     "outputTokens": 10,
+    "raw": undefined,
     "reasoningTokens": undefined,
     "totalTokens": 13,
   },
@@ -109,8 +129,18 @@ exports[`streamObject > output = "object" > result.fullStream > should send full
     "type": "finish",
     "usage": {
       "cachedInputTokens": undefined,
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 3,
+      },
       "inputTokens": 3,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 10,
+      },
       "outputTokens": 10,
+      "raw": undefined,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },

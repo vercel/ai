@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/react",
-  "version": "3.0.0-beta.126",
+  "version": "3.0.99",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -27,6 +27,12 @@
   },
   "files": [
     "dist/**/*",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test.tsx",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
     "CHANGELOG.md",
     "README.md"
   ],
@@ -49,13 +55,13 @@
     "eslint-config-vercel-ai": "workspace:*",
     "jsdom": "^24.0.0",
     "msw": "2.6.4",
-    "react-dom": "^18 || ^19 || ^19.0.0-rc",
+    "react-dom": "^18 || ^19",
     "tsup": "^7.2.0",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },
   "peerDependencies": {
-    "react": "^18 || ^19 || ^19.0.0-rc"
+    "react": "^18 || ~19.0.1 || ~19.1.2 || ^19.2.1"
   },
   "engines": {
     "node": ">=18"

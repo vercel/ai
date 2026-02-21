@@ -16,7 +16,7 @@ import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
 import {
   GoogleGenerativeAIEmbeddingModelId,
-  googleGenerativeAIEmbeddingProviderOptions,
+  googleEmbeddingModelOptions,
 } from './google-generative-ai-embedding-options';
 
 type GoogleGenerativeAIEmbeddingConfig = {
@@ -57,7 +57,7 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
     const googleOptions = await parseProviderOptions({
       provider: 'google',
       providerOptions,
-      schema: googleGenerativeAIEmbeddingProviderOptions,
+      schema: googleEmbeddingModelOptions,
     });
 
     if (values.length > this.maxEmbeddingsPerCall) {
@@ -100,6 +100,7 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
       });
 
       return {
+        warnings: [],
         embeddings: [response.embedding.values],
         usage: undefined,
         response: { headers: responseHeaders, body: rawValue },
@@ -130,6 +131,7 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
     });
 
     return {
+      warnings: [],
       embeddings: response.embeddings.map(item => item.values),
       usage: undefined,
       response: { headers: responseHeaders, body: rawValue },
