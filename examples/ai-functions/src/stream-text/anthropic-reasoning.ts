@@ -1,10 +1,13 @@
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import {
+  anthropic,
+  type AnthropicLanguageModelOptions,
+} from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-3-7-sonnet-20250219'),
+    model: anthropic('claude-sonnet-4-6'),
     prompt: 'How many "r"s are in the word "strawberry"?',
     temperature: 0.5, // should get ignored (warning)
     onError: error => {
@@ -13,7 +16,7 @@ run(async () => {
     providerOptions: {
       anthropic: {
         thinking: { type: 'enabled', budgetTokens: 12000 },
-      } satisfies AnthropicProviderOptions,
+      } satisfies AnthropicLanguageModelOptions,
     },
     maxRetries: 0,
   });

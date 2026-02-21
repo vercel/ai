@@ -31,7 +31,7 @@ import {
 } from './bedrock-api-types';
 import {
   BedrockChatModelId,
-  bedrockProviderOptions,
+  amazonBedrockLanguageModelOptions,
 } from './bedrock-chat-options';
 import { BedrockErrorSchema } from './bedrock-error';
 import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
@@ -82,7 +82,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       (await parseProviderOptions({
         provider: 'bedrock',
         providerOptions,
-        schema: bedrockProviderOptions,
+        schema: amazonBedrockLanguageModelOptions,
       })) ?? {};
 
     const warnings: SharedV3Warning[] = [];
@@ -177,9 +177,13 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     }
 
     const isAnthropicModel = this.modelId.includes('anthropic');
+    const thinkingType = bedrockOptions.reasoningConfig?.type;
     const isThinkingRequested =
-      bedrockOptions.reasoningConfig?.type === 'enabled';
-    const thinkingBudget = bedrockOptions.reasoningConfig?.budgetTokens;
+      thinkingType === 'enabled' || thinkingType === 'adaptive';
+    const thinkingBudget =
+      thinkingType === 'enabled'
+        ? bedrockOptions.reasoningConfig?.budgetTokens
+        : undefined;
     const isAnthropicThinkingEnabled = isAnthropicModel && isThinkingRequested;
 
     const inferenceConfig = {
@@ -190,36 +194,60 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       ...(stopSequences != null && { stopSequences }),
     };
 
-    if (isAnthropicThinkingEnabled && thinkingBudget != null) {
-      if (inferenceConfig.maxTokens != null) {
-        inferenceConfig.maxTokens += thinkingBudget;
-      } else {
-        inferenceConfig.maxTokens = thinkingBudget + 4096; // Default + thinking budget maxTokens = 4096, TODO update default in v5
+    if (isAnthropicThinkingEnabled) {
+      if (thinkingBudget != null) {
+        if (inferenceConfig.maxTokens != null) {
+          inferenceConfig.maxTokens += thinkingBudget;
+        } else {
+          inferenceConfig.maxTokens = thinkingBudget + 4096; // Default + thinking budget maxTokens = 4096, TODO update default in v5
+        }
+        bedrockOptions.additionalModelRequestFields = {
+          ...bedrockOptions.additionalModelRequestFields,
+          thinking: {
+            type: 'enabled',
+            budget_tokens: thinkingBudget,
+          },
+        };
+      } else if (thinkingType === 'adaptive') {
+        bedrockOptions.additionalModelRequestFields = {
+          ...bedrockOptions.additionalModelRequestFields,
+          thinking: {
+            type: 'adaptive',
+          },
+        };
       }
-      // Add them to additional model request fields
-      // Add thinking config to additionalModelRequestFields
-      bedrockOptions.additionalModelRequestFields = {
-        ...bedrockOptions.additionalModelRequestFields,
-        thinking: {
-          type: bedrockOptions.reasoningConfig?.type,
-          budget_tokens: thinkingBudget,
-        },
-      };
-    } else if (!isAnthropicModel && thinkingBudget != null) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'budgetTokens',
-        details:
-          'budgetTokens applies only to Anthropic models on Bedrock and will be ignored for this model.',
-      });
+    } else if (!isAnthropicModel) {
+      if (bedrockOptions.reasoningConfig?.budgetTokens != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'budgetTokens',
+          details:
+            'budgetTokens applies only to Anthropic models on Bedrock and will be ignored for this model.',
+        });
+      }
+      if (thinkingType === 'adaptive') {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'adaptive thinking',
+          details:
+            'adaptive thinking type applies only to Anthropic models on Bedrock.',
+        });
+      }
     }
 
     const maxReasoningEffort =
       bedrockOptions.reasoningConfig?.maxReasoningEffort;
     const isOpenAIModel = this.modelId.startsWith('openai.');
 
-    if (maxReasoningEffort != null && !isAnthropicModel) {
-      if (isOpenAIModel) {
+    if (maxReasoningEffort != null) {
+      if (isAnthropicModel) {
+        bedrockOptions.additionalModelRequestFields = {
+          ...bedrockOptions.additionalModelRequestFields,
+          output_config: {
+            effort: maxReasoningEffort,
+          },
+        };
+      } else if (isOpenAIModel) {
         // OpenAI models on Bedrock expect `reasoning_effort` as a flat value
         bedrockOptions.additionalModelRequestFields = {
           ...bedrockOptions.additionalModelRequestFields,
@@ -230,20 +258,13 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         bedrockOptions.additionalModelRequestFields = {
           ...bedrockOptions.additionalModelRequestFields,
           reasoningConfig: {
-            ...(bedrockOptions.reasoningConfig?.type != null && {
-              type: bedrockOptions.reasoningConfig.type,
-            }),
+            ...(thinkingType != null &&
+              thinkingType !== 'adaptive' && { type: thinkingType }),
+            ...(thinkingBudget != null && { budgetTokens: thinkingBudget }),
             maxReasoningEffort,
           },
         };
       }
-    } else if (maxReasoningEffort != null && isAnthropicModel) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'maxReasoningEffort',
-        details:
-          'maxReasoningEffort applies only to Amazon Nova models on Bedrock and will be ignored for this model.',
-      });
     }
 
     if (isAnthropicThinkingEnabled && inferenceConfig.temperature != null) {
@@ -462,15 +483,32 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       response.additionalModelResponseFields?.delta?.stop_sequence ?? null;
 
     const providerMetadata =
-      response.trace || response.usage || isJsonResponseFromTool || stopSequence
+      response.trace ||
+      response.usage ||
+      response.performanceConfig ||
+      response.serviceTier ||
+      isJsonResponseFromTool ||
+      stopSequence
         ? {
             bedrock: {
               ...(response.trace && typeof response.trace === 'object'
                 ? { trace: response.trace as JSONObject }
                 : {}),
-              ...(response.usage?.cacheWriteInputTokens != null && {
+              ...(response.performanceConfig && {
+                performanceConfig: response.performanceConfig,
+              }),
+              ...(response.serviceTier && {
+                serviceTier: response.serviceTier,
+              }),
+              ...((response.usage?.cacheWriteInputTokens != null ||
+                response.usage?.cacheDetails != null) && {
                 usage: {
-                  cacheWriteInputTokens: response.usage.cacheWriteInputTokens,
+                  ...(response.usage.cacheWriteInputTokens != null && {
+                    cacheWriteInputTokens: response.usage.cacheWriteInputTokens,
+                  }),
+                  ...(response.usage.cacheDetails != null && {
+                    cacheDetails: response.usage.cacheDetails,
+                  }),
                 },
               }),
               ...(isJsonResponseFromTool && { isJsonResponseFromTool: true }),
@@ -490,7 +528,12 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       },
       usage: convertBedrockUsage(response.usage),
       response: {
-        // TODO add id, timestamp, etc
+        id: responseHeaders?.['x-amzn-requestid'] ?? undefined,
+        timestamp:
+          responseHeaders?.['date'] != null
+            ? new Date(responseHeaders['date'])
+            : undefined,
+        modelId: this.modelId,
         headers: responseHeaders,
       },
       warnings,
@@ -506,8 +549,9 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       warnings,
       usesJsonResponseTool,
     } = await this.getArgs(options);
-    const isMistral = isMistralModel(this.modelId);
-    const url = `${this.getUrl(this.modelId)}/converse-stream`;
+    const modelId = this.modelId;
+    const isMistral = isMistralModel(modelId);
+    const url = `${this.getUrl(modelId)}/converse-stream`;
 
     const { value: response, responseHeaders } = await postJsonToApi({
       url,
@@ -552,6 +596,15 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
+            controller.enqueue({
+              type: 'response-metadata',
+              id: responseHeaders?.['x-amzn-requestid'] ?? undefined,
+              timestamp:
+                responseHeaders?.['date'] != null
+                  ? new Date(responseHeaders['date'])
+                  : undefined,
+              modelId,
+            });
           },
 
           transform(chunk, controller) {
@@ -610,11 +663,18 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
               }
 
               const cacheUsage =
-                value.metadata.usage?.cacheWriteInputTokens != null
+                value.metadata.usage?.cacheWriteInputTokens != null ||
+                value.metadata.usage?.cacheDetails != null
                   ? {
                       usage: {
-                        cacheWriteInputTokens:
-                          value.metadata.usage.cacheWriteInputTokens,
+                        ...(value.metadata.usage?.cacheWriteInputTokens !=
+                          null && {
+                          cacheWriteInputTokens:
+                            value.metadata.usage.cacheWriteInputTokens,
+                        }),
+                        ...(value.metadata.usage?.cacheDetails != null && {
+                          cacheDetails: value.metadata.usage.cacheDetails,
+                        }),
                       },
                     }
                   : undefined;
@@ -625,11 +685,22 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
                   }
                 : undefined;
 
-              if (cacheUsage || trace) {
+              if (
+                cacheUsage ||
+                trace ||
+                value.metadata.performanceConfig ||
+                value.metadata.serviceTier
+              ) {
                 providerMetadata = {
                   bedrock: {
                     ...cacheUsage,
                     ...trace,
+                    ...(value.metadata.performanceConfig && {
+                      performanceConfig: value.metadata.performanceConfig,
+                    }),
+                    ...(value.metadata.serviceTier && {
+                      serviceTier: value.metadata.serviceTier,
+                    }),
                   },
                 };
               }
@@ -934,12 +1005,17 @@ const BedrockResponseSchema = z.object({
   additionalModelResponseFields:
     BedrockAdditionalModelResponseFieldsSchema.nullish(),
   trace: z.unknown().nullish(),
+  performanceConfig: z.object({ latency: z.string() }).nullish(),
+  serviceTier: z.object({ type: z.string() }).nullish(),
   usage: z.object({
     inputTokens: z.number(),
     outputTokens: z.number(),
     totalTokens: z.number(),
     cacheReadInputTokens: z.number().nullish(),
     cacheWriteInputTokens: z.number().nullish(),
+    cacheDetails: z
+      .array(z.object({ inputTokens: z.number(), ttl: z.string() }))
+      .nullish(),
   }),
 });
 
@@ -994,10 +1070,15 @@ const BedrockStreamSchema = z.object({
   metadata: z
     .object({
       trace: z.unknown().nullish(),
+      performanceConfig: z.object({ latency: z.string() }).nullish(),
+      serviceTier: z.object({ type: z.string() }).nullish(),
       usage: z
         .object({
           cacheReadInputTokens: z.number().nullish(),
           cacheWriteInputTokens: z.number().nullish(),
+          cacheDetails: z
+            .array(z.object({ inputTokens: z.number(), ttl: z.string() }))
+            .nullish(),
           inputTokens: z.number(),
           outputTokens: z.number(),
         })

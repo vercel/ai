@@ -1,6 +1,8 @@
-import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import fs from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createOpenAI } from '../openai-provider';
 import { OpenAITranscriptionModel } from './openai-transcription-model';
 import { describe, it, expect, vi } from 'vitest';
@@ -19,64 +21,25 @@ const server = createTestServer({
   'https://api.openai.com/v1/audio/transcriptions': {},
 });
 
-describe('doGenerate', () => {
-  function prepareJsonResponse({
+function prepareJsonFixtureResponse(
+  filename: string,
+  headers?: Record<string, string>,
+) {
+  server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+    type: 'json-value',
     headers,
-  }: {
-    headers?: Record<string, string>;
-  } = {}) {
-    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
-      type: 'json-value',
-      headers,
-      body: {
-        task: 'transcribe',
-        text: 'Hello from the Vercel AI SDK!',
-        words: [
-          {
-            word: 'Hello',
-            start: 0,
-            end: 5,
-          },
-          {
-            word: 'from',
-            start: 5,
-            end: 10,
-          },
-          {
-            word: 'the',
-            start: 10,
-            end: 15,
-          },
-          {
-            word: 'Vercel',
-            start: 15,
-            end: 20,
-          },
-          {
-            word: 'AI',
-            start: 20,
-            end: 25,
-          },
-          {
-            word: 'SDK',
-            start: 25,
-            end: 30,
-          },
-          {
-            word: '!',
-            start: 30,
-            end: 35,
-          },
-        ],
-        durationInSeconds: 35,
-        language: 'en',
-        _request_id: 'req_1234',
-      },
-    };
-  }
+    body: JSON.parse(
+      fs.readFileSync(
+        `src/transcription/__fixtures__/${filename}.json`,
+        'utf8',
+      ),
+    ),
+  };
+}
 
+describe('doGenerate', () => {
   it('should pass the model', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-transcription');
 
     await model.doGenerate({
       audio: audioData,
@@ -89,7 +52,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass headers', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-transcription');
 
     const provider = createOpenAI({
       apiKey: 'test-api-key',
@@ -125,22 +88,22 @@ describe('doGenerate', () => {
   });
 
   it('should extract the transcription text', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-transcription');
 
     const result = await model.doGenerate({
       audio: audioData,
       mediaType: 'audio/wav',
     });
 
-    expect(result.text).toBe('Hello from the Vercel AI SDK!');
+    expect(result.text).toMatchInlineSnapshot(
+      `"Galileo was an American robotic space program that studied the planet Jupiter and its moons, as well as several other solar system bodies."`,
+    );
   });
 
   it('should include response data with timestamp, modelId and headers', async () => {
-    prepareJsonResponse({
-      headers: {
-        'x-request-id': 'test-request-id',
-        'x-ratelimit-remaining': '123',
-      },
+    prepareJsonFixtureResponse('openai-transcription', {
+      'x-request-id': 'test-request-id',
+      'x-ratelimit-remaining': '123',
     });
 
     const testDate = new Date(0);
@@ -170,7 +133,7 @@ describe('doGenerate', () => {
   });
 
   it('should use real date when no custom date provider is specified', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-transcription');
 
     const testDate = new Date(0);
     const customModel = new OpenAITranscriptionModel('whisper-1', {
@@ -192,7 +155,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass response_format when `providerOptions.openai.timestampGranularities` is set', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-transcription');
 
     await model.doGenerate({
       audio: audioData,
@@ -220,7 +183,7 @@ describe('doGenerate', () => {
   });
 
   it('should not set pass response_format to "verbose_json" when model is "gpt-4o-transcribe"', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-transcription');
 
     const model = provider.transcription('gpt-4o-transcribe');
     await model.doGenerate({
@@ -249,7 +212,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass timestamp_granularities when specified', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-transcription');
 
     await model.doGenerate({
       audio: audioData,

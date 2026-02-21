@@ -79,7 +79,7 @@ For more on image generation with the AI SDK see [generateImage()](/docs/referen
 ### Basic Usage
 
 ```ts
-import { luma, type LumaImageProviderOptions } from '@ai-sdk/luma';
+import { luma, type LumaImageModelOptions } from '@ai-sdk/luma';
 import { generateImage } from 'ai';
 import fs from 'fs';
 
@@ -109,7 +109,7 @@ const { image } = await generateImage({
       pollIntervalMillis: 5000, // How often to check for completed images (in ms)
       maxPollAttempts: 10, // Maximum number of polling attempts before timeout
     },
-  } satisfies LumaImageProviderOptions,
+  } satisfies LumaImageModelOptions,
 });
 ```
 
@@ -164,7 +164,7 @@ Luma supports different modes of generating images that reference other images.
 
 #### Modify an image
 
-Images have to be passed as URLs. `weight` can be configured for each image in the `providerOPtions.luma.images` array.
+Images have to be passed as URLs. `weight` can be configured for each image in the `providerOptions.luma.images` array.
 
 ```ts
 await generateImage({
@@ -177,15 +177,16 @@ await generateImage({
   },
   providerOptions: {
     luma: {
+      referenceType: 'modify_image',
       images: [{ weight: 1.0 }],
-    } satisfies LumaImageProviderOptions,
+    } satisfies LumaImageModelOptions,
   },
 });
 ```
 
 Learn more at https://docs.lumalabs.ai/docs/image-generation#modify-image.
 
-#### Referen an image
+#### Reference an image
 
 Use up to 4 reference images to guide your generation. Useful for creating variations or visualizing complex concepts. Adjust the `weight` for each image (0-1) to control the influence of reference images.
 
@@ -203,7 +204,7 @@ await generateImage({
     luma: {
       referenceType: 'image',
       images: [{ weight: 0.8 }],
-    } satisfies LumaImageProviderOptions,
+    } satisfies LumaImageModelOptions,
   },
 });
 ```
@@ -217,13 +218,18 @@ Apply specific visual styles to your generations using reference images. Control
 ```ts
 await generateImage({
   model: luma.image('photon-flash-1'),
-  prompt: 'A blue cream Persian cat launching its website on Vercel',
+  prompt: {
+    text: 'A blue cream Persian cat launching its website on Vercel',
+    images: [
+      'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/future-me-8hcBWcZOkbE53q3gshhEm16S87qDpF.jpeg',
+    ],
+  },
   aspectRatio: '1:1',
   providerOptions: {
     luma: {
       referenceType: 'style',
       images: [{ weight: 0.8 }],
-    } satisfies LumaImageProviderOptions,
+    } satisfies LumaImageModelOptions,
   },
 });
 ```
@@ -252,7 +258,7 @@ await generateImage({
           id: 'identity0',
         },
       ],
-    } satisfies LumaImageProviderOptions,
+    } satisfies LumaImageModelOptions,
   },
 });
 ```

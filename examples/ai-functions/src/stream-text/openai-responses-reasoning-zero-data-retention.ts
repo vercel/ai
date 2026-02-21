@@ -1,4 +1,4 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { APICallError, streamText, UserModelMessage } from 'ai';
 import { run } from '../lib/run';
 
@@ -12,7 +12,7 @@ run(async () => {
         store: false, // No data retention - makes interaction stateless
         reasoningEffort: 'medium',
         reasoningSummary: 'auto',
-      } satisfies OpenAIResponsesProviderOptions,
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
   });
 
@@ -53,7 +53,7 @@ run(async () => {
         store: false, // No data retention - makes interaction stateless
         reasoningEffort: 'medium',
         reasoningSummary: 'auto',
-      } satisfies OpenAIResponsesProviderOptions,
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
     onError: ({ error }) => {
       console.error(error);

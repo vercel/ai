@@ -92,20 +92,24 @@ const { text } = await generateText({
 
 ### Generating Structured Data
 
-While text generation can be useful, you might want to generate structured JSON data. For example, you might want to extract information from text, classify data, or generate synthetic data. AI SDK Core provides two functions ([`generateObject`](/docs/reference/ai-sdk-core/generate-object) and [`streamObject`](/docs/reference/ai-sdk-core/stream-object)) to generate structured data, allowing you to constrain model outputs to a specific schema.
+While text generation can be useful, you might want to generate structured JSON data. For example, you might want to extract information from text, classify data, or generate synthetic data. AI SDK Core provides [`generateText`](/docs/reference/ai-sdk-core/generate-text) and [`streamText`](/docs/reference/ai-sdk-core/stream-text) with `Output` to generate structured data, allowing you to constrain model outputs to a specific schema.
 
 ```ts
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
-const { object } = await generateObject({
+const { output } = await generateText({
   model: openai('o3-mini'),
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(z.object({ name: z.string(), amount: z.string() })),
-      steps: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(
+          z.object({ name: z.string(), amount: z.string() }),
+        ),
+        steps: z.array(z.string()),
+      }),
     }),
   }),
   prompt: 'Generate a lasagna recipe.',
@@ -153,7 +157,7 @@ With four main hooks — [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`useC
 
 Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK, and OpenAI o3-mini:
 
-In a new Next.js application, first install the AI SDK and the DeepSeek provider:
+In a new Next.js application, first install the AI SDK and the OpenAI provider:
 
 <Snippet text="pnpm install ai @ai-sdk/openai @ai-sdk/react" />
 

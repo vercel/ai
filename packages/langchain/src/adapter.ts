@@ -15,6 +15,7 @@ import {
   convertUserContent,
   processModelChunk,
   processLangGraphEvent,
+  parseLangGraphEvent,
   isToolResultPart,
   extractReasoningFromContentBlocks,
 } from './utils';
@@ -284,6 +285,19 @@ function processStreamEventsEvent(
 }
 
 /**
+ * Checks if an error is an abort error.
+ */
+function isAbortError(error: unknown): boolean {
+  if (error instanceof Error) {
+    return (
+      error.name === 'AbortError' ||
+      (error instanceof DOMException && error.name === 'AbortError')
+    );
+  }
+  return false;
+}
+
+/**
  * Converts a LangChain stream to an AI SDK UIMessageStream.
  *
  * This function automatically detects the stream type and handles:
@@ -321,16 +335,36 @@ function processStreamEventsEvent(
  * return createUIMessageStreamResponse({
  *   stream: toUIMessageStream(streamEvents),
  * });
+ *
+ * // With callbacks for LangGraph state
+ * const graphStream = await graph.stream(
+ *   { messages },
+ *   { streamMode: ['values', 'messages'] }
+ * );
+ * return createUIMessageStreamResponse({
+ *   stream: toUIMessageStream<MyStateType>(graphStream, {
+ *     onFinish: async (finalState) => {
+ *       if (finalState) {
+ *         await saveToDatabase(finalState);
+ *       }
+ *     },
+ *     onError: (error) => console.error('Stream failed:', error),
+ *     onAbort: () => console.log('Stream aborted'),
+ *   }),
+ * });
  * ```
  */
-export function toUIMessageStream(
+export function toUIMessageStream<TState = unknown>(
   stream: AsyncIterable<AIMessageChunk> | ReadableStream,
-  callbacks?: StreamCallbacks,
+  callbacks?: StreamCallbacks<TState>,
 ): ReadableStream<UIMessageChunk> {
   /**
    * Track text chunks for onFinal callback
    */
   const textChunks: string[] = [];
+
+  /** Last LangGraph values event data for onFinish callback */
+  let lastValuesData: TState | undefined;
 
   /**
    * State for model stream handling
@@ -465,8 +499,15 @@ export function toUIMessageStream(
               wrappedController,
             );
           } else {
+            const eventArray = value as unknown[];
+            const [type, data] = parseLangGraphEvent(eventArray);
+
+            if (type === 'values') {
+              lastValuesData = data as TState;
+            }
+
             processLangGraphEvent(
-              value as unknown[],
+              eventArray,
               langGraphState,
               wrappedController,
             );
@@ -507,10 +548,22 @@ export function toUIMessageStream(
          * Call onFinal callback with aggregated text
          */
         await callbacks?.onFinal?.(textChunks.join(''));
+        await callbacks?.onFinish?.(lastValuesData);
       } catch (error) {
+        const errorObj =
+          error instanceof Error ? error : new Error(String(error));
+
+        await callbacks?.onFinal?.(textChunks.join(''));
+
+        if (isAbortError(error)) {
+          await callbacks?.onAbort?.();
+        } else {
+          await callbacks?.onError?.(errorObj);
+        }
+
         controller.enqueue({
           type: 'error',
-          errorText: error instanceof Error ? error.message : 'Unknown error',
+          errorText: errorObj.message,
         });
       } finally {
         controller.close();

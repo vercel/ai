@@ -10,6 +10,14 @@ The Together.ai provider is available in the `@ai-sdk/togetherai` module. You ca
 npm i @ai-sdk/togetherai
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 You can import the default provider instance `togetherai` from `@ai-sdk/togetherai`:

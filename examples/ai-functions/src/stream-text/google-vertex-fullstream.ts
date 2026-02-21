@@ -6,7 +6,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: vertex('gemini-1.5-pro'),
+    model: vertex('gemini-2.5-pro'),
     tools: {
       weather: weatherTool,
       cityAttractions: {

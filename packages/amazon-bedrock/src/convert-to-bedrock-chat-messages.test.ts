@@ -35,6 +35,46 @@ describe('system messages', () => {
       messages: [],
     });
   });
+
+  it('should add cache point with 5m TTL to system message', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'system',
+        content: 'Hello',
+        providerOptions: {
+          bedrock: { cachePoint: { type: 'default', ttl: '5m' } },
+        },
+      },
+    ]);
+
+    expect(result).toEqual({
+      system: [
+        { text: 'Hello' },
+        { cachePoint: { type: 'default', ttl: '5m' } },
+      ],
+      messages: [],
+    });
+  });
+
+  it('should add cache point with 1h TTL to system message', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'system',
+        content: 'Hello',
+        providerOptions: {
+          bedrock: { cachePoint: { type: 'default', ttl: '1h' } },
+        },
+      },
+    ]);
+
+    expect(result).toEqual({
+      system: [
+        { text: 'Hello' },
+        { cachePoint: { type: 'default', ttl: '1h' } },
+      ],
+      messages: [],
+    });
+  });
 });
 
 describe('user messages', () => {
@@ -269,6 +309,56 @@ describe('user messages', () => {
       system: [],
     });
   });
+
+  it('should add cache point with 5m TTL to user message', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello' }],
+        providerOptions: {
+          bedrock: { cachePoint: { type: 'default', ttl: '5m' } },
+        },
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { text: 'Hello' },
+            { cachePoint: { type: 'default', ttl: '5m' } },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should add cache point with 1h TTL to user message', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello' }],
+        providerOptions: {
+          bedrock: { cachePoint: { type: 'default', ttl: '1h' } },
+        },
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { text: 'Hello' },
+            { cachePoint: { type: 'default', ttl: '1h' } },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
 });
 
 describe('assistant messages', () => {
@@ -398,6 +488,56 @@ describe('assistant messages', () => {
         {
           role: 'assistant',
           content: [{ text: 'Hello' }, { cachePoint: { type: 'default' } }],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should add cache point with 5m TTL to assistant message', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hello' }],
+        providerOptions: {
+          bedrock: { cachePoint: { type: 'default', ttl: '5m' } },
+        },
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            { text: 'Hello' },
+            { cachePoint: { type: 'default', ttl: '5m' } },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should add cache point with 1h TTL to assistant message', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hello' }],
+        providerOptions: {
+          bedrock: { cachePoint: { type: 'default', ttl: '1h' } },
+        },
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            { text: 'Hello' },
+            { cachePoint: { type: 'default', ttl: '1h' } },
+          ],
         },
       ],
       system: [],

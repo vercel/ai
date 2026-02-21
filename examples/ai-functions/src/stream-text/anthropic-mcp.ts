@@ -1,4 +1,7 @@
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import {
+  anthropic,
+  type AnthropicLanguageModelOptions,
+} from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
 import { print } from '../lib/print';
@@ -17,7 +20,7 @@ run(async () => {
             url: 'https://echo.mcp.inevitable.fyi/mcp',
           },
         ],
-      } satisfies AnthropicProviderOptions,
+      } satisfies AnthropicLanguageModelOptions,
     },
   });
 

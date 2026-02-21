@@ -304,16 +304,58 @@ is triggered when a step is finished,
 i.e. all text deltas, tool calls, and tool results for the step are available.
 When you have multiple steps, the callback is triggered for each step.
 
-```tsx highlight="5-7"
+The callback receives a `stepNumber` (zero-based) to identify which step just completed:
+
+```tsx highlight="5-8"
 import { generateText } from 'ai';
 
 const result = await generateText({
   // ...
-  onStepFinish({ text, toolCalls, toolResults, finishReason, usage }) {
+  onStepFinish({
+    stepNumber,
+    text,
+    toolCalls,
+    toolResults,
+    finishReason,
+    usage,
+  }) {
+    console.log(`Step ${stepNumber} finished (${finishReason})`);
     // your own logic, e.g. for saving the chat history or recording usage
   },
 });
 ```
+
+### Tool execution lifecycle callbacks
+
+You can use `experimental_onToolCallStart` and `experimental_onToolCallFinish` to observe tool execution.
+These callbacks are called right before and after each tool's `execute` function, giving you
+visibility into tool execution timing, inputs, outputs, and errors:
+
+```tsx highlight="5-14"
+import { generateText } from 'ai';
+
+const result = await generateText({
+  // ... model, tools, prompt
+  experimental_onToolCallStart({ toolName, toolCallId, input }) {
+    console.log(`Calling tool: ${toolName}`, { toolCallId, input });
+  },
+  experimental_onToolCallFinish({
+    toolName,
+    toolCallId,
+    output,
+    error,
+    durationMs,
+  }) {
+    if (error) {
+      console.error(`Tool ${toolName} failed after ${durationMs}ms:`, error);
+    } else {
+      console.log(`Tool ${toolName} completed in ${durationMs}ms`, { output });
+    }
+  },
+});
+```
+
+Errors thrown inside these callbacks are silently caught and do not break the generation flow.
 
 ### `prepareStep` callback
 
@@ -859,7 +901,7 @@ You can use different strategies to repair the tool call:
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { generateObject, generateText, NoSuchToolError, tool } from 'ai';
+import { generateText, NoSuchToolError, Output, tool } from 'ai';
 
 const result = await generateText({
   model,
@@ -878,9 +920,9 @@ const result = await generateText({
 
     const tool = tools[toolCall.toolName as keyof typeof tools];
 
-    const { object: repairedArgs } = await generateObject({
+    const { output: repairedArgs } = await generateText({
       model: __MODEL__,
-      schema: tool.inputSchema,
+      output: Output.object({ schema: tool.inputSchema }),
       prompt: [
         `The model tried to call the tool "${toolCall.toolName}"` +
           ` with the following inputs:`,
@@ -900,7 +942,7 @@ const result = await generateText({
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { generateObject, generateText, NoSuchToolError, tool } from 'ai';
+import { generateText, NoSuchToolError, tool } from 'ai';
 
 const result = await generateText({
   model,

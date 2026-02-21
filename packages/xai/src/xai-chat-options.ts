@@ -1,8 +1,7 @@
 import { z } from 'zod/v4';
 
-// https://console.x.ai and see "View models"
+// https://docs.x.ai/docs/models
 export type XaiChatModelId =
-  | 'grok-4-1'
   | 'grok-4-1-fast-reasoning'
   | 'grok-4-1-fast-non-reasoning'
   | 'grok-4-fast-non-reasoning'
@@ -73,7 +72,7 @@ const searchSourceSchema = z.discriminatedUnion('type', [
 ]);
 
 // xai-specific provider options
-export const xaiProviderOptions = z.object({
+export const xaiLanguageModelChatOptions = z.object({
   reasoningEffort: z.enum(['low', 'high']).optional(),
 
   /**
@@ -128,4 +127,6 @@ export const xaiProviderOptions = z.object({
     .optional(),
 });
 
-export type XaiProviderOptions = z.infer<typeof xaiProviderOptions>;
+export type XaiLanguageModelChatOptions = z.infer<
+  typeof xaiLanguageModelChatOptions
+>;

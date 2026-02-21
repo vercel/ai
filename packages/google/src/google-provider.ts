@@ -1,8 +1,9 @@
 import {
   EmbeddingModelV3,
+  Experimental_VideoModelV3,
+  ImageModelV3,
   LanguageModelV3,
   ProviderV3,
-  ImageModelV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -23,6 +24,8 @@ import {
   GoogleGenerativeAIImageModelId,
 } from './google-generative-ai-image-settings';
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
+import { GoogleGenerativeAIVideoModel } from './google-generative-ai-video-model';
+import { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
 
 export interface GoogleGenerativeAIProvider extends ProviderV3 {
   (modelId: GoogleGenerativeAIModelId): LanguageModelV3;
@@ -65,6 +68,18 @@ export interface GoogleGenerativeAIProvider extends ProviderV3 {
   textEmbeddingModel(
     modelId: GoogleGenerativeAIEmbeddingModelId,
   ): EmbeddingModelV3;
+
+  /**
+   * Creates a model for video generation.
+   */
+  video(modelId: GoogleGenerativeAIVideoModelId): Experimental_VideoModelV3;
+
+  /**
+   * Creates a model for video generation.
+   */
+  videoModel(
+    modelId: GoogleGenerativeAIVideoModelId,
+  ): Experimental_VideoModelV3;
 
   tools: typeof googleTools;
 }
@@ -170,6 +185,15 @@ export function createGoogleGenerativeAI(
       fetch: options.fetch,
     });
 
+  const createVideoModel = (modelId: GoogleGenerativeAIVideoModelId) =>
+    new GoogleGenerativeAIVideoModel(modelId, {
+      provider: providerName,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      generateId: options.generateId ?? generateId,
+    });
+
   const provider = function (modelId: GoogleGenerativeAIModelId) {
     if (new.target) {
       throw new Error(
@@ -190,6 +214,8 @@ export function createGoogleGenerativeAI(
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
+  provider.video = createVideoModel;
+  provider.videoModel = createVideoModel;
   provider.tools = googleTools;
 
   return provider as GoogleGenerativeAIProvider;

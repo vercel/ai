@@ -1,5 +1,292 @@
 # ai
 
+## 6.0.97
+
+### Patch Changes
+
+- ebfdad1: feat(ai): experimental callbacks in ToolLoopAgent
+
+## 6.0.96
+
+### Patch Changes
+
+- 30c9de6: feat(ai): experimental callbacks for streamText
+
+## 6.0.95
+
+### Patch Changes
+
+- Updated dependencies [73b7e09]
+  - @ai-sdk/gateway@3.0.53
+
+## 6.0.94
+
+### Patch Changes
+
+- Updated dependencies [363fa44]
+  - @ai-sdk/gateway@3.0.52
+
+## 6.0.93
+
+### Patch Changes
+
+- d3769ec: feat(ai): add experimental callbacks in generateText
+
+## 6.0.92
+
+### Patch Changes
+
+- Updated dependencies [765b013]
+  - @ai-sdk/gateway@3.0.51
+
+## 6.0.91
+
+### Patch Changes
+
+- Updated dependencies [a433cd3]
+  - @ai-sdk/gateway@3.0.50
+
+## 6.0.90
+
+### Patch Changes
+
+- 98e83ab: Fix `useChat` status briefly flashing to `submitted` on page load when `resume: true` is set and there is no active stream to resume. The `reconnectToStream` check is now performed before setting status to `submitted`, so status stays `ready` when the server responds with 204 (no active stream).
+
+## 6.0.89
+
+### Patch Changes
+
+- Updated dependencies [5f693c8]
+  - @ai-sdk/gateway@3.0.49
+
+## 6.0.88
+
+### Patch Changes
+
+- Updated dependencies [2a1c664]
+  - @ai-sdk/gateway@3.0.48
+
+## 6.0.87
+
+### Patch Changes
+
+- Updated dependencies [6bbd05b]
+  - @ai-sdk/gateway@3.0.47
+
+## 6.0.86
+
+### Patch Changes
+
+- Updated dependencies [f75f18c]
+  - @ai-sdk/gateway@3.0.46
+
+## 6.0.85
+
+### Patch Changes
+
+- Updated dependencies [e858654]
+  - @ai-sdk/gateway@3.0.45
+
+## 6.0.84
+
+### Patch Changes
+
+- 4024a3a: security: prevent unbounded memory growth in download functions
+
+  The `download()` and `downloadBlob()` functions now enforce a default 2 GiB size limit when downloading from user-provided URLs. Downloads that exceed this limit are aborted with a `DownloadError` instead of consuming unbounded memory and crashing the process. The `abortSignal` parameter is now passed through to `fetch()` in all download call sites.
+
+  Added `download` option to `transcribe()` and `experimental_generateVideo()` for providing a custom download function. Use the new `createDownload({ maxBytes })` factory to configure download size limits.
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+  - @ai-sdk/gateway@3.0.44
+
+## 6.0.83
+
+### Patch Changes
+
+- Updated dependencies [b424e50]
+  - @ai-sdk/gateway@3.0.43
+
+## 6.0.82
+
+### Patch Changes
+
+- Updated dependencies [1819bc1]
+  - @ai-sdk/gateway@3.0.42
+
+## 6.0.81
+
+### Patch Changes
+
+- ee4beee: feat(ai): add onStepFinish callback to createUIMessageStream
+
+## 6.0.80
+
+### Patch Changes
+
+- Updated dependencies [99fbed8]
+  - @ai-sdk/gateway@3.0.41
+
+## 6.0.79
+
+### Patch Changes
+
+- Updated dependencies [a2208a2]
+  - @ai-sdk/gateway@3.0.40
+
+## 6.0.78
+
+### Patch Changes
+
+- 59fcf30: fix(ai): make experimental_context required in ToolLoopAgentOnFinishCallback
+
+  This fixes a type inconsistency where `ToolLoopAgentOnFinishCallback` had `experimental_context` as optional while `StreamTextOnFinishCallback` and `GenerateTextOnFinishCallback` had it as required. Since `ToolLoopAgent` delegates to `streamText`/`generateText`, and both always pass `experimental_context` when invoking the callback, the types should match.
+
+## 6.0.77
+
+### Patch Changes
+
+- Updated dependencies [eea5d30]
+  - @ai-sdk/gateway@3.0.39
+
+## 6.0.76
+
+### Patch Changes
+
+- Updated dependencies [70028ab]
+  - @ai-sdk/gateway@3.0.38
+
+## 6.0.75
+
+### Patch Changes
+
+- 7168375: feat (ai, provider): default global provider video model resolution
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/gateway@3.0.37
+  - @ai-sdk/provider-utils@4.0.14
+
+## 6.0.74
+
+### Patch Changes
+
+- 471009b: fix(ai): pass reasoning text in telemetry
+
+## 6.0.73
+
+### Patch Changes
+
+- Updated dependencies [9892c58]
+  - @ai-sdk/gateway@3.0.36
+
+## 6.0.72
+
+### Patch Changes
+
+- Updated dependencies [8e2eaac]
+  - @ai-sdk/gateway@3.0.35
+
+## 6.0.71
+
+### Patch Changes
+
+- Updated dependencies [4867635]
+  - @ai-sdk/gateway@3.0.34
+
+## 6.0.70
+
+### Patch Changes
+
+- Updated dependencies [ae30443]
+  - @ai-sdk/gateway@3.0.33
+
+## 6.0.69
+
+### Patch Changes
+
+- d659305: fix(ai): auto-populate `originalMessages` in `createAgentUIStream`
+
+## 6.0.68
+
+### Patch Changes
+
+- 8bf2660: chore(ai): export `DefaultGeneratedFile`
+
+## 6.0.67
+
+### Patch Changes
+
+- 53f6731: feat (ai, provider): experimental generate video support
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/gateway@3.0.32
+  - @ai-sdk/provider-utils@4.0.13
+
+## 6.0.66
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+  - @ai-sdk/gateway@3.0.31
+
+## 6.0.65
+
+### Patch Changes
+
+- Updated dependencies [1a74972]
+  - @ai-sdk/gateway@3.0.30
+
+## 6.0.64
+
+### Patch Changes
+
+- ce9daa3: Fixed 'reasoning part reasoning-0 not found' error by ensuring 'reasoning-start' event is emitted for empty thinking blocks (eg. <think></think>)
+
+## 6.0.63
+
+### Patch Changes
+
+- be95579: fix(ui): respect `Promise<false>` when returned by `sendAutomaticallyWhen`
+
+## 6.0.62
+
+### Patch Changes
+
+- 2810850: fix(ai): improve type validation error messages with field paths and entity identifiers
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+  - @ai-sdk/gateway@3.0.29
+
+## 6.0.61
+
+### Patch Changes
+
+- Updated dependencies [1524271]
+  - @ai-sdk/gateway@3.0.28
+
+## 6.0.60
+
+### Patch Changes
+
+- 5fc42fa: feat(ai): add experimental retention setting
+
+## 6.0.59
+
+### Patch Changes
+
+- Updated dependencies [0acff64]
+  - @ai-sdk/gateway@3.0.27
+
+## 6.0.58
+
+### Patch Changes
+
+- Updated dependencies [a8be296]
+  - @ai-sdk/gateway@3.0.26
+
 ## 6.0.57
 
 ### Patch Changes

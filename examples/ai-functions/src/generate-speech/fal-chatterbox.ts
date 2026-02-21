@@ -1,4 +1,4 @@
-import { fal } from '@ai-sdk/fal';
+import { fal, type FalSpeechModelOptions } from '@ai-sdk/fal';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
 import { saveAudioFile } from '../lib/save-audio';
 import { run } from '../lib/run';
@@ -15,7 +15,7 @@ run(async () => {
         temperature: 0.8,
         audio_url:
           'https://storage.googleapis.com/chatterbox-demo-samples/prompts/male_rickmorty.mp3',
-      },
+      } satisfies FalSpeechModelOptions,
     },
   });
 

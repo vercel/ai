@@ -1,4 +1,8 @@
-import { google, GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import {
+  google,
+  GoogleGenerativeAIProviderMetadata,
+  type GoogleLanguageModelOptions,
+} from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 
@@ -13,7 +17,7 @@ run(async () => {
         retrievalConfig: {
           latLng: { latitude: 34.09, longitude: -117.88 },
         },
-      },
+      } satisfies GoogleLanguageModelOptions,
     },
     prompt:
       'What are the best Italian restaurants within a 15-minute walk from here?',

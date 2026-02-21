@@ -103,7 +103,15 @@ describe('doEmbed', () => {
     });
 
     expect(embeddings.length).toBe(1);
-    expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
+    expect(embeddings[0]).toMatchInlineSnapshot(`
+      [
+        -0.09,
+        0.05,
+        -0.02,
+        0.01,
+        0.04,
+      ]
+    `);
 
     const body = await server.calls[0].requestBodyJson;
     expect(body).toEqual({
@@ -118,7 +126,7 @@ describe('doEmbed', () => {
       values: [testValues[0]],
     });
 
-    expect(usage?.tokens).toStrictEqual(8);
+    expect(usage?.tokens).toMatchInlineSnapshot(`8`);
   });
 
   it('should support Cohere embedding models', async () => {
@@ -133,7 +141,15 @@ describe('doEmbed', () => {
     });
 
     expect(embeddings.length).toBe(1);
-    expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
+    expect(embeddings[0]).toMatchInlineSnapshot(`
+      [
+        -0.09,
+        0.05,
+        -0.02,
+        0.01,
+        0.04,
+      ]
+    `);
     expect(Number.isNaN(usage?.tokens)).toBe(true);
 
     const body = await server.calls[0].requestBodyJson;
@@ -141,6 +157,7 @@ describe('doEmbed', () => {
       input_type: 'search_query',
       texts: [testValues[0]],
       truncate: undefined,
+      output_dimension: undefined,
     });
   });
 
@@ -156,7 +173,15 @@ describe('doEmbed', () => {
     });
 
     expect(embeddings.length).toBe(1);
-    expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
+    expect(embeddings[0]).toMatchInlineSnapshot(`
+      [
+        -0.09,
+        0.05,
+        -0.02,
+        0.01,
+        0.04,
+      ]
+    `);
     expect(Number.isNaN(usage?.tokens)).toBe(true);
 
     const body = await server.calls[0].requestBodyJson;
@@ -164,6 +189,43 @@ describe('doEmbed', () => {
       input_type: 'search_query',
       texts: [testValues[0]],
       truncate: undefined,
+      output_dimension: undefined,
+    });
+  });
+
+  it('should pass outputDimension for Cohere v4 embedding models', async () => {
+    const cohereV4Model = new BedrockEmbeddingModel('cohere.embed-v4:0', {
+      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: mockConfigHeaders,
+      fetch: fakeFetchWithAuth,
+    });
+
+    const { embeddings } = await cohereV4Model.doEmbed({
+      values: [testValues[0]],
+      providerOptions: {
+        bedrock: {
+          outputDimension: 256,
+        },
+      },
+    });
+
+    expect(embeddings.length).toBe(1);
+    expect(embeddings[0]).toMatchInlineSnapshot(`
+      [
+        -0.09,
+        0.05,
+        -0.02,
+        0.01,
+        0.04,
+      ]
+    `);
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).toEqual({
+      input_type: 'search_query',
+      texts: [testValues[0]],
+      truncate: undefined,
+      output_dimension: 256,
     });
   });
 
@@ -268,7 +330,15 @@ describe('should support Nova embeddings', () => {
       values: [testValues[0]],
     });
 
-    expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
+    expect(embeddings[0]).toMatchInlineSnapshot(`
+      [
+        -0.09,
+        0.05,
+        -0.02,
+        0.01,
+        0.04,
+      ]
+    `);
 
     const body = await server.calls[0].requestBodyJson;
     expect(body).toEqual({
@@ -276,6 +346,40 @@ describe('should support Nova embeddings', () => {
       singleEmbeddingParams: {
         embeddingPurpose: 'GENERIC_INDEX',
         embeddingDimension: 1024,
+        text: {
+          truncationMode: 'END',
+          value: testValues[0],
+        },
+      },
+    });
+  });
+
+  it('should pass embeddingDimension for Nova embeddings', async () => {
+    const { embeddings } = await model.doEmbed({
+      values: [testValues[0]],
+      providerOptions: {
+        bedrock: {
+          embeddingDimension: 256,
+        },
+      },
+    });
+
+    expect(embeddings[0]).toMatchInlineSnapshot(`
+      [
+        -0.09,
+        0.05,
+        -0.02,
+        0.01,
+        0.04,
+      ]
+    `);
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).toEqual({
+      taskType: 'SINGLE_EMBEDDING',
+      singleEmbeddingParams: {
+        embeddingPurpose: 'GENERIC_INDEX',
+        embeddingDimension: 256,
         text: {
           truncationMode: 'END',
           value: testValues[0],

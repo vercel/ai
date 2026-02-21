@@ -1,7 +1,7 @@
 import {
   openai,
   OpenaiResponsesProviderMetadata,
-  OpenAIResponsesProviderOptions,
+  OpenAILanguageModelResponsesOptions,
 } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
@@ -27,7 +27,7 @@ run(async () => {
     providerOptions: {
       openai: {
         previousResponseId,
-      } satisfies OpenAIResponsesProviderOptions,
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
   });
 

@@ -1,4 +1,4 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { tool, ToolLoopAgent } from 'ai';
 import z from 'zod';
 import { run } from '../lib/run';
@@ -8,7 +8,7 @@ const agent = new ToolLoopAgent({
   providerOptions: {
     openai: {
       reasoningEffort: 'medium',
-    } satisfies OpenAIResponsesProviderOptions,
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
   instructions:
     'You are an expert at solving math problems.' +

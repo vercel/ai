@@ -35,11 +35,31 @@ export interface BedrockUserMessage {
   content: Array<BedrockContentBlock>;
 }
 
-export const BEDROCK_CACHE_POINT = {
-  cachePoint: { type: 'default' },
-} as const;
+/**
+ * Cache TTL options for Bedrock prompt caching.
+ * @see https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html
+ *
+ * - '5m': 5-minute TTL (default, supported by all models)
+ * - '1h': 1-hour TTL (supported by Claude Opus 4.5, Claude Haiku 4.5, Claude Sonnet 4.5)
+ */
+export type BedrockCacheTTL = '5m' | '1h';
 
-export type BedrockCachePoint = { cachePoint: { type: 'default' } };
+export type BedrockCachePoint = {
+  cachePoint: { type: 'default'; ttl?: BedrockCacheTTL };
+};
+
+/**
+ * Creates a cache point with an optional TTL.
+ * @param ttl - Cache TTL ('5m' or '1h'). If not provided, uses the default 5-minute TTL.
+ */
+export function createBedrockCachePoint(
+  ttl?: BedrockCacheTTL,
+): BedrockCachePoint {
+  return {
+    cachePoint: { type: 'default', ttl },
+  };
+}
+
 export type BedrockSystemContentBlock = { text: string } | BedrockCachePoint;
 
 export interface BedrockGuardrailConfiguration {

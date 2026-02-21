@@ -82,7 +82,11 @@ export function convertToGoogleGenerativeAIMessages(
           role: 'model',
           parts: content
             .map(part => {
-              const providerOpts = part.providerOptions?.[providerOptionsName];
+              const providerOpts =
+                part.providerOptions?.[providerOptionsName] ??
+                (providerOptionsName !== 'google'
+                  ? part.providerOptions?.google
+                  : undefined);
               const thoughtSignature =
                 providerOpts?.thoughtSignature != null
                   ? String(providerOpts.thoughtSignature)

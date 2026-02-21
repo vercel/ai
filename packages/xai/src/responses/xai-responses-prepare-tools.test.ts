@@ -293,6 +293,96 @@ describe('prepareResponsesTools', () => {
     });
   });
 
+  describe('file_search', () => {
+    it('should prepare file_search tool with vector store IDs', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.file_search',
+            name: 'file_search',
+            args: {
+              vectorStoreIds: ['collection_1', 'collection_2'],
+            },
+          },
+        ],
+      });
+
+      expect(result.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "max_num_results": undefined,
+            "type": "file_search",
+            "vector_store_ids": [
+              "collection_1",
+              "collection_2",
+            ],
+          },
+        ]
+      `);
+    });
+
+    it('should prepare file_search tool with max num results', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.file_search',
+            name: 'file_search',
+            args: {
+              vectorStoreIds: ['collection_1'],
+              maxNumResults: 10,
+            },
+          },
+        ],
+      });
+
+      expect(result.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "max_num_results": 10,
+            "type": "file_search",
+            "vector_store_ids": [
+              "collection_1",
+            ],
+          },
+        ]
+      `);
+    });
+
+    it('should handle multiple tools including file_search', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.web_search',
+            name: 'web_search',
+            args: {},
+          },
+          {
+            type: 'provider',
+            id: 'xai.file_search',
+            name: 'file_search',
+            args: {
+              vectorStoreIds: ['collection_1'],
+            },
+          },
+          {
+            type: 'function',
+            name: 'calculator',
+            description: 'calculate numbers',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+      });
+
+      expect(result.tools).toHaveLength(3);
+      expect(result.tools?.[0].type).toBe('web_search');
+      expect(result.tools?.[1].type).toBe('file_search');
+      expect(result.tools?.[2].type).toBe('function');
+    });
+  });
+
   describe('function tools', () => {
     it('should prepare function tools', async () => {
       const result = await prepareResponsesTools({
@@ -403,7 +493,7 @@ describe('prepareResponsesTools', () => {
       });
     });
 
-    it('should handle provider-defined tool choice mapping', async () => {
+    it('should warn when trying to force server-side tool via toolChoice', async () => {
       const result = await prepareResponsesTools({
         tools: [
           {
@@ -416,7 +506,11 @@ describe('prepareResponsesTools', () => {
         toolChoice: { type: 'tool', toolName: 'web_search' },
       });
 
-      expect(result.toolChoice).toEqual({ type: 'web_search' });
+      expect(result.toolChoice).toBeUndefined();
+      expect(result.toolWarnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'toolChoice for server-side tool "web_search"',
+      });
     });
   });
 
@@ -565,7 +659,7 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should handle mcp tool choice', async () => {
+    it('should warn when trying to force mcp tool via toolChoice', async () => {
       const result = await prepareResponsesTools({
         tools: [
           {
@@ -581,7 +675,11 @@ describe('prepareResponsesTools', () => {
         toolChoice: { type: 'tool', toolName: 'mcp' },
       });
 
-      expect(result.toolChoice).toEqual({ type: 'mcp' });
+      expect(result.toolChoice).toBeUndefined();
+      expect(result.toolWarnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'toolChoice for server-side tool "mcp"',
+      });
     });
 
     it('should handle multiple tools including mcp', async () => {

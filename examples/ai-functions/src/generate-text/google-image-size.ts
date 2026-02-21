@@ -1,4 +1,4 @@
-import { google } from '@ai-sdk/google';
+import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
@@ -14,7 +14,7 @@ run(async () => {
           aspectRatio: '16:9',
           imageSize: '4K',
         },
-      },
+      } satisfies GoogleLanguageModelOptions,
     },
   });
 
