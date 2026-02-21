@@ -13,19 +13,48 @@ export const vertexRagStore = createProviderToolFactory<
   {},
   {
     /**
-     * RagCorpus resource names, eg: projects/{project}/locations/{location}/ragCorpora/{rag_corpus}
+     * RagCorpus resource name, eg: projects/{project}/locations/{location}/ragCorpora/{rag_corpus}
      */
     ragCorpus: string;
+
+    /**
+     * File IDs within the corpus to search. When specified, only these files
+     * are searched instead of the entire corpus. For large-scale filtering,
+     * prefer using `metadataFilter` instead.
+     */
+    ragFileIds?: string[];
 
     /**
      * The number of top contexts to retrieve.
      */
     topK?: number;
+
+    /**
+     * Filter expression for metadata. Use this to filter results by tags/metadata
+     * assigned to files when they were uploaded.
+     * @example 'user_id = "user-123" AND project = "acme"'
+     */
+    metadataFilter?: string;
+
+    /**
+     * Only return results with vector similarity larger than this threshold.
+     * Value should be between 0 and 1.
+     */
+    vectorSimilarityThreshold?: number;
+
+    /**
+     * Only return results with vector distance smaller than this threshold.
+     */
+    vectorDistanceThreshold?: number;
   }
 >({
   id: 'google.vertex_rag_store',
   inputSchema: z.object({
     ragCorpus: z.string(),
+    ragFileIds: z.array(z.string()).optional(),
     topK: z.number().optional(),
+    metadataFilter: z.string().optional(),
+    vectorSimilarityThreshold: z.number().optional(),
+    vectorDistanceThreshold: z.number().optional(),
   }),
 });
