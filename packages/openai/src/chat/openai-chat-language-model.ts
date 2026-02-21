@@ -3,6 +3,8 @@ import {
   LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3Content,
+  LanguageModelV3CountTokensOptions,
+  LanguageModelV3CountTokensResult,
   LanguageModelV3FinishReason,
   LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
@@ -23,6 +25,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
+import { countTokensForOpenAI } from '../openai-count-tokens';
 import {
   OpenAIChatUsage,
   convertOpenAIChatUsage,
@@ -695,6 +698,26 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       ),
       request: { body },
       response: { headers: responseHeaders },
+    };
+  }
+
+  async doCountTokens(
+    options: LanguageModelV3CountTokensOptions,
+  ): Promise<LanguageModelV3CountTokensResult> {
+    const { tokens, warnings } = await countTokensForOpenAI({
+      modelId: this.modelId,
+      prompt: options.prompt,
+      tools: options.tools,
+    });
+
+    return {
+      tokens,
+      warnings,
+      providerMetadata: {
+        openai: {
+          estimatedTokenCount: true, // Indicates this is local estimation, not API-verified
+        },
+      },
     };
   }
 }
