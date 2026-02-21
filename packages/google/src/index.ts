@@ -4,7 +4,10 @@ export type {
   /** @deprecated Use `GoogleLanguageModelOptions` instead. */
   GoogleLanguageModelOptions as GoogleGenerativeAIProviderOptions,
 } from './google-generative-ai-options';
-export type { GoogleGenerativeAIProviderMetadata } from './google-generative-ai-prompt';
+export type {
+  GoogleGenerativeAIProviderMetadata,
+  GoogleGenerativeAIVideoMetadata,
+} from './google-generative-ai-prompt';
 export type {
   GoogleImageModelOptions,
   /** @deprecated Use `GoogleImageModelOptions` instead. */
