@@ -64,7 +64,7 @@ describe('FireworksImageModel', () => {
         size: undefined,
         aspectRatio: '16:9',
         seed: 42,
-        providerOptions: { fireworks: { additional_param: 'value' } },
+        providerOptions: { fireworks: { cfg_scale: 10 } },
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -72,7 +72,7 @@ describe('FireworksImageModel', () => {
         aspect_ratio: '16:9',
         seed: 42,
         samples: 1,
-        additional_param: 'value',
+        cfg_scale: 10,
       });
     });
 
