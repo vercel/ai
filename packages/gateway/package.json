@@ -22,7 +22,8 @@
     "test:update": "pnpm test:node -u",
     "test:watch": "vitest --config vitest.node.config.js",
     "test:edge": "vitest --config vitest.edge.config.js --run",
-    "test:node": "vitest --config vitest.node.config.js --run"
+    "test:node": "vitest --config vitest.node.config.js --run",
+    "generate-model-settings": "tsx scripts/generate-model-settings.ts"
   },
   "exports": {
     "./package.json": "./package.json",
@@ -43,6 +44,7 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
     "typescript": "5.8.3",
+    "tsx": "4.19.2",
     "zod": "3.25.76"
   },
   "peerDependencies": {
