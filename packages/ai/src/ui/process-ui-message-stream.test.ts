@@ -4463,6 +4463,53 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('file parts with filename', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'file',
+          url: 'data:text/plain;base64,SGVsbG8gV29ybGQ=',
+          mediaType: 'text/plain',
+          filename: 'hello.txt',
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should include filename in final file parts', async () => {
+      const fileParts = state!.message.parts.filter(
+        part => part.type === 'file',
+      );
+
+      expect(fileParts).toStrictEqual([
+        {
+          type: 'file',
+          mediaType: 'text/plain',
+          url: 'data:text/plain;base64,SGVsbG8gV29ybGQ=',
+          filename: 'hello.txt',
+        },
+      ]);
+    });
+  });
+
   describe('data ui parts (single part)', () => {
     let dataCalls: InferUIMessageData<UIMessage>[] = [];
 
