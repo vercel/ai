@@ -105,7 +105,7 @@ export class OpenAIImageModel implements ImageModelV3 {
           mask: mask != null ? await fileToBlob(mask) : undefined,
           n,
           size,
-          ...(providerOptions.openai ?? {}),
+          ...(providerOptions?.openai ?? {}),
         }),
         failedResponseHandler: openaiFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
@@ -164,7 +164,7 @@ export class OpenAIImageModel implements ImageModelV3 {
         prompt,
         n,
         size,
-        ...(providerOptions.openai ?? {}),
+        ...(providerOptions?.openai ?? {}),
         ...(!hasDefaultResponseFormat(this.modelId)
           ? { response_format: 'b64_json' }
           : {}),
