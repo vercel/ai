@@ -11,10 +11,14 @@ import {
   createJsonResponseHandler,
   downloadBlob,
   FetchFunction,
+  parseProviderOptions,
   postFormDataToApi,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { DeepInfraImageModelId } from './deepinfra-image-settings';
+import {
+  DeepInfraImageModelId,
+  deepInfraImageModelOptions,
+} from './deepinfra-image-settings';
 import { z } from 'zod/v4';
 
 interface DeepInfraImageModelConfig {
@@ -57,23 +61,50 @@ export class DeepInfraImageModel implements ImageModelV3 {
     const warnings: Array<SharedV3Warning> = [];
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
+    const deepinfraOptions = await parseProviderOptions({
+      provider: 'deepinfra',
+      providerOptions,
+      schema: deepInfraImageModelOptions,
+    });
+
     // Image editing mode - use OpenAI-compatible /images/edits endpoint
     if (files != null && files.length > 0) {
+      const editInput: DeepInfraFormDataInput = {
+        model: this.modelId,
+        prompt,
+        image: await Promise.all(files.map(file => fileToBlob(file))),
+        mask: mask != null ? await fileToBlob(mask) : undefined,
+        n,
+        size,
+      };
+      if (deepinfraOptions?.guidance_scale != null) {
+        editInput.guidance_scale = deepinfraOptions.guidance_scale;
+      }
+      if (deepinfraOptions?.num_inference_steps != null) {
+        editInput.num_inference_steps = deepinfraOptions.num_inference_steps;
+      }
+      if (deepinfraOptions?.negative_prompt != null) {
+        editInput.negative_prompt = deepinfraOptions.negative_prompt;
+      }
+      if (deepinfraOptions?.strength != null) {
+        editInput.strength = deepinfraOptions.strength;
+      }
+      if (deepinfraOptions?.scheduler != null) {
+        editInput.scheduler = deepinfraOptions.scheduler;
+      }
+      if (deepinfraOptions?.image_format != null) {
+        editInput.image_format = deepinfraOptions.image_format;
+      }
+      if (deepinfraOptions?.response_format != null) {
+        editInput.response_format = deepinfraOptions.response_format;
+      }
+
       const { value: response, responseHeaders } = await postFormDataToApi({
         url: this.getEditUrl(),
         headers: combineHeaders(this.config.headers(), headers),
-        formData: convertToFormData<DeepInfraFormDataInput>(
-          {
-            model: this.modelId,
-            prompt,
-            image: await Promise.all(files.map(file => fileToBlob(file))),
-            mask: mask != null ? await fileToBlob(mask) : undefined,
-            n,
-            size,
-            ...(providerOptions.deepinfra ?? {}),
-          },
-          { useArrayBrackets: false },
-        ),
+        formData: convertToFormData<DeepInfraFormDataInput>(editInput, {
+          useArrayBrackets: false,
+        }),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: deepInfraEditErrorSchema,
           errorToMessage: error => error.error?.message ?? 'Unknown error',
@@ -100,17 +131,39 @@ export class DeepInfraImageModel implements ImageModelV3 {
     // Some deepinfra models support size while others support aspect ratio.
     // Allow passing either and leave it up to the server to validate.
     const splitSize = size?.split('x');
+    const body: Record<string, unknown> = {
+      prompt,
+      num_images: n,
+      ...(aspectRatio && { aspect_ratio: aspectRatio }),
+      ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
+      ...(seed != null && { seed }),
+    };
+    if (deepinfraOptions?.guidance_scale != null) {
+      body.guidance_scale = deepinfraOptions.guidance_scale;
+    }
+    if (deepinfraOptions?.num_inference_steps != null) {
+      body.num_inference_steps = deepinfraOptions.num_inference_steps;
+    }
+    if (deepinfraOptions?.negative_prompt != null) {
+      body.negative_prompt = deepinfraOptions.negative_prompt;
+    }
+    if (deepinfraOptions?.strength != null) {
+      body.strength = deepinfraOptions.strength;
+    }
+    if (deepinfraOptions?.scheduler != null) {
+      body.scheduler = deepinfraOptions.scheduler;
+    }
+    if (deepinfraOptions?.image_format != null) {
+      body.image_format = deepinfraOptions.image_format;
+    }
+    if (deepinfraOptions?.response_format != null) {
+      body.response_format = deepinfraOptions.response_format;
+    }
+
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}`,
       headers: combineHeaders(this.config.headers(), headers),
-      body: {
-        prompt,
-        num_images: n,
-        ...(aspectRatio && { aspect_ratio: aspectRatio }),
-        ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
-        ...(seed != null && { seed }),
-        ...(providerOptions.deepinfra ?? {}),
-      },
+      body,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: deepInfraErrorSchema,
         errorToMessage: error => error.detail.error,
