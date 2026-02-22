@@ -1914,6 +1914,213 @@ describe('validateUIMessages', () => {
         ]]
       `);
     });
+
+    // ========================================
+    // Dynamic Tool with `tools` Parameter
+    // Documents current behavior: dynamic-tool parts are NOT schema-validated
+    // even when tools param is provided, because type 'dynamic-tool' does not
+    // match the part.type.startsWith('tool-') conditional.
+    // See: // TODO support dynamic tools in validate-ui-messages.ts
+    // ========================================
+
+    describe('with tools parameter', () => {
+      const testTool = {
+        name: 'foo',
+        inputSchema: z.object({ foo: z.string() }),
+        outputSchema: z.object({ result: z.string() }),
+      };
+
+      it('should not validate dynamic tool input when tools param is provided', async () => {
+        const messages = await validateUIMessages({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'dynamic-tool',
+                  toolName: 'foo',
+                  toolCallId: '1',
+                  state: 'input-available',
+                  input: { foo: 'bar' },
+                },
+              ],
+            },
+          ],
+          tools: { foo: testTool },
+        });
+
+        expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+        expect(messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "1",
+              "parts": [
+                {
+                  "input": {
+                    "foo": "bar",
+                  },
+                  "state": "input-available",
+                  "toolCallId": "1",
+                  "toolName": "foo",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should not validate dynamic tool input with matching toolName and invalid input', async () => {
+        // Despite tools param having a schema for 'foo', dynamic-tool parts
+        // bypass the tools validation conditional (type.startsWith('tool-')).
+        // This documents the TODO gap — invalid input passes without error.
+        const messages = await validateUIMessages({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'dynamic-tool',
+                  toolName: 'foo',
+                  toolCallId: '1',
+                  state: 'input-available',
+                  input: { wrong: 'type' },
+                },
+              ],
+            },
+          ],
+          tools: { foo: testTool },
+        });
+
+        expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+        expect(messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "1",
+              "parts": [
+                {
+                  "input": {
+                    "wrong": "type",
+                  },
+                  "state": "input-available",
+                  "toolCallId": "1",
+                  "toolName": "foo",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should not validate dynamic tool output when tools param is provided', async () => {
+        const messages = await validateUIMessages({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'dynamic-tool',
+                  toolName: 'foo',
+                  toolCallId: '1',
+                  state: 'output-available',
+                  input: { foo: 'bar' },
+                  output: { result: 'success' },
+                },
+              ],
+            },
+          ],
+          tools: { foo: testTool },
+        });
+
+        expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+        expect(messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "1",
+              "parts": [
+                {
+                  "input": {
+                    "foo": "bar",
+                  },
+                  "output": {
+                    "result": "success",
+                  },
+                  "state": "output-available",
+                  "toolCallId": "1",
+                  "toolName": "foo",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should validate static tool and not validate dynamic tool in mixed message', async () => {
+        const messages = await validateUIMessages({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'input-available',
+                  input: { foo: 'bar' },
+                  providerExecuted: true,
+                },
+                {
+                  type: 'dynamic-tool',
+                  toolName: 'some-dynamic-tool',
+                  toolCallId: '2',
+                  state: 'input-available',
+                  input: { anything: 'goes' },
+                },
+              ],
+            },
+          ],
+          tools: { foo: testTool },
+        });
+
+        expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+        expect(messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "1",
+              "parts": [
+                {
+                  "input": {
+                    "foo": "bar",
+                  },
+                  "providerExecuted": true,
+                  "state": "input-available",
+                  "toolCallId": "1",
+                  "type": "tool-foo",
+                },
+                {
+                  "input": {
+                    "anything": "goes",
+                  },
+                  "state": "input-available",
+                  "toolCallId": "2",
+                  "toolName": "some-dynamic-tool",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
   });
 
   describe('tool parts', () => {
@@ -2093,6 +2300,153 @@ describe('validateUIMessages', () => {
                 },
                 "providerExecuted": true,
                 "state": "output-error",
+                "toolCallId": "1",
+                "type": "tool-foo",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should validate an assistant message with a tool part in approval-requested state', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'approval-requested',
+                input: { foo: 'bar' },
+                providerExecuted: true,
+                approval: { id: 'approval-1' },
+              },
+            ],
+          },
+        ],
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "approval": {
+                  "id": "approval-1",
+                },
+                "input": {
+                  "foo": "bar",
+                },
+                "providerExecuted": true,
+                "state": "approval-requested",
+                "toolCallId": "1",
+                "type": "tool-foo",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should validate an assistant message with a tool part in approval-responded state', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'approval-responded',
+                input: { foo: 'bar' },
+                providerExecuted: true,
+                approval: {
+                  id: 'approval-1',
+                  approved: true,
+                  reason: 'User confirmed',
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "approval": {
+                  "approved": true,
+                  "id": "approval-1",
+                  "reason": "User confirmed",
+                },
+                "input": {
+                  "foo": "bar",
+                },
+                "providerExecuted": true,
+                "state": "approval-responded",
+                "toolCallId": "1",
+                "type": "tool-foo",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should validate an assistant message with a tool part in output-denied state', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'output-denied',
+                input: { foo: 'bar' },
+                providerExecuted: true,
+                approval: {
+                  id: 'approval-1',
+                  approved: false,
+                  reason: 'User denied',
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "approval": {
+                  "approved": false,
+                  "id": "approval-1",
+                  "reason": "User denied",
+                },
+                "input": {
+                  "foo": "bar",
+                },
+                "providerExecuted": true,
+                "state": "output-denied",
                 "toolCallId": "1",
                 "type": "tool-foo",
               },
@@ -2458,6 +2812,206 @@ describe('validateUIMessages', () => {
         ]
       `);
     });
+
+    describe('with tools parameter - approval states', () => {
+      it('should not validate tool input when state is approval-requested', async () => {
+        const messages = await validateUIMessages<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'approval-requested',
+                  input: { foo: 'bar' },
+                  providerExecuted: true,
+                  approval: { id: 'approval-1' },
+                },
+              ],
+            },
+          ],
+          tools: { foo: testTool },
+        });
+
+        expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
+        expect(messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "1",
+              "parts": [
+                {
+                  "approval": {
+                    "id": "approval-1",
+                  },
+                  "input": {
+                    "foo": "bar",
+                  },
+                  "providerExecuted": true,
+                  "state": "approval-requested",
+                  "toolCallId": "1",
+                  "type": "tool-foo",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should not validate tool input when state is approval-responded', async () => {
+        const messages = await validateUIMessages<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'approval-responded',
+                  input: { foo: 'bar' },
+                  providerExecuted: true,
+                  approval: {
+                    id: 'approval-1',
+                    approved: true,
+                    reason: 'User confirmed',
+                  },
+                },
+              ],
+            },
+          ],
+          tools: { foo: testTool },
+        });
+
+        expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
+        expect(messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "1",
+              "parts": [
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "approval-1",
+                    "reason": "User confirmed",
+                  },
+                  "input": {
+                    "foo": "bar",
+                  },
+                  "providerExecuted": true,
+                  "state": "approval-responded",
+                  "toolCallId": "1",
+                  "type": "tool-foo",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should not validate tool input when state is output-denied', async () => {
+        const messages = await validateUIMessages<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'output-denied',
+                  input: { foo: 'bar' },
+                  providerExecuted: true,
+                  approval: {
+                    id: 'approval-1',
+                    approved: false,
+                    reason: 'User denied',
+                  },
+                },
+              ],
+            },
+          ],
+          tools: { foo: testTool },
+        });
+
+        expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
+        expect(messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "1",
+              "parts": [
+                {
+                  "approval": {
+                    "approved": false,
+                    "id": "approval-1",
+                    "reason": "User denied",
+                  },
+                  "input": {
+                    "foo": "bar",
+                  },
+                  "providerExecuted": true,
+                  "state": "output-denied",
+                  "toolCallId": "1",
+                  "type": "tool-foo",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should not validate tool input when state is approval-requested even with invalid input', async () => {
+        // Proves input validation is skipped for approval states —
+        // { foo: 123 } violates z.object({ foo: z.string() }) but passes.
+        const messages = await validateUIMessages<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'approval-requested',
+                  input: { foo: 123 },
+                  providerExecuted: true,
+                  approval: { id: 'approval-1' },
+                },
+              ],
+            },
+          ],
+          tools: { foo: testTool },
+        });
+
+        expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
+        expect(messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "1",
+              "parts": [
+                {
+                  "approval": {
+                    "id": "approval-1",
+                  },
+                  "input": {
+                    "foo": 123,
+                  },
+                  "providerExecuted": true,
+                  "state": "approval-requested",
+                  "toolCallId": "1",
+                  "type": "tool-foo",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
   });
 });
 
@@ -2617,5 +3171,117 @@ describe('safeValidateUIMessages', () => {
 
     expectToBe(result.success, false);
     expect(result.error.name).toBe('AI_TypeValidationError');
+  });
+
+  it('should return success result for dynamic tool with tools param', async () => {
+    const testTool = {
+      name: 'foo',
+      inputSchema: z.object({ foo: z.string() }),
+      outputSchema: z.object({ result: z.string() }),
+    };
+
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'dynamic-tool',
+              toolName: 'foo',
+              toolCallId: '1',
+              state: 'input-available',
+              input: { foo: 'bar' },
+            },
+          ],
+        },
+      ],
+      tools: { foo: testTool },
+    });
+
+    expectToBe(result.success, true);
+    expect(result.data).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "1",
+          "parts": [
+            {
+              "input": {
+                "foo": "bar",
+              },
+              "state": "input-available",
+              "toolCallId": "1",
+              "toolName": "foo",
+              "type": "dynamic-tool",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
+  });
+
+  it('should return success result for mixed static and dynamic tools with tools param', async () => {
+    const testTool = {
+      name: 'foo',
+      inputSchema: z.object({ foo: z.string() }),
+      outputSchema: z.object({ result: z.string() }),
+    };
+
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-foo',
+              toolCallId: '1',
+              state: 'input-available',
+              input: { foo: 'bar' },
+              providerExecuted: true,
+            },
+            {
+              type: 'dynamic-tool',
+              toolName: 'some-dynamic-tool',
+              toolCallId: '2',
+              state: 'input-available',
+              input: { anything: 'goes' },
+            },
+          ],
+        },
+      ],
+      tools: { foo: testTool },
+    });
+
+    expectToBe(result.success, true);
+    expect(result.data).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "1",
+          "parts": [
+            {
+              "input": {
+                "foo": "bar",
+              },
+              "providerExecuted": true,
+              "state": "input-available",
+              "toolCallId": "1",
+              "type": "tool-foo",
+            },
+            {
+              "input": {
+                "anything": "goes",
+              },
+              "state": "input-available",
+              "toolCallId": "2",
+              "toolName": "some-dynamic-tool",
+              "type": "dynamic-tool",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 });
