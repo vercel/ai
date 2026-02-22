@@ -1,20 +1,20 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as z4 from 'zod';
+import * as z from 'zod';
 
 const API_URL = 'https://ai-gateway.vercel.sh/v1/models';
 const OUTPUT_DIR = path.join(__dirname, '..', 'src');
 
-const modelSchema = z4.object({
-  id: z4.string(),
-  type: z4.string(),
+const modelSchema = z.object({
+  id: z.string(),
+  type: z.string(),
 });
 
-const modelsResponseSchema = z4.object({
-  data: z4.array(modelSchema),
+const modelsResponseSchema = z.object({
+  data: z.array(modelSchema),
 });
 
-type ModelsResponse = z4.infer<typeof modelsResponseSchema>;
+type ModelsResponse = z.infer<typeof modelsResponseSchema>;
 
 const MODALITY_CONFIG: Record<
   string,
