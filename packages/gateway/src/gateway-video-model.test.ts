@@ -87,13 +87,15 @@ describe('GatewayVideoModel', () => {
       >;
       providerMetadata?: Record<string, unknown>;
     } = {}) {
+      const ssePayload = {
+        type: 'result',
+        videos,
+        ...(warnings && { warnings }),
+        ...(providerMetadata && { providerMetadata }),
+      };
       server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos,
-          ...(warnings && { warnings }),
-          ...(providerMetadata && { providerMetadata }),
-        },
+        type: 'stream-chunks',
+        chunks: [`data: ${JSON.stringify(ssePayload)}\n\n`],
       };
     }
 
@@ -584,6 +586,113 @@ describe('GatewayVideoModel', () => {
           providerOptions: {},
         }),
       ).rejects.toThrow();
+    });
+
+    it('should throw on SSE error event with correct message and status', async () => {
+      server.urls['https://api.test.com/video-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'error',
+            message: 'Rate limit exceeded',
+            errorType: 'rate_limit_exceeded',
+            statusCode: 429,
+            param: null,
+          })}\n\n`,
+        ],
+      };
+
+      await expect(
+        createTestModel().doGenerate({
+          prompt: 'Test prompt',
+          image: undefined,
+          n: 1,
+          aspectRatio: undefined,
+          resolution: undefined,
+          duration: undefined,
+          fps: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow('Rate limit exceeded');
+    });
+
+    it('should throw on SSE error event with provider routing failure', async () => {
+      server.urls['https://api.test.com/video-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'error',
+            message: 'All providers failed',
+            errorType: 'internal_server_error',
+            statusCode: 500,
+            param: null,
+          })}\n\n`,
+        ],
+      };
+
+      await expect(
+        createTestModel().doGenerate({
+          prompt: 'Test prompt',
+          image: undefined,
+          n: 1,
+          aspectRatio: undefined,
+          resolution: undefined,
+          duration: undefined,
+          fps: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow('All providers failed');
+    });
+
+    it('should throw on empty SSE stream', async () => {
+      server.urls['https://api.test.com/video-model'].response = {
+        type: 'stream-chunks',
+        chunks: [],
+      };
+
+      await expect(
+        createTestModel().doGenerate({
+          prompt: 'Test prompt',
+          image: undefined,
+          n: 1,
+          aspectRatio: undefined,
+          resolution: undefined,
+          duration: undefined,
+          fps: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('should ignore SSE heartbeat comments and parse data event', async () => {
+      const videos = [
+        { type: 'base64' as const, data: 'base64-1', mediaType: 'video/mp4' },
+      ];
+      server.urls['https://api.test.com/video-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ':\n\n',
+          ':\n\n',
+          `data: ${JSON.stringify({ type: 'result', videos })}\n\n`,
+        ],
+      };
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        image: undefined,
+        n: 1,
+        aspectRatio: undefined,
+        resolution: undefined,
+        duration: undefined,
+        fps: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.videos).toEqual(videos);
     });
 
     it('should include providerOptions object in request body', async () => {

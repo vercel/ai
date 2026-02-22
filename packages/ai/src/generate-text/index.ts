@@ -30,7 +30,11 @@ export {
   type StreamTextOnChunkCallback,
   type StreamTextOnErrorCallback,
   type StreamTextOnFinishCallback,
+  type StreamTextOnStartCallback,
   type StreamTextOnStepFinishCallback,
+  type StreamTextOnStepStartCallback,
+  type StreamTextOnToolCallFinishCallback,
+  type StreamTextOnToolCallStartCallback,
   type StreamTextTransform,
 } from './stream-text';
 export type {

@@ -282,19 +282,25 @@ const result = await generateText({
 console.log(result.providerMetadata?.anthropic?.contextManagement);
 ```
 
-#### Clear Tool Uses
+#### Context Editing
 
-The `clear_tool_uses_20250919` edit type removes old tool calls from the conversation history:
+Context editing strategies selectively remove specific content types from earlier in the conversation to reduce token usage without losing the overall conversation flow.
 
-- **trigger** - Condition that triggers the clearing (e.g., `{ type: 'input_tokens', value: 10000 }`)
+##### Clear Tool Uses
+
+The `clear_tool_uses_20250919` edit type removes old tool call/result pairs from the conversation history:
+
+- **trigger** - Condition that triggers the clearing (e.g., `{ type: 'input_tokens', value: 10000 }` or `{ type: 'tool_uses', value: 10 }`)
 - **keep** - How many recent tool uses to preserve (e.g., `{ type: 'tool_uses', value: 5 }`)
 - **clearAtLeast** - Minimum amount to clear (e.g., `{ type: 'input_tokens', value: 1000 }`)
 - **clearToolInputs** - Whether to clear tool input parameters (boolean)
 - **excludeTools** - Array of tool names to never clear
 
-#### Clear Thinking
+##### Clear Thinking
 
-The `clear_thinking_20251015` edit type removes thinking/reasoning content:
+The `clear_thinking_20251015` edit type removes thinking/reasoning blocks from earlier turns, keeping only the most recent ones:
+
+- **keep** - How many recent thinking turns to preserve (e.g., `{ type: 'thinking_turns', value: 2 }`) or `'all'` to keep everything
 
 ```ts
 const result = await generateText({
@@ -425,7 +431,6 @@ if (metadata?.appliedEdits) {
       console.log(`Freed ${edit.clearedInputTokens} tokens`);
     } else if (edit.type === 'compact_20260112') {
       console.log('Compaction was applied');
-      console.log(`Freed ${edit.clearedInputTokens} tokens`);
     }
   });
 }
