@@ -992,7 +992,25 @@ export async function convertToAnthropicMessagesPrompt({
           }
         }
 
-        messages.push({ role: 'assistant', content: anthropicContent });
+        // Collect message-level providerOptions.anthropic (excluding cache
+        // control keys) and spread onto the message, mirroring how the
+        // openai-compatible provider handles providerOptions.openaiCompatible.
+        const extra: Record<string, unknown> = {};
+        for (const message of block.messages) {
+          const opts = message.providerOptions?.anthropic;
+          if (opts != null && typeof opts === 'object') {
+            for (const [k, v] of Object.entries(opts)) {
+              if (k === 'cacheControl' || k === 'cache_control') continue;
+              extra[k] = v;
+            }
+          }
+        }
+
+        messages.push({
+          role: 'assistant',
+          content: anthropicContent,
+          ...extra,
+        } as AnthropicAssistantMessage);
 
         break;
       }
