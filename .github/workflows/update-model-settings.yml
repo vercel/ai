@@ -134,7 +134,7 @@ jobs:
           PR_URL=$(gh pr create \
             --title "$PR_TITLE" \
             --body "This is an automated update of the gateway model settings files." \
-            --base ${{ matrix.target-branch }} \
+            --base "${{ matrix.target-branch }}" \
             --head "${{ steps.create-branch.outputs.branch-name }}" \
             --reviewer R-Taneja \
             --reviewer sylviezhang37)
