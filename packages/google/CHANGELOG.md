@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.30
+
+### Patch Changes
+
+- 765b013: feat(provider/google): add support for `gemini-3.1-pro-preview`
+
 ## 3.0.29
 
 ### Patch Changes

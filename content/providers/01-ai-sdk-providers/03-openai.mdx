@@ -123,7 +123,8 @@ const { text } = await generateText({
 });
 ```
 
-OpenAI language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
+OpenAI language models can also be used in the `streamText` function
+and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
 ### Responses Models
@@ -999,37 +1000,26 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 #### Structured Outputs
 
-The OpenAI Responses API supports structured outputs. You can enforce structured outputs using `generateObject` or `streamObject`, which expose a `schema` option. Additionally, you can pass a Zod or JSON Schema object to the `output` option when using `generateText` or `streamText`.
+The OpenAI Responses API supports structured outputs. You can use `generateText` or `streamText` with [`Output`](/docs/reference/ai-sdk-core/output) to enforce structured outputs.
 
 ```ts
-// Using generateObject
-const result = await generateObject({
+const result = await generateText({
   model: openai('gpt-4.1'),
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(
-        z.object({
-          name: z.string(),
-          amount: z.string(),
-        }),
-      ),
-      steps: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(
+          z.object({
+            name: z.string(),
+            amount: z.string(),
+          }),
+        ),
+        steps: z.array(z.string()),
+      }),
     }),
   }),
   prompt: 'Generate a lasagna recipe.',
-});
-
-// Using generateText
-const result = await generateText({
-  model: openai('gpt-4.1'),
-  prompt: 'How do I make a pizza?',
-  output: Output.object({
-    schema: z.object({
-      ingredients: z.array(z.string()),
-      steps: z.array(z.string()),
-    }),
-  }),
 });
 ```
 
@@ -1458,32 +1448,34 @@ You can disable them by setting the `strictJsonSchema` option to `false`.
 
 ```ts highlight="7"
 import { openai, OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
-const result = await generateObject({
+const result = await generateText({
   model: openai.chat('gpt-4o-2024-08-06'),
   providerOptions: {
     openai: {
       strictJsonSchema: false,
     } satisfies OpenAILanguageModelChatOptions,
   },
-  schemaName: 'recipe',
-  schemaDescription: 'A recipe for lasagna.',
-  schema: z.object({
-    name: z.string(),
-    ingredients: z.array(
-      z.object({
-        name: z.string(),
-        amount: z.string(),
-      }),
-    ),
-    steps: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      name: z.string(),
+      ingredients: z.array(
+        z.object({
+          name: z.string(),
+          amount: z.string(),
+        }),
+      ),
+      steps: z.array(z.string()),
+    }),
+    schemaName: 'recipe',
+    schemaDescription: 'A recipe for lasagna.',
   }),
   prompt: 'Generate a lasagna recipe.',
 });
 
-console.log(JSON.stringify(result.object, null, 2));
+console.log(JSON.stringify(result.output, null, 2));
 ```
 
 <Note type="warning">

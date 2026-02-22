@@ -1,5 +1,44 @@
 # ai
 
+## 6.0.97
+
+### Patch Changes
+
+- ebfdad1: feat(ai): experimental callbacks in ToolLoopAgent
+
+## 6.0.96
+
+### Patch Changes
+
+- 30c9de6: feat(ai): experimental callbacks for streamText
+
+## 6.0.95
+
+### Patch Changes
+
+- Updated dependencies [73b7e09]
+  - @ai-sdk/gateway@3.0.53
+
+## 6.0.94
+
+### Patch Changes
+
+- Updated dependencies [363fa44]
+  - @ai-sdk/gateway@3.0.52
+
+## 6.0.93
+
+### Patch Changes
+
+- d3769ec: feat(ai): add experimental callbacks in generateText
+
+## 6.0.92
+
+### Patch Changes
+
+- Updated dependencies [765b013]
+  - @ai-sdk/gateway@3.0.51
+
 ## 6.0.91
 
 ### Patch Changes

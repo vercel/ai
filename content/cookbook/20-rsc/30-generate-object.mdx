@@ -12,9 +12,9 @@ tags: ['rsc', 'structured data']
   useState](/examples/next-pages/basics/generating-object).
 </Note>
 
-Earlier functions like `generateText` and `streamText` gave us the ability to generate unstructured text. However, if you want to generate structured data like JSON, you can provide a schema that describes the structure of your desired object to the `generateObject` function.
+You can use `generateText` with `Output` to generate structured data like JSON. By providing a schema that describes the structure of your desired object, the SDK will validate the generated output and ensure that it conforms to the specified structure.
 
-The function requires you to provide a schema using [zod](https://zod.dev), a library for defining schemas for JavaScript objects. By using zod, you can also use it to validate the generated object and ensure that it conforms to the specified structure.
+The `Output.object` function requires you to provide a schema using [zod](https://zod.dev), a library for defining schemas for JavaScript objects.
 
 <Browser>
   <ObjectGeneration
@@ -80,30 +80,32 @@ export default function Home() {
 
 ## Server
 
-Now let's implement the `getNotifications` function. We'll use the `generateObject` function to generate the list of notifications based on the schema we defined earlier.
+Now let's implement the `getNotifications` function. We'll use the `generateText` function with `Output.object` to generate the list of notifications based on the schema we defined earlier.
 
 ```typescript filename='app/actions.ts'
 'use server';
 
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 export async function getNotifications(input: string) {
   'use server';
 
-  const { object: notifications } = await generateObject({
+  const { output: notifications } = await generateText({
     model: openai('gpt-4.1'),
     system: 'You generate three notifications for a messages app.',
     prompt: input,
-    schema: z.object({
-      notifications: z.array(
-        z.object({
-          name: z.string().describe('Name of a fictional person.'),
-          message: z.string().describe('Do not use emojis or links.'),
-          minutesAgo: z.number(),
-        }),
-      ),
+    output: Output.object({
+      schema: z.object({
+        notifications: z.array(
+          z.object({
+            name: z.string().describe('Name of a fictional person.'),
+            message: z.string().describe('Do not use emojis or links.'),
+            minutesAgo: z.number(),
+          }),
+        ),
+      }),
     }),
   });
 
