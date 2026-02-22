@@ -372,6 +372,31 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
       }
     }
 
+    for (const [msgIdx, message] of validatedMessages.entries()) {
+      for (const [partIdx, part] of message.parts.entries()) {
+        const anyPart = part as Record<string, unknown>;
+        if (
+          anyPart.type === 'dynamic-tool' &&
+          anyPart.state === 'output-available' &&
+          anyPart.output === undefined
+        ) {
+          return {
+            success: false,
+            error: new TypeValidationError({
+              value: part,
+              cause:
+                'output is required for dynamic-tool part in output-available state',
+              context: {
+                field: `messages[${msgIdx}].parts[${partIdx}].output`,
+                entityName: anyPart.toolName as string,
+                entityId: anyPart.toolCallId as string,
+              },
+            }),
+          };
+        }
+      }
+    }
+
     if (dataSchemas || tools) {
       for (const [msgIdx, message] of validatedMessages.entries()) {
         for (const [partIdx, part] of message.parts.entries()) {
