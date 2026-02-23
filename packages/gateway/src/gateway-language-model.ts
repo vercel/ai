@@ -252,8 +252,7 @@ function normalizeGatewayUsageToV3(usage: unknown): LanguageModelV3Usage {
       }
     | LanguageModelV3Usage
     | undefined;
-
-  // Case 1: already V3-shaped (nested objects with .total)
+  // if the object is already v3
   if (
     candidate &&
     typeof candidate === 'object' &&
@@ -264,7 +263,7 @@ function normalizeGatewayUsageToV3(usage: unknown): LanguageModelV3Usage {
     return candidate as LanguageModelV3Usage;
   }
 
-  // Case 2: flat V2-style usage from gateway backend
+  // if the object is v2, we need to flatten it to v3
   const flatInputTokens =
     typeof candidate?.inputTokens === 'number'
       ? candidate.inputTokens
@@ -306,7 +305,7 @@ function normalizeGatewayUsageToV3(usage: unknown): LanguageModelV3Usage {
     };
   }
 
-  // Case 3: unknown/other usage shape – preserve as-is in raw and return empty V3 shell
+  // otherwise, we return an empty v3 object
   return {
     inputTokens: {
       total: undefined,
