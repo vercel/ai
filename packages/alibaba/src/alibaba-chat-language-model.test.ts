@@ -163,7 +163,7 @@ describe('doGenerate', () => {
       },
     };
 
-    const { usage } = await model.doGenerate({
+    const { usage, providerMetadata } = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
@@ -176,6 +176,10 @@ describe('doGenerate', () => {
         "totalTokens": 150,
       }
     `);
+
+    expect(providerMetadata).toEqual({
+      alibaba: { cacheCreationInputTokens: 20 },
+    });
   });
 
   it('should send enable_thinking in request body', async () => {
@@ -281,6 +285,58 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'stop',
       });
+    });
+  });
+
+  it('should include cacheCreationInputTokens in finish providerMetadata', async () => {
+    const usageChunk = JSON.stringify({
+      id: 'chatcmpl-cache-stream-test',
+      object: 'chat.completion.chunk',
+      created: 1770764844,
+      model: 'qwen-plus',
+      choices: [],
+      usage: {
+        prompt_tokens: 100,
+        completion_tokens: 50,
+        total_tokens: 150,
+        prompt_tokens_details: {
+          cached_tokens: 80,
+          cache_creation_input_tokens: 20,
+        },
+        completion_tokens_details: { reasoning_tokens: 10 },
+      },
+    });
+    const contentChunk = JSON.stringify({
+      id: 'chatcmpl-cache-stream-test',
+      object: 'chat.completion.chunk',
+      created: 1770764844,
+      model: 'qwen-plus',
+      choices: [
+        {
+          index: 0,
+          delta: { role: 'assistant', content: 'Hello' },
+          finish_reason: 'stop',
+        },
+      ],
+    });
+
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${contentChunk}\n\n`,
+        `data: ${usageChunk}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const parts = await convertReadableStreamToArray(result.stream);
+    const finishPart = parts.find(p => p.type === 'finish');
+
+    expect(finishPart).toMatchObject({
+      type: 'finish',
+      finishReason: 'stop',
+      providerMetadata: { alibaba: { cacheCreationInputTokens: 20 } },
     });
   });
 });

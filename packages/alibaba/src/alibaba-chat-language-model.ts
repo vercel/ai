@@ -222,6 +222,13 @@ export class AlibabaLanguageModel implements LanguageModelV2 {
         body: rawResponse,
       },
       warnings,
+      providerMetadata: {
+        alibaba: {
+          cacheCreationInputTokens:
+            response.usage?.prompt_tokens_details
+              ?.cache_creation_input_tokens ?? null,
+        },
+      },
     };
   }
 
@@ -503,6 +510,13 @@ export class AlibabaLanguageModel implements LanguageModelV2 {
               type: 'finish',
               finishReason,
               usage: convertAlibabaUsage(usage),
+              providerMetadata: {
+                alibaba: {
+                  cacheCreationInputTokens:
+                    usage?.prompt_tokens_details
+                      ?.cache_creation_input_tokens ?? null,
+                },
+              },
             });
           },
         }),

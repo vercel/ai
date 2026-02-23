@@ -194,6 +194,25 @@ const { text, usage } = await generateText({
 });
 ```
 
+Cache token usage is in `usage` and `providerMetadata`:
+
+```ts
+import { alibaba } from '@ai-sdk/alibaba';
+import { generateText } from 'ai';
+
+const { usage, providerMetadata } = await generateText({
+  model: alibaba('qwen-plus'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+// cache read
+const cachedInputTokens = usage.cachedInputTokens;
+
+// cache write
+const cacheCreationInputTokens =
+  providerMetadata?.alibaba?.cacheCreationInputTokens;
+```
+
 ## Model Capabilities
 
 Please see the [Alibaba Cloud Model Studio docs](https://www.alibabacloud.com/help/en/model-studio/models) for a full
