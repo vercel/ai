@@ -15,7 +15,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { NoOutputGeneratedError } from '../error';
-import { emit } from '../events/emitter';
+import { notifyOnFinish } from '../events/on-finish';
 import { notifyOnStart } from '../events/on-start';
 import { notifyOnStepFinish } from '../events/on-step-finish';
 import { notifyOnStepStart } from '../events/on-step-start';
@@ -1153,13 +1153,7 @@ export async function generateText<
           totalUsage,
         };
 
-        emit('ai:finish', onFinishEvent);
-
-        try {
-          await onFinish?.(onFinishEvent);
-        } catch (_ignored) {
-          // Errors in callbacks should not break the generation flow.
-        }
+        await notifyOnFinish(onFinishEvent, onFinish);
 
         // parse output only if the last step was finished with "stop":
         let resolvedOutput;

@@ -19,7 +19,7 @@ import {
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
-import { emit } from '../events/emitter';
+import { notifyOnFinish } from '../events/on-finish';
 import { notifyOnStart } from '../events/on-start';
 import { notifyOnStepFinish } from '../events/on-step-finish';
 import { notifyOnStepStart } from '../events/on-step-start';
@@ -1117,13 +1117,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             steps: recordedSteps,
           };
 
-          emit('ai:finish', onFinishEvent);
-
-          try {
-            await onFinish?.(onFinishEvent);
-          } catch (_ignored) {
-            // Errors in callbacks should not break the generation flow.
-          }
+          await notifyOnFinish(onFinishEvent, onFinish);
 
           // Add response information to the root span:
           rootSpan.setAttributes(
