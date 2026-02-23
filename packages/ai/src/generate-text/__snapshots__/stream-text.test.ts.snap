@@ -6,17 +6,14 @@ exports[`streamText > options.experimental_onStart > should send correct informa
 {
   "abortSignal": undefined,
   "activeTools": undefined,
+  "callId": "test-call-id",
   "experimental_context": undefined,
   "frequencyPenalty": undefined,
-  "functionId": "test-function",
   "headers": undefined,
   "include": undefined,
   "maxOutputTokens": undefined,
   "maxRetries": 2,
   "messages": undefined,
-  "metadata": {
-    "customKey": "customValue",
-  },
   "model": {
     "modelId": "mock-model-id",
     "provider": "mock-provider",
@@ -29,6 +26,12 @@ exports[`streamText > options.experimental_onStart > should send correct informa
   "stopSequences": undefined,
   "stopWhen": [Function],
   "system": undefined,
+  "telemetry": {
+    "functionId": "test-function",
+    "metadata": {
+      "customKey": "customValue",
+    },
+  },
   "temperature": undefined,
   "timeout": undefined,
   "toolChoice": undefined,
@@ -41,6 +44,7 @@ exports[`streamText > options.experimental_onStart > should send correct informa
 exports[`streamText > options.experimental_onToolCallStart > should be called with correct tool name, id, and input 1`] = `
 {
   "abortSignal": undefined,
+  "callId": "test-call-id",
   "experimental_context": undefined,
   "functionId": undefined,
   "messages": [

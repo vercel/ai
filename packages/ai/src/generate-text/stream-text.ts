@@ -1015,6 +1015,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
+            callId,
             stepNumber: recordedSteps.length,
             model: modelInfo,
             ...callbackTelemetryProps,
@@ -1089,6 +1090,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           // call onFinish callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
           const onFinishEvent = {
+            callId,
             stepNumber: finalStep.stepNumber,
             model: finalStep.model,
             functionId: finalStep.functionId,
@@ -1248,6 +1250,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     const self = this;
 
     const modelInfo = { provider: model.provider, modelId: model.modelId };
+    const callId = generateId();
     const callbackTelemetryProps = {
       functionId: telemetry?.functionId,
       metadata: telemetry?.metadata as Record<string, unknown> | undefined,
@@ -1278,6 +1281,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         } as Prompt);
 
         const onStartEvent = {
+          callId,
           model: modelInfo,
           system,
           prompt,
@@ -1301,7 +1305,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           output,
           abortSignal: originalAbortSignal,
           include,
-          ...callbackTelemetryProps,
+          telemetry,
           experimental_context,
         };
 
@@ -1369,6 +1373,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   tools,
                   tracer,
                   telemetry,
+                  callId,
                   messages: initialMessages,
                   abortSignal,
                   experimental_context,
@@ -1554,6 +1559,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             );
 
             const onStepStartEvent = {
+              callId,
               stepNumber: recordedSteps.length,
               model: stepModelInfo,
               system: stepSystem,
@@ -1647,6 +1653,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               generatorStream: stream,
               tracer,
               telemetry,
+              callId,
               system,
               messages: stepInputMessages,
               repairToolCall,

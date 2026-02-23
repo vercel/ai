@@ -6,6 +6,7 @@ function createMockOnStartEvent(
   overrides: Partial<OnStartEvent> = {},
 ): OnStartEvent {
   return {
+    callId: 'test-call-id',
     model: { provider: 'test-provider', modelId: 'test-model' },
     system: undefined,
     prompt: 'test prompt',
@@ -29,8 +30,7 @@ function createMockOnStartEvent(
     output: undefined,
     abortSignal: undefined,
     include: undefined,
-    functionId: undefined,
-    metadata: undefined,
+    telemetry: undefined,
     experimental_context: undefined,
     ...overrides,
   };

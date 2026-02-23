@@ -11,6 +11,7 @@ function createMockSuccessEvent(
   > & { output?: unknown } = {},
 ): OnToolCallFinishEvent {
   return {
+    callId: 'test-call-id',
     stepNumber: 0,
     model: { provider: 'test-provider', modelId: 'test-model' },
     toolCall: {
@@ -37,6 +38,7 @@ function createMockErrorEvent(
   > & { error?: unknown } = {},
 ): OnToolCallFinishEvent {
   return {
+    callId: 'test-call-id',
     stepNumber: 0,
     model: { provider: 'test-provider', modelId: 'test-model' },
     toolCall: {

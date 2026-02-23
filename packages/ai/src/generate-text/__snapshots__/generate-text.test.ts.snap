@@ -4,17 +4,16 @@ exports[`generateText > options.experimental_onStart > should send correct infor
 {
   "abortSignal": undefined,
   "activeTools": undefined,
+  "callId": "test-call-id",
   "experimental_context": undefined,
   "frequencyPenalty": undefined,
-  "functionId": "test-function",
-  "headers": undefined,
+  "headers": {
+    "user-agent": "ai/0.0.0-test",
+  },
   "include": undefined,
   "maxOutputTokens": undefined,
   "maxRetries": 2,
   "messages": undefined,
-  "metadata": {
-    "customKey": "customValue",
-  },
   "model": {
     "modelId": "mock-model-id",
     "provider": "mock-provider",
@@ -27,6 +26,12 @@ exports[`generateText > options.experimental_onStart > should send correct infor
   "stopSequences": undefined,
   "stopWhen": [Function],
   "system": undefined,
+  "telemetry": {
+    "functionId": "test-function",
+    "metadata": {
+      "customKey": "customValue",
+    },
+  },
   "temperature": undefined,
   "timeout": undefined,
   "toolChoice": undefined,
@@ -39,6 +44,7 @@ exports[`generateText > options.experimental_onStart > should send correct infor
 exports[`generateText > options.experimental_onToolCallStart > should be called with correct tool name, id, and input 1`] = `
 {
   "abortSignal": undefined,
+  "callId": "test-call-id",
   "experimental_context": undefined,
   "functionId": undefined,
   "messages": [
@@ -69,6 +75,7 @@ exports[`generateText > options.experimental_onToolCallStart > should be called 
 
 exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callbacks > onFinish should send correct information 1`] = `
 {
+  "callId": "test-call-id",
   "content": [
     {
       "text": "Hello, world!",
@@ -147,6 +154,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
   "stepNumber": 1,
   "steps": [
     DefaultStepResult {
+      "callId": "test-call-id",
       "content": [
         {
           "input": {
@@ -240,6 +248,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "warnings": [],
     },
     DefaultStepResult {
+      "callId": "test-call-id",
       "content": [
         {
           "text": "Hello, world!",
@@ -371,6 +380,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
 exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callbacks > onStepFinish should be called for each step 1`] = `
 [
   DefaultStepResult {
+    "callId": "test-call-id",
     "content": [
       {
         "input": {
@@ -464,6 +474,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     "warnings": [],
   },
   DefaultStepResult {
+    "callId": "test-call-id",
     "content": [
       {
         "text": "Hello, world!",
@@ -601,6 +612,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
 exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > result.steps should contain all steps 1`] = `
 [
   DefaultStepResult {
+    "callId": "test-call-id",
     "content": [
       {
         "input": {
@@ -694,6 +706,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
     "warnings": [],
   },
   DefaultStepResult {
+    "callId": "test-call-id",
     "content": [
       {
         "text": "Hello, world!",
@@ -787,6 +800,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
 exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with prepareStep > onStepFinish should be called for each step 1`] = `
 [
   DefaultStepResult {
+    "callId": "test-call-id",
     "content": [
       {
         "input": {
@@ -882,6 +896,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     "warnings": [],
   },
   DefaultStepResult {
+    "callId": "test-call-id",
     "content": [
       {
         "text": "Hello, world!",
@@ -1021,6 +1036,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
 exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with prepareStep > result.steps should contain all steps 1`] = `
 [
   DefaultStepResult {
+    "callId": "test-call-id",
     "content": [
       {
         "input": {
@@ -1116,6 +1132,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     "warnings": [],
   },
   DefaultStepResult {
+    "callId": "test-call-id",
     "content": [
       {
         "text": "Hello, world!",
@@ -1632,6 +1649,7 @@ exports[`generateText > result.sources > should contain sources 1`] = `
 exports[`generateText > result.steps > should add the reasoning from the model response to the step result 1`] = `
 [
   DefaultStepResult {
+    "callId": "id-0",
     "content": [
       {
         "providerMetadata": {
@@ -1670,7 +1688,7 @@ exports[`generateText > result.steps > should add the reasoning from the model r
     "response": {
       "body": undefined,
       "headers": undefined,
-      "id": "id-0",
+      "id": "id-1",
       "messages": [
         {
           "content": [
@@ -1730,6 +1748,7 @@ exports[`generateText > result.steps > should add the reasoning from the model r
 exports[`generateText > result.steps > should contain files 1`] = `
 [
   DefaultStepResult {
+    "callId": "id-0",
     "content": [
       {
         "text": "Hello, world!",
@@ -1770,7 +1789,7 @@ exports[`generateText > result.steps > should contain files 1`] = `
     "response": {
       "body": undefined,
       "headers": undefined,
-      "id": "id-0",
+      "id": "id-1",
       "messages": [
         {
           "content": [
@@ -1824,6 +1843,7 @@ exports[`generateText > result.steps > should contain files 1`] = `
 exports[`generateText > result.steps > should contain sources 1`] = `
 [
   DefaultStepResult {
+    "callId": "id-0",
     "content": [
       {
         "text": "Hello, world!",
@@ -1868,7 +1888,7 @@ exports[`generateText > result.steps > should contain sources 1`] = `
     "response": {
       "body": undefined,
       "headers": undefined,
-      "id": "id-0",
+      "id": "id-1",
       "messages": [
         {
           "content": [

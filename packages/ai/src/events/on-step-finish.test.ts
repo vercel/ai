@@ -25,6 +25,7 @@ function createMockOnStepFinishEvent(
   overrides: Partial<OnStepFinishEvent> = {},
 ): OnStepFinishEvent {
   return {
+    callId: 'test-call-id',
     stepNumber: 0,
     model: { provider: 'test-provider', modelId: 'test-model' },
     functionId: undefined,

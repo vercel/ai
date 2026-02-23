@@ -108,7 +108,7 @@ describe('simulateStreamingMiddleware', () => {
             "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
-              "id": "id-0",
+              "id": "id-1",
               "modelId": "mock-model-id",
               "timestamp": 2025-01-01T00:00:00.000Z,
             },
@@ -229,7 +229,7 @@ describe('simulateStreamingMiddleware', () => {
             "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
-              "id": "id-1",
+              "id": "id-3",
               "modelId": "mock-model-id",
               "timestamp": 2025-01-01T00:00:00.000Z,
             },
@@ -396,7 +396,7 @@ describe('simulateStreamingMiddleware', () => {
             "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
-              "id": "id-2",
+              "id": "id-5",
               "modelId": "mock-model-id",
               "timestamp": 2025-01-01T00:00:00.000Z,
             },
@@ -545,7 +545,7 @@ describe('simulateStreamingMiddleware', () => {
             "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
-              "id": "id-3",
+              "id": "id-7",
               "modelId": "mock-model-id",
               "timestamp": 2025-01-01T00:00:00.000Z,
             },
@@ -697,7 +697,7 @@ describe('simulateStreamingMiddleware', () => {
             "rawFinishReason": undefined,
             "response": {
               "headers": undefined,
-              "id": "id-4",
+              "id": "id-9",
               "modelId": "mock-model-id",
               "timestamp": 2025-01-01T00:00:00.000Z,
             },
@@ -801,7 +801,7 @@ describe('simulateStreamingMiddleware', () => {
             "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
-              "id": "id-5",
+              "id": "id-11",
               "modelId": "mock-model-id",
               "timestamp": 2025-01-01T00:00:00.000Z,
             },

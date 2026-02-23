@@ -6,6 +6,7 @@ function createMockOnStepStartEvent(
   overrides: Partial<OnStepStartEvent> = {},
 ): OnStepStartEvent {
   return {
+    callId: 'test-call-id',
     stepNumber: 0,
     model: { provider: 'test-provider', modelId: 'test-model' },
     system: undefined,

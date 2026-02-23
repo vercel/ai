@@ -27,6 +27,7 @@ function createMockStepResult(
   overrides: Partial<StepResult<ToolSet>> = {},
 ): StepResult<ToolSet> {
   return {
+    callId: 'test-call-id',
     stepNumber: 0,
     model: { provider: 'test-provider', modelId: 'test-model' },
     functionId: undefined,
@@ -70,9 +71,6 @@ function createMockOnFinishEvent(
     ...stepResult,
     steps: [stepResult],
     totalUsage: createMockUsage(10, 20, 30),
-    experimental_context: undefined,
-    functionId: undefined,
-    metadata: undefined,
     ...overrides,
   };
 }

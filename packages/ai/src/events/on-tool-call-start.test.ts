@@ -9,6 +9,7 @@ function createMockOnToolCallStartEvent(
   overrides: Partial<OnToolCallStartEvent> = {},
 ): OnToolCallStartEvent {
   return {
+    callId: 'test-call-id',
     stepNumber: 0,
     model: { provider: 'test-provider', modelId: 'test-model' },
     toolCall: {

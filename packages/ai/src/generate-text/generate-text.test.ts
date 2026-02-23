@@ -709,6 +709,7 @@ describe('generateText', () => {
         experimental_onStart: async event => {
           startEvent = event;
         },
+        _internal: { generateId: () => 'test-call-id' },
       });
 
       expect(startEvent).toMatchSnapshot();
@@ -1413,6 +1414,7 @@ describe('generateText', () => {
         experimental_onToolCallStart: async event => {
           toolCallStartEvents.push(event);
         },
+        _internal: { generateId: () => 'test-call-id' },
       });
 
       expect(toolCallStartEvents.length).toBe(1);
@@ -2096,10 +2098,12 @@ describe('generateText', () => {
           result = event as unknown as typeof result;
         },
         prompt: 'irrelevant',
+        _internal: { generateId: () => 'test-call-id' },
       });
 
       expect(result).toMatchInlineSnapshot(`
         {
+          "callId": "test-call-id",
           "content": [
             {
               "text": "Hello, World!",
@@ -2217,6 +2221,7 @@ describe('generateText', () => {
           "stepNumber": 0,
           "steps": [
             DefaultStepResult {
+              "callId": "test-call-id",
               "content": [
                 {
                   "text": "Hello, World!",
@@ -2503,6 +2508,7 @@ describe('generateText', () => {
             onStepFinishResults.push(event);
           },
           stopWhen: stepCountIs(3),
+          _internal: { generateId: () => 'test-call-id' },
         });
       });
 
@@ -2675,6 +2681,7 @@ describe('generateText', () => {
           onStepFinish: async event => {
             onStepFinishResults.push(event);
           },
+          _internal: { generateId: () => 'test-call-id' },
           prepareStep: async ({
             model,
             stepNumber,
@@ -2740,6 +2747,7 @@ describe('generateText', () => {
               "stepNumber": 0,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "input": {
@@ -2835,6 +2843,7 @@ describe('generateText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "text": "Hello, world!",
@@ -2969,6 +2978,7 @@ describe('generateText', () => {
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "input": {
@@ -3064,6 +3074,7 @@ describe('generateText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "text": "Hello, world!",
@@ -3419,6 +3430,7 @@ describe('generateText', () => {
               return true;
             },
           ],
+          _internal: { generateId: () => 'test-call-id' },
         });
       });
 
@@ -3433,6 +3445,7 @@ describe('generateText', () => {
               "number": 0,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "input": {
@@ -3531,6 +3544,7 @@ describe('generateText', () => {
               "number": 1,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "input": {
@@ -4180,7 +4194,7 @@ describe('generateText', () => {
               "ai.prompt": "{"prompt":"test-input"}",
               "ai.request.headers.user-agent": "ai/0.0.0-test",
               "ai.response.finishReason": "stop",
-              "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
+              "ai.response.toolCalls": "[{"toolCallType":"function","toolCallId":"call-1","toolName":"tool1","args":"{\\"value\\":\\"value\\"}"}]",
               "ai.settings.maxRetries": 2,
               "ai.usage.completionTokens": 10,
               "ai.usage.promptTokens": 3,
@@ -4204,7 +4218,7 @@ describe('generateText', () => {
               "ai.response.id": "test-id",
               "ai.response.model": "mock-model-id",
               "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-              "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
+              "ai.response.toolCalls": "[{"toolCallType":"function","toolCallId":"call-1","toolName":"tool1","args":"{\\"value\\":\\"value\\"}"}]",
               "ai.settings.maxRetries": 2,
               "ai.usage.completionTokens": 10,
               "ai.usage.promptTokens": 3,
@@ -4355,10 +4369,10 @@ describe('generateText', () => {
       );
 
       expect(rootSpan?.attributes['ai.response.reasoning']).toBe(
-        'I will open the conversation with witty banter.\n',
+        'I will open the conversation with witty banter.',
       );
       expect(doGenerateSpan?.attributes['ai.response.reasoning']).toBe(
-        'I will open the conversation with witty banter.\n',
+        'I will open the conversation with witty banter.',
       );
     });
   });
@@ -6871,6 +6885,7 @@ describe('generateText', () => {
         expect(result.steps).toMatchInlineSnapshot(`
           [
             DefaultStepResult {
+              "callId": "test-id",
               "content": [
                 {
                   "input": {
@@ -7155,7 +7170,7 @@ describe('generateText', () => {
               "type": "tool-call",
             },
             {
-              "approvalId": "id-1",
+              "approvalId": "id-2",
               "toolCall": {
                 "input": {
                   "value": "value",
@@ -7189,7 +7204,7 @@ describe('generateText', () => {
                   "type": "tool-call",
                 },
                 {
-                  "approvalId": "id-1",
+                  "approvalId": "id-2",
                   "toolCallId": "call-1",
                   "type": "tool-approval-request",
                 },
@@ -7292,7 +7307,7 @@ describe('generateText', () => {
               "type": "tool-result",
             },
             {
-              "approvalId": "id-1",
+              "approvalId": "id-2",
               "toolCall": {
                 "input": {
                   "value": "value-needs-approval",
@@ -7336,7 +7351,7 @@ describe('generateText', () => {
                   "type": "tool-call",
                 },
                 {
-                  "approvalId": "id-1",
+                  "approvalId": "id-2",
                   "toolCallId": "call-1",
                   "type": "tool-approval-request",
                 },
