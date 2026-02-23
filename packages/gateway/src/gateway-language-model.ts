@@ -263,7 +263,7 @@ function normalizeGatewayUsageToV3(usage: unknown): LanguageModelV3Usage {
     return candidate as LanguageModelV3Usage;
   }
 
-  // if the object is v2, we need to flatten it to v3
+  // if the object is v2, flatten it to v3
   const flatInputTokens =
     typeof candidate?.inputTokens === 'number'
       ? candidate.inputTokens
