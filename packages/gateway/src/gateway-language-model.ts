@@ -1,11 +1,12 @@
 import type {
   LanguageModelV3,
   LanguageModelV3CallOptions,
-  SharedV3Warning,
   LanguageModelV3FilePart,
-  LanguageModelV3StreamPart,
   LanguageModelV3GenerateResult,
+  LanguageModelV3StreamPart,
   LanguageModelV3StreamResult,
+  LanguageModelV3Usage,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -61,7 +62,7 @@ export class GatewayLanguageModel implements LanguageModelV3 {
     try {
       const {
         responseHeaders,
-        value: responseBody,
+        value,
         rawValue: rawResponse,
       } = await postJsonToApi({
         url: this.getUrl(),
@@ -81,8 +82,16 @@ export class GatewayLanguageModel implements LanguageModelV3 {
         fetch: this.config.fetch,
       });
 
+      const { usage, ...responseBody } = value as {
+        content: LanguageModelV3GenerateResult['content'];
+        finishReason: LanguageModelV3GenerateResult['finishReason'];
+        usage?: unknown;
+        providerMetadata?: LanguageModelV3GenerateResult['providerMetadata'];
+      };
+
       return {
         ...responseBody,
+        usage: normalizeGatewayUsageToV3(usage),
         request: { body: args },
         response: { headers: responseHeaders, body: rawResponse },
         warnings,
@@ -132,7 +141,7 @@ export class GatewayLanguageModel implements LanguageModelV3 {
             },
             transform(chunk, controller) {
               if (chunk.success) {
-                const streamPart = chunk.value;
+                const streamPart = chunk.value as LanguageModelV3StreamPart;
 
                 // Handle raw chunks: if this is a raw chunk from the gateway API,
                 // only emit it if includeRawChunks is true
@@ -146,6 +155,14 @@ export class GatewayLanguageModel implements LanguageModelV3 {
                   typeof streamPart.timestamp === 'string'
                 ) {
                   streamPart.timestamp = new Date(streamPart.timestamp);
+                }
+
+                if (streamPart.type === 'finish' && streamPart.usage != null) {
+                  (
+                    streamPart as LanguageModelV3StreamPart & {
+                      usage: LanguageModelV3Usage;
+                    }
+                  ).usage = normalizeGatewayUsageToV3(streamPart.usage);
                 }
 
                 controller.enqueue(streamPart);
@@ -209,4 +226,99 @@ export class GatewayLanguageModel implements LanguageModelV3 {
       'ai-language-model-streaming': String(streaming),
     };
   }
+}
+
+function normalizeGatewayUsageToV3(usage: unknown): LanguageModelV3Usage {
+  const candidate = usage as
+    | {
+        inputTokens?: number;
+        outputTokens?: number;
+        totalTokens?: number;
+        reasoningTokens?: number;
+        cachedInputTokens?: number;
+      }
+    | {
+        inputTokens?: {
+          total?: number;
+          noCache?: number;
+          cacheRead?: number;
+          cacheWrite?: number;
+        };
+        outputTokens?: {
+          total?: number;
+          text?: number;
+          reasoning?: number;
+        };
+      }
+    | LanguageModelV3Usage
+    | undefined;
+
+  // Case 1: already V3-shaped (nested objects with .total)
+  if (
+    candidate &&
+    typeof candidate === 'object' &&
+    candidate.inputTokens &&
+    typeof candidate.inputTokens === 'object' &&
+    (candidate.inputTokens as { total?: number }).total !== undefined
+  ) {
+    return candidate as LanguageModelV3Usage;
+  }
+
+  // Case 2: flat V2-style usage from gateway backend
+  const flatInputTokens =
+    typeof candidate?.inputTokens === 'number'
+      ? candidate.inputTokens
+      : undefined;
+  const flatOutputTokens =
+    typeof candidate?.outputTokens === 'number'
+      ? candidate.outputTokens
+      : undefined;
+  const flatReasoningTokens =
+    typeof (candidate as { reasoningTokens?: number })?.reasoningTokens ===
+    'number'
+      ? (candidate as { reasoningTokens?: number }).reasoningTokens
+      : undefined;
+  const flatCachedInputTokens =
+    typeof (candidate as { cachedInputTokens?: number })?.cachedInputTokens ===
+    'number'
+      ? (candidate as { cachedInputTokens?: number }).cachedInputTokens
+      : undefined;
+
+  if (
+    flatInputTokens !== undefined ||
+    flatOutputTokens !== undefined ||
+    flatReasoningTokens !== undefined ||
+    flatCachedInputTokens !== undefined
+  ) {
+    return {
+      inputTokens: {
+        total: flatInputTokens,
+        noCache: undefined,
+        cacheRead: flatCachedInputTokens,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: flatOutputTokens,
+        text: undefined,
+        reasoning: flatReasoningTokens,
+      },
+      raw: usage as LanguageModelV3Usage['raw'],
+    };
+  }
+
+  // Case 3: unknown/other usage shape – preserve as-is in raw and return empty V3 shell
+  return {
+    inputTokens: {
+      total: undefined,
+      noCache: undefined,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: undefined,
+      text: undefined,
+      reasoning: undefined,
+    },
+    raw: usage as LanguageModelV3Usage['raw'],
+  };
 }
