@@ -18,6 +18,7 @@ function getAudioFormat(mediaType: string): 'wav' | 'mp3' | null {
       return 'wav';
     case 'audio/mp3':
     case 'audio/mpeg':
+    case 'audio/mpga':
       return 'mp3';
     default:
       return null;
@@ -75,23 +76,51 @@ export function convertToOpenAICompatibleChatMessages(
 
                 if (part.mediaType.startsWith('audio/')) {
                   if (part.data instanceof URL) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'audio file parts with URLs',
-                    });
+                    return {
+                      type: 'image_url',
+                      image_url: {
+                        url: part.data.toString(),
+                      },
+                      ...partMetadata,
+                    };
                   }
 
                   const format = getAudioFormat(part.mediaType);
-                  if (format === null) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: `audio media type ${part.mediaType}`,
-                    });
+                  if (format !== null) {
+                    return {
+                      type: 'input_audio',
+                      input_audio: {
+                        data: convertToBase64(part.data),
+                        format,
+                      },
+                      ...partMetadata,
+                    };
                   }
 
                   return {
-                    type: 'input_audio',
-                    input_audio: {
-                      data: convertToBase64(part.data),
-                      format,
+                    type: 'image_url',
+                    image_url: {
+                      url: `data:${part.mediaType};base64,${convertToBase64(part.data)}`,
+                    },
+                    ...partMetadata,
+                  };
+                }
+
+                if (part.mediaType.startsWith('video/')) {
+                  if (part.data instanceof URL) {
+                    return {
+                      type: 'image_url',
+                      image_url: {
+                        url: part.data.toString(),
+                      },
+                      ...partMetadata,
+                    };
+                  }
+
+                  return {
+                    type: 'image_url',
+                    image_url: {
+                      url: `data:${part.mediaType};base64,${convertToBase64(part.data)}`,
                     },
                     ...partMetadata,
                   };
