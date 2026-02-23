@@ -111,7 +111,7 @@ export interface DevToolsMiddlewareOptions {
    * });
    * ```
    */
-  runId?: string;
+  runId?: string | null;
 }
 
 /**
