@@ -1,11 +1,11 @@
 import 'dotenv/config';
 import { openai } from '@ai-sdk/openai';
-import { generateText, on, stepCountIs, tool } from 'ai';
+import { generateText, listenOnStart, on, stepCountIs, tool } from 'ai';
 import * as z from 'zod';
 
 // Subscribe to events before calling generateText
-const unsubscribeStart = on('ai:start', event => {
-  console.log('\n--- ai:start ---');
+const unsubscribeStart = listenOnStart(event => {
+  console.log('\n--- listenOnStart ---');
   console.log('Provider:', event.model.provider);
   console.log('Model:', event.model.modelId);
   console.log('Temperature:', event.temperature);

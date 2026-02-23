@@ -16,6 +16,7 @@ import {
 import { Tracer } from '@opentelemetry/api';
 import { NoOutputGeneratedError } from '../error';
 import { emit } from '../events/emitter';
+import { notifyOnStart } from '../events/on-start';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
@@ -509,13 +510,7 @@ export async function generateText<
     experimental_context,
   };
 
-  emit('ai:start', onStartEvent);
-
-  try {
-    await onStart?.(onStartEvent);
-  } catch (_ignored) {
-    // Errors in callbacks should not break the generation flow.
-  }
+  await notifyOnStart(onStartEvent, onStart);
 
   const tracer = getTracer(telemetry);
 
