@@ -6,6 +6,7 @@ import {
   listenOnStepStart,
   listenOnToolCallStart,
   listenOnToolCallFinish,
+  listenOnStepFinish,
   on,
   stepCountIs,
   tool,
@@ -42,8 +43,8 @@ const unsubscribeToolCallFinish = listenOnToolCallFinish(event => {
   }
 });
 
-const unsubscribeStepFinish = on('ai:stepFinish', event => {
-  console.log('\n--- ai:stepFinish ---');
+const unsubscribeStepFinish = listenOnStepFinish(event => {
+  console.log('\n--- listenOnStepFinish ---');
   console.log('Step:', event.stepNumber);
   console.log('Finish reason:', event.finishReason);
   console.log('Input tokens:', event.usage.inputTokens);

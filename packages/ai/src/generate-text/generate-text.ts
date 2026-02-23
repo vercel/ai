@@ -17,6 +17,7 @@ import { Tracer } from '@opentelemetry/api';
 import { NoOutputGeneratedError } from '../error';
 import { emit } from '../events/emitter';
 import { notifyOnStart } from '../events/on-start';
+import { notifyOnStepFinish } from '../events/on-step-finish';
 import { notifyOnStepStart } from '../events/on-step-start';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
@@ -1056,13 +1057,7 @@ export async function generateText<
 
             steps.push(currentStepResult);
 
-            emit('ai:stepFinish', currentStepResult);
-
-            try {
-              await onStepFinish?.(currentStepResult);
-            } catch (_ignored) {
-              // Errors in callbacks should not break the generation flow.
-            }
+            await notifyOnStepFinish(currentStepResult, onStepFinish);
           } finally {
             if (stepTimeoutId != null) {
               clearTimeout(stepTimeoutId);
