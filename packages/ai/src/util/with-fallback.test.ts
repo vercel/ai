@@ -134,6 +134,47 @@ describe('withFallback', () => {
       });
     });
 
+    it('should not call onModelFailure when the last model fails', async () => {
+      const onModelFailure = vi.fn();
+
+      const model1 = new MockLanguageModelV3({
+        modelId: 'model1',
+        doGenerate: async () => {
+          throw new Error('model1 failed');
+        },
+      });
+
+      const model2 = new MockLanguageModelV3({
+        modelId: 'model2',
+        doGenerate: async () => {
+          throw new Error('model2 failed');
+        },
+      });
+
+      const model = withFallback({
+        models: [model1, model2],
+        onModelFailure,
+      });
+
+      await expect(
+        model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: [
+            { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          ],
+        }),
+      ).rejects.toThrow('model2 failed');
+
+      // onModelFailure should only be called for model1, not model2
+      expect(onModelFailure).toHaveBeenCalledTimes(1);
+      expect(onModelFailure).toHaveBeenCalledWith({
+        model: model1,
+        error: expect.any(Error),
+        modelIndex: 0,
+      });
+    });
+
     it('should try three models in sequence', async () => {
       const model1 = new MockLanguageModelV3({
         modelId: 'model1',

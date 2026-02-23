@@ -75,16 +75,16 @@ export function withFallback(options: FallbackOptions): LanguageModelV3 {
           throw error;
         }
 
+        // If this was the last model, throw without calling onModelFailure
+        if (i === resolvedModels.length - 1) {
+          throw error;
+        }
+
         onModelFailure?.({
           model: resolvedModels[i],
           error,
           modelIndex: i,
         });
-
-        // If this was the last model, throw
-        if (i === resolvedModels.length - 1) {
-          throw error;
-        }
 
         // Wait before trying next model
         if (currentDelay > 0) {
