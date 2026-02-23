@@ -6433,6 +6433,75 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('tool-input-error with dynamic:true on a static part (NoSuchToolError)', () => {
+    // Regression test for: when a model calls a non-existent tool the stream
+    // produces tool-input-start (dynamic:false) followed by tool-input-error
+    // (dynamic:true, set by parseToolCall's catch block). Before the fix,
+    // tool-input-error branched on chunk.dynamic and called updateDynamicToolPart,
+    // which could not find the already-created static part and pushed a second
+    // duplicate part for the same toolCallId.
+
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        { type: 'start-step' },
+        {
+          toolCallId: 'call-missing',
+          toolName: 'nonExistentTool',
+          // dynamic is falsy — the tool isn't in the tools map yet
+          type: 'tool-input-start',
+        },
+        {
+          inputTextDelta: '{}',
+          toolCallId: 'call-missing',
+          type: 'tool-input-delta',
+        },
+        {
+          // NoSuchToolError catch block sets dynamic:true on the error chunk
+          dynamic: true,
+          errorText: 'Tool not found: nonExistentTool',
+          input: '{}',
+          toolCallId: 'call-missing',
+          toolName: 'nonExistentTool',
+          type: 'tool-input-error',
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-no-such-tool',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should produce exactly one part for the toolCallId', () => {
+      const toolParts = state!.message.parts.filter(
+        (p: any) => p.toolCallId === 'call-missing',
+      );
+      expect(toolParts).toHaveLength(1);
+    });
+
+    it('should keep the static part type and set output-error state', () => {
+      const toolPart = state!.message.parts.find(
+        (p: any) => p.toolCallId === 'call-missing',
+      ) as any;
+      expect(toolPart.type).toBe('tool-nonExistentTool');
+      expect(toolPart.state).toBe('output-error');
+      expect(toolPart.errorText).toBe('Tool not found: nonExistentTool');
+    });
+  });
+
   describe('preliminary tool results', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([

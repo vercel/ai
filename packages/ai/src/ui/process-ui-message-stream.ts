@@ -558,7 +558,22 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'tool-input-error': {
-              if (chunk.dynamic) {
+              // Use the dynamic flag from the *existing* partial tool call when
+              // available, not from the error chunk. This matters when a tool
+              // call starts as a static part (tool-input-start with dynamic:
+              // false/undefined) but the error chunk arrives with dynamic:true
+              // — e.g. when the model calls a non-existent tool and the catch
+              // block in parseToolCall marks the error as dynamic. Without this
+              // fix, updateDynamicToolPart would fail to find the existing
+              // static part and create a second, duplicate part for the same
+              // toolCallId.
+              const existingPartialCall =
+                state.partialToolCalls[chunk.toolCallId];
+              const isDynamic =
+                existingPartialCall != null
+                  ? (existingPartialCall.dynamic ?? false)
+                  : chunk.dynamic;
+              if (isDynamic) {
                 updateDynamicToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
