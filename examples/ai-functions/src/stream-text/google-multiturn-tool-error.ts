@@ -15,7 +15,7 @@ run(async () => {
 
   console.log('=== turn 1: tool call that will naturally fail ===');
   const turn1 = streamText({
-    model: google('gemini-3-pro-preview'),
+    model: google('gemini-3.1-pro-preview'),
     tools: {
       readuserdata: tool({
         description: 'read user data from file',
@@ -127,7 +127,7 @@ run(async () => {
 
   try {
     const turn2 = streamText({
-      model: google('gemini-3-pro-preview'),
+      model: google('gemini-3.1-pro-preview'),
       messages: messagesForTurn2,
       includeRawChunks: true,
       tools: {
@@ -181,7 +181,7 @@ run(async () => {
     ];
 
     const turn3 = streamText({
-      model: google('gemini-3-pro-preview'),
+      model: google('gemini-3.1-pro-preview'),
       messages: messagesForTurn3,
       includeRawChunks: true,
       tools: {
