@@ -10,7 +10,10 @@ import {
   getFromApi,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import {
+  asyncPollResponseSchema,
+  asyncSubmitResponseSchema,
+} from './fireworks-image-api';
 import { FireworksImageModelId } from './fireworks-image-options';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
@@ -99,21 +102,6 @@ function getPollUrlForModel(
 ): string {
   return `${baseUrl}/workflows/${modelId}/get_result`;
 }
-
-// Schema for async submit response
-const asyncSubmitResponseSchema = z.object({
-  request_id: z.string(),
-});
-
-// Schema for async poll response
-const asyncPollResponseSchema = z.object({
-  status: z.string(),
-  result: z
-    .object({
-      sample: z.string().optional(),
-    })
-    .optional(),
-});
 
 interface FireworksImageModelConfig {
   provider: string;
@@ -365,7 +353,9 @@ export class FireworksImageModel implements ImageModelV3 {
       }
 
       if (status === 'Error' || status === 'Failed') {
-        throw new Error(`Fireworks image generation failed with status: ${status}`);
+        throw new Error(
+          `Fireworks image generation failed with status: ${status}`,
+        );
       }
 
       // Wait before next poll attempt

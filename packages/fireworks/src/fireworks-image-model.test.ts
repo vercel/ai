@@ -49,20 +49,17 @@ function createAsyncModel({
   pollIntervalMillis?: number;
   pollTimeoutMillis?: number;
 } = {}) {
-  return new FireworksImageModel(
-    'accounts/fireworks/models/flux-kontext-pro',
-    {
-      provider: 'fireworks',
-      baseURL: 'https://api.async-example.com',
-      headers: headers ?? (() => ({ 'api-key': 'test-key' })),
-      fetch,
-      pollIntervalMillis,
-      pollTimeoutMillis,
-      _internal: {
-        currentDate,
-      },
+  return new FireworksImageModel('accounts/fireworks/models/flux-kontext-pro', {
+    provider: 'fireworks',
+    baseURL: 'https://api.async-example.com',
+    headers: headers ?? (() => ({ 'api-key': 'test-key' })),
+    fetch,
+    pollIntervalMillis,
+    pollTimeoutMillis,
+    _internal: {
+      currentDate,
     },
-  );
+  });
 }
 
 /**
@@ -87,14 +84,15 @@ function createAsyncEditFetch({
           ? init.body
           : new TextDecoder().decode(init?.body as BufferSource);
       capturedBodies.push(JSON.parse(bodyText));
-      return new Response(
-        JSON.stringify({ request_id: 'edit-request-123' }),
-        { status: 200, headers: { 'content-type': 'application/json' } },
-      );
+      return new Response(JSON.stringify({ request_id: 'edit-request-123' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
     }
     if (urlString === pollUrl) {
       return new Response(
         JSON.stringify({
+          id: 'edit-request-123',
           status: 'Ready',
           result: { sample: imageUrl },
         }),
@@ -134,6 +132,7 @@ describe('FireworksImageModel', () => {
         response: {
           type: 'json-value',
           body: {
+            id: 'test-request-123',
             status: 'Ready',
             result: { sample: 'https://example.com/image.png' },
           },
@@ -487,11 +486,7 @@ describe('FireworksImageModel', () => {
   });
 
   describe('Image Editing', () => {
-    function createKontextModel({
-      fetch,
-    }: {
-      fetch: FetchFunction;
-    }) {
+    function createKontextModel({ fetch }: { fetch: FetchFunction }) {
       return new FireworksImageModel(
         'accounts/fireworks/models/flux-kontext-pro',
         {
@@ -767,9 +762,7 @@ describe('FireworksImageModel', () => {
       });
 
       // Verify image download
-      expect(server.calls[2].requestUrl).toBe(
-        'https://example.com/image.png',
-      );
+      expect(server.calls[2].requestUrl).toBe('https://example.com/image.png');
 
       // Verify result
       expect(result.images).toHaveLength(1);
@@ -788,10 +781,13 @@ describe('FireworksImageModel', () => {
           urlString ===
           'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro'
         ) {
-          return new Response(JSON.stringify({ request_id: 'test-request-123' }), {
-            status: 200,
-            headers: { 'content-type': 'application/json' },
-          });
+          return new Response(
+            JSON.stringify({ request_id: 'test-request-123' }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            },
+          );
         }
 
         if (
@@ -800,13 +796,21 @@ describe('FireworksImageModel', () => {
         ) {
           pollCount++;
           if (pollCount < 3) {
-            return new Response(JSON.stringify({ status: 'Pending' }), {
-              status: 200,
-              headers: { 'content-type': 'application/json' },
-            });
+            return new Response(
+              JSON.stringify({
+                id: 'test-request-123',
+                status: 'Pending',
+                result: null,
+              }),
+              {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+              },
+            );
           }
           return new Response(
             JSON.stringify({
+              id: 'test-request-123',
               status: 'Ready',
               result: { sample: 'https://example.com/image.png' },
             }),
@@ -848,7 +852,7 @@ describe('FireworksImageModel', () => {
         'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result'
       ].response = {
         type: 'json-value',
-        body: { status: 'Error' },
+        body: { id: 'test-request-123', status: 'Error', result: null },
       };
 
       const model = createAsyncModel();
@@ -872,7 +876,7 @@ describe('FireworksImageModel', () => {
         'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result'
       ].response = {
         type: 'json-value',
-        body: { status: 'Pending' },
+        body: { id: 'test-request-123', status: 'Pending', result: null },
       };
 
       const model = createAsyncModel({
@@ -899,7 +903,7 @@ describe('FireworksImageModel', () => {
         'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result'
       ].response = {
         type: 'json-value',
-        body: { status: 'Ready', result: {} },
+        body: { id: 'test-request-123', status: 'Ready', result: {} },
       };
 
       const model = createAsyncModel();
@@ -926,6 +930,7 @@ describe('FireworksImageModel', () => {
       ].response = {
         type: 'json-value',
         body: {
+          id: 'test-request-123',
           status: 'Ready',
           result: { sample: 'https://example.com/image.png' },
         },
@@ -963,6 +968,7 @@ describe('FireworksImageModel', () => {
       ].response = {
         type: 'json-value',
         body: {
+          id: 'test-request-123',
           status: 'Ready',
           result: { sample: 'https://example.com/image.png' },
         },
