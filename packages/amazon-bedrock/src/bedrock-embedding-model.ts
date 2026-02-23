@@ -71,9 +71,14 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
     // Note: Different embedding model families expect different request/response
     // payloads (e.g. Titan vs Cohere vs Nova). We keep the public interface stable and
     // adapt here based on the modelId.
+    //
+    // Cross-region inference access points prepend a region prefix to the model ID
+    // (e.g. "eu.cohere.embed-v4:0", "us.amazon.nova-lite-v1:0"). Strip it before
+    // detecting the model family so that the correct request payload is used.
+    const baseModelId = this.modelId.replace(/^[a-z]{2,3}\./, '');
     const isNovaModel =
-      this.modelId.startsWith('amazon.nova-') && this.modelId.includes('embed');
-    const isCohereModel = this.modelId.startsWith('cohere.embed-');
+      baseModelId.startsWith('amazon.nova-') && baseModelId.includes('embed');
+    const isCohereModel = baseModelId.startsWith('cohere.embed-');
 
     const args = isNovaModel
       ? {

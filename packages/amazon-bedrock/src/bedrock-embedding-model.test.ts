@@ -24,6 +24,11 @@ const cohereV4EmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/
   'cohere.embed-v4:0',
 )}/invoke`;
 
+// Cross-region inference prepends a region prefix (e.g. "eu.") to the model ID.
+const cohereEuCrossRegionEmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encodeURIComponent(
+  'eu.cohere.embed-v4:0',
+)}/invoke`;
+
 describe('doEmbed', () => {
   const mockConfigHeaders = {
     'config-header': 'config-value',
@@ -59,6 +64,19 @@ describe('doEmbed', () => {
       },
     },
     [cohereV4EmbedUrl]: {
+      response: {
+        type: 'binary',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: Buffer.from(
+          JSON.stringify({
+            embeddings: { float: [mockEmbeddings[0]] },
+          }),
+        ),
+      },
+    },
+    [cohereEuCrossRegionEmbedUrl]: {
       response: {
         type: 'binary',
         headers: {
@@ -226,6 +244,43 @@ describe('doEmbed', () => {
       texts: [testValues[0]],
       truncate: undefined,
       output_dimension: 256,
+    });
+  });
+
+  it('should support cross-region inference prefix for Cohere embedding models', async () => {
+    const crossRegionModel = new BedrockEmbeddingModel('eu.cohere.embed-v4:0', {
+      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: mockConfigHeaders,
+      fetch: fakeFetchWithAuth,
+    });
+
+    const { embeddings } = await crossRegionModel.doEmbed({
+      values: [testValues[0]],
+      providerOptions: {
+        bedrock: {
+          inputType: 'search_document',
+          outputDimension: 1024,
+        },
+      },
+    });
+
+    expect(embeddings.length).toBe(1);
+    expect(embeddings[0]).toMatchInlineSnapshot(`
+      [
+        -0.09,
+        0.05,
+        -0.02,
+        0.01,
+        0.04,
+      ]
+    `);
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).toEqual({
+      input_type: 'search_document',
+      texts: [testValues[0]],
+      truncate: undefined,
+      output_dimension: 1024,
     });
   });
 
