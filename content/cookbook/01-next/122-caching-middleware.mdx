@@ -57,7 +57,7 @@ export default function Chat() {
 
 Next, you will create a `LanguageModelMiddleware` that caches the assistant's responses in KV storage.
 `LanguageModelMiddleware` has two methods: `wrapGenerate` and `wrapStream`.
-`wrapGenerate` is called when using [`generateText`](/docs/reference/ai-sdk-core/generate-text) and [`generateObject`](/docs/reference/ai-sdk-core/generate-object), while `wrapStream` is called when using [`streamText`](/docs/reference/ai-sdk-core/stream-text) and [`streamObject`](/docs/reference/ai-sdk-core/stream-object).
+`wrapGenerate` is called when using [`generateText`](/docs/reference/ai-sdk-core/generate-text), while `wrapStream` is called when using [`streamText`](/docs/reference/ai-sdk-core/stream-text).
 
 For `wrapGenerate`, you can cache the response directly.
 Instead, for `wrapStream`, you cache an array of the stream parts, which can then be used with [`simulateReadableStream`](/docs/reference/ai-sdk-core/simulate-readable-stream) function to create a simulated `ReadableStream` that returns the cached response.

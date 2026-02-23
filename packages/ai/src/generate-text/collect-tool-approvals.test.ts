@@ -266,6 +266,75 @@ describe('collectToolApprovals', () => {
     `);
   });
 
+  it('should throw when approval response has unknown approvalId', () => {
+    expect(() =>
+      collectToolApprovals({
+        messages: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: { value: 'test-input' },
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval-id-1',
+                toolCallId: 'call-1',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'unknown-approval-id', // doesn't match any request
+                approved: true,
+              },
+            ],
+          },
+        ],
+      }),
+    ).toThrow(
+      'Tool approval response references unknown approvalId: "unknown-approval-id"',
+    );
+  });
+
+  it('should throw when referenced tool call does not exist', () => {
+    expect(() =>
+      collectToolApprovals({
+        messages: [
+          {
+            role: 'assistant',
+            content: [
+              // No tool-call part, only the approval request
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval-id-1',
+                toolCallId: 'call-that-does-not-exist',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-id-1',
+                approved: true,
+              },
+            ],
+          },
+        ],
+      }),
+    ).toThrow(
+      'Tool call "call-that-does-not-exist" not found for approval request "approval-id-1".',
+    );
+  });
+
   it('should work for 2 approvals, 2 rejections, 1 approval with tool result, 1 rejection with tool result', () => {
     const result = collectToolApprovals({
       messages: [

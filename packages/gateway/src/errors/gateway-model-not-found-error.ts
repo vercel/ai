@@ -29,13 +29,15 @@ export class GatewayModelNotFoundError extends GatewayError {
     statusCode = 404,
     modelId,
     cause,
+    generationId,
   }: {
     message?: string;
     statusCode?: number;
     modelId?: string;
     cause?: unknown;
+    generationId?: string;
   } = {}) {
-    super({ message, statusCode, cause });
+    super({ message, statusCode, cause, generationId });
     this.modelId = modelId;
   }
 

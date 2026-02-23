@@ -5,8 +5,8 @@ export type FireworksEmbeddingModelId =
   | 'nomic-ai/nomic-embed-text-v1.5'
   | (string & {});
 
-export const fireworksEmbeddingProviderOptions = z.object({});
+export const fireworksEmbeddingModelOptions = z.object({});
 
-export type FireworksEmbeddingProviderOptions = z.infer<
-  typeof fireworksEmbeddingProviderOptions
+export type FireworksEmbeddingModelOptions = z.infer<
+  typeof fireworksEmbeddingModelOptions
 >;

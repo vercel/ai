@@ -158,6 +158,8 @@ describe('asImageModelV3', () => {
 
       const response = await result.doGenerate({
         prompt: 'a test image',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -189,6 +191,8 @@ describe('asImageModelV3', () => {
 
       const response = await result.doGenerate({
         prompt: 'a test image',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -219,6 +223,8 @@ describe('asImageModelV3', () => {
 
       const response = await result.doGenerate({
         prompt: 'multiple test images',
+        files: undefined,
+        mask: undefined,
         n: 3,
         size: undefined,
         aspectRatio: undefined,
@@ -255,6 +261,8 @@ describe('asImageModelV3', () => {
 
       const response = await result.doGenerate({
         prompt: 'a test image',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -290,6 +298,8 @@ describe('asImageModelV3', () => {
 
       const response = await result.doGenerate({
         prompt: 'a test image',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -320,6 +330,8 @@ describe('asImageModelV3', () => {
 
       const response = await result.doGenerate({
         prompt: 'a test image',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -350,6 +362,8 @@ describe('asImageModelV3', () => {
 
       const response = await result.doGenerate({
         prompt: 'a test image',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,

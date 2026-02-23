@@ -16,7 +16,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: __MODEL__,
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();
@@ -41,23 +41,24 @@ export async function POST(req: Request) {
     },
     {
       name: 'options',
-      type: '{ tools?: ToolSet, convertDataPart?: (part: DataUIPart) => TextPart | FilePart | null }',
+      type: '{ tools?: ToolSet, ignoreIncompleteToolCalls?: boolean, convertDataPart?: (part: DataUIPart) => TextPart | FilePart | undefined }',
       description:
-        'Optional configuration object. Provide tools to enable multi-modal tool responses, and convertDataPart to transform custom data parts into model-compatible content.',
+        'Optional configuration object. Provide tools to enable multi-modal tool responses. Set ignoreIncompleteToolCalls to true to skip tool calls without results (default: false). Use convertDataPart to transform custom data parts into model-compatible content.',
     },
   ]}
 />
 
 ### Returns
 
-An array of [`ModelMessage`](/docs/reference/ai-sdk-core/model-message) objects.
+A Promise that resolves to an array of [`ModelMessage`](/docs/reference/ai-sdk-core/model-message) objects.
 
 <PropertiesTable
   content={[
     {
-      name: 'ModelMessage[]',
-      type: 'Array',
-      description: 'An array of ModelMessage objects',
+      name: 'Promise<ModelMessage[]>',
+      type: 'Promise',
+      description:
+        'A Promise that resolves to an array of ModelMessage objects',
     },
   ]}
 />
@@ -74,7 +75,7 @@ import { z } from 'zod';
 const screenshotTool = tool({
   inputSchema: z.object({}),
   execute: async () => 'imgbase64',
-  toModelOutput: result => [{ type: 'image', data: result }],
+  toModelOutput: ({ output }) => [{ type: 'image', data: output }],
 });
 
 const result = streamText({
@@ -224,7 +225,7 @@ convertToModelMessages<MyUIMessage>(messages, {
       // part.data is typed as { url: string; content: string }
       return { type: 'text', text: part.data.url };
     }
-    return null;
+    // Return undefined to skip this part
   },
 });
 ```

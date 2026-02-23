@@ -83,6 +83,7 @@ describe('prepareTools', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "betas": Set {
+          "structured-outputs-2025-11-13",
           "advanced-tool-use-2025-11-20",
         },
         "toolChoice": undefined,
@@ -115,7 +116,7 @@ describe('prepareTools', () => {
   });
 
   describe('strict mode for function tools', () => {
-    it('should include strict when supportsStructuredOutput is true and strict is true', async () => {
+    it('should include strict and structured-outputs beta when supportsStructuredOutput is true and strict is true', async () => {
       const result = await prepareTools({
         tools: [
           {
@@ -132,7 +133,9 @@ describe('prepareTools', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "betas": Set {},
+          "betas": Set {
+            "structured-outputs-2025-11-13",
+          },
           "toolChoice": undefined,
           "toolWarnings": [],
           "tools": [
@@ -151,7 +154,7 @@ describe('prepareTools', () => {
       `);
     });
 
-    it('should not include strict when strict is undefined even if supportsStructuredOutput is true', async () => {
+    it('should include beta but not strict property when strict is undefined and supportsStructuredOutput is true', async () => {
       const result = await prepareTools({
         tools: [
           {
@@ -167,7 +170,9 @@ describe('prepareTools', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "betas": Set {},
+          "betas": Set {
+            "structured-outputs-2025-11-13",
+          },
           "toolChoice": undefined,
           "toolWarnings": [],
           "tools": [
@@ -185,7 +190,7 @@ describe('prepareTools', () => {
       `);
     });
 
-    it('should not include strict when supportsStructuredOutput is false', async () => {
+    it('should not include strict or beta when supportsStructuredOutput is false', async () => {
       const result = await prepareTools({
         tools: [
           {
@@ -214,6 +219,44 @@ describe('prepareTools', () => {
                 "type": "object",
               },
               "name": "testFunction",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should include beta when strict is false and supportsStructuredOutput is true', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: false,
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {
+            "structured-outputs-2025-11-13",
+          },
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "cache_control": undefined,
+              "description": "A test function",
+              "input_schema": {
+                "properties": {},
+                "type": "object",
+              },
+              "name": "testFunction",
+              "strict": false,
             },
           ],
         }
@@ -256,6 +299,171 @@ describe('prepareTools', () => {
                 "display_width_px": 800,
                 "name": "computer",
                 "type": "computer_20241022",
+              },
+            ],
+          }
+        `);
+      });
+    });
+
+    describe('computer_20250124', () => {
+      it('should correctly prepare computer_20250124 tool', async () => {
+        const result = await prepareTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.computer_20250124',
+              name: 'computer',
+              args: {
+                displayWidthPx: 1024,
+                displayHeightPx: 768,
+                displayNumber: 1,
+              },
+            },
+          ],
+          toolChoice: undefined,
+          supportsStructuredOutput: true,
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          {
+            "betas": Set {
+              "computer-use-2025-01-24",
+            },
+            "toolChoice": undefined,
+            "toolWarnings": [],
+            "tools": [
+              {
+                "cache_control": undefined,
+                "display_height_px": 768,
+                "display_number": 1,
+                "display_width_px": 1024,
+                "name": "computer",
+                "type": "computer_20250124",
+              },
+            ],
+          }
+        `);
+      });
+    });
+
+    describe('computer_20251124', () => {
+      it('should correctly prepare computer_20251124 tool', async () => {
+        const result = await prepareTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.computer_20251124',
+              name: 'computer',
+              args: {
+                displayWidthPx: 1024,
+                displayHeightPx: 768,
+                displayNumber: 1,
+              },
+            },
+          ],
+          toolChoice: undefined,
+          supportsStructuredOutput: true,
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          {
+            "betas": Set {
+              "computer-use-2025-11-24",
+            },
+            "toolChoice": undefined,
+            "toolWarnings": [],
+            "tools": [
+              {
+                "cache_control": undefined,
+                "display_height_px": 768,
+                "display_number": 1,
+                "display_width_px": 1024,
+                "enable_zoom": undefined,
+                "name": "computer",
+                "type": "computer_20251124",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should correctly prepare computer_20251124 tool with enableZoom', async () => {
+        const result = await prepareTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.computer_20251124',
+              name: 'computer',
+              args: {
+                displayWidthPx: 1024,
+                displayHeightPx: 768,
+                displayNumber: 1,
+                enableZoom: true,
+              },
+            },
+          ],
+          toolChoice: undefined,
+          supportsStructuredOutput: true,
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          {
+            "betas": Set {
+              "computer-use-2025-11-24",
+            },
+            "toolChoice": undefined,
+            "toolWarnings": [],
+            "tools": [
+              {
+                "cache_control": undefined,
+                "display_height_px": 768,
+                "display_number": 1,
+                "display_width_px": 1024,
+                "enable_zoom": true,
+                "name": "computer",
+                "type": "computer_20251124",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should correctly prepare computer_20251124 tool with enableZoom false', async () => {
+        const result = await prepareTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.computer_20251124',
+              name: 'computer',
+              args: {
+                displayWidthPx: 1024,
+                displayHeightPx: 768,
+                displayNumber: 1,
+                enableZoom: false,
+              },
+            },
+          ],
+          toolChoice: undefined,
+          supportsStructuredOutput: true,
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          {
+            "betas": Set {
+              "computer-use-2025-11-24",
+            },
+            "toolChoice": undefined,
+            "toolWarnings": [],
+            "tools": [
+              {
+                "cache_control": undefined,
+                "display_height_px": 768,
+                "display_number": 1,
+                "display_width_px": 1024,
+                "enable_zoom": false,
+                "name": "computer",
+                "type": "computer_20251124",
               },
             ],
           }
@@ -559,7 +767,9 @@ describe('prepareTools', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "betas": Set {},
+          "betas": Set {
+            "structured-outputs-2025-11-13",
+          },
           "toolChoice": undefined,
           "toolWarnings": [],
           "tools": [
@@ -597,7 +807,9 @@ describe('prepareTools', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "betas": Set {},
+          "betas": Set {
+            "structured-outputs-2025-11-13",
+          },
           "toolChoice": undefined,
           "toolWarnings": [],
           "tools": [
@@ -631,6 +843,107 @@ describe('prepareTools', () => {
       });
 
       expect(result.tools?.[0]).not.toHaveProperty('defer_loading');
+    });
+  });
+
+  describe('allowedCallers for function tools (programmatic tool calling)', () => {
+    it('should include allowed_callers and advanced-tool-use beta when allowedCallers is set', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'query_database',
+            description: 'Query a database',
+            inputSchema: {
+              type: 'object',
+              properties: { sql: { type: 'string' } },
+            },
+            providerOptions: {
+              anthropic: {
+                allowedCallers: ['code_execution_20250825'],
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {
+            "structured-outputs-2025-11-13",
+            "advanced-tool-use-2025-11-20",
+          },
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "allowed_callers": [
+                "code_execution_20250825",
+              ],
+              "cache_control": undefined,
+              "description": "Query a database",
+              "input_schema": {
+                "properties": {
+                  "sql": {
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+              "name": "query_database",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should not include allowed_callers when not specified', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+      });
+
+      expect(result.tools?.[0]).not.toHaveProperty('allowed_callers');
+    });
+
+    it('should include both deferLoading and allowedCallers when both are set', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'query_database',
+            description: 'Query a database',
+            inputSchema: {
+              type: 'object',
+              properties: { sql: { type: 'string' } },
+            },
+            providerOptions: {
+              anthropic: {
+                deferLoading: true,
+                allowedCallers: ['code_execution_20250825'],
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+      });
+
+      expect(result.tools?.[0]).toHaveProperty('defer_loading', true);
+      expect(result.tools?.[0]).toHaveProperty('allowed_callers', [
+        'code_execution_20250825',
+      ]);
+      expect(result.betas).toContain('advanced-tool-use-2025-11-20');
     });
   });
 

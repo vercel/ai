@@ -83,7 +83,11 @@ describe('generateImage', () => {
           });
         },
       }),
-      prompt,
+      prompt: {
+        text: prompt,
+        images: [pngBase64],
+        mask: pngBase64,
+      },
       size: '1024x1024',
       aspectRatio: '16:9',
       seed: 12345,
@@ -101,6 +105,18 @@ describe('generateImage', () => {
     expect(capturedArgs).toStrictEqual({
       n: 1,
       prompt,
+      mask: {
+        type: 'file',
+        data: convertBase64ToUint8Array(pngBase64),
+        mediaType: 'image/png',
+      },
+      files: [
+        {
+          type: 'file',
+          data: convertBase64ToUint8Array(pngBase64),
+          mediaType: 'image/png',
+        },
+      ],
       size: '1024x1024',
       aspectRatio: '16:9',
       seed: 12345,
@@ -339,6 +355,8 @@ describe('generateImage', () => {
               case 0:
                 expect(options).toStrictEqual({
                   prompt,
+                  files: undefined,
+                  mask: undefined,
                   n: 2,
                   seed: 12345,
                   size: '1024x1024',
@@ -358,6 +376,8 @@ describe('generateImage', () => {
               case 1:
                 expect(options).toStrictEqual({
                   prompt,
+                  files: undefined,
+                  mask: undefined,
                   n: 1,
                   seed: 12345,
                   size: '1024x1024',
@@ -406,6 +426,8 @@ describe('generateImage', () => {
               case 0:
                 expect(options).toStrictEqual({
                   prompt,
+                  files: undefined,
+                  mask: undefined,
                   n: 2,
                   seed: 12345,
                   size: '1024x1024',
@@ -424,6 +446,8 @@ describe('generateImage', () => {
               case 1:
                 expect(options).toStrictEqual({
                   prompt,
+                  files: undefined,
+                  mask: undefined,
                   n: 1,
                   seed: 12345,
                   size: '1024x1024',
@@ -480,6 +504,8 @@ describe('generateImage', () => {
                 case 0:
                   expect(options).toStrictEqual({
                     prompt,
+                    files: undefined,
+                    mask: undefined,
                     n: 2,
                     seed: 12345,
                     size: '1024x1024',
@@ -499,6 +525,8 @@ describe('generateImage', () => {
                 case 1:
                   expect(options).toStrictEqual({
                     prompt,
+                    files: undefined,
+                    mask: undefined,
                     n: 1,
                     seed: 12345,
                     size: '1024x1024',
@@ -1159,5 +1187,234 @@ describe('generateImage', () => {
         cost: '0.04',
       });
     });
+  });
+});
+
+describe('data URL handling', () => {
+  it('should handle data URL with media type in prompt images', async () => {
+    const dataUrl = `data:image/png;base64,${pngBase64}`;
+
+    let capturedArgs!: Parameters<ImageModelV3['doGenerate']>[0];
+
+    await generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse({
+            images: [pngBase64],
+          });
+        },
+      }),
+      prompt: {
+        text: prompt,
+        images: [dataUrl],
+      },
+    });
+
+    expect(capturedArgs.files).toStrictEqual([
+      {
+        type: 'file',
+        data: convertBase64ToUint8Array(pngBase64),
+        mediaType: 'image/png',
+      },
+    ]);
+  });
+
+  it('should handle data URL with jpeg media type', async () => {
+    const dataUrl = `data:image/jpeg;base64,${jpegBase64}`;
+
+    let capturedArgs!: Parameters<ImageModelV3['doGenerate']>[0];
+
+    await generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse({
+            images: [pngBase64],
+          });
+        },
+      }),
+      prompt: {
+        text: prompt,
+        images: [dataUrl],
+      },
+    });
+
+    expect(capturedArgs.files).toStrictEqual([
+      {
+        type: 'file',
+        data: convertBase64ToUint8Array(jpegBase64),
+        mediaType: 'image/jpeg',
+      },
+    ]);
+  });
+
+  it('should handle data URL as mask', async () => {
+    const dataUrl = `data:image/png;base64,${pngBase64}`;
+
+    let capturedArgs!: Parameters<ImageModelV3['doGenerate']>[0];
+
+    await generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse({
+            images: [pngBase64],
+          });
+        },
+      }),
+      prompt: {
+        text: prompt,
+        images: [pngBase64],
+        mask: dataUrl,
+      },
+    });
+
+    expect(capturedArgs.mask).toStrictEqual({
+      type: 'file',
+      data: convertBase64ToUint8Array(pngBase64),
+      mediaType: 'image/png',
+    });
+  });
+
+  it('should detect media type from data when data URL has no media type', async () => {
+    // Data URL with minimal header (no explicit media type before semicolon)
+    const dataUrl = `data:;base64,${pngBase64}`;
+
+    let capturedArgs!: Parameters<ImageModelV3['doGenerate']>[0];
+
+    await generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse({
+            images: [pngBase64],
+          });
+        },
+      }),
+      prompt: {
+        text: prompt,
+        images: [dataUrl],
+      },
+    });
+
+    // Should detect PNG from the actual image data
+    expect(capturedArgs.files).toStrictEqual([
+      {
+        type: 'file',
+        data: convertBase64ToUint8Array(pngBase64),
+        mediaType: 'image/png',
+      },
+    ]);
+  });
+
+  it('should handle multiple data URLs in prompt images', async () => {
+    const pngDataUrl = `data:image/png;base64,${pngBase64}`;
+    const jpegDataUrl = `data:image/jpeg;base64,${jpegBase64}`;
+
+    let capturedArgs!: Parameters<ImageModelV3['doGenerate']>[0];
+
+    await generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse({
+            images: [pngBase64],
+          });
+        },
+      }),
+      prompt: {
+        text: prompt,
+        images: [pngDataUrl, jpegDataUrl],
+      },
+    });
+
+    expect(capturedArgs.files).toStrictEqual([
+      {
+        type: 'file',
+        data: convertBase64ToUint8Array(pngBase64),
+        mediaType: 'image/png',
+      },
+      {
+        type: 'file',
+        data: convertBase64ToUint8Array(jpegBase64),
+        mediaType: 'image/jpeg',
+      },
+    ]);
+  });
+
+  it('should handle mix of data URLs and base64 strings', async () => {
+    const pngDataUrl = `data:image/png;base64,${pngBase64}`;
+
+    let capturedArgs!: Parameters<ImageModelV3['doGenerate']>[0];
+
+    await generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse({
+            images: [pngBase64],
+          });
+        },
+      }),
+      prompt: {
+        text: prompt,
+        images: [pngDataUrl, jpegBase64],
+      },
+    });
+
+    expect(capturedArgs.files).toStrictEqual([
+      {
+        type: 'file',
+        data: convertBase64ToUint8Array(pngBase64),
+        mediaType: 'image/png',
+      },
+      {
+        type: 'file',
+        data: convertBase64ToUint8Array(jpegBase64),
+        mediaType: 'image/jpeg',
+      },
+    ]);
+  });
+});
+
+describe('deprecated APIs', () => {
+  it('experimental_generateImage should still work', async () => {
+    // Import the deprecated export
+    const { experimental_generateImage } = await import('./index');
+
+    const result = await experimental_generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async () =>
+          createMockResponse({
+            images: [pngBase64],
+          }),
+      }),
+      prompt,
+    });
+
+    expect(result.images).toHaveLength(1);
+    expect(result.image.base64).toBe(pngBase64);
+  });
+
+  it('Experimental_GenerateImageResult type should be exported', async () => {
+    // Import the deprecated exports
+    const { experimental_generateImage } = await import('./index');
+    type ResultType = import('./index').Experimental_GenerateImageResult;
+
+    const result: ResultType = await experimental_generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async () =>
+          createMockResponse({
+            images: [pngBase64],
+          }),
+      }),
+      prompt,
+    });
+
+    // Type assertions to verify the shape is correct
+    expect(result.images).toBeDefined();
+    expect(result.image).toBeDefined();
+    expect(result.warnings).toBeDefined();
   });
 });

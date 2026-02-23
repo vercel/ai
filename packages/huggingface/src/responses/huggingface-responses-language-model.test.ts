@@ -547,7 +547,10 @@ describe('HuggingFaceResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "huggingface": {
                 "responseId": "resp_test",
@@ -661,7 +664,12 @@ describe('HuggingFaceResponsesLanguageModel', () => {
 
       expect(errorChunk).toBeDefined();
       expect(errorChunk?.type).toBe('error');
-      expect(finishChunk?.finishReason).toBe('error');
+      expect(finishChunk?.finishReason).toMatchInlineSnapshot(`
+        {
+          "raw": undefined,
+          "unified": "error",
+        }
+      `);
     });
 
     it('should send correct streaming request', async () => {
@@ -989,7 +997,10 @@ describe('HuggingFaceResponsesLanguageModel', () => {
             "type": "tool-result",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "huggingface": {
                 "responseId": "resp_tool_stream",
@@ -1310,7 +1321,10 @@ describe('HuggingFaceResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "huggingface": {
                 "responseId": "resp_reasoning_stream",

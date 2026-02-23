@@ -11,7 +11,7 @@ import { deepgramFailedResponseHandler } from './deepgram-error';
 import { DeepgramSpeechModelId } from './deepgram-speech-options';
 
 // https://developers.deepgram.com/reference/text-to-speech/speak-request
-const deepgramSpeechProviderOptionsSchema = z.object({
+const deepgramSpeechModelOptionsSchema = z.object({
   /** Bitrate of the audio in bits per second. Can be a number or predefined enum value. */
   bitRate: z.union([z.number(), z.string()]).nullish(),
   /** Container format for the output audio (mp3, wav, etc.). */
@@ -30,8 +30,8 @@ const deepgramSpeechProviderOptionsSchema = z.object({
   tag: z.union([z.string(), z.array(z.string())]).nullish(),
 });
 
-export type DeepgramSpeechCallOptions = z.infer<
-  typeof deepgramSpeechProviderOptionsSchema
+export type DeepgramSpeechModelOptions = z.infer<
+  typeof deepgramSpeechModelOptionsSchema
 >;
 
 interface DeepgramSpeechModelConfig extends DeepgramConfig {
@@ -67,7 +67,7 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
     const deepgramOptions = await parseProviderOptions({
       provider: 'deepgram',
       providerOptions,
-      schema: deepgramSpeechProviderOptionsSchema,
+      schema: deepgramSpeechModelOptionsSchema,
     });
 
     // Create request body

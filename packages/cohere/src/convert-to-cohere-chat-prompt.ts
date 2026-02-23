@@ -114,31 +114,33 @@ export function convertToCohereChatPrompt(prompt: LanguageModelV3Prompt): {
       }
       case 'tool': {
         messages.push(
-          ...content.map(toolResult => {
-            const output = toolResult.output;
+          ...content
+            .filter(toolResult => toolResult.type !== 'tool-approval-response')
+            .map(toolResult => {
+              const output = toolResult.output;
 
-            let contentValue: string;
-            switch (output.type) {
-              case 'text':
-              case 'error-text':
-                contentValue = output.value;
-                break;
-              case 'execution-denied':
-                contentValue = output.reason ?? 'Tool execution denied.';
-                break;
-              case 'content':
-              case 'json':
-              case 'error-json':
-                contentValue = JSON.stringify(output.value);
-                break;
-            }
+              let contentValue: string;
+              switch (output.type) {
+                case 'text':
+                case 'error-text':
+                  contentValue = output.value;
+                  break;
+                case 'execution-denied':
+                  contentValue = output.reason ?? 'Tool execution denied.';
+                  break;
+                case 'content':
+                case 'json':
+                case 'error-json':
+                  contentValue = JSON.stringify(output.value);
+                  break;
+              }
 
-            return {
-              role: 'tool' as const,
-              content: contentValue,
-              tool_call_id: toolResult.toolCallId,
-            };
-          }),
+              return {
+                role: 'tool' as const,
+                content: contentValue,
+                tool_call_id: toolResult.toolCallId,
+              };
+            }),
         );
 
         break;

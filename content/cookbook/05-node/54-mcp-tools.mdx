@@ -13,11 +13,8 @@ If you prefer to use the official transports (optional), install the official Mo
 <Snippet text="pnpm install @modelcontextprotocol/sdk" />
 
 ```ts
-import {
-  experimental_createMCPClient as createMCPClient,
-  generateText,
-  stepCountIs,
-} from '@ai-sdk/mcp';
+import { createMCPClient } from '@ai-sdk/mcp';
+import { generateText, stepCountIs } from 'ai';
 import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
 import { openai } from '@ai-sdk/openai';
 // Optional: Official transports if you prefer them

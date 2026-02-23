@@ -65,6 +65,49 @@ function createAsyncModel({
   );
 }
 
+/**
+ * Creates a mock fetch for async Kontext model tests that simulates the
+ * submit → poll → download flow and captures the submit request body.
+ */
+function createAsyncEditFetch({
+  capturedBodies,
+}: {
+  capturedBodies: Array<Record<string, unknown>>;
+}) {
+  const submitUrl =
+    'https://api.edit.example.com/workflows/accounts/fireworks/models/flux-kontext-pro';
+  const pollUrl = `${submitUrl}/get_result`;
+  const imageUrl = 'https://edit-result.example.com/image.png';
+
+  return vi.fn(async (url: string, init?: RequestInit) => {
+    const urlString = url.toString();
+    if (urlString === submitUrl) {
+      const bodyText =
+        typeof init?.body === 'string'
+          ? init.body
+          : new TextDecoder().decode(init?.body as BufferSource);
+      capturedBodies.push(JSON.parse(bodyText));
+      return new Response(
+        JSON.stringify({ request_id: 'edit-request-123' }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
+    }
+    if (urlString === pollUrl) {
+      return new Response(
+        JSON.stringify({
+          status: 'Ready',
+          result: { sample: imageUrl },
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
+    }
+    if (urlString === imageUrl) {
+      return new Response(Buffer.from('edited-image-data'), { status: 200 });
+    }
+    return new Response('Not found', { status: 404 });
+  }) as unknown as typeof fetch;
+}
+
 describe('FireworksImageModel', () => {
   const server = createTestServer({
     'https://api.example.com/*': {
@@ -79,6 +122,29 @@ describe('FireworksImageModel', () => {
         body: Buffer.from('test-binary-content'),
       },
     },
+    'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro':
+      {
+        response: {
+          type: 'json-value',
+          body: { request_id: 'test-request-123' },
+        },
+      },
+    'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result':
+      {
+        response: {
+          type: 'json-value',
+          body: {
+            status: 'Ready',
+            result: { sample: 'https://example.com/image.png' },
+          },
+        },
+      },
+    'https://example.com/image.png': {
+      response: {
+        type: 'binary',
+        body: Buffer.from('async-image-content'),
+      },
+    },
   });
 
   describe('doGenerate', () => {
@@ -87,6 +153,8 @@ describe('FireworksImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '16:9',
@@ -108,6 +176,8 @@ describe('FireworksImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '16:9',
@@ -130,6 +200,8 @@ describe('FireworksImageModel', () => {
 
       await modelWithHeaders.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -156,6 +228,8 @@ describe('FireworksImageModel', () => {
       await expect(
         model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
@@ -183,6 +257,8 @@ describe('FireworksImageModel', () => {
       await expect(
         model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
@@ -205,6 +281,8 @@ describe('FireworksImageModel', () => {
 
       await sizeModel.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x768',
         aspectRatio: undefined,
@@ -227,6 +305,8 @@ describe('FireworksImageModel', () => {
 
         const result1 = await model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: '1024x1024',
           aspectRatio: '1:1',
@@ -250,6 +330,8 @@ describe('FireworksImageModel', () => {
 
         const result2 = await sizeModel.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: '1024x1024',
           aspectRatio: '1:1',
@@ -275,6 +357,8 @@ describe('FireworksImageModel', () => {
 
       const generatePromise = model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -303,6 +387,8 @@ describe('FireworksImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -318,6 +404,8 @@ describe('FireworksImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 42,
         size: undefined,
         aspectRatio: undefined,
@@ -340,6 +428,8 @@ describe('FireworksImageModel', () => {
 
         const result = await model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
@@ -367,6 +457,8 @@ describe('FireworksImageModel', () => {
         const model = createBasicModel();
         const result = await model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
@@ -394,38 +486,260 @@ describe('FireworksImageModel', () => {
     });
   });
 
-  describe('async models (flux-kontext-*)', () => {
-    const asyncServer = createTestServer({
-      'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro':
+  describe('Image Editing', () => {
+    function createKontextModel({
+      fetch,
+    }: {
+      fetch: FetchFunction;
+    }) {
+      return new FireworksImageModel(
+        'accounts/fireworks/models/flux-kontext-pro',
         {
-          response: {
-            type: 'json-value',
-            body: { request_id: 'test-request-123' },
-          },
+          provider: 'fireworks',
+          baseURL: 'https://api.edit.example.com',
+          headers: () => ({ 'api-key': 'test-key' }),
+          fetch,
+          pollIntervalMillis: 10,
         },
-      'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result':
+      );
+    }
+
+    it('should send edit request with files as data URI', async () => {
+      const capturedBodies: Array<Record<string, unknown>> = [];
+      const mockFetch = createAsyncEditFetch({ capturedBodies });
+      const imageData = new Uint8Array([137, 80, 78, 71]); // PNG magic bytes
+
+      await createKontextModel({ fetch: mockFetch }).doGenerate({
+        prompt: 'Turn the cat into a dog',
+        files: [
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(capturedBodies[0]).toMatchInlineSnapshot(`
         {
-          response: {
-            type: 'json-value',
-            body: {
-              status: 'Ready',
-              result: { sample: 'https://example.com/image.png' },
-            },
-          },
-        },
-      'https://example.com/image.png': {
-        response: {
-          type: 'binary',
-          body: Buffer.from('async-image-content'),
-        },
-      },
+          "input_image": "data:image/png;base64,iVBORw==",
+          "prompt": "Turn the cat into a dog",
+          "samples": 1,
+        }
+      `);
     });
 
+    it('should use correct URL for Kontext model (no text_to_image suffix)', async () => {
+      const capturedBodies: Array<Record<string, unknown>> = [];
+      const mockFetch = createAsyncEditFetch({ capturedBodies });
+      const imageData = new Uint8Array([137, 80, 78, 71]);
+
+      await createKontextModel({ fetch: mockFetch }).doGenerate({
+        prompt: 'Edit this image',
+        files: [
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.edit.example.com/workflows/accounts/fireworks/models/flux-kontext-pro',
+        expect.any(Object),
+      );
+    });
+
+    it('should send edit request with URL-based file', async () => {
+      const capturedBodies: Array<Record<string, unknown>> = [];
+      const mockFetch = createAsyncEditFetch({ capturedBodies });
+
+      await createKontextModel({ fetch: mockFetch }).doGenerate({
+        prompt: 'Edit this image',
+        files: [
+          {
+            type: 'url',
+            url: 'https://example.com/input.png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(capturedBodies[0]).toMatchInlineSnapshot(`
+        {
+          "input_image": "https://example.com/input.png",
+          "prompt": "Edit this image",
+          "samples": 1,
+        }
+      `);
+    });
+
+    it('should send edit request with base64 string data', async () => {
+      const capturedBodies: Array<Record<string, unknown>> = [];
+      const mockFetch = createAsyncEditFetch({ capturedBodies });
+
+      await createKontextModel({ fetch: mockFetch }).doGenerate({
+        prompt: 'Edit this image',
+        files: [
+          {
+            type: 'file',
+            data: 'iVBORw0KGgoAAAANSUhEUgAAAAE=',
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(capturedBodies[0]).toMatchInlineSnapshot(`
+        {
+          "input_image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAE=",
+          "prompt": "Edit this image",
+          "samples": 1,
+        }
+      `);
+    });
+
+    it('should warn when multiple files are provided', async () => {
+      const capturedBodies: Array<Record<string, unknown>> = [];
+      const mockFetch = createAsyncEditFetch({ capturedBodies });
+      const imageData = new Uint8Array([137, 80, 78, 71]);
+
+      const result = await createKontextModel({ fetch: mockFetch }).doGenerate({
+        prompt: 'Edit images',
+        files: [
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toContainEqual({
+        type: 'other',
+        message:
+          'Fireworks only supports a single input image. Additional images are ignored.',
+      });
+    });
+
+    it('should warn when mask is provided', async () => {
+      const capturedBodies: Array<Record<string, unknown>> = [];
+      const mockFetch = createAsyncEditFetch({ capturedBodies });
+      const imageData = new Uint8Array([137, 80, 78, 71]);
+      const maskData = new Uint8Array([255, 255, 255, 0]);
+
+      const result = await createKontextModel({ fetch: mockFetch }).doGenerate({
+        prompt: 'Edit with mask',
+        files: [
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: {
+          type: 'file',
+          data: maskData,
+          mediaType: 'image/png',
+        },
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'mask',
+        details:
+          'Fireworks Kontext models do not support explicit masks. Use the prompt to describe the areas to edit.',
+      });
+    });
+
+    it('should pass provider options with edit request', async () => {
+      const capturedBodies: Array<Record<string, unknown>> = [];
+      const mockFetch = createAsyncEditFetch({ capturedBodies });
+      const imageData = new Uint8Array([137, 80, 78, 71]);
+
+      await createKontextModel({ fetch: mockFetch }).doGenerate({
+        prompt: 'Edit with options',
+        files: [
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: '16:9',
+        seed: 42,
+        providerOptions: {
+          fireworks: {
+            output_format: 'jpeg',
+            safety_tolerance: 2,
+          },
+        },
+      });
+
+      expect(capturedBodies[0]).toMatchInlineSnapshot(`
+        {
+          "aspect_ratio": "16:9",
+          "input_image": "data:image/png;base64,iVBORw==",
+          "output_format": "jpeg",
+          "prompt": "Edit with options",
+          "safety_tolerance": 2,
+          "samples": 1,
+          "seed": 42,
+        }
+      `);
+    });
+  });
+
+  describe('async models (flux-kontext-*)', () => {
     it('should submit request and poll for result', async () => {
       const model = createAsyncModel();
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '16:9',
@@ -434,10 +748,10 @@ describe('FireworksImageModel', () => {
       });
 
       // Verify submit request
-      expect(asyncServer.calls[0].requestUrl).toBe(
+      expect(server.calls[0].requestUrl).toBe(
         'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro',
       );
-      expect(await asyncServer.calls[0].requestBodyJson).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         prompt,
         aspect_ratio: '16:9',
         seed: 42,
@@ -445,21 +759,21 @@ describe('FireworksImageModel', () => {
       });
 
       // Verify poll request
-      expect(asyncServer.calls[1].requestUrl).toBe(
+      expect(server.calls[1].requestUrl).toBe(
         'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result',
       );
-      expect(await asyncServer.calls[1].requestBodyJson).toStrictEqual({
+      expect(await server.calls[1].requestBodyJson).toStrictEqual({
         id: 'test-request-123',
       });
 
       // Verify image download
-      expect(asyncServer.calls[2].requestUrl).toBe(
+      expect(server.calls[2].requestUrl).toBe(
         'https://example.com/image.png',
       );
 
       // Verify result
       expect(result.images).toHaveLength(1);
-      expect(Buffer.from(result.images[0]).toString()).toBe(
+      expect(Buffer.from(result.images[0] as Uint8Array).toString()).toBe(
         'async-image-content',
       );
     });
@@ -467,8 +781,7 @@ describe('FireworksImageModel', () => {
     it('should poll multiple times until Ready', async () => {
       let pollCount = 0;
 
-      // Custom fetch to track poll count
-      const customFetch = vi.fn(async (url: string, init?: RequestInit) => {
+      const customFetch = vi.fn(async (url: string, _init?: RequestInit) => {
         const urlString = url.toString();
 
         if (
@@ -517,6 +830,8 @@ describe('FireworksImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -529,7 +844,7 @@ describe('FireworksImageModel', () => {
     });
 
     it('should throw error when generation fails', async () => {
-      asyncServer.urls[
+      server.urls[
         'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result'
       ].response = {
         type: 'json-value',
@@ -541,6 +856,8 @@ describe('FireworksImageModel', () => {
       await expect(
         model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
@@ -551,7 +868,7 @@ describe('FireworksImageModel', () => {
     });
 
     it('should throw error when polling times out', async () => {
-      asyncServer.urls[
+      server.urls[
         'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result'
       ].response = {
         type: 'json-value',
@@ -566,6 +883,8 @@ describe('FireworksImageModel', () => {
       await expect(
         model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
@@ -576,7 +895,7 @@ describe('FireworksImageModel', () => {
     });
 
     it('should throw error when Ready but missing sample', async () => {
-      asyncServer.urls[
+      server.urls[
         'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result'
       ].response = {
         type: 'json-value',
@@ -588,6 +907,8 @@ describe('FireworksImageModel', () => {
       await expect(
         model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
@@ -600,8 +921,7 @@ describe('FireworksImageModel', () => {
     });
 
     it('should pass provider options to submit request', async () => {
-      // Reset response for clean test
-      asyncServer.urls[
+      server.urls[
         'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result'
       ].response = {
         type: 'json-value',
@@ -615,6 +935,8 @@ describe('FireworksImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -627,7 +949,7 @@ describe('FireworksImageModel', () => {
         },
       });
 
-      expect(await asyncServer.calls[0].requestBodyJson).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         prompt,
         samples: 1,
         safety_tolerance: 6,
@@ -636,8 +958,7 @@ describe('FireworksImageModel', () => {
     });
 
     it('should include response metadata', async () => {
-      // Reset response for clean test
-      asyncServer.urls[
+      server.urls[
         'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result'
       ].response = {
         type: 'json-value',
@@ -654,6 +975,8 @@ describe('FireworksImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,

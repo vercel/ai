@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { createFireworks } from './fireworks-provider';
-import { LanguageModelV3, EmbeddingModelV3 } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import {
   OpenAICompatibleChatLanguageModel,
@@ -53,19 +52,7 @@ vi.mock('./fireworks-image-model', () => ({
 }));
 
 describe('FireworksProvider', () => {
-  let mockLanguageModel: LanguageModelV3;
-  let mockEmbeddingModel: EmbeddingModelV3;
-
   beforeEach(() => {
-    // Mock implementations of models
-    mockLanguageModel = {
-      // Add any required methods for LanguageModelV3
-    } as LanguageModelV3;
-    mockEmbeddingModel = {
-      // Add any required methods for EmbeddingModelV3
-    } as EmbeddingModelV3;
-
-    // Reset mocks
     vi.clearAllMocks();
   });
 
@@ -125,6 +112,72 @@ describe('FireworksProvider', () => {
       const model = provider.chatModel(modelId);
 
       expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
+    });
+
+    it('should pass transformRequestBody that converts thinking options', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        thinking: { type: 'enabled', budgetTokens: 2048 },
+        reasoningHistory: 'interleaved',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        thinking: { type: 'enabled', budget_tokens: 2048 },
+        reasoning_history: 'interleaved',
+      });
+    });
+
+    it('should handle thinking without budgetTokens', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        thinking: { type: 'enabled' },
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        thinking: { type: 'enabled' },
+      });
+    });
+
+    it('should handle request without thinking options', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+      });
     });
   });
 

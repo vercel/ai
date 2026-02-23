@@ -7,7 +7,7 @@ export type TogetherAIRerankingModelId =
   | 'mixedbread-ai/Mxbai-Rerank-Large-V2'
   | (string & {});
 
-export type TogetherAIRerankingOptions = {
+export type TogetherAIRerankingModelOptions = {
   /**
    * List of keys in the JSON Object document to rank by.
    * Defaults to use all supplied keys for ranking.
@@ -17,7 +17,7 @@ export type TogetherAIRerankingOptions = {
   rankFields?: string[];
 };
 
-export const togetheraiRerankingOptionsSchema: FlexibleSchema<TogetherAIRerankingOptions> =
+export const togetheraiRerankingModelOptionsSchema: FlexibleSchema<TogetherAIRerankingModelOptions> =
   lazySchema(() =>
     zodSchema(
       z.object({

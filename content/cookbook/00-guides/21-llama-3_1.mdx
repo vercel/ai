@@ -89,20 +89,24 @@ const { textStream } = streamText({
 
 ### Generating Structured Data
 
-While text generation can be useful, you might want to generate structured JSON data. For example, you might want to extract information from text, classify data, or generate synthetic data. AI SDK Core provides two functions ([`generateObject`](/docs/reference/ai-sdk-core/generate-object) and [`streamObject`](/docs/reference/ai-sdk-core/stream-object)) to generate structured data, allowing you to constrain model outputs to a specific schema.
+While text generation can be useful, you might want to generate structured JSON data. For example, you might want to extract information from text, classify data, or generate synthetic data. AI SDK Core provides [`generateText`](/docs/reference/ai-sdk-core/generate-text) and [`streamText`](/docs/reference/ai-sdk-core/stream-text) with `Output` to generate structured data, allowing you to constrain model outputs to a specific schema.
 
 ```ts
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { deepinfra } from '@ai-sdk/deepinfra';
 import { z } from 'zod';
 
-const { object } = await generateObject({
+const { output } = await generateText({
   model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(z.object({ name: z.string(), amount: z.string() })),
-      steps: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(
+          z.object({ name: z.string(), amount: z.string() }),
+        ),
+        steps: z.array(z.string()),
+      }),
     }),
   }),
   prompt: 'Generate a lasagna recipe.',
@@ -197,17 +201,17 @@ Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK,
 
 ```tsx filename="app/api/chat/route.ts"
 import { deepinfra } from '@ai-sdk/deepinfra';
-import { convertToModelMessages, streamText } from 'ai';
+import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();
@@ -218,20 +222,39 @@ export async function POST(req: Request) {
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  const [input, setInput] = useState('');
+  const { messages, sendMessage } = useChat();
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (input.trim()) {
+      sendMessage({ text: input });
+      setInput('');
+    }
+  };
 
   return (
     <>
       {messages.map(message => (
         <div key={message.id}>
           {message.role === 'user' ? 'User: ' : 'AI: '}
-          {message.content}
+          {message.parts.map((part, index) => {
+            if (part.type === 'text') {
+              return <span key={index}>{part.text}</span>;
+            }
+            return null;
+          })}
         </div>
       ))}
       <form onSubmit={handleSubmit}>
-        <input name="prompt" value={input} onChange={handleInputChange} />
+        <input
+          name="prompt"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+        />
         <button type="submit">Submit</button>
       </form>
     </>

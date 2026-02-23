@@ -11,11 +11,12 @@ This error occurs when an API call fails.
 
 - `url`: The URL of the API request that failed
 - `requestBodyValues`: The request body values sent to the API
-- `statusCode`: The HTTP status code returned by the API
-- `responseHeaders`: The response headers returned by the API
-- `responseBody`: The response body returned by the API
+- `statusCode`: The HTTP status code returned by the API (optional)
+- `responseHeaders`: The response headers returned by the API (optional)
+- `responseBody`: The response body returned by the API (optional)
 - `isRetryable`: Whether the request can be retried based on the status code
-- `data`: Any additional data associated with the error
+- `data`: Any additional data associated with the error (optional)
+- `cause`: The underlying error that caused the API call to fail (optional)
 
 ## Checking for this Error
 

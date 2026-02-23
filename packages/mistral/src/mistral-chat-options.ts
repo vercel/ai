@@ -26,9 +26,9 @@ export type MistralChatModelId =
 
 export const mistralLanguageModelOptions = z.object({
   /**
-Whether to inject a safety prompt before all conversations.
-
-Defaults to `false`.
+   * Whether to inject a safety prompt before all conversations.
+   *
+   * Defaults to `false`.
    */
   safePrompt: z.boolean().optional(),
 

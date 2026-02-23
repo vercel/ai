@@ -85,12 +85,12 @@ export default function Home() {
 
 ## Server
 
-Now let's implement the `getNotifications` function. We'll use the `generateObject` function to generate the list of fictional notifications based on the schema we defined earlier.
+Now let's implement the `generate` function. We'll use the `streamText` function with `Output.object` to stream the list of fictional notifications based on the schema we defined earlier.
 
 ```typescript filename='app/actions.ts'
 'use server';
 
-import { streamObject } from 'ai';
+import { streamText, Output } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { createStreamableValue } from '@ai-sdk/rsc';
 import { z } from 'zod';
@@ -101,22 +101,24 @@ export async function generate(input: string) {
   const stream = createStreamableValue();
 
   (async () => {
-    const { partialObjectStream } = streamObject({
+    const { partialOutputStream } = streamText({
       model: openai('gpt-4.1'),
       system: 'You generate three notifications for a messages app.',
       prompt: input,
-      schema: z.object({
-        notifications: z.array(
-          z.object({
-            name: z.string().describe('Name of a fictional person.'),
-            message: z.string().describe('Do not use emojis or links.'),
-            minutesAgo: z.number(),
-          }),
-        ),
+      output: Output.object({
+        schema: z.object({
+          notifications: z.array(
+            z.object({
+              name: z.string().describe('Name of a fictional person.'),
+              message: z.string().describe('Do not use emojis or links.'),
+              minutesAgo: z.number(),
+            }),
+          ),
+        }),
       }),
     });
 
-    for await (const partialObject of partialObjectStream) {
+    for await (const partialObject of partialOutputStream) {
       stream.update(partialObject);
     }
 

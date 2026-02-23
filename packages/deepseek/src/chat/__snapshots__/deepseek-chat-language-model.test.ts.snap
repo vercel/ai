@@ -14,7 +14,10 @@ But the question is phrased: "How many 'r's are in the word 'strawberry'?" So an
       "type": "text",
     },
   ],
-  "finishReason": "stop",
+  "finishReason": {
+    "raw": "stop",
+    "unified": "stop",
+  },
   "providerMetadata": {
     "deepseek": {
       "promptCacheHitTokens": 0,
@@ -134,7 +137,10 @@ exports[`DeepSeekChatLanguageModel > doGenerate > text > should extract text con
       "type": "text",
     },
   ],
-  "finishReason": "length",
+  "finishReason": {
+    "raw": "length",
+    "unified": "length",
+  },
   "providerMetadata": {
     "deepseek": {
       "promptCacheHitTokens": 0,
@@ -253,7 +259,10 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > json response form
       "type": "text",
     },
   ],
-  "finishReason": "stop",
+  "finishReason": {
+    "raw": "stop",
+    "unified": "stop",
+  },
   "providerMetadata": {
     "deepseek": {
       "promptCacheHitTokens": 320,
@@ -396,7 +405,10 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > should extract too
       "type": "tool-call",
     },
   ],
-  "finishReason": "tool-calls",
+  "finishReason": {
+    "raw": "tool_calls",
+    "unified": "tool-calls",
+  },
   "providerMetadata": {
     "deepseek": {
       "promptCacheHitTokens": 320,
@@ -1662,7 +1674,10 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "stop",
+      "unified": "stop",
+    },
     "providerMetadata": {
       "deepseek": {
         "promptCacheHitTokens": 0,
@@ -3736,7 +3751,10 @@ exports[`DeepSeekChatLanguageModel > doStream > text > should stream text 1`] = 
     "type": "text-end",
   },
   {
-    "finishReason": "length",
+    "finishReason": {
+      "raw": "length",
+      "unified": "length",
+    },
     "providerMetadata": {
       "deepseek": {
         "promptCacheHitTokens": 0,
@@ -4049,7 +4067,10 @@ exports[`DeepSeekChatLanguageModel > doStream > tool call > should stream tool c
     "type": "tool-call",
   },
   {
-    "finishReason": "tool-calls",
+    "finishReason": {
+      "raw": "tool_calls",
+      "unified": "tool-calls",
+    },
     "providerMetadata": {
       "deepseek": {
         "promptCacheHitTokens": 320,

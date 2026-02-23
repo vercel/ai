@@ -19,11 +19,11 @@ const { text } = await generateText({
 
 ## AI Gateway
 
-The [Vercel AI Gateway](/providers/ai-sdk-providers/ai-gateway) is the fastest way to get started with the AI SDK. Access models from OpenAI, Anthropic, Google, and other providers with a single API key.
+The [Vercel AI Gateway](/providers/ai-sdk-providers/ai-gateway) is the fastest way to get started with the AI SDK. Access models from OpenAI, Anthropic, Google, and other providers. Authenticate with [OIDC](https://ai-sdk.dev/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments) or an AI Gateway API key
 
 <div className="max-w-[40%] mx-auto">
   <ButtonLink
-    href="https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Futm_source%3Dgateway-models-page&title=Get+Started+with+Vercel+AI+Gateway"
+    href="https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%2Fapi-keys%3Futm_source%3Dgateway-models-page%26showCreateKeyModal%3Dtrue&title=Get+Started+with+Vercel+AI+Gateway"
     shape="rounded"
     size="large"
     type="default"
@@ -69,16 +69,16 @@ You can also use [first-party](/providers/ai-sdk-providers), [OpenAI-compatible]
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
     <Tab>
-      <Snippet text="pnpm add @ai-sdk/anthropic@beta" dark />
+      <Snippet text="pnpm add @ai-sdk/anthropic" dark />
     </Tab>
     <Tab>
-      <Snippet text="npm install @ai-sdk/anthropic@beta" dark />
+      <Snippet text="npm install @ai-sdk/anthropic" dark />
     </Tab>
     <Tab>
-      <Snippet text="yarn add @ai-sdk/anthropic@beta" dark />
+      <Snippet text="yarn add @ai-sdk/anthropic" dark />
     </Tab>
     <Tab>
-      <Snippet text="bun add @ai-sdk/anthropic@beta" dark />
+      <Snippet text="bun add @ai-sdk/anthropic" dark />
     </Tab>
   </Tabs>
 </div>

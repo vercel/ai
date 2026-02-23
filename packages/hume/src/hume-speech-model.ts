@@ -11,7 +11,7 @@ import { humeFailedResponseHandler } from './hume-error';
 import { HumeSpeechAPITypes } from './hume-api-types';
 
 // https://dev.hume.ai/reference/text-to-speech-tts/synthesize-file
-const humeSpeechCallOptionsSchema = z.object({
+const humeSpeechModelOptionsSchema = z.object({
   /**
    * Context for the speech synthesis request.
    * Can be either a generationId for retrieving a previous generation,
@@ -82,7 +82,9 @@ const humeSpeechCallOptionsSchema = z.object({
     .nullish(),
 });
 
-export type HumeSpeechCallOptions = z.infer<typeof humeSpeechCallOptionsSchema>;
+export type HumeSpeechModelOptions = z.infer<
+  typeof humeSpeechModelOptionsSchema
+>;
 
 interface HumeSpeechModelConfig extends HumeConfig {
   _internal?: {
@@ -117,7 +119,7 @@ export class HumeSpeechModel implements SpeechModelV3 {
     const humeOptions = await parseProviderOptions({
       provider: 'hume',
       providerOptions,
-      schema: humeSpeechCallOptionsSchema,
+      schema: humeSpeechModelOptionsSchema,
     });
 
     // Create request body

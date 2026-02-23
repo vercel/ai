@@ -1,10 +1,16 @@
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
-import { ImageModelV3, LanguageModelV3, ProviderV3 } from '@ai-sdk/provider';
+import {
+  Experimental_VideoModelV3,
+  ImageModelV3,
+  LanguageModelV3,
+  ProviderV3,
+} from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,
   loadOptionalSetting,
   loadSetting,
+  normalizeHeaders,
   resolve,
   Resolvable,
   withoutTrailingSlash,
@@ -18,24 +24,32 @@ import { GoogleVertexImageModel } from './google-vertex-image-model';
 import { GoogleVertexImageModelId } from './google-vertex-image-settings';
 import { GoogleVertexModelId } from './google-vertex-options';
 import { googleVertexTools } from './google-vertex-tools';
+import { GoogleVertexVideoModel } from './google-vertex-video-model';
+import { GoogleVertexVideoModelId } from './google-vertex-video-settings';
 
 const EXPRESS_MODE_BASE_URL =
   'https://aiplatform.googleapis.com/v1/publishers/google';
 
+// set `x-goog-api-key` header to API key for express mode
 function createExpressModeFetch(
   apiKey: string,
   customFetch?: FetchFunction,
 ): FetchFunction {
   return async (url, init) => {
-    const urlWithKey = new URL(url.toString());
-    urlWithKey.searchParams.set('key', apiKey);
-    return (customFetch ?? fetch)(urlWithKey.toString(), init);
+    const modifiedInit: RequestInit = {
+      ...init,
+      headers: {
+        ...(init?.headers ? normalizeHeaders(init.headers) : {}),
+        'x-goog-api-key': apiKey,
+      },
+    };
+    return (customFetch ?? fetch)(url.toString(), modifiedInit);
   };
 }
 
 export interface GoogleVertexProvider extends ProviderV3 {
   /**
-Creates a model for text generation.
+   * Creates a model for text generation.
    */
   (modelId: GoogleVertexModelId): LanguageModelV3;
 
@@ -47,11 +61,28 @@ Creates a model for text generation.
   image(modelId: GoogleVertexImageModelId): ImageModelV3;
 
   /**
-Creates a model for image generation.
+   * Creates a model for image generation.
    */
   imageModel(modelId: GoogleVertexImageModelId): ImageModelV3;
 
   tools: typeof googleVertexTools;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(
+    modelId: GoogleVertexEmbeddingModelId,
+  ): GoogleVertexEmbeddingModel;
+
+  /**
+   * Creates a model for video generation.
+   */
+  video(modelId: GoogleVertexVideoModelId): Experimental_VideoModelV3;
+
+  /**
+   * Creates a model for video generation.
+   */
+  videoModel(modelId: GoogleVertexVideoModelId): Experimental_VideoModelV3;
 }
 
 export interface GoogleVertexProviderSettings {
@@ -63,13 +94,13 @@ export interface GoogleVertexProviderSettings {
   apiKey?: string;
 
   /**
-Your Google Vertex location. Defaults to the environment variable `GOOGLE_VERTEX_LOCATION`.
+   * Your Google Vertex location. Defaults to the environment variable `GOOGLE_VERTEX_LOCATION`.
    */
   location?: string;
 
   /**
-Your Google Vertex project. Defaults to the environment variable `GOOGLE_VERTEX_PROJECT`.
-  */
+   * Your Google Vertex project. Defaults to the environment variable `GOOGLE_VERTEX_PROJECT`.
+   */
   project?: string;
 
   /**
@@ -82,22 +113,22 @@ Your Google Vertex project. Defaults to the environment variable `GOOGLE_VERTEX_
   headers?: Resolvable<Record<string, string | undefined>>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   // for testing
   generateId?: () => string;
 
   /**
-Base URL for the Google Vertex API calls.
-     */
+   * Base URL for the Google Vertex API calls.
+   */
   baseURL?: string;
 }
 
 /**
-Create a Google Vertex AI provider instance.
+ * Create a Google Vertex AI provider instance.
  */
 export function createVertex(
   options: GoogleVertexProviderSettings = {},
@@ -179,7 +210,16 @@ export function createVertex(
     new GoogleVertexEmbeddingModel(modelId, createConfig('embedding'));
 
   const createImageModel = (modelId: GoogleVertexImageModelId) =>
-    new GoogleVertexImageModel(modelId, createConfig('image'));
+    new GoogleVertexImageModel(modelId, {
+      ...createConfig('image'),
+      generateId: options.generateId ?? generateId,
+    });
+
+  const createVideoModel = (modelId: GoogleVertexVideoModelId) =>
+    new GoogleVertexVideoModel(modelId, {
+      ...createConfig('video'),
+      generateId: options.generateId ?? generateId,
+    });
 
   const provider = function (modelId: GoogleVertexModelId) {
     if (new.target) {
@@ -194,8 +234,11 @@ export function createVertex(
   provider.specificationVersion = 'v3' as const;
   provider.languageModel = createChatModel;
   provider.embeddingModel = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
+  provider.video = createVideoModel;
+  provider.videoModel = createVideoModel;
   provider.tools = googleVertexTools;
 
   return provider;

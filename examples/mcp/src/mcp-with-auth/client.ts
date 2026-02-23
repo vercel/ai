@@ -13,10 +13,7 @@ import type {
 } from 'ai';
 */
 
-import {
-  experimental_createMCPClient as createMCPClient,
-  auth,
-} from '@ai-sdk/mcp';
+import { createMCPClient, auth } from '@ai-sdk/mcp';
 import 'dotenv/config';
 import type {
   OAuthClientProvider,

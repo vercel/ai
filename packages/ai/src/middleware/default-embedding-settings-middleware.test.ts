@@ -1,9 +1,9 @@
-import { EmbeddingModelCallOptions } from '@ai-sdk/provider';
+import { EmbeddingModelV3CallOptions } from '@ai-sdk/provider';
 import { defaultEmbeddingSettingsMiddleware } from './default-embedding-settings-middleware';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { describe, it, expect } from 'vitest';
 
-const params: EmbeddingModelCallOptions = {
+const params: EmbeddingModelV3CallOptions = {
   values: ['hello world'],
 };
 

@@ -35,6 +35,8 @@ async function main() {
       '@xsai/embed',
     ],
     'pi-ai': ['@mariozechner/pi-ai'],
+    OpenRouter: ['@openrouter/sdk'],
+    Mastra: ['@mastra/core'],
   };
 
   // Helper for flattened package to group map

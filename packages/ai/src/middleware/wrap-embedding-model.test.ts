@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelCallOptions,
+  EmbeddingModelV3CallOptions,
   EmbeddingModelV3Middleware,
 } from '@ai-sdk/provider';
 import { wrapEmbeddingModel } from '../middleware/wrap-embedding-model';
@@ -169,7 +169,7 @@ describe('wrapEmbeddingModel', () => {
       },
     });
 
-    const params: EmbeddingModelCallOptions = {
+    const params: EmbeddingModelV3CallOptions = {
       values: [
         'sunny day at the beach',
         'rainy afternoon in the city',
@@ -205,7 +205,7 @@ describe('wrapEmbeddingModel', () => {
       },
     });
 
-    const params: EmbeddingModelCallOptions = {
+    const params: EmbeddingModelV3CallOptions = {
       values: [
         'sunny day at the beach',
         'rainy afternoon in the city',
@@ -252,7 +252,7 @@ describe('wrapEmbeddingModel', () => {
         ],
       });
 
-      const params: EmbeddingModelCallOptions = {
+      const params: EmbeddingModelV3CallOptions = {
         values: [
           'sunny day at the beach',
           'rainy afternoon in the city',
@@ -313,7 +313,7 @@ describe('wrapEmbeddingModel', () => {
         ],
       });
 
-      const params: EmbeddingModelCallOptions = {
+      const params: EmbeddingModelV3CallOptions = {
         values: [
           'sunny day at the beach',
           'rainy afternoon in the city',

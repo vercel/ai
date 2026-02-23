@@ -1386,7 +1386,7 @@ const { messages } = useChat({
 });
 ```
 
-For a complete example of sharing chat state across components, see the [Share Chat State Across Components](/docs/cookbook/use-shared-chat-context) recipe.
+For a complete example of sharing chat state across components, see the [Share Chat State Across Components](/cookbook/next/use-shared-chat-context) recipe.
 
 #### Chat Transport Architecture
 
@@ -3104,7 +3104,7 @@ const result = await generateObject({
   }),
   providerOptions: {
     openai: {
-      strictSchemas: true, // default behaviour in AI SDK 4
+      strictSchemas: true, // default behavior in AI SDK 4
     } satisfies OpenAIResponsesProviderOptions,
   },
 });
@@ -3122,7 +3122,7 @@ const result = await generateObject({
   }),
   providerOptions: {
     openai: {
-      strictJsonSchema: true, // defaults to false, opt back in to the AI SDK 4 strict behaviour
+      strictJsonSchema: true, // defaults to false, opt back in to the AI SDK 4 strict behavior
     } satisfies OpenAIResponsesProviderOptions,
   },
 });

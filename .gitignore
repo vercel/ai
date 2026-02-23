@@ -16,3 +16,4 @@ tsconfig.vitest-temp.json
 *.log
 *.local
 *.tsbuildinfo
+packages/ai/docs

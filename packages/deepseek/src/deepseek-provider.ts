@@ -38,19 +38,24 @@ export interface DeepSeekProviderSettings {
 
 export interface DeepSeekProvider extends ProviderV3 {
   /**
-Creates a DeepSeek model for text generation.
-*/
+   * Creates a DeepSeek model for text generation.
+   */
   (modelId: DeepSeekChatModelId): LanguageModelV3;
 
   /**
-Creates a DeepSeek model for text generation.
-*/
+   * Creates a DeepSeek model for text generation.
+   */
   languageModel(modelId: DeepSeekChatModelId): LanguageModelV3;
 
   /**
-Creates a DeepSeek chat model for text generation.
-*/
+   * Creates a DeepSeek chat model for text generation.
+   */
   chat(modelId: DeepSeekChatModelId): LanguageModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export function createDeepSeek(
@@ -92,6 +97,7 @@ export function createDeepSeek(
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };

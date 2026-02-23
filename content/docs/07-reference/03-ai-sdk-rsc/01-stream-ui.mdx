@@ -348,7 +348,7 @@ To see `streamUI` in action, check out [these examples](#examples).
                 'Information about the purpose of the tool including details on how and when it can be used by the model.',
             },
             {
-              name: 'parameters',
+              name: 'inputSchema',
               type: 'zod schema',
               description:
                 'The typed schema that describes the parameters of the tool that can also be used to validation and error handling.',
@@ -640,7 +640,7 @@ To see `streamUI` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
               description: 'The reason the model finished generating the text.',
             },
             {

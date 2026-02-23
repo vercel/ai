@@ -4,6 +4,7 @@ import { codeExecution_20250522 } from './tool/code-execution_20250522';
 import { codeExecution_20250825 } from './tool/code-execution_20250825';
 import { computer_20241022 } from './tool/computer_20241022';
 import { computer_20250124 } from './tool/computer_20250124';
+import { computer_20251124 } from './tool/computer_20251124';
 import { memory_20250818 } from './tool/memory_20250818';
 import { textEditor_20241022 } from './tool/text-editor_20241022';
 import { textEditor_20250124 } from './tool/text-editor_20250124';
@@ -76,6 +77,23 @@ export const anthropicTools = {
    * @param displayNumber - The display number to control (only relevant for X11 environments). If specified, the tool will be provided a display number in the tool definition.
    */
   computer_20250124,
+
+  /**
+   * Claude can interact with computer environments through the computer use tool, which
+   * provides screenshot capabilities and mouse/keyboard control for autonomous desktop interaction.
+   *
+   * This version adds the zoom action for detailed screen region inspection.
+   *
+   * Image results are supported.
+   *
+   * Supported models: Claude Opus 4.5
+   *
+   * @param displayWidthPx - The width of the display being controlled by the model in pixels.
+   * @param displayHeightPx - The height of the display being controlled by the model in pixels.
+   * @param displayNumber - The display number to control (only relevant for X11 environments). If specified, the tool will be provided a display number in the tool definition.
+   * @param enableZoom - Enable zoom action. Set to true to allow Claude to zoom into specific screen regions. Default: false.
+   */
+  computer_20251124,
 
   /**
    * The memory tool enables Claude to store and retrieve information across conversations through a memory file directory.

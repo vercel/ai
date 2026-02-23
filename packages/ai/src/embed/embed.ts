@@ -13,16 +13,22 @@ import { EmbedResult } from './embed-result';
 import { VERSION } from '../version';
 
 /**
-Embed a value using an embedding model. The type of the value is defined by the embedding model.
-
-@param model - The embedding model to use.
-@param value - The value that should be embedded.
-
-@param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
-@param abortSignal - An optional abort signal that can be used to cancel the call.
-@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
-
-@returns A result object that contains the embedding, the value, and additional information.
+ * Embed a value using an embedding model. The type of the value is defined by the embedding model.
+ *
+ * @param model - The embedding model to use.
+ * @param value - The value that should be embedded.
+ *
+ * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+ * @param abortSignal - An optional abort signal that can be used to cancel the call.
+ * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+ *
+ * @param experimental_telemetry - Optional telemetry configuration (experimental).
+ *
+ * @param providerOptions - Additional provider-specific options. They are passed through
+ * to the provider from the AI SDK and enable provider-specific
+ * functionality that can be fully encapsulated in the provider.
+ *
+ * @returns A result object that contains the embedding, the value, and additional information.
  */
 export async function embed({
   model: modelArg,
@@ -34,38 +40,38 @@ export async function embed({
   experimental_telemetry: telemetry,
 }: {
   /**
-The embedding model to use.
-     */
+   * The embedding model to use.
+   */
   model: EmbeddingModel;
 
   /**
-The value that should be embedded.
+   * The value that should be embedded.
    */
   value: string;
 
   /**
-Maximum number of retries per embedding model call. Set to 0 to disable retries.
-
-@default 2
+   * Maximum number of retries per embedding model call. Set to 0 to disable retries.
+   *
+   * @default 2
    */
   maxRetries?: number;
 
   /**
-Abort signal.
- */
+   * Abort signal.
+   */
   abortSignal?: AbortSignal;
 
   /**
-Additional headers to include in the request.
-Only applicable for HTTP-based providers.
- */
+   * Additional headers to include in the request.
+   * Only applicable for HTTP-based providers.
+   */
   headers?: Record<string, string>;
 
   /**
-  Additional provider-specific options. They are passed through
-  to the provider from the AI SDK and enable provider-specific
-  functionality that can be fully encapsulated in the provider.
-  */
+   * Additional provider-specific options. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
   providerOptions?: ProviderOptions;
 
   /**

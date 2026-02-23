@@ -90,7 +90,7 @@ export async function POST(req: Request) {
 
       const result = streamText({
         model: __MODEL__,
-        messages: convertToModelMessages(messages),
+        messages: await convertToModelMessages(messages),
         onFinish() {
           // 4. Update the same data part (reconciliation)
           writer.write({

@@ -21,31 +21,36 @@ export interface AssemblyAIProvider extends ProviderV3 {
   };
 
   /**
-Creates a model for transcription.
+   * Creates a model for transcription.
    */
   transcription(modelId: AssemblyAITranscriptionModelId): TranscriptionModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface AssemblyAIProviderSettings {
   /**
-API key for authenticating requests.
-     */
+   * API key for authenticating requests.
+   */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 /**
-Create an AssemblyAI provider instance.
+ * Create an AssemblyAI provider instance.
  */
 export function createAssemblyAI(
   options: AssemblyAIProviderSettings = {},
@@ -92,6 +97,7 @@ export function createAssemblyAI(
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
@@ -101,6 +107,6 @@ export function createAssemblyAI(
 }
 
 /**
-Default AssemblyAI provider instance.
+ * Default AssemblyAI provider instance.
  */
 export const assemblyai = createAssemblyAI();

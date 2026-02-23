@@ -6,7 +6,7 @@ import { convertDataContentToBase64String } from '../prompt/data-content';
 
 /**
  * Helper utility to serialize prompt content for OpenTelemetry tracing.
- * It is initially created because normalized LanguageModelV1Prompt carries
+ * It is initially created because normalized LanguageModelV3Prompt carries
  * images as Uint8Arrays, on which JSON.stringify acts weirdly, converting
  * them to objects with stringified indices as keys, e.g. {"0": 42, "1": 69 }.
  */

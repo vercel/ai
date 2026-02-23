@@ -52,7 +52,7 @@ import { z } from 'zod';
 
 const weatherTool = {
   description: 'Get the current weather',
-  parameters: z.object({
+  inputSchema: z.object({
     location: z.string().describe('The city and state'),
   }),
   execute: async ({ location }) => {
@@ -72,4 +72,4 @@ type WeatherUITool = InferUITool<typeof weatherTool>;
 ## Related
 
 - [`InferUITools`](/docs/reference/ai-sdk-ui/infer-ui-tools) - Infer types for a tool set
-- [`ToolUIPart`](/docs/reference/ai-sdk-ui/tool-ui-part) - Tool part type for UI messages
+- [`ToolUIPart`](/docs/reference/ai-sdk-core/ui-message#tooluipart) - Tool part type for UI messages

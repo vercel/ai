@@ -1,5 +1,13 @@
-import { SharedV3Warning, LanguageModelV3Message } from '@ai-sdk/provider';
-import { XaiResponsesInput } from './xai-responses-api';
+import {
+  SharedV3Warning,
+  LanguageModelV3Message,
+  UnsupportedFunctionalityError,
+} from '@ai-sdk/provider';
+import { convertToBase64 } from '@ai-sdk/provider-utils';
+import {
+  XaiResponsesInput,
+  XaiResponsesUserMessageContentPart,
+} from './xai-responses-api';
 
 export async function convertToXaiResponsesInput({
   prompt,
@@ -24,20 +32,33 @@ export async function convertToXaiResponsesInput({
       }
 
       case 'user': {
-        let userContent = '';
+        const contentParts: XaiResponsesUserMessageContentPart[] = [];
 
         for (const block of message.content) {
           switch (block.type) {
             case 'text': {
-              userContent += block.text;
+              contentParts.push({ type: 'input_text', text: block.text });
               break;
             }
 
             case 'file': {
-              inputWarnings.push({
-                type: 'other',
-                message: `xAI Responses API does not support ${block.type} in user messages`,
-              });
+              if (block.mediaType.startsWith('image/')) {
+                const mediaType =
+                  block.mediaType === 'image/*'
+                    ? 'image/jpeg'
+                    : block.mediaType;
+
+                const imageUrl =
+                  block.data instanceof URL
+                    ? block.data.toString()
+                    : `data:${mediaType};base64,${convertToBase64(block.data)}`;
+
+                contentParts.push({ type: 'input_image', image_url: imageUrl });
+              } else {
+                throw new UnsupportedFunctionalityError({
+                  functionality: `file part media type ${block.mediaType}`,
+                });
+              }
               break;
             }
 
@@ -54,7 +75,7 @@ export async function convertToXaiResponsesInput({
 
         input.push({
           role: 'user',
-          content: userContent,
+          content: contentParts,
         });
         break;
       }
@@ -127,6 +148,9 @@ export async function convertToXaiResponsesInput({
 
       case 'tool': {
         for (const part of message.content) {
+          if (part.type === 'tool-approval-response') {
+            continue;
+          }
           const output = part.output;
 
           let outputValue: string;

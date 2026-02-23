@@ -59,6 +59,20 @@ export const customTool = dynamicTool({
                 'Information about the purpose of the tool including details on how and when it can be used by the model.'
             },
             {
+              name: 'title',
+              isOptional: true,
+              type: 'string',
+              description:
+                'A human-readable title for the tool.'
+            },
+            {
+              name: 'needsApproval',
+              isOptional: true,
+              type: 'boolean | ((options: { args: unknown }) => boolean | Promise<boolean>)',
+              description:
+                'Whether the tool needs user approval before execution. Can be a boolean or a function that receives the tool arguments and returns a boolean.'
+            },
+            {
               name: 'inputSchema',
               type: 'FlexibleSchema<unknown>',
               description:
@@ -88,16 +102,50 @@ export const customTool = dynamicTool({
                         type: "AbortSignal",
                         isOptional: true,
                         description: "An optional abort signal."
+                      },
+                      {
+                        name: "experimental_context",
+                        type: "unknown",
+                        isOptional: true,
+                        description: "Context that is passed into tool execution. Experimental (can break in patch releases)."
                       }
                     ]
                   }
                 ]
             },
             {
+              name: 'outputSchema',
+              isOptional: true,
+              type: 'Zod Schema | JSON Schema',
+              description:
+                'The schema of the output that the tool produces. Used for validation and type inference.'
+            },
+            {
               name: 'toModelOutput',
               isOptional: true,
-              type: '(output: unknown) => LanguageModelV3ToolResultPart[\'output\']',
+              type: '({toolCallId: string; input: unknown; output: unknown}) => ToolResultOutput | PromiseLike<ToolResultOutput>',
               description: 'Optional conversion function that maps the tool result to an output that can be used by the language model.'
+            },
+            {
+              name: 'onInputStart',
+              isOptional: true,
+              type: '(options: ToolExecutionOptions) => void | PromiseLike<void>',
+              description:
+                'Optional function that is called when the argument streaming starts. Only called when the tool is used in a streaming context.'
+            },
+            {
+              name: 'onInputDelta',
+              isOptional: true,
+              type: '(options: { inputTextDelta: string } & ToolExecutionOptions) => void | PromiseLike<void>',
+              description:
+                'Optional function that is called when an argument streaming delta is available. Only called when the tool is used in a streaming context.'
+            },
+            {
+              name: 'onInputAvailable',
+              isOptional: true,
+              type: '(options: { input: unknown } & ToolExecutionOptions) => void | PromiseLike<void>',
+              description:
+                'Optional function that is called when a tool call can be started, even if the execute function is not provided.'
             },
             {
               name: 'providerOptions',

@@ -1,5 +1,6 @@
 import {
   LanguageModelV3,
+  LanguageModelV3StreamResult,
   LanguageModelV3Usage,
   SharedV3Warning,
 } from '@ai-sdk/provider';
@@ -84,7 +85,7 @@ type RenderText = Renderer<
 
 type RenderResult = {
   value: ReactNode;
-} & Awaited<ReturnType<LanguageModelV3['doStream']>>;
+} & LanguageModelV3StreamResult;
 
 const defaultTextRenderer: RenderText = ({ content }: { content: string }) =>
   content;
@@ -132,10 +133,10 @@ export async function streamUI<
     initial?: ReactNode;
 
     /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
+     * Additional provider-specific options. They are passed through
+     * to the provider from the AI SDK and enable provider-specific
+     * functionality that can be fully encapsulated in the provider.
+     */
     providerOptions?: ProviderOptions;
 
     /**
@@ -375,7 +376,7 @@ functionality that can be fully encapsulated in the provider.
 
           case 'finish': {
             finishEvent = {
-              finishReason: value.finishReason,
+              finishReason: value.finishReason?.unified,
               usage: value.usage,
               warnings,
               response: result.response,

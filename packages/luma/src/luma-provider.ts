@@ -11,35 +11,40 @@ import { VERSION } from './version';
 
 export interface LumaProviderSettings {
   /**
-Luma API key. Default value is taken from the `LUMA_API_KEY` environment
-variable.
-  */
+   * Luma API key. Default value is taken from the `LUMA_API_KEY` environment
+   * variable.
+   */
   apiKey?: string;
   /**
-Base URL for the API calls.
-  */
+   * Base URL for the API calls.
+   */
   baseURL?: string;
   /**
-Custom headers to include in the requests.
-  */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-  */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 export interface LumaProvider extends ProviderV3 {
   /**
-Creates a model for image generation.
-  */
+   * Creates a model for image generation.
+   */
   image(modelId: LumaImageModelId): ImageModelV3;
 
   /**
-Creates a model for image generation.
+   * Creates a model for image generation.
    */
   imageModel(modelId: LumaImageModelId): ImageModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 const defaultBaseURL = 'https://api.lumalabs.ai';
@@ -67,6 +72,13 @@ export function createLuma(options: LumaProviderSettings = {}): LumaProvider {
       fetch: options.fetch,
     });
 
+  const embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'embeddingModel',
+    });
+  };
+
   return {
     specificationVersion: 'v3' as const,
     image: createImageModel,
@@ -77,12 +89,8 @@ export function createLuma(options: LumaProviderSettings = {}): LumaProvider {
         modelType: 'languageModel',
       });
     },
-    embeddingModel: (modelId: string) => {
-      throw new NoSuchModelError({
-        modelId,
-        modelType: 'embeddingModel',
-      });
-    },
+    embeddingModel,
+    textEmbeddingModel: embeddingModel,
   };
 }
 
