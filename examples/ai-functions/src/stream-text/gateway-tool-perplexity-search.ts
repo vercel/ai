@@ -1,12 +1,20 @@
-import { gateway, streamText } from 'ai';
+import { gateway, stepCountIs, streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: 'openai/gpt-5-nano',
+    model: 'openai/gpt-5',
     prompt: `Search for news about AI regulations from the first week of January 2025.`,
     tools: {
       perplexity_search: gateway.tools.perplexitySearch(),
+    },
+    stopWhen: stepCountIs(20),
+
+    // this is currently ignored by gateway (hypothesis)
+    providerOptions: {
+      openai: {
+        store: true,
+      },
     },
   });
 
