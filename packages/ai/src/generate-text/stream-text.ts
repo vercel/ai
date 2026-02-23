@@ -21,6 +21,7 @@ import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { emit } from '../events/emitter';
 import { notifyOnStart } from '../events/on-start';
+import { notifyOnStepStart } from '../events/on-step-start';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import {
@@ -1583,13 +1584,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               experimental_context,
             };
 
-            emit('ai:stepStart', onStepStartEvent);
-
-            try {
-              await onStepStart?.(onStepStartEvent);
-            } catch (_ignored) {
-              // Errors in callbacks should not break the generation flow.
-            }
+            await notifyOnStepStart(onStepStartEvent, onStepStart);
 
             const {
               result: { stream, response, request },

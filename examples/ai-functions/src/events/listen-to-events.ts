@@ -1,6 +1,13 @@
 import 'dotenv/config';
 import { openai } from '@ai-sdk/openai';
-import { generateText, listenOnStart, on, stepCountIs, tool } from 'ai';
+import {
+  generateText,
+  listenOnStart,
+  listenOnStepStart,
+  on,
+  stepCountIs,
+  tool,
+} from 'ai';
 import * as z from 'zod';
 
 // Subscribe to events before calling generateText
@@ -11,8 +18,8 @@ const unsubscribeStart = listenOnStart(event => {
   console.log('Temperature:', event.temperature);
 });
 
-const unsubscribeStepStart = on('ai:stepStart', event => {
-  console.log('\n--- ai:stepStart ---');
+const unsubscribeStepStart = listenOnStepStart(event => {
+  console.log('\n--- listenOnStepStart ---');
   console.log('Step:', event.stepNumber);
   console.log('Message count:', event.messages.length);
 });
