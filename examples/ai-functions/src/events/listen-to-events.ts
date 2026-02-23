@@ -5,6 +5,7 @@ import {
   listenOnStart,
   listenOnStepStart,
   listenOnToolCallStart,
+  listenOnToolCallFinish,
   on,
   stepCountIs,
   tool,
@@ -31,8 +32,8 @@ const unsubscribeToolCallStart = listenOnToolCallStart(event => {
   console.log('Input:', JSON.stringify(event.toolCall.input));
 });
 
-const unsubscribeToolCallFinish = on('ai:toolCallFinish', event => {
-  console.log('\n--- ai:toolCallFinish ---');
+const unsubscribeToolCallFinish = listenOnToolCallFinish(event => {
+  console.log('\n--- listenOnToolCallFinish ---');
   console.log('Tool:', event.toolCall.toolName);
   console.log('Duration:', event.durationMs, 'ms');
   console.log('Success:', event.success);

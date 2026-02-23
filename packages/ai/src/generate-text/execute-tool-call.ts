@@ -1,6 +1,6 @@
 import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
-import { emit } from '../events/emitter';
+import { notifyOnToolCallFinish } from '../events/on-tool-call-finish';
 import { notifyOnToolCallStart } from '../events/on-tool-call-start';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
@@ -131,13 +131,10 @@ export async function executeToolCall<TOOLS extends ToolSet>({
           durationMs,
         };
 
-        emit('ai:toolCallFinish', onToolCallFinishErrorEvent);
-
-        try {
-          await onToolCallFinish?.(onToolCallFinishErrorEvent);
-        } catch (_ignored) {
-          // Errors in callbacks should not break the generation flow.
-        }
+        await notifyOnToolCallFinish(
+          onToolCallFinishErrorEvent,
+          onToolCallFinish,
+        );
 
         recordErrorOnSpan(span, error);
         return {
@@ -162,13 +159,10 @@ export async function executeToolCall<TOOLS extends ToolSet>({
         durationMs,
       };
 
-      emit('ai:toolCallFinish', onToolCallFinishSuccessEvent);
-
-      try {
-        await onToolCallFinish?.(onToolCallFinishSuccessEvent);
-      } catch (_ignored) {
-        // Errors in callbacks should not break the generation flow.
-      }
+      await notifyOnToolCallFinish(
+        onToolCallFinishSuccessEvent,
+        onToolCallFinish,
+      );
 
       try {
         span.setAttributes(
