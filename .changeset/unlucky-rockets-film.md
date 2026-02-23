@@ -2,4 +2,4 @@
 '@ai-sdk/alibaba': patch
 ---
 
-Backport: initial Alibaba provider in v5
+feat (provider/alibaba): initial alibaba provider
