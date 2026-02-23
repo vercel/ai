@@ -513,8 +513,8 @@ export class AlibabaLanguageModel implements LanguageModelV2 {
               providerMetadata: {
                 alibaba: {
                   cacheCreationInputTokens:
-                    usage?.prompt_tokens_details
-                      ?.cache_creation_input_tokens ?? null,
+                    usage?.prompt_tokens_details?.cache_creation_input_tokens ??
+                    null,
                 },
               },
             });
