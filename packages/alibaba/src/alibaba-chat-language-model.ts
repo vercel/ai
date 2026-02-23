@@ -1,7 +1,6 @@
 import {
   getResponseMetadata,
   mapOpenAICompatibleFinishReason,
-  prepareTools,
 } from '@ai-sdk/openai-compatible/internal';
 import {
   InvalidResponseDataError,
@@ -32,6 +31,7 @@ import { alibabaFailedResponseHandler } from './alibaba-provider';
 import { convertAlibabaUsage } from './convert-alibaba-usage';
 import { convertToAlibabaChatMessages } from './convert-to-alibaba-chat-messages';
 import { CacheControlValidator } from './get-cache-control';
+import { prepareTools } from './alibaba-prepare-tools';
 
 /**
  * Alibaba language model implementation.
