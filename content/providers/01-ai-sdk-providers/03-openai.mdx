@@ -341,6 +341,67 @@ console.log('Reasoning:', result.reasoning);
 
 Learn more about reasoning summaries in the [OpenAI documentation](https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries).
 
+#### WebSocket Transport
+
+OpenAI's [WebSocket API](https://developers.openai.com/api/docs/guides/websocket-mode) keeps a persistent connection open, which can significantly
+reduce Time-to-First-Byte (TTFB) in agentic workflows with many tool calls.
+After the initial connection, subsequent requests skip TCP/TLS/HTTP negotiation entirely.
+
+The [`ai-sdk-openai-websocket-fetch`](https://www.npmjs.com/package/ai-sdk-openai-websocket-fetch)
+package provides a drop-in `fetch` replacement that routes streaming requests
+through a persistent WebSocket connection.
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add ai-sdk-openai-websocket-fetch" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install ai-sdk-openai-websocket-fetch" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add ai-sdk-openai-websocket-fetch" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add ai-sdk-openai-websocket-fetch" dark />
+  </Tab>
+</Tabs>
+
+Pass the WebSocket fetch to `createOpenAI` via the `fetch` option:
+
+```ts highlight="2,6-7,15"
+import { createOpenAI } from '@ai-sdk/openai';
+import { createWebSocketFetch } from 'ai-sdk-openai-websocket-fetch';
+import { streamText } from 'ai';
+
+// Create a WebSocket-backed fetch instance
+const wsFetch = createWebSocketFetch();
+const openai = createOpenAI({ fetch: wsFetch });
+
+const result = streamText({
+  model: openai('gpt-4.1-mini'),
+  prompt: 'Hello!',
+  tools: {
+    // ...
+  },
+  onFinish: () => wsFetch.close(), // close the WebSocket when done
+});
+```
+
+The first request will be slower because it must establish the WebSocket connection
+(DNS + TCP + TLS + WebSocket upgrade). After that, subsequent steps in a
+multi-step tool-calling loop reuse the open connection, resulting in lower TTFB
+per step.
+
+<Note>
+  The WebSocket transport only routes streaming requests to the OpenAI Responses
+  API (`POST /responses` with `stream: true`) through the WebSocket. All other
+  requests (non-streaming, embeddings, etc.) fall through to the standard
+  `fetch` implementation.
+</Note>
+
+You can see a live side-by-side comparison of HTTP vs WebSocket streaming performance
+in the [demo app](https://github.com/vercel-labs/ai-sdk-openai-websocket).
+
 #### Verbosity Control
 
 You can control the length and detail of model responses using the `textVerbosity` parameter:
