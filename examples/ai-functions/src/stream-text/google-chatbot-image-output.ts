@@ -16,7 +16,7 @@ run(async () => {
     messages.push({ role: 'user', content: await terminal.question('You: ') });
 
     const result = streamText({
-      model: google('gemini-2.0-flash-exp'),
+      model: google('gemini-2.5-flash-image'),
       messages,
     });
 

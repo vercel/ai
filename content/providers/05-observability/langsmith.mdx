@@ -58,8 +58,7 @@ import * as ai from 'ai';
 
 import { wrapAISDK } from 'langsmith/experimental/vercel';
 
-const { generateText, streamText, generateObject, streamObject } =
-  wrapAISDK(ai);
+const { generateText, streamText } = wrapAISDK(ai);
 
 await generateText({
   model: openai('gpt-5-nano'),
@@ -79,8 +78,7 @@ import { z } from 'zod';
 
 import { wrapAISDK } from 'langsmith/experimental/vercel';
 
-const { generateText, streamText, generateObject, streamObject } =
-  wrapAISDK(ai);
+const { generateText, streamText } = wrapAISDK(ai);
 
 await generateText({
   model: openai('gpt-5-nano'),
@@ -126,8 +124,7 @@ import { z } from 'zod';
 import { traceable } from 'langsmith/traceable';
 import { wrapAISDK } from 'langsmith/experimental/vercel';
 
-const { generateText, streamText, generateObject, streamObject } =
-  wrapAISDK(ai);
+const { generateText, streamText } = wrapAISDK(ai);
 
 const wrapper = traceable(
   async (input: string) => {

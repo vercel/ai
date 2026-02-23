@@ -1,5 +1,20 @@
 # @ai-sdk/google-vertex
 
+## 4.0.61
+
+### Patch Changes
+
+- Updated dependencies [b094c07]
+  - @ai-sdk/anthropic@3.0.46
+
+## 4.0.60
+
+### Patch Changes
+
+- 765b013: feat(provider/google): add support for `gemini-3.1-pro-preview`
+- Updated dependencies [765b013]
+  - @ai-sdk/google@3.0.30
+
 ## 4.0.59
 
 ### Patch Changes

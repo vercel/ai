@@ -8,7 +8,7 @@ import { InferUITools, UIMessage } from '../ui/ui-messages';
 import { validateUIMessages } from '../ui/validate-ui-messages';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { Agent } from './agent';
-import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
+import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settings';
 
 /**
  * Runs the agent and stream the output as a UI message stream.

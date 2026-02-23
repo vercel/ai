@@ -101,7 +101,8 @@ const { text } = await generateText({
 });
 ```
 
-Google Generative AI language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
+Google Generative AI language models can also be used in the `streamText` function
+and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
 Google Generative AI also supports some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
@@ -180,7 +181,7 @@ The following optional provider options are available for Google Generative AI m
 
   - **thinkingLevel** _'minimal' | 'low' | 'medium' | 'high'_
 
-    Optional. Controls the thinking depth for Gemini 3 models. Gemini 3 Pro supports 'low' and 'high', while Gemini 3 Flash supports all four levels: 'minimal', 'low', 'medium', and 'high'. Only supported by Gemini 3 models (`gemini-3-pro-preview` and later).
+    Optional. Controls the thinking depth for Gemini 3 models. Gemini 3.1 Pro supports 'low', 'medium', and 'high', Gemini 3 Pro supports 'low' and 'high', while Gemini 3 Flash supports all four levels: 'minimal', 'low', 'medium', and 'high'. Only supported by Gemini 3 models.
 
   - **thinkingBudget** _number_
 
@@ -261,7 +262,7 @@ For Gemini 3 models, use the `thinkingLevel` parameter to control the depth of r
 import { google, GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
-const model = google('gemini-3-pro-preview');
+const model = google('gemini-3.1-pro-preview');
 
 const { text, reasoning } = await generateText({
   model: model,
@@ -1011,26 +1012,28 @@ By default, structured outputs are enabled (and for tool calling they are requir
 You can disable structured outputs for object generation as a workaround:
 
 ```ts highlight="3,8"
-const { object } = await generateObject({
+const { output } = await generateText({
   model: google('gemini-2.5-flash'),
   providerOptions: {
     google: {
       structuredOutputs: false,
     } satisfies GoogleLanguageModelOptions,
   },
-  schema: z.object({
-    name: z.string(),
-    age: z.number(),
-    contact: z.union([
-      z.object({
-        type: z.literal('email'),
-        value: z.string(),
-      }),
-      z.object({
-        type: z.literal('phone'),
-        value: z.string(),
-      }),
-    ]),
+  output: Output.object({
+    schema: z.object({
+      name: z.string(),
+      age: z.number(),
+      contact: z.union([
+        z.object({
+          type: z.literal('email'),
+          value: z.string(),
+        }),
+        z.object({
+          type: z.literal('phone'),
+          value: z.string(),
+        }),
+      ]),
+    }),
   }),
   prompt: 'Generate an example person for testing.',
 });
@@ -1045,6 +1048,7 @@ The following Zod features are known to not work with Google Generative AI:
 
 | Model                                 | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Google Search       | URL Context         |
 | ------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gemini-3.1-pro-preview`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-3-pro-preview`                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-3-pro-image-preview`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-3-flash-preview`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
