@@ -390,6 +390,19 @@ export async function generateObject<
                     'ai.usage.completionTokens':
                       result.usage.outputTokens.total,
 
+                    'ai.usage.inputTokens': result.usage.inputTokens.total,
+                    'ai.usage.outputTokens': result.usage.outputTokens.total,
+                    'ai.usage.totalTokens':
+                      result.usage.inputTokens.total != null ||
+                      result.usage.outputTokens.total != null
+                        ? (result.usage.inputTokens.total ?? 0) +
+                          (result.usage.outputTokens.total ?? 0)
+                        : undefined,
+                    'ai.usage.reasoningTokens':
+                      result.usage.outputTokens.reasoning,
+                    'ai.usage.cachedInputTokens':
+                      result.usage.inputTokens.cacheRead,
+
                     // standardized gen-ai llm span attributes:
                     'gen_ai.response.finish_reasons': [
                       result.finishReason.unified,
@@ -455,6 +468,12 @@ export async function generateObject<
               // TODO rename telemetry attributes to inputTokens and outputTokens
               'ai.usage.promptTokens': usage.inputTokens,
               'ai.usage.completionTokens': usage.outputTokens,
+
+              'ai.usage.inputTokens': usage.inputTokens,
+              'ai.usage.outputTokens': usage.outputTokens,
+              'ai.usage.totalTokens': usage.totalTokens,
+              'ai.usage.reasoningTokens': usage.reasoningTokens,
+              'ai.usage.cachedInputTokens': usage.cachedInputTokens,
             },
           }),
         );
