@@ -1,6 +1,7 @@
 import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { emit } from '../events/emitter';
+import { notifyOnToolCallStart } from '../events/on-tool-call-start';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
@@ -92,13 +93,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     fn: async span => {
       let output: unknown;
 
-      emit('ai:toolCallStart', baseCallbackEvent);
-
-      try {
-        await onToolCallStart?.(baseCallbackEvent);
-      } catch (_ignored) {
-        // Errors in callbacks should not break the generation flow.
-      }
+      await notifyOnToolCallStart(baseCallbackEvent, onToolCallStart);
 
       const startTime = now();
 

@@ -4,6 +4,7 @@ import {
   generateText,
   listenOnStart,
   listenOnStepStart,
+  listenOnToolCallStart,
   on,
   stepCountIs,
   tool,
@@ -24,10 +25,10 @@ const unsubscribeStepStart = listenOnStepStart(event => {
   console.log('Message count:', event.messages.length);
 });
 
-const unsubscribeToolCallStart = on('ai:toolCallStart', event => {
-  console.log('\n--- ai:toolCallStart ---');
+const unsubscribeToolCallStart = listenOnToolCallStart(event => {
+  console.log('\n--- listenOnToolCallStart ---');
   console.log('Tool:', event.toolCall.toolName);
-  console.log('Args:', JSON.stringify(event.toolCall.args));
+  console.log('Input:', JSON.stringify(event.toolCall.input));
 });
 
 const unsubscribeToolCallFinish = on('ai:toolCallFinish', event => {
