@@ -558,7 +558,18 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'tool-input-error': {
-              if (chunk.dynamic) {
+              // When a part already exists for this toolCallId (e.g. from
+              // tool-input-start), honour its type so we update in place
+              // instead of creating a duplicate with a mismatched type.
+              const existingPart = state.message.parts
+                .filter(isToolUIPart)
+                .find(p => p.toolCallId === chunk.toolCallId);
+              const isDynamic =
+                existingPart != null
+                  ? existingPart.type === 'dynamic-tool'
+                  : !!chunk.dynamic;
+
+              if (isDynamic) {
                 updateDynamicToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
