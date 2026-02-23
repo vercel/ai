@@ -45,17 +45,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(result.content).toEqual([
-        { type: 'text', text: expect.any(String) },
-      ]);
-      expect(result.finishReason).toBe('stop');
-      expect(result.usage).toEqual({
-        inputTokens: 18,
-        outputTokens: 1064,
-        totalTokens: 1082,
-        reasoningTokens: undefined,
-        cachedInputTokens: 0,
-      });
+      expect(result).toMatchSnapshot();
     });
 
     it('should send correct request body', async () => {
@@ -87,15 +77,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(result.content).toEqual([
-        {
-          type: 'tool-call',
-          toolCallId: 'call_962bfd2ab8f54b89a1161356',
-          toolName: 'weather',
-          input: '{"location": "San Francisco"}',
-        },
-      ]);
-      expect(result.finishReason).toBe('tool-calls');
+      expect(result).toMatchSnapshot();
     });
   });
 
@@ -109,11 +91,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(result.content).toEqual([
-        { type: 'text', text: expect.any(String) },
-        { type: 'reasoning', text: expect.any(String) },
-      ]);
-      expect(result.finishReason).toBe('stop');
+      expect(result).toMatchSnapshot();
     });
 
     it('should extract usage with reasoning tokens', async () => {
@@ -228,14 +206,9 @@ describe('doStream', () => {
         prompt: TEST_PROMPT,
       });
 
-      const parts = await convertReadableStreamToArray(result.stream);
-      const textParts = parts.filter(p => p.type === 'text-delta');
-      expect(textParts.length).toBeGreaterThan(0);
-      const finishPart = parts.find(p => p.type === 'finish');
-      expect(finishPart).toMatchObject({
-        type: 'finish',
-        finishReason: 'stop',
-      });
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
     });
   });
 
@@ -249,19 +222,9 @@ describe('doStream', () => {
         prompt: TEST_PROMPT,
       });
 
-      const parts = await convertReadableStreamToArray(result.stream);
-      const toolCallParts = parts.filter(p => p.type === 'tool-call');
-      expect(toolCallParts).toHaveLength(1);
-      expect(toolCallParts[0]).toMatchObject({
-        type: 'tool-call',
-        toolName: 'weather',
-        input: '{"location": "San Francisco"}',
-      });
-      const finishPart = parts.find(p => p.type === 'finish');
-      expect(finishPart).toMatchObject({
-        type: 'finish',
-        finishReason: 'tool-calls',
-      });
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
     });
   });
 
@@ -275,16 +238,9 @@ describe('doStream', () => {
         prompt: TEST_PROMPT,
       });
 
-      const parts = await convertReadableStreamToArray(result.stream);
-      const reasoningParts = parts.filter(p => p.type === 'reasoning-delta');
-      expect(reasoningParts.length).toBeGreaterThan(0);
-      const textParts = parts.filter(p => p.type === 'text-delta');
-      expect(textParts.length).toBeGreaterThan(0);
-      const finishPart = parts.find(p => p.type === 'finish');
-      expect(finishPart).toMatchObject({
-        type: 'finish',
-        finishReason: 'stop',
-      });
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
     });
   });
 
