@@ -20,7 +20,7 @@ description: API Reference for UIMessage
 Here's an example of how to create a custom typed UIMessage for your application:
 
 ```typescript
-import { InferUITools, ToolSet, UIMessage, tool } from 'ai';
+import { InferUITools, InferUIDataParts, ToolSet, UIMessage, tool } from 'ai';
 import z from 'zod';
 
 const metadataSchema = z.object({
@@ -29,12 +29,12 @@ const metadataSchema = z.object({
 
 type MyMetadata = z.infer<typeof metadataSchema>;
 
-const dataPartSchema = z.object({
+const dataPartSchema = {
   someDataPart: z.object({}),
   anotherDataPart: z.object({}),
-});
+};
 
-type MyDataPart = z.infer<typeof dataPartSchema>;
+type MyDataPart = InferUIDataParts<typeof dataPartSchema>;
 
 const tools = {
   someTool: tool({}),
