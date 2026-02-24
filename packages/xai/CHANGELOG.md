@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.58
+
+### Patch Changes
+
+- 6af6c5c: Added `grok-imagine-image-pro` and `grok-2-image-1212` to XaiImageModelId type for better autocomplete support.
+
 ## 3.0.57
 
 ### Patch Changes
