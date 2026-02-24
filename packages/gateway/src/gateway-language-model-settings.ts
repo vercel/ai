@@ -56,6 +56,7 @@ export type GatewayModelId =
   | 'google/gemini-3-flash'
   | 'google/gemini-3-pro-image'
   | 'google/gemini-3-pro-preview'
+  | 'google/gemini-3.1-pro-preview'
   | 'inception/mercury-coder-small'
   | 'kwaipilot/kat-coder-pro-v1'
   | 'meituan/longcat-flash-chat'

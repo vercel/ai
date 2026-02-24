@@ -598,12 +598,12 @@ export function Chat({
 
 ## Streaming Object Generation
 
-The `createStreamableValue` function streams any serializable data from the server to the client. As a result, this function allows you to stream object generations from the server to the client when paired with `streamObject`.
+The `createStreamableValue` function streams any serializable data from the server to the client. As a result, this function allows you to stream object generations from the server to the client when paired with `streamText` and `Output`.
 
 #### Before: Use streamable value to stream object generations
 
 ```ts filename="@/app/actions.ts"
-import { streamObject } from 'ai';
+import { Output, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { createStreamableValue } from '@ai-sdk/rsc';
 import { notificationsSchema } from '@/utils/schemas';
@@ -614,14 +614,14 @@ export async function generateSampleNotifications() {
   const stream = createStreamableValue();
 
   (async () => {
-    const { partialObjectStream } = streamObject({
+    const { partialOutputStream } = streamText({
       model: __MODEL__,
       system: 'generate sample ios messages for testing',
       prompt: 'messages from a family group chat during diwali, max 4',
-      schema: notificationsSchema,
+      output: Output.object({ schema: notificationsSchema }),
     });
 
-    for await (const partialObject of partialObjectStream) {
+    for await (const partialObject of partialOutputStream) {
       stream.update(partialObject);
     }
   })();
@@ -667,21 +667,21 @@ export default function Page() {
 }
 ```
 
-To migrate to AI SDK UI, you should use the `useObject` hook and implement `streamObject` within your route handler.
+To migrate to AI SDK UI, you should use the `useObject` hook and implement `streamText` with `Output` within your route handler.
 
 #### After: Replace with route handler and stream text response
 
 ```ts filename="@/app/api/object/route.ts"
-import { streamObject } from 'ai';
+import { Output, streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { notificationSchema } from '@/utils/schemas';
 
 export async function POST(req: Request) {
   const context = await req.json();
 
-  const result = streamObject({
+  const result = streamText({
     model: __MODEL__,
-    schema: notificationSchema,
+    output: Output.object({ schema: notificationSchema }),
     prompt:
       `Generate 3 notifications for a messages app in this context:` + context,
   });

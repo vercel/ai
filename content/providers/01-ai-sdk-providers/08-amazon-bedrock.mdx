@@ -304,15 +304,17 @@ Amazon Bedrock supports citations for document-based inputs across compatible mo
 
 ```ts
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import fs from 'fs';
 
-const result = await generateObject({
+const result = await generateText({
   model: bedrock('apac.anthropic.claude-sonnet-4-20250514-v1:0'),
-  schema: z.object({
-    summary: z.string().describe('Summary of the PDF document'),
-    keyPoints: z.array(z.string()).describe('Key points from the PDF'),
+  output: Output.object({
+    schema: z.object({
+      summary: z.string().describe('Summary of the PDF document'),
+      keyPoints: z.array(z.string()).describe('Key points from the PDF'),
+    }),
   }),
   messages: [
     {
@@ -337,7 +339,7 @@ const result = await generateObject({
   ],
 });
 
-console.log('Response:', result.object);
+console.log('Response:', result.output);
 ```
 
 ### Cache Points

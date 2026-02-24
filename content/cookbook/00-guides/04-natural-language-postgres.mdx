@@ -259,11 +259,11 @@ Add a new action. This action should be asynchronous and take in one parameter -
 export const generateQuery = async (input: string) => {};
 ```
 
-In this action, you'll use the `generateObject` function from the AI SDK which allows you to constrain the model's output to a pre-defined schema. This process, sometimes called structured output, ensures the model returns only the SQL query without any additional prefixes, explanations, or formatting that would require manual parsing.
+In this action, you'll use the `generateText` function with `Output` from the AI SDK which allows you to constrain the model's output to a pre-defined schema. This process, sometimes called structured output, ensures the model returns only the SQL query without any additional prefixes, explanations, or formatting that would require manual parsing.
 
 ```ts filename="app/actions.ts"
 /* ...other imports... */
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
 /* ...rest of the file... */
@@ -271,15 +271,17 @@ import { z } from 'zod';
 export const generateQuery = async (input: string) => {
   'use server';
   try {
-    const result = await generateObject({
+    const result = await generateText({
       model: 'openai/gpt-4o',
       system: `You are a SQL (postgres) ...`, // SYSTEM PROMPT AS ABOVE - OMITTED FOR BREVITY
       prompt: `Generate the query necessary to retrieve the data the user wants: ${input}`,
-      schema: z.object({
-        query: z.string(),
+      output: Output.object({
+        schema: z.object({
+          query: z.string(),
+        }),
       }),
     });
-    return result.object.query;
+    return result.output.query;
   } catch (e) {
     console.error(e);
     throw new Error('Failed to generate query');
@@ -287,7 +289,7 @@ export const generateQuery = async (input: string) => {
 };
 ```
 
-Note, you are constraining the output to a single string field called `query` using `zod`, a TypeScript schema validation library. This will ensure the model only returns the SQL query itself. The resulting generated query will then be returned.
+Note, you are constraining the output to a single string field called `query` using `zod`, a TypeScript schema validation library. This will ensure the model only returns the SQL query itself. The resulting output will then be returned.
 
 ### Update the frontend
 
@@ -386,7 +388,7 @@ This action takes two parameters - the original natural language input and the g
 export const explainQuery = async (input: string, sqlQuery: string) => {
   'use server';
   try {
-    const result = await generateObject({
+    const result = await generateText({
       model: 'openai/gpt-4o',
       system: `You are a SQL (postgres) expert. ...`, // SYSTEM PROMPT AS ABOVE - OMITTED FOR BREVITY
       prompt: `Explain the SQL query you generated to retrieve the data the user wanted. Assume the user is not an expert in SQL. Break down the query into steps. Be concise.
@@ -397,7 +399,7 @@ export const explainQuery = async (input: string, sqlQuery: string) => {
       Generated SQL Query:
       ${sqlQuery}`,
     });
-    return result.object;
+    return result.text;
   } catch (e) {
     console.error(e);
     throw new Error('Failed to generate query');
@@ -405,7 +407,7 @@ export const explainQuery = async (input: string, sqlQuery: string) => {
 };
 ```
 
-This action uses the `generateObject` function again. However, you haven't defined the schema yet. Let's define it in another file so it can also be used as a type in your components.
+This action uses the `generateText` function. However, you haven't defined the output schema yet. Let's define it in another file so it can also be used as a type in your components.
 
 Update your `lib/types.ts` file to include the schema for the explanations:
 
@@ -433,7 +435,7 @@ import { explanationSchema } from '@/lib/types';
 export const explainQuery = async (input: string, sqlQuery: string) => {
   'use server';
   try {
-    const result = await generateObject({
+    const result = await generateText({
       model: 'openai/gpt-4o',
       system: `You are a SQL (postgres) expert. ...`, // SYSTEM PROMPT AS ABOVE - OMITTED FOR BREVITY
       prompt: `Explain the SQL query you generated to retrieve the data the user wanted. Assume the user is not an expert in SQL. Break down the query into steps. Be concise.
@@ -443,10 +445,9 @@ export const explainQuery = async (input: string, sqlQuery: string) => {
 
       Generated SQL Query:
       ${sqlQuery}`,
-      schema: explanationSchema,
-      output: 'array',
+      output: Output.array({ element: explanationSchema }),
     });
-    return result.object;
+    return result.output;
   } catch (e) {
     console.error(e);
     throw new Error('Failed to generate query');
@@ -455,8 +456,8 @@ export const explainQuery = async (input: string, sqlQuery: string) => {
 ```
 
 <Note>
-  You can use `output: "array"` to indicate to the model that you expect an
-  array of objects matching the schema to be returned.
+  You can use `Output.array()` to indicate to the model that you expect an array
+  of objects matching the schema to be returned.
 </Note>
 
 ### Update query viewer
@@ -587,7 +588,7 @@ export const generateChartConfig = async (
   'use server';
 
   try {
-    const { object: config } = await generateObject({
+    const { output: config } = await generateText({
       model: 'openai/gpt-4o',
       system: 'You are a data visualization expert.',
       prompt: `Given the following data from a SQL query result, generate the chart config that best visualises the data and answers the users query.
@@ -611,7 +612,7 @@ export const generateChartConfig = async (
 
       Data:
       ${JSON.stringify(results, null, 2)}`,
-      schema: configSchema,
+      output: Output.object({ schema: configSchema }),
     });
 
     // Override with shadcn theme colors

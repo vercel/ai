@@ -14,7 +14,7 @@ This provider loads llama.cpp directly into Node.js memory, eliminating the need
 - **Native Performance**: Direct C++ bindings using node-addon-api (N-API)
 - **GPU Acceleration**: Automatic Metal support on macOS
 - **Streaming & Non-streaming**: Full support for both `generateText` and `streamText`
-- **Structured Output**: Generate JSON objects with schema validation using `generateObject`
+- **Structured Output**: Generate JSON objects with schema validation using `Output`
 - **Embeddings**: Generate embeddings with `embed` and `embedMany`
 - **Chat Templates**: Automatic or configurable chat template formatting (llama3, chatml, gemma, etc.)
 - **GGUF Support**: Load any GGUF-format model
@@ -166,10 +166,10 @@ try {
 
 ### Structured Output
 
-Generate type-safe JSON objects that conform to a schema using `generateObject`:
+Generate type-safe JSON objects that conform to a schema using [`Output`](/docs/reference/ai-sdk-core/output):
 
 ```ts
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { llamaCpp } from 'ai-sdk-llama-cpp';
 
@@ -178,17 +178,19 @@ const model = llamaCpp({
 });
 
 try {
-  const { object: recipe } = await generateObject({
+  const { output: recipe } = await generateText({
     model,
-    schema: z.object({
-      name: z.string(),
-      ingredients: z.array(
-        z.object({
-          name: z.string(),
-          amount: z.string(),
-        }),
-      ),
-      steps: z.array(z.string()),
+    output: Output.object({
+      schema: z.object({
+        name: z.string(),
+        ingredients: z.array(
+          z.object({
+            name: z.string(),
+            amount: z.string(),
+          }),
+        ),
+        steps: z.array(z.string()),
+      }),
     }),
     prompt: 'Generate a recipe for chocolate chip cookies.',
   });
