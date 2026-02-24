@@ -37,7 +37,15 @@ import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
+import { getMeter } from '../telemetry/get-meter';
 import { getTracer } from '../telemetry/get-tracer';
+import {
+  AIMetrics,
+  createAIMetrics,
+  decrementActiveRequests,
+  incrementActiveRequests,
+  recordStreamMetrics,
+} from '../telemetry/record-metrics';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
@@ -806,6 +814,28 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     this.includeRawChunks = includeRawChunks;
     this.tools = tools;
 
+    // Initialize metrics early so they can be used in eventProcessor
+    const should_record_metrics =
+      telemetry?.isEnabled === true && telemetry?.recordMetrics !== false;
+    const meter = getMeter({
+      isEnabled: should_record_metrics,
+      meter: telemetry?.meter,
+    });
+    const ai_metrics = createAIMetrics(meter);
+    const metrics_attributes = {
+      'ai.model.provider': model.provider,
+      'ai.model.id': model.modelId,
+      'ai.telemetry.functionId': telemetry?.functionId,
+      'ai.operationId': 'ai.streamText',
+    };
+    const metrics_start_time = Date.now();
+    let metrics_first_token_time: number | undefined;
+    let metrics_has_error = false;
+    let metrics_recorded = false;
+
+    // Track active requests
+    incrementActiveRequests(ai_metrics, metrics_attributes);
+
     // promise to ensure that the step has been fully processed by the event processor
     // before a new step is started. This is required because the continuation condition
     // needs the updated steps to determine if another step is needed.
@@ -868,6 +898,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         }
 
         if (part.type === 'error') {
+          metrics_has_error = true;
           await onError({ error: wrapGatewayError(part.error) });
         }
 
@@ -882,6 +913,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         }
 
         if (part.type === 'text-delta') {
+          // Record time to first token for metrics
+          if (metrics_first_token_time === undefined) {
+            metrics_first_token_time = Date.now();
+          }
+
           const activeText = activeTextContent[part.id];
 
           if (activeText == null) {
@@ -1066,6 +1102,17 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             self._totalUsage.reject(error);
             self._steps.reject(error);
 
+            // Record error metrics for early failure (no steps generated)
+            recordStreamMetrics(ai_metrics, metrics_attributes, {
+              duration_ms: Date.now() - metrics_start_time,
+              prompt_tokens: 0,
+              completion_tokens: 0,
+              success: false,
+            });
+            decrementActiveRequests(ai_metrics, metrics_attributes);
+            metrics_recorded = true;
+            rootSpan.end();
+
             return; // no steps recorded (e.g. in error scenario)
           }
 
@@ -1141,10 +1188,36 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               },
             }),
           );
+          // Record success metrics
+          const time_to_first_token_ms =
+            metrics_first_token_time !== undefined
+              ? metrics_first_token_time - metrics_start_time
+              : undefined;
+
+          recordStreamMetrics(ai_metrics, metrics_attributes, {
+            duration_ms: Date.now() - metrics_start_time,
+            prompt_tokens: totalUsage.inputTokens ?? 0,
+            completion_tokens: totalUsage.outputTokens ?? 0,
+            success: !metrics_has_error,
+            finish_reason: finishReason,
+            time_to_first_token_ms,
+          });
         } catch (error) {
+          // Record error metrics
+          recordStreamMetrics(ai_metrics, metrics_attributes, {
+            duration_ms: Date.now() - metrics_start_time,
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            success: false,
+          });
+
           controller.error(error);
         } finally {
-          rootSpan.end();
+          // Only decrement if not already recorded (e.g., early return case)
+          if (!metrics_recorded) {
+            decrementActiveRequests(ai_metrics, metrics_attributes);
+            rootSpan.end();
+          }
         }
       },
     });

@@ -34,7 +34,15 @@ import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
+import { getMeter } from '../telemetry/get-meter';
 import { getTracer } from '../telemetry/get-tracer';
+import {
+  AIMetrics,
+  createAIMetrics,
+  decrementActiveRequests,
+  incrementActiveRequests,
+  recordRequestMetrics,
+} from '../telemetry/record-metrics';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
@@ -513,6 +521,25 @@ export async function generateText<
   }
 
   const tracer = getTracer(telemetry);
+
+  // Initialize metrics
+  const should_record_metrics =
+    telemetry?.isEnabled === true && telemetry?.recordMetrics !== false;
+  const meter = getMeter({
+    isEnabled: should_record_metrics,
+    meter: telemetry?.meter,
+  });
+  const ai_metrics = createAIMetrics(meter);
+  const metrics_attributes = {
+    'ai.model.provider': model.provider,
+    'ai.model.id': model.modelId,
+    'ai.telemetry.functionId': telemetry?.functionId,
+    'ai.operationId': 'ai.generateText',
+  };
+  const start_time = Date.now();
+
+  // Track active requests
+  incrementActiveRequests(ai_metrics, metrics_attributes);
 
   try {
     return await recordSpan({
@@ -1166,6 +1193,15 @@ export async function generateText<
           );
         }
 
+        // Record success metrics
+        recordRequestMetrics(ai_metrics, metrics_attributes, {
+          duration_ms: Date.now() - start_time,
+          prompt_tokens: totalUsage.inputTokens ?? 0,
+          completion_tokens: totalUsage.outputTokens ?? 0,
+          success: true,
+          finish_reason: lastStep.finishReason,
+        });
+
         return new DefaultGenerateTextResult({
           steps,
           totalUsage,
@@ -1174,7 +1210,18 @@ export async function generateText<
       },
     });
   } catch (error) {
+    // Record error metrics
+    recordRequestMetrics(ai_metrics, metrics_attributes, {
+      duration_ms: Date.now() - start_time,
+      prompt_tokens: 0,
+      completion_tokens: 0,
+      success: false,
+    });
+
     throw wrapGatewayError(error);
+  } finally {
+    // Always decrement active requests
+    decrementActiveRequests(ai_metrics, metrics_attributes);
   }
 }
 
