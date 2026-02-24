@@ -170,6 +170,8 @@ Alibaba supports both implicit and explicit prompt caching to reduce costs for r
 
 **Implicit caching** works automatically - the provider caches appropriate content without any configuration. For more control, you can use **explicit caching** by marking specific messages with `cache_control`:
 
+### Single message cache control
+
 ```ts
 import { alibaba } from '@ai-sdk/alibaba';
 import { generateText } from 'ai';
@@ -186,32 +188,44 @@ const { text, usage } = await generateText({
         },
       },
     },
-    {
-      role: 'user',
-      content: 'What is the capital of France?',
-    },
   ],
 });
 ```
 
-Cache token usage is in `usage` and `providerMetadata`:
+### Multi-part message cache control
 
 ```ts
 import { alibaba } from '@ai-sdk/alibaba';
 import { generateText } from 'ai';
 
-const { usage, providerMetadata } = await generateText({
+const longDocument = '... large document content ...';
+
+const { text, usage } = await generateText({
   model: alibaba('qwen-plus'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'Context: Please analyze this document.',
+        },
+        {
+          type: 'text',
+          text: longDocument,
+          providerOptions: {
+            alibaba: {
+              cacheControl: { type: 'ephemeral' },
+            },
+          },
+        },
+      ],
+    },
+  ],
 });
-
-// cache read
-const cachedInputTokens = usage.cachedInputTokens;
-
-// cache write
-const cacheCreationInputTokens =
-  providerMetadata?.alibaba?.cacheCreationInputTokens;
 ```
+
+**Note:** The minimum content length for a cache block is 1,024 tokens.
 
 ## Model Capabilities
 

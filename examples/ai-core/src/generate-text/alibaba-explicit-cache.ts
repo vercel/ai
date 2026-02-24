@@ -8,8 +8,7 @@ import 'dotenv/config';
  */
 
 async function main() {
-  // Long system prompt (1024+ tokens required for explicit cache)
-  const longSystemPrompt = 'You are an expert AI assistant. '.repeat(200);
+  const longDocument = 'Here is important context about AI: '.repeat(200);
 
   console.log('First request...\n');
 
@@ -18,22 +17,40 @@ async function main() {
     messages: [
       {
         role: 'system',
-        content: longSystemPrompt,
-        providerOptions: {
-          alibaba: {
-            cache_control: { type: 'ephemeral' },
-          },
-        },
+        content: 'You are an expert AI assistant.',
       },
       {
         role: 'user',
-        content: 'What is artificial intelligence?',
+        content: [
+          {
+            type: 'text',
+            text: 'Context: Please analyze this document.',
+          },
+          {
+            type: 'text',
+            text: longDocument,
+            providerOptions: {
+              alibaba: {
+                cacheControl: { type: 'ephemeral' },
+              },
+            },
+          },
+          {
+            type: 'text',
+            text: 'What is artificial intelligence?',
+          },
+        ],
       },
     ],
   });
 
   console.log('Text:', firstResult.text.substring(0, 50) + '...');
   console.log('Usage:', firstResult.usage);
+  console.log(
+    'Cache writes:',
+    (firstResult.providerMetadata?.alibaba
+      ?.cacheCreationInputTokens as number) ?? 0,
+  );
   console.log();
 
   console.log('Second request (hits cache within 5 minutes)...\n');
@@ -43,44 +60,60 @@ async function main() {
     messages: [
       {
         role: 'system',
-        content: longSystemPrompt, // Same content
-        providerOptions: {
-          alibaba: {
-            cache_control: { type: 'ephemeral' },
-          },
-        },
+        content: 'You are an expert AI assistant.',
       },
       {
         role: 'user',
-        content: 'Explain machine learning briefly.',
+        content: [
+          {
+            type: 'text',
+            text: 'Context: Please analyze this document.',
+          },
+          {
+            type: 'text',
+            text: longDocument,
+            providerOptions: {
+              alibaba: {
+                cacheControl: { type: 'ephemeral' },
+              },
+            },
+          },
+          {
+            type: 'text',
+            text: 'Explain machine learning briefly.',
+          },
+        ],
       },
     ],
   });
 
   console.log('Text:', secondResult.text.substring(0, 50) + '...');
   console.log('Usage:', secondResult.usage);
+  console.log('Cache reads:', secondResult.usage.cachedInputTokens ?? 0);
   console.log();
 
   console.log('='.repeat(50));
 
-  const firstCachedTokens = firstResult.usage.cachedInputTokens ?? 0;
-  const secondCachedTokens = secondResult.usage.cachedInputTokens ?? 0;
+  const firstWriteTokens = (firstResult.providerMetadata?.alibaba
+    ?.cacheCreationInputTokens ?? 0) as number;
+  const secondReadTokens = secondResult.usage.cachedInputTokens ?? 0;
 
-  if (firstCachedTokens > 0) {
+  if (firstWriteTokens > 0) {
     console.log(
-      `SUCCESS: First request hit existing cache (${firstCachedTokens} tokens)`,
+      `SUCCESS: First request created cache (${firstWriteTokens} tokens written)`,
     );
-    console.log('(Cache from previous run still valid - within 5 minute TTL)');
   } else {
-    console.log('First request: no cache hit (cache created for next request)');
+    console.log(
+      'FAILURE: First request did not create cache - content may be too small',
+    );
   }
 
-  if (secondCachedTokens > 0) {
+  if (secondReadTokens > 0) {
     console.log(
-      `SUCCESS: Second request hit cache (${secondCachedTokens} tokens)`,
+      `SUCCESS: Second request hit cache (${secondReadTokens} tokens read from cache)`,
     );
   } else {
-    console.log('Second request: no cache hit');
+    console.log('FAILURE: Second request did not hit cache - may have expired');
   }
 }
 
