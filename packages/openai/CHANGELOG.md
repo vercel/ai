@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.32
+
+### Patch Changes
+
+- 0c9395b: feat(provider/openai): add `gpt-5.3-codex`
+
 ## 3.0.31
 
 ### Patch Changes

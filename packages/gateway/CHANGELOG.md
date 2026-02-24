@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.54
+
+### Patch Changes
+
+- 0c9395b: feat(provider/openai): add `gpt-5.3-codex`
+
 ## 3.0.53
 
 ### Patch Changes
