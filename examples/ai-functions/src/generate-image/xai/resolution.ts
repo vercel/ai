@@ -1,4 +1,4 @@
-import { xai } from '@ai-sdk/xai';
+import { xai, XaiImageModelOptions } from '@ai-sdk/xai';
 import { generateImage } from 'ai';
 import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';
@@ -10,7 +10,7 @@ run(async () => {
     providerOptions: {
       xai: {
         resolution: '2k',
-      },
+      } satisfies XaiImageModelOptions,
     },
   });
 
