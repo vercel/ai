@@ -397,13 +397,14 @@ I need to decide on how to approach the user's request. Once we click, we might 
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_006c87998160835a00699768d13cc8819084e1ab6edd75b685",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
+    "providerExecuted": true,
     "result": {},
     "toolCallId": "ws_006c87998160835a00699768d13cc8819084e1ab6edd75b685",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -419,18 +420,15 @@ I need to decide on how to approach the user's request. Once we click, we might 
   {
     "input": "{}",
     "providerExecuted": true,
-<<<<<<< HEAD
-    "toolCallId": "ws_0953eda47ee1741200693330682c988195aaa470a8cc51dfe4",
-    "toolName": "web_search",
-=======
     "toolCallId": "ws_006c87998160835a00699768d460e88190ab44048180541660",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
+    "providerExecuted": true,
     "result": {},
     "toolCallId": "ws_006c87998160835a00699768d460e88190ab44048180541660",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -447,8 +445,7 @@ I need to decide on how to approach the user's request. Once we click, we might 
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_006c87998160835a00699768e3537081908604a2d5537bbd96",
-    "toolName": "webSearch",
->>>>>>> d5f731234 (fix(openai): change web search tool action to be optional (#12706))
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
@@ -529,13 +526,8 @@ I need to decide on how to approach the user's request. Once we click, we might 
         },
       ],
     },
-<<<<<<< HEAD
-    "toolCallId": "ws_0953eda47ee1741200693330682c988195aaa470a8cc51dfe4",
-    "toolName": "web_search",
-=======
     "toolCallId": "ws_006c87998160835a00699768e3537081908604a2d5537bbd96",
-    "toolName": "webSearch",
->>>>>>> d5f731234 (fix(openai): change web search tool action to be optional (#12706))
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -551,28 +543,6 @@ I’ve got some search results for tech news dated February 19, 2026, specifical
     "type": "reasoning",
   },
   {
-<<<<<<< HEAD
-    "input": "{}",
-    "providerExecuted": true,
-    "toolCallId": "ws_0953eda47ee17412006933306f501c8195b9d3dfba4c547834",
-    "toolName": "web_search",
-    "type": "tool-call",
-  },
-  {
-    "providerExecuted": true,
-    "result": {
-      "action": {
-        "type": "openPage",
-        "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
-      },
-    },
-    "toolCallId": "ws_0953eda47ee17412006933306f501c8195b9d3dfba4c547834",
-    "toolName": "web_search",
-    "type": "tool-result",
-  },
-  {
-=======
->>>>>>> d5f731234 (fix(openai): change web search tool action to be optional (#12706))
     "providerMetadata": {
       "openai": {
         "itemId": "rs_006c87998160835a00699768efacc48190a7e5c2961a6cb88d",
@@ -585,26 +555,6 @@ I’m looking at tech-related news from Tokyo as of today. First, Tokyo stocks e
     "type": "reasoning",
   },
   {
-<<<<<<< HEAD
-    "input": "{}",
-    "providerExecuted": true,
-    "toolCallId": "ws_0953eda47ee1741200693330740e248195a2c77632e480424b",
-    "toolName": "web_search",
-    "type": "tool-call",
-  },
-  {
-    "providerExecuted": true,
-    "result": {
-      "action": {
-        "pattern": "Vercel",
-        "type": "findInPage",
-        "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
-      },
-    },
-    "toolCallId": "ws_0953eda47ee1741200693330740e248195a2c77632e480424b",
-    "toolName": "web_search",
-    "type": "tool-result",
-=======
     "providerMetadata": {
       "openai": {
         "itemId": "rs_006c87998160835a00699768efacc48190a7e5c2961a6cb88d",
@@ -615,7 +565,6 @@ I’m looking at tech-related news from Tokyo as of today. First, Tokyo stocks e
 
 I need to ensure the date is clear since it’s February 19, 2026, in the US, and probably February 20 in Tokyo due to time differences. Tokyo is UTC+9, so it’s likely still February 19 there from the user’s perspective. The user wants tech news relevant to Tokyo today, so I’ll phrase it as, “As of February 19, 2026, in Tokyo, here are some notable tech-related stories.” I should verify snippets quickly, but I won’t use the open function since the user preferred not to. I’ll make sure to have the required citations ready.",
     "type": "reasoning",
->>>>>>> d5f731234 (fix(openai): change web search tool action to be optional (#12706))
   },
   {
     "providerMetadata": {
@@ -632,55 +581,7 @@ I’ve decided to focus on a few key stories: the Rakuten and Google collaborati
   {
     "providerMetadata": {
       "openai": {
-<<<<<<< HEAD
-        "itemId": "msg_0953eda47ee17412006933308e32f08195bdfb73a410a2abfc",
-=======
-        "annotations": [
-          {
-            "end_index": 509,
-            "start_index": 427,
-            "title": "Rakuten, Google to Collaborate in Product Promotion via YouTube",
-            "type": "url_citation",
-            "url": "https://www.nippon.com/en/news/yjj2026021900827/?utm_source=openai",
-          },
-          {
-            "end_index": 1045,
-            "start_index": 910,
-            "title": "Sony brings virtual production hub to Tokyo with new creator base",
-            "type": "url_citation",
-            "url": "https://marketech-apac.com/sony-brings-virtual-production-hub-to-tokyo-with-new-creator-base/?utm_source=openai",
-          },
-          {
-            "end_index": 1540,
-            "start_index": 1413,
-            "title": "MITSUI E&S wins electric crane order for Port of Tokyo",
-            "type": "url_citation",
-            "url": "https://www.porttechnology.org/mitsui-es-wins-electric-crane-order-for-port-of-tokyo/?utm_source=openai",
-          },
-          {
-            "end_index": 1996,
-            "start_index": 1873,
-            "title": "Tokyo stocks end higher on tech shares, weaker yen",
-            "type": "url_citation",
-            "url": "https://english.news.cn/asiapacific/20260219/eff32c8d94cc4de090c79a04059a3dad/c.html?utm_source=openai",
-          },
-          {
-            "end_index": 2417,
-            "start_index": 2309,
-            "title": "SusHi Tech Tokyo 2026 set to be largest yet - The Japan Times",
-            "type": "url_citation",
-            "url": "https://www.japantimes.co.jp/business/2026/02/18/sushi-teck-preview/?utm_source=openai",
-          },
-          {
-            "end_index": 2709,
-            "start_index": 2607,
-            "title": "Cambridge music-tech startup to represent city at Tokyo innovation gathering",
-            "type": "url_citation",
-            "url": "https://www.cambridgeday.com/2026/02/19/tactus-takes-on-tokyo/?utm_source=openai",
-          },
-        ],
         "itemId": "msg_006c87998160835a00699768fdd4fc819093f96c0ae4bd0738",
->>>>>>> d5f731234 (fix(openai): change web search tool action to be optional (#12706))
       },
     },
     "text": "As of February 19, 2026 in Tokyo, notable tech‑related news includes:
@@ -4960,13 +4861,8 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "input": "{}",
     "providerExecuted": true,
-<<<<<<< HEAD
-    "toolCallId": "ws_0cc96ac817fdc57e006933370e71cc81989ece73cbdfe67d25",
-    "toolName": "web_search",
-=======
     "toolCallId": "ws_0047755972dd78b90069976e2d4fc881999d9cf9e5d267a6a1",
-    "toolName": "webSearch",
->>>>>>> d5f731234 (fix(openai): change web search tool action to be optional (#12706))
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
@@ -5047,13 +4943,8 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
         },
       ],
     },
-<<<<<<< HEAD
-    "toolCallId": "ws_0cc96ac817fdc57e006933370e71cc81989ece73cbdfe67d25",
-    "toolName": "web_search",
-=======
     "toolCallId": "ws_0047755972dd78b90069976e2d4fc881999d9cf9e5d267a6a1",
-    "toolName": "webSearch",
->>>>>>> d5f731234 (fix(openai): change web search tool action to be optional (#12706))
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -6388,86 +6279,7 @@ I",
     "type": "reasoning-end",
   },
   {
-<<<<<<< HEAD
-    "id": "ws_0cc96ac817fdc57e0069333715b11c81988f3c9b9af6a95481",
-    "providerExecuted": true,
-    "toolName": "web_search",
-    "type": "tool-input-start",
-  },
-  {
-    "id": "ws_0cc96ac817fdc57e0069333715b11c81988f3c9b9af6a95481",
-    "type": "tool-input-end",
-  },
-  {
-    "input": "{}",
-    "providerExecuted": true,
-    "toolCallId": "ws_0cc96ac817fdc57e0069333715b11c81988f3c9b9af6a95481",
-    "toolName": "web_search",
-    "type": "tool-call",
-  },
-  {
-    "providerExecuted": true,
-    "result": {
-      "action": {
-        "query": "site:theverge.com "December 5, 2025" "technology"",
-        "type": "search",
-      },
-      "sources": [
-        {
-          "type": "url",
-          "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/",
-        },
-        {
-          "type": "url",
-          "url": "https://techcrunch.com/2025/12/05/walmart-backed-phonepe-winds-down-its-pincode-app-in-yet-another-e-commerce-step-back/",
-        },
-        {
-          "type": "url",
-          "url": "https://techcrunch.com/2025/12/05/in-its-first-dsa-penalty-eu-fines-x-e120m-for-deceptive-blue-check-verification-system/",
-        },
-        {
-          "type": "url",
-          "url": "https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/",
-        },
-        {
-          "type": "url",
-          "url": "https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/",
-        },
-        {
-          "type": "url",
-          "url": "https://techcrunch.com/2025/12/05/new-knoway-robotaxis-cause-chaos-in-upcoming-grand-theft-auto-online-dlc/",
-        },
-        {
-          "type": "url",
-          "url": "https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/",
-        },
-        {
-          "type": "url",
-          "url": "https://techcrunch.com/2025/12/05/esim-adoption-is-on-the-rise-thanks-to-travel-and-device-compatibility/",
-        },
-        {
-          "type": "url",
-          "url": "https://techcrunch.com/2025/12/05/new-streaming-channel-launches-to-give-viewers-a-peek-into-city-council-meetings/",
-        },
-        {
-          "type": "url",
-          "url": "https://techcrunch.com/2025/12/05/aws-reinvent-was-an-all-in-pitch-for-ai-customers-might-not-be-ready/",
-        },
-        {
-          "type": "url",
-          "url": "https://techcrunch.com/2025/12/05/energy-storage-industry-set-aggressive-goals-for-2025-and-already-crushed-them/",
-        },
-      ],
-    },
-    "toolCallId": "ws_0cc96ac817fdc57e0069333715b11c81988f3c9b9af6a95481",
-    "toolName": "web_search",
-    "type": "tool-result",
-  },
-  {
-    "id": "rs_0cc96ac817fdc57e00693337185c648198ab92fcd140ad72a8:0",
-=======
     "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
->>>>>>> d5f731234 (fix(openai): change web search tool action to be optional (#12706))
     "providerMetadata": {
       "openai": {
         "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
@@ -7681,216 +7493,10 @@ To",
     "type": "reasoning-end",
   },
   {
-<<<<<<< HEAD
-    "id": "ws_0cc96ac817fdc57e006933371c82e48198aba79879e266ea8c",
-    "providerExecuted": true,
-    "toolName": "web_search",
-    "type": "tool-input-start",
-  },
-  {
-    "id": "ws_0cc96ac817fdc57e006933371c82e48198aba79879e266ea8c",
-    "type": "tool-input-end",
-  },
-  {
-    "input": "{}",
-    "providerExecuted": true,
-    "toolCallId": "ws_0cc96ac817fdc57e006933371c82e48198aba79879e266ea8c",
-    "toolName": "web_search",
-    "type": "tool-call",
-  },
-  {
-    "providerExecuted": true,
-    "result": {
-      "action": {
-        "type": "openPage",
-        "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/",
-      },
-    },
-    "toolCallId": "ws_0cc96ac817fdc57e006933371c82e48198aba79879e266ea8c",
-    "toolName": "web_search",
-    "type": "tool-result",
-  },
-  {
-    "id": "rs_0cc96ac817fdc57e006933371ff26081989c3ff8fefad9c804:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0cc96ac817fdc57e006933371ff26081989c3ff8fefad9c804",
-        "reasoningEncryptedContent": null,
-      },
-    },
-    "type": "reasoning-start",
-  },
-  {
-    "id": "rs_0cc96ac817fdc57e006933371ff26081989c3ff8fefad9c804:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0cc96ac817fdc57e006933371ff26081989c3ff8fefad9c804",
-        "reasoningEncryptedContent": null,
-      },
-    },
-    "type": "reasoning-end",
-  },
-  {
-    "id": "ws_0cc96ac817fdc57e0069333721f6a081989f8e6a18dbc1e47a",
-    "providerExecuted": true,
-    "toolName": "web_search",
-    "type": "tool-input-start",
-  },
-  {
-    "id": "ws_0cc96ac817fdc57e0069333721f6a081989f8e6a18dbc1e47a",
-    "type": "tool-input-end",
-  },
-  {
-    "input": "{}",
-    "providerExecuted": true,
-    "toolCallId": "ws_0cc96ac817fdc57e0069333721f6a081989f8e6a18dbc1e47a",
-    "toolName": "web_search",
-    "type": "tool-call",
-  },
-  {
-    "providerExecuted": true,
-    "result": {
-      "action": {
-        "pattern": "vercel",
-        "type": "findInPage",
-        "url": "https://www.wired.com/story/the-big-interview-2025-recap",
-      },
-    },
-    "toolCallId": "ws_0cc96ac817fdc57e0069333721f6a081989f8e6a18dbc1e47a",
-    "toolName": "web_search",
-    "type": "tool-result",
-  },
-  {
-    "id": "rs_0cc96ac817fdc57e0069333724535c8198b39ab21fa3f4e559:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0cc96ac817fdc57e0069333724535c8198b39ab21fa3f4e559",
-        "reasoningEncryptedContent": null,
-      },
-    },
-    "type": "reasoning-start",
-  },
-  {
-    "id": "rs_0cc96ac817fdc57e0069333724535c8198b39ab21fa3f4e559:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0cc96ac817fdc57e0069333724535c8198b39ab21fa3f4e559",
-        "reasoningEncryptedContent": null,
-      },
-    },
-    "type": "reasoning-end",
-  },
-  {
-    "id": "ws_0cc96ac817fdc57e00693337281754819898dbc2297d80e2df",
-    "providerExecuted": true,
-    "toolName": "web_search",
-    "type": "tool-input-start",
-  },
-  {
-    "id": "ws_0cc96ac817fdc57e00693337281754819898dbc2297d80e2df",
-    "type": "tool-input-end",
-  },
-  {
-    "input": "{}",
-    "providerExecuted": true,
-    "toolCallId": "ws_0cc96ac817fdc57e00693337281754819898dbc2297d80e2df",
-    "toolName": "web_search",
-    "type": "tool-call",
-  },
-  {
-    "providerExecuted": true,
-    "result": {
-      "action": {
-        "pattern": "Vercel",
-        "type": "findInPage",
-        "url": "https://www.wired.com/story/the-big-interview-2025-recap",
-      },
-    },
-    "toolCallId": "ws_0cc96ac817fdc57e00693337281754819898dbc2297d80e2df",
-    "toolName": "web_search",
-    "type": "tool-result",
-  },
-  {
-    "id": "rs_0cc96ac817fdc57e006933372e866c81988386fd0b0408eb28:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0cc96ac817fdc57e006933372e866c81988386fd0b0408eb28",
-        "reasoningEncryptedContent": null,
-      },
-    },
-    "type": "reasoning-start",
-  },
-  {
-    "id": "rs_0cc96ac817fdc57e006933372e866c81988386fd0b0408eb28:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0cc96ac817fdc57e006933372e866c81988386fd0b0408eb28",
-        "reasoningEncryptedContent": null,
-      },
-    },
-    "type": "reasoning-end",
-  },
-  {
-    "id": "ws_0cc96ac817fdc57e00693337335db881989d7938ef5e5dcd6b",
-    "providerExecuted": true,
-    "toolName": "web_search",
-    "type": "tool-input-start",
-  },
-  {
-    "id": "ws_0cc96ac817fdc57e00693337335db881989d7938ef5e5dcd6b",
-    "type": "tool-input-end",
-  },
-  {
-    "input": "{}",
-    "providerExecuted": true,
-    "toolCallId": "ws_0cc96ac817fdc57e00693337335db881989d7938ef5e5dcd6b",
-    "toolName": "web_search",
-    "type": "tool-call",
-  },
-  {
-    "providerExecuted": true,
-    "result": {
-      "action": {
-        "pattern": "vercel",
-        "type": "findInPage",
-        "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/",
-      },
-    },
-    "toolCallId": "ws_0cc96ac817fdc57e00693337335db881989d7938ef5e5dcd6b",
-    "toolName": "web_search",
-    "type": "tool-result",
-  },
-  {
-    "id": "rs_0cc96ac817fdc57e006933373641e8819899b5ecb68564ac56:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0cc96ac817fdc57e006933373641e8819899b5ecb68564ac56",
-        "reasoningEncryptedContent": null,
-      },
-    },
-    "type": "reasoning-start",
-  },
-  {
-    "id": "rs_0cc96ac817fdc57e006933373641e8819899b5ecb68564ac56:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0cc96ac817fdc57e006933373641e8819899b5ecb68564ac56",
-        "reasoningEncryptedContent": null,
-      },
-    },
-    "type": "reasoning-end",
-  },
-  {
-    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
-=======
     "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
     "providerMetadata": {
       "openai": {
         "itemId": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
->>>>>>> d5f731234 (fix(openai): change web search tool action to be optional (#12706))
       },
     },
     "type": "text-start",
@@ -8399,35 +8005,11 @@ If you",
     },
     "type": "finish",
     "usage": {
-<<<<<<< HEAD
-      "cachedInputTokens": 3712,
-      "inputTokens": 31073,
-      "outputTokens": 4416,
-      "reasoningTokens": 3712,
-      "totalTokens": 35489,
-=======
-      "inputTokens": {
-        "cacheRead": 4352,
-        "cacheWrite": undefined,
-        "noCache": 4530,
-        "total": 8882,
-      },
-      "outputTokens": {
-        "reasoning": 932,
-        "text": 487,
-        "total": 1419,
-      },
-      "raw": {
-        "input_tokens": 8882,
-        "input_tokens_details": {
-          "cached_tokens": 4352,
-        },
-        "output_tokens": 1419,
-        "output_tokens_details": {
-          "reasoning_tokens": 932,
-        },
-      },
->>>>>>> d5f731234 (fix(openai): change web search tool action to be optional (#12706))
+      "cachedInputTokens": 4352,
+      "inputTokens": 8882,
+      "outputTokens": 1419,
+      "reasoningTokens": 932,
+      "totalTokens": 10301,
     },
   },
 ]

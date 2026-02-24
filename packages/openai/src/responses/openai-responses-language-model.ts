@@ -1400,17 +1400,12 @@ function isErrorChunk(
 }
 
 function mapWebSearchOutput(
-<<<<<<< HEAD
-  action: OpenAIResponsesWebSearchAction,
-): InferValidator<typeof webSearchOutputSchema> {
-=======
   action: OpenAIResponsesWebSearchAction | null | undefined,
-): InferSchema<typeof webSearchOutputSchema> {
+): InferValidator<typeof webSearchOutputSchema> {
   if (action == null) {
     return {};
   }
 
->>>>>>> d5f731234 (fix(openai): change web search tool action to be optional (#12706))
   switch (action.type) {
     case 'search':
       return {
