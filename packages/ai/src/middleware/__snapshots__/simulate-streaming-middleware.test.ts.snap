@@ -16,7 +16,7 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
     "rawFinishReason": "stop",
     "response": {
       "headers": undefined,
-      "id": "id-13",
+      "id": "id-6",
       "modelId": "mock-model-id",
       "timestamp": 2025-01-01T00:00:00.000Z,
     },

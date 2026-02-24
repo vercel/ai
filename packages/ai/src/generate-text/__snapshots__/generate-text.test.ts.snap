@@ -1649,7 +1649,7 @@ exports[`generateText > result.sources > should contain sources 1`] = `
 exports[`generateText > result.steps > should add the reasoning from the model response to the step result 1`] = `
 [
   DefaultStepResult {
-    "callId": "id-0",
+    "callId": "test-call-id",
     "content": [
       {
         "providerMetadata": {
@@ -1688,7 +1688,7 @@ exports[`generateText > result.steps > should add the reasoning from the model r
     "response": {
       "body": undefined,
       "headers": undefined,
-      "id": "id-1",
+      "id": "id-0",
       "messages": [
         {
           "content": [
@@ -1748,7 +1748,7 @@ exports[`generateText > result.steps > should add the reasoning from the model r
 exports[`generateText > result.steps > should contain files 1`] = `
 [
   DefaultStepResult {
-    "callId": "id-0",
+    "callId": "test-call-id",
     "content": [
       {
         "text": "Hello, world!",
@@ -1789,7 +1789,7 @@ exports[`generateText > result.steps > should contain files 1`] = `
     "response": {
       "body": undefined,
       "headers": undefined,
-      "id": "id-1",
+      "id": "id-0",
       "messages": [
         {
           "content": [
@@ -1843,7 +1843,7 @@ exports[`generateText > result.steps > should contain files 1`] = `
 exports[`generateText > result.steps > should contain sources 1`] = `
 [
   DefaultStepResult {
-    "callId": "id-0",
+    "callId": "test-call-id",
     "content": [
       {
         "text": "Hello, world!",
@@ -1888,7 +1888,7 @@ exports[`generateText > result.steps > should contain sources 1`] = `
     "response": {
       "body": undefined,
       "headers": undefined,
-      "id": "id-1",
+      "id": "id-0",
       "messages": [
         {
           "content": [

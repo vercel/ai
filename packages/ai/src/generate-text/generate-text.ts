@@ -34,11 +34,7 @@ import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { noopTracer } from '../telemetry/noop-tracer';
-import {
-  registerOtelCall,
-  recordOtelCallError,
-  setStepPromptData,
-} from '../telemetry/otel-event-handler';
+import { createOtelCallHandler } from '../telemetry/otel-event-handler';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
   LanguageModel,
@@ -92,6 +88,11 @@ import { mergeAbortSignals } from '../util/merge-abort-signals';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
+  size: 24,
+});
+
+const originalGenerateCallId = createIdGenerator({
+  prefix: 'call',
   size: 24,
 });
 
@@ -269,7 +270,10 @@ export async function generateText<
   experimental_download: download,
   experimental_context,
   experimental_include: include,
-  _internal: { generateId = originalGenerateId } = {},
+  _internal: {
+    generateId = originalGenerateId,
+    generateCallId = originalGenerateCallId,
+  } = {},
   experimental_onStart: onStart,
   experimental_onStepStart: onStepStart,
   experimental_onToolCallStart: onToolCallStart,
@@ -436,6 +440,7 @@ export async function generateText<
      */
     _internal?: {
       generateId?: IdGenerator;
+      generateCallId?: IdGenerator;
     };
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
   const model = resolveLanguageModel(modelArg);
@@ -471,7 +476,7 @@ export async function generateText<
     messages,
   } as Prompt);
 
-  const callId = generateId();
+  const callId = generateCallId();
 
   const onStartEvent = {
     callId,
@@ -504,9 +509,9 @@ export async function generateText<
     experimental_context,
   };
 
-  registerOtelCall(callId, telemetry);
+  const otel = createOtelCallHandler(telemetry);
 
-  await notify({ event: onStartEvent, callbacks: onStart });
+  await notify({ event: onStartEvent, callbacks: [onStart, otel.onStart] });
 
   try {
     const initialMessages = initialPrompt.messages;
@@ -536,8 +541,13 @@ export async function generateText<
         experimental_context,
         stepNumber: 0,
         model: modelInfo,
-        onToolCallStart: onToolCallStart,
-        onToolCallFinish: onToolCallFinish,
+        onToolCallStart: event =>
+          notify({ event, callbacks: [onToolCallStart, otel.onToolCallStart] }),
+        onToolCallFinish: event =>
+          notify({
+            event,
+            callbacks: [onToolCallFinish, otel.onToolCallFinish],
+          }),
       });
 
       const toolContent: Array<any> = [];
@@ -699,15 +709,15 @@ export async function generateText<
           functionId: telemetry?.functionId,
           metadata: telemetry?.metadata as Record<string, unknown> | undefined,
           experimental_context,
+          promptMessages,
+          stepTools,
+          stepToolChoice,
         };
 
-        setStepPromptData(callId, {
-          promptMessages,
-          tools: stepTools,
-          toolChoice: stepToolChoice,
+        await notify({
+          event: onStepStartEvent,
+          callbacks: [onStepStart, otel.onStepStart],
         });
-
-        await notify({ event: onStepStartEvent, callbacks: onStepStart });
 
         currentModelResponse = await retry(async () => {
           const result = await stepModel.doGenerate({
@@ -835,8 +845,16 @@ export async function generateText<
               experimental_context,
               stepNumber: steps.length,
               model: stepModelInfo,
-              onToolCallStart: onToolCallStart,
-              onToolCallFinish: onToolCallFinish,
+              onToolCallStart: event =>
+                notify({
+                  event,
+                  callbacks: [onToolCallStart, otel.onToolCallStart],
+                }),
+              onToolCallFinish: event =>
+                notify({
+                  event,
+                  callbacks: [onToolCallFinish, otel.onToolCallFinish],
+                }),
             })),
           );
         }
@@ -933,7 +951,10 @@ export async function generateText<
 
         steps.push(currentStepResult);
 
-        await notify({ event: currentStepResult, callbacks: onStepFinish });
+        await notify({
+          event: currentStepResult,
+          callbacks: [onStepFinish, otel.onStepFinish],
+        });
       } finally {
         if (stepTimeoutId != null) {
           clearTimeout(stepTimeoutId);
@@ -995,7 +1016,10 @@ export async function generateText<
       totalUsage,
     };
 
-    await notify({ event: onFinishEvent, callbacks: onFinish });
+    await notify({
+      event: onFinishEvent,
+      callbacks: [onFinish, otel.onFinish],
+    });
 
     // parse output only if the last step was finished with "stop":
     let resolvedOutput;
@@ -1017,7 +1041,7 @@ export async function generateText<
       output: resolvedOutput,
     });
   } catch (error) {
-    recordOtelCallError(callId, error);
+    otel.recordError(error);
     throw wrapGatewayError(error);
   }
 }
@@ -1046,8 +1070,8 @@ async function executeTools<TOOLS extends ToolSet>({
   experimental_context: unknown;
   stepNumber: number;
   model: { provider: string; modelId: string };
-  onToolCallStart: GenerateTextOnToolCallStartCallback<TOOLS> | undefined;
-  onToolCallFinish: GenerateTextOnToolCallFinishCallback<TOOLS> | undefined;
+  onToolCallStart?: GenerateTextOnToolCallStartCallback<TOOLS>;
+  onToolCallFinish?: GenerateTextOnToolCallFinishCallback<TOOLS>;
 }): Promise<Array<ToolOutput<TOOLS>>> {
   const toolOutputs = await Promise.all(
     toolCalls.map(async toolCall =>

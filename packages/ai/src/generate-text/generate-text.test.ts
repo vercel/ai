@@ -326,6 +326,7 @@ describe('generateText', () => {
         prompt: 'prompt',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-call-id',
         },
       });
 
@@ -338,6 +339,7 @@ describe('generateText', () => {
         prompt: 'prompt',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-call-id',
         },
       });
 
@@ -350,6 +352,7 @@ describe('generateText', () => {
         prompt: 'prompt',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-call-id',
         },
       });
 
@@ -709,7 +712,10 @@ describe('generateText', () => {
         experimental_onStart: async event => {
           startEvent = event;
         },
-        _internal: { generateId: () => 'test-call-id' },
+        _internal: {
+          generateId: () => 'test-call-id',
+          generateCallId: () => 'test-call-id',
+        },
       });
 
       expect(startEvent).toMatchSnapshot();
@@ -1414,7 +1420,10 @@ describe('generateText', () => {
         experimental_onToolCallStart: async event => {
           toolCallStartEvents.push(event);
         },
-        _internal: { generateId: () => 'test-call-id' },
+        _internal: {
+          generateId: () => 'test-call-id',
+          generateCallId: () => 'test-call-id',
+        },
       });
 
       expect(toolCallStartEvents.length).toBe(1);
@@ -2098,7 +2107,10 @@ describe('generateText', () => {
           result = event as unknown as typeof result;
         },
         prompt: 'irrelevant',
-        _internal: { generateId: () => 'test-call-id' },
+        _internal: {
+          generateId: () => 'test-call-id',
+          generateCallId: () => 'test-call-id',
+        },
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -2508,7 +2520,10 @@ describe('generateText', () => {
             onStepFinishResults.push(event);
           },
           stopWhen: stepCountIs(3),
-          _internal: { generateId: () => 'test-call-id' },
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-call-id',
+          },
         });
       });
 
@@ -2681,7 +2696,10 @@ describe('generateText', () => {
           onStepFinish: async event => {
             onStepFinishResults.push(event);
           },
-          _internal: { generateId: () => 'test-call-id' },
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-call-id',
+          },
           prepareStep: async ({
             model,
             stepNumber,
@@ -3430,7 +3448,10 @@ describe('generateText', () => {
               return true;
             },
           ],
-          _internal: { generateId: () => 'test-call-id' },
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-call-id',
+          },
         });
       });
 
@@ -4181,6 +4202,7 @@ describe('generateText', () => {
         },
         _internal: {
           generateId: () => 'test-id',
+          generateCallId: () => 'test-call-id',
         },
       });
 
@@ -4283,6 +4305,7 @@ describe('generateText', () => {
         },
         _internal: {
           generateId: () => 'test-id',
+          generateCallId: () => 'test-call-id',
         },
       });
 
@@ -4344,6 +4367,7 @@ describe('generateText', () => {
         },
         _internal: {
           generateId: () => 'test-id',
+          generateCallId: () => 'test-call-id',
         },
       });
 
@@ -4524,6 +4548,7 @@ describe('generateText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: () => 'test-id',
+          generateCallId: () => 'test-call-id',
         },
       });
 
@@ -6828,6 +6853,7 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: () => 'test-id',
+            generateCallId: () => 'test-call-id',
           },
           tools: {
             cityAttractions: tool({
@@ -6885,7 +6911,7 @@ describe('generateText', () => {
         expect(result.steps).toMatchInlineSnapshot(`
           [
             DefaultStepResult {
-              "callId": "test-id",
+              "callId": "test-call-id",
               "content": [
                 {
                   "input": {
@@ -7143,6 +7169,7 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-call-id',
           },
         });
       });
@@ -7170,7 +7197,7 @@ describe('generateText', () => {
               "type": "tool-call",
             },
             {
-              "approvalId": "id-2",
+              "approvalId": "id-1",
               "toolCall": {
                 "input": {
                   "value": "value",
@@ -7204,7 +7231,7 @@ describe('generateText', () => {
                   "type": "tool-call",
                 },
                 {
-                  "approvalId": "id-2",
+                  "approvalId": "id-1",
                   "toolCallId": "call-1",
                   "type": "tool-approval-request",
                 },
@@ -7259,6 +7286,7 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-call-id',
           },
         });
       });
@@ -7307,7 +7335,7 @@ describe('generateText', () => {
               "type": "tool-result",
             },
             {
-              "approvalId": "id-2",
+              "approvalId": "id-1",
               "toolCall": {
                 "input": {
                   "value": "value-needs-approval",
@@ -7351,7 +7379,7 @@ describe('generateText', () => {
                   "type": "tool-call",
                 },
                 {
-                  "approvalId": "id-2",
+                  "approvalId": "id-1",
                   "toolCallId": "call-1",
                   "type": "tool-approval-request",
                 },
@@ -7448,6 +7476,7 @@ describe('generateText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -7613,6 +7642,7 @@ describe('generateText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -7771,6 +7801,7 @@ describe('generateText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -7978,6 +8009,7 @@ describe('generateText', () => {
             prompt: 'test-input',
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-call-id',
             },
           });
         });
@@ -8110,6 +8142,7 @@ describe('generateText', () => {
             stopWhen: stepCountIs(3),
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-call-id',
             },
             messages: [
               {
@@ -8269,6 +8302,7 @@ describe('generateText', () => {
             stopWhen: stepCountIs(3),
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-call-id',
             },
             messages: [
               {

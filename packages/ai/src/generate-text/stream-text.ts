@@ -128,6 +128,11 @@ const originalGenerateId = createIdGenerator({
   size: 24,
 });
 
+const originalGenerateCallId = createIdGenerator({
+  prefix: 'call',
+  size: 24,
+});
+
 /**
  * A transformation that is applied to the stream.
  *
@@ -329,7 +334,11 @@ export function streamText<
   experimental_onToolCallFinish: onToolCallFinish,
   experimental_context,
   experimental_include: include,
-  _internal: { now = originalNow, generateId = originalGenerateId } = {},
+  _internal: {
+    now = originalNow,
+    generateId = originalGenerateId,
+    generateCallId = originalGenerateCallId,
+  } = {},
   ...settings
 }: CallSettings &
   Prompt & {
@@ -523,6 +532,7 @@ export function streamText<
     _internal?: {
       now?: () => number;
       generateId?: IdGenerator;
+      generateCallId?: IdGenerator;
     };
   }): StreamTextResult<TOOLS, OUTPUT> {
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
@@ -575,6 +585,7 @@ export function streamText<
     onToolCallFinish,
     now,
     generateId,
+    generateCallId,
     experimental_context,
     download,
     include,
@@ -741,6 +752,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     includeRawChunks,
     now,
     generateId,
+    generateCallId,
     timeout,
     stopWhen,
     originalAbortSignal,
@@ -782,6 +794,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     includeRawChunks: boolean;
     now: () => number;
     generateId: () => string;
+    generateCallId: () => string;
     timeout: TimeoutConfiguration | undefined;
     stopWhen:
       | StopCondition<NoInfer<TOOLS>>
@@ -1247,7 +1260,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     const self = this;
 
     const modelInfo = { provider: model.provider, modelId: model.modelId };
-    const callId = generateId();
+    const callId = generateCallId();
     const callbackTelemetryProps = {
       functionId: telemetry?.functionId,
       metadata: telemetry?.metadata as Record<string, unknown> | undefined,

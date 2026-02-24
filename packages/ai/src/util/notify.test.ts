@@ -287,6 +287,7 @@ function createMockStepResult(
   overrides: Partial<StepResult<ToolSet>> = {},
 ): StepResult<ToolSet> {
   return {
+    callId: 'test-call-id',
     stepNumber: 0,
     model: { provider: 'test-provider', modelId: 'test-model' },
     functionId: undefined,
@@ -325,6 +326,7 @@ function createMockStepResult(
 describe('notify with OnStartEvent', () => {
   function createEvent(overrides: Partial<OnStartEvent> = {}): OnStartEvent {
     return {
+      callId: 'test-call-id',
       model: { provider: 'test-provider', modelId: 'test-model' },
       system: undefined,
       prompt: 'test prompt',
@@ -348,8 +350,7 @@ describe('notify with OnStartEvent', () => {
       output: undefined,
       abortSignal: undefined,
       include: undefined,
-      functionId: undefined,
-      metadata: undefined,
+      telemetry: undefined,
       experimental_context: undefined,
       ...overrides,
     };
@@ -387,7 +388,7 @@ describe('notify with OnStartEvent', () => {
     `);
   });
 
-  it('should propagate telemetry metadata', async () => {
+  it('should propagate telemetry settings', async () => {
     const received: Array<{
       functionId: string | undefined;
       metadata: Record<string, unknown> | undefined;
@@ -395,13 +396,18 @@ describe('notify with OnStartEvent', () => {
 
     await notify({
       event: createEvent({
-        functionId: 'chat-assistant',
-        metadata: { sessionId: 'session-123' },
+        telemetry: {
+          isEnabled: true,
+          functionId: 'chat-assistant',
+          metadata: { sessionId: 'session-123' },
+        },
       }),
       callbacks: event => {
         received.push({
-          functionId: event.functionId,
-          metadata: event.metadata,
+          functionId: event.telemetry?.functionId,
+          metadata: event.telemetry?.metadata as
+            | Record<string, unknown>
+            | undefined,
         });
       },
     });
@@ -424,6 +430,7 @@ describe('notify with OnStepStartEvent', () => {
     overrides: Partial<OnStepStartEvent> = {},
   ): OnStepStartEvent {
     return {
+      callId: 'test-call-id',
       stepNumber: 0,
       model: { provider: 'test-provider', modelId: 'test-model' },
       system: undefined,
@@ -534,6 +541,7 @@ describe('notify with OnToolCallStartEvent', () => {
     overrides: Partial<OnToolCallStartEvent> = {},
   ): OnToolCallStartEvent {
     return {
+      callId: 'test-call-id',
       stepNumber: 0,
       model: { provider: 'test-provider', modelId: 'test-model' },
       toolCall: {
@@ -693,6 +701,7 @@ describe('notify with OnToolCallFinishEvent', () => {
     > & { output?: unknown } = {},
   ): OnToolCallFinishEvent {
     return {
+      callId: 'test-call-id',
       stepNumber: 0,
       model: { provider: 'test-provider', modelId: 'test-model' },
       toolCall: {
@@ -719,6 +728,7 @@ describe('notify with OnToolCallFinishEvent', () => {
     > & { error?: unknown } = {},
   ): OnToolCallFinishEvent {
     return {
+      callId: 'test-call-id',
       stepNumber: 0,
       model: { provider: 'test-provider', modelId: 'test-model' },
       toolCall: {
