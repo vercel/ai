@@ -1,10 +1,10 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { togetherai } from '@ai-sdk/togetherai';
 import { embed } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   const { embedding, usage, warnings } = await embed({
-    model: bedrock.embedding('cohere.embed-v4:0'),
+    model: togetherai.embeddingModel('BAAI/bge-base-en-v1.5'),
     value: 'sunny day at the beach',
   });
 

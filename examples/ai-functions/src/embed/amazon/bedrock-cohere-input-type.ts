@@ -1,16 +1,17 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { type AmazonBedrockEmbeddingModelOptions } from '@ai-sdk/amazon-bedrock';
 import { embed } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
-  // outputDimension: 256, 512, 1024, or 1536 (default)
+  // Use 'search_document' for documents to be searched,
+  // and 'search_query' for search queries (default).
   const { embedding, usage, warnings } = await embed({
-    model: bedrock.embedding('cohere.embed-v4:0'),
+    model: bedrock.embedding('cohere.embed-english-v3'),
     value: 'sunny day at the beach',
     providerOptions: {
       bedrock: {
-        outputDimension: 256,
+        inputType: 'search_document',
       } satisfies AmazonBedrockEmbeddingModelOptions,
     },
   });

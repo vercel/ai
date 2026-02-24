@@ -1,6 +1,6 @@
 import { createBaseten } from '@ai-sdk/baseten';
 import { embed } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   // Using Performance Client with custom model URL for embeddings

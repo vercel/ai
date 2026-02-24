@@ -1,10 +1,10 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { openai } from '@ai-sdk/openai';
 import { embed } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   const { embedding, usage, warnings } = await embed({
-    model: bedrock.embedding('amazon.titan-embed-text-v2:0'),
+    model: openai.embedding('text-embedding-3-small'),
     value: 'sunny day at the beach',
   });
 

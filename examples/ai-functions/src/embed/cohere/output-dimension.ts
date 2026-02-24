@@ -1,6 +1,6 @@
 import { cohere, type CohereEmbeddingModelOptions } from '@ai-sdk/cohere';
 import { embed } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   // outputDimension: 256, 512, 1024, or 1536 (default)
