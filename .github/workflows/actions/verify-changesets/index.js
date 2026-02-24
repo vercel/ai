@@ -5,7 +5,8 @@ const BYPASS_LABELS = ['minor', 'major'];
 // Extensions considered as source code (not tests, not docs)
 const CODE_EXTENSIONS = /\.(ts|tsx|js|jsx|mts|mjs|cts|cjs)$/;
 // Patterns considered as test files
-const TEST_FILE_PATTERNS = /\.(test|spec)\.(ts|js|tsx|jsx|mts|mjs)$|\.test-d\.ts$/;
+const TEST_FILE_PATTERNS =
+  /\.(test|spec)\.(ts|js|tsx|jsx|mts|mjs)$|\.test-d\.ts$/;
 
 function isCodeFile(path) {
   if (!path.startsWith('packages/')) return false;
@@ -143,7 +144,10 @@ export async function verifyChangesets(
   }
 
   // Iterate through all changed .changeset/*.md files
-  for (const path of (env.CHANGED_FILES || '').trim().split(' ').filter(Boolean)) {
+  for (const path of (env.CHANGED_FILES || '')
+    .trim()
+    .split(' ')
+    .filter(Boolean)) {
     // ignore README.md file
     if (path === '.changeset/README.md') continue;
 
