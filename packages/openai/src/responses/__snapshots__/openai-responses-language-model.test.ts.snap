@@ -384,37 +384,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
   {
     "providerMetadata": {
       "openai": {
-<<<<<<< HEAD
-        "itemId": "rs_006c87998160835a00699768c714548190a76d8066765b588b",
-        "reasoningEncryptedContent": null,
-      },
-    },
-    "text": "**Planning web query actions**
-
-I need to decide on how to approach the user's request. Once we click, we might need to scroll, but the initial click could already align us with the relevant section. We shouldn't rely on 'open page' since that's banned, and I can skip calling 'open' or 'find.' Instead, I'll do one image query and some clicks to explore a few articles. So, I’m going to call web.run now to move forward!",
-    "type": "reasoning",
-  },
-  {
-    "input": "{}",
-    "providerExecuted": true,
-    "toolCallId": "ws_006c87998160835a00699768d13cc8819084e1ab6edd75b685",
-    "toolName": "web_search",
-    "type": "tool-call",
-  },
-  {
-    "providerExecuted": true,
-    "result": {},
-    "toolCallId": "ws_006c87998160835a00699768d13cc8819084e1ab6edd75b685",
-    "toolName": "web_search",
-    "type": "tool-result",
-  },
-  {
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_006c87998160835a00699768d1930c819083a52ff0147cc9b2",
-=======
         "itemId": "rs_0953eda47ee1741200693330620ffc8195a85077fdd02c8d2d",
->>>>>>> c0d810741 (test(openai): restore stable web-search fixtures and snapshots (#12788))
         "reasoningEncryptedContent": null,
       },
     },
@@ -424,37 +394,8 @@ I need to decide on how to approach the user's request. Once we click, we might 
   {
     "input": "{}",
     "providerExecuted": true,
-<<<<<<< HEAD
-    "toolCallId": "ws_006c87998160835a00699768d460e88190ab44048180541660",
-    "toolName": "web_search",
-    "type": "tool-call",
-  },
-  {
-    "providerExecuted": true,
-    "result": {},
-    "toolCallId": "ws_006c87998160835a00699768d460e88190ab44048180541660",
-    "toolName": "web_search",
-    "type": "tool-result",
-  },
-  {
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_006c87998160835a00699768d574e48190a7a5e3fb197758c5",
-        "reasoningEncryptedContent": null,
-      },
-    },
-    "text": "",
-    "type": "reasoning",
-  },
-  {
-    "input": "{}",
-    "providerExecuted": true,
-    "toolCallId": "ws_006c87998160835a00699768e3537081908604a2d5537bbd96",
-    "toolName": "web_search",
-=======
     "toolCallId": "ws_0953eda47ee1741200693330682c988195aaa470a8cc51dfe4",
-    "toolName": "webSearch",
->>>>>>> c0d810741 (test(openai): restore stable web-search fixtures and snapshots (#12788))
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
@@ -531,13 +472,8 @@ I need to decide on how to approach the user's request. Once we click, we might 
         },
       ],
     },
-<<<<<<< HEAD
-    "toolCallId": "ws_006c87998160835a00699768e3537081908604a2d5537bbd96",
-    "toolName": "web_search",
-=======
     "toolCallId": "ws_0953eda47ee1741200693330682c988195aaa470a8cc51dfe4",
-    "toolName": "webSearch",
->>>>>>> c0d810741 (test(openai): restore stable web-search fixtures and snapshots (#12788))
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -554,10 +490,11 @@ I need to decide on how to approach the user's request. Once we click, we might 
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_0953eda47ee17412006933306f501c8195b9d3dfba4c547834",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
+    "providerExecuted": true,
     "result": {
       "action": {
         "type": "openPage",
@@ -565,7 +502,7 @@ I need to decide on how to approach the user's request. Once we click, we might 
       },
     },
     "toolCallId": "ws_0953eda47ee17412006933306f501c8195b9d3dfba4c547834",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -582,10 +519,11 @@ I need to decide on how to approach the user's request. Once we click, we might 
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_0953eda47ee1741200693330740e248195a2c77632e480424b",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
+    "providerExecuted": true,
     "result": {
       "action": {
         "pattern": "Vercel",
@@ -594,7 +532,7 @@ I need to decide on how to approach the user's request. Once we click, we might 
       },
     },
     "toolCallId": "ws_0953eda47ee1741200693330740e248195a2c77632e480424b",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -610,83 +548,7 @@ I need to decide on how to approach the user's request. Once we click, we might 
   {
     "providerMetadata": {
       "openai": {
-<<<<<<< HEAD
-        "itemId": "msg_006c87998160835a00699768fdd4fc819093f96c0ae4bd0738",
-=======
-        "annotations": [
-          {
-            "end_index": 517,
-            "start_index": 426,
-            "title": "Why OpenAI declared a code red for ChatGPT | The Verge",
-            "type": "url_citation",
-            "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
-          },
-          {
-            "end_index": 778,
-            "start_index": 647,
-            "title": "Technology News Today – The Latest in Tech, AI & Startup News, December 5, 2025 - Tech Startups",
-            "type": "url_citation",
-            "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
-          },
-          {
-            "end_index": 1047,
-            "start_index": 907,
-            "title": "5 Things to Know Before the Stock Market Opens",
-            "type": "url_citation",
-            "url": "https://www.investopedia.com/5-things-to-know-before-the-stock-market-opens-december-5-2025-11862701?utm_source=openai",
-          },
-          {
-            "end_index": 1343,
-            "start_index": 1295,
-            "title": "Towards the AI Cloud: Our Series F - Vercel",
-            "type": "url_citation",
-            "url": "https://vercel.com/blog/series-f",
-          },
-          {
-            "end_index": 1594,
-            "start_index": 1489,
-            "title": "CVE-2025-49826: Vercel Next.js Cache Poisoning DOS Flaw",
-            "type": "url_citation",
-            "url": "https://www.sentinelone.com/vulnerability-database/cve-2025-49826/?utm_source=openai",
-          },
-          {
-            "end_index": 1926,
-            "start_index": 1835,
-            "title": "Why OpenAI declared a code red for ChatGPT | The Verge",
-            "type": "url_citation",
-            "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
-          },
-          {
-            "end_index": 2080,
-            "start_index": 2009,
-            "title": "Check Out Highlights From WIRED’s 2025 Big Interview Event | WIRED",
-            "type": "url_citation",
-            "url": "https://www.wired.com/story/the-big-interview-2025-recap",
-          },
-          {
-            "end_index": 2341,
-            "start_index": 2210,
-            "title": "Technology News Today – The Latest in Tech, AI & Startup News, December 5, 2025 - Tech Startups",
-            "type": "url_citation",
-            "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
-          },
-          {
-            "end_index": 2635,
-            "start_index": 2502,
-            "title": "Vercel Notches $9.3 Billion Valuation in Latest AI Funding Round - Bloomberg",
-            "type": "url_citation",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-30/vercel-notches-9-3-billion-valuation-in-latest-ai-funding-round",
-          },
-          {
-            "end_index": 2822,
-            "start_index": 2774,
-            "title": "Towards the AI Cloud: Our Series F - Vercel",
-            "type": "url_citation",
-            "url": "https://vercel.com/blog/series-f",
-          },
-        ],
         "itemId": "msg_0953eda47ee17412006933308e32f08195bdfb73a410a2abfc",
->>>>>>> c0d810741 (test(openai): restore stable web-search fixtures and snapshots (#12788))
       },
     },
     "text": "Short answer first — yes. I pulled several tech-news pages published today (December 5, 2025) and searched each for the keyword pattern "vercel". Below is a brief “today in tech” digest followed by the exact results of the on-page searches.
@@ -4194,13 +4056,8 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "input": "{}",
     "providerExecuted": true,
-<<<<<<< HEAD
-    "toolCallId": "ws_0047755972dd78b90069976e2d4fc881999d9cf9e5d267a6a1",
-    "toolName": "web_search",
-=======
     "toolCallId": "ws_0cc96ac817fdc57e006933370e71cc81989ece73cbdfe67d25",
-    "toolName": "webSearch",
->>>>>>> c0d810741 (test(openai): restore stable web-search fixtures and snapshots (#12788))
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
@@ -4253,13 +4110,8 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
         },
       ],
     },
-<<<<<<< HEAD
-    "toolCallId": "ws_0047755972dd78b90069976e2d4fc881999d9cf9e5d267a6a1",
-    "toolName": "web_search",
-=======
     "toolCallId": "ws_0cc96ac817fdc57e006933370e71cc81989ece73cbdfe67d25",
-    "toolName": "webSearch",
->>>>>>> c0d810741 (test(openai): restore stable web-search fixtures and snapshots (#12788))
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -4285,7 +4137,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "id": "ws_0cc96ac817fdc57e0069333715b11c81988f3c9b9af6a95481",
     "providerExecuted": true,
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-input-start",
   },
   {
@@ -4296,10 +4148,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_0cc96ac817fdc57e0069333715b11c81988f3c9b9af6a95481",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
+    "providerExecuted": true,
     "result": {
       "action": {
         "query": "site:theverge.com "December 5, 2025" "technology"",
@@ -4353,7 +4206,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
       ],
     },
     "toolCallId": "ws_0cc96ac817fdc57e0069333715b11c81988f3c9b9af6a95481",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -4379,7 +4232,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "id": "ws_0cc96ac817fdc57e006933371c82e48198aba79879e266ea8c",
     "providerExecuted": true,
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-input-start",
   },
   {
@@ -4390,10 +4243,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_0cc96ac817fdc57e006933371c82e48198aba79879e266ea8c",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
+    "providerExecuted": true,
     "result": {
       "action": {
         "type": "openPage",
@@ -4401,7 +4255,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
       },
     },
     "toolCallId": "ws_0cc96ac817fdc57e006933371c82e48198aba79879e266ea8c",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -4427,7 +4281,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "id": "ws_0cc96ac817fdc57e0069333721f6a081989f8e6a18dbc1e47a",
     "providerExecuted": true,
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-input-start",
   },
   {
@@ -4438,10 +4292,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_0cc96ac817fdc57e0069333721f6a081989f8e6a18dbc1e47a",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
+    "providerExecuted": true,
     "result": {
       "action": {
         "pattern": "vercel",
@@ -4450,7 +4305,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
       },
     },
     "toolCallId": "ws_0cc96ac817fdc57e0069333721f6a081989f8e6a18dbc1e47a",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -4476,7 +4331,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "id": "ws_0cc96ac817fdc57e00693337281754819898dbc2297d80e2df",
     "providerExecuted": true,
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-input-start",
   },
   {
@@ -4487,10 +4342,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_0cc96ac817fdc57e00693337281754819898dbc2297d80e2df",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
+    "providerExecuted": true,
     "result": {
       "action": {
         "pattern": "Vercel",
@@ -4499,7 +4355,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
       },
     },
     "toolCallId": "ws_0cc96ac817fdc57e00693337281754819898dbc2297d80e2df",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -4525,7 +4381,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "id": "ws_0cc96ac817fdc57e00693337335db881989d7938ef5e5dcd6b",
     "providerExecuted": true,
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-input-start",
   },
   {
@@ -4536,10 +4392,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_0cc96ac817fdc57e00693337335db881989d7938ef5e5dcd6b",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
+    "providerExecuted": true,
     "result": {
       "action": {
         "pattern": "vercel",
@@ -4548,7 +4405,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
       },
     },
     "toolCallId": "ws_0cc96ac817fdc57e00693337335db881989d7938ef5e5dcd6b",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -5397,35 +5254,11 @@ Would you like",
     },
     "type": "finish",
     "usage": {
-<<<<<<< HEAD
-      "cachedInputTokens": 4352,
-      "inputTokens": 8882,
-      "outputTokens": 1419,
-      "reasoningTokens": 932,
-      "totalTokens": 10301,
-=======
-      "inputTokens": {
-        "cacheRead": 3712,
-        "cacheWrite": undefined,
-        "noCache": 27361,
-        "total": 31073,
-      },
-      "outputTokens": {
-        "reasoning": 3712,
-        "text": 704,
-        "total": 4416,
-      },
-      "raw": {
-        "input_tokens": 31073,
-        "input_tokens_details": {
-          "cached_tokens": 3712,
-        },
-        "output_tokens": 4416,
-        "output_tokens_details": {
-          "reasoning_tokens": 3712,
-        },
-      },
->>>>>>> c0d810741 (test(openai): restore stable web-search fixtures and snapshots (#12788))
+      "cachedInputTokens": 3712,
+      "inputTokens": 31073,
+      "outputTokens": 4416,
+      "reasoningTokens": 3712,
+      "totalTokens": 35489,
     },
   },
 ]
