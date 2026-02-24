@@ -8,10 +8,10 @@ import type {
   OnToolCallFinishEvent,
   OnStepFinishEvent,
   OnFinishEvent,
-} from '../callback-events';
-import type { LanguageModelUsage } from '../../types/usage';
-import type { StepResult } from '../step-result';
-import type { ToolSet } from '../tool-set';
+} from '../generate-text/callback-events';
+import type { LanguageModelUsage } from '../types/usage';
+import type { StepResult } from '../generate-text/step-result';
+import type { ToolSet } from '../generate-text/tool-set';
 
 describe('notify', () => {
   describe('callback invocation', () => {

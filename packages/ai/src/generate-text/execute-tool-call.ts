@@ -1,6 +1,6 @@
 import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
-import { notify } from './events/notify';
+import { notify } from '../util/notify';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';

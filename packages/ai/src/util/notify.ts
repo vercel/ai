@@ -1,4 +1,4 @@
-import { asArray } from '../../util/as-array';
+import { asArray } from './as-array';
 
 export type Listener<EVENT> = (event: EVENT) => PromiseLike<void> | void;
 
