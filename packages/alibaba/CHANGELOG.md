@@ -1,5 +1,11 @@
 # @ai-sdk/alibaba
 
+## 0.0.2
+
+### Patch Changes
+
+- 1fab23f: fix(provider/alibaba): fix cache control for non-system messages
+
 ## 0.0.1
 
 ### Patch Changes
