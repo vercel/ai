@@ -1085,36 +1085,38 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           // call onFinish callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
-          const onFinishEvent = {
-            stepNumber: finalStep.stepNumber,
-            model: finalStep.model,
-            functionId: finalStep.functionId,
-            metadata: finalStep.metadata,
-            experimental_context: finalStep.experimental_context,
-            finishReason: finalStep.finishReason,
-            rawFinishReason: finalStep.rawFinishReason,
-            totalUsage,
-            usage: finalStep.usage,
-            content: finalStep.content,
-            text: finalStep.text,
-            reasoningText: finalStep.reasoningText,
-            reasoning: finalStep.reasoning,
-            files: finalStep.files,
-            sources: finalStep.sources,
-            toolCalls: finalStep.toolCalls,
-            staticToolCalls: finalStep.staticToolCalls,
-            dynamicToolCalls: finalStep.dynamicToolCalls,
-            toolResults: finalStep.toolResults,
-            staticToolResults: finalStep.staticToolResults,
-            dynamicToolResults: finalStep.dynamicToolResults,
-            request: finalStep.request,
-            response: finalStep.response,
-            warnings: finalStep.warnings,
-            providerMetadata: finalStep.providerMetadata,
-            steps: recordedSteps,
-          };
 
-          await notify({ event: onFinishEvent, callbacks: onFinish });
+          await notify({
+            event: {
+              stepNumber: finalStep.stepNumber,
+              model: finalStep.model,
+              functionId: finalStep.functionId,
+              metadata: finalStep.metadata,
+              experimental_context: finalStep.experimental_context,
+              finishReason: finalStep.finishReason,
+              rawFinishReason: finalStep.rawFinishReason,
+              totalUsage,
+              usage: finalStep.usage,
+              content: finalStep.content,
+              text: finalStep.text,
+              reasoningText: finalStep.reasoningText,
+              reasoning: finalStep.reasoning,
+              files: finalStep.files,
+              sources: finalStep.sources,
+              toolCalls: finalStep.toolCalls,
+              staticToolCalls: finalStep.staticToolCalls,
+              dynamicToolCalls: finalStep.dynamicToolCalls,
+              toolResults: finalStep.toolResults,
+              staticToolResults: finalStep.staticToolResults,
+              dynamicToolResults: finalStep.dynamicToolResults,
+              request: finalStep.request,
+              response: finalStep.response,
+              warnings: finalStep.warnings,
+              providerMetadata: finalStep.providerMetadata,
+              steps: recordedSteps,
+            },
+            callbacks: onFinish,
+          });
 
           // Add response information to the root span:
           rootSpan.setAttributes(
@@ -1274,35 +1276,36 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           messages,
         } as Prompt);
 
-        const onStartEvent = {
-          model: modelInfo,
-          system,
-          prompt,
-          messages,
-          tools,
-          toolChoice,
-          activeTools,
-          maxOutputTokens: callSettings.maxOutputTokens,
-          temperature: callSettings.temperature,
-          topP: callSettings.topP,
-          topK: callSettings.topK,
-          presencePenalty: callSettings.presencePenalty,
-          frequencyPenalty: callSettings.frequencyPenalty,
-          stopSequences: callSettings.stopSequences,
-          seed: callSettings.seed,
-          maxRetries,
-          timeout,
-          headers,
-          providerOptions,
-          stopWhen,
-          output,
-          abortSignal: originalAbortSignal,
-          include,
-          ...callbackTelemetryProps,
-          experimental_context,
-        };
-
-        await notify({ event: onStartEvent, callbacks: onStart });
+        await notify({
+          event: {
+            model: modelInfo,
+            system,
+            prompt,
+            messages,
+            tools,
+            toolChoice,
+            activeTools,
+            maxOutputTokens: callSettings.maxOutputTokens,
+            temperature: callSettings.temperature,
+            topP: callSettings.topP,
+            topK: callSettings.topK,
+            presencePenalty: callSettings.presencePenalty,
+            frequencyPenalty: callSettings.frequencyPenalty,
+            stopSequences: callSettings.stopSequences,
+            seed: callSettings.seed,
+            maxRetries,
+            timeout,
+            headers,
+            providerOptions,
+            stopWhen,
+            output,
+            abortSignal: originalAbortSignal,
+            include,
+            ...callbackTelemetryProps,
+            experimental_context,
+          },
+          callbacks: onStart,
+        });
 
         const initialMessages = initialPrompt.messages;
         const initialResponseMessages: Array<ResponseMessage> = [];
@@ -1550,27 +1553,28 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               prepareStepResult?.providerOptions,
             );
 
-            const onStepStartEvent = {
-              stepNumber: recordedSteps.length,
-              model: stepModelInfo,
-              system: stepSystem,
-              messages: stepMessages,
-              tools,
-              toolChoice: stepToolChoice,
-              activeTools: stepActiveTools,
-              steps: [...recordedSteps],
-              providerOptions: stepProviderOptions,
-              timeout,
-              headers,
-              stopWhen,
-              output,
-              abortSignal: originalAbortSignal,
-              include,
-              ...callbackTelemetryProps,
-              experimental_context,
-            };
-
-            await notify({ event: onStepStartEvent, callbacks: onStepStart });
+            await notify({
+              event: {
+                stepNumber: recordedSteps.length,
+                model: stepModelInfo,
+                system: stepSystem,
+                messages: stepMessages,
+                tools,
+                toolChoice: stepToolChoice,
+                activeTools: stepActiveTools,
+                steps: [...recordedSteps],
+                providerOptions: stepProviderOptions,
+                timeout,
+                headers,
+                stopWhen,
+                output,
+                abortSignal: originalAbortSignal,
+                include,
+                ...callbackTelemetryProps,
+                experimental_context,
+              },
+              callbacks: onStepStart,
+            });
 
             const {
               result: { stream, response, request },

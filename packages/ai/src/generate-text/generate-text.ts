@@ -480,36 +480,37 @@ export async function generateText<
     messages,
   } as Prompt);
 
-  const onStartEvent = {
-    model: modelInfo,
-    system,
-    prompt,
-    messages,
-    tools,
-    toolChoice,
-    activeTools,
-    maxOutputTokens: callSettings.maxOutputTokens,
-    temperature: callSettings.temperature,
-    topP: callSettings.topP,
-    topK: callSettings.topK,
-    presencePenalty: callSettings.presencePenalty,
-    frequencyPenalty: callSettings.frequencyPenalty,
-    stopSequences: callSettings.stopSequences,
-    seed: callSettings.seed,
-    maxRetries,
-    timeout,
-    headers,
-    providerOptions,
-    stopWhen,
-    output,
-    abortSignal,
-    include,
-    functionId: telemetry?.functionId,
-    metadata: telemetry?.metadata as Record<string, unknown> | undefined,
-    experimental_context,
-  };
-
-  await notify({ event: onStartEvent, callbacks: onStart });
+  await notify({
+    event: {
+      model: modelInfo,
+      system,
+      prompt,
+      messages,
+      tools,
+      toolChoice,
+      activeTools,
+      maxOutputTokens: callSettings.maxOutputTokens,
+      temperature: callSettings.temperature,
+      topP: callSettings.topP,
+      topK: callSettings.topK,
+      presencePenalty: callSettings.presencePenalty,
+      frequencyPenalty: callSettings.frequencyPenalty,
+      stopSequences: callSettings.stopSequences,
+      seed: callSettings.seed,
+      maxRetries,
+      timeout,
+      headers,
+      providerOptions,
+      stopWhen,
+      output,
+      abortSignal,
+      include,
+      functionId: telemetry?.functionId,
+      metadata: telemetry?.metadata as Record<string, unknown> | undefined,
+      experimental_context,
+    },
+    callbacks: onStart,
+  });
 
   const tracer = getTracer(telemetry);
 
@@ -711,30 +712,31 @@ export async function generateText<
               prepareStepResult?.providerOptions,
             );
 
-            const onStepStartEvent = {
-              stepNumber: steps.length,
-              model: stepModelInfo,
-              system: stepSystem,
-              messages: stepMessages,
-              tools,
-              toolChoice: stepToolChoice,
-              activeTools: stepActiveTools,
-              steps: [...steps],
-              providerOptions: stepProviderOptions,
-              timeout,
-              headers,
-              stopWhen,
-              output,
-              abortSignal,
-              include,
-              functionId: telemetry?.functionId,
-              metadata: telemetry?.metadata as
-                | Record<string, unknown>
-                | undefined,
-              experimental_context,
-            };
-
-            await notify({ event: onStepStartEvent, callbacks: onStepStart });
+            await notify({
+              event: {
+                stepNumber: steps.length,
+                model: stepModelInfo,
+                system: stepSystem,
+                messages: stepMessages,
+                tools,
+                toolChoice: stepToolChoice,
+                activeTools: stepActiveTools,
+                steps: [...steps],
+                providerOptions: stepProviderOptions,
+                timeout,
+                headers,
+                stopWhen,
+                output,
+                abortSignal,
+                include,
+                functionId: telemetry?.functionId,
+                metadata: telemetry?.metadata as
+                  | Record<string, unknown>
+                  | undefined,
+                experimental_context,
+              },
+              callbacks: onStepStart,
+            });
 
             currentModelResponse = await retry(() =>
               recordSpan({
@@ -1121,36 +1123,37 @@ export async function generateText<
           } as LanguageModelUsage,
         );
 
-        const onFinishEvent = {
-          stepNumber: lastStep.stepNumber,
-          model: lastStep.model,
-          functionId: lastStep.functionId,
-          metadata: lastStep.metadata,
-          experimental_context: lastStep.experimental_context,
-          finishReason: lastStep.finishReason,
-          rawFinishReason: lastStep.rawFinishReason,
-          usage: lastStep.usage,
-          content: lastStep.content,
-          text: lastStep.text,
-          reasoningText: lastStep.reasoningText,
-          reasoning: lastStep.reasoning,
-          files: lastStep.files,
-          sources: lastStep.sources,
-          toolCalls: lastStep.toolCalls,
-          staticToolCalls: lastStep.staticToolCalls,
-          dynamicToolCalls: lastStep.dynamicToolCalls,
-          toolResults: lastStep.toolResults,
-          staticToolResults: lastStep.staticToolResults,
-          dynamicToolResults: lastStep.dynamicToolResults,
-          request: lastStep.request,
-          response: lastStep.response,
-          warnings: lastStep.warnings,
-          providerMetadata: lastStep.providerMetadata,
-          steps,
-          totalUsage,
-        };
-
-        await notify({ event: onFinishEvent, callbacks: onFinish });
+        await notify({
+          event: {
+            stepNumber: lastStep.stepNumber,
+            model: lastStep.model,
+            functionId: lastStep.functionId,
+            metadata: lastStep.metadata,
+            experimental_context: lastStep.experimental_context,
+            finishReason: lastStep.finishReason,
+            rawFinishReason: lastStep.rawFinishReason,
+            usage: lastStep.usage,
+            content: lastStep.content,
+            text: lastStep.text,
+            reasoningText: lastStep.reasoningText,
+            reasoning: lastStep.reasoning,
+            files: lastStep.files,
+            sources: lastStep.sources,
+            toolCalls: lastStep.toolCalls,
+            staticToolCalls: lastStep.staticToolCalls,
+            dynamicToolCalls: lastStep.dynamicToolCalls,
+            toolResults: lastStep.toolResults,
+            staticToolResults: lastStep.staticToolResults,
+            dynamicToolResults: lastStep.dynamicToolResults,
+            request: lastStep.request,
+            response: lastStep.response,
+            warnings: lastStep.warnings,
+            providerMetadata: lastStep.providerMetadata,
+            steps,
+            totalUsage,
+          },
+          callbacks: onFinish,
+        });
 
         // parse output only if the last step was finished with "stop":
         let resolvedOutput;

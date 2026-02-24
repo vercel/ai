@@ -123,15 +123,13 @@ export async function executeToolCall<TOOLS extends ToolSet>({
       } catch (error) {
         const durationMs = now() - startTime;
 
-        const onToolCallFinishErrorEvent = {
-          ...baseCallbackEvent,
-          success: false as const,
-          error,
-          durationMs,
-        };
-
         await notify({
-          event: onToolCallFinishErrorEvent,
+          event: {
+            ...baseCallbackEvent,
+            success: false as const,
+            error,
+            durationMs,
+          },
           callbacks: onToolCallFinish,
         });
 
@@ -151,15 +149,13 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 
       const durationMs = now() - startTime;
 
-      const onToolCallFinishSuccessEvent = {
-        ...baseCallbackEvent,
-        success: true as const,
-        output,
-        durationMs,
-      };
-
       await notify({
-        event: onToolCallFinishSuccessEvent,
+        event: {
+          ...baseCallbackEvent,
+          success: true as const,
+          output,
+          durationMs,
+        },
         callbacks: onToolCallFinish,
       });
 
