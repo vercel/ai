@@ -256,8 +256,7 @@ function normalizeGatewayUsageToV3(usage: unknown): LanguageModelV3Usage {
     candidate &&
     typeof candidate === 'object' &&
     candidate.inputTokens &&
-    typeof candidate.inputTokens === 'object' &&
-    (candidate.inputTokens as { total?: number }).total !== undefined
+    typeof candidate.inputTokens === 'object'
   ) {
     return candidate as LanguageModelV3Usage;
   }
