@@ -385,4 +385,38 @@ console.log(text);`,
     websiteUrl: 'https://valyu.ai',
     npmUrl: 'https://www.npmjs.com/package/@valyu/ai-sdk',
   },
+  {
+    slug: 'airweave',
+    name: 'Airweave',
+    description:
+      'Airweave is an open-source platform that makes any app searchable for your agent. Sync and search across 35+ data sources (Notion, Slack, Google Drive, databases, and more) with semantic search. Add unified search across all your connected data to your AI applications in just a few lines of code.',
+    packageName: '@airweave/vercel-ai-sdk',
+    tags: ['search', 'rag', 'data-sources', 'semantic-search'],
+    apiKeyEnvName: 'AIRWEAVE_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm install @airweave/vercel-ai-sdk',
+      npm: 'npm install @airweave/vercel-ai-sdk',
+      yarn: 'yarn add @airweave/vercel-ai-sdk',
+      bun: 'bun add @airweave/vercel-ai-sdk',
+    },
+    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+import { airweaveSearch } from '@airweave/vercel-ai-sdk';
+
+const { text } = await generateText({
+  model: gateway('anthropic/claude-sonnet-4.5'),
+  prompt: 'What were the key decisions from last week?',
+  tools: {
+    search: airweaveSearch({
+      defaultCollection: 'my-knowledge-base',
+    }),
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.airweave.ai',
+    apiKeyUrl: 'https://app.airweave.ai/settings/api-keys',
+    websiteUrl: 'https://airweave.ai',
+    npmUrl: 'https://www.npmjs.com/package/@airweave/vercel-ai-sdk',
+  },
 ];
