@@ -3503,6 +3503,41 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
       });
+      it('should handle streaming web search without action', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","response":{"id":"resp_missing_action","object":"response","created_at":1741630255,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+            `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"web_search_call","id":"ws_missing_action","status":"in_progress"}}\n\n`,
+            `data:{"type":"response.web_search_call.in_progress","output_index":0,"item_id":"ws_missing_action"}\n\n`,
+            `data:{"type":"response.web_search_call.completed","output_index":0,"item_id":"ws_missing_action"}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"web_search_call","id":"ws_missing_action","status":"completed"}}\n\n`,
+            `data:{"type":"response.completed","response":{"id":"resp_missing_action","object":"response","created_at":1741630255,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[{"type":"web_search_call","id":"ws_missing_action","status":"completed"}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":10,"input_tokens_details":{"cached_tokens":0},"output_tokens":2,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":12},"user":null,"metadata":{}}}\n\n`,
+            'data: [DONE]\n\n',
+          ],
+        };
+
+        const { stream } = await createModel('gpt-5-nano').doStream({
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.web_search',
+              name: 'webSearch',
+              args: {},
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const toolResultPart = parts.find(part => part.type === 'tool-result');
+
+        expect(toolResultPart).toMatchObject({
+          type: 'tool-result',
+          toolName: 'webSearch',
+          result: {},
+        });
+      });
     });
 
     describe('file search tool', () => {
@@ -4969,6 +5004,82 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       expect(result.content).toMatchSnapshot();
+    });
+  });
+
+  it('should accept web_search_call without action', async () => {
+    server.urls['https://api.openai.com/v1/responses'].response = {
+      type: 'json-value',
+      body: {
+        id: 'resp_missing_web_search_action',
+        object: 'response',
+        created_at: 1741631111,
+        status: 'completed',
+        error: null,
+        incomplete_details: null,
+        instructions: null,
+        max_output_tokens: null,
+        model: 'gpt-4o',
+        output: [
+          {
+            type: 'web_search_call',
+            id: 'ws_missing_action',
+            status: 'completed',
+          },
+          {
+            type: 'message',
+            id: 'msg_done',
+            status: 'completed',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'No action payload was returned.',
+                annotations: [],
+              },
+            ],
+          },
+        ],
+        usage: {
+          input_tokens: 10,
+          output_tokens: 5,
+          total_tokens: 15,
+        },
+        previous_response_id: null,
+        parallel_tool_calls: true,
+        reasoning: { effort: null, summary: null },
+        store: true,
+        temperature: 0,
+        text: { format: { type: 'text' } },
+        tool_choice: 'auto',
+        tools: [{ type: 'web_search', search_context_size: 'medium' }],
+        top_p: 1,
+        truncation: 'disabled',
+        user: null,
+        metadata: {},
+      },
+    };
+
+    const result = await createModel('gpt-4o').doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'provider-defined',
+          id: 'openai.web_search',
+          name: 'webSearch',
+          args: {},
+        },
+      ],
+    });
+
+    const webSearchResultPart = result.content.find(
+      part => part.type === 'tool-result',
+    );
+
+    expect(webSearchResultPart).toMatchObject({
+      type: 'tool-result',
+      toolName: 'webSearch',
+      result: {},
     });
   });
 });
