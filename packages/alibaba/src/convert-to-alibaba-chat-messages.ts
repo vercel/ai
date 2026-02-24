@@ -149,9 +149,10 @@ export function convertToAlibabaChatMessages({
 
         messages.push({
           role: 'assistant',
-          content: messageCacheControl
-            ? [{ type: 'text', text, cache_control: messageCacheControl }]
-            : text || null,
+          content:
+            text && messageCacheControl
+              ? [{ type: 'text', text, cache_control: messageCacheControl }]
+              : text || null,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
 
@@ -159,9 +160,6 @@ export function convertToAlibabaChatMessages({
       }
 
       case 'tool': {
-<<<<<<< HEAD
-        for (const toolResponse of content) {
-=======
         const toolResponses = content.filter(
           r => r.type !== 'tool-approval-response',
         );
@@ -170,7 +168,6 @@ export function convertToAlibabaChatMessages({
 
         for (let i = 0; i < toolResponses.length; i++) {
           const toolResponse = toolResponses[i];
->>>>>>> 6fe06309c (fix(provider/alibaba): support user/tool/assistant message(s) cache control (#12787))
           const output = toolResponse.output;
 
           const partCacheControl = isSinglePart
