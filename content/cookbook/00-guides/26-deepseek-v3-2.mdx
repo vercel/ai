@@ -91,7 +91,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: deepseek('deepseek-reasoner'),
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse({ sendReasoning: true });
@@ -170,7 +170,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: deepseek('deepseek-reasoner'),
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
     tools: {
       weather: tool({
         description: 'Get the weather in a location',

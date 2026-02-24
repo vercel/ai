@@ -4,10 +4,10 @@ import ChatInput from '@/components/chat-input';
 import { useChat } from '@ai-sdk/react';
 import {
   DefaultChatTransport,
-  isToolOrDynamicToolUIPart,
-  getToolOrDynamicToolName,
+  getToolName,
   type DynamicToolUIPart,
   type ToolUIPart,
+  isToolUIPart,
 } from 'ai';
 
 export default function Chat() {
@@ -16,10 +16,10 @@ export default function Chat() {
   });
 
   return (
-    <div className="flex flex-col w-full max-w-2xl py-24 mx-auto stretch">
+    <div className="flex flex-col py-24 mx-auto w-full max-w-2xl stretch">
       {messages.map(m => (
         <div key={m.id} className="mb-4">
-          <div className="font-semibold mb-2">
+          <div className="mb-2 font-semibold">
             {m.role === 'user' ? '👤 User' : '🤖 Assistant'}
           </div>
           <div className="pl-4 space-y-2">
@@ -41,9 +41,9 @@ export default function Chat() {
                 ) : null;
               }
 
-              if (isToolOrDynamicToolUIPart(part)) {
+              if (isToolUIPart(part)) {
                 const toolPart = part as ToolUIPart<any> | DynamicToolUIPart;
-                const toolName = getToolOrDynamicToolName(toolPart);
+                const toolName = getToolName(toolPart);
 
                 // Display tool title if available, fallback to tool name
                 const displayName = toolPart.title || toolName;
@@ -51,12 +51,12 @@ export default function Chat() {
                 return (
                   <div
                     key={index}
-                    className="p-4 border border-gray-300 rounded-lg bg-gray-50"
+                    className="p-4 bg-gray-50 rounded-lg border border-gray-300"
                   >
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex gap-2 items-center mb-2">
                       <span className="text-xl">🔧</span>
                       <div>
-                        <div className="font-semibold text-sm">
+                        <div className="text-sm font-semibold">
                           {displayName}
                         </div>
                         {toolPart.title && (
@@ -71,7 +71,7 @@ export default function Chat() {
                       <div className="text-sm text-gray-600">
                         <div className="mb-1">Streaming input...</div>
                         {toolPart.input && (
-                          <pre className="text-xs bg-white p-2 rounded overflow-x-auto">
+                          <pre className="overflow-x-auto p-2 text-xs bg-white rounded">
                             {JSON.stringify(toolPart.input, null, 2)}
                           </pre>
                         )}
@@ -81,7 +81,7 @@ export default function Chat() {
                     {toolPart.state === 'input-available' && (
                       <div className="text-sm text-gray-600">
                         <div className="mb-1">Input:</div>
-                        <pre className="text-xs bg-white p-2 rounded overflow-x-auto">
+                        <pre className="overflow-x-auto p-2 text-xs bg-white rounded">
                           {JSON.stringify(toolPart.input, null, 2)}
                         </pre>
                       </div>
@@ -90,7 +90,7 @@ export default function Chat() {
                     {toolPart.state === 'output-available' && (
                       <div className="text-sm">
                         <div className="mb-1 text-gray-600">Output:</div>
-                        <div className="bg-white p-2 rounded text-xs">
+                        <div className="p-2 text-xs bg-white rounded">
                           {typeof toolPart.output === 'string'
                             ? toolPart.output
                             : JSON.stringify(toolPart.output, null, 2)}
@@ -114,11 +114,11 @@ export default function Chat() {
       ))}
 
       {(status === 'submitted' || status === 'streaming') && (
-        <div className="mt-4 text-gray-500 text-sm">
+        <div className="mt-4 text-sm text-gray-500">
           {status === 'submitted' && <div>Loading...</div>}
           <button
             type="button"
-            className="px-4 py-2 mt-4 text-sm text-blue-500 border border-blue-500 rounded-md hover:bg-blue-50"
+            className="px-4 py-2 mt-4 text-sm text-blue-500 rounded-md border border-blue-500 hover:bg-blue-50"
             onClick={stop}
           >
             Stop
@@ -128,10 +128,10 @@ export default function Chat() {
 
       {error && (
         <div className="mt-4">
-          <div className="text-red-500 text-sm">An error occurred.</div>
+          <div className="text-sm text-red-500">An error occurred.</div>
           <button
             type="button"
-            className="px-4 py-2 mt-4 text-sm text-blue-500 border border-blue-500 rounded-md hover:bg-blue-50"
+            className="px-4 py-2 mt-4 text-sm text-blue-500 rounded-md border border-blue-500 hover:bg-blue-50"
             onClick={() => regenerate()}
           >
             Retry

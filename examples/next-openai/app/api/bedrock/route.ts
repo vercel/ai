@@ -7,7 +7,7 @@ export async function POST(req: Request) {
 
     const result = streamText({
       model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
-      prompt: convertToModelMessages(messages),
+      messages: await convertToModelMessages(messages),
       maxOutputTokens: 500,
       temperature: 0.7,
     });

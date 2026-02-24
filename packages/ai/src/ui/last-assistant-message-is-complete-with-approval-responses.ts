@@ -1,4 +1,4 @@
-import { isToolOrDynamicToolUIPart, type UIMessage } from './ui-messages';
+import { isToolUIPart, type UIMessage } from './ui-messages';
 
 /**
 Check if the last message is an assistant message with completed tool call approvals.
@@ -26,7 +26,7 @@ export function lastAssistantMessageIsCompleteWithApprovalResponses({
 
   const lastStepToolInvocations = message.parts
     .slice(lastStepStartIndex + 1)
-    .filter(isToolOrDynamicToolUIPart)
+    .filter(isToolUIPart)
     .filter(part => !part.providerExecuted);
 
   return (

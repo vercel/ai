@@ -11,7 +11,7 @@ import userEvent from '@testing-library/user-event';
 import {
   DefaultChatTransport,
   FinishReason,
-  isToolUIPart,
+  isStaticToolUIPart,
   TextStreamChatTransport,
   UIMessage,
   UIMessageChunk,
@@ -756,7 +756,7 @@ describe('onToolCall', () => {
       <div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
-            {m.parts.filter(isToolUIPart).map((toolPart, toolIdx) => (
+            {m.parts.filter(isStaticToolUIPart).map((toolPart, toolIdx) => (
               <div key={toolIdx} data-testid={`tool-${toolIdx}`}>
                 {JSON.stringify(toolPart)}
               </div>
@@ -834,7 +834,7 @@ describe('tool invocations', () => {
       <div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
-            {m.parts.filter(isToolUIPart).map((toolPart, toolIdx) => {
+            {m.parts.filter(isStaticToolUIPart).map((toolPart, toolIdx) => {
               return (
                 <div key={toolIdx}>
                   <div data-testid={`tool-invocation-${toolIdx}`}>

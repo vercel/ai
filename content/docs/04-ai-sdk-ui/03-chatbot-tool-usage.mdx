@@ -61,7 +61,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: __MODEL__,
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
     tools: {
       // server-side tool with execute function:
       getWeatherInformation: {
@@ -525,7 +525,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: __MODEL__,
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
     // toolCallStreaming is enabled by default in v5
     // ...
   });
@@ -613,7 +613,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: __MODEL__,
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
     tools: {
       getWeatherInformation: {
         description: 'show the weather in a given city to the user',

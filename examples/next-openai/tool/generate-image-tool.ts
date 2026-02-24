@@ -20,7 +20,7 @@ export const generateImageTool = tool({
       base64: result.image.base64,
     };
   },
-  toModelOutput: ({ mediaType, base64 }) => ({
+  toModelOutput: ({ output: { mediaType, base64 } }) => ({
     type: 'content',
     value: [{ type: 'image-data', data: base64, mediaType }],
   }),

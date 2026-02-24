@@ -33,15 +33,15 @@ async function main() {
         },
 
         // map to tool result content for LLM consumption:
-        toModelOutput(result) {
+        toModelOutput({ output }) {
           return {
             type: 'content',
             value: [
-              typeof result === 'string'
-                ? { type: 'text', text: result }
+              typeof output === 'string'
+                ? { type: 'text', text: output }
                 : {
                     type: 'image-data',
-                    data: result.data,
+                    data: output.data,
                     mediaType: 'image/png',
                   },
             ],

@@ -2,7 +2,7 @@
 
 import { Card } from '@/app/components';
 import { useChat } from '@ai-sdk/react';
-import { getToolName, isToolUIPart } from 'ai';
+import { getStaticToolName, isStaticToolUIPart } from 'ai';
 import { GeistMono } from 'geist/font/mono';
 import { useState } from 'react';
 
@@ -21,13 +21,13 @@ export default function Page() {
               {message.parts.map((part, index) => {
                 if (part.type === 'text') {
                   return <div key={index}>{part.text}</div>;
-                } else if (isToolUIPart(part)) {
+                } else if (isStaticToolUIPart(part)) {
                   return (
                     <div
                       key={index}
                       className={`${GeistMono.className} text-sm text-zinc-500 bg-zinc-100 p-3 rounded-lg`}
                     >
-                      {`${getToolName(part)}(${JSON.stringify(
+                      {`${getStaticToolName(part)}(${JSON.stringify(
                         part.input,
                         null,
                         2,
@@ -49,13 +49,13 @@ export default function Page() {
           sendMessage({ text: input });
           setInput('');
         }}
-        className="fixed bottom-0 flex flex-col w-full border-t"
+        className="flex fixed bottom-0 flex-col w-full border-t"
       >
         <input
           value={input}
           placeholder="What's the weather in San Francisco?"
           onChange={e => setInput(e.target.value)}
-          className="w-full p-4 bg-transparent outline-none"
+          className="p-4 w-full bg-transparent outline-none"
           disabled={status !== 'ready'}
         />
       </form>

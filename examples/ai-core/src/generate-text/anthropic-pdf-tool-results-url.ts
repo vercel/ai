@@ -19,17 +19,17 @@ run(async () => {
         throw new Error(`Failed to analyze PDF: ${error}`);
       }
     },
-    toModelOutput(result) {
+    toModelOutput({ output }) {
       return {
         type: 'content',
         value: [
           {
             type: 'text',
-            text: result.description,
+            text: output.description,
           },
           {
             type: 'file-url',
-            url: result.pdfUrl,
+            url: output.pdfUrl,
           },
         ],
       };

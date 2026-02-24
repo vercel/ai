@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: openai.responses('gpt-5-mini'),
-    prompt: convertToModelMessages(messages),
+    prompt: await convertToModelMessages(messages),
     tools,
   });
 

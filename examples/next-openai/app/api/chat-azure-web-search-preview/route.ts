@@ -22,11 +22,9 @@ export async function POST(req: Request) {
   const { messages }: { messages: AzureWebSearchPreviewMessage[] } =
     await req.json();
 
-  const prompt = convertToModelMessages(messages);
-
   const result = streamText({
     model: azure.responses('gpt-4.1-mini'),
-    prompt,
+    messages: await convertToModelMessages(messages),
     tools: {
       web_search_preview: azure.tools.webSearchPreview({
         searchContextSize: 'low',

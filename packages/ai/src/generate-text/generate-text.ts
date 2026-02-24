@@ -372,34 +372,43 @@ A function that attempts to repair a tool call that failed to parse.
             experimental_context,
           });
 
+          const toolContent: Array<any> = [];
+
+          // add regular tool results for approved tool calls:
+          for (const output of toolOutputs) {
+            const modelOutput = await createToolModelOutput({
+              toolCallId: output.toolCallId,
+              input: output.input,
+              tool: tools?.[output.toolName],
+              output:
+                output.type === 'tool-result' ? output.output : output.error,
+              errorMode: output.type === 'tool-error' ? 'json' : 'none',
+            });
+
+            toolContent.push({
+              type: 'tool-result' as const,
+              toolCallId: output.toolCallId,
+              toolName: output.toolName,
+              output: modelOutput,
+            });
+          }
+
+          // add execution denied tool results for denied tool approvals:
+          for (const toolApproval of deniedToolApprovals) {
+            toolContent.push({
+              type: 'tool-result' as const,
+              toolCallId: toolApproval.toolCall.toolCallId,
+              toolName: toolApproval.toolCall.toolName,
+              output: {
+                type: 'execution-denied' as const,
+                reason: toolApproval.approvalResponse.reason,
+              },
+            });
+          }
+
           responseMessages.push({
             role: 'tool',
-            content: [
-              // add regular tool results for approved tool calls:
-              ...toolOutputs.map(output => ({
-                type: 'tool-result' as const,
-                toolCallId: output.toolCallId,
-                toolName: output.toolName,
-                output: createToolModelOutput({
-                  tool: tools?.[output.toolName],
-                  output:
-                    output.type === 'tool-result'
-                      ? output.output
-                      : output.error,
-                  errorMode: output.type === 'tool-error' ? 'json' : 'none',
-                }),
-              })),
-              // add execution denied tool results for denied tool approvals:
-              ...deniedToolApprovals.map(toolApproval => ({
-                type: 'tool-result' as const,
-                toolCallId: toolApproval.toolCall.toolCallId,
-                toolName: toolApproval.toolCall.toolName,
-                output: {
-                  type: 'execution-denied' as const,
-                  reason: toolApproval.approvalResponse.reason,
-                },
-              })),
-            ],
+            content: toolContent,
           });
         }
 
@@ -671,10 +680,10 @@ A function that attempts to repair a tool call that failed to parse.
 
           // append to messages for potential next step:
           responseMessages.push(
-            ...toResponseMessages({
+            ...(await toResponseMessages({
               content: stepContent,
               tools,
-            }),
+            })),
           );
 
           // Add step information (after response messages are updated):

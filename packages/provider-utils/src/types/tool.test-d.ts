@@ -75,14 +75,19 @@ describe('tool type', () => {
     it('should infer toModelOutput argument when there is only an input schema', () => {
       const aTool = tool({
         inputSchema: z.object({ number: z.number() }),
-        toModelOutput: output => {
+        toModelOutput: ({ output }) => {
           expectTypeOf(output).toEqualTypeOf<any>();
           return { type: 'text', value: 'test' };
         },
       });
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
-        ((output: any) => ToolResultOutput) | undefined
+        | ((options: {
+            toolCallId: string;
+            input: { number: number };
+            output: any;
+          }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
+        | undefined
       >();
     });
 
@@ -90,14 +95,19 @@ describe('tool type', () => {
       const aTool = tool({
         inputSchema: z.object({ number: z.number() }),
         execute: async () => 'test' as const,
-        toModelOutput: output => {
+        toModelOutput: ({ output }) => {
           expectTypeOf(output).toEqualTypeOf<'test'>();
           return { type: 'text', value: 'test' };
         },
       });
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
-        ((output: 'test') => ToolResultOutput) | undefined
+        | ((options: {
+            toolCallId: string;
+            input: { number: number };
+            output: 'test';
+          }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
+        | undefined
       >();
     });
 
@@ -105,14 +115,19 @@ describe('tool type', () => {
       const aTool = tool({
         inputSchema: z.object({ number: z.number() }),
         outputSchema: z.literal('test'),
-        toModelOutput: output => {
+        toModelOutput: ({ output }) => {
           expectTypeOf(output).toEqualTypeOf<'test'>();
           return { type: 'text', value: 'test' };
         },
       });
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
-        ((output: 'test') => ToolResultOutput) | undefined
+        | ((options: {
+            toolCallId: string;
+            input: { number: number };
+            output: 'test';
+          }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
+        | undefined
       >();
     });
   });

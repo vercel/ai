@@ -11,7 +11,7 @@ import { createAgentUIStream } from './create-agent-ui-stream';
  * Runs the agent and returns a response object with a UI message stream.
  *
  * @param agent - The agent to run.
- * @param messages - The input UI messages.
+ * @param uiMessages - The input UI messages.
  *
  * @returns The response object.
  */
@@ -28,7 +28,7 @@ export async function createAgentUIStreamResponse<
   ...options
 }: {
   agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
-  messages: unknown[];
+  uiMessages: unknown[];
   abortSignal?: AbortSignal;
   options?: CALL_OPTIONS;
   experimental_transform?:

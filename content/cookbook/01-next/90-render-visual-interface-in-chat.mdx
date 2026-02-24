@@ -261,7 +261,7 @@ export async function POST(request: Request) {
 
   const result = streamText({
     model: 'openai/gpt-4.1',
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
     tools,
     stopWhen: stepCountIs(5),
   });

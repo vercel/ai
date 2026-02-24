@@ -207,7 +207,7 @@ describe('XaiResponsesLanguageModel', () => {
                 "role": "user",
               },
             ],
-            "max_tokens": 100,
+            "max_output_tokens": 100,
             "model": "grok-4-fast",
             "temperature": 0.5,
             "top_p": 0.9,
