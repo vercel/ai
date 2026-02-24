@@ -3006,14 +3006,14 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     it('should pass cache_control to request body', async () => {
-      prepareJsonFixtureResponse('anthropic-text');
+      prepareJsonResponse({});
 
       const result = await model.doGenerate({
         prompt: TEST_PROMPT,
         providerOptions: {
           anthropic: {
             cacheControl: { type: 'ephemeral' },
-          } satisfies AnthropicLanguageModelOptions,
+          } satisfies AnthropicProviderOptions,
         },
       });
 
@@ -3042,14 +3042,14 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     it('should pass cache_control with ttl to request body', async () => {
-      prepareJsonFixtureResponse('anthropic-text');
+      prepareJsonResponse({});
 
       const result = await model.doGenerate({
         prompt: TEST_PROMPT,
         providerOptions: {
           anthropic: {
             cacheControl: { type: 'ephemeral', ttl: '1h' },
-          } satisfies AnthropicLanguageModelOptions,
+          } satisfies AnthropicProviderOptions,
         },
       });
 
