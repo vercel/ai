@@ -86,7 +86,8 @@
     "node": ">=18"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
