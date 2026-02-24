@@ -1,63 +1,7 @@
 import 'dotenv/config';
 import { openai } from '@ai-sdk/openai';
-import {
-  generateText,
-  listenOnStart,
-  listenOnStepStart,
-  listenOnToolCallStart,
-  listenOnToolCallFinish,
-  listenOnStepFinish,
-  listenOnFinish,
-  stepCountIs,
-  tool,
-} from 'ai';
+import { generateText, stepCountIs, tool } from 'ai';
 import * as z from 'zod';
-
-// Subscribe to events before calling generateText
-const unsubscribeStart = listenOnStart(event => {
-  console.log('\n--- listenOnStart ---');
-  console.log('Provider:', event.model.provider);
-  console.log('Model:', event.model.modelId);
-  console.log('Temperature:', event.temperature);
-});
-
-const unsubscribeStepStart = listenOnStepStart(event => {
-  console.log('\n--- listenOnStepStart ---');
-  console.log('Step:', event.stepNumber);
-  console.log('Message count:', event.messages.length);
-});
-
-const unsubscribeToolCallStart = listenOnToolCallStart(event => {
-  console.log('\n--- listenOnToolCallStart ---');
-  console.log('Tool:', event.toolCall.toolName);
-  console.log('Input:', JSON.stringify(event.toolCall.input));
-});
-
-const unsubscribeToolCallFinish = listenOnToolCallFinish(event => {
-  console.log('\n--- listenOnToolCallFinish ---');
-  console.log('Tool:', event.toolCall.toolName);
-  console.log('Duration:', event.durationMs, 'ms');
-  console.log('Success:', event.success);
-  if (event.success) {
-    console.log('Output:', event.output);
-  }
-});
-
-const unsubscribeStepFinish = listenOnStepFinish(event => {
-  console.log('\n--- listenOnStepFinish ---');
-  console.log('Step:', event.stepNumber);
-  console.log('Finish reason:', event.finishReason);
-  console.log('Input tokens:', event.usage.inputTokens);
-  console.log('Output tokens:', event.usage.outputTokens);
-});
-
-const unsubscribeFinish = listenOnFinish(event => {
-  console.log('\n--- listenOnFinish ---');
-  console.log('Total steps:', event.steps.length);
-  console.log('Total input tokens:', event.totalUsage.inputTokens);
-  console.log('Total output tokens:', event.totalUsage.outputTokens);
-  console.log('Final text:', event.text);
-});
 
 async function main() {
   const result = await generateText({
@@ -76,18 +20,49 @@ async function main() {
       }),
     },
     stopWhen: stepCountIs(3),
+    experimental_onStart: event => {
+      console.log('\n--- onStart ---');
+      console.log('Provider:', event.model.provider);
+      console.log('Model:', event.model.modelId);
+      console.log('Temperature:', event.temperature);
+    },
+    experimental_onStepStart: event => {
+      console.log('\n--- onStepStart ---');
+      console.log('Step:', event.stepNumber);
+      console.log('Message count:', event.messages.length);
+    },
+    experimental_onToolCallStart: event => {
+      console.log('\n--- onToolCallStart ---');
+      console.log('Tool:', event.toolCall.toolName);
+      console.log('Input:', JSON.stringify(event.toolCall.input));
+    },
+    experimental_onToolCallFinish: event => {
+      console.log('\n--- onToolCallFinish ---');
+      console.log('Tool:', event.toolCall.toolName);
+      console.log('Duration:', event.durationMs, 'ms');
+      console.log('Success:', event.success);
+      if (event.success) {
+        console.log('Output:', event.output);
+      }
+    },
+    onStepFinish: event => {
+      console.log('\n--- onStepFinish ---');
+      console.log('Step:', event.stepNumber);
+      console.log('Finish reason:', event.finishReason);
+      console.log('Input tokens:', event.usage.inputTokens);
+      console.log('Output tokens:', event.usage.outputTokens);
+    },
+    onFinish: event => {
+      console.log('\n--- onFinish ---');
+      console.log('Total steps:', event.steps.length);
+      console.log('Total input tokens:', event.totalUsage.inputTokens);
+      console.log('Total output tokens:', event.totalUsage.outputTokens);
+      console.log('Final text:', event.text);
+    },
   });
 
   console.log('\n=== FINAL RESULT ===');
   console.log(result.text);
-
-  // Cleanup subscriptions
-  unsubscribeStart();
-  unsubscribeStepStart();
-  unsubscribeToolCallStart();
-  unsubscribeToolCallFinish();
-  unsubscribeStepFinish();
-  unsubscribeFinish();
 }
 
 main().catch(console.error);

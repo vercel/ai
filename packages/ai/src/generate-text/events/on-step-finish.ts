@@ -1,50 +1,22 @@
 import type { OnStepFinishEvent } from '../callback-events';
 import type { ToolSet } from '../tool-set';
+import { asArray } from '../../util/as-array';
 
-/**
- * Generic listener type that accepts any OnStepFinishEvent variant.
- */
-type OnStepFinishListener = <TOOLS extends ToolSet>(
+export type OnStepFinishListener<TOOLS extends ToolSet> = (
   event: OnStepFinishEvent<TOOLS>,
-) => void;
-
-const listeners: OnStepFinishListener[] = [];
+) => PromiseLike<void> | void;
 
 /**
- * Subscribe to `onStepFinish` events from all generateText/streamText calls.
- * Returns an unsubscribe function.
+ * Notifies all provided onStepFinish callbacks.
+ * Errors in callbacks do not break the generation flow.
  */
-export function listenOnStepFinish(listener: OnStepFinishListener): () => void {
-  listeners.push(listener);
-  return () => {
-    const index = listeners.indexOf(listener);
-    if (index > -1) listeners.splice(index, 1);
-  };
-}
-
-/**
- * Notifies all registered onStepFinish listeners and optionally calls a callback.
- * Errors in listeners/callback do not break the generation flow.
- */
-export async function notifyOnStepFinish<TOOLS extends ToolSet>(
-  event: OnStepFinishEvent<TOOLS>,
-  callback?:
-    | ((event: OnStepFinishEvent<TOOLS>) => PromiseLike<void> | void)
-    | undefined,
-): Promise<void> {
-  for (const listener of listeners) {
+export async function notifyOnStepFinish<TOOLS extends ToolSet>(options: {
+  event: OnStepFinishEvent<TOOLS>;
+  callbacks?: OnStepFinishListener<TOOLS> | Array<OnStepFinishListener<TOOLS>>;
+}): Promise<void> {
+  for (const callback of asArray(options.callbacks)) {
     try {
-      listener(event);
-    } catch (_ignored) {
-      // Errors in listeners should not break the generation flow.
-    }
-  }
-
-  if (callback) {
-    try {
-      await callback(event);
-    } catch (_ignored) {
-      // Errors in callbacks should not break the generation flow.
-    }
+      await callback(options.event);
+    } catch (_ignored) {}
   }
 }

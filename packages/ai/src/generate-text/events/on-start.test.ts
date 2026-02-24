@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { listenOnStart, notifyOnStart } from './on-start';
+import { describe, it, expect } from 'vitest';
+import { notifyOnStart } from './on-start';
 import type { OnStartEvent } from '../callback-events';
 
 function createMockOnStartEvent(
@@ -37,28 +37,17 @@ function createMockOnStartEvent(
 }
 
 describe('on-start', () => {
-  let unsubscribers: Array<() => void>;
-
-  beforeEach(() => {
-    unsubscribers = [];
-  });
-
-  afterEach(() => {
-    for (const unsubscribe of unsubscribers) {
-      unsubscribe();
-    }
-  });
-
-  describe('listenOnStart', () => {
-    it('should register a listener and return an unsubscribe function', async () => {
+  describe('notifyOnStart', () => {
+    it('should call a single callback with the event', async () => {
       const calls: string[] = [];
+      const event = createMockOnStartEvent();
 
-      const unsubscribe = listenOnStart(() => {
-        calls.push('listener called');
+      await notifyOnStart({
+        event,
+        callbacks: () => {
+          calls.push('listener called');
+        },
       });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnStart(createMockOnStartEvent());
 
       expect(calls).toMatchInlineSnapshot(`
         [
@@ -67,21 +56,24 @@ describe('on-start', () => {
       `);
     });
 
-    it('should allow multiple listeners to be registered', async () => {
+    it('should call all callbacks when given an array', async () => {
       const calls: string[] = [];
+      const event = createMockOnStartEvent();
 
-      const unsubscribe1 = listenOnStart(() => {
-        calls.push('listener 1');
+      await notifyOnStart({
+        event,
+        callbacks: [
+          () => {
+            calls.push('listener 1');
+          },
+          () => {
+            calls.push('listener 2');
+          },
+          () => {
+            calls.push('listener 3');
+          },
+        ],
       });
-      const unsubscribe2 = listenOnStart(() => {
-        calls.push('listener 2');
-      });
-      const unsubscribe3 = listenOnStart(() => {
-        calls.push('listener 3');
-      });
-      unsubscribers.push(unsubscribe1, unsubscribe2, unsubscribe3);
-
-      await notifyOnStart(createMockOnStartEvent());
 
       expect(calls).toMatchInlineSnapshot(`
         [
@@ -92,124 +84,33 @@ describe('on-start', () => {
       `);
     });
 
-    it('should remove listener when unsubscribe is called', async () => {
-      const calls: string[] = [];
-
-      const unsubscribe1 = listenOnStart(() => {
-        calls.push('listener 1');
-      });
-      const unsubscribe2 = listenOnStart(() => {
-        calls.push('listener 2');
-      });
-      unsubscribers.push(unsubscribe1, unsubscribe2);
-
-      await notifyOnStart(createMockOnStartEvent());
-
-      expect(calls).toMatchInlineSnapshot(`
-        [
-          "listener 1",
-          "listener 2",
-        ]
-      `);
-
-      calls.length = 0;
-      unsubscribe1();
-
-      await notifyOnStart(createMockOnStartEvent());
-
-      expect(calls).toMatchInlineSnapshot(`
-        [
-          "listener 2",
-        ]
-      `);
-    });
-
-    it('should handle unsubscribe called multiple times gracefully', async () => {
-      const calls: string[] = [];
-
-      const unsubscribe = listenOnStart(() => {
-        calls.push('listener');
-      });
-
-      await notifyOnStart(createMockOnStartEvent());
-      expect(calls).toMatchInlineSnapshot(`
-        [
-          "listener",
-        ]
-      `);
-
-      unsubscribe();
-      unsubscribe();
-      unsubscribe();
-
-      calls.length = 0;
-      await notifyOnStart(createMockOnStartEvent());
-
-      expect(calls).toMatchInlineSnapshot(`[]`);
-    });
-  });
-
-  describe('notifyOnStart', () => {
-    it('should pass event data to listeners', async () => {
-      const receivedEvents: Array<{
-        provider: string;
-        modelId: string;
-        temperature: number | undefined;
-      }> = [];
-
-      const unsubscribe = listenOnStart(event => {
-        receivedEvents.push({
-          provider: event.model.provider,
-          modelId: event.model.modelId,
-          temperature: event.temperature,
-        });
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnStart(
-        createMockOnStartEvent({
-          model: { provider: 'openai', modelId: 'gpt-4o' },
-          temperature: 0.5,
+    it('should work with undefined callbacks', async () => {
+      await expect(
+        notifyOnStart({
+          event: createMockOnStartEvent(),
+          callbacks: undefined,
         }),
-      );
-
-      expect(receivedEvents).toMatchInlineSnapshot(`
-        [
-          {
-            "modelId": "gpt-4o",
-            "provider": "openai",
-            "temperature": 0.5,
-          },
-        ]
-      `);
+      ).resolves.toBeUndefined();
     });
 
-    it('should call the optional callback after listeners', async () => {
-      const callOrder: string[] = [];
-
-      const unsubscribe = listenOnStart(() => {
-        callOrder.push('listener');
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnStart(createMockOnStartEvent(), () => {
-        callOrder.push('callback');
-      });
-
-      expect(callOrder).toMatchInlineSnapshot(`
-        [
-          "listener",
-          "callback",
-        ]
-      `);
+    it('should work with omitted callbacks', async () => {
+      await expect(
+        notifyOnStart({
+          event: createMockOnStartEvent(),
+        }),
+      ).resolves.toBeUndefined();
     });
 
     it('should await async callbacks', async () => {
       const callOrder: string[] = [];
+      const event = createMockOnStartEvent();
 
-      await notifyOnStart(createMockOnStartEvent(), async () => {
-        await new Promise(resolve => setTimeout(resolve, 10));
-        callOrder.push('async callback completed');
+      await notifyOnStart({
+        event,
+        callbacks: async () => {
+          await new Promise(resolve => setTimeout(resolve, 10));
+          callOrder.push('async callback completed');
+        },
       });
 
       callOrder.push('after notifyOnStart');
@@ -222,19 +123,44 @@ describe('on-start', () => {
       `);
     });
 
-    it('should catch errors in listeners without breaking', async () => {
+    it('should swallow errors in a single callback', async () => {
       const calls: string[] = [];
+      const event = createMockOnStartEvent();
 
-      const unsubscribe1 = listenOnStart(() => {
-        calls.push('listener 1 before throw');
-        throw new Error('listener 1 error');
+      await notifyOnStart({
+        event,
+        callbacks: () => {
+          calls.push('before throw');
+          throw new Error('callback error');
+        },
       });
-      const unsubscribe2 = listenOnStart(() => {
-        calls.push('listener 2');
-      });
-      unsubscribers.push(unsubscribe1, unsubscribe2);
 
-      await notifyOnStart(createMockOnStartEvent());
+      calls.push('after notifyOnStart');
+
+      expect(calls).toMatchInlineSnapshot(`
+        [
+          "before throw",
+          "after notifyOnStart",
+        ]
+      `);
+    });
+
+    it('should swallow errors in array and continue with subsequent callbacks', async () => {
+      const calls: string[] = [];
+      const event = createMockOnStartEvent();
+
+      await notifyOnStart({
+        event,
+        callbacks: [
+          () => {
+            calls.push('listener 1 before throw');
+            throw new Error('listener 1 error');
+          },
+          () => {
+            calls.push('listener 2');
+          },
+        ],
+      });
 
       expect(calls).toMatchInlineSnapshot(`
         [
@@ -244,114 +170,91 @@ describe('on-start', () => {
       `);
     });
 
-    it('should catch errors in callback without breaking', async () => {
-      const calls: string[] = [];
-
-      const unsubscribe = listenOnStart(() => {
-        calls.push('listener');
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnStart(createMockOnStartEvent(), () => {
-        calls.push('callback before throw');
-        throw new Error('callback error');
+    it('should pass event data to callbacks', async () => {
+      const receivedEvents: Array<{
+        provider: string;
+        modelId: string;
+        temperature: number | undefined;
+      }> = [];
+      const event = createMockOnStartEvent({
+        model: { provider: 'openai', modelId: 'gpt-4o' },
+        temperature: 0.5,
       });
 
-      calls.push('after notifyOnStart');
+      await notifyOnStart({
+        event,
+        callbacks: ev => {
+          receivedEvents.push({
+            provider: ev.model.provider,
+            modelId: ev.model.modelId,
+            temperature: ev.temperature,
+          });
+        },
+      });
 
-      expect(calls).toMatchInlineSnapshot(`
+      expect(receivedEvents).toMatchInlineSnapshot(`
         [
-          "listener",
-          "callback before throw",
-          "after notifyOnStart",
+          {
+            "modelId": "gpt-4o",
+            "provider": "openai",
+            "temperature": 0.5,
+          },
         ]
       `);
     });
 
-    it('should work with no listeners registered', async () => {
-      const calls: string[] = [];
-
-      await notifyOnStart(createMockOnStartEvent(), () => {
-        calls.push('callback');
-      });
-
-      expect(calls).toMatchInlineSnapshot(`
-        [
-          "callback",
-        ]
-      `);
-    });
-
-    it('should work with no callback provided', async () => {
-      const calls: string[] = [];
-
-      const unsubscribe = listenOnStart(() => {
-        calls.push('listener');
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnStart(createMockOnStartEvent());
-
-      expect(calls).toMatchInlineSnapshot(`
-        [
-          "listener",
-        ]
-      `);
-    });
-
-    it('should work with neither listeners nor callback', async () => {
-      await expect(
-        notifyOnStart(createMockOnStartEvent()),
-      ).resolves.toBeUndefined();
-    });
-  });
-
-  describe('type safety', () => {
-    it('should provide typed event properties to listeners', async () => {
-      const unsubscribe = listenOnStart(event => {
-        const _model: { provider: string; modelId: string } = event.model;
-        const _temperature: number | undefined = event.temperature;
-        const _prompt: string | undefined = event.prompt as string | undefined;
-        const _maxRetries: number = event.maxRetries;
-
-        expect(_model).toBeDefined();
-        expect(typeof _maxRetries).toBe('number');
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnStart(createMockOnStartEvent());
-    });
-
-    it('should preserve event data through callback', async () => {
-      const mockEvent = createMockOnStartEvent({
+    it('should propagate model info, temperature, and other event fields', async () => {
+      const receivedData: Array<{
+        provider: string;
+        modelId: string;
+        temperature: number | undefined;
+        maxRetries: number;
+      }> = [];
+      const event = createMockOnStartEvent({
         model: { provider: 'anthropic', modelId: 'claude-3' },
         temperature: 0.9,
         maxRetries: 5,
       });
 
-      const receivedData: Array<{
-        provider: string;
-        modelId: string;
-        temperature: number | undefined;
-      }> = [];
-
-      await notifyOnStart(mockEvent, event => {
-        receivedData.push({
-          provider: event.model.provider,
-          modelId: event.model.modelId,
-          temperature: event.temperature,
-        });
+      await notifyOnStart({
+        event,
+        callbacks: ev => {
+          receivedData.push({
+            provider: ev.model.provider,
+            modelId: ev.model.modelId,
+            temperature: ev.temperature,
+            maxRetries: ev.maxRetries,
+          });
+        },
       });
 
       expect(receivedData).toMatchInlineSnapshot(`
         [
           {
+            "maxRetries": 5,
             "modelId": "claude-3",
             "provider": "anthropic",
             "temperature": 0.9,
           },
         ]
       `);
+    });
+
+    it('should provide typed event properties to callbacks', async () => {
+      const event = createMockOnStartEvent();
+
+      await notifyOnStart({
+        event,
+        callbacks: ev => {
+          const _model: { provider: string; modelId: string } = ev.model;
+          const _temperature: number | undefined = ev.temperature;
+          const _prompt: string | undefined = ev.prompt as string | undefined;
+          const _maxRetries: number = ev.maxRetries;
+
+          expect(_model).toBeDefined();
+          expect(typeof _maxRetries).toBe('number');
+        },
+      });
     });
   });
 });

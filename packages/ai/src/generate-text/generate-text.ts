@@ -512,7 +512,7 @@ export async function generateText<
     experimental_context,
   };
 
-  await notifyOnStart(onStartEvent, onStart);
+  await notifyOnStart({ event: onStartEvent, callbacks: onStart });
 
   const tracer = getTracer(telemetry);
 
@@ -737,7 +737,10 @@ export async function generateText<
               experimental_context,
             };
 
-            await notifyOnStepStart(onStepStartEvent, onStepStart);
+            await notifyOnStepStart({
+              event: onStepStartEvent,
+              callbacks: onStepStart,
+            });
 
             currentModelResponse = await retry(() =>
               recordSpan({
@@ -1057,7 +1060,10 @@ export async function generateText<
 
             steps.push(currentStepResult);
 
-            await notifyOnStepFinish(currentStepResult, onStepFinish);
+            await notifyOnStepFinish({
+              event: currentStepResult,
+              callbacks: onStepFinish,
+            });
           } finally {
             if (stepTimeoutId != null) {
               clearTimeout(stepTimeoutId);
@@ -1153,7 +1159,7 @@ export async function generateText<
           totalUsage,
         };
 
-        await notifyOnFinish(onFinishEvent, onFinish);
+        await notifyOnFinish({ event: onFinishEvent, callbacks: onFinish });
 
         // parse output only if the last step was finished with "stop":
         let resolvedOutput;

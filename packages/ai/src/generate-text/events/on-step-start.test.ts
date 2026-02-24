@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { listenOnStepStart, notifyOnStepStart } from './on-step-start';
+import { describe, it, expect } from 'vitest';
+import { notifyOnStepStart } from './on-step-start';
 import type { OnStepStartEvent } from '../callback-events';
 
 function createMockOnStepStartEvent(
@@ -29,28 +29,17 @@ function createMockOnStepStartEvent(
 }
 
 describe('on-step-start', () => {
-  let unsubscribers: Array<() => void>;
-
-  beforeEach(() => {
-    unsubscribers = [];
-  });
-
-  afterEach(() => {
-    for (const unsubscribe of unsubscribers) {
-      unsubscribe();
-    }
-  });
-
-  describe('listenOnStepStart', () => {
-    it('should register a listener and return an unsubscribe function', async () => {
+  describe('notifyOnStepStart', () => {
+    it('should call a single callback with the event', async () => {
       const calls: string[] = [];
+      const event = createMockOnStepStartEvent();
 
-      const unsubscribe = listenOnStepStart(() => {
-        calls.push('listener called');
+      await notifyOnStepStart({
+        event,
+        callbacks: () => {
+          calls.push('listener called');
+        },
       });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnStepStart(createMockOnStepStartEvent());
 
       expect(calls).toMatchInlineSnapshot(`
         [
@@ -59,21 +48,24 @@ describe('on-step-start', () => {
       `);
     });
 
-    it('should allow multiple listeners to be registered', async () => {
+    it('should call all callbacks when given an array', async () => {
       const calls: string[] = [];
+      const event = createMockOnStepStartEvent();
 
-      const unsubscribe1 = listenOnStepStart(() => {
-        calls.push('listener 1');
+      await notifyOnStepStart({
+        event,
+        callbacks: [
+          () => {
+            calls.push('listener 1');
+          },
+          () => {
+            calls.push('listener 2');
+          },
+          () => {
+            calls.push('listener 3');
+          },
+        ],
       });
-      const unsubscribe2 = listenOnStepStart(() => {
-        calls.push('listener 2');
-      });
-      const unsubscribe3 = listenOnStepStart(() => {
-        calls.push('listener 3');
-      });
-      unsubscribers.push(unsubscribe1, unsubscribe2, unsubscribe3);
-
-      await notifyOnStepStart(createMockOnStepStartEvent());
 
       expect(calls).toMatchInlineSnapshot(`
         [
@@ -84,131 +76,33 @@ describe('on-step-start', () => {
       `);
     });
 
-    it('should remove listener when unsubscribe is called', async () => {
-      const calls: string[] = [];
-
-      const unsubscribe1 = listenOnStepStart(() => {
-        calls.push('listener 1');
-      });
-      const unsubscribe2 = listenOnStepStart(() => {
-        calls.push('listener 2');
-      });
-      unsubscribers.push(unsubscribe1, unsubscribe2);
-
-      await notifyOnStepStart(createMockOnStepStartEvent());
-
-      expect(calls).toMatchInlineSnapshot(`
-        [
-          "listener 1",
-          "listener 2",
-        ]
-      `);
-
-      calls.length = 0;
-      unsubscribe1();
-
-      await notifyOnStepStart(createMockOnStepStartEvent());
-
-      expect(calls).toMatchInlineSnapshot(`
-        [
-          "listener 2",
-        ]
-      `);
-    });
-
-    it('should handle unsubscribe called multiple times gracefully', async () => {
-      const calls: string[] = [];
-
-      const unsubscribe = listenOnStepStart(() => {
-        calls.push('listener');
-      });
-
-      await notifyOnStepStart(createMockOnStepStartEvent());
-      expect(calls).toMatchInlineSnapshot(`
-        [
-          "listener",
-        ]
-      `);
-
-      unsubscribe();
-      unsubscribe();
-      unsubscribe();
-
-      calls.length = 0;
-      await notifyOnStepStart(createMockOnStepStartEvent());
-
-      expect(calls).toMatchInlineSnapshot(`[]`);
-    });
-  });
-
-  describe('notifyOnStepStart', () => {
-    it('should pass event data to listeners', async () => {
-      const receivedEvents: Array<{
-        stepNumber: number;
-        provider: string;
-        modelId: string;
-        messageCount: number;
-      }> = [];
-
-      const unsubscribe = listenOnStepStart(event => {
-        receivedEvents.push({
-          stepNumber: event.stepNumber,
-          provider: event.model.provider,
-          modelId: event.model.modelId,
-          messageCount: event.messages.length,
-        });
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnStepStart(
-        createMockOnStepStartEvent({
-          stepNumber: 2,
-          model: { provider: 'openai', modelId: 'gpt-4o' },
-          messages: [
-            { role: 'user', content: 'message 1' },
-            { role: 'assistant', content: 'message 2' },
-          ],
+    it('should work with undefined callbacks', async () => {
+      await expect(
+        notifyOnStepStart({
+          event: createMockOnStepStartEvent(),
+          callbacks: undefined,
         }),
-      );
-
-      expect(receivedEvents).toMatchInlineSnapshot(`
-        [
-          {
-            "messageCount": 2,
-            "modelId": "gpt-4o",
-            "provider": "openai",
-            "stepNumber": 2,
-          },
-        ]
-      `);
+      ).resolves.toBeUndefined();
     });
 
-    it('should call the optional callback after listeners', async () => {
-      const callOrder: string[] = [];
-
-      const unsubscribe = listenOnStepStart(() => {
-        callOrder.push('listener');
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnStepStart(createMockOnStepStartEvent(), () => {
-        callOrder.push('callback');
-      });
-
-      expect(callOrder).toMatchInlineSnapshot(`
-        [
-          "listener",
-          "callback",
-        ]
-      `);
+    it('should work with omitted callbacks', async () => {
+      await expect(
+        notifyOnStepStart({
+          event: createMockOnStepStartEvent(),
+        }),
+      ).resolves.toBeUndefined();
     });
 
     it('should await async callbacks', async () => {
       const callOrder: string[] = [];
+      const event = createMockOnStepStartEvent();
 
-      await notifyOnStepStart(createMockOnStepStartEvent(), async () => {
-        await new Promise(resolve => setTimeout(resolve, 10));
-        callOrder.push('async callback completed');
+      await notifyOnStepStart({
+        event,
+        callbacks: async () => {
+          await new Promise(resolve => setTimeout(resolve, 10));
+          callOrder.push('async callback completed');
+        },
       });
 
       callOrder.push('after notifyOnStepStart');
@@ -221,19 +115,22 @@ describe('on-step-start', () => {
       `);
     });
 
-    it('should catch errors in listeners without breaking', async () => {
+    it('should swallow errors in array and continue with subsequent callbacks', async () => {
       const calls: string[] = [];
+      const event = createMockOnStepStartEvent();
 
-      const unsubscribe1 = listenOnStepStart(() => {
-        calls.push('listener 1 before throw');
-        throw new Error('listener 1 error');
+      await notifyOnStepStart({
+        event,
+        callbacks: [
+          () => {
+            calls.push('listener 1 before throw');
+            throw new Error('listener 1 error');
+          },
+          () => {
+            calls.push('listener 2');
+          },
+        ],
       });
-      const unsubscribe2 = listenOnStepStart(() => {
-        calls.push('listener 2');
-      });
-      unsubscribers.push(unsubscribe1, unsubscribe2);
-
-      await notifyOnStepStart(createMockOnStepStartEvent());
 
       expect(calls).toMatchInlineSnapshot(`
         [
@@ -243,86 +140,57 @@ describe('on-step-start', () => {
       `);
     });
 
-    it('should catch errors in callback without breaking', async () => {
-      const calls: string[] = [];
-
-      const unsubscribe = listenOnStepStart(() => {
-        calls.push('listener');
+    it('should pass event data to callbacks (stepNumber, model, messages, steps)', async () => {
+      const receivedEvents: Array<{
+        stepNumber: number;
+        provider: string;
+        modelId: string;
+        messageCount: number;
+        stepsLength: number;
+      }> = [];
+      const event = createMockOnStepStartEvent({
+        stepNumber: 2,
+        model: { provider: 'openai', modelId: 'gpt-4o' },
+        messages: [
+          { role: 'user', content: 'message 1' },
+          { role: 'assistant', content: 'message 2' },
+        ],
+        steps: [{ stepNumber: 0 }, { stepNumber: 1 }] as never,
       });
-      unsubscribers.push(unsubscribe);
 
-      await notifyOnStepStart(createMockOnStepStartEvent(), () => {
-        calls.push('callback before throw');
-        throw new Error('callback error');
+      await notifyOnStepStart({
+        event,
+        callbacks: ev => {
+          receivedEvents.push({
+            stepNumber: ev.stepNumber,
+            provider: ev.model.provider,
+            modelId: ev.model.modelId,
+            messageCount: ev.messages.length,
+            stepsLength: ev.steps.length,
+          });
+        },
       });
 
-      calls.push('after notifyOnStepStart');
-
-      expect(calls).toMatchInlineSnapshot(`
+      expect(receivedEvents).toMatchInlineSnapshot(`
         [
-          "listener",
-          "callback before throw",
-          "after notifyOnStepStart",
+          {
+            "messageCount": 2,
+            "modelId": "gpt-4o",
+            "provider": "openai",
+            "stepNumber": 2,
+            "stepsLength": 2,
+          },
         ]
       `);
-    });
-
-    it('should work with no listeners registered', async () => {
-      const calls: string[] = [];
-
-      await notifyOnStepStart(createMockOnStepStartEvent(), () => {
-        calls.push('callback');
-      });
-
-      expect(calls).toMatchInlineSnapshot(`
-        [
-          "callback",
-        ]
-      `);
-    });
-
-    it('should work with no callback provided', async () => {
-      const calls: string[] = [];
-
-      const unsubscribe = listenOnStepStart(() => {
-        calls.push('listener');
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnStepStart(createMockOnStepStartEvent());
-
-      expect(calls).toMatchInlineSnapshot(`
-        [
-          "listener",
-        ]
-      `);
-    });
-
-    it('should work with neither listeners nor callback', async () => {
-      await expect(
-        notifyOnStepStart(createMockOnStepStartEvent()),
-      ).resolves.toBeUndefined();
-    });
-  });
-
-  describe('type safety', () => {
-    it('should provide typed event properties to listeners', async () => {
-      const unsubscribe = listenOnStepStart(event => {
-        const _stepNumber: number = event.stepNumber;
-        const _model: { provider: string; modelId: string } = event.model;
-        const _messages: readonly { role: string; content: unknown }[] =
-          event.messages;
-
-        expect(typeof _stepNumber).toBe('number');
-        expect(_model).toBeDefined();
-        expect(Array.isArray(_messages)).toBe(true);
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnStepStart(createMockOnStepStartEvent());
     });
 
     it('should preserve event data through callback', async () => {
+      const receivedData: Array<{
+        stepNumber: number;
+        provider: string;
+        modelId: string;
+        messageCount: number;
+      }> = [];
       const mockEvent = createMockOnStepStartEvent({
         stepNumber: 5,
         model: { provider: 'anthropic', modelId: 'claude-3' },
@@ -332,20 +200,16 @@ describe('on-step-start', () => {
         ],
       });
 
-      const receivedData: Array<{
-        stepNumber: number;
-        provider: string;
-        modelId: string;
-        messageCount: number;
-      }> = [];
-
-      await notifyOnStepStart(mockEvent, event => {
-        receivedData.push({
-          stepNumber: event.stepNumber,
-          provider: event.model.provider,
-          modelId: event.model.modelId,
-          messageCount: event.messages.length,
-        });
+      await notifyOnStepStart({
+        event: mockEvent,
+        callbacks: ev => {
+          receivedData.push({
+            stepNumber: ev.stepNumber,
+            provider: ev.model.provider,
+            modelId: ev.model.modelId,
+            messageCount: ev.messages.length,
+          });
+        },
       });
 
       expect(receivedData).toMatchInlineSnapshot(`
@@ -360,32 +224,30 @@ describe('on-step-start', () => {
       `);
     });
 
-    it('should preserve info across multiple steps in a multi-step process', async () => {
+    it('should preserve info across multiple steps in a multi-step sequence', async () => {
       const receivedSteps: Array<{
         stepNumber: number;
         messageCount: number;
         previousStepCount: number;
       }> = [];
 
-      const unsubscribe = listenOnStepStart(event => {
-        receivedSteps.push({
-          stepNumber: event.stepNumber,
-          messageCount: event.messages.length,
-          previousStepCount: event.steps.length,
-        });
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnStepStart(
-        createMockOnStepStartEvent({
+      await notifyOnStepStart({
+        event: createMockOnStepStartEvent({
           stepNumber: 0,
           messages: [{ role: 'user', content: 'What is the weather?' }],
           steps: [],
         }),
-      );
+        callbacks: ev => {
+          receivedSteps.push({
+            stepNumber: ev.stepNumber,
+            messageCount: ev.messages.length,
+            previousStepCount: ev.steps.length,
+          });
+        },
+      });
 
-      await notifyOnStepStart(
-        createMockOnStepStartEvent({
+      await notifyOnStepStart({
+        event: createMockOnStepStartEvent({
           stepNumber: 1,
           messages: [
             { role: 'user', content: 'What is the weather?' },
@@ -393,10 +255,17 @@ describe('on-step-start', () => {
           ],
           steps: [{ stepNumber: 0 }] as never,
         }),
-      );
+        callbacks: ev => {
+          receivedSteps.push({
+            stepNumber: ev.stepNumber,
+            messageCount: ev.messages.length,
+            previousStepCount: ev.steps.length,
+          });
+        },
+      });
 
-      await notifyOnStepStart(
-        createMockOnStepStartEvent({
+      await notifyOnStepStart({
+        event: createMockOnStepStartEvent({
           stepNumber: 2,
           messages: [
             { role: 'user', content: 'What is the weather?' },
@@ -406,7 +275,14 @@ describe('on-step-start', () => {
           ],
           steps: [{ stepNumber: 0 }, { stepNumber: 1 }] as never,
         }),
-      );
+        callbacks: ev => {
+          receivedSteps.push({
+            stepNumber: ev.stepNumber,
+            messageCount: ev.messages.length,
+            previousStepCount: ev.steps.length,
+          });
+        },
+      });
 
       expect(receivedSteps).toMatchInlineSnapshot(`
         [
@@ -427,6 +303,24 @@ describe('on-step-start', () => {
           },
         ]
       `);
+    });
+
+    it('should provide typed event properties to callbacks', async () => {
+      const event = createMockOnStepStartEvent();
+
+      await notifyOnStepStart({
+        event,
+        callbacks: ev => {
+          const _stepNumber: number = ev.stepNumber;
+          const _model: { provider: string; modelId: string } = ev.model;
+          const _messages: readonly { role: string; content: unknown }[] =
+            ev.messages;
+
+          expect(typeof _stepNumber).toBe('number');
+          expect(_model).toBeDefined();
+          expect(Array.isArray(_messages)).toBe(true);
+        },
+      });
     });
   });
 });

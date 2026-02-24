@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { listenOnStepFinish, notifyOnStepFinish } from './on-step-finish';
+import { describe, it, expect } from 'vitest';
+import { notifyOnStepFinish } from './on-step-finish';
 import type { OnStepFinishEvent } from '../callback-events';
 import type { LanguageModelUsage } from '../../types/usage';
 
@@ -46,9 +46,7 @@ function createMockOnStepFinishEvent(
     rawFinishReason: 'stop',
     usage: createMockUsage(10, 20, 30),
     warnings: undefined,
-    request: {
-      body: '{}',
-    },
+    request: { body: '{}' },
     response: {
       id: 'test-response-id',
       timestamp: new Date(),
@@ -63,117 +61,134 @@ function createMockOnStepFinishEvent(
 }
 
 describe('on-step-finish', () => {
-  let unsubscribers: Array<() => void>;
-
-  beforeEach(() => {
-    unsubscribers = [];
-  });
-
-  afterEach(() => {
-    for (const unsubscribe of unsubscribers) {
-      unsubscribe();
-    }
-  });
-
-  describe('listenOnStepFinish', () => {
-    it('should register a listener and return an unsubscribe function', async () => {
+  describe('notifyOnStepFinish - callbacks', () => {
+    it('should call a single callback', async () => {
       const calls: string[] = [];
 
-      const unsubscribe = listenOnStepFinish(() => {
-        calls.push('listener called');
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent(),
+        callbacks: () => {
+          calls.push('callback');
+        },
       });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnStepFinish(createMockOnStepFinishEvent());
 
       expect(calls).toMatchInlineSnapshot(`
         [
-          "listener called",
+          "callback",
         ]
       `);
     });
 
-    it('should allow multiple listeners to be registered', async () => {
+    it('should call multiple callbacks when passed as array', async () => {
       const calls: string[] = [];
 
-      const unsubscribe1 = listenOnStepFinish(() => {
-        calls.push('listener 1');
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent(),
+        callbacks: [
+          () => {
+            calls.push('callback 1');
+          },
+          () => {
+            calls.push('callback 2');
+          },
+        ],
       });
-      const unsubscribe2 = listenOnStepFinish(() => {
-        calls.push('listener 2');
-      });
-      unsubscribers.push(unsubscribe1, unsubscribe2);
-
-      await notifyOnStepFinish(createMockOnStepFinishEvent());
 
       expect(calls).toMatchInlineSnapshot(`
         [
-          "listener 1",
-          "listener 2",
+          "callback 1",
+          "callback 2",
         ]
       `);
     });
 
-    it('should remove listener when unsubscribe is called', async () => {
-      const calls: string[] = [];
+    it('should handle undefined callbacks', async () => {
+      await expect(
+        notifyOnStepFinish({
+          event: createMockOnStepFinishEvent(),
+          callbacks: undefined,
+        }),
+      ).resolves.toBeUndefined();
+    });
 
-      const unsubscribe1 = listenOnStepFinish(() => {
-        calls.push('listener 1');
+    it('should handle omitted callbacks', async () => {
+      await expect(
+        notifyOnStepFinish({
+          event: createMockOnStepFinishEvent(),
+        }),
+      ).resolves.toBeUndefined();
+    });
+
+    it('should await async callbacks', async () => {
+      const callOrder: string[] = [];
+
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent(),
+        callbacks: async () => {
+          callOrder.push('before await');
+          await Promise.resolve();
+          callOrder.push('after await');
+        },
       });
-      const unsubscribe2 = listenOnStepFinish(() => {
-        calls.push('listener 2');
-      });
-      unsubscribers.push(unsubscribe1, unsubscribe2);
 
-      await notifyOnStepFinish(createMockOnStepFinishEvent());
-
-      expect(calls).toMatchInlineSnapshot(`
+      expect(callOrder).toMatchInlineSnapshot(`
         [
-          "listener 1",
-          "listener 2",
+          "before await",
+          "after await",
         ]
       `);
+    });
 
-      calls.length = 0;
-      unsubscribe1();
+    it('should swallow errors in callbacks without breaking', async () => {
+      const calls: string[] = [];
 
-      await notifyOnStepFinish(createMockOnStepFinishEvent());
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent(),
+        callbacks: [
+          () => {
+            calls.push('callback 1 before throw');
+            throw new Error('callback 1 error');
+          },
+          () => {
+            calls.push('callback 2');
+          },
+        ],
+      });
 
       expect(calls).toMatchInlineSnapshot(`
         [
-          "listener 2",
+          "callback 1 before throw",
+          "callback 2",
         ]
       `);
     });
   });
 
-  describe('notifyOnStepFinish - step result data', () => {
-    it('should propagate finish reason and usage to listeners', async () => {
-      const receivedResults: Array<{
+  describe('notifyOnStepFinish - event data propagation', () => {
+    it('should propagate finish reason and usage to callbacks', async () => {
+      const received: Array<{
         finishReason: string;
         inputTokens: number | undefined;
         outputTokens: number | undefined;
         totalTokens: number | undefined;
       }> = [];
 
-      const unsubscribe = listenOnStepFinish(event => {
-        receivedResults.push({
-          finishReason: event.finishReason,
-          inputTokens: event.usage.inputTokens,
-          outputTokens: event.usage.outputTokens,
-          totalTokens: event.usage.totalTokens,
-        });
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnStepFinish(
-        createMockOnStepFinishEvent({
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent({
           finishReason: 'tool-calls',
           usage: createMockUsage(150, 75, 225),
         }),
-      );
+        callbacks: event => {
+          received.push({
+            finishReason: event.finishReason,
+            inputTokens: event.usage.inputTokens,
+            outputTokens: event.usage.outputTokens,
+            totalTokens: event.usage.totalTokens,
+          });
+        },
+      });
 
-      expect(receivedResults).toMatchInlineSnapshot(`
+      expect(received).toMatchInlineSnapshot(`
         [
           {
             "finishReason": "tool-calls",
@@ -185,28 +200,23 @@ describe('on-step-finish', () => {
       `);
     });
 
-    it('should propagate generated text to listeners', async () => {
-      const receivedTexts: Array<{
-        stepNumber: number;
-        text: string;
-      }> = [];
+    it('should propagate generated text to callbacks', async () => {
+      const received: Array<{ stepNumber: number; text: string }> = [];
 
-      const unsubscribe = listenOnStepFinish(event => {
-        receivedTexts.push({
-          stepNumber: event.stepNumber,
-          text: event.text,
-        });
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnStepFinish(
-        createMockOnStepFinishEvent({
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent({
           stepNumber: 0,
           text: 'The weather in San Francisco is sunny and 72°F.',
         }),
-      );
+        callbacks: event => {
+          received.push({
+            stepNumber: event.stepNumber,
+            text: event.text,
+          });
+        },
+      });
 
-      expect(receivedTexts).toMatchInlineSnapshot(`
+      expect(received).toMatchInlineSnapshot(`
         [
           {
             "stepNumber": 0,
@@ -216,27 +226,22 @@ describe('on-step-finish', () => {
       `);
     });
 
-    it('should propagate model information to listeners', async () => {
-      const receivedModels: Array<{
-        provider: string;
-        modelId: string;
-      }> = [];
+    it('should propagate model information to callbacks', async () => {
+      const received: Array<{ provider: string; modelId: string }> = [];
 
-      const unsubscribe = listenOnStepFinish(event => {
-        receivedModels.push({
-          provider: event.model.provider,
-          modelId: event.model.modelId,
-        });
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnStepFinish(
-        createMockOnStepFinishEvent({
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent({
           model: { provider: 'openai', modelId: 'gpt-4o' },
         }),
-      );
+        callbacks: event => {
+          received.push({
+            provider: event.model.provider,
+            modelId: event.model.modelId,
+          });
+        },
+      });
 
-      expect(receivedModels).toMatchInlineSnapshot(`
+      expect(received).toMatchInlineSnapshot(`
         [
           {
             "modelId": "gpt-4o",
@@ -246,24 +251,15 @@ describe('on-step-finish', () => {
       `);
     });
 
-    it('should propagate tool calls to listeners', async () => {
-      const receivedToolCalls: Array<{
+    it('should propagate tool calls to callbacks', async () => {
+      const received: Array<{
         stepNumber: number;
         toolCallCount: number;
         toolNames: string[];
       }> = [];
 
-      const unsubscribe = listenOnStepFinish(event => {
-        receivedToolCalls.push({
-          stepNumber: event.stepNumber,
-          toolCallCount: event.toolCalls.length,
-          toolNames: event.toolCalls.map(tc => tc.toolName),
-        });
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnStepFinish(
-        createMockOnStepFinishEvent({
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent({
           stepNumber: 1,
           finishReason: 'tool-calls',
           toolCalls: [
@@ -281,9 +277,16 @@ describe('on-step-finish', () => {
             },
           ],
         }),
-      );
+        callbacks: event => {
+          received.push({
+            stepNumber: event.stepNumber,
+            toolCallCount: event.toolCalls.length,
+            toolNames: event.toolCalls.map(tc => tc.toolName),
+          });
+        },
+      });
 
-      expect(receivedToolCalls).toMatchInlineSnapshot(`
+      expect(received).toMatchInlineSnapshot(`
         [
           {
             "stepNumber": 1,
@@ -297,24 +300,15 @@ describe('on-step-finish', () => {
       `);
     });
 
-    it('should propagate tool results to listeners', async () => {
-      const receivedToolResults: Array<{
+    it('should propagate tool results to callbacks', async () => {
+      const received: Array<{
         stepNumber: number;
         resultCount: number;
         toolNames: string[];
       }> = [];
 
-      const unsubscribe = listenOnStepFinish(event => {
-        receivedToolResults.push({
-          stepNumber: event.stepNumber,
-          resultCount: event.toolResults.length,
-          toolNames: event.toolResults.map(tr => tr.toolName),
-        });
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnStepFinish(
-        createMockOnStepFinishEvent({
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent({
           stepNumber: 2,
           toolResults: [
             {
@@ -326,9 +320,16 @@ describe('on-step-finish', () => {
             },
           ],
         }),
-      );
+        callbacks: event => {
+          received.push({
+            stepNumber: event.stepNumber,
+            resultCount: event.toolResults.length,
+            toolNames: event.toolResults.map(tr => tr.toolName),
+          });
+        },
+      });
 
-      expect(receivedToolResults).toMatchInlineSnapshot(`
+      expect(received).toMatchInlineSnapshot(`
         [
           {
             "resultCount": 1,
@@ -340,71 +341,79 @@ describe('on-step-finish', () => {
         ]
       `);
     });
+
+    it('should propagate response metadata to callbacks', async () => {
+      const received: Array<{
+        responseId: string | undefined;
+        modelId: string | undefined;
+      }> = [];
+
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent({
+          response: {
+            id: 'chatcmpl-abc123',
+            timestamp: new Date('2024-01-01'),
+            modelId: 'gpt-4o-2024-05-13',
+            headers: { 'x-request-id': 'req-xyz' },
+            body: {},
+            messages: [],
+          },
+        }),
+        callbacks: event => {
+          received.push({
+            responseId: event.response.id,
+            modelId: event.response.modelId,
+          });
+        },
+      });
+
+      expect(received).toMatchInlineSnapshot(`
+        [
+          {
+            "modelId": "gpt-4o-2024-05-13",
+            "responseId": "chatcmpl-abc123",
+          },
+        ]
+      `);
+    });
+
+    it('should propagate telemetry metadata to callbacks', async () => {
+      const received: Array<{
+        functionId: string | undefined;
+        metadata: Record<string, unknown> | undefined;
+      }> = [];
+
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent({
+          functionId: 'chat-completion',
+          metadata: {
+            conversationId: 'conv-123',
+            userId: 'user-456',
+          },
+        }),
+        callbacks: event => {
+          received.push({
+            functionId: event.functionId,
+            metadata: event.metadata,
+          });
+        },
+      });
+
+      expect(received).toMatchInlineSnapshot(`
+        [
+          {
+            "functionId": "chat-completion",
+            "metadata": {
+              "conversationId": "conv-123",
+              "userId": "user-456",
+            },
+          },
+        ]
+      `);
+    });
   });
 
-  describe('notifyOnStepFinish - callbacks', () => {
-    it('should call the optional callback after listeners', async () => {
-      const callOrder: string[] = [];
-
-      const unsubscribe = listenOnStepFinish(() => {
-        callOrder.push('listener');
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnStepFinish(createMockOnStepFinishEvent(), () => {
-        callOrder.push('callback');
-      });
-
-      expect(callOrder).toMatchInlineSnapshot(`
-        [
-          "listener",
-          "callback",
-        ]
-      `);
-    });
-
-    it('should catch errors in listeners without breaking', async () => {
-      const calls: string[] = [];
-
-      const unsubscribe1 = listenOnStepFinish(() => {
-        calls.push('listener 1 before throw');
-        throw new Error('listener 1 error');
-      });
-      const unsubscribe2 = listenOnStepFinish(() => {
-        calls.push('listener 2');
-      });
-      unsubscribers.push(unsubscribe1, unsubscribe2);
-
-      await notifyOnStepFinish(createMockOnStepFinishEvent());
-
-      expect(calls).toMatchInlineSnapshot(`
-        [
-          "listener 1 before throw",
-          "listener 2",
-        ]
-      `);
-    });
-
-    it('should catch errors in callback without breaking', async () => {
-      const calls: string[] = [];
-
-      await notifyOnStepFinish(createMockOnStepFinishEvent(), () => {
-        calls.push('callback before throw');
-        throw new Error('callback error');
-      });
-
-      calls.push('after notifyOnStepFinish');
-
-      expect(calls).toMatchInlineSnapshot(`
-        [
-          "callback before throw",
-          "after notifyOnStepFinish",
-        ]
-      `);
-    });
-  });
-
-  describe('step finish specific scenarios', () => {
+  describe('notifyOnStepFinish - multi-step and finish reasons', () => {
     it('should track multiple steps in sequence', async () => {
       const stepResults: Array<{
         stepNumber: number;
@@ -413,39 +422,41 @@ describe('on-step-finish', () => {
         outputTokens: number | undefined;
       }> = [];
 
-      const unsubscribe = listenOnStepFinish(event => {
+      const callback = (event: OnStepFinishEvent) => {
         stepResults.push({
           stepNumber: event.stepNumber,
           finishReason: event.finishReason,
           inputTokens: event.usage.inputTokens,
           outputTokens: event.usage.outputTokens,
         });
-      });
-      unsubscribers.push(unsubscribe);
+      };
 
-      await notifyOnStepFinish(
-        createMockOnStepFinishEvent({
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent({
           stepNumber: 0,
           finishReason: 'tool-calls',
           usage: createMockUsage(100, 50, 150),
         }),
-      );
+        callbacks: callback,
+      });
 
-      await notifyOnStepFinish(
-        createMockOnStepFinishEvent({
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent({
           stepNumber: 1,
           finishReason: 'tool-calls',
           usage: createMockUsage(200, 75, 275),
         }),
-      );
+        callbacks: callback,
+      });
 
-      await notifyOnStepFinish(
-        createMockOnStepFinishEvent({
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent({
           stepNumber: 2,
           finishReason: 'stop',
           usage: createMockUsage(300, 100, 400),
         }),
-      );
+        callbacks: callback,
+      });
 
       expect(stepResults).toMatchInlineSnapshot(`
         [
@@ -471,65 +482,33 @@ describe('on-step-finish', () => {
       `);
     });
 
-    it('should calculate cumulative token usage across steps', async () => {
-      let totalInputTokens = 0;
-      let totalOutputTokens = 0;
-
-      const unsubscribe = listenOnStepFinish(event => {
-        totalInputTokens += event.usage.inputTokens ?? 0;
-        totalOutputTokens += event.usage.outputTokens ?? 0;
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnStepFinish(
-        createMockOnStepFinishEvent({
-          usage: createMockUsage(100, 50, 150),
-        }),
-      );
-
-      await notifyOnStepFinish(
-        createMockOnStepFinishEvent({
-          usage: createMockUsage(150, 75, 225),
-        }),
-      );
-
-      await notifyOnStepFinish(
-        createMockOnStepFinishEvent({
-          usage: createMockUsage(200, 100, 300),
-        }),
-      );
-
-      expect({ totalInputTokens, totalOutputTokens }).toMatchInlineSnapshot(`
-        {
-          "totalInputTokens": 450,
-          "totalOutputTokens": 225,
-        }
-      `);
-    });
-
     it('should propagate different finish reasons', async () => {
       const finishReasons: string[] = [];
 
-      const unsubscribe = listenOnStepFinish(event => {
+      const callback = (event: OnStepFinishEvent) => {
         finishReasons.push(event.finishReason);
-      });
-      unsubscribers.push(unsubscribe);
+      };
 
-      await notifyOnStepFinish(
-        createMockOnStepFinishEvent({ finishReason: 'stop' }),
-      );
-      await notifyOnStepFinish(
-        createMockOnStepFinishEvent({ finishReason: 'tool-calls' }),
-      );
-      await notifyOnStepFinish(
-        createMockOnStepFinishEvent({ finishReason: 'length' }),
-      );
-      await notifyOnStepFinish(
-        createMockOnStepFinishEvent({ finishReason: 'content-filter' }),
-      );
-      await notifyOnStepFinish(
-        createMockOnStepFinishEvent({ finishReason: 'error' }),
-      );
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent({ finishReason: 'stop' }),
+        callbacks: callback,
+      });
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent({ finishReason: 'tool-calls' }),
+        callbacks: callback,
+      });
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent({ finishReason: 'length' }),
+        callbacks: callback,
+      });
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent({ finishReason: 'content-filter' }),
+        callbacks: callback,
+      });
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent({ finishReason: 'error' }),
+        callbacks: callback,
+      });
 
       expect(finishReasons).toMatchInlineSnapshot(`
         [
@@ -542,77 +521,41 @@ describe('on-step-finish', () => {
       `);
     });
 
-    it('should propagate response metadata', async () => {
-      const receivedMetadata: Array<{
-        responseId: string | undefined;
-        modelId: string | undefined;
-      }> = [];
+    it('should calculate cumulative token usage across steps', async () => {
+      let totalInputTokens = 0;
+      let totalOutputTokens = 0;
 
-      const unsubscribe = listenOnStepFinish(event => {
-        receivedMetadata.push({
-          responseId: event.response.id,
-          modelId: event.response.modelId,
-        });
-      });
-      unsubscribers.push(unsubscribe);
+      const callback = (event: OnStepFinishEvent) => {
+        totalInputTokens += event.usage.inputTokens ?? 0;
+        totalOutputTokens += event.usage.outputTokens ?? 0;
+      };
 
-      await notifyOnStepFinish(
-        createMockOnStepFinishEvent({
-          response: {
-            id: 'chatcmpl-abc123',
-            timestamp: new Date('2024-01-01'),
-            modelId: 'gpt-4o-2024-05-13',
-            headers: { 'x-request-id': 'req-xyz' },
-            body: {},
-            messages: [],
-          },
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent({
+          usage: createMockUsage(100, 50, 150),
         }),
-      );
-
-      expect(receivedMetadata).toMatchInlineSnapshot(`
-        [
-          {
-            "modelId": "gpt-4o-2024-05-13",
-            "responseId": "chatcmpl-abc123",
-          },
-        ]
-      `);
-    });
-
-    it('should propagate telemetry metadata', async () => {
-      const receivedTelemetry: Array<{
-        functionId: string | undefined;
-        metadata: Record<string, unknown> | undefined;
-      }> = [];
-
-      const unsubscribe = listenOnStepFinish(event => {
-        receivedTelemetry.push({
-          functionId: event.functionId,
-          metadata: event.metadata,
-        });
+        callbacks: callback,
       });
-      unsubscribers.push(unsubscribe);
 
-      await notifyOnStepFinish(
-        createMockOnStepFinishEvent({
-          functionId: 'chat-completion',
-          metadata: {
-            conversationId: 'conv-123',
-            userId: 'user-456',
-          },
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent({
+          usage: createMockUsage(150, 75, 225),
         }),
-      );
+        callbacks: callback,
+      });
 
-      expect(receivedTelemetry).toMatchInlineSnapshot(`
-        [
-          {
-            "functionId": "chat-completion",
-            "metadata": {
-              "conversationId": "conv-123",
-              "userId": "user-456",
-            },
-          },
-        ]
+      await notifyOnStepFinish({
+        event: createMockOnStepFinishEvent({
+          usage: createMockUsage(200, 100, 300),
+        }),
+        callbacks: callback,
+      });
+
+      expect({ totalInputTokens, totalOutputTokens }).toMatchInlineSnapshot(`
+        {
+          "totalInputTokens": 450,
+          "totalOutputTokens": 225,
+        }
       `);
     });
   });

@@ -134,10 +134,10 @@ export async function executeToolCall<TOOLS extends ToolSet>({
           durationMs,
         };
 
-        await notifyOnToolCallFinish(
-          onToolCallFinishErrorEvent,
-          onToolCallFinish,
-        );
+        await notifyOnToolCallFinish({
+          event: onToolCallFinishErrorEvent,
+          callbacks: onToolCallFinish,
+        });
 
         recordErrorOnSpan(span, error);
         return {
@@ -162,10 +162,10 @@ export async function executeToolCall<TOOLS extends ToolSet>({
         durationMs,
       };
 
-      await notifyOnToolCallFinish(
-        onToolCallFinishSuccessEvent,
-        onToolCallFinish,
-      );
+      await notifyOnToolCallFinish({
+        event: onToolCallFinishSuccessEvent,
+        callbacks: onToolCallFinish,
+      });
 
       try {
         span.setAttributes(

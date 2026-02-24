@@ -1032,7 +1032,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             providerMetadata: part.providerMetadata,
           });
 
-          await notifyOnStepFinish(currentStepResult, onStepFinish);
+          await notifyOnStepFinish({
+            event: currentStepResult,
+            callbacks: onStepFinish,
+          });
 
           logWarnings({
             warnings: recordedWarnings,
@@ -1117,7 +1120,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             steps: recordedSteps,
           };
 
-          await notifyOnFinish(onFinishEvent, onFinish);
+          await notifyOnFinish({ event: onFinishEvent, callbacks: onFinish });
 
           // Add response information to the root span:
           rootSpan.setAttributes(
@@ -1305,7 +1308,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           experimental_context,
         };
 
-        await notifyOnStart(onStartEvent, onStart);
+        await notifyOnStart({ event: onStartEvent, callbacks: onStart });
 
         const initialMessages = initialPrompt.messages;
         const initialResponseMessages: Array<ResponseMessage> = [];
@@ -1573,7 +1576,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               experimental_context,
             };
 
-            await notifyOnStepStart(onStepStartEvent, onStepStart);
+            await notifyOnStepStart({
+              event: onStepStartEvent,
+              callbacks: onStepStart,
+            });
 
             const {
               result: { stream, response, request },
