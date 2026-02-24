@@ -1,13 +1,13 @@
 import { openai } from '@ai-sdk/openai';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { saveAudioFile } from '../lib/save-audio';
-import { run } from '../lib/run';
+import { saveAudioFile } from '../../lib/save-audio';
+import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateSpeech({
     model: openai.speech('tts-1'),
     text: 'Hello from the AI SDK!',
-    speed: 1.5,
+    language: 'en',
   });
 
   console.log('Audio:', result.audio);

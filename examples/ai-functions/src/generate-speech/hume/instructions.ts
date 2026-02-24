@@ -1,13 +1,13 @@
-import { lmnt } from '@ai-sdk/lmnt';
+import { hume } from '@ai-sdk/hume';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { saveAudioFile } from '../lib/save-audio';
-import { run } from '../lib/run';
+import { saveAudioFile } from '../../lib/save-audio';
+import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateSpeech({
-    model: lmnt.speech('aurora'),
-    text: 'Hola desde el AI SDK!',
-    language: 'es', // Spanish using standardized parameter
+    model: hume.speech(),
+    text: 'Hello from the AI SDK!',
+    instructions: 'Speak in a slow and steady tone',
   });
 
   console.log('Audio:', result.audio);

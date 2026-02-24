@@ -1,13 +1,12 @@
-import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { openai } from '@ai-sdk/openai';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { saveAudioFile } from '../lib/save-audio';
-import { run } from '../lib/run';
+import { saveAudioFile } from '../../lib/save-audio';
+import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateSpeech({
-    model: elevenlabs.speech('eleven_multilingual_v2'),
-    text: 'Hello from the AI SDK with ElevenLabs!',
-    voice: process.env.ELEVENLABS_VOICE_ID || 'your-voice-id-here',
+    model: openai.speech('tts-1'),
+    text: 'Hello from the AI SDK!',
   });
 
   console.log('Audio:', result.audio);

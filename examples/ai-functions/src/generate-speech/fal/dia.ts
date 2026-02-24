@@ -1,13 +1,12 @@
-import { hume } from '@ai-sdk/hume';
+import { fal } from '@ai-sdk/fal';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { saveAudioFile } from '../lib/save-audio';
-import { run } from '../lib/run';
+import { saveAudioFile } from '../../lib/save-audio';
+import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateSpeech({
-    model: hume.speech(),
-    text: 'Hello from the AI SDK!',
-    voice: 'nova',
+    model: fal.speech('fal-ai/dia-tts'),
+    text: '[S1] Dia is an open weights text to dialogue model... [S2] Try it now on Fal.',
   });
 
   console.log('Audio:', result.audio);

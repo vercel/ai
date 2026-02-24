@@ -1,11 +1,11 @@
-import { hume } from '@ai-sdk/hume';
+import { openai } from '@ai-sdk/openai';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { saveAudioFile } from '../lib/save-audio';
-import { run } from '../lib/run';
+import { saveAudioFile } from '../../lib/save-audio';
+import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateSpeech({
-    model: hume.speech(),
+    model: openai.speech('tts-1'),
     text: 'Hello from the AI SDK!',
     instructions: 'Speak in a slow and steady tone',
   });

@@ -1,13 +1,12 @@
-import { openai } from '@ai-sdk/openai';
+import { deepgram } from '@ai-sdk/deepgram';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { saveAudioFile } from '../lib/save-audio';
-import { run } from '../lib/run';
+import { saveAudioFile } from '../../lib/save-audio';
+import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateSpeech({
-    model: openai.speech('tts-1'),
-    text: 'Hello from the AI SDK!',
-    instructions: 'Speak in a slow and steady tone',
+    model: deepgram.speech('aura-2-helena-en'),
+    text: 'Hello, welcome to Deepgram! This is a test of the text-to-speech API.',
   });
 
   console.log('Audio:', result.audio);

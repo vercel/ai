@@ -1,13 +1,13 @@
 import { lmnt } from '@ai-sdk/lmnt';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { saveAudioFile } from '../lib/save-audio';
-import { run } from '../lib/run';
+import { saveAudioFile } from '../../lib/save-audio';
+import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateSpeech({
     model: lmnt.speech('aurora'),
-    text: 'Hello from the AI SDK!',
-    speed: 1.5,
+    text: 'Hola desde el AI SDK!',
+    language: 'es', // Spanish using standardized parameter
   });
 
   console.log('Audio:', result.audio);

@@ -1,12 +1,13 @@
-import { azure } from '@ai-sdk/azure';
+import { fal } from '@ai-sdk/fal';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { saveAudioFile } from '../lib/save-audio';
-import { run } from '../lib/run';
+import { saveAudioFile } from '../../lib/save-audio';
+import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateSpeech({
-    model: azure.speech('tts-1'), // use your own deployment
-    text: 'Hello from the AI SDK!',
+    model: fal.speech('fal-ai/minimax/speech-02-hd'),
+    text: 'Hello from the AI SDK via fal speech!',
+    outputFormat: 'hex',
   });
 
   console.log('Audio:', result.audio);
