@@ -16,8 +16,14 @@ import { LanguageModelResponseMetadata } from '../types/language-model-response-
 import { LanguageModelUsage } from '../types/usage';
 import { DeepPartial } from '../util/deep-partial';
 import { parsePartialJson } from '../util/parse-partial-json';
+import { EnrichedStreamPart } from './stream-text';
 
-export interface Output<OUTPUT = any, PARTIAL = any> {
+export interface Output<OUTPUT = any, PARTIAL = any, ELEMENT = any> {
+  /**
+   * The name of the output mode.
+   */
+  name: string;
+
   /**
    * The response format to use for the model.
    */
@@ -41,6 +47,13 @@ export interface Output<OUTPUT = any, PARTIAL = any> {
   parsePartialOutput(options: {
     text: string;
   }): Promise<{ partial: PARTIAL } | undefined>;
+
+  /**
+   * Creates a stream transform that emits individual elements as they complete.
+   */
+  createElementStreamTransform():
+    | TransformStream<EnrichedStreamPart<any, PARTIAL>, ELEMENT>
+    | undefined;
 }
 
 /**
@@ -49,7 +62,8 @@ export interface Output<OUTPUT = any, PARTIAL = any> {
  *
  * @returns An output specification for generating text.
  */
-export const text = (): Output<string, string> => ({
+export const text = (): Output<string, string, never> => ({
+  name: 'text',
   responseFormat: Promise.resolve({ type: 'text' }),
 
   async parseCompleteOutput({ text }: { text: string }) {
@@ -58,6 +72,10 @@ export const text = (): Output<string, string> => ({
 
   async parsePartialOutput({ text }: { text: string }) {
     return { partial: text };
+  },
+
+  createElementStreamTransform() {
+    return undefined;
   },
 });
 
@@ -87,10 +105,12 @@ export const object = <OBJECT>({
    * Used by some providers for additional LLM guidance, e.g. via tool or schema description.
    */
   description?: string;
-}): Output<OBJECT, DeepPartial<OBJECT>> => {
+}): Output<OBJECT, DeepPartial<OBJECT>, never> => {
   const schema = asSchema(inputSchema);
 
   return {
+    name: 'object',
+
     responseFormat: resolve(schema.jsonSchema).then(jsonSchema => ({
       type: 'json' as const,
       schema: jsonSchema,
@@ -156,6 +176,10 @@ export const object = <OBJECT>({
         }
       }
     },
+
+    createElementStreamTransform() {
+      return undefined;
+    },
   };
 };
 
@@ -185,10 +209,12 @@ export const array = <ELEMENT>({
    * Used by some providers for additional LLM guidance, e.g. via tool or schema description.
    */
   description?: string;
-}): Output<Array<ELEMENT>, Array<ELEMENT>> => {
+}): Output<Array<ELEMENT>, Array<ELEMENT>, ELEMENT> => {
   const elementSchema = asSchema(inputElementSchema);
 
   return {
+    name: 'array',
+
     // JSON schema that describes an array of elements:
     responseFormat: resolve(elementSchema.jsonSchema).then(jsonSchema => {
       // remove $schema from schema.jsonSchema:
@@ -317,6 +343,28 @@ export const array = <ELEMENT>({
         }
       }
     },
+
+    createElementStreamTransform() {
+      let publishedElements = 0;
+
+      return new TransformStream<
+        EnrichedStreamPart<any, Array<ELEMENT>>,
+        ELEMENT
+      >({
+        transform({ partialOutput }, controller) {
+          if (partialOutput != null) {
+            // Only enqueue new elements that haven't been published yet
+            for (
+              ;
+              publishedElements < partialOutput.length;
+              publishedElements++
+            ) {
+              controller.enqueue(partialOutput[publishedElements]);
+            }
+          }
+        },
+      });
+    },
   };
 };
 
@@ -346,8 +394,10 @@ export const choice = <CHOICE extends string>({
    * Used by some providers for additional LLM guidance, e.g. via tool or schema description.
    */
   description?: string;
-}): Output<CHOICE, CHOICE> => {
+}): Output<CHOICE, CHOICE, never> => {
   return {
+    name: 'choice',
+
     // JSON schema that describes an enumeration:
     responseFormat: Promise.resolve({
       type: 'json',
@@ -451,6 +501,10 @@ export const choice = <CHOICE extends string>({
         }
       }
     },
+
+    createElementStreamTransform() {
+      return undefined;
+    },
   };
 };
 
@@ -477,8 +531,10 @@ export const json = ({
    * Used by some providers for additional LLM guidance, e.g. via tool or schema description.
    */
   description?: string;
-} = {}): Output<JSONValue, JSONValue> => {
+} = {}): Output<JSONValue, JSONValue, never> => {
   return {
+    name: 'json',
+
     responseFormat: Promise.resolve({
       type: 'json' as const,
       ...(name != null && { name }),
@@ -525,6 +581,10 @@ export const json = ({
             : { partial: result.value };
         }
       }
+    },
+
+    createElementStreamTransform() {
+      return undefined;
     },
   };
 };

@@ -97,22 +97,70 @@ const model = cerebras.languageModel('llama-3.3-70b');
 const model = cerebras.chat('llama-3.3-70b');
 ```
 
+### Reasoning Models
+
+Cerebras offers several reasoning models including `gpt-oss-120b`, `qwen-3-32b`, and `zai-glm-4.7` that generate intermediate thinking tokens before their final response. The reasoning output is streamed through the standard AI SDK reasoning parts.
+
+For `gpt-oss-120b`, you can control the reasoning depth using the `reasoningEffort` provider option:
+
+```ts
+import { cerebras } from '@ai-sdk/cerebras';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: cerebras('gpt-oss-120b'),
+  providerOptions: {
+    cerebras: {
+      reasoningEffort: 'medium',
+    },
+  },
+  prompt: 'How many "r"s are in the word "strawberry"?',
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'reasoning') {
+    console.log('Reasoning:', part.text);
+  } else if (part.type === 'text-delta') {
+    process.stdout.write(part.textDelta);
+  }
+}
+```
+
+See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details on how to integrate reasoning into your chatbot.
+
+### Provider Options
+
+The following optional provider options are available for Cerebras language models:
+
+- **reasoningEffort** _'low' | 'medium' | 'high'_
+
+  Controls the depth of reasoning for GPT-OSS models. Defaults to `'medium'`.
+
+- **user** _string_
+
+  A unique identifier representing your end-user, which can help with monitoring and abuse detection.
+
+- **strictJsonSchema** _boolean_
+
+  Whether to use strict JSON schema validation. When `true`, the model uses constrained decoding to guarantee schema compliance. Defaults to `true`.
+
 ## Model Capabilities
 
-| Model                            | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| -------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `llama3.1-8b`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `llama-3.3-70b`                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-oss-120b`                   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen-3-32b`                     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen-3-235b-a22b-instruct-2507` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen-3-235b-a22b-thinking-2507` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `zai-glm-4.6`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                            | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Reasoning           |
+| -------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `llama3.1-8b`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `llama-3.3-70b`                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `gpt-oss-120b`                   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen-3-32b`                     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `qwen-3-235b-a22b-instruct-2507` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `qwen-3-235b-a22b-thinking-2507` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `zai-glm-4.6`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `zai-glm-4.7`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
-  Please see the [Cerebras
+  The models `qwen-3-32b` and `llama-3.3-70b` are scheduled for deprecation on
+  February 16, 2026. Please see the [Cerebras
   docs](https://inference-docs.cerebras.ai/introduction) for more details about
-  the available models. Note that context windows are temporarily limited to
-  8192 tokens in the Free Tier. You can also pass any available provider model
-  ID as a string if needed.
+  the available models and migration guidance. You can also pass any available
+  provider model ID as a string if needed.
 </Note>

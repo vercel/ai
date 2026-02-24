@@ -1,8 +1,10 @@
 import {
   LanguageModelV2,
+  LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
   LanguageModelV3,
+  LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
 } from '@ai-sdk/provider';
@@ -32,6 +34,7 @@ export function asLanguageModelV3(
             const result = await target.doGenerate(...args);
             return {
               ...result,
+              finishReason: convertV2FinishReasonToV3(result.finishReason),
               usage: convertV2UsageToV3(result.usage),
             };
           };
@@ -60,6 +63,7 @@ function convertV2StreamToV3(
           case 'finish':
             controller.enqueue({
               ...chunk,
+              finishReason: convertV2FinishReasonToV3(chunk.finishReason),
               usage: convertV2UsageToV3(chunk.usage),
             });
             break;
@@ -71,6 +75,15 @@ function convertV2StreamToV3(
       },
     }),
   );
+}
+
+function convertV2FinishReasonToV3(
+  finishReason: LanguageModelV2FinishReason,
+): LanguageModelV3FinishReason {
+  return {
+    unified: finishReason === 'unknown' ? 'other' : finishReason,
+    raw: undefined,
+  };
 }
 
 function convertV2UsageToV3(usage: LanguageModelV2Usage): LanguageModelV3Usage {

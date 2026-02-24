@@ -19,6 +19,9 @@
     },
     {
       "path": "../ai"
+    },
+    {
+      "path": "../test-server"
     }
   ]
 }

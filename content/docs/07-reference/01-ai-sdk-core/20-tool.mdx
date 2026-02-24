@@ -55,6 +55,19 @@ export const weatherTool = tool({
                 'Information about the purpose of the tool including details on how and when it can be used by the model.',
             },
             {
+              name: 'title',
+              isOptional: true,
+              type: 'string',
+              description: 'A human-readable title for the tool.',
+            },
+            {
+              name: 'needsApproval',
+              isOptional: true,
+              type: 'boolean | ((options: { args: INPUT }) => boolean | Promise<boolean>)',
+              description:
+                'Whether the tool needs user approval before execution. Can be a boolean or a function that receives the tool arguments and returns a boolean.',
+            },
+            {
               name: 'inputSchema',
               type: 'Zod Schema | JSON Schema',
               description:
@@ -119,7 +132,7 @@ export const weatherTool = tool({
               isOptional: true,
               type: 'Zod Schema | JSON Schema',
               description:
-                'The schema of the output that the tool produces. Used for validation and type inference.',
+                'The schema of the output that the tool produces. Used for type inference.',
             },
             {
               name: 'toModelOutput',

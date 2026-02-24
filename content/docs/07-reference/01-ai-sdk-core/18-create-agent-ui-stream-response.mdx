@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     agent,
     uiMessages: messages,
     abortSignal: abortController.signal, // optional
-    // ...other UIMessageStreamOptions like sendSources, includeUsage, experimental_transform, etc.
+    // ...other UIMessageStreamOptions like sendSources, experimental_transform, etc.
   });
 }
 ```
@@ -67,6 +67,13 @@ export async function POST(request: Request) {
         'Optional abort signal to cancel streaming, e.g., on client disconnect. This should be an [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) instance.',
     },
     {
+      name: 'timeout',
+      type: 'number | { totalMs?: number }',
+      isRequired: false,
+      description:
+        'Timeout in milliseconds. Can be specified as a number or as an object with a totalMs property. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
+    },
+    {
       name: 'options',
       type: 'CALL_OPTIONS',
       isRequired: false,
@@ -81,11 +88,18 @@ export async function POST(request: Request) {
         'Optional stream transforms to post-process text output—the same as in lower-level streaming APIs.',
     },
     {
+      name: 'onStepFinish',
+      type: 'ToolLoopAgentOnStepFinishCallback',
+      isRequired: false,
+      description:
+        'Callback invoked after each agent step (LLM/tool call) completes. Useful for tracking token usage or logging intermediate steps.',
+    },
+    {
       name: '...UIMessageStreamOptions',
       type: 'UIMessageStreamOptions',
       isRequired: false,
       description:
-        'Other UI message output options—such as `sendSources`, `includeUsage`, and more. See [`UIMessageStreamOptions`](/docs/reference/ai-sdk-core/ui-message-stream-options).',
+        'Other UI message output options—such as `sendSources` and more.',
     },
     {
       name: 'headers',
@@ -107,10 +121,10 @@ export async function POST(request: Request) {
     },
     {
       name: 'consumeSseStream',
-      type: 'boolean',
+      type: '(options: { stream: ReadableStream<string> }) => PromiseLike<void> | void',
       isRequired: false,
       description:
-        'If true, consume the stream as SSE (server-sent events) instead of default streaming.',
+        'Optional function to consume the SSE stream. When provided, this function will be called with the SSE stream to handle consumption.',
     },
   ]}
 />
@@ -132,7 +146,6 @@ export async function POST(request: Request) {
     agent: MyCustomAgent,
     uiMessages: messages,
     sendSources: true, // (optional)
-    includeUsage: true, // (optional)
     // headers, status, abortSignal, and other UIMessageStreamOptions also supported
   });
 }
@@ -157,5 +170,4 @@ export async function POST(request: Request) {
 - [`Agent`](/docs/reference/ai-sdk-core/agent)
 - [`ToolLoopAgent`](/docs/reference/ai-sdk-core/tool-loop-agent)
 - [`UIMessage`](/docs/reference/ai-sdk-core/ui-message)
-- [`UIMessageStreamOptions`](/docs/reference/ai-sdk-core/ui-message-stream-options)
 - [`createAgentUIStream`](/docs/reference/ai-sdk-core/create-agent-ui-stream)

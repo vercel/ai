@@ -12,6 +12,14 @@ The provider is available in the `@ai-sdk/openai-compatible` module. You can ins
 npm i @ai-sdk/openai-compatible
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 You can import the provider creation method `createOpenAICompatible` from `@ai-sdk/openai-compatible`:

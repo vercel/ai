@@ -6,23 +6,23 @@ tags: ['next', 'streaming', 'chat', 'image generation', 'tools']
 
 # Generate Image with Chat Prompt
 
-When building a chatbot, you may want to allow the user to generate an image. This can be done by creating a tool that generates an image using the [`experimental_generateImage`](/docs/reference/ai-sdk-core/generate-image#generateimage) function from the AI SDK.
+When building a chatbot, you may want to allow the user to generate an image. This can be done by creating a tool that generates an image using the [`generateImage`](/docs/reference/ai-sdk-core/generate-image) function from the AI SDK.
 
 ## Server
 
 Let's create an endpoint at `/api/chat` that generates the assistant's response based on the conversation history. You will also define a tool called `generateImage` that will generate an image based on the assistant's response.
 
 ```typescript filename='tools/generate-image.ts'
-import { experimental_generateImage, tool } from 'ai';
+import { generateImage, tool } from 'ai';
 import z from 'zod';
 
-export const generateImage = tool({
+export const generateImageTool = tool({
   description: 'Generate an image',
   inputSchema: z.object({
     prompt: z.string().describe('The prompt to generate the image from'),
   }),
   execute: async ({ prompt }) => {
-    const { image } = await experimental_generateImage({
+    const { image } = await generateImage({
       model: openai.imageModel('dall-e-3'),
       prompt,
     });
@@ -41,10 +41,10 @@ import {
   type UIMessage,
 } from 'ai';
 
-import { generateImage } from '@/tools/generate-image';
+import { generateImageTool } from '@/tools/generate-image';
 
 const tools = {
-  generateImage,
+  generateImage: generateImageTool,
 };
 
 export type ChatTools = InferUITools<typeof tools>;

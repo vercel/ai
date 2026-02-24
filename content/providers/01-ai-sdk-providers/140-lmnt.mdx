@@ -5,7 +5,7 @@ description: Learn how to use the LMNT provider for the AI SDK.
 
 # LMNT Provider
 
-The [LMNT](https://lmnt.com/) provider contains language model support for the LMNT transcription API.
+The [LMNT](https://lmnt.com/) provider contains speech model support for the LMNT speech synthesis API.
 
 ## Setup
 
@@ -75,36 +75,50 @@ The first argument is the model id e.g. `aurora`.
 const model = lmnt.speech('aurora');
 ```
 
-You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying a voice to use for the generated audio.
+The `voice` parameter can be set to a voice ID from LMNT. You can find available voices in the [LMNT documentation](https://docs.lmnt.com/api-reference/voices/list-voices).
 
-```ts highlight="6"
+```ts highlight="7"
 import { experimental_generateSpeech as generateSpeech } from 'ai';
 import { lmnt } from '@ai-sdk/lmnt';
 
 const result = await generateSpeech({
   model: lmnt.speech('aurora'),
   text: 'Hello, world!',
-  language: 'en', // Standardized language parameter
+  voice: 'ava',
+  language: 'en',
+});
+```
+
+You can also pass additional provider-specific options using the `providerOptions` argument:
+
+```ts highlight="10-14"
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { lmnt } from '@ai-sdk/lmnt';
+import { type LMNTSpeechModelOptions } from '@ai-sdk/lmnt';
+
+const result = await generateSpeech({
+  model: lmnt.speech('aurora'),
+  text: 'Hello, world!',
+  voice: 'ava',
+  language: 'en',
+  providerOptions: {
+    lmnt: {
+      conversational: true,
+      speed: 1.2,
+    } satisfies LMNTSpeechModelOptions,
+  },
 });
 ```
 
 ### Provider Options
 
-The LMNT provider accepts the following options:
-
-- **model** _'aurora' | 'blizzard'_
-
-  The LMNT model to use. Defaults to `'aurora'`.
-
-- **language** _'auto' | 'en' | 'es' | 'pt' | 'fr' | 'de' | 'zh' | 'ko' | 'hi' | 'ja' | 'ru' | 'it' | 'tr'_
-
-  The language to use for speech synthesis. Defaults to `'auto'`.
+The LMNT provider accepts the following options via `providerOptions.lmnt`:
 
 - **format** _'aac' | 'mp3' | 'mulaw' | 'raw' | 'wav'_
 
   The audio format to return. Defaults to `'mp3'`.
 
-- **sampleRate** _number_
+- **sampleRate** _8000 | 16000 | 24000_
 
   The sample rate of the audio in Hz. Defaults to `24000`.
 
@@ -118,11 +132,11 @@ The LMNT provider accepts the following options:
 
 - **conversational** _boolean_
 
-  Whether to use a conversational style. Defaults to `false`.
+  Whether to use a conversational style. Defaults to `false`. Does not work with the `blizzard` model.
 
 - **length** _number_
 
-  Maximum length of the audio in seconds. Maximum value is 300.
+  Maximum length of the audio in seconds. Maximum value is 300. Does not work with the `blizzard` model.
 
 - **topP** _number_
 
@@ -136,5 +150,5 @@ The LMNT provider accepts the following options:
 
 | Model      | Instructions        |
 | ---------- | ------------------- |
-| `aurora`   | <Check size={18} /> |
-| `blizzard` | <Check size={18} /> |
+| `aurora`   | <Cross size={18} /> |
+| `blizzard` | <Cross size={18} /> |

@@ -30,7 +30,13 @@ export type LogWarningsFunction = (options: {
 }) => void;
 
 /**
- * Formats a warning object into a human-readable string with clear AI SDK branding
+ * Formats a warning object into a human-readable string with clear AI SDK branding.
+ *
+ * @param options - The options for formatting the warning.
+ * @param options.warning - The warning to format.
+ * @param options.provider - The provider id used for the call.
+ * @param options.model - The model id used for the call.
+ * @returns A formatted warning message string.
  */
 function formatWarning({
   warning,
@@ -76,6 +82,19 @@ export const FIRST_WARNING_INFO_MESSAGE =
 
 let hasLoggedBefore = false;
 
+/**
+ * Logs warnings to the console or uses a custom logger if configured.
+ *
+ * The behavior can be customized via the `AI_SDK_LOG_WARNINGS` global variable:
+ * - If set to `false`, warnings are suppressed.
+ * - If set to a function, that function is called with the warnings.
+ * - Otherwise, warnings are logged to the console using `console.warn`.
+ *
+ * @param options - The options containing warnings and context.
+ * @param options.warnings - The warnings to log.
+ * @param options.provider - The provider id used for the call.
+ * @param options.model - The model id used for the call.
+ */
 export const logWarnings: LogWarningsFunction = options => {
   // if the warnings array is empty, do nothing
   if (options.warnings.length === 0) {
@@ -113,7 +132,9 @@ export const logWarnings: LogWarningsFunction = options => {
   }
 };
 
-// Reset function for testing purposes
+/**
+ * Resets the internal logging state. Used for testing purposes.
+ */
 export const resetLogWarningsState = () => {
   hasLoggedBefore = false;
 };

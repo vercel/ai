@@ -84,6 +84,27 @@ export const myOpenAI = customProvider({
         'A record of image models, where keys are model IDs and values are image model instances.',
     },
     {
+      name: 'transcriptionModels',
+      type: 'Record<string, TranscriptionModel>',
+      isOptional: true,
+      description:
+        'A record of transcription models, where keys are model IDs and values are TranscriptionModel instances.',
+    },
+    {
+      name: 'speechModels',
+      type: 'Record<string, SpeechModel>',
+      isOptional: true,
+      description:
+        'A record of speech models, where keys are model IDs and values are SpeechModel instances.',
+    },
+    {
+      name: 'rerankingModels',
+      type: 'Record<string, RerankingModel>',
+      isOptional: true,
+      description:
+        'A record of reranking models, where keys are model IDs and values are RerankingModel instances.',
+    },
+    {
       name: 'fallbackProvider',
       type: 'Provider',
       isOptional: true,
@@ -116,6 +137,21 @@ The `customProvider` function returns a `Provider` instance. It has the followin
       type: '(id: string) => ImageModel',
       description:
         'A function that returns an image model by its id (format: providerId:modelId)',
+    },
+    {
+      name: 'transcriptionModel',
+      type: '(id: string) => TranscriptionModel',
+      description: 'A function that returns a transcription model by its id.',
+    },
+    {
+      name: 'speechModel',
+      type: '(id: string) => SpeechModel',
+      description: 'A function that returns a speech model by its id.',
+    },
+    {
+      name: 'rerankingModel',
+      type: '(id: string) => RerankingModel',
+      description: 'A function that returns a reranking model by its id.',
     },
   ]}
 />

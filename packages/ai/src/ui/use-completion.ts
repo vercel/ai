@@ -2,13 +2,13 @@ import { FetchFunction } from '@ai-sdk/provider-utils';
 
 export type CompletionRequestOptions = {
   /**
-  An optional object of headers to be passed to the API endpoint.
+   * An optional object of headers to be passed to the API endpoint.
    */
   headers?: Record<string, string> | Headers;
 
   /**
-  An optional object to be passed to the API endpoint.
-     */
+   * An optional object to be passed to the API endpoint.
+   */
   body?: object;
 };
 
@@ -19,8 +19,8 @@ export type UseCompletionOptions = {
    */
   api?: string;
   /**
-   * An unique identifier for the chat. If not provided, a random one will be
-   * generated. When provided, the `useChat` hook with the same `id` will
+   * A unique identifier for the completion. If not provided, a random one will be
+   * generated. When provided, the `useCompletion` hook with the same `id` will
    * have shared states across components.
    */
   id?: string;
@@ -62,7 +62,7 @@ export type UseCompletionOptions = {
    * @example
    * Send a `sessionId` to the API along with the prompt.
    * ```js
-   * useChat({
+   * useCompletion({
    *   body: {
    *     sessionId: '123',
    *   }
@@ -72,13 +72,13 @@ export type UseCompletionOptions = {
   body?: object;
 
   /**
-  Streaming protocol that is used. Defaults to `data`.
-     */
+   * Streaming protocol that is used. Defaults to `data`.
+   */
   streamProtocol?: 'data' | 'text';
 
   /**
-  Custom fetch implementation. You can use it as a middleware to intercept requests,
-  or to provide a custom fetch implementation for e.g. testing.
-      */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 };

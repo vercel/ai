@@ -6,7 +6,7 @@ import {
 } from '@ai-sdk/test-server/with-vitest';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import '@testing-library/jest-dom/vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   DefaultChatTransport,
@@ -821,6 +821,57 @@ describe('onToolCall', () => {
           'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
       });
     });
+  });
+
+  it('should call the latest onToolCall after prop change (no stale closure)', async () => {
+    const onToolCallA = vi.fn(async () => {});
+    const onToolCallB = vi.fn(async () => {});
+
+    const Test = () => {
+      const [useB, setUseB] = React.useState(false);
+      const { sendMessage } = useChat({
+        onToolCall: useB ? onToolCallB : onToolCallA,
+      });
+
+      return (
+        <div>
+          <button data-testid="toggle" onClick={() => setUseB(true)} />
+          <button
+            data-testid="do-send"
+            onClick={() => {
+              sendMessage({
+                parts: [{ text: 'hi', type: 'text' }],
+              });
+            }}
+          />
+        </div>
+      );
+    };
+
+    render(<Test />);
+
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatChunk({
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          input: { testArg: 'test-value' },
+        }),
+      ],
+    };
+
+    await userEvent.click(screen.getByTestId('toggle'));
+    const sendButtons = screen.getAllByTestId('do-send');
+    await userEvent.click(sendButtons[sendButtons.length - 1]);
+
+    await vi.waitUntil(() => onToolCallB.mock.calls.length > 0, {
+      timeout: 2000,
+    });
+
+    expect(onToolCallA).toHaveBeenCalledTimes(0);
+    expect(onToolCallB).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -1973,6 +2024,137 @@ describe('resume ongoing stream and return assistant message', () => {
       expect(requestMethod).toBe('GET');
       expect(requestUrl).toBe('http://localhost:3000/api/chat/123/stream');
     });
+  });
+});
+
+describe('resume with no active stream should not flash submitted status', () => {
+  setupTestComponent(
+    () => {
+      const { messages, status } = useChat({
+        id: '123',
+        messages: [
+          {
+            id: 'msg_123',
+            role: 'user',
+            parts: [{ type: 'text', text: 'hi' }],
+          },
+        ],
+        generateId: mockId(),
+        resume: true,
+      });
+
+      const statusHistoryRef = useRef<string[]>([]);
+      if (statusHistoryRef.current.at(-1) !== status) {
+        statusHistoryRef.current.push(status);
+      }
+
+      return (
+        <div>
+          {messages.map((m, idx) => (
+            <div data-testid={`message-${idx}`} key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
+            </div>
+          ))}
+
+          <div data-testid="status">{status}</div>
+          <div data-testid="status-history">
+            {statusHistoryRef.current.join(',')}
+          </div>
+        </div>
+      );
+    },
+    {
+      init: TestComponent => {
+        server.urls['/api/chat/123/stream'].response = {
+          type: 'empty',
+          status: 204,
+        };
+
+        return <TestComponent />;
+      },
+    },
+  );
+
+  it('should not transition to submitted when no active stream exists', async () => {
+    await waitFor(() => {
+      expect(server.calls.length).toBe(1);
+    });
+
+    expect(screen.getByTestId('status')).toHaveTextContent('ready');
+    expect(screen.getByTestId('status-history')).not.toHaveTextContent(
+      'submitted',
+    );
+  });
+});
+
+describe('resume with server error should set error status without flashing submitted', () => {
+  const onErrorCalls: Error[] = [];
+
+  setupTestComponent(
+    () => {
+      const { status, error } = useChat({
+        id: '123',
+        messages: [
+          {
+            id: 'msg_123',
+            role: 'user',
+            parts: [{ type: 'text', text: 'hi' }],
+          },
+        ],
+        generateId: mockId(),
+        resume: true,
+        onError(err) {
+          onErrorCalls.push(err);
+        },
+      });
+
+      const statusHistoryRef = useRef<string[]>([]);
+      if (statusHistoryRef.current.at(-1) !== status) {
+        statusHistoryRef.current.push(status);
+      }
+
+      return (
+        <div>
+          <div data-testid="status">{status}</div>
+          <div data-testid="status-history">
+            {statusHistoryRef.current.join(',')}
+          </div>
+          {error && <div data-testid="error">{error.toString()}</div>}
+        </div>
+      );
+    },
+    {
+      init: TestComponent => {
+        server.urls['/api/chat/123/stream'].response = {
+          type: 'error',
+          status: 500,
+          body: 'Internal server error',
+        };
+
+        return <TestComponent />;
+      },
+    },
+  );
+
+  beforeEach(() => {
+    onErrorCalls.length = 0;
+  });
+
+  it('should set error status and call onError', async () => {
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('error');
+    });
+
+    expect(screen.getByTestId('error')).toHaveTextContent(
+      'Internal server error',
+    );
+    expect(screen.getByTestId('status-history')).not.toHaveTextContent(
+      'submitted',
+    );
+    expect(onErrorCalls).toHaveLength(1);
   });
 });
 

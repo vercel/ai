@@ -12,18 +12,20 @@ import { RerankResult } from './rerank-result';
 import { logWarnings } from '../logger/log-warnings';
 
 /**
-Rerank documents using an reranking model. The type of the value is defined by the reranking model.
-
-@param model - The Reranking model to use.
-@param documents - The documents that should be reranking.
-@param query - The query is a string that represents the query to rerank the documents against.
-@param topN - Top n documents to rerank.
-
-@param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
-@param abortSignal - An optional abort signal that can be used to cancel the call.
-@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
-
-@returns A result object that contains the reranked documents, the reranked indices, and additional information.
+ * Rerank documents using a reranking model. The type of the value is defined by the reranking model.
+ *
+ * @param model - The reranking model to use.
+ * @param documents - The documents that should be reranked.
+ * @param query - The query to rerank the documents against.
+ * @param topN - Number of top documents to return.
+ *
+ * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+ * @param abortSignal - An optional abort signal that can be used to cancel the call.
+ * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+ * @param providerOptions - Additional provider-specific options.
+ * @param experimental_telemetry - Optional telemetry configuration (experimental).
+ *
+ * @returns A result object that contains the reranked documents, the reranked indices, and additional information.
  */
 export async function rerank<VALUE extends JSONObject | string>({
   model,
@@ -37,8 +39,8 @@ export async function rerank<VALUE extends JSONObject | string>({
   experimental_telemetry: telemetry,
 }: {
   /**
-The reranking model to use.
-  */
+   * The reranking model to use.
+   */
   model: RerankingModel;
 
   /**
@@ -47,7 +49,7 @@ The reranking model to use.
   documents: Array<VALUE>;
 
   /**
-The query is a string that represents the query to rerank the documents against.
+   * The query to rerank the documents against.
    */
   query: string;
 
@@ -57,21 +59,21 @@ The query is a string that represents the query to rerank the documents against.
   topN?: number;
 
   /**
-Maximum number of retries per reranking model call. Set to 0 to disable retries.
-
-@default 2
+   * Maximum number of retries per reranking model call. Set to 0 to disable retries.
+   *
+   * @default 2
    */
   maxRetries?: number;
 
   /**
-Abort signal.
- */
+   * Abort signal.
+   */
   abortSignal?: AbortSignal;
 
   /**
-Additional headers to include in the request.
-Only applicable for HTTP-based providers.
- */
+   * Additional headers to include in the request.
+   * Only applicable for HTTP-based providers.
+   */
   headers?: Record<string, string>;
 
   /**
@@ -80,10 +82,10 @@ Only applicable for HTTP-based providers.
   experimental_telemetry?: TelemetrySettings;
 
   /**
-    Additional provider-specific options. They are passed through
-    to the provider from the AI SDK and enable provider-specific
-    functionality that can be fully encapsulated in the provider.
-    */
+   * Additional provider-specific options. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
   providerOptions?: ProviderOptions;
 }): Promise<RerankResult<VALUE>> {
   if (documents.length === 0) {

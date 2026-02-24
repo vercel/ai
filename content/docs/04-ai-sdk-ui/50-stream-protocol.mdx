@@ -378,6 +378,19 @@ data: {"type":"finish"}
 
 ```
 
+### Abort Part
+
+Indicates the stream was aborted.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"abort","reason":"user cancelled"}
+
+```
+
 ### Stream Termination
 
 The stream ends with a special `[DONE]` marker.

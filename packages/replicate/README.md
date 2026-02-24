@@ -10,11 +10,19 @@ The Replicate provider is available in the `@ai-sdk/replicate` module. You can i
 npm i @ai-sdk/replicate
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Usage
 
 ```ts
 import { replicate } from '@ai-sdk/replicate';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: replicate.image('black-forest-labs/flux-schnell'),

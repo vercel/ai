@@ -1412,6 +1412,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
+                "providerExecuted": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
               },
@@ -1492,6 +1493,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
+                "providerExecuted": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
               },
@@ -1577,6 +1579,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": false,
+                "providerExecuted": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
               },
@@ -1672,6 +1675,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": false,
+                "providerExecuted": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
               },
@@ -1760,6 +1764,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": false,
+                "providerExecuted": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
               },
@@ -1849,6 +1854,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": false,
+                "providerExecuted": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
               },
@@ -1944,6 +1950,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
+                "providerExecuted": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
               },
@@ -2048,6 +2055,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
+                "providerExecuted": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
               },

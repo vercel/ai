@@ -1,4 +1,9 @@
-import { ModelMessage, SystemModelMessage, Tool } from '@ai-sdk/provider-utils';
+import {
+  ModelMessage,
+  ProviderOptions,
+  SystemModelMessage,
+  Tool,
+} from '@ai-sdk/provider-utils';
 import { LanguageModel, ToolChoice } from '../types/language-model';
 import { StepResult } from './step-result';
 
@@ -86,5 +91,13 @@ export type PrepareStepResult<
        * and all subsequent steps.
        */
       experimental_context?: unknown;
+
+      /**
+       * Additional provider-specific options for this step.
+       *
+       * Can be used to pass provider-specific configuration such as
+       * container IDs for Anthropic's code execution.
+       */
+      providerOptions?: ProviderOptions;
     }
   | undefined;

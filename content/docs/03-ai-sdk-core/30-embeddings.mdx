@@ -196,13 +196,12 @@ console.log(response); // Raw provider response
 ## Embedding Middleware
 
 You can enhance embedding models, e.g. to set default values, using
-`wrapEmbeddingModel` and `EmbeddingModelV3Middleware`.
+`wrapEmbeddingModel` and `EmbeddingModelMiddleware`.
 
 Here is an example that uses the built-in `defaultEmbeddingSettingsMiddleware`:
 
 ```ts
 import {
-  customProvider,
   defaultEmbeddingSettingsMiddleware,
   embed,
   wrapEmbeddingModel,

@@ -1,0 +1,36 @@
+name: Validate NPM Token
+
+on:
+  schedule:
+    # Run hourly at minute 0
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate NPM Token
+    runs-on: ubuntu-latest
+    # do not attempt running in forks
+    if: github.repository_owner == 'vercel'
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Validate NPM Token
+        run: |
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "Error: NPM_TOKEN_ELEVATED is not set"
+            exit 1
+          fi
+          # Test the token by checking npm authentication
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+          if ! npm whoami; then
+            echo "Error: NPM_TOKEN_ELEVATED is invalid or expired"
+            exit 1
+          fi
+          echo "NPM token is valid"
+          rm .npmrc
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}

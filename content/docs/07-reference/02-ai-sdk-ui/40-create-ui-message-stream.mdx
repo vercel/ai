@@ -107,7 +107,7 @@ const stream = createUIMessageStream({
     },
     {
       name: 'onFinish',
-      type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage }) => void | undefined',
+      type: '(options: { messages: UIMessage[]; isContinuation: boolean; isAborted: boolean; responseMessage: UIMessage; finishReason?: FinishReason }) => PromiseLike<void> | void',
       description:
         'A callback function that is called when the stream finishes.',
       properties: [
@@ -126,10 +126,21 @@ const stream = createUIMessageStream({
                 'Indicates whether the response message is a continuation of the last original message, or if a new message was created.',
             },
             {
+              name: 'isAborted',
+              type: 'boolean',
+              description: 'Indicates whether the stream was aborted.',
+            },
+            {
               name: 'responseMessage',
               type: 'UIMessage',
               description:
                 'The message that was sent to the client as a response (including the original message if it was extended).',
+            },
+            {
+              name: 'finishReason',
+              type: 'FinishReason | undefined',
+              description:
+                "The reason why the generation finished. One of: 'stop', 'length', 'content-filter', 'tool-calls', 'error', or 'other'.",
             },
           ],
         },

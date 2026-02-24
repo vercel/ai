@@ -56,7 +56,9 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5-nano-2025-08-07', true],
       ['gpt-5-pro', true],
       ['gpt-5-pro-2025-10-06', true],
-      ['new-unknown-model', true],
+      ['new-unknown-model', false],
+      ['ft:gpt-4o-2024-08-06:org:custom:abc123', false],
+      ['custom-model', false],
     ])('%s reasoning model: %s', (modelId, expectedCapabilities) => {
       expect(
         getOpenAILanguageModelCapabilities(modelId).isReasoningModel,
@@ -70,6 +72,9 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5.1-chat-latest', true],
       ['gpt-5.1-codex-mini', true],
       ['gpt-5.1-codex', true],
+      ['gpt-5.2', true],
+      ['gpt-5.2-pro', true],
+      ['gpt-5.2-chat-latest', true],
       ['gpt-5', false],
       ['gpt-5-mini', false],
       ['gpt-5-nano', false],

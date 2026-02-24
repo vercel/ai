@@ -161,10 +161,34 @@ describe('asLanguageModelV3', () => {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
       });
 
-      expect(response.content).toHaveLength(1);
-      expect(response.finishReason).toBe('stop');
-      expect(response.usage.inputTokens.total).toBe(10);
-      expect(response.usage.outputTokens.total).toBe(5);
+      expect(response).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "text": "Hello",
+              "type": "text",
+            },
+          ],
+          "finishReason": {
+            "raw": undefined,
+            "unified": "stop",
+          },
+          "usage": {
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": 10,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": 5,
+            },
+          },
+          "warnings": [],
+        }
+      `);
     });
 
     describe('doStream', () => {
@@ -225,7 +249,10 @@ describe('asLanguageModelV3', () => {
                 "type": "text-end",
               },
               {
-                "finishReason": "stop",
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "stop",
+                },
                 "type": "finish",
                 "usage": {
                   "inputTokens": {
@@ -450,7 +477,10 @@ describe('asLanguageModelV3', () => {
           prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         });
 
-        expect(response.finishReason).toBe(finishReason);
+        expect(response.finishReason).toStrictEqual({
+          raw: undefined,
+          unified: finishReason === 'unknown' ? 'other' : finishReason,
+        });
       }
     });
 

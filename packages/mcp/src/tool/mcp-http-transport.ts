@@ -186,6 +186,13 @@ export class HttpMCPTransport implements MCPTransport {
           throw error;
         }
 
+        // Notifications (messages without 'id') don't expect a JSON-RPC response
+        // Some servers return 200 with acknowledgment JSON instead of 202
+        const isNotification = !('id' in message);
+        if (isNotification) {
+          return;
+        }
+
         const contentType = response.headers.get('content-type') || '';
         if (contentType.includes('application/json')) {
           const data = await response.json();

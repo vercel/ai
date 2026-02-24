@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { fal } from '@ai-sdk/fal';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 // Test 1: Basic snake_case conversion
 const result1 = await generateImage({

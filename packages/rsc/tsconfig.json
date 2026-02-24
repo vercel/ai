@@ -7,7 +7,7 @@
     "composite": true,
     "outDir": "dist"
   },
-  "exclude": ["dist", "build", "node_modules", "*.config.ts", "tests"],
+  "exclude": ["dist", "build", "node_modules", "*.config.ts", "tests", "**/*.test.ts", "**/*.test.tsx", "**/*.test-d.ts", "**/__snapshots__"],
   "references": [
     {
       "path": "../ai"

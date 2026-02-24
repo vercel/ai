@@ -1,5 +1,5 @@
 import { EmbeddingModelV3 } from '../../embedding-model/v3/embedding-model-v3';
-import { EmbeddingModelCallOptions } from '../../embedding-model/v3/embedding-model-v3-call-options';
+import { EmbeddingModelV3CallOptions } from '../../embedding-model/v3/embedding-model-v3-call-options';
 
 /**
  * Middleware for EmbeddingModelV3.
@@ -47,9 +47,9 @@ export type EmbeddingModelV3Middleware = {
    * @returns A promise that resolves to the transformed parameters.
    */
   transformParams?: (options: {
-    params: EmbeddingModelCallOptions;
+    params: EmbeddingModelV3CallOptions;
     model: EmbeddingModelV3;
-  }) => PromiseLike<EmbeddingModelCallOptions>;
+  }) => PromiseLike<EmbeddingModelV3CallOptions>;
 
   /**
    * Wraps the embed operation of the embedding model.
@@ -63,7 +63,7 @@ export type EmbeddingModelV3Middleware = {
    */
   wrapEmbed?: (options: {
     doEmbed: () => ReturnType<EmbeddingModelV3['doEmbed']>;
-    params: EmbeddingModelCallOptions;
+    params: EmbeddingModelV3CallOptions;
     model: EmbeddingModelV3;
   }) => Promise<Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>>;
 };

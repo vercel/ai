@@ -10,7 +10,7 @@ import { DeepPartial } from '../util/deep-partial';
 import { ValueOf } from '../util/value-of';
 
 /**
-The data types that can be used in the UI message for the UI message data parts.
+ * The data types that can be used in the UI message for the UI message data parts.
  */
 export type UIDataTypes = Record<string, unknown>;
 
@@ -37,7 +37,7 @@ export type InferUITools<TOOLS extends ToolSet> = {
 export type UITools = Record<string, UITool>;
 
 /**
-AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
+ * AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
  */
 export interface UIMessage<
   METADATA = unknown,
@@ -45,29 +45,29 @@ export interface UIMessage<
   TOOLS extends UITools = UITools,
 > {
   /**
-A unique identifier for the message.
+   * A unique identifier for the message.
    */
   id: string;
 
   /**
-The role of the message.
+   * The role of the message.
    */
   role: 'system' | 'user' | 'assistant';
 
   /**
-The metadata of the message.
+   * The metadata of the message.
    */
   metadata?: METADATA;
 
   /**
-The parts of the message. Use this for rendering the message in the UI.
-
-System messages should be avoided (set the system prompt on the server instead).
-They can have text parts.
-
-User messages can have text parts and file parts.
-
-Assistant messages can have text, reasoning, tool invocation, and file parts.
+   * The parts of the message. Use this for rendering the message in the UI.
+   *
+   * System messages should be avoided (set the system prompt on the server instead).
+   * They can have text parts.
+   *
+   * User messages can have text parts and file parts.
+   *
+   * Assistant messages can have text, reasoning, tool invocation, and file parts.
    */
   parts: Array<UIMessagePart<DATA_PARTS, TOOLS>>;
 }
@@ -233,6 +233,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       input: DeepPartial<asUITool<TOOL>['input']> | undefined;
       output?: never;
       errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
       approval?: never;
     }
   | {
@@ -337,6 +338,7 @@ export type DynamicToolUIPart = {
       input: unknown | undefined;
       output?: never;
       errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
       approval?: never;
     }
   | {

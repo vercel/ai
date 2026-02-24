@@ -2,7 +2,7 @@ import { LanguageModelV3FinishReason } from '@ai-sdk/provider';
 
 export function mapOpenAIFinishReason(
   finishReason: string | null | undefined,
-): LanguageModelV3FinishReason {
+): LanguageModelV3FinishReason['unified'] {
   switch (finishReason) {
     case 'stop':
       return 'stop';
@@ -14,6 +14,6 @@ export function mapOpenAIFinishReason(
     case 'tool_calls':
       return 'tool-calls';
     default:
-      return 'unknown';
+      return 'other';
   }
 }

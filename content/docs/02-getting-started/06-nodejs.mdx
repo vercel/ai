@@ -5,7 +5,7 @@ description: Learn how to build your first agent with the AI SDK and Node.js.
 
 # Node.js Quickstart
 
-The AI SDK is a powerful Typescript library designed to help developers build AI-powered applications.
+The AI SDK is a powerful TypeScript library designed to help developers build AI-powered applications.
 
 In this quickstart tutorial, you'll build a simple agent with a streaming chat user interface. Along the way, you'll learn key concepts and techniques that are fundamental to using the SDK in your own projects.
 
@@ -43,11 +43,11 @@ Install `ai`, the AI SDK, along with other necessary dependencies.
 </Note>
 
 ```bash
-pnpm add ai@beta zod dotenv
+pnpm add ai zod dotenv
 pnpm add -D @types/node tsx typescript
 ```
 
-The `ai` package contains the AI SDK. You will use `zod` to define type-safe schemas that you will pass to the large language model (LLM). You will use `dotenv` to access environment variables (your Vercel AI Gateway key) within your application. There are also three development dependencies, installed with the `-D` flag, that are necessary to run your Typescript code.
+The `ai` package contains the AI SDK. You will use `zod` to define type-safe schemas that you will pass to the large language model (LLM). You will use `dotenv` to access environment variables (your Vercel AI Gateway key) within your application. There are also three development dependencies, installed with the `-D` flag, that are necessary to run your TypeScript code.
 
 ### Configure Vercel AI Gateway API key
 
@@ -160,17 +160,17 @@ To use a different provider, install its package and create a provider instance.
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
     <Tab>
-      <Snippet text="pnpm add @ai-sdk/openai@beta" dark />
+      <Snippet text="pnpm add @ai-sdk/openai" dark />
     </Tab>
     <Tab>
-      <Snippet text="npm install @ai-sdk/openai@beta" dark />
+      <Snippet text="npm install @ai-sdk/openai" dark />
     </Tab>
     <Tab>
-      <Snippet text="yarn add @ai-sdk/openai@beta" dark />
+      <Snippet text="yarn add @ai-sdk/openai" dark />
     </Tab>
 
     <Tab>
-      <Snippet text="bun add @ai-sdk/openai@beta" dark />
+      <Snippet text="bun add @ai-sdk/openai" dark />
     </Tab>
 
   </Tabs>

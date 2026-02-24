@@ -29,7 +29,12 @@ describe('convertToXaiResponsesInput', () => {
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
-            "content": "hello",
+            "content": [
+              {
+                "text": "hello",
+                "type": "input_text",
+              },
+            ],
             "role": "user",
           },
         ]
@@ -52,23 +57,69 @@ describe('convertToXaiResponsesInput', () => {
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
-            "content": "hello world",
+            "content": [
+              {
+                "text": "hello ",
+                "type": "input_text",
+              },
+              {
+                "text": "world",
+                "type": "input_text",
+              },
+            ],
             "role": "user",
           },
         ]
       `);
     });
 
-    it('should warn about file parts', async () => {
+    it('should convert image file parts with URL', async () => {
       const result = await convertToXaiResponsesInput({
         prompt: [
           {
             role: 'user',
             content: [
-              { type: 'text', text: 'check this file' },
+              { type: 'text', text: 'what is in this image' },
               {
                 type: 'file',
-                mediaType: 'application/pdf',
+                mediaType: 'image/jpeg',
+                data: new URL('https://example.com/image.jpg'),
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "what is in this image",
+                "type": "input_text",
+              },
+              {
+                "image_url": "https://example.com/image.jpg",
+                "type": "input_image",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+      expect(result.inputWarnings).toEqual([]);
+    });
+
+    it('should convert image file parts with base64 data', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'describe this' },
+              {
+                type: 'file',
+                mediaType: 'image/png',
                 data: new Uint8Array([1, 2, 3]),
               },
             ],
@@ -76,7 +127,43 @@ describe('convertToXaiResponsesInput', () => {
         ],
       });
 
-      expect(result.inputWarnings).toHaveLength(1);
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "describe this",
+                "type": "input_text",
+              },
+              {
+                "image_url": "data:image/png;base64,AQID",
+                "type": "input_image",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
+    it('should throw for unsupported file types', async () => {
+      await expect(
+        convertToXaiResponsesInput({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'check this file' },
+                {
+                  type: 'file',
+                  mediaType: 'application/pdf',
+                  data: new Uint8Array([1, 2, 3]),
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrow('file part media type application/pdf');
     });
   });
 
@@ -290,7 +377,12 @@ describe('convertToXaiResponsesInput', () => {
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
-            "content": "whats the weather",
+            "content": [
+              {
+                "text": "whats the weather",
+                "type": "input_text",
+              },
+            ],
             "role": "user",
           },
           {
@@ -351,7 +443,12 @@ describe('convertToXaiResponsesInput', () => {
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
-            "content": "search for ai news",
+            "content": [
+              {
+                "text": "search for ai news",
+                "type": "input_text",
+              },
+            ],
             "role": "user",
           },
           {
