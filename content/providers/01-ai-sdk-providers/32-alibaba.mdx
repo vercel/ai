@@ -170,6 +170,8 @@ Alibaba supports both implicit and explicit prompt caching to reduce costs for r
 
 **Implicit caching** works automatically - the provider caches appropriate content without any configuration. For more control, you can use **explicit caching** by marking specific messages with `cache_control`:
 
+### Single message cache control
+
 ```ts
 import { alibaba } from '@ai-sdk/alibaba';
 import { generateText } from 'ai';
@@ -186,15 +188,59 @@ const { text, usage } = await generateText({
         },
       },
     },
+  ],
+});
+```
+
+### Multi-part message cache control
+
+```ts
+import { alibaba } from '@ai-sdk/alibaba';
+import { generateText } from 'ai';
+
+const longDocument = '... large document content ...';
+
+const { text, usage } = await generateText({
+  model: alibaba('qwen-plus'),
+  messages: [
     {
       role: 'user',
-      content: 'What is the capital of France?',
+      content: [
+        {
+          type: 'text',
+          text: 'Context: Please analyze this document.',
+        },
+        {
+          type: 'text',
+          text: longDocument,
+          providerOptions: {
+            alibaba: {
+              cacheControl: { type: 'ephemeral' },
+            },
+          },
+        },
+      ],
     },
   ],
 });
 ```
 
+<<<<<<< HEAD
 Cache token usage is in `usage` and `providerMetadata`:
+=======
+**Note:** The minimum content length for a cache block is 1,024 tokens.
+
+## Video Models
+
+You can create [Wan](https://www.alibabacloud.com/help/en/model-studio/use-video-generation) video models that call the Alibaba Cloud DashScope API
+using the `.video()` factory method. For more on video generation with the AI SDK see [generateVideo()](/docs/reference/ai-sdk-core/generate-video).
+
+Alibaba supports three video generation modes: text-to-video, image-to-video (first frame), and reference-to-video.
+
+### Text-to-Video
+
+Generate videos from text prompts:
+>>>>>>> 6fe06309c (fix(provider/alibaba): support user/tool/assistant message(s) cache control (#12787))
 
 ```ts
 import { alibaba } from '@ai-sdk/alibaba';
