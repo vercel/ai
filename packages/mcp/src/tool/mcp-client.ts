@@ -57,6 +57,7 @@ import {
   SUPPORTED_PROTOCOL_VERSIONS,
   ToolSchemas,
   ToolMeta,
+  ClientOrServerImplementation,
 } from './types';
 
 const CLIENT_VERSION = '1.0.0';
@@ -119,6 +120,8 @@ export async function createMCPClient(
 }
 
 export interface MCPClient {
+  serverInfo?: ClientOrServerImplementation;
+
   tools<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>(options?: {
     schemas?: TOOL_SCHEMAS;
   }): Promise<McpToolSet<TOOL_SCHEMAS>>;
@@ -201,6 +204,7 @@ class DefaultMCPClient implements MCPClient {
     (response: JSONRPCResponse | Error) => void
   > = new Map();
   private serverCapabilities: ServerCapabilities = {};
+  public serverInfo?: ClientOrServerImplementation;
   private isClosed = true;
   private elicitationRequestHandler?: (
     request: ElicitationRequest,
@@ -277,6 +281,7 @@ class DefaultMCPClient implements MCPClient {
       }
 
       this.serverCapabilities = result.capabilities;
+      this.serverInfo = result.serverInfo;
 
       // Complete initialization handshake:
       await this.notification({
