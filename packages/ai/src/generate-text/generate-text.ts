@@ -15,10 +15,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { NoOutputGeneratedError } from '../error';
-import { notifyOnFinish } from './events/on-finish';
-import { notifyOnStart } from './events/on-start';
-import { notifyOnStepFinish } from './events/on-step-finish';
-import { notifyOnStepStart } from './events/on-step-start';
+import { notify } from './events/notify';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
@@ -512,7 +509,7 @@ export async function generateText<
     experimental_context,
   };
 
-  await notifyOnStart({ event: onStartEvent, callbacks: onStart });
+  await notify({ event: onStartEvent, callbacks: onStart });
 
   const tracer = getTracer(telemetry);
 
@@ -737,10 +734,7 @@ export async function generateText<
               experimental_context,
             };
 
-            await notifyOnStepStart({
-              event: onStepStartEvent,
-              callbacks: onStepStart,
-            });
+            await notify({ event: onStepStartEvent, callbacks: onStepStart });
 
             currentModelResponse = await retry(() =>
               recordSpan({
@@ -1060,10 +1054,7 @@ export async function generateText<
 
             steps.push(currentStepResult);
 
-            await notifyOnStepFinish({
-              event: currentStepResult,
-              callbacks: onStepFinish,
-            });
+            await notify({ event: currentStepResult, callbacks: onStepFinish });
           } finally {
             if (stepTimeoutId != null) {
               clearTimeout(stepTimeoutId);
@@ -1159,7 +1150,7 @@ export async function generateText<
           totalUsage,
         };
 
-        await notifyOnFinish({ event: onFinishEvent, callbacks: onFinish });
+        await notify({ event: onFinishEvent, callbacks: onFinish });
 
         // parse output only if the last step was finished with "stop":
         let resolvedOutput;

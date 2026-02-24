@@ -1,7 +1,6 @@
 import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
-import { notifyOnToolCallFinish } from './events/on-tool-call-finish';
-import { notifyOnToolCallStart } from './events/on-tool-call-start';
+import { notify } from './events/notify';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
@@ -93,10 +92,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     fn: async span => {
       let output: unknown;
 
-      await notifyOnToolCallStart({
-        event: baseCallbackEvent,
-        callbacks: onToolCallStart,
-      });
+      await notify({ event: baseCallbackEvent, callbacks: onToolCallStart });
 
       const startTime = now();
 
@@ -134,7 +130,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
           durationMs,
         };
 
-        await notifyOnToolCallFinish({
+        await notify({
           event: onToolCallFinishErrorEvent,
           callbacks: onToolCallFinish,
         });
@@ -162,7 +158,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
         durationMs,
       };
 
-      await notifyOnToolCallFinish({
+      await notify({
         event: onToolCallFinishSuccessEvent,
         callbacks: onToolCallFinish,
       });
