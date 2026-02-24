@@ -160,20 +160,16 @@ export function convertToAlibabaChatMessages({
       }
 
       case 'tool': {
-        const toolResponses = content.filter(
-          r => r.type !== 'tool-approval-response',
-        );
+        const isSinglePart = content.length === 1;
 
-        const isSinglePart = toolResponses.length === 1;
-
-        for (let i = 0; i < toolResponses.length; i++) {
-          const toolResponse = toolResponses[i];
+        for (let i = 0; i < content.length; i++) {
+          const toolResponse = content[i];
           const output = toolResponse.output;
 
           const partCacheControl = isSinglePart
             ? messageCacheControl
             : cacheControlValidator?.getCacheControl(
-                (toolResponse as any).providerOptions,
+                toolResponse.providerOptions,
               );
 
           let contentValue: string;

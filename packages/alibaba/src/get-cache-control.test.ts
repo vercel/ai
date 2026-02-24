@@ -31,11 +31,7 @@ describe('CacheControlValidator', () => {
     expect(validator.getWarnings()).toHaveLength(1);
     expect(validator.getWarnings()[0]).toMatchInlineSnapshot(`
       {
-<<<<<<< HEAD
-        "message": "cacheControl breakpoint limit: Maximum 4 cache breakpoints exceeded (found 5). This breakpoint will be ignored.",
-=======
         "message": "Max breakpoint limit exceeded. Only the last 4 cache markers will take effect.",
->>>>>>> 6fe06309c (fix(provider/alibaba): support user/tool/assistant message(s) cache control (#12787))
         "type": "other",
       }
     `);
