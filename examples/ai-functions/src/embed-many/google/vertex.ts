@@ -1,10 +1,10 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { vertex } from '@ai-sdk/google-vertex';
 import { embedMany } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   const { embeddings, usage, warnings } = await embedMany({
-    model: bedrock.embedding('amazon.titan-embed-text-v2:0'),
+    model: vertex.embeddingModel('text-embedding-004'),
     values: [
       'sunny day at the beach',
       'rainy afternoon in the city',

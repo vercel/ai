@@ -1,10 +1,10 @@
-import { azure } from '@ai-sdk/azure';
+import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { embedMany } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   const { embeddings, usage, warnings } = await embedMany({
-    model: azure.embedding('text-embedding-3-large'), // use your own deployment
+    model: bedrock.embedding('amazon.titan-embed-text-v2:0'),
     values: [
       'sunny day at the beach',
       'rainy afternoon in the city',

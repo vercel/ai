@@ -1,10 +1,10 @@
-import { google } from '@ai-sdk/google';
+import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { embedMany } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   const { embeddings, usage, warnings } = await embedMany({
-    model: google.embeddingModel('gemini-embedding-001'),
+    model: bedrock.embedding('cohere.embed-v4:0'),
     values: [
       'sunny day at the beach',
       'rainy afternoon in the city',

@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { cosineSimilarity, embedMany } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   const { embeddings, warnings } = await embedMany({

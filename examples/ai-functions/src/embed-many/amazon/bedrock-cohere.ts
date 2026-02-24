@@ -1,10 +1,10 @@
-import { cohere } from '@ai-sdk/cohere';
+import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { embedMany } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   const { embeddings, usage, warnings } = await embedMany({
-    model: cohere.embedding('embed-multilingual-v3.0'),
+    model: bedrock.embedding('cohere.embed-english-v3'),
     values: [
       'sunny day at the beach',
       'rainy afternoon in the city',

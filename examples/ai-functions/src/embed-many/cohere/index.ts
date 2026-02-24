@@ -1,10 +1,10 @@
-import { openai } from '@ai-sdk/openai';
+import { cohere } from '@ai-sdk/cohere';
 import { embedMany } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   const { embeddings, usage, warnings } = await embedMany({
-    model: openai.embedding('text-embedding-3-small'),
+    model: cohere.embedding('embed-multilingual-v3.0'),
     values: [
       'sunny day at the beach',
       'rainy afternoon in the city',

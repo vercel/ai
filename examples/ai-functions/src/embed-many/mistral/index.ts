@@ -1,10 +1,10 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { mistral } from '@ai-sdk/mistral';
 import { embedMany } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   const { embeddings, usage, warnings } = await embedMany({
-    model: bedrock.embedding('amazon.nova-2-multimodal-embeddings-v1:0'),
+    model: mistral.embedding('mistral-embed'),
     values: [
       'sunny day at the beach',
       'rainy afternoon in the city',

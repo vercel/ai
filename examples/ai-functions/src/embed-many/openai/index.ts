@@ -1,10 +1,10 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { openai } from '@ai-sdk/openai';
 import { embedMany } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   const { embeddings, usage, warnings } = await embedMany({
-    model: bedrock.embedding('cohere.embed-english-v3'),
+    model: openai.embedding('text-embedding-3-small'),
     values: [
       'sunny day at the beach',
       'rainy afternoon in the city',
