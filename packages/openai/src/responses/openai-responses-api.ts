@@ -599,29 +599,31 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             type: z.literal('web_search_call'),
             id: z.string(),
             status: z.string(),
-            action: z.discriminatedUnion('type', [
-              z.object({
-                type: z.literal('search'),
-                query: z.string().nullish(),
-                sources: z
-                  .array(
-                    z.discriminatedUnion('type', [
-                      z.object({ type: z.literal('url'), url: z.string() }),
-                      z.object({ type: z.literal('api'), name: z.string() }),
-                    ]),
-                  )
-                  .nullish(),
-              }),
-              z.object({
-                type: z.literal('open_page'),
-                url: z.string().nullish(),
-              }),
-              z.object({
-                type: z.literal('find_in_page'),
-                url: z.string().nullish(),
-                pattern: z.string().nullish(),
-              }),
-            ]),
+            action: z
+              .discriminatedUnion('type', [
+                z.object({
+                  type: z.literal('search'),
+                  query: z.string().nullish(),
+                  sources: z
+                    .array(
+                      z.discriminatedUnion('type', [
+                        z.object({ type: z.literal('url'), url: z.string() }),
+                        z.object({ type: z.literal('api'), name: z.string() }),
+                      ]),
+                    )
+                    .nullish(),
+                }),
+                z.object({
+                  type: z.literal('open_page'),
+                  url: z.string().nullish(),
+                }),
+                z.object({
+                  type: z.literal('find_in_page'),
+                  url: z.string().nullish(),
+                  pattern: z.string().nullish(),
+                }),
+              ])
+              .nullish(),
           }),
           z.object({
             type: z.literal('file_search_call'),
@@ -966,29 +968,34 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               type: z.literal('web_search_call'),
               id: z.string(),
               status: z.string(),
-              action: z.discriminatedUnion('type', [
-                z.object({
-                  type: z.literal('search'),
-                  query: z.string().nullish(),
-                  sources: z
-                    .array(
-                      z.discriminatedUnion('type', [
-                        z.object({ type: z.literal('url'), url: z.string() }),
-                        z.object({ type: z.literal('api'), name: z.string() }),
-                      ]),
-                    )
-                    .nullish(),
-                }),
-                z.object({
-                  type: z.literal('open_page'),
-                  url: z.string().nullish(),
-                }),
-                z.object({
-                  type: z.literal('find_in_page'),
-                  url: z.string().nullish(),
-                  pattern: z.string().nullish(),
-                }),
-              ]),
+              action: z
+                .discriminatedUnion('type', [
+                  z.object({
+                    type: z.literal('search'),
+                    query: z.string().nullish(),
+                    sources: z
+                      .array(
+                        z.discriminatedUnion('type', [
+                          z.object({ type: z.literal('url'), url: z.string() }),
+                          z.object({
+                            type: z.literal('api'),
+                            name: z.string(),
+                          }),
+                        ]),
+                      )
+                      .nullish(),
+                  }),
+                  z.object({
+                    type: z.literal('open_page'),
+                    url: z.string().nullish(),
+                  }),
+                  z.object({
+                    type: z.literal('find_in_page'),
+                    url: z.string().nullish(),
+                    pattern: z.string().nullish(),
+                  }),
+                ])
+                .nullish(),
             }),
             z.object({
               type: z.literal('file_search_call'),
