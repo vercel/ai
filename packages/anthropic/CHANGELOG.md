@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.67
+
+### Patch Changes
+
+- e1b08a6: Pass `cacheControl` provider option as top-level `cache_control` in Anthropic API request body to support automatic caching.
+
 ## 2.0.66
 
 ### Patch Changes
