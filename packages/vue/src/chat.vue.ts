@@ -6,6 +6,7 @@ import {
   UIMessage,
 } from 'ai';
 import { Ref, ref } from 'vue';
+import { deepToRaw } from './utils';
 
 class VueChatState<UI_MESSAGE extends UIMessage>
   implements ChatState<UI_MESSAGE>
@@ -52,7 +53,7 @@ class VueChatState<UI_MESSAGE extends UIMessage>
 
   replaceMessage = (index: number, message: UI_MESSAGE) => {
     // message is cloned here because vue's deep reactivity shows unexpected behavior, particularly when updating tool invocation parts
-    this.messagesRef.value[index] = { ...message };
+    this.messagesRef.value[index] = deepToRaw(message);
   };
 
   snapshot = <T>(value: T): T => value;
