@@ -52,9 +52,11 @@ jobs:
           owner: vercel
           repo: ai
           title: |
-            🤖 Provider model changes - ${{ github.event.client_payload.provider }}
+            🤖 Provider model changes - ${{ env.PROVIDER }}
           body: |
-            ${{ steps.body.outputs.content }}
+            ${{ env.BODY }}
           labels: '["maintenance"]'
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          PROVIDER: ${{ github.event.client_payload.provider }}
+          BODY: ${{ steps.body.outputs.content }}
