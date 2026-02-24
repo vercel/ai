@@ -1,0 +1,21 @@
+{
+    "name": "@ai-sdk/cactus",
+    "version": "0.0.1",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "files": [
+      "dist/"
+    ],
+    "scripts": {
+      "build": "tsc",
+      "dev": "tsc -w"
+    },
+    "dependencies": {
+      "@ai-sdk/provider": "workspace:*",
+      "@ai-sdk/provider-utils": "workspace:*",
+      "cactus-react-native": "^0.2.2",
+      "react-native-fs": "^2.20.0"
+    },
+    "peerDependencies": {},
+    "devDependencies": {}
+  }
