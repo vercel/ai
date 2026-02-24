@@ -227,34 +227,6 @@ const { text, usage } = await generateText({
 
 **Note:** The minimum content length for a cache block is 1,024 tokens.
 
-## Video Models
-
-You can create [Wan](https://www.alibabacloud.com/help/en/model-studio/use-video-generation) video models that call the Alibaba Cloud DashScope API
-using the `.video()` factory method. For more on video generation with the AI SDK see [generateVideo()](/docs/reference/ai-sdk-core/generate-video).
-
-Alibaba supports three video generation modes: text-to-video, image-to-video (first frame), and reference-to-video.
-
-### Text-to-Video
-
-Generate videos from text prompts:
-
-```ts
-import { alibaba } from '@ai-sdk/alibaba';
-import { generateText } from 'ai';
-
-const { usage, providerMetadata } = await generateText({
-  model: alibaba('qwen-plus'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
-});
-
-// cache read
-const cachedInputTokens = usage.cachedInputTokens;
-
-// cache write
-const cacheCreationInputTokens =
-  providerMetadata?.alibaba?.cacheCreationInputTokens;
-```
-
 ## Model Capabilities
 
 Please see the [Alibaba Cloud Model Studio docs](https://www.alibabacloud.com/help/en/model-studio/models) for a full
