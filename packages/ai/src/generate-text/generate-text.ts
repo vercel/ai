@@ -497,9 +497,7 @@ export async function generateText<
     seed: callSettings.seed,
     maxRetries,
     timeout,
-    headers: headersWithUserAgent as
-      | Record<string, string | undefined>
-      | undefined,
+    headers: headersWithUserAgent,
     providerOptions,
     stopWhen,
     output,
