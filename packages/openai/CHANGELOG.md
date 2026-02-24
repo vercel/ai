@@ -1,5 +1,23 @@
 # @ai-sdk/openai
 
+## 3.0.31
+
+### Patch Changes
+
+- d5f7312: fix(openai): change web search tool action to be optional
+
+## 3.0.30
+
+### Patch Changes
+
+- ff12133: feat(provider/openai): support native skills and hosted shell
+
+## 3.0.29
+
+### Patch Changes
+
+- e2ee705: feat: differentiate text vs image input tokens
+
 ## 3.0.28
 
 ### Patch Changes

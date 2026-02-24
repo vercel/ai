@@ -64,13 +64,14 @@ const defaultJobResult = {
   state: { current: 'completed' },
   config: { prompt, seed: 42 },
   metrics: { elapsed: 2.5, ips: 10.5 },
+  price: { product: 'flux-fast.schnell', dollars: 0.0025 },
 };
 
 describe('ProdiaImageModel', () => {
   const multipartResponse = createMultipartResponse(defaultJobResult);
 
   const server = createTestServer({
-    'https://api.example.com/v2/job': {
+    'https://api.example.com/v2/job?price=true': {
       response: {
         type: 'binary',
         body: multipartResponse.body,
@@ -259,7 +260,9 @@ describe('ProdiaImageModel', () => {
       });
 
       expect(server.calls[0].requestMethod).toBe('POST');
-      expect(server.calls[0].requestUrl).toBe('https://api.example.com/v2/job');
+      expect(server.calls[0].requestUrl).toBe(
+        'https://api.example.com/v2/job?price=true',
+      );
     });
 
     it('sends Accept: multipart/form-data header', async () => {
@@ -357,6 +360,7 @@ describe('ProdiaImageModel', () => {
             iterationsPerSecond: 10.5,
             createdAt: '2025-01-01T00:00:00Z',
             updatedAt: '2025-01-01T00:00:05Z',
+            dollars: 0.0025,
           },
         ],
       });
@@ -370,7 +374,7 @@ describe('ProdiaImageModel', () => {
       };
       const response = createMultipartResponse(minimalJobResult);
 
-      server.urls['https://api.example.com/v2/job'].response = {
+      server.urls['https://api.example.com/v2/job?price=true'].response = {
         type: 'binary',
         body: response.body,
         headers: {
@@ -426,7 +430,7 @@ describe('ProdiaImageModel', () => {
     });
 
     it('handles API errors', async () => {
-      server.urls['https://api.example.com/v2/job'].response = {
+      server.urls['https://api.example.com/v2/job?price=true'].response = {
         type: 'error',
         status: 400,
         body: JSON.stringify({
@@ -451,13 +455,130 @@ describe('ProdiaImageModel', () => {
       ).rejects.toMatchObject({
         message: 'Prompt cannot be empty',
         statusCode: 400,
-        url: 'https://api.example.com/v2/job',
+        url: 'https://api.example.com/v2/job?price=true',
+      });
+    });
+
+    it('includes dollars in metadata when price is present', async () => {
+      const jobResultWithPrice = {
+        id: 'job-789',
+        state: { current: 'completed' },
+        config: { prompt },
+        price: { product: 'flux-fast.schnell', dollars: 0.005 },
+      };
+      const response = createMultipartResponse(jobResultWithPrice);
+
+      server.urls['https://api.example.com/v2/job?price=true'].response = {
+        type: 'binary',
+        body: response.body,
+        headers: {
+          'content-type': response.contentType,
+        },
+      };
+
+      const model = createBasicModel();
+
+      const result = await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.providerMetadata?.prodia).toStrictEqual({
+        images: [
+          {
+            jobId: 'job-789',
+            dollars: 0.005,
+          },
+        ],
+      });
+    });
+
+    it('omits dollars from metadata when price is absent', async () => {
+      const jobResultWithoutPrice = {
+        id: 'job-790',
+        state: { current: 'completed' },
+        config: { prompt },
+      };
+      const response = createMultipartResponse(jobResultWithoutPrice);
+
+      server.urls['https://api.example.com/v2/job?price=true'].response = {
+        type: 'binary',
+        body: response.body,
+        headers: {
+          'content-type': response.contentType,
+        },
+      };
+
+      const model = createBasicModel();
+
+      const result = await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.providerMetadata?.prodia).toStrictEqual({
+        images: [
+          {
+            jobId: 'job-790',
+          },
+        ],
+      });
+    });
+
+    it('omits dollars from metadata when price is null', async () => {
+      const jobResultWithNullPrice = {
+        id: 'job-791',
+        state: { current: 'completed' },
+        config: { prompt },
+        price: null,
+      };
+      const response = createMultipartResponse(jobResultWithNullPrice);
+
+      server.urls['https://api.example.com/v2/job?price=true'].response = {
+        type: 'binary',
+        body: response.body,
+        headers: {
+          'content-type': response.contentType,
+        },
+      };
+
+      const model = createBasicModel();
+
+      const result = await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.providerMetadata?.prodia).toStrictEqual({
+        images: [
+          {
+            jobId: 'job-791',
+          },
+        ],
       });
     });
 
     it('includes timestamp, headers, and modelId in response metadata', async () => {
       const response = createMultipartResponse(defaultJobResult);
-      server.urls['https://api.example.com/v2/job'].response = {
+      server.urls['https://api.example.com/v2/job?price=true'].response = {
         type: 'binary',
         body: response.body,
         headers: {

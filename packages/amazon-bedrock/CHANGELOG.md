@@ -1,5 +1,33 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.63
+
+### Patch Changes
+
+- dc34ced: fix(provider/amazon-bedrock): add missing latest Anthropic model IDs to `BedrockChatModelId`
+
+## 4.0.62
+
+### Patch Changes
+
+- Updated dependencies [b094c07]
+  - @ai-sdk/anthropic@3.0.46
+
+## 4.0.61
+
+### Patch Changes
+
+- 2a1c664: feat(provider/anthropic): add support for new Claude Sonnet 4.6 model
+- Updated dependencies [2a1c664]
+  - @ai-sdk/anthropic@3.0.45
+
+## 4.0.60
+
+### Patch Changes
+
+- Updated dependencies [23ac4a3]
+  - @ai-sdk/anthropic@3.0.44
+
 ## 4.0.59
 
 ### Patch Changes

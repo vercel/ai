@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.57
+
+### Patch Changes
+
+- 56dfdf6: feat (provider/xai): add video support
+
 ## 3.0.56
 
 ### Patch Changes

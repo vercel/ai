@@ -576,7 +576,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       betas.add('effort-2025-11-24');
     }
 
-    if (anthropicOptions?.speed) {
+    if (anthropicOptions?.speed === 'fast') {
       betas.add('fast-mode-2026-02-01');
     }
 
@@ -1840,11 +1840,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 }
 
                 case 'compaction_delta': {
-                  controller.enqueue({
-                    type: 'text-delta',
-                    id: String(value.index),
-                    delta: value.delta.content,
-                  });
+                  if (value.delta.content != null) {
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: String(value.index),
+                      delta: value.delta.content,
+                    });
+                  }
 
                   return;
                 }
@@ -2182,7 +2184,10 @@ function getModelCapabilities(modelId: string): {
   supportsStructuredOutput: boolean;
   isKnownModel: boolean;
 } {
-  if (modelId.includes('claude-opus-4-6')) {
+  if (
+    modelId.includes('claude-sonnet-4-6') ||
+    modelId.includes('claude-opus-4-6')
+  ) {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,

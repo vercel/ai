@@ -18,7 +18,7 @@ run(async () => {
         }
       }
     },
-    model: anthropic('claude-haiku-4-5'),
+    model: anthropic('claude-sonnet-4-6'),
     messages: [
       { role: 'user', content: 'What is the weather in San Francisco?' },
       {

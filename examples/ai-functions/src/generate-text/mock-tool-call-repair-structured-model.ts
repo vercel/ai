@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateObject, generateText, NoSuchToolError, tool } from 'ai';
+import { generateText, NoSuchToolError, Output, tool } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
 import { z } from 'zod';
 import { run } from '../lib/run';
@@ -55,9 +55,9 @@ run(async () => {
       const tool = tools[toolCall.toolName as keyof typeof tools];
 
       // example approach: use a model with structured outputs for repair:
-      const { object: repairedArgs } = await generateObject({
+      const { output: repairedArgs } = await generateText({
         model: openai('gpt-4o'),
-        schema: tool.inputSchema,
+        output: Output.object({ schema: tool.inputSchema }),
         prompt: [
           `The model tried to call the tool "${
             toolCall.toolName
