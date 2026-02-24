@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.93
+
+### Patch Changes
+
+- fa64d70: fix(openai): change web search tool action to be optional
+
 ## 2.0.92
 
 ### Patch Changes
