@@ -153,6 +153,10 @@ export function createGatewayProvider(
       settingValue: undefined,
       environmentVariableName: 'VERCEL_REGION',
     });
+    const projectId = loadOptionalSetting({
+      settingValue: undefined,
+      environmentVariableName: 'VERCEL_PROJECT_ID',
+    });
 
     return async () => {
       const requestId = await getVercelRequestId();
@@ -161,6 +165,7 @@ export function createGatewayProvider(
         ...(environment && { 'ai-o11y-environment': environment }),
         ...(region && { 'ai-o11y-region': region }),
         ...(requestId && { 'ai-o11y-request-id': requestId }),
+        ...(projectId && { 'ai-o11y-project-id': projectId }),
       };
     };
   };
