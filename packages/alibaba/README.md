@@ -96,25 +96,34 @@ Alibaba supports both implicit and explicit prompt caching to reduce costs for r
 import { alibaba } from '@ai-sdk/alibaba';
 import { generateText } from 'ai';
 
+const longDocument = '... large document content ...';
+
 const { text, usage } = await generateText({
   model: alibaba('qwen-plus'),
   messages: [
     {
-      role: 'system',
-      content: 'You are a helpful assistant. [... long system prompt ...]',
-      providerMetadata: {
-        alibaba: {
-          cacheControl: { type: 'ephemeral' },
-        },
-      },
-    },
-    {
       role: 'user',
-      content: 'What is the capital of France?',
+      content: [
+        {
+          type: 'text',
+          text: 'Context: Please analyze this document.',
+        },
+        {
+          type: 'text',
+          text: longDocument,
+          providerOptions: {
+            alibaba: {
+              cacheControl: { type: 'ephemeral' },
+            },
+          },
+        },
+      ],
     },
   ],
 });
 ```
+
+**Note:** The minimum content length for a cache block is 1,024 tokens.
 
 ## Documentation
 

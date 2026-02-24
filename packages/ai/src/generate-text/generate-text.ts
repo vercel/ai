@@ -15,10 +15,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { NoOutputGeneratedError } from '../error';
-import { notifyOnFinish } from '../events/on-finish';
-import { notifyOnStart } from '../events/on-start';
-import { notifyOnStepFinish } from '../events/on-step-finish';
-import { notifyOnStepStart } from '../events/on-step-start';
+import { notify } from '../util/notify';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
@@ -509,7 +506,7 @@ export async function generateText<
 
   registerOtelCall(callId, telemetry);
 
-  await notifyOnStart(onStartEvent, onStart);
+  await notify({ event: onStartEvent, callbacks: onStart });
 
   try {
     const initialMessages = initialPrompt.messages;
@@ -710,7 +707,7 @@ export async function generateText<
           toolChoice: stepToolChoice,
         });
 
-        await notifyOnStepStart(onStepStartEvent, onStepStart);
+        await notify({ event: onStepStartEvent, callbacks: onStepStart });
 
         currentModelResponse = await retry(async () => {
           const result = await stepModel.doGenerate({
@@ -936,7 +933,7 @@ export async function generateText<
 
         steps.push(currentStepResult);
 
-        await notifyOnStepFinish(currentStepResult, onStepFinish);
+        await notify({ event: currentStepResult, callbacks: onStepFinish });
       } finally {
         if (stepTimeoutId != null) {
           clearTimeout(stepTimeoutId);
@@ -998,7 +995,7 @@ export async function generateText<
       totalUsage,
     };
 
-    await notifyOnFinish(onFinishEvent, onFinish);
+    await notify({ event: onFinishEvent, callbacks: onFinish });
 
     // parse output only if the last step was finished with "stop":
     let resolvedOutput;

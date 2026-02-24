@@ -1,95 +1,84 @@
 ---
-title: Event Listeners
-description: Subscribe to lifecycle events across all generateText and streamText calls
+title: Event Callbacks
+description: Subscribe to lifecycle events in generateText and streamText calls
 ---
 
-# Event Listeners
+# Event Callbacks
 
-The AI SDK provides global event listeners that allow you to subscribe to lifecycle events across **all** `generateText` and `streamText` calls in your application. This is useful for building observability tools, logging systems, analytics, and debugging utilities.
-
-<Note>
-  Event listeners are different from the per-call callbacks (`onStart`,
-  `onStepFinish`, etc.) that you pass directly to `generateText` or
-  `streamText`. Global listeners receive events from every generation call,
-  making them ideal for application-wide monitoring.
-</Note>
+The AI SDK provides per-call event callbacks that you can pass to `generateText` and `streamText` to observe lifecycle events. This is useful for building observability tools, logging systems, analytics, and debugging utilities.
 
 ## Basic Usage
 
-Each listener function returns an unsubscribe function that you can call to stop receiving events:
+Pass callbacks directly to `generateText` or `streamText`:
 
 ```ts
-import { listenOnStart, listenOnFinish } from 'ai';
+import { generateText } from 'ai';
 
-// Subscribe to events
-const unsubscribeStart = listenOnStart(event => {
-  console.log('Generation started:', event.model.modelId);
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'What is the weather in San Francisco?',
+  experimental_onStart: event => {
+    console.log('Generation started:', event.model.modelId);
+  },
+  onFinish: event => {
+    console.log('Generation finished:', event.totalUsage);
+  },
 });
-
-const unsubscribeFinish = listenOnFinish(event => {
-  console.log('Generation finished:', event.totalUsage);
-});
-
-// Later, when you want to stop listening:
-unsubscribeStart();
-unsubscribeFinish();
 ```
 
-## Available Listeners
+## Available Callbacks
 
 <PropertiesTable
   content={[
     {
-      name: 'listenOnStart',
-      type: '(listener: OnStartListener) => () => void',
-      description:
-        'Subscribe to events when a generation operation begins, before any LLM calls. Returns an unsubscribe function.',
+      name: 'experimental_onStart',
+      type: '(event: OnStartEvent) => void | Promise<void>',
+      description: 'Called when generation begins, before any LLM calls.',
     },
     {
-      name: 'listenOnStepStart',
-      type: '(listener: OnStepStartListener) => () => void',
+      name: 'experimental_onStepStart',
+      type: '(event: OnStepStartEvent) => void | Promise<void>',
       description:
-        'Subscribe to events when a step (LLM call) begins, before the provider is called. Returns an unsubscribe function.',
+        'Called when a step (LLM call) begins, before the provider is called.',
     },
     {
-      name: 'listenOnToolCallStart',
-      type: '(listener: OnToolCallStartListener) => () => void',
-      description:
-        "Subscribe to events when a tool's execute function is about to run. Returns an unsubscribe function.",
+      name: 'experimental_onToolCallStart',
+      type: '(event: OnToolCallStartEvent) => void | Promise<void>',
+      description: "Called when a tool's execute function is about to run.",
     },
     {
-      name: 'listenOnToolCallFinish',
-      type: '(listener: OnToolCallFinishListener) => () => void',
-      description:
-        "Subscribe to events when a tool's execute function completes or errors. Returns an unsubscribe function.",
+      name: 'experimental_onToolCallFinish',
+      type: '(event: OnToolCallFinishEvent) => void | Promise<void>',
+      description: "Called when a tool's execute function completes or errors.",
     },
     {
-      name: 'listenOnStepFinish',
-      type: '(listener: OnStepFinishListener) => () => void',
-      description:
-        'Subscribe to events when a step (LLM call) completes. Returns an unsubscribe function.',
+      name: 'onStepFinish',
+      type: '(event: OnStepFinishEvent) => void | Promise<void>',
+      description: 'Called when a step (LLM call) completes.',
     },
     {
-      name: 'listenOnFinish',
-      type: '(listener: OnFinishListener) => () => void',
+      name: 'onFinish',
+      type: '(event: OnFinishEvent) => void | Promise<void>',
       description:
-        'Subscribe to events when the entire generation completes (all steps finished). Returns an unsubscribe function.',
+        'Called when the entire generation completes (all steps finished).',
     },
   ]}
 />
 
 ## Event Reference
 
-### `listenOnStart`
+### `experimental_onStart`
 
 Called when the generation operation begins, before any LLM calls are made.
 
 ```ts
-import { listenOnStart } from 'ai';
-
-listenOnStart(event => {
-  console.log('Model:', event.model.modelId);
-  console.log('Temperature:', event.temperature);
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Hello!',
+  experimental_onStart: event => {
+    console.log('Model:', event.model.modelId);
+    console.log('Temperature:', event.temperature);
+  },
 });
 ```
 
@@ -232,16 +221,18 @@ listenOnStart(event => {
   ]}
 />
 
-### `listenOnStepStart`
+### `experimental_onStepStart`
 
 Called before each step (LLM call) begins. Useful for tracking multi-step generations.
 
 ```ts
-import { listenOnStepStart } from 'ai';
-
-listenOnStepStart(event => {
-  console.log('Step:', event.stepNumber);
-  console.log('Messages:', event.messages.length);
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Hello!',
+  experimental_onStepStart: event => {
+    console.log('Step:', event.stepNumber);
+    console.log('Messages:', event.messages.length);
+  },
 });
 ```
 
@@ -344,16 +335,19 @@ listenOnStepStart(event => {
   ]}
 />
 
-### `listenOnToolCallStart`
+### `experimental_onToolCallStart`
 
 Called before a tool's `execute` function runs.
 
 ```ts
-import { listenOnToolCallStart } from 'ai';
-
-listenOnToolCallStart(event => {
-  console.log('Tool:', event.toolCall.toolName);
-  console.log('Input:', event.toolCall.input);
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'What is the weather?',
+  tools: { getWeather },
+  experimental_onToolCallStart: event => {
+    console.log('Tool:', event.toolCall.toolName);
+    console.log('Input:', event.toolCall.input);
+  },
 });
 ```
 
@@ -433,22 +427,25 @@ listenOnToolCallStart(event => {
   ]}
 />
 
-### `listenOnToolCallFinish`
+### `experimental_onToolCallFinish`
 
 Called after a tool's `execute` function completes or errors. Uses a discriminated union on the `success` field.
 
 ```ts
-import { listenOnToolCallFinish } from 'ai';
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'What is the weather?',
+  tools: { getWeather },
+  experimental_onToolCallFinish: event => {
+    console.log('Tool:', event.toolCall.toolName);
+    console.log('Duration:', event.durationMs, 'ms');
 
-listenOnToolCallFinish(event => {
-  console.log('Tool:', event.toolCall.toolName);
-  console.log('Duration:', event.durationMs, 'ms');
-
-  if (event.success) {
-    console.log('Output:', event.output);
-  } else {
-    console.error('Error:', event.error);
-  }
+    if (event.success) {
+      console.log('Output:', event.output);
+    } else {
+      console.error('Error:', event.error);
+    }
+  },
 });
 ```
 
@@ -551,17 +548,19 @@ listenOnToolCallFinish(event => {
   ]}
 />
 
-### `listenOnStepFinish`
+### `onStepFinish`
 
 Called after each step (LLM call) completes. Provides the full `StepResult`.
 
 ```ts
-import { listenOnStepFinish } from 'ai';
-
-listenOnStepFinish(event => {
-  console.log('Step:', event.stepNumber);
-  console.log('Finish reason:', event.finishReason);
-  console.log('Tokens:', event.usage.totalTokens);
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Hello!',
+  onStepFinish: event => {
+    console.log('Step:', event.stepNumber);
+    console.log('Finish reason:', event.finishReason);
+    console.log('Tokens:', event.usage.totalTokens);
+  },
 });
 ```
 
@@ -690,17 +689,19 @@ listenOnStepFinish(event => {
   ]}
 />
 
-### `listenOnFinish`
+### `onFinish`
 
 Called when the entire generation completes (all steps finished). Includes aggregated data.
 
 ```ts
-import { listenOnFinish } from 'ai';
-
-listenOnFinish(event => {
-  console.log('Total steps:', event.steps.length);
-  console.log('Total tokens:', event.totalUsage.totalTokens);
-  console.log('Final text:', event.text);
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Hello!',
+  onFinish: event => {
+    console.log('Total steps:', event.steps.length);
+    console.log('Total tokens:', event.totalUsage.totalTokens);
+    console.log('Final text:', event.text);
+  },
 });
 ```
 
@@ -845,101 +846,70 @@ listenOnFinish(event => {
 ### Logging and Debugging
 
 ```ts
-import { listenOnStart, listenOnStepFinish, listenOnFinish } from 'ai';
+import { generateText } from 'ai';
 
-listenOnStart(event => {
-  console.log(`[${new Date().toISOString()}] Generation started`, {
-    model: event.model.modelId,
-    provider: event.model.provider,
-  });
-});
-
-listenOnStepFinish(event => {
-  console.log(
-    `[${new Date().toISOString()}] Step ${event.stepNumber} finished`,
-    {
-      finishReason: event.finishReason,
-      tokens: event.usage.totalTokens,
-    },
-  );
-});
-
-listenOnFinish(event => {
-  console.log(`[${new Date().toISOString()}] Generation complete`, {
-    totalSteps: event.steps.length,
-    totalTokens: event.totalUsage.totalTokens,
-  });
-});
-```
-
-### Token Usage Tracking
-
-```ts
-import { listenOnFinish } from 'ai';
-
-let totalInputTokens = 0;
-let totalOutputTokens = 0;
-
-listenOnFinish(event => {
-  totalInputTokens += event.totalUsage.inputTokens ?? 0;
-  totalOutputTokens += event.totalUsage.outputTokens ?? 0;
-
-  console.log('Cumulative usage:', { totalInputTokens, totalOutputTokens });
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Hello!',
+  experimental_onStart: event => {
+    console.log(`[${new Date().toISOString()}] Generation started`, {
+      model: event.model.modelId,
+      provider: event.model.provider,
+    });
+  },
+  onStepFinish: event => {
+    console.log(
+      `[${new Date().toISOString()}] Step ${event.stepNumber} finished`,
+      {
+        finishReason: event.finishReason,
+        tokens: event.usage.totalTokens,
+      },
+    );
+  },
+  onFinish: event => {
+    console.log(`[${new Date().toISOString()}] Generation complete`, {
+      totalSteps: event.steps.length,
+      totalTokens: event.totalUsage.totalTokens,
+    });
+  },
 });
 ```
 
 ### Tool Execution Monitoring
 
 ```ts
-import { listenOnToolCallStart, listenOnToolCallFinish } from 'ai';
+import { generateText } from 'ai';
 
-listenOnToolCallStart(event => {
-  console.log(`Tool "${event.toolCall.toolName}" starting...`);
-});
-
-listenOnToolCallFinish(event => {
-  if (event.success) {
-    console.log(
-      `Tool "${event.toolCall.toolName}" completed in ${event.durationMs}ms`,
-    );
-  } else {
-    console.error(`Tool "${event.toolCall.toolName}" failed:`, event.error);
-  }
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'What is the weather?',
+  tools: { getWeather },
+  experimental_onToolCallStart: event => {
+    console.log(`Tool "${event.toolCall.toolName}" starting...`);
+  },
+  experimental_onToolCallFinish: event => {
+    if (event.success) {
+      console.log(
+        `Tool "${event.toolCall.toolName}" completed in ${event.durationMs}ms`,
+      );
+    } else {
+      console.error(`Tool "${event.toolCall.toolName}" failed:`, event.error);
+    }
+  },
 });
 ```
 
 ## Error Handling
 
-Errors thrown inside listener callbacks are caught and do not break the generation flow. This ensures that monitoring code cannot disrupt your application:
+Errors thrown inside callbacks are caught and do not break the generation flow. This ensures that monitoring code cannot disrupt your application:
 
 ```ts
-listenOnStart(() => {
-  throw new Error('This error is caught and logged');
-  // Generation continues normally
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Hello!',
+  experimental_onStart: () => {
+    throw new Error('This error is caught internally');
+    // Generation continues normally
+  },
 });
-```
-
-## Cleanup
-
-Always unsubscribe listeners when they are no longer needed to prevent memory leaks:
-
-```ts
-const unsubscribers: Array<() => void> = [];
-
-// Subscribe
-unsubscribers.push(
-  listenOnStart(event => {
-    /* ... */
-  }),
-);
-unsubscribers.push(
-  listenOnFinish(event => {
-    /* ... */
-  }),
-);
-
-// Later, cleanup all listeners
-for (const unsubscribe of unsubscribers) {
-  unsubscribe();
-}
 ```

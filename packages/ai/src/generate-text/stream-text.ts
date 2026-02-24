@@ -19,10 +19,7 @@ import {
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
-import { notifyOnFinish } from '../events/on-finish';
-import { notifyOnStart } from '../events/on-start';
-import { notifyOnStepFinish } from '../events/on-step-finish';
-import { notifyOnStepStart } from '../events/on-step-start';
+import { notify } from '../util/notify';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import {
@@ -1033,7 +1030,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             providerMetadata: part.providerMetadata,
           });
 
-          await notifyOnStepFinish(currentStepResult, onStepFinish);
+          await notify({ event: currentStepResult, callbacks: onStepFinish });
 
           logWarnings({
             warnings: recordedWarnings,
@@ -1119,7 +1116,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             steps: recordedSteps,
           };
 
-          await notifyOnFinish(onFinishEvent, onFinish);
+          await notify({ event: onFinishEvent, callbacks: onFinish });
 
           // Add response information to the root span:
           rootSpan.setAttributes(
@@ -1309,7 +1306,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           experimental_context,
         };
 
-        await notifyOnStart(onStartEvent, onStart);
+        await notify({ event: onStartEvent, callbacks: onStart });
 
         const initialMessages = initialPrompt.messages;
         const initialResponseMessages: Array<ResponseMessage> = [];
@@ -1579,7 +1576,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               experimental_context,
             };
 
-            await notifyOnStepStart(onStepStartEvent, onStepStart);
+            await notify({ event: onStepStartEvent, callbacks: onStepStart });
 
             const {
               result: { stream, response, request },
