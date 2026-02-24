@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.55
+
+### Patch Changes
+
+- e8172b6: feat (provider/gateway): pass through project id when available for o11y
+
 ## 3.0.54
 
 ### Patch Changes
