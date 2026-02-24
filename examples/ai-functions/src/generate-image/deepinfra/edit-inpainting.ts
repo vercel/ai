@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { deepinfra } from '@ai-sdk/deepinfra';
 import { generateImage } from 'ai';
-import { presentImages } from '../lib/present-image';
-import { run } from '../lib/run';
+import { presentImages } from '../../lib/present-image';
+import { run } from '../../lib/run';
 
 run(async () => {
   const image = readFileSync('data/sunlit_lounge.png');

@@ -9,11 +9,11 @@
  * - Set AI_GATEWAY_API_KEY environment variable
  *   (See .env.example for setup instructions)
  *
- * Run: pnpm tsx src/generate-image/gateway-timeout.ts
+ * Run: pnpm tsx src/generate-image/gateway/timeout.ts
  */
 import { createGateway, generateImage } from 'ai';
 import { Agent, fetch as undiciFetch } from 'undici';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   try {

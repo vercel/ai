@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { openai } from '@ai-sdk/openai';
 import { generateImage } from 'ai';
-import { presentImages } from '../lib/present-image';
-import { run } from '../lib/run';
+import { presentImages } from '../../lib/present-image';
+import { run } from '../../lib/run';
 
 run(async () => {
   const cat = readFileSync('data/comic-cat.png');

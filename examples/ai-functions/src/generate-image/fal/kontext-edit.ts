@@ -1,7 +1,7 @@
 import { fal } from '@ai-sdk/fal';
 import { generateImage } from 'ai';
-import { presentImages } from '../lib/present-image';
-import { run } from '../lib/run';
+import { presentImages } from '../../lib/present-image';
+import { run } from '../../lib/run';
 
 run(async () => {
   const { images } = await generateImage({

@@ -4,8 +4,8 @@ import {
   type TogetherAIImageModelOptions,
 } from '@ai-sdk/togetherai';
 import { generateImage } from 'ai';
-import { presentImages } from '../lib/present-image';
-import { run } from '../lib/run';
+import { presentImages } from '../../lib/present-image';
+import { run } from '../../lib/run';
 
 run(async () => {
   const imageBuffer = readFileSync('data/comic-cat.png');

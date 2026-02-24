@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { xai } from '@ai-sdk/xai';
 import { generateImage } from 'ai';
-import { presentImages } from '../lib/present-image';
-import { run } from '../lib/run';
+import { presentImages } from '../../lib/present-image';
+import { run } from '../../lib/run';
 
 run(async () => {
   const imageBuffer = readFileSync('data/comic-cat.png');

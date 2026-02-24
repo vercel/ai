@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { GoogleVertexImageModelOptions, vertex } from '@ai-sdk/google-vertex';
 import { generateImage } from 'ai';
-import { presentImages } from '../lib/present-image';
-import { run } from '../lib/run';
+import { presentImages } from '../../lib/present-image';
+import { run } from '../../lib/run';
 
 run(async () => {
   const image = readFileSync('data/comic-cat.png');
