@@ -1,6 +1,6 @@
-import type { OnStepStartEvent } from '../generate-text/callback-events';
-import type { Output } from '../generate-text/output';
-import type { ToolSet } from '../generate-text/tool-set';
+import type { OnStepStartEvent } from '../callback-events';
+import type { Output } from '../output';
+import type { ToolSet } from '../tool-set';
 
 /**
  * Generic listener type that accepts any OnStepStartEvent variant.

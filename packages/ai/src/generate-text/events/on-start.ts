@@ -1,6 +1,6 @@
-import type { OnStartEvent } from '../generate-text/callback-events';
-import type { Output } from '../generate-text/output';
-import type { ToolSet } from '../generate-text/tool-set';
+import type { OnStartEvent } from '../callback-events';
+import type { Output } from '../output';
+import type { ToolSet } from '../tool-set';
 
 /**
  * Listener type that accepts any OnStartEvent variant.

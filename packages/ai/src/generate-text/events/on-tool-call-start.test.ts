@@ -1,9 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import {
-  listenOnToolCallStart,
-  notifyOnToolCallStart,
-} from './on-tool-call-start';
-import type { OnToolCallStartEvent } from '../generate-text/callback-events';
+import { describe, it, expect } from 'vitest';
+import { notifyOnToolCallStart } from './on-tool-call-start';
+import type { OnToolCallStartListener } from './on-tool-call-start';
+import type { OnToolCallStartEvent } from '../callback-events';
 
 function createMockOnToolCallStartEvent(
   overrides: Partial<OnToolCallStartEvent> = {},
@@ -27,109 +25,69 @@ function createMockOnToolCallStartEvent(
 }
 
 describe('on-tool-call-start', () => {
-  let unsubscribers: Array<() => void>;
-
-  beforeEach(() => {
-    unsubscribers = [];
-  });
-
-  afterEach(() => {
-    for (const unsubscribe of unsubscribers) {
-      unsubscribe();
-    }
-  });
-
-  describe('listenOnToolCallStart', () => {
-    it('should register a listener and return an unsubscribe function', async () => {
-      const calls: string[] = [];
-
-      const unsubscribe = listenOnToolCallStart(() => {
-        calls.push('listener called');
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnToolCallStart(createMockOnToolCallStartEvent());
-
-      expect(calls).toMatchInlineSnapshot(`
-        [
-          "listener called",
-        ]
-      `);
-    });
-
-    it('should allow multiple listeners to be registered', async () => {
-      const calls: string[] = [];
-
-      const unsubscribe1 = listenOnToolCallStart(() => {
-        calls.push('listener 1');
-      });
-      const unsubscribe2 = listenOnToolCallStart(() => {
-        calls.push('listener 2');
-      });
-      unsubscribers.push(unsubscribe1, unsubscribe2);
-
-      await notifyOnToolCallStart(createMockOnToolCallStartEvent());
-
-      expect(calls).toMatchInlineSnapshot(`
-        [
-          "listener 1",
-          "listener 2",
-        ]
-      `);
-    });
-
-    it('should remove listener when unsubscribe is called', async () => {
-      const calls: string[] = [];
-
-      const unsubscribe1 = listenOnToolCallStart(() => {
-        calls.push('listener 1');
-      });
-      const unsubscribe2 = listenOnToolCallStart(() => {
-        calls.push('listener 2');
-      });
-      unsubscribers.push(unsubscribe1, unsubscribe2);
-
-      await notifyOnToolCallStart(createMockOnToolCallStartEvent());
-
-      expect(calls).toMatchInlineSnapshot(`
-        [
-          "listener 1",
-          "listener 2",
-        ]
-      `);
-
-      calls.length = 0;
-      unsubscribe1();
-
-      await notifyOnToolCallStart(createMockOnToolCallStartEvent());
-
-      expect(calls).toMatchInlineSnapshot(`
-        [
-          "listener 2",
-        ]
-      `);
-    });
-  });
-
   describe('notifyOnToolCallStart', () => {
-    it('should propagate tool call information to listeners', async () => {
+    it('should call a single callback with the event', async () => {
+      const calls: string[] = [];
+
+      await notifyOnToolCallStart({
+        event: createMockOnToolCallStartEvent(),
+        callbacks: () => {
+          calls.push('callback called');
+        },
+      });
+
+      expect(calls).toMatchInlineSnapshot(`
+        [
+          "callback called",
+        ]
+      `);
+    });
+
+    it('should call all callbacks when given an array', async () => {
+      const calls: string[] = [];
+
+      await notifyOnToolCallStart({
+        event: createMockOnToolCallStartEvent(),
+        callbacks: [
+          () => {
+            calls.push('callback 1');
+          },
+          () => {
+            calls.push('callback 2');
+          },
+        ],
+      });
+
+      expect(calls).toMatchInlineSnapshot(`
+        [
+          "callback 1",
+          "callback 2",
+        ]
+      `);
+    });
+
+    it('should handle undefined callbacks gracefully', async () => {
+      await notifyOnToolCallStart({
+        event: createMockOnToolCallStartEvent(),
+        callbacks: undefined,
+      });
+    });
+
+    it('should handle omitted callbacks gracefully', async () => {
+      await notifyOnToolCallStart({
+        event: createMockOnToolCallStartEvent(),
+      });
+    });
+
+    it('should propagate tool call information to callbacks', async () => {
       const receivedToolCalls: Array<{
         toolName: string;
         toolCallId: string;
         input: unknown;
       }> = [];
 
-      const unsubscribe = listenOnToolCallStart(event => {
-        receivedToolCalls.push({
-          toolName: event.toolCall.toolName,
-          toolCallId: event.toolCall.toolCallId,
-          input: event.toolCall.input,
-        });
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnToolCallStart(
-        createMockOnToolCallStartEvent({
+      await notifyOnToolCallStart({
+        event: createMockOnToolCallStartEvent({
           toolCall: {
             type: 'tool-call',
             toolCallId: 'call-123',
@@ -137,7 +95,14 @@ describe('on-tool-call-start', () => {
             input: { location: 'San Francisco', units: 'fahrenheit' },
           },
         }),
-      );
+        callbacks: event => {
+          receivedToolCalls.push({
+            toolName: event.toolCall.toolName,
+            toolCallId: event.toolCall.toolCallId,
+            input: event.toolCall.input,
+          });
+        },
+      });
 
       expect(receivedToolCalls).toMatchInlineSnapshot(`
         [
@@ -153,28 +118,26 @@ describe('on-tool-call-start', () => {
       `);
     });
 
-    it('should propagate step and model context to listeners', async () => {
+    it('should propagate step and model context to callbacks', async () => {
       const receivedContext: Array<{
         stepNumber: number | undefined;
         provider: string | undefined;
         modelId: string | undefined;
       }> = [];
 
-      const unsubscribe = listenOnToolCallStart(event => {
-        receivedContext.push({
-          stepNumber: event.stepNumber,
-          provider: event.model?.provider,
-          modelId: event.model?.modelId,
-        });
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnToolCallStart(
-        createMockOnToolCallStartEvent({
+      await notifyOnToolCallStart({
+        event: createMockOnToolCallStartEvent({
           stepNumber: 2,
           model: { provider: 'openai', modelId: 'gpt-4o' },
         }),
-      );
+        callbacks: event => {
+          receivedContext.push({
+            stepNumber: event.stepNumber,
+            provider: event.model?.provider,
+            modelId: event.model?.modelId,
+          });
+        },
+      });
 
       expect(receivedContext).toMatchInlineSnapshot(`
         [
@@ -193,23 +156,21 @@ describe('on-tool-call-start', () => {
         lastMessageRole: string;
       }> = [];
 
-      const unsubscribe = listenOnToolCallStart(event => {
-        const lastMessage = event.messages[event.messages.length - 1];
-        receivedMessages.push({
-          messageCount: event.messages.length,
-          lastMessageRole: lastMessage?.role ?? 'none',
-        });
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnToolCallStart(
-        createMockOnToolCallStartEvent({
+      await notifyOnToolCallStart({
+        event: createMockOnToolCallStartEvent({
           messages: [
             { role: 'user', content: 'What is the weather?' },
             { role: 'assistant', content: 'Let me check that for you.' },
           ],
         }),
-      );
+        callbacks: event => {
+          const lastMessage = event.messages[event.messages.length - 1];
+          receivedMessages.push({
+            messageCount: event.messages.length,
+            lastMessageRole: lastMessage?.role ?? 'none',
+          });
+        },
+      });
 
       expect(receivedMessages).toMatchInlineSnapshot(`
         [
@@ -221,54 +182,39 @@ describe('on-tool-call-start', () => {
       `);
     });
 
-    it('should call the optional callback after listeners', async () => {
-      const callOrder: string[] = [];
-
-      const unsubscribe = listenOnToolCallStart(() => {
-        callOrder.push('listener');
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnToolCallStart(createMockOnToolCallStartEvent(), () => {
-        callOrder.push('callback');
-      });
-
-      expect(callOrder).toMatchInlineSnapshot(`
-        [
-          "listener",
-          "callback",
-        ]
-      `);
-    });
-
-    it('should catch errors in listeners without breaking', async () => {
+    it('should catch errors in callbacks without breaking', async () => {
       const calls: string[] = [];
 
-      const unsubscribe1 = listenOnToolCallStart(() => {
-        calls.push('listener 1 before throw');
-        throw new Error('listener 1 error');
+      await notifyOnToolCallStart({
+        event: createMockOnToolCallStartEvent(),
+        callbacks: [
+          () => {
+            calls.push('callback 1 before throw');
+            throw new Error('callback 1 error');
+          },
+          () => {
+            calls.push('callback 2');
+          },
+        ],
       });
-      const unsubscribe2 = listenOnToolCallStart(() => {
-        calls.push('listener 2');
-      });
-      unsubscribers.push(unsubscribe1, unsubscribe2);
-
-      await notifyOnToolCallStart(createMockOnToolCallStartEvent());
 
       expect(calls).toMatchInlineSnapshot(`
         [
-          "listener 1 before throw",
-          "listener 2",
+          "callback 1 before throw",
+          "callback 2",
         ]
       `);
     });
 
-    it('should catch errors in callback without breaking', async () => {
+    it('should catch errors in a single callback without breaking', async () => {
       const calls: string[] = [];
 
-      await notifyOnToolCallStart(createMockOnToolCallStartEvent(), () => {
-        calls.push('callback before throw');
-        throw new Error('callback error');
+      await notifyOnToolCallStart({
+        event: createMockOnToolCallStartEvent(),
+        callbacks: () => {
+          calls.push('callback before throw');
+          throw new Error('callback error');
+        },
       });
 
       calls.push('after notifyOnToolCallStart');
@@ -280,25 +226,44 @@ describe('on-tool-call-start', () => {
         ]
       `);
     });
+
+    it('should support async callbacks', async () => {
+      const calls: string[] = [];
+
+      const asyncCallback: OnToolCallStartListener<any> = async event => {
+        await new Promise(resolve => setTimeout(resolve, 1));
+        calls.push(`async: ${event.toolCall.toolName}`);
+      };
+
+      await notifyOnToolCallStart({
+        event: createMockOnToolCallStartEvent(),
+        callbacks: asyncCallback,
+      });
+
+      expect(calls).toMatchInlineSnapshot(`
+        [
+          "async: testTool",
+        ]
+      `);
+    });
   });
 
   describe('tool call specific scenarios', () => {
-    it('should track multiple tool calls in sequence', async () => {
+    it('should handle multiple sequential notifications', async () => {
       const toolCallSequence: Array<{
         toolName: string;
         toolCallId: string;
       }> = [];
 
-      const unsubscribe = listenOnToolCallStart(event => {
+      const callback: OnToolCallStartListener<any> = event => {
         toolCallSequence.push({
           toolName: event.toolCall.toolName,
           toolCallId: event.toolCall.toolCallId,
         });
-      });
-      unsubscribers.push(unsubscribe);
+      };
 
-      await notifyOnToolCallStart(
-        createMockOnToolCallStartEvent({
+      await notifyOnToolCallStart({
+        event: createMockOnToolCallStartEvent({
           toolCall: {
             type: 'tool-call',
             toolCallId: 'call-1',
@@ -306,10 +271,11 @@ describe('on-tool-call-start', () => {
             input: { location: 'NYC' },
           },
         }),
-      );
+        callbacks: callback,
+      });
 
-      await notifyOnToolCallStart(
-        createMockOnToolCallStartEvent({
+      await notifyOnToolCallStart({
+        event: createMockOnToolCallStartEvent({
           toolCall: {
             type: 'tool-call',
             toolCallId: 'call-2',
@@ -317,10 +283,11 @@ describe('on-tool-call-start', () => {
             input: { timezone: 'EST' },
           },
         }),
-      );
+        callbacks: callback,
+      });
 
-      await notifyOnToolCallStart(
-        createMockOnToolCallStartEvent({
+      await notifyOnToolCallStart({
+        event: createMockOnToolCallStartEvent({
           toolCall: {
             type: 'tool-call',
             toolCallId: 'call-3',
@@ -328,7 +295,8 @@ describe('on-tool-call-start', () => {
             input: { to: 'test@example.com', subject: 'Weather Report' },
           },
         }),
-      );
+        callbacks: callback,
+      });
 
       expect(toolCallSequence).toMatchInlineSnapshot(`
         [
@@ -351,13 +319,8 @@ describe('on-tool-call-start', () => {
     it('should propagate complex nested tool input', async () => {
       const receivedInputs: Array<unknown> = [];
 
-      const unsubscribe = listenOnToolCallStart(event => {
-        receivedInputs.push(event.toolCall.input);
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnToolCallStart(
-        createMockOnToolCallStartEvent({
+      await notifyOnToolCallStart({
+        event: createMockOnToolCallStartEvent({
           toolCall: {
             type: 'tool-call',
             toolCallId: 'call-complex',
@@ -375,7 +338,10 @@ describe('on-tool-call-start', () => {
             },
           },
         }),
-      );
+        callbacks: event => {
+          receivedInputs.push(event.toolCall.input);
+        },
+      });
 
       expect(receivedInputs).toMatchInlineSnapshot(`
         [
@@ -409,16 +375,8 @@ describe('on-tool-call-start', () => {
         metadata: Record<string, unknown> | undefined;
       }> = [];
 
-      const unsubscribe = listenOnToolCallStart(event => {
-        receivedMetadata.push({
-          functionId: event.functionId,
-          metadata: event.metadata,
-        });
-      });
-      unsubscribers.push(unsubscribe);
-
-      await notifyOnToolCallStart(
-        createMockOnToolCallStartEvent({
+      await notifyOnToolCallStart({
+        event: createMockOnToolCallStartEvent({
           functionId: 'weather-assistant',
           metadata: {
             userId: 'user-123',
@@ -426,7 +384,13 @@ describe('on-tool-call-start', () => {
             requestId: 'req-789',
           },
         }),
-      );
+        callbacks: event => {
+          receivedMetadata.push({
+            functionId: event.functionId,
+            metadata: event.metadata,
+          });
+        },
+      });
 
       expect(receivedMetadata).toMatchInlineSnapshot(`
         [

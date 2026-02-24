@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { listenOnFinish, notifyOnFinish } from './on-finish';
-import type { OnFinishEvent } from '../generate-text/callback-events';
-import type { LanguageModelUsage } from '../types/usage';
-import type { StepResult } from '../generate-text/step-result';
-import type { ToolSet } from '../generate-text/tool-set';
+import type { OnFinishEvent } from '../callback-events';
+import type { LanguageModelUsage } from '../../types/usage';
+import type { StepResult } from '../step-result';
+import type { ToolSet } from '../tool-set';
 
 function createMockUsage(
   inputTokens: number,

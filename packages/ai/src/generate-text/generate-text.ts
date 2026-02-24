@@ -15,10 +15,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { NoOutputGeneratedError } from '../error';
-import { notifyOnFinish } from '../events/on-finish';
-import { notifyOnStart } from '../events/on-start';
-import { notifyOnStepFinish } from '../events/on-step-finish';
-import { notifyOnStepStart } from '../events/on-step-start';
+import { notifyOnFinish } from './events/on-finish';
+import { notifyOnStart } from './events/on-start';
+import { notifyOnStepFinish } from './events/on-step-finish';
+import { notifyOnStepStart } from './events/on-step-start';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';

@@ -19,10 +19,10 @@ import {
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
-import { notifyOnFinish } from '../events/on-finish';
-import { notifyOnStart } from '../events/on-start';
-import { notifyOnStepFinish } from '../events/on-step-finish';
-import { notifyOnStepStart } from '../events/on-step-start';
+import { notifyOnFinish } from './events/on-finish';
+import { notifyOnStart } from './events/on-start';
+import { notifyOnStepFinish } from './events/on-step-finish';
+import { notifyOnStepStart } from './events/on-step-start';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import {

@@ -1,5 +1,5 @@
-import type { OnFinishEvent } from '../generate-text/callback-events';
-import type { ToolSet } from '../generate-text/tool-set';
+import type { OnFinishEvent } from '../callback-events';
+import type { ToolSet } from '../tool-set';
 
 /**
  * Generic listener type that accepts any OnFinishEvent variant.

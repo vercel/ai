@@ -3,7 +3,7 @@ import {
   listenOnToolCallFinish,
   notifyOnToolCallFinish,
 } from './on-tool-call-finish';
-import type { OnToolCallFinishEvent } from '../generate-text/callback-events';
+import type { OnToolCallFinishEvent } from '../callback-events';
 
 function createMockSuccessEvent(
   overrides: Partial<

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { listenOnStart, notifyOnStart } from './on-start';
-import type { OnStartEvent } from '../generate-text/callback-events';
+import type { OnStartEvent } from '../callback-events';
 
 function createMockOnStartEvent(
   overrides: Partial<OnStartEvent> = {},
