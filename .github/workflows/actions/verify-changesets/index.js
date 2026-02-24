@@ -2,6 +2,18 @@ import fs from 'node:fs/promises';
 
 const BYPASS_LABELS = ['minor', 'major'];
 
+// Extensions considered as source code (not tests, not docs)
+const CODE_EXTENSIONS = /\.(ts|tsx|js|jsx|mts|mjs|cts|cjs)$/;
+// Patterns considered as test files
+const TEST_FILE_PATTERNS = /\.(test|spec)\.(ts|js|tsx|jsx|mts|mjs)$|\.test-d\.ts$/;
+
+function isCodeFile(path) {
+  if (!path.startsWith('packages/')) return false;
+  if (TEST_FILE_PATTERNS.test(path)) return false;
+  if (path.endsWith('.md')) return false;
+  return CODE_EXTENSIONS.test(path);
+}
+
 // check if current file is the entry point
 if (import.meta.url.endsWith(process.argv[1])) {
   // https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request
@@ -60,8 +72,78 @@ export async function verifyChangesets(
     return `Skipping changeset verification - "${byPassLabel.name}" label found`;
   }
 
+  // Check that all packages with code changes are covered by a changeset
+  const packageFiles = (env.CHANGED_PACKAGE_FILES || '').trim();
+  if (packageFiles) {
+    const codeFiles = packageFiles.split(/\s+/).filter(isCodeFile);
+
+    if (codeFiles.length > 0) {
+      // Extract unique package directories (e.g. "packages/ai" from "packages/ai/src/index.ts")
+      const packageDirs = [
+        ...new Set(codeFiles.map(f => f.split('/').slice(0, 2).join('/'))),
+      ];
+
+      // Map package directories to npm package names via package.json
+      const changedPackageNames = [];
+      for (const dir of packageDirs) {
+        try {
+          const pkgJson = JSON.parse(
+            await readFile(`../../../../${dir}/package.json`, 'utf-8'),
+          );
+          if (pkgJson.name && !pkgJson.private) {
+            changedPackageNames.push(pkgJson.name);
+          }
+        } catch {
+          // skip if package.json cannot be read
+        }
+      }
+
+      if (changedPackageNames.length > 0) {
+        const changesetFiles = (env.CHANGED_FILES || '')
+          .trim()
+          .split(/\s+/)
+          .filter(
+            f =>
+              f &&
+              f !== '.changeset/README.md' &&
+              /^\.changeset\/[a-z-]+\.md$/.test(f),
+          );
+
+        if (changesetFiles.length === 0) {
+          throw new Error(
+            `Missing changeset - packages were modified but no .changeset/*.md file was found. Run 'pnpm changeset' to create one.`,
+          );
+        }
+
+        // Collect all package names covered by the changeset files
+        const coveredPackages = new Set();
+        for (const path of changesetFiles) {
+          const content = await readFile(`../../../../${path}`, 'utf-8');
+          const result = content.match(/---\n([\s\S]+?)\n---/);
+          if (result) {
+            for (const line of result[1].split('\n').filter(Boolean)) {
+              const rawName = line.split(':')[0].trim();
+              // Strip surrounding quotes (e.g. `'@ai-sdk/openai'` → `@ai-sdk/openai`)
+              const name = rawName.replace(/^['"]|['"]$/g, '');
+              if (name) coveredPackages.add(name);
+            }
+          }
+        }
+
+        const missingPackages = changedPackageNames.filter(
+          n => !coveredPackages.has(n),
+        );
+        if (missingPackages.length > 0) {
+          throw new Error(
+            `Missing changeset entries for packages: ${missingPackages.join(', ')}. Make sure all modified packages are listed in a .changeset/*.md file.`,
+          );
+        }
+      }
+    }
+  }
+
   // Iterate through all changed .changeset/*.md files
-  for (const path of env.CHANGED_FILES.trim().split(' ')) {
+  for (const path of (env.CHANGED_FILES || '').trim().split(' ').filter(Boolean)) {
     // ignore README.md file
     if (path === '.changeset/README.md') continue;
 
