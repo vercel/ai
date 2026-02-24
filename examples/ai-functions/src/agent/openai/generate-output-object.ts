@@ -1,10 +1,13 @@
 import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { Output, ToolLoopAgent } from 'ai';
+import { run } from '../../lib/run';
 import { z } from 'zod';
-import { run } from '../lib/run';
 
 const agent = new ToolLoopAgent({
   model: openai('gpt-4o'),
+  callOptionsSchema: z.object({
+    strict: z.boolean(),
+  }),
   output: Output.object({
     schema: z.object({
       recipe: z.object({
@@ -19,20 +22,23 @@ const agent = new ToolLoopAgent({
       }),
     }),
   }),
-  providerOptions: {
-    openai: {
-      strictJsonSchema: true,
-    } satisfies OpenAILanguageModelResponsesOptions,
-  },
+  prepareCall: ({ options, ...rest }) => ({
+    ...rest,
+    providerOptions: {
+      openai: {
+        strictJsonSchema: options.strict,
+      } satisfies OpenAILanguageModelResponsesOptions,
+    },
+  }),
 });
 
 run(async () => {
-  const result = await agent.stream({
+  const { output } = await agent.generate({
     prompt: 'Generate a lasagna recipe.',
+    options: {
+      strict: true,
+    },
   });
 
-  for await (const partialObject of result.partialOutputStream) {
-    console.clear();
-    console.dir(partialObject, { depth: Infinity });
-  }
+  console.dir(output, { depth: Infinity });
 });

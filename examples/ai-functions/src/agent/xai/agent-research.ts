@@ -1,6 +1,6 @@
 import { xai } from '@ai-sdk/xai';
 import { ToolLoopAgent } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 const agent = new ToolLoopAgent({
   model: xai.responses('grok-4-fast'),

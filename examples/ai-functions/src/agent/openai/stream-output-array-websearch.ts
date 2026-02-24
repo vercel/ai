@@ -1,9 +1,9 @@
 import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { Output, ToolLoopAgent } from 'ai';
 import { z } from 'zod';
-import { print } from '../lib/print';
-import { printFullStream } from '../lib/print-full-stream';
-import { run } from '../lib/run';
+import { print } from '../../lib/print';
+import { printFullStream } from '../../lib/print-full-stream';
+import { run } from '../../lib/run';
 
 const agent = new ToolLoopAgent({
   model: openai('gpt-5-mini'),

@@ -4,8 +4,8 @@ import {
 } from '@ai-sdk/anthropic';
 import { ToolLoopAgent } from 'ai';
 import fs from 'node:fs';
-import { print } from '../lib/print';
-import { run } from '../lib/run';
+import { print } from '../../lib/print';
+import { run } from '../../lib/run';
 
 const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 

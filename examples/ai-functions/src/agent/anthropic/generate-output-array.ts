@@ -1,9 +1,9 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { Output, ToolLoopAgent } from 'ai';
 import { z } from 'zod';
-import { print } from '../lib/print';
-import { run } from '../lib/run';
-import { weatherTool } from '../tools/weather-tool';
+import { print } from '../../lib/print';
+import { run } from '../../lib/run';
+import { weatherTool } from '../../tools/weather-tool';
 
 const agent = new ToolLoopAgent({
   model: anthropic('claude-haiku-4-5'),

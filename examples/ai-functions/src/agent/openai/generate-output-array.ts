@@ -1,9 +1,9 @@
 import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { Output, ToolLoopAgent } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 import { z } from 'zod';
-import { weatherTool } from '../tools/weather-tool';
-import { print } from '../lib/print';
+import { weatherTool } from '../../tools/weather-tool';
+import { print } from '../../lib/print';
 
 const agent = new ToolLoopAgent({
   model: openai('gpt-5-mini'),

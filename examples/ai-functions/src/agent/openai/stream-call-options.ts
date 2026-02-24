@@ -1,8 +1,9 @@
 import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { LanguageModel, ToolLoopAgent } from 'ai';
 import { z } from 'zod';
-import { print } from '../lib/print';
-import { run } from '../lib/run';
+import { print } from '../../lib/print';
+import { printFullStream } from '../../lib/print-full-stream';
+import { run } from '../../lib/run';
 
 const agent = new ToolLoopAgent({
   model: openai('gpt-5-mini'),
@@ -13,7 +14,7 @@ const agent = new ToolLoopAgent({
     reasoningEffort: z.enum(['low', 'medium', 'high']),
   }),
   tools: {
-    webSearch: openai.tools.webSearch(),
+    web_search: openai.tools.webSearch(),
   },
   prepareCall: ({ options, ...rest }) => ({
     ...rest,
@@ -25,7 +26,7 @@ const agent = new ToolLoopAgent({
       } satisfies OpenAILanguageModelResponsesOptions,
     },
     tools: {
-      webSearch: openai.tools.webSearch({
+      web_search: openai.tools.webSearch({
         searchContextSize: 'low',
         userLocation: {
           type: 'approximate',
@@ -43,7 +44,7 @@ const agent = new ToolLoopAgent({
 });
 
 run(async () => {
-  const result = await agent.generate({
+  const result = await agent.stream({
     prompt: 'What news did happen here yesterday?',
     options: {
       model: openai('gpt-5-nano'),
@@ -53,5 +54,5 @@ run(async () => {
     },
   });
 
-  print('CONTENT:', result.content);
+  await printFullStream({ result });
 });

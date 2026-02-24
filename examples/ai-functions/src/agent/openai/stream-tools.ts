@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { ToolLoopAgent, tool } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 import { z } from 'zod';
 
 const agent = new ToolLoopAgent({
