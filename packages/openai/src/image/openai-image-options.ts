@@ -18,6 +18,7 @@ export const modelMaxImagesPerCall: Record<OpenAIImageModelId, number> = {
 };
 
 const defaultResponseFormatPrefixes = [
+  'chatgpt-image-',
   'gpt-image-1-mini',
   'gpt-image-1.5',
   'gpt-image-1',
