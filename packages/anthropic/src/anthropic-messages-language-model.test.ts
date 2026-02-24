@@ -3005,6 +3005,79 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(result.warnings).toStrictEqual([]);
     });
 
+    it('should pass cache_control to request body', async () => {
+      prepareJsonResponse({});
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            cacheControl: { type: 'ephemeral' },
+          } satisfies AnthropicProviderOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "cache_control": {
+            "type": "ephemeral",
+          },
+          "max_tokens": 4096,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "claude-3-haiku-20240307",
+        }
+      `);
+
+      expect(result.warnings).toStrictEqual([]);
+    });
+
+    it('should pass cache_control with ttl to request body', async () => {
+      prepareJsonResponse({});
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            cacheControl: { type: 'ephemeral', ttl: '1h' },
+          } satisfies AnthropicProviderOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "cache_control": {
+            "ttl": "1h",
+            "type": "ephemeral",
+          },
+          "max_tokens": 4096,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "claude-3-haiku-20240307",
+        }
+      `);
+
+      expect(result.warnings).toStrictEqual([]);
+    });
+
     describe('context management', () => {
       it('should send context_management in request body', async () => {
         prepareJsonResponse({});
