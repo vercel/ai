@@ -15,10 +15,10 @@ jobs:
           app-id: ${{ vars.VERCEL_AI_SDK_GITHUB_APP_CLIENT_ID }}
           private-key: ${{ secrets.VERCEL_AI_SDK_GITHUB_APP_PRIVATE_KEY_PKCS8 }}
 
-      - name: Build issue body
-        id: body
+      - name: Create issue
         uses: actions/github-script@v7
         with:
+          github-token: ${{ steps.app-token.outputs.token }}
           script: |
             const { provider, resultType, newModelIDs, obsoleteModelIDs } = context.payload.client_payload;
 
@@ -43,20 +43,10 @@ jobs:
               lines.push('');
             }
 
-            core.setOutput('content', lines.join('\n'));
-
-      - name: Create issue
-        uses: octokit/request-action@v2.x
-        with:
-          route: POST /repos/{owner}/{repo}/issues
-          owner: vercel
-          repo: ai
-          title: |
-            🤖 Provider model changes - ${{ env.PROVIDER }}
-          body: |
-            ${{ env.BODY }}
-          labels: '["maintenance"]'
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-          PROVIDER: ${{ github.event.client_payload.provider }}
-          BODY: ${{ steps.body.outputs.content }}
+            await github.rest.issues.create({
+              owner: 'vercel',
+              repo: 'ai',
+              title: `🤖 Provider model changes - ${provider}`,
+              body: lines.join('\n'),
+              labels: ['maintenance'],
+            });
