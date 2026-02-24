@@ -92,30 +92,6 @@ Alibaba supports both implicit and explicit prompt caching to reduce costs for r
 
 **Implicit caching** works automatically - the provider caches appropriate content without any configuration. For more control, you can use **explicit caching** by marking specific messages with `cacheControl`:
 
-### Single message cache control
-
-```ts
-import { alibaba } from '@ai-sdk/alibaba';
-import { generateText } from 'ai';
-
-const { text, usage } = await generateText({
-  model: alibaba('qwen-plus'),
-  messages: [
-    {
-      role: 'system',
-      content: 'You are a helpful assistant. [... long system prompt ...]',
-      providerOptions: {
-        alibaba: {
-          cacheControl: { type: 'ephemeral' },
-        },
-      },
-    },
-  ],
-});
-```
-
-### Multi-part message cache control
-
 ```ts
 import { alibaba } from '@ai-sdk/alibaba';
 import { generateText } from 'ai';
