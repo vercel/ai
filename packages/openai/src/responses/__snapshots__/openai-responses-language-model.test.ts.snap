@@ -384,33 +384,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
   {
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_006c87998160835a00699768c714548190a76d8066765b588b",
-        "reasoningEncryptedContent": null,
-      },
-    },
-    "text": "**Planning web query actions**
-
-I need to decide on how to approach the user's request. Once we click, we might need to scroll, but the initial click could already align us with the relevant section. We shouldn't rely on 'open page' since that's banned, and I can skip calling 'open' or 'find.' Instead, I'll do one image query and some clicks to explore a few articles. So, I’m going to call web.run now to move forward!",
-    "type": "reasoning",
-  },
-  {
-    "input": "{}",
-    "providerExecuted": true,
-    "toolCallId": "ws_006c87998160835a00699768d13cc8819084e1ab6edd75b685",
-    "toolName": "web_search",
-    "type": "tool-call",
-  },
-  {
-    "providerExecuted": true,
-    "result": {},
-    "toolCallId": "ws_006c87998160835a00699768d13cc8819084e1ab6edd75b685",
-    "toolName": "web_search",
-    "type": "tool-result",
-  },
-  {
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_006c87998160835a00699768d1930c819083a52ff0147cc9b2",
+        "itemId": "rs_0953eda47ee1741200693330620ffc8195a85077fdd02c8d2d",
         "reasoningEncryptedContent": null,
       },
     },
@@ -420,31 +394,7 @@ I need to decide on how to approach the user's request. Once we click, we might 
   {
     "input": "{}",
     "providerExecuted": true,
-    "toolCallId": "ws_006c87998160835a00699768d460e88190ab44048180541660",
-    "toolName": "web_search",
-    "type": "tool-call",
-  },
-  {
-    "providerExecuted": true,
-    "result": {},
-    "toolCallId": "ws_006c87998160835a00699768d460e88190ab44048180541660",
-    "toolName": "web_search",
-    "type": "tool-result",
-  },
-  {
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_006c87998160835a00699768d574e48190a7a5e3fb197758c5",
-        "reasoningEncryptedContent": null,
-      },
-    },
-    "text": "",
-    "type": "reasoning",
-  },
-  {
-    "input": "{}",
-    "providerExecuted": true,
-    "toolCallId": "ws_006c87998160835a00699768e3537081908604a2d5537bbd96",
+    "toolCallId": "ws_0953eda47ee1741200693330682c988195aaa470a8cc51dfe4",
     "toolName": "web_search",
     "type": "tool-call",
   },
@@ -452,200 +402,245 @@ I need to decide on how to approach the user's request. Once we click, we might 
     "providerExecuted": true,
     "result": {
       "action": {
-        "query": "Tokyo tech news February 19 2026",
+        "query": "tech news today December 5 2025",
         "type": "search",
       },
       "sources": [
         {
           "type": "url",
-          "url": "https://www.cambridgeday.com/2026/02/19/tactus-takes-on-tokyo/",
+          "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
         },
         {
           "type": "url",
-          "url": "https://www.onefc.com/features/scenes-from-the-one-samurai-press-conference-in-tokyo/",
+          "url": "https://www.wired.com/story/the-big-interview-2025-recap",
         },
         {
           "type": "url",
-          "url": "https://www.nippon.com/en/news/yjj2026021900827/",
+          "url": "https://www.barrons.com/articles/stock-movers-7c77880d",
         },
         {
           "type": "url",
-          "url": "https://www.tradingview.com/news/macenews%3A9e584a525094b%3A0-preview-forecasters-see-tokyo-core-cpi-1-7-in-february-on-year-below-boj-2-target/",
+          "url": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-inflation-data-ai-stock/",
         },
         {
           "type": "url",
-          "url": "https://marketech-apac.com/sony-brings-virtual-production-hub-to-tokyo-with-new-creator-base/",
+          "url": "https://www.investopedia.com/5-things-to-know-before-the-stock-market-opens-december-5-2025-11862701",
         },
         {
           "type": "url",
-          "url": "https://wdwnt.com/2026/02/tree-falls-on-main-street-u-s-a-during-sweethearts-nite-at-disneyland-in-todays-daily-recap-for-2-18-2026/",
+          "url": "https://www.investing.com/news/stock-market-news/ai-coding-startup-vercel-raises-300-million-valued-at-93-billion-4264199",
         },
         {
           "type": "url",
-          "url": "https://www.porttechnology.org/mitsui-es-wins-electric-crane-order-for-port-of-tokyo/",
+          "url": "https://www.finsmes.com/2025/10/vercel-closes-300m-series-f-funding-at-9-3-billion-valuation.html",
         },
         {
           "type": "url",
-          "url": "https://timesofindia.indiatimes.com/technology/tech-news/government-announces-major-change-india-ai-summit-2026-extended-by-one-day-to-be-closed-on-february-19/articleshow/128510667.cms",
+          "url": "https://vercel.com/blog/series-f",
         },
         {
           "type": "url",
-          "url": "https://www.nst.com.my/amp/business/corporate/2026/02/1380763/japans-nikkei-rises-tech-rally-and-takaichis-spending-plan",
+          "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
         },
         {
           "type": "url",
-          "url": "https://www.china.org.cn/world/Off_the_Wire/2026-02/19/content_118339031.shtml",
+          "url": "https://www.nasdaq.com/press-release/vercel-announces-%24150m-in-series-d-funding-at-a-%242.5b-valuation-to-further-fuel",
         },
         {
           "type": "url",
-          "url": "https://english.news.cn/asiapacific/20260219/eff32c8d94cc4de090c79a04059a3dad/c.html",
+          "url": "https://www.mexc.com/en-NG/news/77540",
         },
         {
           "type": "url",
-          "url": "https://www.alojapan.com/1455140/tokyo-shares-rise-on-tech-gains-weaker-yen/",
+          "url": "https://www.theinformation.com/briefings/vercel-lands-unsolicited-investment-offers-9-billion",
         },
         {
           "type": "url",
-          "url": "https://www.japantimes.co.jp/business/2026/02/18/sushi-teck-preview/",
+          "url": "https://www.mexc.com/en-NG/news/us-cloud-platform-vercel-achieves-9-billion-valuation-amid-rapid-growth-in-ai-integration/77540",
         },
         {
           "type": "url",
-          "url": "https://business.times-online.com/times-online/article/marketminute-2026-2-18-japans-exports-surge-17-in-january-amid-ai-giga-cycle-and-robust-asian-demand",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-30/vercel-notches-9-3-billion-valuation-in-latest-ai-funding-round",
         },
         {
           "type": "url",
-          "url": "https://en.wikipedia.org/wiki/AI_Impact_Summit",
+          "url": "https://www.aol.com/exclusive-vercel-completes-250-million-144101876.html",
         },
         {
           "type": "url",
-          "url": "https://techspotokyo.jp/",
-        },
-        {
-          "type": "url",
-          "url": "https://markets.financialcontent.com/stocks/article/getnews-2026-2-18-announcing-the-winners-of-the-tokyo-financial-award-2025-award-ceremony-to-be-held-in-collaboration-with-japan-fintech-week-2026",
+          "url": "https://www.sentinelone.com/vulnerability-database/cve-2025-49826/",
         },
       ],
     },
-    "toolCallId": "ws_006c87998160835a00699768e3537081908604a2d5537bbd96",
+    "toolCallId": "ws_0953eda47ee1741200693330682c988195aaa470a8cc51dfe4",
     "toolName": "web_search",
     "type": "tool-result",
   },
   {
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_006c87998160835a00699768efacc48190a7e5c2961a6cb88d",
+        "itemId": "rs_0953eda47ee17412006933306a4f188195b2870a804561da54",
         "reasoningEncryptedContent": null,
       },
     },
-    "text": "**Gathering tech news for Tokyo**
-
-I’ve got some search results for tech news dated February 19, 2026, specifically for Tokyo. I’ll focus on a few key items. There’s a collaboration between Rakuten and Google via YouTube, which is relevant to tech and business in Tokyo. Then, Sony is opening a new virtual production hub there, marking their third global Digital Media Production Center. Lastly, MITSUI E&S won an order for electric cranes at the Port of Tokyo. This gives a nice mix of tech developments!",
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ws_0953eda47ee17412006933306f501c8195b9d3dfba4c547834",
+    "toolName": "web_search",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "action": {
+        "type": "openPage",
+        "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
+      },
+    },
+    "toolCallId": "ws_0953eda47ee17412006933306f501c8195b9d3dfba4c547834",
+    "toolName": "web_search",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0953eda47ee174120069333071b0e08195a5b1d1ded4df6f3d",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ws_0953eda47ee1741200693330740e248195a2c77632e480424b",
+    "toolName": "web_search",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "action": {
+        "pattern": "Vercel",
+        "type": "findInPage",
+        "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
+      },
+    },
+    "toolCallId": "ws_0953eda47ee1741200693330740e248195a2c77632e480424b",
+    "toolName": "web_search",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0953eda47ee174120069333075d5e48195b354c3bf3d30fb47",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
     "type": "reasoning",
   },
   {
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_006c87998160835a00699768efacc48190a7e5c2961a6cb88d",
-        "reasoningEncryptedContent": null,
+        "itemId": "msg_0953eda47ee17412006933308e32f08195bdfb73a410a2abfc",
       },
     },
-    "text": "**Summarizing today’s tech news from Tokyo**
+    "text": "Short answer first — yes. I pulled several tech-news pages published today (December 5, 2025) and searched each for the keyword pattern "vercel". Below is a brief “today in tech” digest followed by the exact results of the on-page searches.
 
-I’m looking at tech-related news from Tokyo as of today. First, Tokyo stocks ended higher, driven by tech shares and a weaker yen. There’s also a music-tech startup from Cambridge set to represent their city at a Tokyo innovation gathering, offering an international perspective. I can mention a preview from SusHi Tech Tokyo announced yesterday, but I need to keep it concise and focused on what’s relevant for today. I’ll summarize 4-5 key bullet points for clarity.",
-    "type": "reasoning",
-  },
-  {
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_006c87998160835a00699768efacc48190a7e5c2961a6cb88d",
-        "reasoningEncryptedContent": null,
-      },
-    },
-    "text": "**Clarifying the date for updates**
+Today’s top tech stories (December 5, 2025) — quick highlights
+- OpenAI declared a “code red” for ChatGPT as pressure increases from rivals (discussion and analysis on The Vergecast). ([theverge.com](https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast))  
+- The EU opened a formal antitrust probe into Meta’s WhatsApp AI policy, which regulators say could block rival AI assistants. ([techstartups.com](https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/))  
+- A major media deal: reports that Netflix is pursuing an $83B acquisition of Warner Bros. Discovery (market coverage today). ([investopedia.com](https://www.investopedia.com/5-things-to-know-before-the-stock-market-opens-december-5-2025-11862701?utm_source=openai))  
+- Vercel-related funding and valuation news continued to circulate: Vercel disclosed a large funding/tender transaction and company posts describe a Series F round positioning the company as AI/cloud-focused. (see company blog + news coverage). ([vercel.com](https://vercel.com/blog/series-f))  
+- Security note: a recently disclosed Next.js cache-poisoning/CVE issue was documented (affects certain Next.js versions; patch was released). ([sentinelone.com](https://www.sentinelone.com/vulnerability-database/cve-2025-49826/?utm_source=openai))
 
-I need to ensure the date is clear since it’s February 19, 2026, in the US, and probably February 20 in Tokyo due to time differences. Tokyo is UTC+9, so it’s likely still February 19 there from the user’s perspective. The user wants tech news relevant to Tokyo today, so I’ll phrase it as, “As of February 19, 2026, in Tokyo, here are some notable tech-related stories.” I should verify snippets quickly, but I won’t use the open function since the user preferred not to. I’ll make sure to have the required citations ready.",
-    "type": "reasoning",
-  },
-  {
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_006c87998160835a00699768efacc48190a7e5c2961a6cb88d",
-        "reasoningEncryptedContent": null,
-      },
-    },
-    "text": "**Selecting key stories for the summary**
+Pages I opened and the results of searching those pages for the pattern "vercel"
+- The Verge (podcast/story “It’s code red for ChatGPT”) — search for "vercel": no occurrences on that page. (I opened the Dec 5 Verge piece and searched it.) ([theverge.com](https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast))  
+- WIRED (Big Interview 2025 recap) — search for "vercel": no occurrences found. ([wired.com](https://www.wired.com/story/the-big-interview-2025-recap))  
+- TechStartups (Technology News Today — Dec 5, 2025 roundup) — search for "vercel": no occurrences found on that roundup page. ([techstartups.com](https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/))  
+- Bloomberg (article: “Vercel Notches $9.3 Billion Valuation…” / Vercel coverage) — search for "vercel": found (article is about Vercel’s funding/valuation). ([bloomberg.com](https://www.bloomberg.com/news/articles/2025-09-30/vercel-notches-9-3-billion-valuation-in-latest-ai-funding-round))  
+- Vercel’s own blog post (“Towards the AI Cloud: Our Series F”) — search for "vercel": found (company announcement / Series F details). ([vercel.com](https://vercel.com/blog/series-f))
 
-I’ve decided to focus on a few key stories: the Rakuten and Google collaboration, Sony's new Digital Media Production Center in Tokyo, MITSUI winning an order for electric cranes, and the boost in Tokyo stocks driven by tech shares. I’ll also include the preview for SusHi Tech. I already have the necessary sources lined up, so now I just need to compose a concise and clear answer that pulls all this together.",
-    "type": "reasoning",
-  },
-  {
-    "providerMetadata": {
-      "openai": {
-        "itemId": "msg_006c87998160835a00699768fdd4fc819093f96c0ae4bd0738",
-      },
-    },
-    "text": "As of February 19, 2026 in Tokyo, notable tech‑related news includes:
-
-1. **Rakuten–Google YouTube collaboration announced in Tokyo**  
-   Rakuten Group and Google announced a new partnership in Tokyo to promote products via YouTube, combining Rakuten’s e‑commerce platform with Google’s video advertising and analytics capabilities. The aim is to drive more targeted shopping and marketing experiences for Japanese consumers. ([nippon.com](https://www.nippon.com/en/news/yjj2026021900827/?utm_source=openai))  
-
-2. **Sony opening a major virtual‑production hub in Tokyo**  
-   Sony is establishing its third global Digital Media Production Center (DMPC) in Tokyo this month, focused on virtual production and high‑end content creation. The new base will support creators using LED walls, real‑time engines, and other advanced production tech, positioning Tokyo as a key node in Sony’s global creator network. ([marketech-apac.com](https://marketech-apac.com/sony-brings-virtual-production-hub-to-tokyo-with-new-creator-base/?utm_source=openai))  
-
-3. **Electric, low‑emission cranes ordered for Port of Tokyo**  
-   MITSUI E&S has received an order from Tokyo Port Terminal Corporation for new electric container cranes at the Port of Tokyo. These cranes are part of efforts to modernize port operations with cleaner, more energy‑efficient equipment, reflecting ongoing infrastructure tech upgrades in the city. ([porttechnology.org](https://www.porttechnology.org/mitsui-es-wins-electric-crane-order-for-port-of-tokyo/?utm_source=openai))  
-
-4. **Tokyo’s stock market lifted by heavyweight tech shares**  
-   On the Tokyo Stock Exchange, the Nikkei and Topix indices closed higher, led by gains in major technology names such as Tokyo Electron and Shin‑Etsu Chemical. Optimism around AI‑related demand and a weaker yen helped boost these tech and export‑oriented stocks. ([english.news.cn](https://english.news.cn/asiapacific/20260219/eff32c8d94cc4de090c79a04059a3dad/c.html?utm_source=openai))  
-
-5. **Tokyo gearing up for large‑scale startup/tech events**  
-   - **SusHi Tech Tokyo 2026**: Coverage from yesterday highlights that this year’s edition (in April) is expected to be the largest yet, with a heavy focus on AI, robotics, resilience, and entertainment, and participation from over 700 startups. ([japantimes.co.jp](https://www.japantimes.co.jp/business/2026/02/18/sushi-teck-preview/?utm_source=openai))  
-   - A Cambridge (U.S.) music‑tech startup was also reported today as heading to a Tokyo innovation gathering, underscoring the city’s pull for international tech and creative companies. ([cambridgeday.com](https://www.cambridgeday.com/2026/02/19/tactus-takes-on-tokyo/?utm_source=openai))  
-
-If you’d like, I can narrow this down to consumer‑oriented news (phones, gadgets, apps) or focus on startup/venture news specifically in Tokyo.",
+Would you like me to:
+- open more tech sites from today (e.g., TechCrunch, Reuters, The Information) and run the same "vercel" search across them, or  
+- search for a different keyword or company on today’s tech pages?",
     "type": "text",
   },
   {
     "id": "id-0",
     "sourceType": "url",
-    "title": "Rakuten, Google to Collaborate in Product Promotion via YouTube",
+    "title": "Why OpenAI declared a code red for ChatGPT | The Verge",
     "type": "source",
-    "url": "https://www.nippon.com/en/news/yjj2026021900827/?utm_source=openai",
+    "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
   },
   {
     "id": "id-1",
     "sourceType": "url",
-    "title": "Sony brings virtual production hub to Tokyo with new creator base",
+    "title": "Technology News Today – The Latest in Tech, AI & Startup News, December 5, 2025 - Tech Startups",
     "type": "source",
-    "url": "https://marketech-apac.com/sony-brings-virtual-production-hub-to-tokyo-with-new-creator-base/?utm_source=openai",
+    "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
   },
   {
     "id": "id-2",
     "sourceType": "url",
-    "title": "MITSUI E&S wins electric crane order for Port of Tokyo",
+    "title": "5 Things to Know Before the Stock Market Opens",
     "type": "source",
-    "url": "https://www.porttechnology.org/mitsui-es-wins-electric-crane-order-for-port-of-tokyo/?utm_source=openai",
+    "url": "https://www.investopedia.com/5-things-to-know-before-the-stock-market-opens-december-5-2025-11862701?utm_source=openai",
   },
   {
     "id": "id-3",
     "sourceType": "url",
-    "title": "Tokyo stocks end higher on tech shares, weaker yen",
+    "title": "Towards the AI Cloud: Our Series F - Vercel",
     "type": "source",
-    "url": "https://english.news.cn/asiapacific/20260219/eff32c8d94cc4de090c79a04059a3dad/c.html?utm_source=openai",
+    "url": "https://vercel.com/blog/series-f",
   },
   {
     "id": "id-4",
     "sourceType": "url",
-    "title": "SusHi Tech Tokyo 2026 set to be largest yet - The Japan Times",
+    "title": "CVE-2025-49826: Vercel Next.js Cache Poisoning DOS Flaw",
     "type": "source",
-    "url": "https://www.japantimes.co.jp/business/2026/02/18/sushi-teck-preview/?utm_source=openai",
+    "url": "https://www.sentinelone.com/vulnerability-database/cve-2025-49826/?utm_source=openai",
   },
   {
     "id": "id-5",
     "sourceType": "url",
-    "title": "Cambridge music-tech startup to represent city at Tokyo innovation gathering",
+    "title": "Why OpenAI declared a code red for ChatGPT | The Verge",
     "type": "source",
-    "url": "https://www.cambridgeday.com/2026/02/19/tactus-takes-on-tokyo/?utm_source=openai",
+    "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
+  },
+  {
+    "id": "id-6",
+    "sourceType": "url",
+    "title": "Check Out Highlights From WIRED’s 2025 Big Interview Event | WIRED",
+    "type": "source",
+    "url": "https://www.wired.com/story/the-big-interview-2025-recap",
+  },
+  {
+    "id": "id-7",
+    "sourceType": "url",
+    "title": "Technology News Today – The Latest in Tech, AI & Startup News, December 5, 2025 - Tech Startups",
+    "type": "source",
+    "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
+  },
+  {
+    "id": "id-8",
+    "sourceType": "url",
+    "title": "Vercel Notches $9.3 Billion Valuation in Latest AI Funding Round - Bloomberg",
+    "type": "source",
+    "url": "https://www.bloomberg.com/news/articles/2025-09-30/vercel-notches-9-3-billion-valuation-in-latest-ai-funding-round",
+  },
+  {
+    "id": "id-9",
+    "sourceType": "url",
+    "title": "Towards the AI Cloud: Our Series F - Vercel",
+    "type": "source",
+    "url": "https://vercel.com/blog/series-f",
   },
 ]
 `;
@@ -4023,845 +4018,45 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "warnings": [],
   },
   {
-    "id": "resp_0047755972dd78b90069976e1c7504819986e25104a075c8e7",
-    "modelId": "gpt-5.1-2025-11-13",
-    "timestamp": 2026-02-19T20:10:04.000Z,
+    "id": "resp_0cc96ac817fdc57e00693337060a408198b92bf1f99cf1b8ec",
+    "modelId": "gpt-5-mini-2025-08-07",
+    "timestamp": 2025-12-05T19:48:22.000Z,
     "type": "response-metadata",
   },
   {
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
+    "id": "rs_0cc96ac817fdc57e0069333706f5748198ad6f9d56c74ba528:0",
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
+        "itemId": "rs_0cc96ac817fdc57e0069333706f5748198ad6f9d56c74ba528",
         "reasoningEncryptedContent": null,
       },
     },
     "type": "reasoning-start",
   },
   {
-    "delta": "I'll",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
+    "id": "rs_0cc96ac817fdc57e0069333706f5748198ad6f9d56c74ba528:0",
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " search",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " for",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " today's",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " tech",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " news",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " in",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Tokyo",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " I",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " think",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " a",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " good",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " query",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " would",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " be",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " something",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " like",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " "",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "Tokyo",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " tech",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " news",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " February",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " 19",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " 202",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "6",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": """,
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " with",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " a",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " filter",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " for",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Japanese",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " sites",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " However",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ",",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " I",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " wonder",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " if",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " that",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " limits",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " my",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " results",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " too",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " much",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " I",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " think",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " it",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " might",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " be",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " better",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " to",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " keep",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " it",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " more",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " general",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " to",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " get",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " a",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " wider",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " array",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " of",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " information",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " So",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ",",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " let's",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " go",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " ahead",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " and",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " call",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " web",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".run",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " to",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " gather",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " those",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " latest",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " updates",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "!",
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "id": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e1d0d488199b35cb81934767775",
+        "itemId": "rs_0cc96ac817fdc57e0069333706f5748198ad6f9d56c74ba528",
         "reasoningEncryptedContent": null,
       },
     },
     "type": "reasoning-end",
   },
   {
-    "id": "ws_0047755972dd78b90069976e2d4fc881999d9cf9e5d267a6a1",
+    "id": "ws_0cc96ac817fdc57e006933370e71cc81989ece73cbdfe67d25",
     "providerExecuted": true,
     "toolName": "web_search",
     "type": "tool-input-start",
   },
   {
-    "id": "ws_0047755972dd78b90069976e2d4fc881999d9cf9e5d267a6a1",
+    "id": "ws_0cc96ac817fdc57e006933370e71cc81989ece73cbdfe67d25",
     "type": "tool-input-end",
   },
   {
     "input": "{}",
     "providerExecuted": true,
-    "toolCallId": "ws_0047755972dd78b90069976e2d4fc881999d9cf9e5d267a6a1",
+    "toolCallId": "ws_0cc96ac817fdc57e006933370e71cc81989ece73cbdfe67d25",
     "toolName": "web_search",
     "type": "tool-call",
   },
@@ -4869,3128 +4064,1182 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "providerExecuted": true,
     "result": {
       "action": {
-        "query": "Tokyo tech news February 19 2026",
+        "query": "tech news today December 5 2025",
         "type": "search",
       },
       "sources": [
         {
           "type": "url",
-          "url": "https://www.cambridgeday.com/2026/02/19/tactus-takes-on-tokyo/",
+          "url": "https://www.wired.com/story/the-big-interview-2025-recap",
         },
         {
           "type": "url",
-          "url": "https://www.onefc.com/features/scenes-from-the-one-samurai-press-conference-in-tokyo/",
+          "url": "https://www.barrons.com/articles/stock-movers-7c77880d",
         },
         {
           "type": "url",
-          "url": "https://www.nippon.com/en/news/yjj2026021900827/",
+          "url": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-inflation-data-ai-stock/",
         },
         {
           "type": "url",
-          "url": "https://www.tradingview.com/news/macenews%3A9e584a525094b%3A0-preview-forecasters-see-tokyo-core-cpi-1-7-in-february-on-year-below-boj-2-target/",
+          "url": "https://finance.yahoo.com/news/ai-coding-startup-vercel-raises-163055044.html",
         },
         {
           "type": "url",
-          "url": "https://marketech-apac.com/sony-brings-virtual-production-hub-to-tokyo-with-new-creator-base/",
+          "url": "https://www.finsmes.com/2025/10/vercel-closes-300m-series-f-funding-at-9-3-billion-valuation.html",
         },
         {
           "type": "url",
-          "url": "https://wdwnt.com/2026/02/tree-falls-on-main-street-u-s-a-during-sweethearts-nite-at-disneyland-in-todays-daily-recap-for-2-18-2026/",
+          "url": "https://www.mexc.co/en-IN/news/us-cloud-platform-vercel-achieves-9-billion-valuation-amid-rapid-growth-in-ai-integration/77540",
         },
         {
           "type": "url",
-          "url": "https://www.porttechnology.org/mitsui-es-wins-electric-crane-order-for-port-of-tokyo/",
+          "url": "https://finance.yahoo.com/news/vercel-closes-series-f-9-150000846.html",
         },
         {
           "type": "url",
-          "url": "https://timesofindia.indiatimes.com/technology/tech-news/government-announces-major-change-india-ai-summit-2026-extended-by-one-day-to-be-closed-on-february-19/articleshow/128510667.cms",
+          "url": "https://www.financialcontent.com/article/bizwire-2025-9-30-vercel-closes-series-f-at-93b-valuation-to-scale-the-ai-cloud",
         },
         {
           "type": "url",
-          "url": "https://www.nst.com.my/amp/business/corporate/2026/02/1380763/japans-nikkei-rises-tech-rally-and-takaichis-spending-plan",
+          "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
         },
         {
           "type": "url",
-          "url": "https://www.china.org.cn/world/Off_the_Wire/2026-02/19/content_118339031.shtml",
-        },
-        {
-          "type": "url",
-          "url": "https://english.news.cn/asiapacific/20260219/eff32c8d94cc4de090c79a04059a3dad/c.html",
-        },
-        {
-          "type": "url",
-          "url": "https://www.alojapan.com/1455140/tokyo-shares-rise-on-tech-gains-weaker-yen/",
-        },
-        {
-          "type": "url",
-          "url": "https://www.japantimes.co.jp/business/2026/02/18/sushi-teck-preview/",
-        },
-        {
-          "type": "url",
-          "url": "https://business.times-online.com/times-online/article/marketminute-2026-2-18-japans-exports-surge-17-in-january-amid-ai-giga-cycle-and-robust-asian-demand",
-        },
-        {
-          "type": "url",
-          "url": "https://en.wikipedia.org/wiki/AI_Impact_Summit",
-        },
-        {
-          "type": "url",
-          "url": "https://techspotokyo.jp/",
-        },
-        {
-          "type": "url",
-          "url": "https://markets.financialcontent.com/stocks/article/getnews-2026-2-18-announcing-the-winners-of-the-tokyo-financial-award-2025-award-ceremony-to-be-held-in-collaboration-with-japan-fintech-week-2026",
+          "url": "https://www.mexc.com/en-TR/news/us-cloud-platform-vercel-achieves-9-billion-valuation-amid-rapid-growth-in-ai-integration/77540",
         },
       ],
     },
-    "toolCallId": "ws_0047755972dd78b90069976e2d4fc881999d9cf9e5d267a6a1",
+    "toolCallId": "ws_0cc96ac817fdc57e006933370e71cc81989ece73cbdfe67d25",
     "toolName": "web_search",
     "type": "tool-result",
   },
   {
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
+    "id": "rs_0cc96ac817fdc57e0069333710f97081989fba3cbe0726ee76:0",
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
+        "itemId": "rs_0cc96ac817fdc57e0069333710f97081989fba3cbe0726ee76",
         "reasoningEncryptedContent": null,
       },
     },
     "type": "reasoning-start",
   },
   {
-    "delta": "**Summ",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
+    "id": "rs_0cc96ac817fdc57e0069333710f97081989fba3cbe0726ee76:0",
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "ar",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "izing",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Tokyo",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " tech",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " news",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "**
-
-I",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " need",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " to",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " provide",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " a",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " concise",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " summary",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " of",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " today's",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " notable",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " tech",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " news",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " from",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Tokyo",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " There",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " are",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " several",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " key",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " updates",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ":",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Rak",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "uten",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " is",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " collaborating",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " with",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Google",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " for",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " product",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " promotion",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " via",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " You",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "Tube",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Sony",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " is",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " set",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " to",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " open",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " its",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Digital",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Media",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Production",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Center",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " in",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Tokyo",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " in",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " February",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " 202",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "6",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Mits",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "ui",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " E",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "&S",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " has",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " received",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " an",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " order",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " for",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " electric",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " cranes",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " aimed",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " at",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " greener",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " port",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " technology",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Additionally",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ",",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Tokyo",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " stocks",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " are",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " rising",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ",",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " particularly",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " with",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " companies",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " like",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Tokyo",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Electron",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " and",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Shin",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "-E",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "ts",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "u",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " doing",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " well",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " A",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Cambridge",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " music",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "-tech",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " startup",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " will",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " also",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " represent",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " at",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " an",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " innovation",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " gathering",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " in",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Tokyo",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " The",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " user",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " asked",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " about",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " news",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " happening",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " today",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ",",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " which",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " aligns",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " with",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " the",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " current",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " local",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " date",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " of",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " February",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " 20",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " in",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Tokyo",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:0",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
+        "itemId": "rs_0cc96ac817fdc57e0069333710f97081989fba3cbe0726ee76",
+        "reasoningEncryptedContent": null,
       },
     },
     "type": "reasoning-end",
   },
   {
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
+    "id": "ws_0cc96ac817fdc57e0069333715b11c81988f3c9b9af6a95481",
+    "providerExecuted": true,
+    "toolName": "web_search",
+    "type": "tool-input-start",
+  },
+  {
+    "id": "ws_0cc96ac817fdc57e0069333715b11c81988f3c9b9af6a95481",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ws_0cc96ac817fdc57e0069333715b11c81988f3c9b9af6a95481",
+    "toolName": "web_search",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "action": {
+        "query": "site:theverge.com "December 5, 2025" "technology"",
+        "type": "search",
+      },
+      "sources": [
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/",
+        },
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/walmart-backed-phonepe-winds-down-its-pincode-app-in-yet-another-e-commerce-step-back/",
+        },
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/in-its-first-dsa-penalty-eu-fines-x-e120m-for-deceptive-blue-check-verification-system/",
+        },
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/",
+        },
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/",
+        },
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/new-knoway-robotaxis-cause-chaos-in-upcoming-grand-theft-auto-online-dlc/",
+        },
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/",
+        },
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/esim-adoption-is-on-the-rise-thanks-to-travel-and-device-compatibility/",
+        },
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/new-streaming-channel-launches-to-give-viewers-a-peek-into-city-council-meetings/",
+        },
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/aws-reinvent-was-an-all-in-pitch-for-ai-customers-might-not-be-ready/",
+        },
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/energy-storage-industry-set-aggressive-goals-for-2025-and-already-crushed-them/",
+        },
+      ],
+    },
+    "toolCallId": "ws_0cc96ac817fdc57e0069333715b11c81988f3c9b9af6a95481",
+    "toolName": "web_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_0cc96ac817fdc57e00693337185c648198ab92fcd140ad72a8:0",
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
+        "itemId": "rs_0cc96ac817fdc57e00693337185c648198ab92fcd140ad72a8",
         "reasoningEncryptedContent": null,
       },
     },
     "type": "reasoning-start",
   },
   {
-    "delta": "**Clar",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
+    "id": "rs_0cc96ac817fdc57e00693337185c648198ab92fcd140ad72a8:0",
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "ifying",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Tokyo",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " news",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " timing",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "**
-
-I",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " see",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " that",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " articles",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " are",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " dated",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " February",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " 19",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ",",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " matching",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " the",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Tokyo",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " local",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " date",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " when",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " published",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " So",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ",",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " I",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " should",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " clarify",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " that",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " we",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "’re",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " discussing",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " events",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " based",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " on",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " the",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Tokyo",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " local",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " date",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " of",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " February",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " 19",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ",",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " 202",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "6",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " I",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " want",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " to",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " create",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " a",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " concise",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " bullet",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " list",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " without",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " mentioning",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " any",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " tool",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " mechanics",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " 
-
-To",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " summarize",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ":",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " On",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " February",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " 19",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ",",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " 202",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "6",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ",",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " key",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " tech",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " and",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " finance",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " developments",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " in",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Tokyo",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " included",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " a",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Rak",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "uten",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "-G",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "oogle",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " collaboration",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ",",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Sony",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "'s",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " virtual",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " production",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " hub",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ",",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " stock",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " market",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " gains",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ",",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " and",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " greener",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " port",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " cranes",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " I",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "’ll",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " hold",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " off",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " on",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " details",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " about",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Sus",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "Hi",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Tech",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " and",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Financial",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " Award",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " winners",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " since",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " those",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " events",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " weren't",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": " today",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": ".",
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
-      },
-    },
-    "type": "reasoning-delta",
-  },
-  {
-    "id": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d:1",
-    "providerMetadata": {
-      "openai": {
-        "itemId": "rs_0047755972dd78b90069976e38add48199a7988365a055f10d",
+        "itemId": "rs_0cc96ac817fdc57e00693337185c648198ab92fcd140ad72a8",
         "reasoningEncryptedContent": null,
       },
     },
     "type": "reasoning-end",
   },
   {
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "id": "ws_0cc96ac817fdc57e006933371c82e48198aba79879e266ea8c",
+    "providerExecuted": true,
+    "toolName": "web_search",
+    "type": "tool-input-start",
+  },
+  {
+    "id": "ws_0cc96ac817fdc57e006933371c82e48198aba79879e266ea8c",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ws_0cc96ac817fdc57e006933371c82e48198aba79879e266ea8c",
+    "toolName": "web_search",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "action": {
+        "type": "openPage",
+        "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/",
+      },
+    },
+    "toolCallId": "ws_0cc96ac817fdc57e006933371c82e48198aba79879e266ea8c",
+    "toolName": "web_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_0cc96ac817fdc57e006933371ff26081989c3ff8fefad9c804:0",
     "providerMetadata": {
       "openai": {
-        "itemId": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+        "itemId": "rs_0cc96ac817fdc57e006933371ff26081989c3ff8fefad9c804",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0cc96ac817fdc57e006933371ff26081989c3ff8fefad9c804:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0cc96ac817fdc57e006933371ff26081989c3ff8fefad9c804",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "ws_0cc96ac817fdc57e0069333721f6a081989f8e6a18dbc1e47a",
+    "providerExecuted": true,
+    "toolName": "web_search",
+    "type": "tool-input-start",
+  },
+  {
+    "id": "ws_0cc96ac817fdc57e0069333721f6a081989f8e6a18dbc1e47a",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ws_0cc96ac817fdc57e0069333721f6a081989f8e6a18dbc1e47a",
+    "toolName": "web_search",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "action": {
+        "pattern": "vercel",
+        "type": "findInPage",
+        "url": "https://www.wired.com/story/the-big-interview-2025-recap",
+      },
+    },
+    "toolCallId": "ws_0cc96ac817fdc57e0069333721f6a081989f8e6a18dbc1e47a",
+    "toolName": "web_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_0cc96ac817fdc57e0069333724535c8198b39ab21fa3f4e559:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0cc96ac817fdc57e0069333724535c8198b39ab21fa3f4e559",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0cc96ac817fdc57e0069333724535c8198b39ab21fa3f4e559:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0cc96ac817fdc57e0069333724535c8198b39ab21fa3f4e559",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "ws_0cc96ac817fdc57e00693337281754819898dbc2297d80e2df",
+    "providerExecuted": true,
+    "toolName": "web_search",
+    "type": "tool-input-start",
+  },
+  {
+    "id": "ws_0cc96ac817fdc57e00693337281754819898dbc2297d80e2df",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ws_0cc96ac817fdc57e00693337281754819898dbc2297d80e2df",
+    "toolName": "web_search",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "action": {
+        "pattern": "Vercel",
+        "type": "findInPage",
+        "url": "https://www.wired.com/story/the-big-interview-2025-recap",
+      },
+    },
+    "toolCallId": "ws_0cc96ac817fdc57e00693337281754819898dbc2297d80e2df",
+    "toolName": "web_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_0cc96ac817fdc57e006933372e866c81988386fd0b0408eb28:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0cc96ac817fdc57e006933372e866c81988386fd0b0408eb28",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0cc96ac817fdc57e006933372e866c81988386fd0b0408eb28:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0cc96ac817fdc57e006933372e866c81988386fd0b0408eb28",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "ws_0cc96ac817fdc57e00693337335db881989d7938ef5e5dcd6b",
+    "providerExecuted": true,
+    "toolName": "web_search",
+    "type": "tool-input-start",
+  },
+  {
+    "id": "ws_0cc96ac817fdc57e00693337335db881989d7938ef5e5dcd6b",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ws_0cc96ac817fdc57e00693337335db881989d7938ef5e5dcd6b",
+    "toolName": "web_search",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "action": {
+        "pattern": "vercel",
+        "type": "findInPage",
+        "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/",
+      },
+    },
+    "toolCallId": "ws_0cc96ac817fdc57e00693337335db881989d7938ef5e5dcd6b",
+    "toolName": "web_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_0cc96ac817fdc57e006933373641e8819899b5ecb68564ac56:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0cc96ac817fdc57e006933373641e8819899b5ecb68564ac56",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0cc96ac817fdc57e006933373641e8819899b5ecb68564ac56:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0cc96ac817fdc57e006933373641e8819899b5ecb68564ac56",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
       },
     },
     "type": "text-start",
   },
   {
-    "delta": "Here’s a quick roundup of notable tech‑related news",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": "I checked today’s",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " in Tokyo for **February 19,",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " tech headlines (today = December",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " 2026 (Tokyo time",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " 5, 2025",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": ")**:
+    "delta": ") and opened a few news",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pages — then searched those pages",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for the keyword pattern "ver",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "cel" (case-insensitive",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "). Summary:
 
-1. **",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+Top",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": "Rakuten–",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " tech headlines",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": "Google YouTube promotion tie",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " I opened (brief",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": "‑up**  
-   - Rak",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": "):
+- Petco disclosed a",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": "uten Group and Google announced in",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " customer-data exposure / security lapse",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " Tokyo that they will collaborate to promote products",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": ".",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " via YouTube, combining",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " Rakuten’s e‑commerce data with",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Google’s video",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " platform",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " to improve",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " targeted",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " marketing",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " and advertising",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " effectiveness",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": ". ",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": "([nippon.com](https://www.nippon.com/en/news/yjj2026021900827/?utm_source=openai))",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": "([techcrunch.com](https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/?utm_source=openai))  ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
     "id": "id-0",
     "sourceType": "url",
-    "title": "Rakuten, Google to Collaborate in Product Promotion via YouTube",
+    "title": "Petco confirms security lapse exposed customers’ personal data | TechCrunch",
     "type": "source",
-    "url": "https://www.nippon.com/en/news/yjj2026021900827/?utm_source=openai",
+    "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/?utm_source=openai",
   },
   {
-    "delta": "  
-
-2. **Sony",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": "
+- The New York",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " to open virtual production hub in Tokyo**",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " Times sued AI search/startup",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": "  
-   - Sony said it will open its",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " Perplexity for copyright infringement",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " **third global Digital Media Production Center**",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": ". ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " in Tokyo in February 2026.",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " The new creator base will focus on virtual",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " production and digital content creation,",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " giving filmmakers and",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " creators access to advanced",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " production tech",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " and workflows. ",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": "([marketech-apac.com](https://marketech-apac.com/sony-brings-virtual-production-hub-to-tokyo-with-new-creator-base/?utm_source=openai))",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": "([techcrunch.com](https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/?utm_source=openai))  
+- Meta signed commercial",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
     "id": "id-1",
     "sourceType": "url",
-    "title": "Sony brings virtual production hub to Tokyo with new creator base",
+    "title": "The New York Times is suing Perplexity for copyright infringement | TechCrunch",
     "type": "source",
-    "url": "https://marketech-apac.com/sony-brings-virtual-production-hub-to-tokyo-with-new-creator-base/?utm_source=openai",
+    "url": "https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/?utm_source=openai",
   },
   {
-    "delta": "  
-
-3. **Tokyo stocks rise",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " AI data agreements",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " on tech rally and weaker yen**  
-   - The",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " with a set of",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " **Nikkei 225** and **TOPIX",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " publishers so Meta AI can",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": "** both closed higher in Tokyo, led",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " surface real‑",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " by heavyweight tech names",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": "time news.",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " such as **Tokyo Electron** and **",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": "Shin‑",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": "Etsu Chemical**, which climbed",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " on optimism around AI‑related demand",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": ".  
-   - A weaker yen",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " (around the lower",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " ¥155 per",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " US dollar) also boosted",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " export",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": "‑oriented companies. ",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": "([china.org.cn](https://www.china.org.cn/world/Off_the_Wire/2026-02/19/content_118339031.shtml?utm_source=openai)",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": ")  
-
-4. **Electrification at",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": "([techcrunch.com](https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/?utm_source=openai))  
+- Reports of a",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
     "id": "id-2",
     "sourceType": "url",
-    "title": "Tokyo stocks end higher on tech shares, weaker yen",
+    "title": "Meta signs commercial AI data agreements with publishers to offer real-time news on Meta AI | TechCrunch",
     "type": "source",
-    "url": "https://www.china.org.cn/world/Off_the_Wire/2026-02/19/content_118339031.shtml?utm_source=openai",
+    "url": "https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/?utm_source=openai",
   },
   {
-    "delta": " the Port of Tokyo**  ",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " major media deal: Netflix",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": "
-   - **Mitsui E&S** received an",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " to acquire Warner Bros",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " order from Tokyo",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " (headline on TechCrunch",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " Port Terminal Corporation for new **electric",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " today). ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " container cranes** at the Port of Tokyo,",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " part of a broader push",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " to reduce",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " emissions and modernize port logistics technology. ",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": "([porttechnology.org](https://www.porttechnology.org/mitsui-es-wins-electric-crane-order-for-port-of-tokyo/?utm_source=openai))  
-
-5. **International",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": "([techcrunch.com](https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/?utm_source=openai))  
+- WIRED",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
     "id": "id-3",
     "sourceType": "url",
-    "title": "MITSUI E&S wins electric crane order for Port of Tokyo",
+    "title": "Netflix to acquire Warner Bros. in a disruptive deal valued at $82.7B | TechCrunch",
     "type": "source",
-    "url": "https://www.porttechnology.org/mitsui-es-wins-electric-crane-order-for-port-of-tokyo/?utm_source=openai",
+    "url": "https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/?utm_source=openai",
   },
   {
-    "delta": " startup and",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " published a recap of its “",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " innovation activity in",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": "Big Interview” event (Dec",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " Tokyo**  
-   - A UK",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " 4). ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " music‑tech startup, Tactus, was",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " highlighted for heading to an",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " innovation gathering in Tokyo, reflecting",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the city’s ongoing role as",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " a",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " hub for global tech",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " startups and creative",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": " tech collaborations. ",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
-    "type": "text-delta",
-  },
-  {
-    "delta": "([cambridgeday.com](https://www.cambridgeday.com/2026/02/19/tactus-takes-on-tokyo/?utm_source=openai))  
+    "delta": "([wired.com](https://www.wired.com/story/the-big-interview-2025-recap?utm_source=openai))
 
-If you",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+Pages I opened and",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
     "id": "id-4",
     "sourceType": "url",
-    "title": "Cambridge music-tech startup to represent city at Tokyo innovation gathering",
+    "title": "Check Out Highlights From WIRED's Big Interview Event",
     "type": "source",
-    "url": "https://www.cambridgeday.com/2026/02/19/tactus-takes-on-tokyo/?utm_source=openai",
+    "url": "https://www.wired.com/story/the-big-interview-2025-recap?utm_source=openai",
   },
   {
-    "delta": "’d like, I can",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " searched for the pattern "ver",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " drill deeper into any",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": "cel"
+- TechCrunch",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " one of these (for",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " — Petco data-breach",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " example, what",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " article (Dec 5,",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " Sony’s virtual",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " 2025). I opened",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " production center actually offers, or what",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " and searched the page: no",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " the Rakuten–Google tie",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": " mention of "vercel",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": "‑up could mean",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": "". ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " for advertisers and creators).",
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "delta": "([techcrunch.com](https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/?utm_source=openai))  
+- TechCrunch —",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "id": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+    "id": "id-5",
+    "sourceType": "url",
+    "title": "Petco confirms security lapse exposed customers’ personal data | TechCrunch",
+    "type": "source",
+    "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/?utm_source=openai",
+  },
+  {
+    "delta": " NYT vs Perplexity",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (Dec 5, ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "2025). I opened and",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " searched the page",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ": no mention of "ver",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "cel". ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "([techcrunch.com](https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/?utm_source=openai))  
+- TechCrunch",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "id": "id-6",
+    "sourceType": "url",
+    "title": "The New York Times is suing Perplexity for copyright infringement | TechCrunch",
+    "type": "source",
+    "url": "https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/?utm_source=openai",
+  },
+  {
+    "delta": " — Meta commercial AI data agreements",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (Dec 5, 202",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5). I opened and searched",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the page:",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " no mention of",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " "ver",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "cel".",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "([techcrunch.com](https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/?utm_source=openai))",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "id": "id-7",
+    "sourceType": "url",
+    "title": "Meta signs commercial AI data agreements with publishers to offer real-time news on Meta AI | TechCrunch",
+    "type": "source",
+    "url": "https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/?utm_source=openai",
+  },
+  {
+    "delta": "  
+- TechCrunch — Netflix",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/Warner",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Bros coverage (Dec",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 5,",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 202",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5).",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " I opened",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and searched the page: no",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " mention of "vercel",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "". ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "([techcrunch.com](https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/?utm_source=openai))  
+- WIRED —",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "id": "id-8",
+    "sourceType": "url",
+    "title": "Netflix to acquire Warner Bros. in a disruptive deal valued at $82.7B | TechCrunch",
+    "type": "source",
+    "url": "https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/?utm_source=openai",
+  },
+  {
+    "delta": " Big Interview recap",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (Dec 4, ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "2025). I opened and",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " searched the page: no mention",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of "",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "vercel".",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "([wired.com](https://www.wired.com/story/the-big-interview-2025-recap?utm_source=openai))",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "id": "id-9",
+    "sourceType": "url",
+    "title": "Check Out Highlights From WIRED's Big Interview Event",
+    "type": "source",
+    "url": "https://www.wired.com/story/the-big-interview-2025-recap?utm_source=openai",
+  },
+  {
+    "delta": "  
+- TechStartups —",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " daily roundup (Dec 5",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ", 2025). I",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " opened and searched the page:",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " no mention of "vercel",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "". ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "([techstartups.com](https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/?utm_source=openai))
+
+So: none of those specific “today” stories",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "id": "id-10",
+    "sourceType": "url",
+    "title": "Technology News Today – The Latest in Tech, AI & Startup News, December 5, 2025 - Tech Startups",
+    "type": "source",
+    "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/?utm_source=openai",
+  },
+  {
+    "delta": "/pages contained the string "",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "vercel".
+
+Related note —",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " there is recent",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Verc",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "el news (",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "not on the Dec 5",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pages above): Vercel",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (the AI/web developer",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " platform) closed a large funding",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " round / Series F ($300",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "M) at about a $",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "9.3",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "B valuation (reported",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Sept 30,",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 2025 / Oct ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "2025 by Reuters,",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Business Wire and others). If",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " you want I can open",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " those funding stories and extract",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " details (investors, use",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of proceeds, v0",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " agent metrics, etc.).",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "([finance.yahoo.com](https://finance.yahoo.com/news/ai-coding-startup-vercel-raises-163055044.html?utm_source=openai)",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")
+
+Would you like",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "id": "id-11",
+    "sourceType": "url",
+    "title": "AI coding startup Vercel raises $300 million, valued at $9.3 billion",
+    "type": "source",
+    "url": "https://finance.yahoo.com/news/ai-coding-startup-vercel-raises-163055044.html?utm_source=openai",
+  },
+  {
+    "delta": " me to:
+- search more",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " news sites today specifically for",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " any new V",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ercel mentions (I can",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " do a live search across more",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " outlets), or  
+- open",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the Vercel funding/",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "coverage pages and pull",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " out more details now?",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "providerMetadata": {
       "openai": {
         "annotations": [
           {
-            "end_index": 468,
-            "start_index": 386,
-            "title": "Rakuten, Google to Collaborate in Product Promotion via YouTube",
+            "end_index": 411,
+            "start_index": 277,
+            "title": "Petco confirms security lapse exposed customers’ personal data | TechCrunch",
             "type": "url_citation",
-            "url": "https://www.nippon.com/en/news/yjj2026021900827/?utm_source=openai",
+            "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/?utm_source=openai",
           },
           {
-            "end_index": 934,
-            "start_index": 799,
-            "title": "Sony brings virtual production hub to Tokyo with new creator base",
+            "end_index": 635,
+            "start_index": 497,
+            "title": "The New York Times is suing Perplexity for copyright infringement | TechCrunch",
             "type": "url_citation",
-            "url": "https://marketech-apac.com/sony-brings-virtual-production-hub-to-tokyo-with-new-creator-base/?utm_source=openai",
+            "url": "https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/?utm_source=openai",
           },
           {
-            "end_index": 1410,
-            "start_index": 1296,
-            "title": "Tokyo stocks end higher on tech shares, weaker yen",
+            "end_index": 910,
+            "start_index": 746,
+            "title": "Meta signs commercial AI data agreements with publishers to offer real-time news on Meta AI | TechCrunch",
             "type": "url_citation",
-            "url": "https://www.china.org.cn/world/Off_the_Wire/2026-02/19/content_118339031.shtml?utm_source=openai",
+            "url": "https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/?utm_source=openai",
           },
           {
-            "end_index": 1806,
-            "start_index": 1679,
-            "title": "MITSUI E&S wins electric crane order for Port of Tokyo",
+            "end_index": 1149,
+            "start_index": 1009,
+            "title": "Netflix to acquire Warner Bros. in a disruptive deal valued at $82.7B | TechCrunch",
             "type": "url_citation",
-            "url": "https://www.porttechnology.org/mitsui-es-wins-electric-crane-order-for-port-of-tokyo/?utm_source=openai",
+            "url": "https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/?utm_source=openai",
           },
           {
-            "end_index": 2182,
-            "start_index": 2080,
-            "title": "Cambridge music-tech startup to represent city at Tokyo innovation gathering",
+            "end_index": 1305,
+            "start_index": 1216,
+            "title": "Check Out Highlights From WIRED's Big Interview Event",
             "type": "url_citation",
-            "url": "https://www.cambridgeday.com/2026/02/19/tactus-takes-on-tokyo/?utm_source=openai",
+            "url": "https://www.wired.com/story/the-big-interview-2025-recap?utm_source=openai",
+          },
+          {
+            "end_index": 1606,
+            "start_index": 1472,
+            "title": "Petco confirms security lapse exposed customers’ personal data | TechCrunch",
+            "type": "url_citation",
+            "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/?utm_source=openai",
+          },
+          {
+            "end_index": 1851,
+            "start_index": 1713,
+            "title": "The New York Times is suing Perplexity for copyright infringement | TechCrunch",
+            "type": "url_citation",
+            "url": "https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/?utm_source=openai",
+          },
+          {
+            "end_index": 2139,
+            "start_index": 1975,
+            "title": "Meta signs commercial AI data agreements with publishers to offer real-time news on Meta AI | TechCrunch",
+            "type": "url_citation",
+            "url": "https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/?utm_source=openai",
+          },
+          {
+            "end_index": 2397,
+            "start_index": 2257,
+            "title": "Netflix to acquire Warner Bros. in a disruptive deal valued at $82.7B | TechCrunch",
+            "type": "url_citation",
+            "url": "https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/?utm_source=openai",
+          },
+          {
+            "end_index": 2590,
+            "start_index": 2501,
+            "title": "Check Out Highlights From WIRED's Big Interview Event",
+            "type": "url_citation",
+            "url": "https://www.wired.com/story/the-big-interview-2025-recap?utm_source=openai",
+          },
+          {
+            "end_index": 2844,
+            "start_index": 2695,
+            "title": "Technology News Today – The Latest in Tech, AI & Startup News, December 5, 2025 - Tech Startups",
+            "type": "url_citation",
+            "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/?utm_source=openai",
+          },
+          {
+            "end_index": 3427,
+            "start_index": 3309,
+            "title": "AI coding startup Vercel raises $300 million, valued at $9.3 billion",
+            "type": "url_citation",
+            "url": "https://finance.yahoo.com/news/ai-coding-startup-vercel-raises-163055044.html?utm_source=openai",
           },
         ],
-        "itemId": "msg_0047755972dd78b90069976e3fd4e88199915225cca3222073",
+        "itemId": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
       },
     },
     "type": "text-end",
@@ -7999,17 +5248,17 @@ If you",
     "finishReason": "stop",
     "providerMetadata": {
       "openai": {
-        "responseId": "resp_0047755972dd78b90069976e1c7504819986e25104a075c8e7",
+        "responseId": "resp_0cc96ac817fdc57e00693337060a408198b92bf1f99cf1b8ec",
         "serviceTier": "default",
       },
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 4352,
-      "inputTokens": 8882,
-      "outputTokens": 1419,
-      "reasoningTokens": 932,
-      "totalTokens": 10301,
+      "cachedInputTokens": 3712,
+      "inputTokens": 31073,
+      "outputTokens": 4416,
+      "reasoningTokens": 3712,
+      "totalTokens": 35489,
     },
   },
 ]

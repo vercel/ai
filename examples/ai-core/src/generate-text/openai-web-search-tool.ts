@@ -4,15 +4,9 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai.responses('gpt-5.1'),
+    model: openai.responses('gpt-5-mini'),
     prompt:
-      'What happened in tech news today in Tokyo Japan? Do not use search, open page, or find in page action but still use web search tool.',
-    providerOptions: {
-      openai: {
-        reasoningEffort: 'medium',
-        reasoningSummary: 'detailed',
-      },
-    },
+      'What happened in tech news today? Open a few pages and search for a key word pattern vercel on those pages.',
     tools: {
       web_search: openai.tools.webSearch({
         searchContextSize: 'medium',
