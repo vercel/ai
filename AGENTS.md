@@ -205,6 +205,8 @@ The SDK uses a layered provider architecture following the adapter pattern:
 3. **Providers** (`@ai-sdk/<provider>`): Concrete implementations for each AI service
 4. **Core** (`ai`): High-level functions like `generateText`, `streamText`, `generateObject`
 
+For a focused conceptual walkthrough of AI functions, model specifications, and provider implementations, see `architecture/provider-abstraction.md`.
+
 ### Provider Development
 
 **Provider Options Schemas** (user-facing):
