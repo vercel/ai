@@ -9,6 +9,7 @@ import {
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ToolCallRepairError } from '../error/tool-call-repair-error';
+import { ToolChoice } from '../types/language-model';
 import { DynamicToolCall, TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolSet } from './tool-set';
@@ -19,12 +20,14 @@ export async function parseToolCall<TOOLS extends ToolSet>({
   repairToolCall,
   system,
   messages,
+  toolChoice,
 }: {
   toolCall: LanguageModelV3ToolCall;
   tools: TOOLS | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
   messages: ModelMessage[];
+  toolChoice?: ToolChoice<TOOLS>;
 }): Promise<TypedToolCall<TOOLS>> {
   try {
     if (tools == null) {
@@ -37,7 +40,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
     }
 
     try {
-      return await doParseToolCall({ toolCall, tools });
+      return await doParseToolCall({ toolCall, tools, toolChoice });
     } catch (error) {
       if (
         repairToolCall == null ||
@@ -75,7 +78,11 @@ export async function parseToolCall<TOOLS extends ToolSet>({
         throw error;
       }
 
-      return await doParseToolCall({ toolCall: repairedToolCall, tools });
+      return await doParseToolCall({
+        toolCall: repairedToolCall,
+        tools,
+        toolChoice,
+      });
     }
   } catch (error) {
     // use parsed input when possible
@@ -128,11 +135,25 @@ async function parseProviderExecutedDynamicToolCall(
 async function doParseToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
+  toolChoice,
 }: {
   toolCall: LanguageModelV3ToolCall;
   tools: TOOLS;
+  toolChoice?: ToolChoice<TOOLS>;
 }): Promise<TypedToolCall<TOOLS>> {
   const toolName = toolCall.toolName as keyof TOOLS & string;
+
+  if (
+    toolChoice != null &&
+    typeof toolChoice === 'object' &&
+    toolChoice.type === 'tool' &&
+    toolCall.toolName !== toolChoice.toolName
+  ) {
+    throw new NoSuchToolError({
+      toolName: toolCall.toolName,
+      availableTools: [toolChoice.toolName as string],
+    });
+  }
 
   const tool = tools[toolName];
 

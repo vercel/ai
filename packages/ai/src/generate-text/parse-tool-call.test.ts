@@ -567,4 +567,107 @@ describe('parseToolCall', () => {
       expect(result.title).toBe('Invalid Tool');
     });
   });
+
+  describe('toolChoice enforcement', () => {
+    it('should mark tool call as invalid when it violates toolChoice constraint', async () => {
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'wrongTool',
+          toolCallId: '123',
+          input: '{"location": "San Francisco"}',
+        },
+        tools: {
+          correctTool: tool({
+            inputSchema: z.object({ city: z.string() }),
+          }),
+          wrongTool: tool({
+            inputSchema: z.object({ location: z.string() }),
+          }),
+        } as const,
+        repairToolCall: undefined,
+        messages: [],
+        system: undefined,
+        toolChoice: { type: 'tool', toolName: 'correctTool' },
+      });
+
+      expect(result.invalid).toBe(true);
+      expect(result.toolName).toBe('wrongTool');
+    });
+
+    it('should allow tool call that matches toolChoice constraint', async () => {
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'correctTool',
+          toolCallId: '123',
+          input: '{"city": "San Francisco"}',
+        },
+        tools: {
+          correctTool: tool({
+            inputSchema: z.object({ city: z.string() }),
+          }),
+          otherTool: tool({
+            inputSchema: z.object({ location: z.string() }),
+          }),
+        } as const,
+        repairToolCall: undefined,
+        messages: [],
+        system: undefined,
+        toolChoice: { type: 'tool', toolName: 'correctTool' },
+      });
+
+      expect(result.invalid).toBeUndefined();
+      expect(result.toolName).toBe('correctTool');
+    });
+
+    it('should not enforce toolChoice when type is auto', async () => {
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'anyTool',
+          toolCallId: '123',
+          input: '{"param": "value"}',
+        },
+        tools: {
+          anyTool: tool({
+            inputSchema: z.object({ param: z.string() }),
+          }),
+        } as const,
+        repairToolCall: undefined,
+        messages: [],
+        system: undefined,
+        toolChoice: 'auto',
+      });
+
+      expect(result.invalid).toBeUndefined();
+      expect(result.toolName).toBe('anyTool');
+    });
+
+    it('should not enforce toolChoice when it is undefined', async () => {
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'testTool',
+          toolCallId: '123',
+          input: '{"param1": "test", "param2": 42}',
+        },
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({
+              param1: z.string(),
+              param2: z.number(),
+            }),
+          }),
+        } as const,
+        repairToolCall: undefined,
+        messages: [],
+        system: undefined,
+        toolChoice: undefined,
+      });
+
+      expect(result.invalid).toBeUndefined();
+      expect(result.toolName).toBe('testTool');
+    });
+  });
 });

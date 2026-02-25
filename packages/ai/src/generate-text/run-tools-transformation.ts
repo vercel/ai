@@ -9,7 +9,7 @@ import { Tracer } from '@opentelemetry/api';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
-import { Source } from '../types/language-model';
+import { Source, ToolChoice } from '../types/language-model';
 import { asLanguageModelUsage } from '../types/usage';
 import { executeToolCall } from './execute-tool-call';
 import {
@@ -124,6 +124,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   model,
   onToolCallStart,
   onToolCallFinish,
+  toolChoice,
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV3StreamPart>;
@@ -139,6 +140,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   model?: { provider: string; modelId: string };
   onToolCallStart?: StreamTextOnToolCallStartCallback<TOOLS>;
   onToolCallFinish?: StreamTextOnToolCallFinishCallback<TOOLS>;
+  toolChoice?: ToolChoice<TOOLS>;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
@@ -265,6 +267,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               repairToolCall,
               system,
               messages,
+              toolChoice,
             });
 
             toolCallsByToolCallId.set(toolCall.toolCallId, toolCall);
