@@ -129,6 +129,27 @@ describe('TogetherAIProvider', () => {
       );
     });
 
+    it('should prefer TOGETHER_API_KEY over TOGETHER_AI_API_KEY', () => {
+      process.env.TOGETHER_API_KEY = 'new-key';
+      process.env.TOGETHER_AI_API_KEY = 'old-key';
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const provider = createTogetherAI();
+      const model = provider('model-id');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      config.headers();
+
+      expect(loadApiKey).toHaveBeenCalledWith({
+        apiKey: undefined,
+        environmentVariableName: 'TOGETHER_API_KEY',
+        description: 'TogetherAI',
+      });
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
     it('should prefer explicit apiKey over TOGETHER_AI_API_KEY', () => {
       process.env.TOGETHER_AI_API_KEY = 'old-key';
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
