@@ -1,5 +1,6 @@
 import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
+import { notify } from '../util/notify';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
@@ -91,11 +92,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     fn: async span => {
       let output: unknown;
 
-      try {
-        await onToolCallStart?.(baseCallbackEvent);
-      } catch (_ignored) {
-        // Errors in callbacks should not break the generation flow.
-      }
+      await notify({ event: baseCallbackEvent, callbacks: onToolCallStart });
 
       const startTime = now();
 
@@ -126,16 +123,15 @@ export async function executeToolCall<TOOLS extends ToolSet>({
       } catch (error) {
         const durationMs = now() - startTime;
 
-        try {
-          await onToolCallFinish?.({
+        await notify({
+          event: {
             ...baseCallbackEvent,
-            success: false,
+            success: false as const,
             error,
             durationMs,
-          });
-        } catch (_ignored) {
-          // Errors in callbacks should not break the generation flow.
-        }
+          },
+          callbacks: onToolCallFinish,
+        });
 
         recordErrorOnSpan(span, error);
         return {
@@ -153,16 +149,15 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 
       const durationMs = now() - startTime;
 
-      try {
-        await onToolCallFinish?.({
+      await notify({
+        event: {
           ...baseCallbackEvent,
-          success: true,
+          success: true as const,
           output,
           durationMs,
-        });
-      } catch (_ignored) {
-        // Errors in callbacks should not break the generation flow.
-      }
+        },
+        callbacks: onToolCallFinish,
+      });
 
       try {
         span.setAttributes(
