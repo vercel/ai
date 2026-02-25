@@ -1,0 +1,62 @@
+{
+  "id": "resp_phase_001",
+  "object": "response",
+  "created_at": 1764962401,
+  "status": "completed",
+  "error": null,
+  "incomplete_details": null,
+  "model": "gpt-5.3-codex",
+  "output": [
+    {
+      "type": "reasoning",
+      "id": "rs_phase_001",
+      "summary": [
+        {
+          "type": "summary_text",
+          "text": "Thinking about the answer..."
+        }
+      ]
+    },
+    {
+      "type": "message",
+      "id": "msg_phase_commentary",
+      "role": "assistant",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "I'm going to use the web search tool",
+          "logprobs": null,
+          "annotations": []
+        }
+      ],
+      "phase": "commentary"
+    },
+    {
+      "type": "message",
+      "id": "msg_phase_final",
+      "role": "assistant",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "The capital of France is Paris.",
+          "logprobs": null,
+          "annotations": []
+        }
+      ],
+      "phase": "final_answer"
+    }
+  ],
+  "usage": {
+    "input_tokens": 50,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 100,
+    "output_tokens_details": {
+      "reasoning_tokens": 20
+    }
+  },
+  "service_tier": "default"
+}

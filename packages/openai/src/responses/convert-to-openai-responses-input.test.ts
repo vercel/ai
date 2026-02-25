@@ -692,6 +692,111 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
+    it('should include phase from providerOptions on assistant text messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'I will search for that',
+                providerOptions: {
+                  openai: {
+                    itemId: 'msg_001',
+                    phase: 'commentary',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'assistant',
+          content: [{ type: 'output_text', text: 'I will search for that' }],
+          id: 'msg_001',
+          phase: 'commentary',
+        },
+      ]);
+    });
+
+    it('should include final_answer phase from providerOptions on assistant text messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'The capital of France is Paris.',
+                providerOptions: {
+                  openai: {
+                    itemId: 'msg_002',
+                    phase: 'final_answer',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            { type: 'output_text', text: 'The capital of France is Paris.' },
+          ],
+          id: 'msg_002',
+          phase: 'final_answer',
+        },
+      ]);
+    });
+
+    it('should not include phase when not set in providerOptions', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Hello',
+                providerOptions: {
+                  openai: {
+                    itemId: 'msg_003',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'assistant',
+          content: [{ type: 'output_text', text: 'Hello' }],
+          id: 'msg_003',
+        },
+      ]);
+    });
+
     it('should convert messages with tool call parts', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
