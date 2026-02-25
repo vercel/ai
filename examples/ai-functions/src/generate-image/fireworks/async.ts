@@ -7,7 +7,7 @@ run(async () => {
   const result = await generateImage({
     model: fireworks.image('accounts/fireworks/models/flux-kontext-pro'),
     prompt: 'A burrito launched through a tunnel',
-    size: '1024x1024',
+    aspectRatio: '1:1',
   });
 
   await presentImages(result.images);
