@@ -30,12 +30,12 @@ classDiagram
 Language models are used for text generation and structured generation workflows from prompt or message input.
 
 - **AI functions**
-  - `generateText` - [`packages/ai/src/generate-text/generate-text.ts`](/Users/larsgrammel/repositories/ai/packages/ai/src/generate-text/generate-text.ts) - Generates a complete text result from a language model in a single call.
-  - `streamText` - [`packages/ai/src/generate-text/stream-text.ts`](/Users/larsgrammel/repositories/ai/packages/ai/src/generate-text/stream-text.ts) - Streams language model output incrementally as it is produced.
-  - `generateObject` - [`packages/ai/src/generate-object/generate-object.ts`](/Users/larsgrammel/repositories/ai/packages/ai/src/generate-object/generate-object.ts) - Generates one structured object from a language model according to a schema.
-  - `streamObject` - [`packages/ai/src/generate-object/stream-object.ts`](/Users/larsgrammel/repositories/ai/packages/ai/src/generate-object/stream-object.ts) - Streams partial structured object output from a language model over time.
+  - `generateText` - [`packages/ai/src/generate-text/generate-text.ts`](packages/ai/src/generate-text/generate-text.ts) - Generates a complete text result from a language model in a single call.
+  - `streamText` - [`packages/ai/src/generate-text/stream-text.ts`](packages/ai/src/generate-text/stream-text.ts) - Streams language model output incrementally as it is produced.
+  - `generateObject` - [`packages/ai/src/generate-object/generate-object.ts`](packages/ai/src/generate-object/generate-object.ts) - Generates one structured object from a language model according to a schema.
+  - `streamObject` - [`packages/ai/src/generate-object/stream-object.ts`](packages/ai/src/generate-object/stream-object.ts) - Streams partial structured object output from a language model over time.
 - **Model specification**
-  - `LanguageModelV3` - [`packages/provider/src/language-model/v3/language-model-v3.ts`](/Users/larsgrammel/repositories/ai/packages/provider/src/language-model/v3/language-model-v3.ts)
+  - `LanguageModelV3` - [`packages/provider/src/language-model/v3/language-model-v3.ts`](packages/provider/src/language-model/v3/language-model-v3.ts)
 - **Provider implementations (examples)**
   - `OpenAILanguageModel`, `AnthropicLanguageModel`
 
@@ -58,10 +58,10 @@ classDiagram
 Embedding models are used to convert text into numeric vectors for similarity and retrieval use cases.
 
 - **AI functions**
-  - `embed` - [`packages/ai/src/embed/embed.ts`](/Users/larsgrammel/repositories/ai/packages/ai/src/embed/embed.ts) - Creates a single embedding vector for one text value.
-  - `embedMany` - [`packages/ai/src/embed/embed-many.ts`](/Users/larsgrammel/repositories/ai/packages/ai/src/embed/embed-many.ts) - Creates embedding vectors for multiple text values, batching calls when needed.
+  - `embed` - [`packages/ai/src/embed/embed.ts`](packages/ai/src/embed/embed.ts) - Creates a single embedding vector for one text value.
+  - `embedMany` - [`packages/ai/src/embed/embed-many.ts`](packages/ai/src/embed/embed-many.ts) - Creates embedding vectors for multiple text values, batching calls when needed.
 - **Model specification**
-  - `EmbeddingModelV3` - [`packages/provider/src/embedding-model/v3/embedding-model-v3.ts`](/Users/larsgrammel/repositories/ai/packages/provider/src/embedding-model/v3/embedding-model-v3.ts)
+  - `EmbeddingModelV3` - [`packages/provider/src/embedding-model/v3/embedding-model-v3.ts`](packages/provider/src/embedding-model/v3/embedding-model-v3.ts)
 - **Provider implementations (examples)**
   - `OpenAIEmbeddingModel`, `MistralEmbeddingModel`
 
@@ -84,10 +84,10 @@ classDiagram
 Image models are used to generate image outputs from text prompts.
 
 - **AI functions**
-  - `generateImage` - [`packages/ai/src/generate-image/generate-image.ts`](/Users/larsgrammel/repositories/ai/packages/ai/src/generate-image/generate-image.ts) - Generates one or more images from prompt input.
-  - `experimental_generateImage` - [`packages/ai/src/generate-image/generate-image.ts`](/Users/larsgrammel/repositories/ai/packages/ai/src/generate-image/generate-image.ts) - Provides the deprecated experimental alias for `generateImage`.
+  - `generateImage` - [`packages/ai/src/generate-image/generate-image.ts`](packages/ai/src/generate-image/generate-image.ts) - Generates one or more images from prompt input.
+  - `experimental_generateImage` - [`packages/ai/src/generate-image/generate-image.ts`](packages/ai/src/generate-image/generate-image.ts) - Provides the deprecated experimental alias for `generateImage`.
 - **Model specification**
-  - `ImageModelV3` - [`packages/provider/src/image-model/v3/image-model-v3.ts`](/Users/larsgrammel/repositories/ai/packages/provider/src/image-model/v3/image-model-v3.ts)
+  - `ImageModelV3` - [`packages/provider/src/image-model/v3/image-model-v3.ts`](packages/provider/src/image-model/v3/image-model-v3.ts)
 - **Provider implementations (examples)**
   - `OpenAIImageModel`, `GoogleImageModel`
 
@@ -110,9 +110,9 @@ classDiagram
 Reranking models are used to reorder candidate documents by relevance to a query.
 
 - **AI functions**
-  - `rerank` - [`packages/ai/src/rerank/rerank.ts`](/Users/larsgrammel/repositories/ai/packages/ai/src/rerank/rerank.ts) - Reorders documents and returns a relevance-ranked result set for a query.
+  - `rerank` - [`packages/ai/src/rerank/rerank.ts`](packages/ai/src/rerank/rerank.ts) - Reorders documents and returns a relevance-ranked result set for a query.
 - **Model specification**
-  - `RerankingModelV3` - [`packages/provider/src/reranking-model/v3/reranking-model-v3.ts`](/Users/larsgrammel/repositories/ai/packages/provider/src/reranking-model/v3/reranking-model-v3.ts)
+  - `RerankingModelV3` - [`packages/provider/src/reranking-model/v3/reranking-model-v3.ts`](packages/provider/src/reranking-model/v3/reranking-model-v3.ts)
 - **Provider implementations (examples)**
   - `CohereRerankingModel`, `VertexRerankingModel`
 
@@ -133,9 +133,9 @@ classDiagram
 Transcription models are used to convert audio input into text transcripts.
 
 - **AI functions**
-  - `experimental_transcribe` - [`packages/ai/src/transcribe/transcribe.ts`](/Users/larsgrammel/repositories/ai/packages/ai/src/transcribe/transcribe.ts) - Transcribes audio into text with segment and metadata support.
+  - `experimental_transcribe` - [`packages/ai/src/transcribe/transcribe.ts`](packages/ai/src/transcribe/transcribe.ts) - Transcribes audio into text with segment and metadata support.
 - **Model specification**
-  - `TranscriptionModelV3` - [`packages/provider/src/transcription-model/v3/transcription-model-v3.ts`](/Users/larsgrammel/repositories/ai/packages/provider/src/transcription-model/v3/transcription-model-v3.ts)
+  - `TranscriptionModelV3` - [`packages/provider/src/transcription-model/v3/transcription-model-v3.ts`](packages/provider/src/transcription-model/v3/transcription-model-v3.ts)
 - **Provider implementations (examples)**
   - `OpenAITranscriptionModel`, `DeepgramTranscriptionModel`
 
@@ -156,9 +156,9 @@ classDiagram
 Speech models are used to synthesize audio from text input.
 
 - **AI functions**
-  - `experimental_generateSpeech` - [`packages/ai/src/generate-speech/generate-speech.ts`](/Users/larsgrammel/repositories/ai/packages/ai/src/generate-speech/generate-speech.ts) - Generates speech audio from text input.
+  - `experimental_generateSpeech` - [`packages/ai/src/generate-speech/generate-speech.ts`](packages/ai/src/generate-speech/generate-speech.ts) - Generates speech audio from text input.
 - **Model specification**
-  - `SpeechModelV3` - [`packages/provider/src/speech-model/v3/speech-model-v3.ts`](/Users/larsgrammel/repositories/ai/packages/provider/src/speech-model/v3/speech-model-v3.ts)
+  - `SpeechModelV3` - [`packages/provider/src/speech-model/v3/speech-model-v3.ts`](packages/provider/src/speech-model/v3/speech-model-v3.ts)
 - **Provider implementations (examples)**
   - `OpenAISpeechModel`, `ElevenLabsSpeechModel`
 
@@ -179,9 +179,9 @@ classDiagram
 Video models are used to generate video outputs from prompts.
 
 - **AI functions**
-  - `experimental_generateVideo` - [`packages/ai/src/generate-video/generate-video.ts`](/Users/larsgrammel/repositories/ai/packages/ai/src/generate-video/generate-video.ts) - Generates one or more videos from prompt input.
+  - `experimental_generateVideo` - [`packages/ai/src/generate-video/generate-video.ts`](packages/ai/src/generate-video/generate-video.ts) - Generates one or more videos from prompt input.
 - **Model specification**
-  - `VideoModelV3` - [`packages/provider/src/video-model/v3/video-model-v3.ts`](/Users/larsgrammel/repositories/ai/packages/provider/src/video-model/v3/video-model-v3.ts)
+  - `VideoModelV3` - [`packages/provider/src/video-model/v3/video-model-v3.ts`](packages/provider/src/video-model/v3/video-model-v3.ts)
 - **Provider implementations (examples)**
   - `FalVideoModel`, `ReplicateVideoModel`
 
