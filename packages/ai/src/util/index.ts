@@ -9,5 +9,4 @@ export { type ErrorHandler } from './error-handler';
 export { isDeepEqualData } from './is-deep-equal-data';
 export { parsePartialJson } from './parse-partial-json';
 export { SerialJobExecutor } from './serial-job-executor';
-export { notify, type Listener } from './notify';
 export { simulateReadableStream } from './simulate-readable-stream';
