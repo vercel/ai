@@ -34,7 +34,6 @@ import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { noopTracer } from '../telemetry/noop-tracer';
-import { createOtelCallHandler } from '../telemetry/otel-event-handler';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
   LanguageModel,
@@ -478,38 +477,39 @@ export async function generateText<
 
   const callId = generateCallId();
 
-  const onStartEvent = {
-    callId,
-    model: modelInfo,
-    system,
-    prompt,
-    messages,
-    tools,
-    toolChoice,
-    activeTools,
-    maxOutputTokens: callSettings.maxOutputTokens,
-    temperature: callSettings.temperature,
-    topP: callSettings.topP,
-    topK: callSettings.topK,
-    presencePenalty: callSettings.presencePenalty,
-    frequencyPenalty: callSettings.frequencyPenalty,
-    stopSequences: callSettings.stopSequences,
-    seed: callSettings.seed,
-    maxRetries,
-    timeout,
-    headers: headersWithUserAgent,
-    providerOptions,
-    stopWhen,
-    output,
-    abortSignal,
-    include,
-    telemetry,
-    experimental_context,
-  };
-
-  const otel = createOtelCallHandler(telemetry);
-
-  await notify({ event: onStartEvent, callbacks: [onStart, otel.onStart] });
+  await notify({
+    event: {
+      callId,
+      model: modelInfo,
+      system,
+      prompt,
+      messages,
+      tools,
+      toolChoice,
+      activeTools,
+      maxOutputTokens: callSettings.maxOutputTokens,
+      temperature: callSettings.temperature,
+      topP: callSettings.topP,
+      topK: callSettings.topK,
+      presencePenalty: callSettings.presencePenalty,
+      frequencyPenalty: callSettings.frequencyPenalty,
+      stopSequences: callSettings.stopSequences,
+      seed: callSettings.seed,
+      maxRetries,
+      timeout,
+      headers: headersWithUserAgent,
+      providerOptions,
+      stopWhen,
+      output,
+      abortSignal,
+      include,
+      telemetry,
+      functionId: telemetry?.functionId,
+      metadata: telemetry?.metadata as Record<string, unknown> | undefined,
+      experimental_context,
+    },
+    callbacks: onStart,
+  });
 
   try {
     const initialMessages = initialPrompt.messages;
@@ -539,13 +539,8 @@ export async function generateText<
         experimental_context,
         stepNumber: 0,
         model: modelInfo,
-        onToolCallStart: event =>
-          notify({ event, callbacks: [onToolCallStart, otel.onToolCallStart] }),
-        onToolCallFinish: event =>
-          notify({
-            event,
-            callbacks: [onToolCallFinish, otel.onToolCallFinish],
-          }),
+        onToolCallStart,
+        onToolCallFinish,
       });
 
       const toolContent: Array<any> = [];
@@ -714,7 +709,7 @@ export async function generateText<
 
         await notify({
           event: onStepStartEvent,
-          callbacks: [onStepStart, otel.onStepStart],
+          callbacks: onStepStart,
         });
 
         currentModelResponse = await retry(async () => {
@@ -843,16 +838,8 @@ export async function generateText<
               experimental_context,
               stepNumber: steps.length,
               model: stepModelInfo,
-              onToolCallStart: event =>
-                notify({
-                  event,
-                  callbacks: [onToolCallStart, otel.onToolCallStart],
-                }),
-              onToolCallFinish: event =>
-                notify({
-                  event,
-                  callbacks: [onToolCallFinish, otel.onToolCallFinish],
-                }),
+              onToolCallStart,
+              onToolCallFinish,
             })),
           );
         }
@@ -951,7 +938,7 @@ export async function generateText<
 
         await notify({
           event: currentStepResult,
-          callbacks: [onStepFinish, otel.onStepFinish],
+          callbacks: onStepFinish,
         });
       } finally {
         if (stepTimeoutId != null) {
@@ -1016,7 +1003,7 @@ export async function generateText<
 
     await notify({
       event: onFinishEvent,
-      callbacks: [onFinish, otel.onFinish],
+      callbacks: onFinish,
     });
 
     // parse output only if the last step was finished with "stop":
@@ -1039,7 +1026,6 @@ export async function generateText<
       output: resolvedOutput,
     });
   } catch (error) {
-    otel.recordError(error);
     throw wrapGatewayError(error);
   }
 }
