@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.31
+
+### Patch Changes
+
+- 2fa3ca8: Added missing model IDs to GoogleGenerativeAIModelId and GoogleGenerativeAIVideoModelId types for better autocomplete support.
+
 ## 3.0.30
 
 ### Patch Changes

@@ -329,15 +329,39 @@ export async function POST(request: Request) {
 }
 ```
 
-### Track Step Progress
+### Lifecycle Callbacks
 
-Use `onStepFinish` to track each step's progress, including token usage.
-The callback receives a `stepNumber` (zero-based) to identify which step just completed:
+<Note type="warning">
+  Experimental callbacks are subject to breaking changes in incremental package
+  releases.
+</Note>
+
+Agents provide lifecycle callbacks that let you hook into different phases of the agent execution.
+These are useful for logging, observability, debugging, and custom telemetry.
 
 ```ts
 const result = await myAgent.generate({
   prompt: 'Research and summarize the latest AI trends',
-  onStepFinish: async ({ stepNumber, usage, finishReason, toolCalls }) => {
+
+  experimental_onStart({ model, functionId }) {
+    console.log('Agent started', { model: model.modelId, functionId });
+  },
+
+  experimental_onStepStart({ stepNumber, model }) {
+    console.log(`Step ${stepNumber} starting`, { model: model.modelId });
+  },
+
+  experimental_onToolCallStart({ toolCall }) {
+    console.log(`Tool call starting: ${toolCall.toolName}`);
+  },
+
+  experimental_onToolCallFinish({ toolCall, durationMs, success }) {
+    console.log(`Tool call finished: ${toolCall.toolName} (${durationMs}ms)`, {
+      success,
+    });
+  },
+
+  onStepFinish({ stepNumber, usage, finishReason, toolCalls }) {
     console.log(`Step ${stepNumber} completed:`, {
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
@@ -345,10 +369,28 @@ const result = await myAgent.generate({
       toolsUsed: toolCalls?.map(tc => tc.toolName),
     });
   },
+
+  onFinish({ totalUsage, steps }) {
+    console.log('Agent finished:', {
+      totalSteps: steps.length,
+      totalTokens: totalUsage.totalTokens,
+    });
+  },
 });
 ```
 
-You can also define `onStepFinish` in the constructor for agent-wide tracking. When both constructor and method callbacks are provided, both are called (constructor first, then the method callback):
+The available lifecycle callbacks are:
+
+- **`experimental_onStart`**: Called once when the agent operation begins, before any LLM calls. Receives model info, prompt, settings, and telemetry metadata.
+- **`experimental_onStepStart`**: Called before each step (LLM call). Receives the step number, model, messages being sent, tools, and prior steps.
+- **`experimental_onToolCallStart`**: Called right before a tool's `execute` function runs. Receives the tool call object with tool name, call ID, and input.
+- **`experimental_onToolCallFinish`**: Called right after a tool's `execute` function completes or errors. Receives the tool call, `durationMs`, and a `success` discriminator (`output` when successful, `error` when failed).
+- **`onStepFinish`**: Called after each step finishes. Receives step results including usage, finish reason, and tool calls.
+- **`onFinish`**: Called when all steps are finished and the response is complete. Receives all step results, total usage, and telemetry metadata.
+
+#### Constructor vs. Method Callbacks
+
+All lifecycle callbacks can be defined in the constructor for agent-wide tracking, in the `generate()`/`stream()` call for per-call tracking, or both. When both are provided, both are called (constructor first, then the method callback):
 
 ```ts
 const agent = new ToolLoopAgent({
