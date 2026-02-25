@@ -4555,11 +4555,11 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(textParts).toHaveLength(2);
         expect(textParts[0].providerMetadata?.openai).toMatchObject({
-          itemId: 'msg_phase_commentary',
+          itemId: 'msg_0465b6d1ae1f97c500699f883243a481a3b50b985223592984',
           phase: 'commentary',
         });
         expect(textParts[1].providerMetadata?.openai).toMatchObject({
-          itemId: 'msg_phase_final',
+          itemId: 'msg_0465b6d1ae1f97c500699f8835e09c81a3b91e9d502ff18555',
           phase: 'final_answer',
         });
       });
@@ -7892,11 +7892,11 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(textStartParts).toHaveLength(2);
         expect(textStartParts[0].providerMetadata?.openai).toMatchObject({
-          itemId: 'msg_phase_commentary',
+          itemId: 'msg_0a63f40a2632b74300699f8819a5e08196ac270722d369af5a',
           phase: 'commentary',
         });
         expect(textStartParts[1].providerMetadata?.openai).toMatchObject({
-          itemId: 'msg_phase_final',
+          itemId: 'msg_0a63f40a2632b74300699f881bfbc88196aec38f30c3dd24b0',
           phase: 'final_answer',
         });
 
@@ -7909,11 +7909,11 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(textEndParts).toHaveLength(2);
         expect(textEndParts[0].providerMetadata?.openai).toMatchObject({
-          itemId: 'msg_phase_commentary',
+          itemId: 'msg_0a63f40a2632b74300699f8819a5e08196ac270722d369af5a',
           phase: 'commentary',
         });
         expect(textEndParts[1].providerMetadata?.openai).toMatchObject({
-          itemId: 'msg_phase_final',
+          itemId: 'msg_0a63f40a2632b74300699f881bfbc88196aec38f30c3dd24b0',
           phase: 'final_answer',
         });
       });
