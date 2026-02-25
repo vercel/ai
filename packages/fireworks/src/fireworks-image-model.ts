@@ -20,14 +20,9 @@ const DEFAULT_POLL_INTERVAL_MILLIS = 500;
 const DEFAULT_POLL_TIMEOUT_MILLIS = 120000; // 2 minutes for image generation
 
 interface FireworksImageModelBackendConfig {
-  urlFormat: 'workflows' | 'workflows_edit' | 'image_generation';
+  urlFormat: 'workflows' | 'workflows_async' | 'image_generation';
   supportsSize?: boolean;
   supportsEditing?: boolean;
-  /**
-   * Whether the model returns a request_id that needs to be polled for results.
-   * Models like flux-kontext-* use async generation that requires polling.
-   */
-  async?: boolean;
 }
 
 const modelToBackendConfig: Partial<
@@ -40,14 +35,12 @@ const modelToBackendConfig: Partial<
     urlFormat: 'workflows',
   },
   'accounts/fireworks/models/flux-kontext-pro': {
-    urlFormat: 'workflows_edit',
+    urlFormat: 'workflows_async',
     supportsEditing: true,
-    async: true,
   },
   'accounts/fireworks/models/flux-kontext-max': {
-    urlFormat: 'workflows_edit',
+    urlFormat: 'workflows_async',
     supportsEditing: true,
-    async: true,
   },
   'accounts/fireworks/models/playground-v2-5-1024px-aesthetic': {
     urlFormat: 'image_generation',
@@ -74,24 +67,16 @@ const modelToBackendConfig: Partial<
 function getUrlForModel(
   baseUrl: string,
   modelId: FireworksImageModelId,
-  hasInputImage: boolean,
 ): string {
   const config = modelToBackendConfig[modelId];
 
   switch (config?.urlFormat) {
     case 'image_generation':
       return `${baseUrl}/image_generation/${modelId}`;
-    case 'workflows_edit':
-      // Kontext models: use base URL for editing (no suffix)
+    case 'workflows_async':
       return `${baseUrl}/workflows/${modelId}`;
     case 'workflows':
     default:
-      // Standard FLUX models: use text_to_image for generation,
-      // but if input_image provided and model supports editing,
-      // or if it's an async model, use the base workflows endpoint
-      if (config?.async || (hasInputImage && config?.supportsEditing)) {
-        return `${baseUrl}/workflows/${modelId}`;
-      }
       return `${baseUrl}/workflows/${modelId}/text_to_image`;
   }
 }
@@ -213,7 +198,7 @@ export class FireworksImageModel implements ImageModelV3 {
     };
 
     // Handle async models that require polling (e.g., flux-kontext-*)
-    if (backendConfig?.async) {
+    if (backendConfig?.urlFormat === 'workflows_async') {
       return this.doGenerateAsync({
         body,
         headers: combinedHeaders,
@@ -225,7 +210,7 @@ export class FireworksImageModel implements ImageModelV3 {
 
     // Handle sync models that return binary directly
     const { value: response, responseHeaders } = await postJsonToApi({
-      url: getUrlForModel(this.config.baseURL, this.modelId, hasInputImage),
+      url: getUrlForModel(this.config.baseURL, this.modelId),
       headers: combinedHeaders,
       body,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
@@ -264,7 +249,7 @@ export class FireworksImageModel implements ImageModelV3 {
   }): Promise<Awaited<ReturnType<ImageModelV3['doGenerate']>>> {
     // Submit the generation request
     const { value: submitResponse } = await postJsonToApi({
-      url: getUrlForModel(this.config.baseURL, this.modelId, false), // TODO: Move out of this method
+      url: getUrlForModel(this.config.baseURL, this.modelId),
       headers,
       body,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
