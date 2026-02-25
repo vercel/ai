@@ -1,3 +1,4 @@
+import { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import {
   context,
   trace,
@@ -7,6 +8,20 @@ import {
   AttributeValue,
   SpanStatusCode,
 } from '@opentelemetry/api';
+import type {
+  OnFinishEvent,
+  OnStartEvent,
+  OnStepFinishEvent,
+  OnStepStartEvent,
+  OnToolCallFinishEvent,
+  OnToolCallStartEvent,
+} from '../generate-text/callback-events';
+import type { Output } from '../generate-text/output';
+import type { ToolSet } from '../generate-text/tool-set';
+import {
+  bindTelemetryHandler,
+  TelemetryHandler,
+} from '../generate-text/telemetry-handler';
 import { assembleOperationName } from './assemble-operation-name';
 import { getBaseTelemetryAttributes } from './get-base-telemetry-attributes';
 import { getTracer } from './get-tracer';
@@ -67,12 +82,38 @@ function selectAttributes(
 }
 
 /**
+ * Extended step start event with language-model-level details for OTel spans.
+ */
+interface OtelStepStartEvent<
+  TOOLS extends ToolSet = ToolSet,
+  OUTPUT extends Output = Output,
+> extends OnStepStartEvent<TOOLS, OUTPUT> {
+  readonly promptMessages?: LanguageModelV3Prompt;
+  readonly stepTools?: ReadonlyArray<Record<string, unknown>>;
+  readonly stepToolChoice?: unknown;
+}
+
+/**
+ * OTel handler with additional error recording capability.
+ */
+export interface OtelTelemetryHandler<
+  TOOLS extends ToolSet = ToolSet,
+  OUTPUT extends Output = Output,
+> extends TelemetryHandler<TOOLS, OUTPUT> {
+  recordError(error: unknown): void;
+}
+
+/**
  * Creates per-call OTel telemetry state and event handlers.
  * All span state lives in the returned closure — no module-level state.
+ * Methods are automatically bound for safe use as callbacks.
  */
-export function createOtelCallHandler(
+export function createOtelCallHandler<
+  TOOLS extends ToolSet = ToolSet,
+  OUTPUT extends Output = Output,
+>(
   telemetry: TelemetrySettings | undefined,
-) {
+): OtelTelemetryHandler<TOOLS, OUTPUT> {
   const tracer = getTracer(telemetry);
 
   let rootSpan: Span | undefined;
@@ -82,7 +123,8 @@ export function createOtelCallHandler(
   const toolSpans = new Map<string, { span: Span; context: Context }>();
   let baseTelemetryAttributes: Attributes = {};
   let settings: Record<string, unknown> = {};
-  return {
+
+  const handler = {
     recordError(error: unknown): void {
       if (!rootSpan) return;
 
@@ -120,7 +162,7 @@ export function createOtelCallHandler(
       rootSpan.end();
     },
 
-    onStart(event: any): void {
+    onStart(event: OnStartEvent<TOOLS, OUTPUT>): void {
       settings = {
         maxOutputTokens: event.maxOutputTokens,
         temperature: event.temperature,
@@ -162,7 +204,7 @@ export function createOtelCallHandler(
       rootContext = trace.setSpan(context.active(), rootSpan);
     },
 
-    onStepStart(event: any): void {
+    onStepStart(event: OtelStepStartEvent<TOOLS, OUTPUT>): void {
       if (!rootSpan || !rootContext) return;
 
       const attributes = selectAttributes(telemetry, {
@@ -181,8 +223,7 @@ export function createOtelCallHandler(
               : undefined,
         },
         'ai.prompt.tools': {
-          input: () =>
-            event.stepTools?.map((tool: any) => JSON.stringify(tool)),
+          input: () => event.stepTools?.map(tool => JSON.stringify(tool)),
         },
         'ai.prompt.toolChoice': {
           input: () =>
@@ -220,7 +261,7 @@ export function createOtelCallHandler(
       stepContext = trace.setSpan(rootContext, stepSpan);
     },
 
-    onToolCallStart(event: any): void {
+    onToolCallStart(event: OnToolCallStartEvent<TOOLS>): void {
       if (!stepContext) return;
 
       const { toolCall } = event;
@@ -250,7 +291,7 @@ export function createOtelCallHandler(
       });
     },
 
-    onToolCallFinish(event: any): void {
+    onToolCallFinish(event: OnToolCallFinishEvent<TOOLS>): void {
       const toolSpanEntry = toolSpans.get(event.toolCall.toolCallId);
       if (!toolSpanEntry) return;
 
@@ -288,7 +329,7 @@ export function createOtelCallHandler(
       toolSpans.delete(event.toolCall.toolCallId);
     },
 
-    onStepFinish(event: any): void {
+    onStepFinish(event: OnStepFinishEvent<TOOLS>): void {
       if (!stepSpan) return;
 
       stepSpan.setAttributes(
@@ -305,21 +346,15 @@ export function createOtelCallHandler(
               const toolCalls = event.toolCalls;
               return toolCalls.length > 0
                 ? JSON.stringify(
-                    toolCalls.map(
-                      (tc: {
-                        toolCallId: string;
-                        toolName: string;
-                        input: unknown;
-                      }) => ({
-                        toolCallType: 'function',
-                        toolCallId: tc.toolCallId,
-                        toolName: tc.toolName,
-                        args:
-                          typeof tc.input === 'string'
-                            ? tc.input
-                            : JSON.stringify(tc.input),
-                      }),
-                    ),
+                    toolCalls.map(tc => ({
+                      toolCallType: 'function',
+                      toolCallId: tc.toolCallId,
+                      toolName: tc.toolName,
+                      args:
+                        typeof tc.input === 'string'
+                          ? tc.input
+                          : JSON.stringify(tc.input),
+                    })),
                   )
                 : undefined;
             },
@@ -347,7 +382,7 @@ export function createOtelCallHandler(
       stepContext = undefined;
     },
 
-    onFinish(event: any): void {
+    onFinish(event: OnFinishEvent<TOOLS>): void {
       if (!rootSpan) return;
 
       rootSpan.setAttributes(
@@ -364,21 +399,15 @@ export function createOtelCallHandler(
               const toolCalls = event.toolCalls;
               return toolCalls.length > 0
                 ? JSON.stringify(
-                    toolCalls.map(
-                      (tc: {
-                        toolCallId: string;
-                        toolName: string;
-                        input: unknown;
-                      }) => ({
-                        toolCallType: 'function',
-                        toolCallId: tc.toolCallId,
-                        toolName: tc.toolName,
-                        args:
-                          typeof tc.input === 'string'
-                            ? tc.input
-                            : JSON.stringify(tc.input),
-                      }),
-                    ),
+                    toolCalls.map(tc => ({
+                      toolCallType: 'function',
+                      toolCallId: tc.toolCallId,
+                      toolName: tc.toolName,
+                      args:
+                        typeof tc.input === 'string'
+                          ? tc.input
+                          : JSON.stringify(tc.input),
+                    })),
                   )
                 : undefined;
             },
@@ -394,5 +423,10 @@ export function createOtelCallHandler(
 
       rootSpan.end();
     },
+  };
+
+  return {
+    ...bindTelemetryHandler(handler),
+    recordError: handler.recordError.bind(handler),
   };
 }

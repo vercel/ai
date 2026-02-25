@@ -477,7 +477,7 @@ export async function generateText<
   } as Prompt);
 
   const callId = generateCallId();
-  const otel = createOtelCallHandler(telemetry);
+  const otel = createOtelCallHandler<TOOLS, OUTPUT>(telemetry);
 
   await notify({
     event: {

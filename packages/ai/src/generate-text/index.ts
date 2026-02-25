@@ -64,3 +64,7 @@ export type {
   TypedToolResult,
 } from './tool-result';
 export type { ToolSet } from './tool-set';
+export {
+  bindTelemetryHandler,
+  type TelemetryHandler,
+} from './telemetry-handler';
