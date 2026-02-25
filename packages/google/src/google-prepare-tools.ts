@@ -31,7 +31,7 @@ export function prepareTools({
     | undefined
     | {
         functionCallingConfig: {
-          mode: 'AUTO' | 'NONE' | 'ANY';
+          mode: 'AUTO' | 'NONE' | 'ANY' | 'VALIDATED';
           allowedFunctionNames?: string[];
         };
       };
@@ -214,10 +214,19 @@ export function prepareTools({
     }
   }
 
+  // If any function tool has strict: true, use VALIDATED mode to enforce
+  // schema validation on the Gemini side (closest equivalent to OpenAI's
+  // per-tool strict mode).
+  const hasStrictTool = tools?.some(
+    tool => tool.type === 'function' && tool.strict === true,
+  );
+
   if (toolChoice == null) {
     return {
       tools: [{ functionDeclarations }],
-      toolConfig: undefined,
+      toolConfig: hasStrictTool
+        ? { functionCallingConfig: { mode: 'VALIDATED' } }
+        : undefined,
       toolWarnings,
     };
   }
@@ -228,7 +237,11 @@ export function prepareTools({
     case 'auto':
       return {
         tools: [{ functionDeclarations }],
-        toolConfig: { functionCallingConfig: { mode: 'AUTO' } },
+        toolConfig: {
+          functionCallingConfig: {
+            mode: hasStrictTool ? 'VALIDATED' : 'AUTO',
+          },
+        },
         toolWarnings,
       };
     case 'none':
@@ -240,7 +253,11 @@ export function prepareTools({
     case 'required':
       return {
         tools: [{ functionDeclarations }],
-        toolConfig: { functionCallingConfig: { mode: 'ANY' } },
+        toolConfig: {
+          functionCallingConfig: {
+            mode: hasStrictTool ? 'VALIDATED' : 'ANY',
+          },
+        },
         toolWarnings,
       };
     case 'tool':
@@ -248,7 +265,7 @@ export function prepareTools({
         tools: [{ functionDeclarations }],
         toolConfig: {
           functionCallingConfig: {
-            mode: 'ANY',
+            mode: hasStrictTool ? 'VALIDATED' : 'ANY',
             allowedFunctionNames: [toolChoice.toolName],
           },
         },
