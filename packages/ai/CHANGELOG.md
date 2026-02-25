@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.100
+
+### Patch Changes
+
+- b7fba77: feat(ai): add event notifiers to core functions
+
 ## 6.0.99
 
 ### Patch Changes
