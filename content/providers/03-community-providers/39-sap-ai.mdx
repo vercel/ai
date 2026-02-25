@@ -7,77 +7,61 @@ description: Learn how to use the SAP AI Core provider for the AI SDK.
 
 The AI SDK supports [SAP AI Core](https://help.sap.com/docs/ai-core) through two community providers:
 
-- [@jerome-benoit/sap-ai-provider](https://github.com/jerome-benoit/sap-ai-provider) - Language Model V3 for AI SDK 5.x & 6.x (recommended)
-- [@jerome-benoit/sap-ai-provider-v2](https://github.com/jerome-benoit/sap-ai-provider-v2) - Language Model V2 for AI SDK 5.x
+- [jerome-benoit/sap-ai-provider](https://github.com/jerome-benoit/sap-ai-provider) - Language Model V3 for AI SDK 5.x & 6.x (recommended)
+- [jerome-benoit/sap-ai-provider-v2](https://github.com/jerome-benoit/sap-ai-provider-v2) - Language Model V2 for AI SDK 5.x
 
-Both providers are built on the official **@sap-ai-sdk/orchestration** package and provide access to 80+ models (GPT-4o, Claude, Gemini, Amazon Nova, Llama) through SAP's enterprise-grade AI platform.
+Both providers are built on the official **@sap-ai-sdk/orchestration** and **@sap-ai-sdk/foundation-models** packages, providing language model and embedding support through the familiar AI SDK interface.
 
-## Choosing Your Provider
+## Features
 
-### For New Projects (Recommended)
+Both providers offer:
 
-[@jerome-benoit/sap-ai-provider](https://github.com/jerome-benoit/sap-ai-provider) implements Language Model V3 specification with:
-
-- AI SDK 5.x and 6.x compatibility
-- Enhanced streaming with structured V3 blocks
-- Latest AI SDK features support
-
-### For AI SDK 5.x with V2 Specification
-
-[@jerome-benoit/sap-ai-provider-v2](https://github.com/jerome-benoit/sap-ai-provider-v2) is maintained for projects that require Language Model V2 specification compatibility.
-
-Both providers share the same API surface and features - only the underlying specification differs.
+- **Dual API Support**: Choose between Orchestration API (with data masking, content filtering, document grounding, translation) or Foundation Models API (direct model access)
+- **Tool calling** and **multi-modal input** (images)
+- **Streaming support** for real-time text generation
+- **Text embeddings** for RAG and semantic search
 
 ## Setup
 
-Choose and install your preferred provider:
-
-### @jerome-benoit/sap-ai-provider (V3)
+### @jerome-benoit/sap-ai-provider (recommended)
 
 <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
-    <Snippet text="pnpm add @jerome-benoit/sap-ai-provider ai" dark />
+    <Snippet text="pnpm add @jerome-benoit/sap-ai-provider" dark />
   </Tab>
   <Tab>
-    <Snippet text="npm install @jerome-benoit/sap-ai-provider ai" dark />
+    <Snippet text="npm install @jerome-benoit/sap-ai-provider" dark />
   </Tab>
   <Tab>
-    <Snippet text="yarn add @jerome-benoit/sap-ai-provider ai" dark />
+    <Snippet text="yarn add @jerome-benoit/sap-ai-provider" dark />
   </Tab>
   <Tab>
-    <Snippet text="bun add @jerome-benoit/sap-ai-provider ai" dark />
+    <Snippet text="bun add @jerome-benoit/sap-ai-provider" dark />
   </Tab>
 </Tabs>
 
-### @jerome-benoit/sap-ai-provider-v2 (V2)
+### @jerome-benoit/sap-ai-provider-v2
 
 <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
-    <Snippet text="pnpm add @jerome-benoit/sap-ai-provider-v2 ai" dark />
+    <Snippet text="pnpm add @jerome-benoit/sap-ai-provider-v2" dark />
   </Tab>
   <Tab>
-    <Snippet text="npm install @jerome-benoit/sap-ai-provider-v2 ai" dark />
+    <Snippet text="npm install @jerome-benoit/sap-ai-provider-v2" dark />
   </Tab>
   <Tab>
-    <Snippet text="yarn add @jerome-benoit/sap-ai-provider-v2 ai" dark />
+    <Snippet text="yarn add @jerome-benoit/sap-ai-provider-v2" dark />
   </Tab>
   <Tab>
-    <Snippet text="bun add @jerome-benoit/sap-ai-provider-v2 ai" dark />
+    <Snippet text="bun add @jerome-benoit/sap-ai-provider-v2" dark />
   </Tab>
 </Tabs>
 
-<Note>
-  The features documented below require version 4.3.0 or higher of the provider
-  package.
-</Note>
-
-### Environment Variables
-
-Authentication is handled via the `AICORE_SERVICE_KEY` environment variable containing your SAP AI Core service key JSON.
+Authentication is handled automatically via the `AICORE_SERVICE_KEY` environment variable (local) or `VCAP_SERVICES` (SAP BTP).
 
 ## Provider Instance
 
-You can import the default provider instance `sapai` from the package:
+You can import the default provider instance `sapai` from `@jerome-benoit/sap-ai-provider`:
 
 ```ts
 import { sapai } from '@jerome-benoit/sap-ai-provider';
@@ -90,11 +74,11 @@ import { createSAPAIProvider } from '@jerome-benoit/sap-ai-provider';
 
 const sapai = createSAPAIProvider({
   resourceGroup: 'default',
-  // optional settings
+  api: 'orchestration', // or 'foundation-models'
 });
 ```
 
-You can use the following optional settings to customize the provider instance:
+You can use the following optional settings to customize the SAP AI provider instance:
 
 - **resourceGroup** _string_
 
@@ -104,21 +88,22 @@ You can use the following optional settings to customize the provider instance:
 
   Specific deployment ID. If not provided, the SDK resolves deployment automatically.
 
+- **api** _string_
+
+  API to use: `'orchestration'` (default) or `'foundation-models'`. Orchestration API supports data masking, content filtering, document grounding, and translation.
+
+- **defaultSettings** _object_
+
+  Default model settings including `modelParams`, `masking`, `filtering`, `grounding`, and `translation`.
+
 ## Language Models
 
-You can create models that call the SAP AI Core Orchestration API using the provider instance. The first argument is the model id.
+You can create models that call the SAP AI Core API using the provider instance. The first argument is the model id. Model naming follows SAP AI Core conventions with vendor prefixes:
 
 ```ts
 const model = sapai('gpt-4o');
-```
-
-Model naming follows SAP AI Core conventions. Some models require vendor prefixes:
-
-```ts
-const gpt4Model = sapai('gpt-4o');
 const claudeModel = sapai('anthropic--claude-3.5-sonnet');
 const geminiModel = sapai('gemini-2.0-flash');
-const novaModel = sapai('amazon--nova-pro');
 ```
 
 <Note>
@@ -128,122 +113,8 @@ const novaModel = sapai('amazon--nova-pro');
 
 ## Embedding Models
 
-You can create models that call the SAP AI Core embeddings API using the `.embeddingModel()` factory method.
+You can create models that call the SAP AI Core embeddings API using the `.embeddingModel()` factory method:
 
 ```ts
 const model = sapai.embeddingModel('text-embedding-ada-002');
 ```
-
-Embedding models use the same naming convention as language models. Azure OpenAI embedding models (e.g., `text-embedding-ada-002`, `text-embedding-3-small`) do not require a vendor prefix.
-
-## Examples
-
-### `generateText`
-
-```ts
-import { sapai } from '@jerome-benoit/sap-ai-provider';
-import { generateText } from 'ai';
-
-const { text } = await generateText({
-  model: sapai('gpt-4o'),
-  prompt: 'What are the benefits of enterprise AI platforms?',
-});
-
-console.log(text);
-```
-
-### `streamText`
-
-```ts
-import { sapai } from '@jerome-benoit/sap-ai-provider';
-import { streamText } from 'ai';
-
-const result = streamText({
-  model: sapai('anthropic--claude-3.5-sonnet'),
-  prompt: 'Write a short story about AI.',
-});
-
-for await (const textPart of result.textStream) {
-  process.stdout.write(textPart);
-}
-```
-
-### Embeddings
-
-```ts
-import { sapai } from '@jerome-benoit/sap-ai-provider';
-import { embed, embedMany } from 'ai';
-
-const { embedding } = await embed({
-  model: sapai.embeddingModel('text-embedding-ada-002'),
-  value: 'What is machine learning?',
-});
-
-console.log(embedding);
-
-const { embeddings } = await embedMany({
-  model: sapai.embeddingModel('text-embedding-3-small'),
-  values: ['Hello world', 'AI is amazing', 'Vector search'],
-});
-
-console.log(embeddings);
-```
-
-### Tool Calling
-
-```ts
-import { sapai } from '@jerome-benoit/sap-ai-provider';
-import { generateText, tool } from 'ai';
-import { z } from 'zod';
-
-const { text } = await generateText({
-  model: sapai('gpt-4o'),
-  prompt: 'What is the weather in Tokyo?',
-  tools: {
-    getWeather: tool({
-      description: 'Get weather for a location',
-      parameters: z.object({ location: z.string() }),
-      execute: async ({ location }) => `Weather in ${location}: sunny, 72°F`,
-    }),
-  },
-  maxSteps: 3,
-});
-
-console.log(text);
-```
-
-## Advanced Features
-
-The provider supports SAP AI Core enterprise features:
-
-- **Data Masking** - SAP Data Privacy Integration (DPI) for anonymization
-- **Content Filtering** - Azure Content Safety and Llama Guard
-- **Document Grounding** - RAG with vector databases
-- **Translation** - Automatic input/output translation
-
-For complete documentation on these features, see the [SAP AI Provider Repository](https://github.com/jerome-benoit/sap-ai-provider).
-
-## Model Capabilities
-
-| Model                          | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ------------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gpt-4o`                       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `anthropic--claude-3.5-sonnet` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.0-flash`             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `amazon--nova-pro`             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-
-<Note>
-  Google Gemini models have a 1 tool limit per request. For multi-tool
-  applications, use GPT-4o, Claude, or Amazon Nova models.
-</Note>
-
-## Resources
-
-- [SAP AI Provider Repository](https://github.com/jerome-benoit/sap-ai-provider)
-- [SAP AI Provider on NPM](https://www.npmjs.com/package/@jerome-benoit/sap-ai-provider)
-- [SAP AI Core Documentation](https://help.sap.com/docs/ai-core)
-
-<Note type="warning">
-  This provider is developed by jerome-benoit, not SAP SE. While it uses the
-  official SAP AI SDK, it is not an official SAP product.
-</Note>

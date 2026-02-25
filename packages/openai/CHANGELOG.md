@@ -1,5 +1,17 @@
 # @ai-sdk/openai
 
+## 3.0.33
+
+### Patch Changes
+
+- 624e651: Added missing model IDs to OpenAIChatModelId, OpenAIResponsesModelId, OpenAIImageModelId, OpenAISpeechModelId, OpenAITranscriptionModelId, and OpenAICompletionModelId types for better autocomplete support.
+
+## 3.0.32
+
+### Patch Changes
+
+- 0c9395b: feat(provider/openai): add `gpt-5.3-codex`
+
 ## 3.0.31
 
 ### Patch Changes
