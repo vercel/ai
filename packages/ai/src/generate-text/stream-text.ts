@@ -1658,7 +1658,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               model: stepModelInfo,
               onToolCallStart,
               onToolCallFinish,
-              toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
             });
 
             // Conditionally include request.body based on include settings.

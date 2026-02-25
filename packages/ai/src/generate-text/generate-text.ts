@@ -869,7 +869,6 @@ export async function generateText<
                     repairToolCall,
                     system,
                     messages: stepInputMessages,
-                    toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
                   }),
                 ),
             );
