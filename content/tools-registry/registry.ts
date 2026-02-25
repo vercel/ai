@@ -515,5 +515,5 @@ console.log(text)`,
   docsUrl: 'https://github-tools.com/installation',
   websiteUrl: 'https://github-tools.com',
   npmUrl: 'https://www.npmjs.com/package/@github-tools/sdk',
-},
+  },
 ];
