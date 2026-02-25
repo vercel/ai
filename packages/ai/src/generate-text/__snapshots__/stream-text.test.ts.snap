@@ -9,11 +9,15 @@ exports[`streamText > options.experimental_onStart > should send correct informa
   "callId": "test-call-id",
   "experimental_context": undefined,
   "frequencyPenalty": undefined,
+  "functionId": "test-function",
   "headers": undefined,
   "include": undefined,
   "maxOutputTokens": undefined,
   "maxRetries": 2,
   "messages": undefined,
+  "metadata": {
+    "customKey": "customValue",
+  },
   "model": {
     "modelId": "mock-model-id",
     "provider": "mock-provider",

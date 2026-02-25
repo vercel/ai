@@ -34,6 +34,7 @@ import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { noopTracer } from '../telemetry/noop-tracer';
+import { createOtelCallHandler } from '../telemetry/otel-event-handler';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
   LanguageModel,
@@ -476,6 +477,7 @@ export async function generateText<
   } as Prompt);
 
   const callId = generateCallId();
+  const otel = createOtelCallHandler(telemetry);
 
   await notify({
     event: {
@@ -508,7 +510,7 @@ export async function generateText<
       metadata: telemetry?.metadata as Record<string, unknown> | undefined,
       experimental_context,
     },
-    callbacks: onStart,
+    callbacks: [onStart, otel.onStart],
   });
 
   try {
@@ -539,8 +541,13 @@ export async function generateText<
         experimental_context,
         stepNumber: 0,
         model: modelInfo,
-        onToolCallStart,
-        onToolCallFinish,
+        onToolCallStart: event =>
+          notify({ event, callbacks: [onToolCallStart, otel.onToolCallStart] }),
+        onToolCallFinish: event =>
+          notify({
+            event,
+            callbacks: [onToolCallFinish, otel.onToolCallFinish],
+          }),
       });
 
       const toolContent: Array<any> = [];
@@ -709,7 +716,7 @@ export async function generateText<
 
         await notify({
           event: onStepStartEvent,
-          callbacks: onStepStart,
+          callbacks: [onStepStart, otel.onStepStart],
         });
 
         currentModelResponse = await retry(async () => {
@@ -838,8 +845,16 @@ export async function generateText<
               experimental_context,
               stepNumber: steps.length,
               model: stepModelInfo,
-              onToolCallStart,
-              onToolCallFinish,
+              onToolCallStart: event =>
+                notify({
+                  event,
+                  callbacks: [onToolCallStart, otel.onToolCallStart],
+                }),
+              onToolCallFinish: event =>
+                notify({
+                  event,
+                  callbacks: [onToolCallFinish, otel.onToolCallFinish],
+                }),
             })),
           );
         }
@@ -938,7 +953,7 @@ export async function generateText<
 
         await notify({
           event: currentStepResult,
-          callbacks: onStepFinish,
+          callbacks: [onStepFinish, otel.onStepFinish],
         });
       } finally {
         if (stepTimeoutId != null) {
@@ -1003,7 +1018,7 @@ export async function generateText<
 
     await notify({
       event: onFinishEvent,
-      callbacks: onFinish,
+      callbacks: [onFinish, otel.onFinish],
     });
 
     // parse output only if the last step was finished with "stop":
@@ -1026,6 +1041,7 @@ export async function generateText<
       output: resolvedOutput,
     });
   } catch (error) {
+    otel.recordError(error);
     throw wrapGatewayError(error);
   }
 }

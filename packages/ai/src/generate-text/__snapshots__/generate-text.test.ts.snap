@@ -7,6 +7,7 @@ exports[`generateText > options.experimental_onStart > should send correct infor
   "callId": "test-call-id",
   "experimental_context": undefined,
   "frequencyPenalty": undefined,
+  "functionId": "test-function",
   "headers": {
     "user-agent": "ai/0.0.0-test",
   },
@@ -14,6 +15,9 @@ exports[`generateText > options.experimental_onStart > should send correct infor
   "maxOutputTokens": undefined,
   "maxRetries": 2,
   "messages": undefined,
+  "metadata": {
+    "customKey": "customValue",
+  },
   "model": {
     "modelId": "mock-model-id",
     "provider": "mock-provider",
