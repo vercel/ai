@@ -43,7 +43,7 @@ and create a provider instance with your settings:
 import { createTogetherAI } from '@ai-sdk/togetherai';
 
 const togetherai = createTogetherAI({
-  apiKey: process.env.TOGETHER_API_KEY ?? '',
+  apiKey: process.env.TOGETHER_AI_API_KEY ?? '',
 });
 ```
 
@@ -57,7 +57,7 @@ You can use the following optional settings to customize the Together.ai provide
 - **apiKey** _string_
 
   API key that is being sent using the `Authorization` header. It defaults to
-  the `TOGETHER_API_KEY` environment variable.
+  the `TOGETHER_AI_API_KEY` environment variable.
 
 - **headers** _Record&lt;string,string&gt;_
 
