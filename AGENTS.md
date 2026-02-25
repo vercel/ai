@@ -84,8 +84,15 @@ Run these from within a package directory (e.g., `packages/ai`):
 
 ```bash
 cd examples/ai-functions
-pnpm tsx src/stream-text/openai.ts    # Run a specific example
+pnpm tsx src/stream-text/openai/basic.ts    # Run a specific example
 ```
+
+### AI Functions Example Layout
+
+- Place examples under `examples/ai-functions/src/<function>/<provider>/`
+- Use `basic.ts` for the provider entry example file
+- Place all other examples in the same provider folder using descriptive `kebab-case` file names
+- Do not create flat top-level provider files like `src/stream-text/openai.ts`
 
 ## Core APIs
 
