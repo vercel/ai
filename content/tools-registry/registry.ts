@@ -484,20 +484,20 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/bash-tool',
   },
   {
-  slug: 'github-tools',
-  name: 'GitHub Tools',
-  description:
-    'GitHub tools and agents for the Vercel AI SDK, wrap GitHub API as AI SDK tools ready to plug into any agent',
-  packageName: '@github-tools/sdk',
-  tags: ['github', 'code', 'repository'],
-  apiKeyEnvName: 'GITHUB_TOKEN',
-  installCommand: {
-    pnpm: 'pnpm add @github-tools/sdk',
-    npm: 'npm install @github-tools/sdk',
-    yarn: 'yarn add @github-tools/sdk',
-    bun: 'bun add @github-tools/sdk',
-  },
-  codeExample: `import { generateText } from 'ai'
+    slug: 'github-tools',
+    name: 'GitHub Tools',
+    description:
+      'GitHub tools and agents for the Vercel AI SDK, wrap GitHub API as AI SDK tools ready to plug into any agent',
+    packageName: '@github-tools/sdk',
+    tags: ['github', 'code', 'repository'],
+    apiKeyEnvName: 'GITHUB_TOKEN',
+    installCommand: {
+      pnpm: 'pnpm add @github-tools/sdk',
+      npm: 'npm install @github-tools/sdk',
+      yarn: 'yarn add @github-tools/sdk',
+      bun: 'bun add @github-tools/sdk',
+    },
+    codeExample: `import { generateText } from 'ai'
 import { createGithubTools } from '@github-tools/sdk'
 
 const githubTools = createGithubTools({
@@ -512,8 +512,8 @@ const { text } = await generateText({
 })
 
 console.log(text)`,
-  docsUrl: 'https://github-tools.com/installation',
-  websiteUrl: 'https://github-tools.com',
-  npmUrl: 'https://www.npmjs.com/package/@github-tools/sdk',
+    docsUrl: 'https://github-tools.com/installation',
+    websiteUrl: 'https://github-tools.com',
+    npmUrl: 'https://www.npmjs.com/package/@github-tools/sdk',
   },
 ];
