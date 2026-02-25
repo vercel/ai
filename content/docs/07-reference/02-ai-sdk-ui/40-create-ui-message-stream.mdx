@@ -106,6 +106,37 @@ const stream = createUIMessageStream({
         'The original messages. If provided, persistence mode is assumed and a message ID is provided for the response message.',
     },
     {
+      name: 'onStepFinish',
+      type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; }) => PromiseLike<void> | void',
+      description:
+        'A callback function that is called when each step finishes during multi-step agent runs. Useful for persisting intermediate UI messages.',
+      properties: [
+        {
+          type: 'StepFinishOptions',
+          parameters: [
+            {
+              name: 'messages',
+              type: 'UIMessage[]',
+              description:
+                'The updated list of UI messages at the end of this step.',
+            },
+            {
+              name: 'isContinuation',
+              type: 'boolean',
+              description:
+                'Indicates whether the response message is a continuation of the last original message, or if a new message was created.',
+            },
+            {
+              name: 'responseMessage',
+              type: 'UIMessage',
+              description:
+                'The message that was sent to the client as a response (including the original message if it was extended).',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'onFinish',
       type: '(options: { messages: UIMessage[]; isContinuation: boolean; isAborted: boolean; responseMessage: UIMessage; finishReason?: FinishReason }) => PromiseLike<void> | void',
       description:

@@ -26,7 +26,7 @@ export type DirectChatTransportOptions<
    * Options to pass to the agent when calling it.
    */
   options?: CALL_OPTIONS;
-} & Omit<UIMessageStreamOptions<UI_MESSAGE>, 'onFinish'>;
+} & Omit<UIMessageStreamOptions<UI_MESSAGE>, 'onFinish' | 'onStepFinish'>;
 
 /**
  * A transport that directly communicates with an Agent in-process,
@@ -61,7 +61,7 @@ export class DirectChatTransport<
   private readonly agentOptions: CALL_OPTIONS | undefined;
   private readonly uiMessageStreamOptions: Omit<
     UIMessageStreamOptions<UI_MESSAGE>,
-    'onFinish'
+    'onFinish' | 'onStepFinish'
   >;
 
   constructor({
