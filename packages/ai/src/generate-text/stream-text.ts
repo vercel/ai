@@ -19,6 +19,7 @@ import {
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
+import { notify } from '../util/notify';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import {
@@ -1028,7 +1029,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             providerMetadata: part.providerMetadata,
           });
 
-          await onStepFinish?.(currentStepResult);
+          await notify({ event: currentStepResult, callbacks: onStepFinish });
 
           logWarnings({
             warnings: recordedWarnings,
@@ -1084,33 +1085,37 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           // call onFinish callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
-          await onFinish?.({
-            stepNumber: finalStep.stepNumber,
-            model: finalStep.model,
-            functionId: finalStep.functionId,
-            metadata: finalStep.metadata,
-            experimental_context: finalStep.experimental_context,
-            finishReason: finalStep.finishReason,
-            rawFinishReason: finalStep.rawFinishReason,
-            totalUsage,
-            usage: finalStep.usage,
-            content: finalStep.content,
-            text: finalStep.text,
-            reasoningText: finalStep.reasoningText,
-            reasoning: finalStep.reasoning,
-            files: finalStep.files,
-            sources: finalStep.sources,
-            toolCalls: finalStep.toolCalls,
-            staticToolCalls: finalStep.staticToolCalls,
-            dynamicToolCalls: finalStep.dynamicToolCalls,
-            toolResults: finalStep.toolResults,
-            staticToolResults: finalStep.staticToolResults,
-            dynamicToolResults: finalStep.dynamicToolResults,
-            request: finalStep.request,
-            response: finalStep.response,
-            warnings: finalStep.warnings,
-            providerMetadata: finalStep.providerMetadata,
-            steps: recordedSteps,
+
+          await notify({
+            event: {
+              stepNumber: finalStep.stepNumber,
+              model: finalStep.model,
+              functionId: finalStep.functionId,
+              metadata: finalStep.metadata,
+              experimental_context: finalStep.experimental_context,
+              finishReason: finalStep.finishReason,
+              rawFinishReason: finalStep.rawFinishReason,
+              totalUsage,
+              usage: finalStep.usage,
+              content: finalStep.content,
+              text: finalStep.text,
+              reasoningText: finalStep.reasoningText,
+              reasoning: finalStep.reasoning,
+              files: finalStep.files,
+              sources: finalStep.sources,
+              toolCalls: finalStep.toolCalls,
+              staticToolCalls: finalStep.staticToolCalls,
+              dynamicToolCalls: finalStep.dynamicToolCalls,
+              toolResults: finalStep.toolResults,
+              staticToolResults: finalStep.staticToolResults,
+              dynamicToolResults: finalStep.dynamicToolResults,
+              request: finalStep.request,
+              response: finalStep.response,
+              warnings: finalStep.warnings,
+              providerMetadata: finalStep.providerMetadata,
+              steps: recordedSteps,
+            },
+            callbacks: onFinish,
           });
 
           // Add response information to the root span:
@@ -1271,8 +1276,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           messages,
         } as Prompt);
 
-        try {
-          await onStart?.({
+        await notify({
+          event: {
             model: modelInfo,
             system,
             prompt,
@@ -1298,10 +1303,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             include,
             ...callbackTelemetryProps,
             experimental_context,
-          });
-        } catch (_ignored) {
-          // Errors in callbacks should not break the generation flow.
-        }
+          },
+          callbacks: onStart,
+        });
 
         const initialMessages = initialPrompt.messages;
         const initialResponseMessages: Array<ResponseMessage> = [];
@@ -1549,8 +1553,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               prepareStepResult?.providerOptions,
             );
 
-            try {
-              await onStepStart?.({
+            await notify({
+              event: {
                 stepNumber: recordedSteps.length,
                 model: stepModelInfo,
                 system: stepSystem,
@@ -1568,10 +1572,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 include,
                 ...callbackTelemetryProps,
                 experimental_context,
-              });
-            } catch (_ignored) {
-              // Errors in callbacks should not break the generation flow.
-            }
+              },
+              callbacks: onStepStart,
+            });
 
             const {
               result: { stream, response, request },

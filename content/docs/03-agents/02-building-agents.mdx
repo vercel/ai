@@ -1,11 +1,11 @@
 ---
 title: Building Agents
-description: Complete guide to creating agents with the Agent class.
+description: Complete guide to creating agents with the ToolLoopAgent.
 ---
 
 # Building Agents
 
-The Agent class provides a structured way to encapsulate LLM configuration, tools, and behavior into reusable components. It handles the agent loop for you, allowing the LLM to call tools multiple times in sequence to accomplish complex tasks. Define agents once and use them across your application.
+The ToolLoopAgent provides a structured way to encapsulate LLM configuration, tools, and behavior into reusable components. It handles the agent loop for you, allowing the LLM to call tools multiple times in sequence to accomplish complex tasks. Define agents once and use them across your application.
 
 ## Why Use the ToolLoopAgent Class?
 
@@ -37,7 +37,7 @@ const myAgent = new ToolLoopAgent({
 
 ## Configuration Options
 
-The Agent class accepts all the same settings as `generateText` and `streamText`. Configure:
+The ToolLoopAgent accepts all the same settings as `generateText` and `streamText`. Configure:
 
 ### Model and System Instructions
 
