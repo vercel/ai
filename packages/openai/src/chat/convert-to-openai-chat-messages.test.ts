@@ -116,23 +116,36 @@ describe('user messages', () => {
   });
 
   describe('file parts', () => {
-    it('should throw for unsupported mime types', () => {
-      expect(() =>
-        convertToOpenAIChatMessages({
-          prompt: [
+    it('should handle unknown mime types as file parts', () => {
+      const result = convertToOpenAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'AAECAw==',
+                mediaType: 'application/something',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
             {
-              role: 'user',
-              content: [
-                {
-                  type: 'file',
-                  data: 'AAECAw==',
-                  mediaType: 'application/something',
-                },
-              ],
+              type: 'file',
+              file: {
+                filename: 'part-0',
+                file_data: 'data:application/something;base64,AAECAw==',
+              },
             },
           ],
-        }),
-      ).toThrow('file part media type application/something');
+        },
+      ]);
     });
 
     it('should throw for URL data', () => {
@@ -370,7 +383,7 @@ describe('user messages', () => {
             {
               type: 'file',
               file: {
-                filename: 'part-0.pdf',
+                filename: 'part-0',
                 file_data: 'data:application/pdf;base64,AQIDBAU=',
               },
             },
@@ -379,10 +392,135 @@ describe('user messages', () => {
       ]);
     });
 
-    it('should throw error for unsupported file types', async () => {
-      const base64Data = 'AQIDBAU=';
+    it('should convert text/plain file parts with base64 data to file content', () => {
+      const result = convertToOpenAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'text/plain',
+                data: 'SGVsbG8=',
+                filename: 'hello.txt',
+              },
+            ],
+          },
+        ],
+      });
 
-      expect(() => {
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              file: {
+                filename: 'hello.txt',
+                file_data: 'data:text/plain;base64,SGVsbG8=',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should use default filename for text/plain file parts when not provided', () => {
+      const result = convertToOpenAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'text/plain',
+                data: 'SGVsbG8=',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              file: {
+                filename: 'part-0',
+                file_data: 'data:text/plain;base64,SGVsbG8=',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should convert text/plain file parts with file_id', () => {
+      const result = convertToOpenAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'text/plain',
+                data: 'file-txt-abc123',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              file: { file_id: 'file-txt-abc123' },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should convert application/json file parts to file content', () => {
+      const result = convertToOpenAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/json',
+                data: 'e30=',
+                filename: 'data.json',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              file: {
+                filename: 'data.json',
+                file_data: 'data:application/json;base64,e30=',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should throw for file parts with URLs (URLs not supported in chat completions)', () => {
+      expect(() =>
         convertToOpenAIChatMessages({
           prompt: [
             {
@@ -391,17 +529,16 @@ describe('user messages', () => {
                 {
                   type: 'file',
                   mediaType: 'text/plain',
-                  data: base64Data,
+                  data: new URL('https://example.com/file.txt'),
                 },
               ],
             },
           ],
-          systemMessageMode: 'system',
-        });
-      }).toThrow('file part media type text/plain');
+        }),
+      ).toThrow('file parts with URLs');
     });
 
-    it('should throw error for file URLs', async () => {
+    it('should throw error for file URLs (application/pdf)', async () => {
       expect(() => {
         convertToOpenAIChatMessages({
           prompt: [
@@ -418,7 +555,41 @@ describe('user messages', () => {
           ],
           systemMessageMode: 'system',
         });
-      }).toThrow('PDF file parts with URLs');
+      }).toThrow('file parts with URLs');
+    });
+
+    it('should convert text/javascript file parts to file content', () => {
+      const result = convertToOpenAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'text/javascript',
+                data: 'Y29uc29sZS5sb2coImhpIik=',
+                filename: 'app.js',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              file: {
+                filename: 'app.js',
+                file_data:
+                  'data:text/javascript;base64,Y29uc29sZS5sb2coImhpIik=',
+              },
+            },
+          ],
+        },
+      ]);
     });
   });
 });

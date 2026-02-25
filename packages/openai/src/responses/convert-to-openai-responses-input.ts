@@ -2,7 +2,6 @@ import {
   LanguageModelV3Prompt,
   LanguageModelV3ToolApprovalResponsePart,
   SharedV3Warning,
-  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
@@ -123,7 +122,11 @@ export async function convertToOpenAIResponsesInput({
                     detail:
                       part.providerOptions?.[providerOptionsName]?.imageDetail,
                   };
-                } else if (part.mediaType === 'application/pdf') {
+                } else {
+                  // Handles application/pdf and all other non-image file types
+                  // (text/plain, application/json, text/javascript, etc.)
+                  // via the input_file content type. OpenAI will validate
+                  // whether the specific MIME type is supported.
                   if (part.data instanceof URL) {
                     return {
                       type: 'input_file',
@@ -136,14 +139,10 @@ export async function convertToOpenAIResponsesInput({
                     isFileId(part.data, fileIdPrefixes)
                       ? { file_id: part.data }
                       : {
-                          filename: part.filename ?? `part-${index}.pdf`,
-                          file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
+                          filename: part.filename ?? `part-${index}`,
+                          file_data: `data:${part.mediaType};base64,${convertToBase64(part.data)}`,
                         }),
                   };
-                } else {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: `file part media type ${part.mediaType}`,
-                  });
                 }
               }
             }

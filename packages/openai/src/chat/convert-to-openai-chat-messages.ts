@@ -114,10 +114,16 @@ export function convertToOpenAIChatMessages({
                       });
                     }
                   }
-                } else if (part.mediaType === 'application/pdf') {
+                } else {
+                  // Handles application/pdf and all other non-image, non-audio
+                  // file types (text/plain, application/json, text/javascript,
+                  // etc.) via the file content type. OpenAI will validate
+                  // whether the specific MIME type is supported.
+                  // Note: Chat Completions API does not support file_url,
+                  // so URL data still throws.
                   if (part.data instanceof URL) {
                     throw new UnsupportedFunctionalityError({
-                      functionality: 'PDF file parts with URLs',
+                      functionality: 'file parts with URLs',
                     });
                   }
 
@@ -128,14 +134,10 @@ export function convertToOpenAIChatMessages({
                       part.data.startsWith('file-')
                         ? { file_id: part.data }
                         : {
-                            filename: part.filename ?? `part-${index}.pdf`,
-                            file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
+                            filename: part.filename ?? `part-${index}`,
+                            file_data: `data:${part.mediaType};base64,${convertToBase64(part.data)}`,
                           },
                   };
-                } else {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: `file part media type ${part.mediaType}`,
-                  });
                 }
               }
             }
