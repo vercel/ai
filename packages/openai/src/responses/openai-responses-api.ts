@@ -380,7 +380,7 @@ export type OpenAIResponsesTool =
 
 export type OpenAIResponsesReasoning = {
   type: 'reasoning';
-  id: string;
+  id?: string; // Optional: omitted when store: false (required by Azure)
   encrypted_content?: string | null;
   summary: Array<{
     type: 'summary_text';
@@ -446,7 +446,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
           }),
           z.object({
             type: z.literal('reasoning'),
-            id: z.string(),
+            id: z.string().optional() // Optional when store: false,
             encrypted_content: z.string().nullish(),
           }),
           z.object({
@@ -565,7 +565,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
           }),
           z.object({
             type: z.literal('reasoning'),
-            id: z.string(),
+            id: z.string().optional() // Optional when store: false,
             encrypted_content: z.string().nullish(),
           }),
           z.object({
@@ -1062,7 +1062,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
             }),
             z.object({
               type: z.literal('reasoning'),
-              id: z.string(),
+              id: z.string().optional() // Optional when store: false,
               encrypted_content: z.string().nullish(),
               summary: z.array(
                 z.object({
