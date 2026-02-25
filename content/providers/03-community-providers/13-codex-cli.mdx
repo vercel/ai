@@ -86,7 +86,7 @@ Model settings:
 Create models that call GPT-5 through the Codex CLI using the provider instance:
 
 ```ts
-const model = codexCli('gpt-5.2-codex');
+const model = codexCli('gpt-5.3-codex');
 ```
 
 **Current Generation Models:**
@@ -111,7 +111,7 @@ import { codexCli } from 'ai-sdk-provider-codex-cli';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: codexCli('gpt-5.2-codex'),
+  model: codexCli('gpt-5.3-codex'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -136,7 +136,7 @@ const model = codexCli('gpt-5.1-codex-max', {
 | Model                | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | -------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `gpt-5.3-codex`      | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-5.2-codex`      | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `gpt-5.3-codex`      | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `gpt-5.2`            | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `gpt-5.1-codex-max`  | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `gpt-5.1-codex-mini` | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
