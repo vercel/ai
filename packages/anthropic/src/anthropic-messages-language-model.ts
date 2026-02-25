@@ -357,6 +357,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         cache_control: anthropicOptions.cacheControl,
       }),
 
+      // metadata:
+      ...(anthropicOptions?.metadata && {
+        metadata: {
+          user_id: anthropicOptions.metadata.userId,
+        },
+      }),
+
       // structured output:
       ...(useStructuredOutput &&
         responseFormat?.type === 'json' &&
