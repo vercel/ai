@@ -4549,12 +4549,8 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         const textParts = result.content.filter(
-          (
-            part,
-          ): part is Extract<
-            LanguageModelV3Content[number],
-            { type: 'text' }
-          > => part.type === 'text',
+          (part): part is Extract<LanguageModelV3Content, { type: 'text' }> =>
+            part.type === 'text',
         );
 
         expect(textParts).toHaveLength(2);

@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const result = streamText({
     model: openai('gpt-5.3-codex'),
-    prompt: 'What is the latest AI news today?',
+    prompt: 'What is the capital of France?',
     providerOptions: {
       openai: {
         instructions:
