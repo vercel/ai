@@ -1,8 +1,4 @@
-import {
-  ProviderV3,
-  Experimental_SkillsManagerV1,
-  UnsupportedFunctionalityError,
-} from '@ai-sdk/provider';
+import { Experimental_SkillsManagerV1 } from '@ai-sdk/provider';
 import { describe, it, expect, vi } from 'vitest';
 import { experimental_listSkills } from './experimental-list-skills';
 
@@ -43,32 +39,11 @@ function createMockSkillsManager(
   };
 }
 
-function createMockProvider(
-  skillsManager?: Experimental_SkillsManagerV1,
-): ProviderV3 {
-  return {
-    specificationVersion: 'v3',
-    languageModel: vi.fn() as any,
-    embeddingModel: vi.fn() as any,
-    imageModel: vi.fn() as any,
-    skillsManager: skillsManager ? () => skillsManager : undefined,
-  };
-}
-
 describe('experimental_listSkills', () => {
-  it('should throw UnsupportedFunctionalityError when provider has no skillsManager', async () => {
-    const provider = createMockProvider();
-
-    await expect(experimental_listSkills({ provider })).rejects.toThrow(
-      UnsupportedFunctionalityError,
-    );
-  });
-
   it('should delegate to skillsManager.list', async () => {
     const skillsManager = createMockSkillsManager();
-    const provider = createMockProvider(skillsManager);
 
-    await experimental_listSkills({ provider });
+    await experimental_listSkills({ skillsManager });
 
     expect(skillsManager.list).toHaveBeenCalledWith({
       providerOptions: undefined,
@@ -77,9 +52,8 @@ describe('experimental_listSkills', () => {
 
   it('should return skills and warnings from the skills manager', async () => {
     const skillsManager = createMockSkillsManager();
-    const provider = createMockProvider(skillsManager);
 
-    const result = await experimental_listSkills({ provider });
+    const result = await experimental_listSkills({ skillsManager });
 
     expect(result.skills).toMatchInlineSnapshot(`
       [
@@ -106,10 +80,9 @@ describe('experimental_listSkills', () => {
 
   it('should pass providerOptions to the skills manager', async () => {
     const skillsManager = createMockSkillsManager();
-    const provider = createMockProvider(skillsManager);
 
     await experimental_listSkills({
-      provider,
+      skillsManager,
       providerOptions: { openai: { custom: 'value' } },
     });
 

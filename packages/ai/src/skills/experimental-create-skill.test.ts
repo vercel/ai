@@ -1,8 +1,4 @@
-import {
-  ProviderV3,
-  Experimental_SkillsManagerV1,
-  UnsupportedFunctionalityError,
-} from '@ai-sdk/provider';
+import { Experimental_SkillsManagerV1 } from '@ai-sdk/provider';
 import { describe, it, expect, vi } from 'vitest';
 import { experimental_createSkill } from './experimental-create-skill';
 
@@ -33,37 +29,13 @@ function createMockSkillsManager(
   };
 }
 
-function createMockProvider(
-  skillsManager?: Experimental_SkillsManagerV1,
-): ProviderV3 {
-  return {
-    specificationVersion: 'v3',
-    languageModel: vi.fn() as any,
-    embeddingModel: vi.fn() as any,
-    imageModel: vi.fn() as any,
-    skillsManager: skillsManager ? () => skillsManager : undefined,
-  };
-}
-
 describe('experimental_createSkill', () => {
-  it('should throw UnsupportedFunctionalityError when provider has no skillsManager', async () => {
-    const provider = createMockProvider();
-
-    await expect(
-      experimental_createSkill({
-        provider,
-        files: [{ path: 'test.ts', content: 'hello' }],
-      }),
-    ).rejects.toThrow(UnsupportedFunctionalityError);
-  });
-
   it('should delegate to skillsManager.create', async () => {
     const skillsManager = createMockSkillsManager();
-    const provider = createMockProvider(skillsManager);
 
     const files = [{ path: 'test.ts', content: 'hello' }];
     await experimental_createSkill({
-      provider,
+      skillsManager,
       files,
       displayTitle: 'My Skill',
     });
@@ -82,10 +54,9 @@ describe('experimental_createSkill', () => {
         warnings: [{ type: 'unsupported', feature: 'displayTitle' }],
       }),
     });
-    const provider = createMockProvider(skillsManager);
 
     const result = await experimental_createSkill({
-      provider,
+      skillsManager,
       files: [{ path: 'test.ts', content: 'hello' }],
     });
 
@@ -111,10 +82,9 @@ describe('experimental_createSkill', () => {
 
   it('should pass providerOptions to the skills manager', async () => {
     const skillsManager = createMockSkillsManager();
-    const provider = createMockProvider(skillsManager);
 
     await experimental_createSkill({
-      provider,
+      skillsManager,
       files: [{ path: 'test.ts', content: 'hello' }],
       providerOptions: { openai: { custom: 'value' } },
     });

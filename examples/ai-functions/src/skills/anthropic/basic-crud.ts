@@ -10,7 +10,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { skill } = await experimental_createSkill({
-    provider: anthropic,
+    skillsManager: anthropic.skillsManager(),
     files: [
       {
         path: 'greeting/SKILL.md',
@@ -25,11 +25,13 @@ run(async () => {
   try {
     console.log('Created:', skill);
 
-    const { skills } = await experimental_listSkills({ provider: anthropic });
+    const { skills } = await experimental_listSkills({
+      skillsManager: anthropic.skillsManager(),
+    });
     console.log('List:', skills);
 
     const { skill: updated } = await experimental_updateSkill({
-      provider: anthropic,
+      skillsManager: anthropic.skillsManager(),
       skillId: skill.id,
       files: [
         {
@@ -43,13 +45,13 @@ run(async () => {
     console.log('Updated:', updated);
 
     const { skill: retrieved } = await experimental_retrieveSkill({
-      provider: anthropic,
+      skillsManager: anthropic.skillsManager(),
       skillId: skill.id,
     });
     console.log('Retrieved:', retrieved);
   } finally {
     await experimental_deleteSkill({
-      provider: anthropic,
+      skillsManager: anthropic.skillsManager(),
       skillId: skill.id,
     });
     console.log('Deleted:', skill.id);

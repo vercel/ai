@@ -12,7 +12,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { skill } = await experimental_createSkill({
-    provider: anthropic,
+    skillsManager: anthropic.skillsManager(),
     files: [
       {
         path: 'island-rescue/SKILL.md',
@@ -43,7 +43,7 @@ run(async () => {
     console.log('Result:', result.text);
   } finally {
     await experimental_deleteSkill({
-      provider: anthropic,
+      skillsManager: anthropic.skillsManager(),
       skillId: skill.id,
     });
     console.log('Deleted skill:', skill.id);

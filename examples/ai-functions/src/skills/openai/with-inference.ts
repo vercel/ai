@@ -9,7 +9,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { skill } = await experimental_createSkill({
-    provider: openai,
+    skillsManager: openai.skillsManager(),
     files: [
       {
         path: 'island-rescue/SKILL.md',
@@ -37,7 +37,7 @@ run(async () => {
     console.log('Result:', result.text);
   } finally {
     await experimental_deleteSkill({
-      provider: openai,
+      skillsManager: openai.skillsManager(),
       skillId: skill.id,
     });
     console.log('Deleted skill:', skill.id);

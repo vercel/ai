@@ -1,8 +1,4 @@
-import {
-  ProviderV3,
-  Experimental_SkillsManagerV1,
-  UnsupportedFunctionalityError,
-} from '@ai-sdk/provider';
+import { Experimental_SkillsManagerV1 } from '@ai-sdk/provider';
 import { describe, it, expect, vi } from 'vitest';
 import { experimental_retrieveSkill } from './experimental-retrieve-skill';
 
@@ -33,36 +29,12 @@ function createMockSkillsManager(
   };
 }
 
-function createMockProvider(
-  skillsManager?: Experimental_SkillsManagerV1,
-): ProviderV3 {
-  return {
-    specificationVersion: 'v3',
-    languageModel: vi.fn() as any,
-    embeddingModel: vi.fn() as any,
-    imageModel: vi.fn() as any,
-    skillsManager: skillsManager ? () => skillsManager : undefined,
-  };
-}
-
 describe('experimental_retrieveSkill', () => {
-  it('should throw UnsupportedFunctionalityError when provider has no skillsManager', async () => {
-    const provider = createMockProvider();
-
-    await expect(
-      experimental_retrieveSkill({
-        provider,
-        skillId: 'skill_123',
-      }),
-    ).rejects.toThrow(UnsupportedFunctionalityError);
-  });
-
   it('should delegate to skillsManager.retrieve', async () => {
     const skillsManager = createMockSkillsManager();
-    const provider = createMockProvider(skillsManager);
 
     await experimental_retrieveSkill({
-      provider,
+      skillsManager,
       skillId: 'skill_123',
     });
 
@@ -74,10 +46,9 @@ describe('experimental_retrieveSkill', () => {
 
   it('should return skill and warnings from the skills manager', async () => {
     const skillsManager = createMockSkillsManager();
-    const provider = createMockProvider(skillsManager);
 
     const result = await experimental_retrieveSkill({
-      provider,
+      skillsManager,
       skillId: 'skill_123',
     });
 
@@ -96,10 +67,9 @@ describe('experimental_retrieveSkill', () => {
 
   it('should pass providerOptions to the skills manager', async () => {
     const skillsManager = createMockSkillsManager();
-    const provider = createMockProvider(skillsManager);
 
     await experimental_retrieveSkill({
-      provider,
+      skillsManager,
       skillId: 'skill_123',
       providerOptions: { openai: { custom: 'value' } },
     });

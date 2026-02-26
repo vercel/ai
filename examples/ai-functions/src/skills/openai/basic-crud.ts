@@ -10,7 +10,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { skill } = await experimental_createSkill({
-    provider: openai,
+    skillsManager: openai.skillsManager(),
     files: [
       {
         path: 'greeting/SKILL.md',
@@ -24,11 +24,13 @@ run(async () => {
   try {
     console.log('Created:', skill);
 
-    const { skills } = await experimental_listSkills({ provider: openai });
+    const { skills } = await experimental_listSkills({
+      skillsManager: openai.skillsManager(),
+    });
     console.log('List:', skills);
 
     const { skill: updated } = await experimental_updateSkill({
-      provider: openai,
+      skillsManager: openai.skillsManager(),
       skillId: skill.id,
       files: [
         {
@@ -42,13 +44,13 @@ run(async () => {
     console.log('Updated:', updated);
 
     const { skill: retrieved } = await experimental_retrieveSkill({
-      provider: openai,
+      skillsManager: openai.skillsManager(),
       skillId: skill.id,
     });
     console.log('Retrieved:', retrieved);
   } finally {
     await experimental_deleteSkill({
-      provider: openai,
+      skillsManager: openai.skillsManager(),
       skillId: skill.id,
     });
     console.log('Deleted:', skill.id);

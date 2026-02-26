@@ -1,7 +1,6 @@
 import {
-  ProviderV3,
+  Experimental_SkillsManagerV1,
   Experimental_SkillsManagerV1Skill,
-  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { Warning } from '../types/warning';
@@ -12,20 +11,12 @@ export interface ListSkillsResult {
 }
 
 export async function experimental_listSkills({
-  provider,
+  skillsManager,
   providerOptions,
 }: {
-  provider: ProviderV3;
+  skillsManager: Experimental_SkillsManagerV1;
   providerOptions?: ProviderOptions;
 }): Promise<ListSkillsResult> {
-  const skillsManager = provider.skillsManager?.();
-
-  if (!skillsManager) {
-    throw new UnsupportedFunctionalityError({
-      functionality: 'skillsManager',
-    });
-  }
-
   const result = await skillsManager.list({
     providerOptions,
   });
