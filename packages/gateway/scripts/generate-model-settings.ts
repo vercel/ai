@@ -1,6 +1,6 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import * as z from 'zod';
+import fs from 'node:fs';
+import path from 'node:path';
+import { z } from 'zod';
 
 const API_URL = 'https://ai-gateway.vercel.sh/v1/models';
 const OUTPUT_DIR = path.join(__dirname, '..', 'src');
@@ -112,4 +112,4 @@ async function main() {
   console.log('Model settings updated successfully');
 }
 
-main();
+main().catch(console.error);;
