@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.56
+
+### Patch Changes
+
+- 45f0a7f: feat(provider/google): add support for gemini-3.1-flash-image-preview
+
 ## 3.0.55
 
 ### Patch Changes
