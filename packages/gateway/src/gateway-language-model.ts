@@ -6,6 +6,7 @@ import type {
   LanguageModelV3StreamPart,
   LanguageModelV3GenerateResult,
   LanguageModelV3StreamResult,
+  LanguageModelV3Usage,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -83,6 +84,7 @@ export class GatewayLanguageModel implements LanguageModelV3 {
 
       return {
         ...responseBody,
+        usage: normalizeUsageToV3(responseBody.usage),
         request: { body: args },
         response: { headers: responseHeaders, body: rawResponse },
         warnings,
@@ -148,6 +150,17 @@ export class GatewayLanguageModel implements LanguageModelV3 {
                   streamPart.timestamp = new Date(streamPart.timestamp);
                 }
 
+                // Normalize V2 flat usage to V3 nested format in finish events.
+                // The gateway backend may return usage as flat numbers
+                // (V2 format) even when the spec version is declared as v3.
+                if (streamPart.type === 'finish') {
+                  controller.enqueue({
+                    ...streamPart,
+                    usage: normalizeUsageToV3(streamPart.usage),
+                  });
+                  return;
+                }
+
                 controller.enqueue(streamPart);
               } else {
                 controller.error(
@@ -209,4 +222,49 @@ export class GatewayLanguageModel implements LanguageModelV3 {
       'ai-language-model-streaming': String(streaming),
     };
   }
+}
+
+/**
+ * Normalizes gateway usage to the V3 nested format.
+ *
+ * The gateway backend currently returns usage as flat numbers (V2 format):
+ *   { inputTokens: 9, outputTokens: 11, reasoningTokens: 0, cachedInputTokens: 0 }
+ *
+ * But the SDK declares specificationVersion = "v3", so `asLanguageModelV3` skips
+ * the V2→V3 conversion, leaving `usage.inputTokens.total` as undefined.
+ *
+ * This function detects V2-format usage (where `inputTokens` is a number) and
+ * converts it to V3 nested format. Already-V3 or pass-through payloads are
+ * returned unchanged.
+ */
+function normalizeUsageToV3(usage: unknown): LanguageModelV3Usage {
+  if (usage == null || typeof usage !== 'object') {
+    return usage as LanguageModelV3Usage;
+  }
+
+  const u = usage as Record<string, unknown>;
+
+  // V2 flat format: inputTokens is a bare number. Convert to V3 nested format.
+  if (typeof u.inputTokens === 'number') {
+    return {
+      inputTokens: {
+        total: u.inputTokens,
+        noCache: undefined,
+        cacheRead:
+          typeof u.cachedInputTokens === 'number'
+            ? u.cachedInputTokens
+            : undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: typeof u.outputTokens === 'number' ? u.outputTokens : undefined,
+        text: undefined,
+        reasoning:
+          typeof u.reasoningTokens === 'number' ? u.reasoningTokens : undefined,
+      },
+    };
+  }
+
+  // Already V3 (inputTokens is an object) or an unrecognised shape — pass through.
+  return usage as LanguageModelV3Usage;
 }
