@@ -37,11 +37,12 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-2.5-flash-native-audio-preview-09-2025'
   | 'gemini-2.5-flash-native-audio-preview-12-2025'
   | 'gemini-2.5-computer-use-preview-10-2025'
-  | 'gemini-3.1-pro-preview'
-  | 'gemini-3.1-pro-preview-customtools'
   | 'gemini-3-pro-preview'
   | 'gemini-3-pro-image-preview'
   | 'gemini-3-flash-preview'
+  | 'gemini-3.1-pro-preview'
+  | 'gemini-3.1-pro-preview-customtools'
+  | 'gemini-3.1-flash-image-preview'
   // latest version
   // https://ai.google.dev/gemini-api/docs/models#latest
   | 'gemini-pro-latest'
