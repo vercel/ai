@@ -46,6 +46,12 @@ export * from './util';
 
 // telemetry types:
 export type { TelemetrySettings } from './telemetry/telemetry-settings';
+export type { TelemetryHandler } from './telemetry/telemetry-handler';
+export {
+  expandHandlers,
+  bindTelemetryHandler,
+  type ExpandedTelemetryListeners,
+} from './telemetry/expand-handlers';
 
 // import globals
 import './global';

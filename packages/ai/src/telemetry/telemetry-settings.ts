@@ -1,4 +1,5 @@
 import { AttributeValue, Tracer } from '@opentelemetry/api';
+import type { TelemetryHandler } from './telemetry-handler';
 
 /**
  * Telemetry configuration.
@@ -41,4 +42,12 @@ export type TelemetrySettings = {
    * A custom tracer to use for the telemetry data.
    */
   tracer?: Tracer;
+
+  /**
+   * Telemetry handlers that receive lifecycle events during generation.
+   *
+   * Handlers are called for each lifecycle event (onStart, onStepStart, etc.)
+   * alongside any globally registered handlers from `telemetryHandlerRegistry`.
+   */
+  handlers?: TelemetryHandler | TelemetryHandler[];
 };
