@@ -1,5 +1,188 @@
 # @ai-sdk/google-vertex
 
+## 4.0.63
+
+### Patch Changes
+
+- Updated dependencies [17978c6]
+  - @ai-sdk/anthropic@3.0.47
+
+## 4.0.62
+
+### Patch Changes
+
+- Updated dependencies [2fa3ca8]
+  - @ai-sdk/google@3.0.31
+
+## 4.0.61
+
+### Patch Changes
+
+- Updated dependencies [b094c07]
+  - @ai-sdk/anthropic@3.0.46
+
+## 4.0.60
+
+### Patch Changes
+
+- 765b013: feat(provider/google): add support for `gemini-3.1-pro-preview`
+- Updated dependencies [765b013]
+  - @ai-sdk/google@3.0.30
+
+## 4.0.59
+
+### Patch Changes
+
+- 2a1c664: feat(provider/anthropic): add support for new Claude Sonnet 4.6 model
+- Updated dependencies [2a1c664]
+  - @ai-sdk/anthropic@3.0.45
+
+## 4.0.58
+
+### Patch Changes
+
+- Updated dependencies [23ac4a3]
+  - @ai-sdk/anthropic@3.0.44
+
+## 4.0.57
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+  - @ai-sdk/anthropic@3.0.43
+  - @ai-sdk/google@3.0.29
+
+## 4.0.56
+
+### Patch Changes
+
+- 5a307f5: feat(provider/google-vertex): allow using Gemini image models with `generateImage`
+- Updated dependencies [5a307f5]
+  - @ai-sdk/google@3.0.28
+
+## 4.0.55
+
+### Patch Changes
+
+- Updated dependencies [051361b]
+  - @ai-sdk/google@3.0.27
+
+## 4.0.54
+
+### Patch Changes
+
+- a8835e9: fix (provider/google-vertex): pass mime type with i2v video generation
+
+## 4.0.53
+
+### Patch Changes
+
+- Updated dependencies [4c27179]
+  - @ai-sdk/google@3.0.26
+
+## 4.0.52
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+- Updated dependencies [99fbed8]
+  - @ai-sdk/anthropic@3.0.42
+  - @ai-sdk/google@3.0.25
+
+## 4.0.51
+
+### Patch Changes
+
+- Updated dependencies [3b3e32f]
+  - @ai-sdk/google@3.0.24
+
+## 4.0.50
+
+### Patch Changes
+
+- Updated dependencies [c60b393]
+  - @ai-sdk/anthropic@3.0.41
+
+## 4.0.49
+
+### Patch Changes
+
+- Updated dependencies [8c2b1e1]
+  - @ai-sdk/anthropic@3.0.40
+
+## 4.0.48
+
+### Patch Changes
+
+- Updated dependencies [ba98c56]
+  - @ai-sdk/google@3.0.23
+
+## 4.0.47
+
+### Patch Changes
+
+- Updated dependencies [0a0d29c]
+  - @ai-sdk/anthropic@3.0.39
+
+## 4.0.46
+
+### Patch Changes
+
+- 90a41e3: feat (provider/google-vertex): update model ids and add video generation docs
+
+## 4.0.45
+
+### Patch Changes
+
+- 7168375: feat (ai, provider): default global provider video model resolution
+- Updated dependencies [7168375]
+  - @ai-sdk/google@3.0.22
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/anthropic@3.0.38
+  - @ai-sdk/provider-utils@4.0.14
+
+## 4.0.44
+
+### Patch Changes
+
+- Updated dependencies [e288302]
+  - @ai-sdk/anthropic@3.0.37
+
+## 4.0.43
+
+### Patch Changes
+
+- Updated dependencies [ae30443]
+  - @ai-sdk/google@3.0.21
+
+## 4.0.42
+
+### Patch Changes
+
+- Updated dependencies [1652320]
+  - @ai-sdk/anthropic@3.0.36
+
+## 4.0.41
+
+### Patch Changes
+
+- 53f6731: feat (ai, provider): experimental generate video support
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/google@3.0.20
+  - @ai-sdk/anthropic@3.0.35
+  - @ai-sdk/provider-utils@4.0.13
+
+## 4.0.40
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+  - @ai-sdk/anthropic@3.0.34
+  - @ai-sdk/google@3.0.19
+
 ## 4.0.39
 
 ### Patch Changes

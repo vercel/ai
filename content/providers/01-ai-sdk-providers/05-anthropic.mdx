@@ -103,7 +103,8 @@ const { text } = await generateText({
 });
 ```
 
-Anthropic language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
+Anthropic language models can also be used in the `streamText` function
+and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
 The following optional provider options are available for Anthropic models:
@@ -124,6 +125,10 @@ The following optional provider options are available for Anthropic models:
 - `effort` _"high" | "medium" | "low"_
 
   Optional. See [Effort section](#effort) for more details.
+
+- `speed` _"fast" | "standard"_
+
+  Optional. See [Fast Mode section](#fast-mode) for more details.
 
 - `thinking` _object_
 
@@ -175,7 +180,7 @@ const result = streamText({
 Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT).
 
 ```ts highlight="8-10"
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text, usage } = await generateText({
@@ -184,13 +189,34 @@ const { text, usage } = await generateText({
   providerOptions: {
     anthropic: {
       effort: 'low',
-    } satisfies AnthropicProviderOptions,
+    } satisfies AnthropicLanguageModelOptions,
   },
 });
 
 console.log(text); // resulting text
 console.log(usage); // token usage
 ```
+
+### Fast Mode
+
+Anthropic supports a [`speed` option](https://code.claude.com/docs/en/fast-mode) for `claude-opus-4-6` that enables faster inference with approximately 2.5x faster output token speeds.
+
+```ts highlight="8-10"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: anthropic('claude-opus-4-6'),
+  prompt: 'Write a short poem about the sea.',
+  providerOptions: {
+    anthropic: {
+      speed: 'fast',
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
+The `speed` option accepts `'fast'` or `'standard'` (default behavior).
 
 ### Reasoning
 
@@ -200,7 +226,7 @@ You can enable it using the `thinking` provider option
 and specifying a thinking budget in tokens.
 
 ```ts highlight="4,8-10"
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text, reasoningText, reasoning } = await generateText({
@@ -209,7 +235,7 @@ const { text, reasoningText, reasoning } = await generateText({
   providerOptions: {
     anthropic: {
       thinking: { type: 'enabled', budgetTokens: 12000 },
-    } satisfies AnthropicProviderOptions,
+    } satisfies AnthropicLanguageModelOptions,
   },
 });
 
@@ -228,7 +254,7 @@ Anthropic's Context Management feature allows you to automatically manage conver
 You can configure context management using the `contextManagement` provider option:
 
 ```ts highlight="7-20"
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -248,7 +274,7 @@ const result = await generateText({
           },
         ],
       },
-    } satisfies AnthropicProviderOptions,
+    } satisfies AnthropicLanguageModelOptions,
   },
 });
 
@@ -256,19 +282,25 @@ const result = await generateText({
 console.log(result.providerMetadata?.anthropic?.contextManagement);
 ```
 
-#### Clear Tool Uses
+#### Context Editing
 
-The `clear_tool_uses_20250919` edit type removes old tool calls from the conversation history:
+Context editing strategies selectively remove specific content types from earlier in the conversation to reduce token usage without losing the overall conversation flow.
 
-- **trigger** - Condition that triggers the clearing (e.g., `{ type: 'input_tokens', value: 10000 }`)
+##### Clear Tool Uses
+
+The `clear_tool_uses_20250919` edit type removes old tool call/result pairs from the conversation history:
+
+- **trigger** - Condition that triggers the clearing (e.g., `{ type: 'input_tokens', value: 10000 }` or `{ type: 'tool_uses', value: 10 }`)
 - **keep** - How many recent tool uses to preserve (e.g., `{ type: 'tool_uses', value: 5 }`)
 - **clearAtLeast** - Minimum amount to clear (e.g., `{ type: 'input_tokens', value: 1000 }`)
 - **clearToolInputs** - Whether to clear tool input parameters (boolean)
 - **excludeTools** - Array of tool names to never clear
 
-#### Clear Thinking
+##### Clear Thinking
 
-The `clear_thinking_20251015` edit type removes thinking/reasoning content:
+The `clear_thinking_20251015` edit type removes thinking/reasoning blocks from earlier turns, keeping only the most recent ones:
+
+- **keep** - How many recent thinking turns to preserve (e.g., `{ type: 'thinking_turns', value: 2 }`) or `'all'` to keep everything
 
 ```ts
 const result = await generateText({
@@ -285,9 +317,101 @@ const result = await generateText({
           },
         ],
       },
-    } satisfies AnthropicProviderOptions,
+    } satisfies AnthropicLanguageModelOptions,
   },
 });
+```
+
+#### Compaction
+
+The `compact_20260112` edit type automatically summarizes earlier conversation context when token limits are reached. This is useful for long-running conversations where you want to preserve the essence of earlier exchanges while staying within token limits.
+
+```ts highlight="7-19"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: anthropic('claude-opus-4-6'),
+  messages: conversationHistory,
+  providerOptions: {
+    anthropic: {
+      contextManagement: {
+        edits: [
+          {
+            type: 'compact_20260112',
+            trigger: {
+              type: 'input_tokens',
+              value: 50000, // trigger compaction when input exceeds 50k tokens
+            },
+            instructions:
+              'Summarize the conversation concisely, preserving key decisions and context.',
+            pauseAfterCompaction: false,
+          },
+        ],
+      },
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
+**Configuration:**
+
+- **trigger** - Condition that triggers compaction (e.g., `{ type: 'input_tokens', value: 50000 }`)
+- **instructions** - Custom instructions for how the model should summarize the conversation. Use this to guide the compaction summary towards specific aspects of the conversation you want to preserve.
+- **pauseAfterCompaction** - When `true`, the model will pause after generating the compaction summary, allowing you to inspect or process it before continuing. Defaults to `false`.
+
+When compaction occurs, the model generates a summary of the earlier context. This summary appears as a text block with special provider metadata.
+
+##### Detecting Compaction in Streams
+
+When using `streamText`, you can detect compaction summaries by checking the `providerMetadata` on `text-start` events:
+
+```ts
+for await (const part of result.fullStream) {
+  switch (part.type) {
+    case 'text-start': {
+      const isCompaction =
+        part.providerMetadata?.anthropic?.type === 'compaction';
+      if (isCompaction) {
+        console.log('[COMPACTION SUMMARY START]');
+      }
+      break;
+    }
+    case 'text-delta': {
+      process.stdout.write(part.text);
+      break;
+    }
+  }
+}
+```
+
+##### Compaction in UI Applications
+
+When using `useChat` or other UI hooks, compaction summaries appear as regular text parts with `providerMetadata`. You can style them differently in your UI:
+
+```tsx
+{
+  message.parts.map((part, index) => {
+    if (part.type === 'text') {
+      const isCompaction =
+        (part.providerMetadata?.anthropic as { type?: string } | undefined)
+          ?.type === 'compaction';
+
+      if (isCompaction) {
+        return (
+          <div
+            key={index}
+            className="bg-yellow-100 border-l-4 border-yellow-500 p-2"
+          >
+            <span className="font-bold">[Compaction Summary]</span>
+            <div>{part.text}</div>
+          </div>
+        );
+      }
+      return <div key={index}>{part.text}</div>;
+    }
+  });
+}
 ```
 
 #### Applied Edits Metadata
@@ -305,6 +429,8 @@ if (metadata?.appliedEdits) {
     } else if (edit.type === 'clear_thinking_20251015') {
       console.log(`Cleared ${edit.clearedThinkingTurns} thinking turns`);
       console.log(`Freed ${edit.clearedInputTokens} tokens`);
+    } else if (edit.type === 'compact_20260112') {
+      console.log('Compaction was applied');
     }
   });
 }
@@ -318,8 +444,8 @@ In the messages and message parts, you can use the `providerOptions` property to
 You need to set the `anthropic` property in the `providerOptions` object to `{ cacheControl: { type: 'ephemeral' } }` to set a cache control breakpoint.
 
 The cache creation input tokens are then returned in the `providerMetadata` object
-for `generateText` and `generateObject`, again under the `anthropic` property.
-When you use `streamText` or `streamObject`, the response contains a promise
+for `generateText`, again under the `anthropic` property.
+When you use `streamText`, the response contains a promise
 that resolves to the metadata. Alternatively you can receive it in the
 `onFinish` callback.
 
@@ -745,6 +871,57 @@ const result = await generateText({
 
 Claude will construct regex patterns like `weather|temperature|forecast` to find matching tools.
 
+#### Custom Tool Search
+
+You can implement your own tool search logic (e.g., using embeddings or semantic search) by returning `tool-reference` content blocks via `toModelOutput`:
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  prompt: 'What is the weather in San Francisco?',
+  tools: {
+    // Custom search tool
+    searchTools: tool({
+      description: 'Search for tools by keyword',
+      inputSchema: z.object({ query: z.string() }),
+      execute: async ({ query }) => {
+        // Your custom search logic (embeddings, fuzzy match, etc.)
+        const allTools = ['get_weather', 'get_forecast', 'get_temperature'];
+        return allTools.filter(name => name.includes(query.toLowerCase()));
+      },
+      toModelOutput: ({ output }) => ({
+        type: 'content',
+        value: (output as string[]).map(toolName => ({
+          type: 'custom' as const,
+          providerOptions: {
+            anthropic: {
+              type: 'tool-reference',
+              toolName,
+            },
+          },
+        })),
+      }),
+    }),
+
+    // Deferred tools
+    get_weather: tool({
+      description: 'Get the current weather',
+      inputSchema: z.object({ location: z.string() }),
+      execute: async ({ location }) => ({ location, temperature: 72 }),
+      providerOptions: {
+        anthropic: { deferLoading: true },
+      },
+    }),
+  },
+});
+```
+
+This sends `tool_reference` blocks to Anthropic, which loads the corresponding deferred tool schemas into Claude's context.
+
 ### MCP Connectors
 
 Anthropic supports connecting to [MCP servers](https://docs.claude.com/en/docs/agents-and-tools/mcp-connector) as part of their execution.
@@ -752,7 +929,7 @@ Anthropic supports connecting to [MCP servers](https://docs.claude.com/en/docs/a
 You can enable this feature with the `mcpServers` provider option:
 
 ```ts
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -774,7 +951,7 @@ const result = await generateText({
           },
         },
       ],
-    } satisfies AnthropicProviderOptions,
+    } satisfies AnthropicLanguageModelOptions,
   },
 });
 ```
@@ -809,7 +986,7 @@ The web fetch tool supports several configuration options:
 
 Web search errors are handled differently depending on whether you're using streaming or non-streaming:
 
-**Non-streaming (`generateText`, `generateObject`):**
+**Non-streaming (`generateText`):**
 Web search errors throw exceptions that you can catch:
 
 ```ts
@@ -829,7 +1006,7 @@ try {
 }
 ```
 
-**Streaming (`streamText`, `streamObject`):**
+**Streaming (`streamText`):**
 Web search errors are delivered as error parts in the stream:
 
 ```ts
@@ -881,7 +1058,7 @@ const result = await generateText({
 
 Code execution errors are handled differently depending on whether you're using streaming or non-streaming:
 
-**Non-streaming (`generateText`, `generateObject`):**
+**Non-streaming (`generateText`):**
 Code execution errors are delivered as tool result parts in the response:
 
 ```ts
@@ -906,7 +1083,7 @@ toolErrors?.forEach(error => {
 });
 ```
 
-**Streaming (`streamText`, `streamObject`):**
+**Streaming (`streamText`):**
 Code execution errors are delivered as error parts in the stream:
 
 ```ts
@@ -977,8 +1154,9 @@ In this flow:
 3. Claude processes the results in code and generates the final response
 
 <Note>
-  Programmatic tool calling requires `claude-sonnet-4-5` or `claude-opus-4-5`
-  models and uses the `code_execution_20250825` tool.
+  Programmatic tool calling requires `claude-sonnet-4-6`, `claude-sonnet-4-5`,
+  `claude-opus-4-6`, or `claude-opus-4-5` models and uses the
+  `code_execution_20250825` tool.
 </Note>
 
 #### Container Persistence
@@ -1004,7 +1182,7 @@ To use skills, you need to:
 2. Specify the container with skills in `providerOptions`
 
 ```ts highlight="4,9-17,19-23"
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -1024,7 +1202,7 @@ const result = await generateText({
           },
         ],
       },
-    } satisfies AnthropicProviderOptions,
+    } satisfies AnthropicLanguageModelOptions,
   },
 });
 ```
@@ -1051,7 +1229,7 @@ const result = await generateText({
           },
         ],
       },
-    } satisfies AnthropicProviderOptions,
+    } satisfies AnthropicLanguageModelOptions,
   },
 });
 ```
@@ -1123,16 +1301,18 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 ### Model Capabilities
 
-| Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         |
-| -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `claude-opus-4-5`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-haiku-4-5`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-sonnet-4-5`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-opus-4-1`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-opus-4-0`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-sonnet-4-0`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-3-7-sonnet-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-3-5-haiku-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         | Compaction          |
+| -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-opus-4-6`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-sonnet-4-6`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-opus-4-5`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-haiku-4-5`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-sonnet-4-5`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-opus-4-1`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-opus-4-0`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-sonnet-4-0`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-3-7-sonnet-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-3-5-haiku-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
 
 <Note>
   The table above lists popular models. Please see the [Anthropic

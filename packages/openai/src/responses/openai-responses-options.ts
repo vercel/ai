@@ -42,6 +42,8 @@ export const openaiResponsesReasoningModelIds = [
   'gpt-5.2',
   'gpt-5.2-chat-latest',
   'gpt-5.2-pro',
+  'gpt-5.2-codex',
+  'gpt-5.3-codex',
 ] as const;
 
 export const openaiResponsesModelIds = [
@@ -103,13 +105,18 @@ export type OpenAIResponsesModelId =
   | 'gpt-4o-mini'
   | 'gpt-4o'
   | 'gpt-5.1'
+  | 'gpt-5.1-2025-11-13'
   | 'gpt-5.1-chat-latest'
   | 'gpt-5.1-codex-mini'
   | 'gpt-5.1-codex'
   | 'gpt-5.1-codex-max'
   | 'gpt-5.2'
+  | 'gpt-5.2-2025-12-11'
   | 'gpt-5.2-chat-latest'
   | 'gpt-5.2-pro'
+  | 'gpt-5.2-pro-2025-12-11'
+  | 'gpt-5.2-codex'
+  | 'gpt-5.3-codex'
   | 'gpt-5-2025-08-07'
   | 'gpt-5-chat-latest'
   | 'gpt-5-codex'
@@ -126,10 +133,12 @@ export type OpenAIResponsesModelId =
   | 'o3-mini-2025-01-31'
   | 'o3-mini'
   | 'o3'
+  | 'o4-mini'
+  | 'o4-mini-2025-04-16'
   | (string & {});
 
 // TODO AI SDK 6: use optional here instead of nullish
-export const openaiResponsesProviderOptionsSchema = lazySchema(() =>
+export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -307,6 +316,6 @@ export const openaiResponsesProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type OpenAIResponsesProviderOptions = InferSchema<
-  typeof openaiResponsesProviderOptionsSchema
+export type OpenAILanguageModelResponsesOptions = InferSchema<
+  typeof openaiLanguageModelResponsesOptionsSchema
 >;

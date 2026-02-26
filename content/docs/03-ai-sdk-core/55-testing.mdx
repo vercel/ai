@@ -99,14 +99,14 @@ const result = streamText({
 });
 ```
 
-### generateObject
+### generateText with Output
 
 ```ts
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
 import { z } from 'zod';
 
-const result = await generateObject({
+const result = await generateText({
   model: new MockLanguageModelV3({
     doGenerate: async () => ({
       content: [{ type: 'text', text: `{"content":"Hello, world!"}` }],
@@ -127,19 +127,19 @@ const result = await generateObject({
       warnings: [],
     }),
   }),
-  schema: z.object({ content: z.string() }),
+  output: Output.object({ schema: z.object({ content: z.string() }) }),
   prompt: 'Hello, test!',
 });
 ```
 
-### streamObject
+### streamText with Output
 
 ```ts
-import { streamObject, simulateReadableStream } from 'ai';
+import { streamText, Output, simulateReadableStream } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
 import { z } from 'zod';
 
-const result = streamObject({
+const result = streamText({
   model: new MockLanguageModelV3({
     doStream: async () => ({
       stream: simulateReadableStream({
@@ -174,7 +174,7 @@ const result = streamObject({
       }),
     }),
   }),
-  schema: z.object({ content: z.string() }),
+  output: Output.object({ schema: z.object({ content: z.string() }) }),
   prompt: 'Hello, test!',
 });
 ```

@@ -1,7 +1,7 @@
 import { DeepInfraImageModel } from './deepinfra-image-model';
 import { createDeepInfra } from './deepinfra-provider';
+import { DeepInfraChatLanguageModel } from './deepinfra-chat-language-model';
 import {
-  OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
@@ -10,11 +10,14 @@ import { loadApiKey } from '@ai-sdk/provider-utils';
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 
 // Add type assertion for the mocked class
-const OpenAICompatibleChatLanguageModelMock =
-  OpenAICompatibleChatLanguageModel as unknown as Mock;
+const DeepInfraChatLanguageModelMock =
+  DeepInfraChatLanguageModel as unknown as Mock;
+
+vi.mock('./deepinfra-chat-language-model', () => ({
+  DeepInfraChatLanguageModel: vi.fn(),
+}));
 
 vi.mock('@ai-sdk/openai-compatible', () => ({
-  OpenAICompatibleChatLanguageModel: vi.fn(),
   OpenAICompatibleCompletionLanguageModel: vi.fn(),
   OpenAICompatibleEmbeddingModel: vi.fn(),
 }));
@@ -55,8 +58,7 @@ describe('DeepInfraProvider', () => {
       const model = provider('model-id');
 
       // Use the mocked version
-      const constructorCall =
-        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const constructorCall = DeepInfraChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
       config.headers();
 
@@ -76,8 +78,7 @@ describe('DeepInfraProvider', () => {
       const provider = createDeepInfra(options);
       const model = provider('model-id');
 
-      const constructorCall =
-        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const constructorCall = DeepInfraChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
       config.headers();
 
@@ -93,7 +94,7 @@ describe('DeepInfraProvider', () => {
       const modelId = 'foo-model-id';
 
       const model = provider(modelId);
-      expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
+      expect(model).toBeInstanceOf(DeepInfraChatLanguageModel);
     });
   });
 
@@ -104,8 +105,8 @@ describe('DeepInfraProvider', () => {
 
       const model = provider.chatModel(modelId);
 
-      expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
-      expect(OpenAICompatibleChatLanguageModelMock).toHaveBeenCalledWith(
+      expect(model).toBeInstanceOf(DeepInfraChatLanguageModel);
+      expect(DeepInfraChatLanguageModelMock).toHaveBeenCalledWith(
         modelId,
         expect.objectContaining({
           provider: 'deepinfra.chat',

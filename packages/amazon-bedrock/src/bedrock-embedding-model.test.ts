@@ -103,7 +103,15 @@ describe('doEmbed', () => {
     });
 
     expect(embeddings.length).toBe(1);
-    expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
+    expect(embeddings[0]).toMatchInlineSnapshot(`
+      [
+        -0.09,
+        0.05,
+        -0.02,
+        0.01,
+        0.04,
+      ]
+    `);
 
     const body = await server.calls[0].requestBodyJson;
     expect(body).toEqual({
@@ -118,7 +126,7 @@ describe('doEmbed', () => {
       values: [testValues[0]],
     });
 
-    expect(usage?.tokens).toStrictEqual(8);
+    expect(usage?.tokens).toMatchInlineSnapshot(`8`);
   });
 
   it('should support Cohere embedding models', async () => {
@@ -133,7 +141,15 @@ describe('doEmbed', () => {
     });
 
     expect(embeddings.length).toBe(1);
-    expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
+    expect(embeddings[0]).toMatchInlineSnapshot(`
+      [
+        -0.09,
+        0.05,
+        -0.02,
+        0.01,
+        0.04,
+      ]
+    `);
     expect(Number.isNaN(usage?.tokens)).toBe(true);
 
     const body = await server.calls[0].requestBodyJson;
@@ -157,7 +173,15 @@ describe('doEmbed', () => {
     });
 
     expect(embeddings.length).toBe(1);
-    expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
+    expect(embeddings[0]).toMatchInlineSnapshot(`
+      [
+        -0.09,
+        0.05,
+        -0.02,
+        0.01,
+        0.04,
+      ]
+    `);
     expect(Number.isNaN(usage?.tokens)).toBe(true);
 
     const body = await server.calls[0].requestBodyJson;
@@ -186,7 +210,15 @@ describe('doEmbed', () => {
     });
 
     expect(embeddings.length).toBe(1);
-    expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
+    expect(embeddings[0]).toMatchInlineSnapshot(`
+      [
+        -0.09,
+        0.05,
+        -0.02,
+        0.01,
+        0.04,
+      ]
+    `);
 
     const body = await server.calls[0].requestBodyJson;
     expect(body).toEqual({
@@ -298,7 +330,15 @@ describe('should support Nova embeddings', () => {
       values: [testValues[0]],
     });
 
-    expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
+    expect(embeddings[0]).toMatchInlineSnapshot(`
+      [
+        -0.09,
+        0.05,
+        -0.02,
+        0.01,
+        0.04,
+      ]
+    `);
 
     const body = await server.calls[0].requestBodyJson;
     expect(body).toEqual({
@@ -324,7 +364,15 @@ describe('should support Nova embeddings', () => {
       },
     });
 
-    expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
+    expect(embeddings[0]).toMatchInlineSnapshot(`
+      [
+        -0.09,
+        0.05,
+        -0.02,
+        0.01,
+        0.04,
+      ]
+    `);
 
     const body = await server.calls[0].requestBodyJson;
     expect(body).toEqual({

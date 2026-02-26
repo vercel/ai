@@ -154,7 +154,7 @@ console.log('Image saved as image.webp');
 ### Model-specific options
 
 ```ts highlight="9-11"
-import { replicate } from '@ai-sdk/replicate';
+import { replicate, type ReplicateImageModelOptions } from '@ai-sdk/replicate';
 import { generateImage } from 'ai';
 
 const { image } = await generateImage({
@@ -164,7 +164,7 @@ const { image } = await generateImage({
   providerOptions: {
     replicate: {
       style: 'realistic_image',
-    },
+    } satisfies ReplicateImageModelOptions,
   },
 });
 ```
@@ -204,7 +204,7 @@ const { images } = await generateImage({
     replicate: {
       guidance_scale: 7.5,
       num_inference_steps: 30,
-    },
+    } satisfies ReplicateImageModelOptions,
   },
 });
 ```
@@ -228,7 +228,7 @@ const { images } = await generateImage({
     replicate: {
       guidance_scale: 7.5,
       num_inference_steps: 30,
-    },
+    } satisfies ReplicateImageModelOptions,
   },
 });
 ```

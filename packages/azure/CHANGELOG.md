@@ -1,5 +1,89 @@
 # @ai-sdk/azure
 
+## 3.0.35
+
+### Patch Changes
+
+- Updated dependencies [66a374c]
+  - @ai-sdk/openai@3.0.34
+
+## 3.0.34
+
+### Patch Changes
+
+- Updated dependencies [624e651]
+  - @ai-sdk/openai@3.0.33
+
+## 3.0.33
+
+### Patch Changes
+
+- Updated dependencies [0c9395b]
+  - @ai-sdk/openai@3.0.32
+
+## 3.0.32
+
+### Patch Changes
+
+- Updated dependencies [d5f7312]
+  - @ai-sdk/openai@3.0.31
+
+## 3.0.31
+
+### Patch Changes
+
+- Updated dependencies [ff12133]
+  - @ai-sdk/openai@3.0.30
+
+## 3.0.30
+
+### Patch Changes
+
+- Updated dependencies [e2ee705]
+  - @ai-sdk/openai@3.0.29
+
+## 3.0.29
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+  - @ai-sdk/openai@3.0.28
+
+## 3.0.28
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+- Updated dependencies [99fbed8]
+  - @ai-sdk/openai@3.0.27
+
+## 3.0.27
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/openai@3.0.26
+  - @ai-sdk/provider-utils@4.0.14
+
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/openai@3.0.25
+  - @ai-sdk/provider-utils@4.0.13
+
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+  - @ai-sdk/openai@3.0.24
+
 ## 3.0.24
 
 ### Patch Changes

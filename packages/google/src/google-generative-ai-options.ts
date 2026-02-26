@@ -22,13 +22,23 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-2.0-pro-exp-02-05'
   | 'gemini-2.0-flash-thinking-exp-01-21'
   | 'gemini-2.0-flash-exp'
+  | 'gemini-2.0-flash-exp-image-generation'
+  | 'gemini-2.0-flash-lite-001'
   | 'gemini-2.5-pro'
   | 'gemini-2.5-flash'
-  | 'gemini-2.5-flash-image-preview'
+  | 'gemini-2.5-flash-image'
   | 'gemini-2.5-flash-lite'
   | 'gemini-2.5-flash-lite-preview-09-2025'
   | 'gemini-2.5-flash-preview-04-17'
   | 'gemini-2.5-flash-preview-09-2025'
+  | 'gemini-2.5-flash-preview-tts'
+  | 'gemini-2.5-pro-preview-tts'
+  | 'gemini-2.5-flash-native-audio-latest'
+  | 'gemini-2.5-flash-native-audio-preview-09-2025'
+  | 'gemini-2.5-flash-native-audio-preview-12-2025'
+  | 'gemini-2.5-computer-use-preview-10-2025'
+  | 'gemini-3.1-pro-preview'
+  | 'gemini-3.1-pro-preview-customtools'
   | 'gemini-3-pro-preview'
   | 'gemini-3-pro-image-preview'
   | 'gemini-3-flash-preview'
@@ -37,15 +47,23 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-pro-latest'
   | 'gemini-flash-latest'
   | 'gemini-flash-lite-latest'
+  | 'deep-research-pro-preview-12-2025'
+  | 'nano-banana-pro-preview'
+  | 'aqa'
   // Experimental models
   // https://ai.google.dev/gemini-api/docs/models/experimental-models
   | 'gemini-2.5-pro-exp-03-25'
   | 'gemini-exp-1206'
+  | 'gemini-robotics-er-1.5-preview'
+  | 'gemma-3-1b-it'
+  | 'gemma-3-4b-it'
+  | 'gemma-3n-e4b-it'
+  | 'gemma-3n-e2b-it'
   | 'gemma-3-12b-it'
   | 'gemma-3-27b-it'
   | (string & {});
 
-export const googleGenerativeAIProviderOptions = lazySchema(() =>
+export const googleLanguageModelOptions = lazySchema(() =>
   zodSchema(
     z.object({
       responseModalities: z.array(z.enum(['TEXT', 'IMAGE'])).optional(),
@@ -188,6 +206,6 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
   ),
 );
 
-export type GoogleGenerativeAIProviderOptions = InferSchema<
-  typeof googleGenerativeAIProviderOptions
+export type GoogleLanguageModelOptions = InferSchema<
+  typeof googleLanguageModelOptions
 >;

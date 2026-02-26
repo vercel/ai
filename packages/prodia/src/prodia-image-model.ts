@@ -37,7 +37,7 @@ export class ProdiaImageModel implements ImageModelV3 {
     const prodiaOptions = await parseProviderOptions({
       provider: 'prodia',
       providerOptions,
-      schema: prodiaImageProviderOptionsSchema,
+      schema: prodiaImageModelOptionsSchema,
     });
 
     let width: number | undefined;
@@ -114,7 +114,7 @@ export class ProdiaImageModel implements ImageModelV3 {
     );
 
     const { value: multipartResult, responseHeaders } = await postToApi({
-      url: `${this.config.baseURL}/job`,
+      url: `${this.config.baseURL}/job?price=true`,
       headers: {
         ...combinedHeaders,
         Accept: 'multipart/form-data; image/png',
@@ -155,6 +155,9 @@ export class ProdiaImageModel implements ImageModelV3 {
               ...(jobResult.updated_at != null && {
                 updatedAt: jobResult.updated_at,
               }),
+              ...(jobResult.price?.dollars != null && {
+                dollars: jobResult.price.dollars,
+              }),
             },
           ],
         },
@@ -188,7 +191,7 @@ const stylePresets = [
   'craft-clay',
 ] as const;
 
-export const prodiaImageProviderOptionsSchema = lazySchema(() =>
+export const prodiaImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -219,8 +222,8 @@ export const prodiaImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type ProdiaImageProviderOptions = InferSchema<
-  typeof prodiaImageProviderOptionsSchema
+export type ProdiaImageModelOptions = InferSchema<
+  typeof prodiaImageModelOptionsSchema
 >;
 
 interface ProdiaImageModelConfig {
@@ -255,6 +258,12 @@ const prodiaJobResultSchema = z.object({
       ips: z.number().optional(),
     })
     .optional(),
+  price: z
+    .object({
+      product: z.string(),
+      dollars: z.number(),
+    })
+    .nullish(),
 });
 
 type ProdiaJobResult = z.infer<typeof prodiaJobResultSchema>;

@@ -86,7 +86,7 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
     const bflOptions = await parseProviderOptions({
       provider: 'blackForestLabs',
       providerOptions,
-      schema: blackForestLabsImageProviderOptionsSchema,
+      schema: blackForestLabsImageModelOptionsSchema,
     });
 
     const [widthStr, heightStr] = size?.split('x') ?? [];
@@ -180,7 +180,7 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
     const bflOptions = await parseProviderOptions({
       provider: 'blackForestLabs',
       providerOptions,
-      schema: blackForestLabsImageProviderOptionsSchema,
+      schema: blackForestLabsImageModelOptionsSchema,
     });
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
@@ -333,7 +333,7 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
   }
 }
 
-export const blackForestLabsImageProviderOptionsSchema = lazySchema(() =>
+export const blackForestLabsImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       imagePrompt: z.string().optional(),
@@ -374,8 +374,8 @@ export const blackForestLabsImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type BlackForestLabsImageProviderOptions = InferSchema<
-  typeof blackForestLabsImageProviderOptionsSchema
+export type BlackForestLabsImageModelOptions = InferSchema<
+  typeof blackForestLabsImageModelOptionsSchema
 >;
 
 function convertSizeToAspectRatio(

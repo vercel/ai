@@ -252,7 +252,7 @@ For example, if a user asks about the current weather, without tools, the model 
 
 Let's start by giving your chatbot a weather tool. Update your Route Handler (`app/api/chat/route.ts`):
 
-```tsx filename="app/api/chat/route.ts"
+```tsx filename="app/api/chat/route.ts" highlight="1,11-25"
 import { streamText, UIMessage, convertToModelMessages, tool } from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
@@ -369,7 +369,7 @@ To solve this, you can enable multi-step tool calls using `stopWhen`. By default
 
 Modify your `app/api/chat/route.ts` file to include the `stopWhen` condition:
 
-```tsx filename="app/api/chat/route.ts"
+```tsx filename="app/api/chat/route.ts"  highlight="16"
 import {
   streamText,
   UIMessage,
@@ -416,7 +416,7 @@ By setting `stopWhen: stepCountIs(5)`, you're allowing the model to use up to 5 
 
 Update your `app/api/chat/route.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
-```tsx filename="app/api/chat/route.ts" highlight="26-39"
+```tsx filename="app/api/chat/route.ts" highlight="31-46"
 import {
   streamText,
   UIMessage,
@@ -473,7 +473,7 @@ export async function POST(req: Request) {
 
 Update your `pages/index.tsx` file to render the new temperature conversion tool:
 
-```tsx filename="pages/index.tsx" highlight="21"
+```tsx filename="pages/index.tsx" highlight="17"
 import { useChat } from '@ai-sdk/react';
 import { useState } from 'react';
 

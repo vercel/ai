@@ -25,7 +25,7 @@ import { z } from 'zod/v4';
 import { convertGroqUsage } from './convert-groq-usage';
 import { convertToGroqChatMessages } from './convert-to-groq-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
-import { GroqChatModelId, groqProviderOptions } from './groq-chat-options';
+import { GroqChatModelId, groqLanguageModelOptions } from './groq-chat-options';
 import { groqErrorDataSchema, groqFailedResponseHandler } from './groq-error';
 import { prepareTools } from './groq-prepare-tools';
 import { mapGroqFinishReason } from './map-groq-finish-reason';
@@ -80,7 +80,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
     const groqOptions = await parseProviderOptions({
       provider: 'groq',
       providerOptions,
-      schema: groqProviderOptions,
+      schema: groqLanguageModelOptions,
     });
 
     const structuredOutputs = groqOptions?.structuredOutputs ?? true;

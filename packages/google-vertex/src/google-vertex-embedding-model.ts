@@ -13,7 +13,7 @@ import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
 import {
   GoogleVertexEmbeddingModelId,
-  googleVertexEmbeddingProviderOptions,
+  googleVertexEmbeddingModelOptions,
 } from './google-vertex-embedding-options';
 import { GoogleVertexConfig } from './google-vertex-config';
 
@@ -48,14 +48,14 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV3 {
     let googleOptions = await parseProviderOptions({
       provider: 'vertex',
       providerOptions,
-      schema: googleVertexEmbeddingProviderOptions,
+      schema: googleVertexEmbeddingModelOptions,
     });
 
     if (googleOptions == null) {
       googleOptions = await parseProviderOptions({
         provider: 'google',
         providerOptions,
-        schema: googleVertexEmbeddingProviderOptions,
+        schema: googleVertexEmbeddingModelOptions,
       });
     }
 

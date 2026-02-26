@@ -43,7 +43,7 @@ and create a provider instance with your settings:
 import { createTogetherAI } from '@ai-sdk/togetherai';
 
 const togetherai = createTogetherAI({
-  apiKey: process.env.TOGETHER_AI_API_KEY ?? '',
+  apiKey: process.env.TOGETHER_API_KEY ?? '',
 });
 ```
 
@@ -57,7 +57,7 @@ You can use the following optional settings to customize the Together.ai provide
 - **apiKey** _string_
 
   API key that is being sent using the `Authorization` header. It defaults to
-  the `TOGETHER_AI_API_KEY` environment variable.
+  the `TOGETHER_API_KEY` environment variable.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -116,16 +116,16 @@ The Together.ai provider also supports [completion models](https://docs.together
 
 ## Model Capabilities
 
-| Model                                         | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| --------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `meta-llama/Llama-3.3-70B-Instruct-Turbo`     | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo` | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `mistralai/Mixtral-8x22B-Instruct-v0.1`       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `mistralai/Mistral-7B-Instruct-v0.3`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `deepseek-ai/DeepSeek-V3`                     | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `google/gemma-2b-it`                          | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `Qwen/Qwen2.5-72B-Instruct-Turbo`             | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `databricks/dbrx-instruct`                    | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model                                               | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| --------------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `moonshotai/Kimi-K2.5`                              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen3.5-397B-A17B`                            | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `MiniMaxAI/MiniMax-M2.5`                            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `zai-org/GLM-5`                                     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-ai/DeepSeek-V3.1`                         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `openai/gpt-oss-120b`                               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `openai/gpt-oss-20b`                                | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [Together.ai
@@ -152,7 +152,10 @@ const { images } = await generateImage({
 You can pass optional provider-specific request parameters using the `providerOptions` argument.
 
 ```ts
-import { togetherai } from '@ai-sdk/togetherai';
+import {
+  togetherai,
+  type TogetherAIImageModelOptions,
+} from '@ai-sdk/togetherai';
 import { generateImage } from 'ai';
 
 const { images } = await generateImage({
@@ -163,7 +166,7 @@ const { images } = await generateImage({
   providerOptions: {
     togetherai: {
       steps: 40,
-    },
+    } satisfies TogetherAIImageModelOptions,
   },
 });
 ```
@@ -214,7 +217,7 @@ const { images } = await generateImage({
   providerOptions: {
     togetherai: {
       steps: 28,
-    },
+    } satisfies TogetherAIImageModelOptions,
   },
 });
 ```
@@ -234,7 +237,7 @@ const { images } = await generateImage({
   providerOptions: {
     togetherai: {
       steps: 28,
-    },
+    } satisfies TogetherAIImageModelOptions,
   },
 });
 ```
@@ -296,16 +299,11 @@ const { embedding } = await embed({
 
 ### Model Capabilities
 
-| Model                                            | Dimensions | Max Tokens |
-| ------------------------------------------------ | ---------- | ---------- |
-| `togethercomputer/m2-bert-80M-2k-retrieval`      | 768        | 2048       |
-| `togethercomputer/m2-bert-80M-8k-retrieval`      | 768        | 8192       |
-| `togethercomputer/m2-bert-80M-32k-retrieval`     | 768        | 32768      |
-| `WhereIsAI/UAE-Large-V1`                         | 1024       | 512        |
-| `BAAI/bge-large-en-v1.5`                         | 1024       | 512        |
-| `BAAI/bge-base-en-v1.5`                          | 768        | 512        |
-| `sentence-transformers/msmarco-bert-base-dot-v5` | 768        | 512        |
-| `bert-base-uncased`                              | 768        | 512        |
+| Model                                     | Dimensions | Max Tokens |
+| ----------------------------------------- | ---------- | ---------- |
+| `BAAI/bge-large-en-v1.5`                  | 1024       | 512        |
+| `Alibaba-NLP/gte-modernbert-base`         | 768        | 8192       |
+| `intfloat/multilingual-e5-large-instruct` | 1024       | 514        |
 
 <Note>
   For a complete list of available embedding models, see the [Together.ai models
@@ -328,7 +326,7 @@ const documents = [
 ];
 
 const { ranking } = await rerank({
-  model: togetherai.reranking('Salesforce/Llama-Rank-v1'),
+  model: togetherai.reranking('mixedbread-ai/Mxbai-Rerank-Large-V2'),
   documents,
   query: 'talk about rain',
   topN: 2,
@@ -344,7 +342,10 @@ console.log(ranking);
 Together.ai reranking models support additional provider options for object documents. You can specify which fields to use for ranking:
 
 ```ts
-import { togetherai } from '@ai-sdk/togetherai';
+import {
+  togetherai,
+  type TogetherAIRerankingModelOptions,
+} from '@ai-sdk/togetherai';
 import { rerank } from 'ai';
 
 const documents = [
@@ -361,13 +362,13 @@ const documents = [
 ];
 
 const { ranking } = await rerank({
-  model: togetherai.reranking('Salesforce/Llama-Rank-v1'),
+  model: togetherai.reranking('mixedbread-ai/Mxbai-Rerank-Large-V2'),
   documents,
   query: 'Which pricing did we get from Oracle?',
   providerOptions: {
     togetherai: {
       rankFields: ['from', 'subject', 'text'], // Specify which fields to rank by
-    },
+    } satisfies TogetherAIRerankingModelOptions,
   },
 });
 ```
@@ -382,5 +383,4 @@ The following provider options are available:
 
 | Model                                 |
 | ------------------------------------- |
-| `Salesforce/Llama-Rank-v1`            |
 | `mixedbread-ai/Mxbai-Rerank-Large-V2` |

@@ -1,5 +1,95 @@
 # @ai-sdk/anthropic
 
+## 3.0.47
+
+### Patch Changes
+
+- 17978c6: Pass `cacheControl` provider option as top-level `cache_control` in Anthropic API request body to support automatic caching.
+
+## 3.0.46
+
+### Patch Changes
+
+- b094c07: fix compaction_delta streaming schema to allow null content
+
+## 3.0.45
+
+### Patch Changes
+
+- 2a1c664: feat(provider/anthropic): add support for new Claude Sonnet 4.6 model
+
+## 3.0.44
+
+### Patch Changes
+
+- 23ac4a3: fix(provider/anthropic): minor follow up to support no-op speed standard
+
+## 3.0.43
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+
+## 3.0.42
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+
+## 3.0.41
+
+### Patch Changes
+
+- c60b393: feat(anthropic): add the new compaction feature
+
+## 3.0.40
+
+### Patch Changes
+
+- 8c2b1e1: fix(provider/anthropic): include actual raw usage data for `response.usage.raw` when streaming
+
+## 3.0.39
+
+### Patch Changes
+
+- 0a0d29c: feat(anthropic): add support for Opus 4.6 fast mode
+
+## 3.0.38
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/provider-utils@4.0.14
+
+## 3.0.37
+
+### Patch Changes
+
+- e288302: feat(anthropic): add support for Opus 4.6
+
+## 3.0.36
+
+### Patch Changes
+
+- 1652320: feat(anthropic): support custom tool-reference content for deferred tool loading
+
+## 3.0.35
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/provider-utils@4.0.13
+
+## 3.0.34
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+
 ## 3.0.33
 
 ### Patch Changes

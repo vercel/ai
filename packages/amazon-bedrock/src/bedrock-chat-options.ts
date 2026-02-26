@@ -7,9 +7,12 @@ export type BedrockChatModelId =
   | 'anthropic.claude-v2'
   | 'anthropic.claude-v2:1'
   | 'anthropic.claude-instant-v1'
+  | 'anthropic.claude-opus-4-6-v1'
+  | 'anthropic.claude-sonnet-4-6-v1'
+  | 'anthropic.claude-opus-4-5-20251101-v1:0'
   | 'anthropic.claude-haiku-4-5-20251001-v1:0'
-  | 'anthropic.claude-sonnet-4-20250514-v1:0'
   | 'anthropic.claude-sonnet-4-5-20250929-v1:0'
+  | 'anthropic.claude-sonnet-4-20250514-v1:0'
   | 'anthropic.claude-opus-4-20250514-v1:0'
   | 'anthropic.claude-opus-4-1-20250805-v1:0'
   | 'anthropic.claude-3-7-sonnet-20250219-v1:0'
@@ -51,10 +54,14 @@ export type BedrockChatModelId =
   | 'us.anthropic.claude-3-5-haiku-20241022-v1:0'
   | 'us.anthropic.claude-3-5-sonnet-20241022-v2:0'
   | 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'
-  | 'us.anthropic.claude-sonnet-4-20250514-v1:0'
+  | 'us.anthropic.claude-opus-4-6-v1'
+  | 'us.anthropic.claude-sonnet-4-6-v1'
+  | 'us.anthropic.claude-opus-4-5-20251101-v1:0'
   | 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'
+  | 'us.anthropic.claude-sonnet-4-20250514-v1:0'
   | 'us.anthropic.claude-opus-4-20250514-v1:0'
   | 'us.anthropic.claude-opus-4-1-20250805-v1:0'
+  | 'us.anthropic.claude-haiku-4-5-20251001-v1:0'
   | 'us.meta.llama3-2-11b-instruct-v1:0'
   | 'us.meta.llama3-2-3b-instruct-v1:0'
   | 'us.meta.llama3-2-90b-instruct-v1:0'
@@ -91,7 +98,7 @@ export type BedrockFilePartProviderOptions = z.infer<
   typeof bedrockFilePartProviderOptions
 >;
 
-export const bedrockProviderOptions = z.object({
+export const amazonBedrockLanguageModelOptions = z.object({
   /**
    * Additional inference parameters that the model supports,
    * beyond the base set of inference parameters that Converse
@@ -100,9 +107,15 @@ export const bedrockProviderOptions = z.object({
   additionalModelRequestFields: z.record(z.string(), z.any()).optional(),
   reasoningConfig: z
     .object({
-      type: z.union([z.literal('enabled'), z.literal('disabled')]).optional(),
+      type: z
+        .union([
+          z.literal('enabled'),
+          z.literal('disabled'),
+          z.literal('adaptive'),
+        ])
+        .optional(),
       budgetTokens: z.number().optional(),
-      maxReasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
+      maxReasoningEffort: z.enum(['low', 'medium', 'high', 'max']).optional(),
     })
     .optional(),
   /**
@@ -111,4 +124,6 @@ export const bedrockProviderOptions = z.object({
   anthropicBeta: z.array(z.string()).optional(),
 });
 
-export type BedrockProviderOptions = z.infer<typeof bedrockProviderOptions>;
+export type AmazonBedrockLanguageModelOptions = z.infer<
+  typeof amazonBedrockLanguageModelOptions
+>;

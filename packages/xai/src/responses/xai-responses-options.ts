@@ -11,7 +11,7 @@ export type XaiResponsesModelId =
 /**
  * @see https://docs.x.ai/docs/api-reference#create-new-response
  */
-export const xaiResponsesProviderOptions = z.object({
+export const xaiLanguageModelResponsesOptions = z.object({
   /**
    * Constrains how hard a reasoning model thinks before responding.
    * Possible values are `low` (uses fewer reasoning tokens), `medium` and `high` (uses more reasoning tokens).
@@ -33,6 +33,6 @@ export const xaiResponsesProviderOptions = z.object({
   include: z.array(z.enum(['file_search_call.results'])).nullish(),
 });
 
-export type XaiResponsesProviderOptions = z.infer<
-  typeof xaiResponsesProviderOptions
+export type XaiLanguageModelResponsesOptions = z.infer<
+  typeof xaiLanguageModelResponsesOptions
 >;
