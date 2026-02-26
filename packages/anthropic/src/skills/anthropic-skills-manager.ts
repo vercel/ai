@@ -56,6 +56,11 @@ export class AnthropicSkillsManager implements SkillsManagerV1 {
     });
   }
 
+  /*
+   * Anthropic's skill response does not include `name` or `description`.
+   * These fields are only available on the version object, so we fetch
+   * the latest version to enrich the skill metadata.
+   */
   private async fetchVersionMetadata({
     skillId,
     version,
@@ -235,6 +240,10 @@ export class AnthropicSkillsManager implements SkillsManagerV1 {
     };
   }
 
+  /*
+   * Anthropic's API requires all versions to be deleted before the skill
+   * itself can be deleted. We list all versions and delete them first.
+   */
   async delete(
     params: SkillsManagerV1DeleteParams,
   ): Promise<SkillsManagerV1DeleteResult> {
@@ -290,8 +299,8 @@ function mapAnthropicSkill(
   },
   versionMetadata?: { name?: string; description?: string },
 ): SkillsManagerV1Skill {
-  const name = response.name ?? versionMetadata?.name;
-  const description = response.description ?? versionMetadata?.description;
+  const name = versionMetadata?.name ?? response.name;
+  const description = versionMetadata?.description ?? response.description;
   return {
     id: response.id,
     ...(response.display_title != null && {
@@ -299,8 +308,17 @@ function mapAnthropicSkill(
     }),
     ...(name != null && { name }),
     ...(description != null && { description }),
-    source: response.source,
+    source: mapAnthropicSource(response.source),
     createdAt: new Date(response.created_at),
     updatedAt: new Date(response.updated_at),
   };
+}
+
+function mapAnthropicSource(source: string): SkillsManagerV1Skill['source'] {
+  switch (source) {
+    case 'anthropic':
+      return 'provider';
+    default:
+      return 'user';
+  }
 }

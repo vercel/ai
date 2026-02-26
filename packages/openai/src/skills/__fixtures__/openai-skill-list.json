@@ -1,22 +1,22 @@
 {
   "data": [
     {
-      "id": "skill_abc123",
+      "id": "skill_699fb68e4c588191834a1c72e682a4b10071874b35792a71",
       "object": "skill",
-      "name": "my-skill",
-      "description": "A test skill",
+      "name": "greeting",
+      "description": "A greeting skill",
       "default_version": "1",
       "latest_version": "1",
-      "created_at": 1700000000
+      "created_at": 1772074638
     },
     {
-      "id": "skill_def456",
+      "id": "skill_699fb05754cc8191924d08e89d3b3ae20cb9c1856e6ae689",
       "object": "skill",
-      "name": "another-skill",
-      "description": "Another test skill",
+      "name": "greeting",
+      "description": "A greeting skill",
       "default_version": "1",
       "latest_version": "1",
-      "created_at": 1700100000
+      "created_at": 1772073047
     }
   ]
 }

@@ -11,7 +11,7 @@ export interface SkillsManagerV1Skill {
   displayTitle?: string;
   name?: string;
   description?: string;
-  source: string;
+  source: 'user' | 'provider';
   createdAt: Date;
   updatedAt: Date;
 }

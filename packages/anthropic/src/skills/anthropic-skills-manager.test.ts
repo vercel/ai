@@ -100,13 +100,13 @@ describe('AnthropicSkillsManager', () => {
 
       expect(result.skill).toMatchInlineSnapshot(`
         {
-          "createdAt": 2024-01-15T10:30:00.000Z,
-          "description": "A test skill",
-          "displayTitle": "My Skill",
-          "id": "skill_xyz789",
-          "name": "my-skill",
-          "source": "upload",
-          "updatedAt": 2024-01-15T10:30:00.000Z,
+          "createdAt": 2026-02-26T03:59:39.314Z,
+          "description": "An updated test skill for fixture capture",
+          "displayTitle": "Test Capture Skill",
+          "id": "skill_01Xud7kLMsjLfc7Aa6RvigZf",
+          "name": "test-capture-skill",
+          "source": "user",
+          "updatedAt": 2026-02-26T03:59:39.314Z,
         }
       `);
     });
@@ -201,18 +201,18 @@ describe('AnthropicSkillsManager', () => {
       expect(result.skills).toMatchInlineSnapshot(`
         [
           {
-            "createdAt": 2024-01-15T10:30:00.000Z,
-            "displayTitle": "My Skill",
-            "id": "skill_xyz789",
-            "source": "upload",
-            "updatedAt": 2024-01-15T10:30:00.000Z,
+            "createdAt": 2026-02-26T03:59:39.314Z,
+            "displayTitle": "Test Capture Skill",
+            "id": "skill_01Xud7kLMsjLfc7Aa6RvigZf",
+            "source": "user",
+            "updatedAt": 2026-02-26T03:59:39.315Z,
           },
           {
-            "createdAt": 2024-01-16T12:00:00.000Z,
-            "displayTitle": "Another Skill",
-            "id": "skill_uvw012",
-            "source": "upload",
-            "updatedAt": 2024-01-16T12:00:00.000Z,
+            "createdAt": 2025-10-14T08:41:11.530Z,
+            "displayTitle": "xlsx",
+            "id": "xlsx",
+            "source": "provider",
+            "updatedAt": 2026-02-03T15:09:44.321Z,
           },
         ]
       `);
@@ -278,13 +278,13 @@ describe('AnthropicSkillsManager', () => {
 
       expect(result.skill).toMatchInlineSnapshot(`
         {
-          "createdAt": 2024-01-15T10:30:00.000Z,
-          "description": "A test skill",
-          "displayTitle": "My Skill",
-          "id": "skill_xyz789",
-          "name": "my-skill",
-          "source": "upload",
-          "updatedAt": 2024-01-15T10:30:00.000Z,
+          "createdAt": 2026-02-26T03:59:39.314Z,
+          "description": "An updated test skill for fixture capture",
+          "displayTitle": "Test Capture Skill",
+          "id": "skill_01Xud7kLMsjLfc7Aa6RvigZf",
+          "name": "test-capture-skill",
+          "source": "user",
+          "updatedAt": 2026-02-26T03:59:39.315Z,
         }
       `);
     });
@@ -377,13 +377,13 @@ describe('AnthropicSkillsManager', () => {
 
       expect(result.skill).toMatchInlineSnapshot(`
         {
-          "createdAt": 2024-01-15T10:30:00.000Z,
-          "description": "A test skill",
-          "displayTitle": "My Skill",
-          "id": "skill_xyz789",
-          "name": "my-skill",
-          "source": "upload",
-          "updatedAt": 2024-01-16T12:00:00.000Z,
+          "createdAt": 2026-02-26T03:59:39.314Z,
+          "description": "An updated test skill for fixture capture",
+          "displayTitle": "Test Capture Skill",
+          "id": "skill_01Xud7kLMsjLfc7Aa6RvigZf",
+          "name": "test-capture-skill",
+          "source": "user",
+          "updatedAt": 2026-02-26T03:59:41.132Z,
         }
       `);
     });
@@ -414,7 +414,7 @@ describe('AnthropicSkillsManager', () => {
         ],
       });
 
-      expect(result.skill.id).toBe('skill_xyz789');
+      expect(result.skill.id).toBe('skill_01Xud7kLMsjLfc7Aa6RvigZf');
     });
   });
 
@@ -449,12 +449,12 @@ describe('AnthropicSkillsManager', () => {
 
       expect(server.calls[1].requestMethod).toBe('DELETE');
       expect(server.calls[1].requestUrl).toBe(
-        'https://api.anthropic.com/v1/skills/skill_xyz789/versions/1759178010641129',
+        'https://api.anthropic.com/v1/skills/skill_xyz789/versions/1772078378207930',
       );
 
       expect(server.calls[2].requestMethod).toBe('DELETE');
       expect(server.calls[2].requestUrl).toBe(
-        'https://api.anthropic.com/v1/skills/skill_xyz789/versions/1759178010641130',
+        'https://api.anthropic.com/v1/skills/skill_xyz789/versions/1772078380123708',
       );
 
       expect(server.calls[3].requestMethod).toBe('DELETE');

@@ -21,6 +21,7 @@ import {
   FetchFunction,
   getFromApi,
   postFormDataToApi,
+  postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import {
@@ -46,6 +47,12 @@ export class OpenAISkillsManager implements SkillsManagerV1 {
 
   constructor(private readonly config: OpenAISkillsManagerConfig) {}
 
+  /*
+   * Unlike Anthropic, OpenAI returns name and description directly on the
+   * skill response, so no version enrichment is needed for create/retrieve.
+   * OpenAI's version list/retrieve endpoints are currently non-functional
+   * (list returns empty, retrieve returns 404).
+   */
   async create(
     params: SkillsManagerV1CreateParams,
   ): Promise<SkillsManagerV1CreateResult> {
@@ -125,6 +132,14 @@ export class OpenAISkillsManager implements SkillsManagerV1 {
     };
   }
 
+  /*
+   * Update creates a new version, then promotes it to default_version.
+   * OpenAI does not auto-promote new versions, so we must explicitly POST
+   * to the skill endpoint to set default_version. The version create
+   * response contains the freshest name/description (parsed from SKILL.md
+   * frontmatter), which may not yet be reflected in the skill response,
+   * so we prefer version metadata when mapping.
+   */
   async update(
     params: SkillsManagerV1UpdateParams,
   ): Promise<SkillsManagerV1UpdateResult> {
@@ -152,9 +167,12 @@ export class OpenAISkillsManager implements SkillsManagerV1 {
       fetch: this.config.fetch,
     });
 
-    const { value: skillResponse } = await getFromApi({
+    const { value: skillResponse } = await postJsonToApi({
       url: this.config.url({ path: `/skills/${params.skillId}` }),
       headers,
+      body: {
+        default_version: versionResponse.version,
+      },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openaiSkillResponseSchema,
@@ -208,7 +226,7 @@ function mapOpenAISkill(
     id: response.id,
     ...(name != null && { name }),
     ...(description != null && { description }),
-    source: 'upload',
+    source: 'user',
     createdAt: new Date(response.created_at * 1000),
     updatedAt: new Date((response.updated_at ?? response.created_at) * 1000),
   };

@@ -85,12 +85,12 @@ describe('OpenAISkillsManager', () => {
 
       expect(result.skill).toMatchInlineSnapshot(`
         {
-          "createdAt": 2023-11-14T22:13:20.000Z,
-          "description": "A test skill",
-          "id": "skill_abc123",
-          "name": "my-skill",
-          "source": "upload",
-          "updatedAt": 2023-11-14T22:13:20.000Z,
+          "createdAt": 2026-02-26T04:01:19.000Z,
+          "description": "A test skill for fixture capture",
+          "id": "skill_699fc58f408c8191825d8d06ae75fd5c06de7b381a5db7f5",
+          "name": "test-capture-skill",
+          "source": "user",
+          "updatedAt": 2026-02-26T04:01:19.000Z,
         }
       `);
     });
@@ -147,7 +147,9 @@ describe('OpenAISkillsManager', () => {
         ],
       });
 
-      expect(result.skill.id).toBe('skill_abc123');
+      expect(result.skill.id).toBe(
+        'skill_699fc58f408c8191825d8d06ae75fd5c06de7b381a5db7f5',
+      );
     });
   });
 
@@ -191,20 +193,20 @@ describe('OpenAISkillsManager', () => {
       expect(result.skills).toMatchInlineSnapshot(`
         [
           {
-            "createdAt": 2023-11-14T22:13:20.000Z,
-            "description": "A test skill",
-            "id": "skill_abc123",
-            "name": "my-skill",
-            "source": "upload",
-            "updatedAt": 2023-11-14T22:13:20.000Z,
+            "createdAt": 2026-02-26T02:57:18.000Z,
+            "description": "A greeting skill",
+            "id": "skill_699fb68e4c588191834a1c72e682a4b10071874b35792a71",
+            "name": "greeting",
+            "source": "user",
+            "updatedAt": 2026-02-26T02:57:18.000Z,
           },
           {
-            "createdAt": 2023-11-16T02:00:00.000Z,
-            "description": "Another test skill",
-            "id": "skill_def456",
-            "name": "another-skill",
-            "source": "upload",
-            "updatedAt": 2023-11-16T02:00:00.000Z,
+            "createdAt": 2026-02-26T02:30:47.000Z,
+            "description": "A greeting skill",
+            "id": "skill_699fb05754cc8191924d08e89d3b3ae20cb9c1856e6ae689",
+            "name": "greeting",
+            "source": "user",
+            "updatedAt": 2026-02-26T02:30:47.000Z,
           },
         ]
       `);
@@ -266,12 +268,12 @@ describe('OpenAISkillsManager', () => {
 
       expect(result.skill).toMatchInlineSnapshot(`
         {
-          "createdAt": 2023-11-14T22:13:20.000Z,
-          "description": "A test skill",
-          "id": "skill_abc123",
-          "name": "my-skill",
-          "source": "upload",
-          "updatedAt": 2023-11-14T22:13:20.000Z,
+          "createdAt": 2026-02-26T04:01:19.000Z,
+          "description": "A test skill for fixture capture",
+          "id": "skill_699fc58f408c8191825d8d06ae75fd5c06de7b381a5db7f5",
+          "name": "test-capture-skill",
+          "source": "user",
+          "updatedAt": 2026-02-26T04:01:19.000Z,
         }
       `);
     });
@@ -292,7 +294,7 @@ describe('OpenAISkillsManager', () => {
   });
 
   describe('update', () => {
-    it('should create a version then retrieve the skill', async () => {
+    it('should create a version then promote default_version', async () => {
       prepareResponse({
         url: 'https://api.openai.com/v1/skills/:skillId/versions',
         filename: 'openai-skill-version-create',
@@ -318,10 +320,13 @@ describe('OpenAISkillsManager', () => {
       expect(versionBody).toBeTruthy();
       expect(versionBody!['files[]']).toBeInstanceOf(File);
 
-      expect(server.calls[1].requestMethod).toBe('GET');
+      expect(server.calls[1].requestMethod).toBe('POST');
       expect(server.calls[1].requestUrl).toBe(
         'https://api.openai.com/v1/skills/skill_abc123',
       );
+      expect(await server.calls[1].requestBodyJson).toMatchObject({
+        default_version: '2',
+      });
     });
 
     it('should pass authorization headers on both requests', async () => {
@@ -366,12 +371,12 @@ describe('OpenAISkillsManager', () => {
 
       expect(result.skill).toMatchInlineSnapshot(`
         {
-          "createdAt": 2023-11-14T22:13:20.000Z,
-          "description": "An updated skill",
-          "id": "skill_abc123",
-          "name": "my-skill",
-          "source": "upload",
-          "updatedAt": 2023-11-16T02:00:00.000Z,
+          "createdAt": 2026-02-26T04:01:19.000Z,
+          "description": "An updated test skill for fixture capture",
+          "id": "skill_699fc58f408c8191825d8d06ae75fd5c06de7b381a5db7f5",
+          "name": "test-capture-skill",
+          "source": "user",
+          "updatedAt": 2026-02-26T04:01:19.000Z,
         }
       `);
     });
@@ -416,7 +421,9 @@ describe('OpenAISkillsManager', () => {
         ],
       });
 
-      expect(result.skill.id).toBe('skill_abc123');
+      expect(result.skill.id).toBe(
+        'skill_699fc58f408c8191825d8d06ae75fd5c06de7b381a5db7f5',
+      );
     });
   });
 
