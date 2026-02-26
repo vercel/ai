@@ -45,6 +45,10 @@ describe('OpenAISkillsManager', () => {
         url: 'https://api.openai.com/v1/skills',
         filename: 'openai-skill-create',
       });
+      prepareResponse({
+        url: 'https://api.openai.com/v1/skills/:skillId/versions',
+        filename: 'openai-skill-version-list',
+      });
 
       const skillsManager = provider.skillsManager();
       await skillsManager.create({
@@ -61,6 +65,10 @@ describe('OpenAISkillsManager', () => {
         url: 'https://api.openai.com/v1/skills',
         filename: 'openai-skill-create',
       });
+      prepareResponse({
+        url: 'https://api.openai.com/v1/skills/:skillId/versions',
+        filename: 'openai-skill-version-list',
+      });
 
       const skillsManager = provider.skillsManager();
       await skillsManager.create({
@@ -72,16 +80,23 @@ describe('OpenAISkillsManager', () => {
       });
     });
 
-    it('should map response to SkillsManagerV1Skill', async () => {
+    it('should enrich with version metadata from version list', async () => {
       prepareResponse({
         url: 'https://api.openai.com/v1/skills',
         filename: 'openai-skill-create',
+      });
+      prepareResponse({
+        url: 'https://api.openai.com/v1/skills/:skillId/versions',
+        filename: 'openai-skill-version-list',
       });
 
       const skillsManager = provider.skillsManager();
       const result = await skillsManager.create({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
+
+      expect(server.calls).toHaveLength(2);
+      expect(server.calls[1].requestMethod).toBe('GET');
 
       expect(result.skill).toMatchInlineSnapshot(`
         {
@@ -99,6 +114,10 @@ describe('OpenAISkillsManager', () => {
       prepareResponse({
         url: 'https://api.openai.com/v1/skills',
         filename: 'openai-skill-create',
+      });
+      prepareResponse({
+        url: 'https://api.openai.com/v1/skills/:skillId/versions',
+        filename: 'openai-skill-version-list',
       });
 
       const skillsManager = provider.skillsManager();
@@ -122,6 +141,10 @@ describe('OpenAISkillsManager', () => {
         url: 'https://api.openai.com/v1/skills',
         filename: 'openai-skill-create',
       });
+      prepareResponse({
+        url: 'https://api.openai.com/v1/skills/:skillId/versions',
+        filename: 'openai-skill-version-list',
+      });
 
       const skillsManager = provider.skillsManager();
       const result = await skillsManager.create({
@@ -135,6 +158,10 @@ describe('OpenAISkillsManager', () => {
       prepareResponse({
         url: 'https://api.openai.com/v1/skills',
         filename: 'openai-skill-create',
+      });
+      prepareResponse({
+        url: 'https://api.openai.com/v1/skills/:skillId/versions',
+        filename: 'openai-skill-version-list',
       });
 
       const skillsManager = provider.skillsManager();
@@ -229,6 +256,10 @@ describe('OpenAISkillsManager', () => {
         url: 'https://api.openai.com/v1/skills/:skillId',
         filename: 'openai-skill-retrieve',
       });
+      prepareResponse({
+        url: 'https://api.openai.com/v1/skills/:skillId/versions',
+        filename: 'openai-skill-version-list',
+      });
 
       const skillsManager = provider.skillsManager();
       await skillsManager.retrieve({ skillId: 'skill_abc123' });
@@ -244,6 +275,10 @@ describe('OpenAISkillsManager', () => {
         url: 'https://api.openai.com/v1/skills/:skillId',
         filename: 'openai-skill-retrieve',
       });
+      prepareResponse({
+        url: 'https://api.openai.com/v1/skills/:skillId/versions',
+        filename: 'openai-skill-version-list',
+      });
 
       const skillsManager = provider.skillsManager();
       await skillsManager.retrieve({ skillId: 'skill_abc123' });
@@ -253,16 +288,23 @@ describe('OpenAISkillsManager', () => {
       });
     });
 
-    it('should map response to SkillsManagerV1Skill', async () => {
+    it('should enrich with version metadata from version list', async () => {
       prepareResponse({
         url: 'https://api.openai.com/v1/skills/:skillId',
         filename: 'openai-skill-retrieve',
+      });
+      prepareResponse({
+        url: 'https://api.openai.com/v1/skills/:skillId/versions',
+        filename: 'openai-skill-version-list',
       });
 
       const skillsManager = provider.skillsManager();
       const result = await skillsManager.retrieve({
         skillId: 'skill_abc123',
       });
+
+      expect(server.calls).toHaveLength(2);
+      expect(server.calls[1].requestMethod).toBe('GET');
 
       expect(result.skill).toMatchInlineSnapshot(`
         {
@@ -280,6 +322,10 @@ describe('OpenAISkillsManager', () => {
       prepareResponse({
         url: 'https://api.openai.com/v1/skills/:skillId',
         filename: 'openai-skill-retrieve',
+      });
+      prepareResponse({
+        url: 'https://api.openai.com/v1/skills/:skillId/versions',
+        filename: 'openai-skill-version-list',
       });
 
       const skillsManager = provider.skillsManager();

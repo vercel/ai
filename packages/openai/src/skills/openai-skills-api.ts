@@ -26,6 +26,21 @@ export const openaiSkillVersionResponseSchema = lazySchema(() =>
   ),
 );
 
+export const openaiSkillVersionListResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      data: z.array(
+        z.object({
+          id: z.string(),
+          version: z.string().nullish(),
+          name: z.string().nullish(),
+          description: z.string().nullish(),
+        }),
+      ),
+    }),
+  ),
+);
+
 export const openaiSkillDeleteResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({

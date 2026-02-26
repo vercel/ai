@@ -1,0 +1,10 @@
+{
+  "data": [
+    {
+      "id": "skillver_abc456",
+      "version": "1",
+      "name": "my-skill",
+      "description": "A test skill"
+    }
+  ]
+}

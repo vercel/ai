@@ -27,6 +27,7 @@ import {
   openaiSkillDeleteResponseSchema,
   openaiSkillListResponseSchema,
   openaiSkillResponseSchema,
+  openaiSkillVersionListResponseSchema,
   openaiSkillVersionResponseSchema,
 } from './openai-skills-api';
 
@@ -45,6 +46,34 @@ export class OpenAISkillsManager implements SkillsManagerV1 {
   }
 
   constructor(private readonly config: OpenAISkillsManagerConfig) {}
+
+  private async fetchLatestVersionMetadata({
+    skillId,
+    headers,
+  }: {
+    skillId: string;
+    headers: Record<string, string | undefined>;
+  }): Promise<{ name?: string; description?: string }> {
+    const { value: response } = await getFromApi({
+      url: `${this.config.url({ path: `/skills/${skillId}/versions` })}?order=desc&limit=1`,
+      headers,
+      failedResponseHandler: openaiFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        openaiSkillVersionListResponseSchema,
+      ),
+      fetch: this.config.fetch,
+    });
+
+    const latest = response.data[0];
+    if (latest == null) {
+      return {};
+    }
+
+    return {
+      ...(latest.name != null && { name: latest.name }),
+      ...(latest.description != null && { description: latest.description }),
+    };
+  }
 
   async create(
     params: SkillsManagerV1CreateParams,
@@ -69,9 +98,11 @@ export class OpenAISkillsManager implements SkillsManagerV1 {
       formData.append('files[]', new Blob([content]), file.path);
     }
 
+    const headers = combineHeaders(this.config.headers());
+
     const { value: response } = await postFormDataToApi({
       url: this.config.url({ path: '/skills' }),
-      headers: combineHeaders(this.config.headers()),
+      headers,
       formData,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -80,8 +111,13 @@ export class OpenAISkillsManager implements SkillsManagerV1 {
       fetch: this.config.fetch,
     });
 
+    const versionMetadata = await this.fetchLatestVersionMetadata({
+      skillId: response.id,
+      headers,
+    });
+
     return {
-      skill: mapOpenAISkill(response),
+      skill: mapOpenAISkill(response, versionMetadata),
       warnings,
     };
   }
@@ -109,9 +145,11 @@ export class OpenAISkillsManager implements SkillsManagerV1 {
   async retrieve(
     params: SkillsManagerV1RetrieveParams,
   ): Promise<SkillsManagerV1RetrieveResult> {
+    const headers = combineHeaders(this.config.headers());
+
     const { value: response } = await getFromApi({
       url: this.config.url({ path: `/skills/${params.skillId}` }),
-      headers: combineHeaders(this.config.headers()),
+      headers,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openaiSkillResponseSchema,
@@ -119,8 +157,13 @@ export class OpenAISkillsManager implements SkillsManagerV1 {
       fetch: this.config.fetch,
     });
 
+    const versionMetadata = await this.fetchLatestVersionMetadata({
+      skillId: params.skillId,
+      headers,
+    });
+
     return {
-      skill: mapOpenAISkill(response),
+      skill: mapOpenAISkill(response, versionMetadata),
       warnings: [],
     };
   }
