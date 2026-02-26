@@ -1800,6 +1800,84 @@ describe('convertToOpenAIResponsesInput', () => {
             ]
           `);
         });
+
+        it('should include reasoning without id when itemId is absent but encrypted_content is present', async () => {
+          const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
+            prompt: [
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'Thinking through the problem',
+                    providerOptions: {
+                      openai: {
+                        // itemId intentionally omitted — user stripped it to avoid
+                        // "Item with id ... not found" errors from the API
+                        reasoningEncryptedContent: 'encrypted_reasoning_blob',
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+            systemMessageMode: 'system',
+            providerOptionsName: 'openai',
+            store: false,
+          });
+
+          expect(result.input).toEqual([
+            {
+              type: 'reasoning',
+              encrypted_content: 'encrypted_reasoning_blob',
+              summary: [
+                {
+                  type: 'summary_text',
+                  text: 'Thinking through the problem',
+                },
+              ],
+            },
+          ]);
+
+          expect(result.warnings).toHaveLength(0);
+        });
+
+        it('should still warn when itemId is absent and encrypted_content is also absent', async () => {
+          const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
+            prompt: [
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'Some reasoning text',
+                    providerOptions: {
+                      openai: {
+                        // neither itemId nor reasoningEncryptedContent present
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+            systemMessageMode: 'system',
+            providerOptionsName: 'openai',
+            store: false,
+          });
+
+          expect(result.input).toHaveLength(0);
+
+          expect(result.warnings).toMatchInlineSnapshot(`
+            [
+              {
+                "message": "Non-OpenAI reasoning parts are not supported. Skipping reasoning part: {"type":"reasoning","text":"Some reasoning text","providerOptions":{"openai":{}}}.",
+                "type": "other",
+              },
+            ]
+          `);
+        });
       });
     });
   });
