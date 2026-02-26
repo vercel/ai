@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 3.0.25
+
+### Patch Changes
+
+- 91f8777: fix(bedrock/groq): pass strict mode for tools
+
 ## 3.0.24
 
 ### Patch Changes
