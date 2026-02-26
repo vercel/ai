@@ -112,4 +112,4 @@ async function main() {
   console.log('Model settings updated successfully');
 }
 
-main().catch(console.error);;
+main().catch(console.error);
