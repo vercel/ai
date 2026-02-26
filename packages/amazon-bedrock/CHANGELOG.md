@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.66
+
+### Patch Changes
+
+- 91f8777: fix(bedrock/groq): pass strict mode for tools
+
 ## 4.0.65
 
 ### Patch Changes
