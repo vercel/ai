@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 3.0.109
+
+### Patch Changes
+
+- 3749ed6: feat(provider/google): add support for gemini-3.1-flash-image-preview
+- Updated dependencies [3749ed6]
+  - @ai-sdk/google@2.0.55
+
 ## 3.0.108
 
 ### Patch Changes
