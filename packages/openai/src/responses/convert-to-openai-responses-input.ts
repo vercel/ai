@@ -159,8 +159,12 @@ export async function convertToOpenAIResponsesInput({
         for (const part of content) {
           switch (part.type) {
             case 'text': {
-              const id = part.providerOptions?.[providerOptionsName]?.itemId as
-                | string
+              const providerOpts = part.providerOptions?.[providerOptionsName];
+              const id = providerOpts?.itemId as string | undefined;
+              const phase = providerOpts?.phase as
+                | 'commentary'
+                | 'final_answer'
+                | null
                 | undefined;
 
               // when using conversation, skip items that already exist in the conversation context to avoid "Duplicate item found" errors
@@ -178,6 +182,7 @@ export async function convertToOpenAIResponsesInput({
                 role: 'assistant',
                 content: [{ type: 'output_text', text: part.text }],
                 id,
+                ...(phase != null && { phase }),
               });
 
               break;
