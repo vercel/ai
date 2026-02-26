@@ -12,7 +12,9 @@ import { validateTypes } from '@ai-sdk/provider-utils';
 
 export interface AnthropicToolOptions {
   deferLoading?: boolean;
-  allowedCallers?: Array<'code_execution_20250825'>;
+  allowedCallers?: Array<
+    'direct' | 'code_execution_20250825' | 'code_execution_20260120'
+  >;
 }
 
 export async function prepareTools({
@@ -115,6 +117,13 @@ export async function prepareTools({
             betas.add('code-execution-2025-08-25');
             anthropicTools.push({
               type: 'code_execution_20250825',
+              name: 'code_execution',
+            });
+            break;
+          }
+          case 'anthropic.code_execution_20260120': {
+            anthropicTools.push({
+              type: 'code_execution_20260120',
               name: 'code_execution',
             });
             break;

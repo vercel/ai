@@ -692,6 +692,111 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
+    it('should include phase from providerOptions on assistant text messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'I will search for that',
+                providerOptions: {
+                  openai: {
+                    itemId: 'msg_001',
+                    phase: 'commentary',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'assistant',
+          content: [{ type: 'output_text', text: 'I will search for that' }],
+          id: 'msg_001',
+          phase: 'commentary',
+        },
+      ]);
+    });
+
+    it('should include final_answer phase from providerOptions on assistant text messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'The capital of France is Paris.',
+                providerOptions: {
+                  openai: {
+                    itemId: 'msg_002',
+                    phase: 'final_answer',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            { type: 'output_text', text: 'The capital of France is Paris.' },
+          ],
+          id: 'msg_002',
+          phase: 'final_answer',
+        },
+      ]);
+    });
+
+    it('should not include phase when not set in providerOptions', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Hello',
+                providerOptions: {
+                  openai: {
+                    itemId: 'msg_003',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'assistant',
+          content: [{ type: 'output_text', text: 'Hello' }],
+          id: 'msg_003',
+        },
+      ]);
+    });
+
     it('should convert messages with tool call parts', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -1690,6 +1795,84 @@ describe('convertToOpenAIResponsesInput', () => {
             [
               {
                 "message": "Non-OpenAI reasoning parts are not supported. Skipping reasoning part: {"type":"reasoning","text":"This is a reasoning part without OpenAI-specific reasoning id provider options","providerOptions":{"openai":{"reasoning":{"encryptedContent":"encrypted_content_001"}}}}.",
+                "type": "other",
+              },
+            ]
+          `);
+        });
+
+        it('should include reasoning without id when itemId is absent but encrypted_content is present', async () => {
+          const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
+            prompt: [
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'Thinking through the problem',
+                    providerOptions: {
+                      openai: {
+                        // itemId intentionally omitted — user stripped it to avoid
+                        // "Item with id ... not found" errors from the API
+                        reasoningEncryptedContent: 'encrypted_reasoning_blob',
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+            systemMessageMode: 'system',
+            providerOptionsName: 'openai',
+            store: false,
+          });
+
+          expect(result.input).toEqual([
+            {
+              type: 'reasoning',
+              encrypted_content: 'encrypted_reasoning_blob',
+              summary: [
+                {
+                  type: 'summary_text',
+                  text: 'Thinking through the problem',
+                },
+              ],
+            },
+          ]);
+
+          expect(result.warnings).toHaveLength(0);
+        });
+
+        it('should still warn when itemId is absent and encrypted_content is also absent', async () => {
+          const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
+            prompt: [
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'Some reasoning text',
+                    providerOptions: {
+                      openai: {
+                        // neither itemId nor reasoningEncryptedContent present
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+            systemMessageMode: 'system',
+            providerOptionsName: 'openai',
+            store: false,
+          });
+
+          expect(result.input).toHaveLength(0);
+
+          expect(result.warnings).toMatchInlineSnapshot(`
+            [
+              {
+                "message": "Non-OpenAI reasoning parts are not supported. Skipping reasoning part: {"type":"reasoning","text":"Some reasoning text","providerOptions":{"openai":{}}}.",
                 "type": "other",
               },
             ]

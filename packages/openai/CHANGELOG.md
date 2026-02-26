@@ -1,5 +1,59 @@
 # @ai-sdk/openai
 
+## 3.0.36
+
+### Patch Changes
+
+- 53bdfa5: fix(openai): allow null/undefined type in streaming tool call deltas
+
+  Azure AI Foundry and Mistral deployed on Azure omit the `type` field in
+  streaming tool_calls deltas. The chat stream parser now accepts a missing
+  `type` field (treating it as `"function"`) instead of throwing
+  `InvalidResponseDataError: Expected 'function' type.`
+
+  Fixes #12770
+
+## 3.0.35
+
+### Patch Changes
+
+- 5e18272: fix(openai): include reasoning parts without itemId when encrypted_content is present
+
+  When `providerOptions.openai.itemId` is absent on a reasoning content part,
+  the converter now uses `encrypted_content` as a fallback instead of silently
+  skipping the part with a warning. The OpenAI Responses API accepts reasoning
+  items without an `id` when `encrypted_content` is supplied, enabling
+  multi-turn reasoning even when item IDs are stripped from provider options.
+
+  Also makes the `id` field optional on the `OpenAIResponsesReasoning` type to
+  reflect that the API does not require it.
+
+  Fixes #12853
+
+## 3.0.34
+
+### Patch Changes
+
+- 66a374c: Support `phase` parameter on Responses API message items. The `phase` field (`'commentary'` or `'final_answer'`) is returned by models like `gpt-5.3-codex` on assistant message output items and must be preserved when sending follow-up requests. The phase value is available in `providerMetadata.openai.phase` on text parts and is automatically included on assistant messages sent back to the API.
+
+## 3.0.33
+
+### Patch Changes
+
+- 624e651: Added missing model IDs to OpenAIChatModelId, OpenAIResponsesModelId, OpenAIImageModelId, OpenAISpeechModelId, OpenAITranscriptionModelId, and OpenAICompletionModelId types for better autocomplete support.
+
+## 3.0.32
+
+### Patch Changes
+
+- 0c9395b: feat(provider/openai): add `gpt-5.3-codex`
+
+## 3.0.31
+
+### Patch Changes
+
+- d5f7312: fix(openai): change web search tool action to be optional
+
 ## 3.0.30
 
 ### Patch Changes

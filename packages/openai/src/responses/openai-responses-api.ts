@@ -71,6 +71,7 @@ export type OpenAIResponsesAssistantMessage = {
   role: 'assistant';
   content: Array<{ type: 'output_text'; text: string }>;
   id?: string;
+  phase?: 'commentary' | 'final_answer' | null;
 };
 
 export type OpenAIResponsesFunctionCall = {
@@ -380,7 +381,7 @@ export type OpenAIResponsesTool =
 
 export type OpenAIResponsesReasoning = {
   type: 'reasoning';
-  id: string;
+  id?: string;
   encrypted_content?: string | null;
   summary: Array<{
     type: 'summary_text';
@@ -443,6 +444,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
           z.object({
             type: z.literal('message'),
             id: z.string(),
+            phase: z.enum(['commentary', 'final_answer']).nullish(),
           }),
           z.object({
             type: z.literal('reasoning'),
@@ -562,6 +564,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
           z.object({
             type: z.literal('message'),
             id: z.string(),
+            phase: z.enum(['commentary', 'final_answer']).nullish(),
           }),
           z.object({
             type: z.literal('reasoning'),
@@ -599,29 +602,31 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             type: z.literal('web_search_call'),
             id: z.string(),
             status: z.string(),
-            action: z.discriminatedUnion('type', [
-              z.object({
-                type: z.literal('search'),
-                query: z.string().nullish(),
-                sources: z
-                  .array(
-                    z.discriminatedUnion('type', [
-                      z.object({ type: z.literal('url'), url: z.string() }),
-                      z.object({ type: z.literal('api'), name: z.string() }),
-                    ]),
-                  )
-                  .nullish(),
-              }),
-              z.object({
-                type: z.literal('open_page'),
-                url: z.string().nullish(),
-              }),
-              z.object({
-                type: z.literal('find_in_page'),
-                url: z.string().nullish(),
-                pattern: z.string().nullish(),
-              }),
-            ]),
+            action: z
+              .discriminatedUnion('type', [
+                z.object({
+                  type: z.literal('search'),
+                  query: z.string().nullish(),
+                  sources: z
+                    .array(
+                      z.discriminatedUnion('type', [
+                        z.object({ type: z.literal('url'), url: z.string() }),
+                        z.object({ type: z.literal('api'), name: z.string() }),
+                      ]),
+                    )
+                    .nullish(),
+                }),
+                z.object({
+                  type: z.literal('open_page'),
+                  url: z.string().nullish(),
+                }),
+                z.object({
+                  type: z.literal('find_in_page'),
+                  url: z.string().nullish(),
+                  pattern: z.string().nullish(),
+                }),
+              ])
+              .nullish(),
           }),
           z.object({
             type: z.literal('file_search_call'),
@@ -911,6 +916,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               type: z.literal('message'),
               role: z.literal('assistant'),
               id: z.string(),
+              phase: z.enum(['commentary', 'final_answer']).nullish(),
               content: z.array(
                 z.object({
                   type: z.literal('output_text'),
@@ -966,29 +972,34 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               type: z.literal('web_search_call'),
               id: z.string(),
               status: z.string(),
-              action: z.discriminatedUnion('type', [
-                z.object({
-                  type: z.literal('search'),
-                  query: z.string().nullish(),
-                  sources: z
-                    .array(
-                      z.discriminatedUnion('type', [
-                        z.object({ type: z.literal('url'), url: z.string() }),
-                        z.object({ type: z.literal('api'), name: z.string() }),
-                      ]),
-                    )
-                    .nullish(),
-                }),
-                z.object({
-                  type: z.literal('open_page'),
-                  url: z.string().nullish(),
-                }),
-                z.object({
-                  type: z.literal('find_in_page'),
-                  url: z.string().nullish(),
-                  pattern: z.string().nullish(),
-                }),
-              ]),
+              action: z
+                .discriminatedUnion('type', [
+                  z.object({
+                    type: z.literal('search'),
+                    query: z.string().nullish(),
+                    sources: z
+                      .array(
+                        z.discriminatedUnion('type', [
+                          z.object({ type: z.literal('url'), url: z.string() }),
+                          z.object({
+                            type: z.literal('api'),
+                            name: z.string(),
+                          }),
+                        ]),
+                      )
+                      .nullish(),
+                  }),
+                  z.object({
+                    type: z.literal('open_page'),
+                    url: z.string().nullish(),
+                  }),
+                  z.object({
+                    type: z.literal('find_in_page'),
+                    url: z.string().nullish(),
+                    pattern: z.string().nullish(),
+                  }),
+                ])
+                .nullish(),
             }),
             z.object({
               type: z.literal('file_search_call'),

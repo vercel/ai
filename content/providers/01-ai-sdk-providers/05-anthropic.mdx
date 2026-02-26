@@ -1036,7 +1036,7 @@ You can enable code execution using the provider-defined code execution tool:
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
-const codeExecutionTool = anthropic.tools.codeExecution_20250825();
+const codeExecutionTool = anthropic.tools.codeExecution_20260120();
 
 const result = await generateText({
   model: anthropic('claude-opus-4-20250514'),
@@ -1049,9 +1049,10 @@ const result = await generateText({
 ```
 
 <Note>
-  Two versions are available: `codeExecution_20250825` (recommended, supports
-  Python and Bash with enhanced file operations) and `codeExecution_20250522`
-  (supports Bash only).
+  Three versions are available: `codeExecution_20260120` (recommended, does not
+  require a beta header, supports Claude Opus 4.6, Sonnet 4.6, Sonnet 4.5, and
+  Opus 4.5), `codeExecution_20250825` (supports Python and Bash with enhanced
+  file operations), and `codeExecution_20250522` (supports Bash only).
 </Note>
 
 #### Error Handling
@@ -1122,7 +1123,7 @@ const result = await generateText({
   prompt:
     'Get the weather for Tokyo, Sydney, and London, then calculate the average temperature.',
   tools: {
-    code_execution: anthropic.tools.codeExecution_20250825(),
+    code_execution: anthropic.tools.codeExecution_20260120(),
 
     getWeather: tool({
       description: 'Get current weather data for a city.',
@@ -1136,7 +1137,7 @@ const result = await generateText({
       // Enable this tool to be called from within code execution
       providerOptions: {
         anthropic: {
-          allowedCallers: ['code_execution_20250825'],
+          allowedCallers: ['code_execution_20260120'],
         },
       },
     }),
@@ -1156,7 +1157,7 @@ In this flow:
 <Note>
   Programmatic tool calling requires `claude-sonnet-4-6`, `claude-sonnet-4-5`,
   `claude-opus-4-6`, or `claude-opus-4-5` models and uses the
-  `code_execution_20250825` tool.
+  `code_execution_20260120` or `code_execution_20250825` tool.
 </Note>
 
 #### Container Persistence
@@ -1188,7 +1189,7 @@ import { generateText } from 'ai';
 const result = await generateText({
   model: anthropic('claude-sonnet-4-5'),
   tools: {
-    code_execution: anthropic.tools.codeExecution_20250825(),
+    code_execution: anthropic.tools.codeExecution_20260120(),
   },
   prompt: 'Create a presentation about renewable energy with 5 slides',
   providerOptions: {
@@ -1215,7 +1216,7 @@ You can also use custom skills by specifying `type: 'custom'`:
 const result = await generateText({
   model: anthropic('claude-sonnet-4-5'),
   tools: {
-    code_execution: anthropic.tools.codeExecution_20250825(),
+    code_execution: anthropic.tools.codeExecution_20260120(),
   },
   prompt: 'Use my custom skill to process this data',
   providerOptions: {
