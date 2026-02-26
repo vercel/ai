@@ -59,6 +59,7 @@ export type GatewayModelId =
   | 'google/gemini-3-pro-preview'
   | 'google/gemini-3-pro-image'
   | 'google/gemini-3.1-pro-preview'
+  | 'google/gemini-3.1-flash-image-preview'
   | 'inception/mercury-coder-small'
   | 'meituan/longcat-flash-chat'
   | 'meituan/longcat-flash-thinking'
