@@ -27,7 +27,6 @@ import {
   openaiSkillDeleteResponseSchema,
   openaiSkillListResponseSchema,
   openaiSkillResponseSchema,
-  openaiSkillVersionListResponseSchema,
   openaiSkillVersionResponseSchema,
 } from './openai-skills-api';
 
@@ -47,31 +46,32 @@ export class OpenAISkillsManager implements SkillsManagerV1 {
 
   constructor(private readonly config: OpenAISkillsManagerConfig) {}
 
-  private async fetchLatestVersionMetadata({
+  private async fetchVersionMetadata({
     skillId,
+    version,
     headers,
   }: {
     skillId: string;
+    version: string;
     headers: Record<string, string | undefined>;
   }): Promise<{ name?: string; description?: string }> {
     const { value: response } = await getFromApi({
-      url: `${this.config.url({ path: `/skills/${skillId}/versions` })}?order=desc&limit=1`,
+      url: this.config.url({
+        path: `/skills/${skillId}/versions/${version}`,
+      }),
       headers,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        openaiSkillVersionListResponseSchema,
+        openaiSkillVersionResponseSchema,
       ),
       fetch: this.config.fetch,
     });
 
-    const latest = response.data[0];
-    if (latest == null) {
-      return {};
-    }
-
     return {
-      ...(latest.name != null && { name: latest.name }),
-      ...(latest.description != null && { description: latest.description }),
+      ...(response.name != null && { name: response.name }),
+      ...(response.description != null && {
+        description: response.description,
+      }),
     };
   }
 
@@ -111,10 +111,14 @@ export class OpenAISkillsManager implements SkillsManagerV1 {
       fetch: this.config.fetch,
     });
 
-    const versionMetadata = await this.fetchLatestVersionMetadata({
-      skillId: response.id,
-      headers,
-    });
+    const versionMetadata =
+      response.latest_version != null
+        ? await this.fetchVersionMetadata({
+            skillId: response.id,
+            version: response.latest_version,
+            headers,
+          })
+        : {};
 
     return {
       skill: mapOpenAISkill(response, versionMetadata),
@@ -157,10 +161,14 @@ export class OpenAISkillsManager implements SkillsManagerV1 {
       fetch: this.config.fetch,
     });
 
-    const versionMetadata = await this.fetchLatestVersionMetadata({
-      skillId: params.skillId,
-      headers,
-    });
+    const versionMetadata =
+      response.latest_version != null
+        ? await this.fetchVersionMetadata({
+            skillId: params.skillId,
+            version: response.latest_version,
+            headers,
+          })
+        : {};
 
     return {
       skill: mapOpenAISkill(response, versionMetadata),
@@ -205,13 +213,17 @@ export class OpenAISkillsManager implements SkillsManagerV1 {
       fetch: this.config.fetch,
     });
 
+    const versionMetadata =
+      versionResponse.version != null
+        ? await this.fetchVersionMetadata({
+            skillId: params.skillId,
+            version: versionResponse.version,
+            headers,
+          })
+        : {};
+
     return {
-      skill: mapOpenAISkill(skillResponse, {
-        ...(versionResponse.name != null && { name: versionResponse.name }),
-        ...(versionResponse.description != null && {
-          description: versionResponse.description,
-        }),
-      }),
+      skill: mapOpenAISkill(skillResponse, versionMetadata),
       warnings: [],
     };
   }
