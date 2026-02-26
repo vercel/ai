@@ -4,6 +4,7 @@ import {
   createStep,
   updateStepResult,
   notifyServerAsync,
+  type ToolCallTiming,
 } from './db.js';
 
 const generateId = () => crypto.randomUUID();
@@ -54,6 +55,8 @@ export function devToolsHandler(): TelemetryHandler {
   const stepStartTimes = new Map<number, number>();
   const stepStreamChunks = new Map<number, unknown[]>();
   const stepRawChunks = new Map<number, unknown[]>();
+  const stepToolCalls = new Map<number, ToolCallTiming[]>();
+  const toolCallStartTimes = new Map<string, number>();
   let currentStepNumber = 0;
 
   let callSettings: Record<string, unknown> = {};
@@ -87,6 +90,7 @@ export function devToolsHandler(): TelemetryHandler {
       stepStartTimes.set(stepNumber, Date.now());
       stepStreamChunks.set(stepNumber, []);
       stepRawChunks.set(stepNumber, []);
+      stepToolCalls.set(stepNumber, []);
       currentStepNumber = stepNumber;
 
       await createStep({
@@ -126,6 +130,40 @@ export function devToolsHandler(): TelemetryHandler {
       }
     },
 
+    onToolCallStart(event) {
+      const toolCallId = (event.toolCall as Record<string, unknown>)
+        .toolCallId as string;
+      toolCallStartTimes.set(toolCallId, Date.now());
+    },
+
+    async onToolCallFinish(event) {
+      const toolCall = event.toolCall as Record<string, unknown>;
+      const toolCallId = toolCall.toolCallId as string;
+      const stepNumber = event.stepNumber ?? currentStepNumber;
+
+      const startTime = toolCallStartTimes.get(toolCallId);
+      const durationMs = startTime ? Date.now() - startTime : event.durationMs;
+      toolCallStartTimes.delete(toolCallId);
+
+      const timing: ToolCallTiming = {
+        toolCallId,
+        toolName: toolCall.toolName as string,
+        started_at: startTime
+          ? new Date(startTime).toISOString()
+          : new Date().toISOString(),
+        duration_ms: durationMs,
+        args: toolCall.args,
+        output: event.success ? event.output : null,
+        error: event.success ? null : event.error,
+        success: event.success,
+      };
+
+      const calls = stepToolCalls.get(stepNumber);
+      if (calls) {
+        calls.push(timing);
+      }
+    },
+
     async onStepFinish(event) {
       const stepId = stepIds.get(event.stepNumber);
       if (!stepId) return;
@@ -135,6 +173,7 @@ export function devToolsHandler(): TelemetryHandler {
 
       const streamChunks = stepStreamChunks.get(event.stepNumber);
       const rawChunks = stepRawChunks.get(event.stepNumber);
+      const toolCalls = stepToolCalls.get(event.stepNumber);
 
       await updateStepResult(stepId, {
         duration_ms: durationMs,
@@ -154,12 +193,15 @@ export function devToolsHandler(): TelemetryHandler {
             : null,
         raw_chunks:
           rawChunks && rawChunks.length > 0 ? JSON.stringify(rawChunks) : null,
+        tool_calls:
+          toolCalls && toolCalls.length > 0 ? JSON.stringify(toolCalls) : null,
       });
 
       stepIds.delete(event.stepNumber);
       stepStartTimes.delete(event.stepNumber);
       stepStreamChunks.delete(event.stepNumber);
       stepRawChunks.delete(event.stepNumber);
+      stepToolCalls.delete(event.stepNumber);
     },
 
     async onFinish() {
