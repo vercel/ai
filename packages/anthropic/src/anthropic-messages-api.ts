@@ -359,7 +359,7 @@ export type AnthropicTool =
        * @example ['code_execution_20250825']
        */
       allowed_callers?: Array<
-        'code_execution_20250825' | 'code_execution_20260120'
+        'direct' | 'code_execution_20250825' | 'code_execution_20260120'
       >;
     }
   | {
