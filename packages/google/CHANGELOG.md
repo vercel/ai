@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.33
+
+### Patch Changes
+
+- 1ece97a: feat(provider/google): add support for new Google image model aspect ratios and sizes
+
 ## 3.0.32
 
 ### Patch Changes
