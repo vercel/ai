@@ -2,10 +2,12 @@ import {
   LanguageModelV3Prompt,
   LanguageModelV3ToolApprovalResponsePart,
   SharedV3Warning,
+  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
   isNonNullable,
+  mediaTypeToExtension,
   parseProviderOptions,
   ToolNameMapping,
   validateTypes,
@@ -122,10 +124,17 @@ export async function convertToOpenAIResponsesInput({
                     detail:
                       part.providerOptions?.[providerOptionsName]?.imageDetail,
                   };
+                } else if (part.mediaType.startsWith('audio/')) {
+                  // Audio files are not supported as input_file on the
+                  // Responses API. Silently routing them would produce
+                  // confusing API errors; throw a clear SDK-level error.
+                  throw new UnsupportedFunctionalityError({
+                    functionality: `audio file parts with media type ${part.mediaType} on the Responses API`,
+                  });
                 } else {
-                  // Handles application/pdf and all other non-image file types
-                  // (text/plain, application/json, text/javascript, etc.)
-                  // via the input_file content type. OpenAI will validate
+                  // Handles application/pdf and all other non-image, non-audio
+                  // file types (text/plain, application/json, text/javascript,
+                  // etc.) via the input_file content type. OpenAI will validate
                   // whether the specific MIME type is supported.
                   if (part.data instanceof URL) {
                     return {
@@ -139,7 +148,9 @@ export async function convertToOpenAIResponsesInput({
                     isFileId(part.data, fileIdPrefixes)
                       ? { file_id: part.data }
                       : {
-                          filename: part.filename ?? `part-${index}`,
+                          filename:
+                            part.filename ??
+                            `part-${index}.${mediaTypeToExtension(part.mediaType)}`,
                           file_data: `data:${part.mediaType};base64,${convertToBase64(part.data)}`,
                         }),
                   };

@@ -4,7 +4,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { OpenAIChatPrompt } from './openai-chat-prompt';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import { convertToBase64, mediaTypeToExtension } from '@ai-sdk/provider-utils';
 
 export function convertToOpenAIChatMessages({
   prompt,
@@ -134,7 +134,9 @@ export function convertToOpenAIChatMessages({
                       part.data.startsWith('file-')
                         ? { file_id: part.data }
                         : {
-                            filename: part.filename ?? `part-${index}`,
+                            filename:
+                              part.filename ??
+                              `part-${index}.${mediaTypeToExtension(part.mediaType)}`,
                             file_data: `data:${part.mediaType};base64,${convertToBase64(part.data)}`,
                           },
                   };
