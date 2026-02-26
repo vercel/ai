@@ -31,6 +31,7 @@
 
   - Keep response schemas minimal (no unused properties).
   - Keep schemas flexible enough to handle provider API changes without unnecessary breakages.
+  - Use minimal exports, especially from the `@ai-sdk/provider` package, which is responsible for the spec. Usage of the TypeScript primitives `Params` and `ReturnType` is encouraged in consuming code over having direct exports of the underlying types.
 
 - **Beware premature abstraction.** Provider APIs evolve quickly. Avoid adding generic parameters or abstractions that translate differently across providers.
 
