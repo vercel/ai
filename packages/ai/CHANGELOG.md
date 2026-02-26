@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.101
+
+### Patch Changes
+
+- 5230482: fix(ai): Don't create duplicate tool parts when models call non-existent tools
+
 ## 6.0.100
 
 ### Patch Changes

@@ -71,6 +71,7 @@ export type OpenAIResponsesAssistantMessage = {
   role: 'assistant';
   content: Array<{ type: 'output_text'; text: string }>;
   id?: string;
+  phase?: 'commentary' | 'final_answer' | null;
 };
 
 export type OpenAIResponsesFunctionCall = {
@@ -443,6 +444,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
           z.object({
             type: z.literal('message'),
             id: z.string(),
+            phase: z.enum(['commentary', 'final_answer']).nullish(),
           }),
           z.object({
             type: z.literal('reasoning'),
@@ -562,6 +564,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
           z.object({
             type: z.literal('message'),
             id: z.string(),
+            phase: z.enum(['commentary', 'final_answer']).nullish(),
           }),
           z.object({
             type: z.literal('reasoning'),
@@ -913,6 +916,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               type: z.literal('message'),
               role: z.literal('assistant'),
               id: z.string(),
+              phase: z.enum(['commentary', 'final_answer']).nullish(),
               content: z.array(
                 z.object({
                   type: z.literal('output_text'),

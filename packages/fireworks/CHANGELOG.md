@@ -1,5 +1,11 @@
 # @ai-sdk/fireworks
 
+## 2.0.35
+
+### Patch Changes
+
+- f2bdddf: fix(provider/fireworks): add missing support for image generation with models that require async endpoint
+
 ## 2.0.34
 
 ### Patch Changes
