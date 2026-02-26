@@ -2944,6 +2944,390 @@ describe('OpenAIResponsesLanguageModel', () => {
         ]
       `);
     });
+<<<<<<< HEAD
+=======
+
+    it('should handle container_file_citation annotations', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_container',
+          object: 'response',
+          created_at: 1234567890,
+          status: 'completed',
+          error: null,
+          incomplete_details: null,
+          input: [],
+          instructions: null,
+          max_output_tokens: null,
+          model: 'gpt-5',
+          output: [
+            {
+              id: 'msg_container',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Generated with container file.',
+                  annotations: [
+                    {
+                      type: 'container_file_citation',
+                      container_id: 'cntr_test',
+                      file_id: 'file-container',
+                      filename: 'data.csv',
+                      start_index: 0,
+                      end_index: 10,
+                      index: 2,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          parallel_tool_calls: true,
+          previous_response_id: null,
+          reasoning: { effort: null, summary: null },
+          store: true,
+          temperature: 0,
+          text: { format: { type: 'text' } },
+          tool_choice: 'auto',
+          tools: [],
+          top_p: 1,
+          truncation: 'disabled',
+          usage: {
+            input_tokens: 10,
+            input_tokens_details: { cached_tokens: 0 },
+            output_tokens: 5,
+            output_tokens_details: { reasoning_tokens: 0 },
+            total_tokens: 15,
+          },
+          user: null,
+          metadata: {},
+        },
+      };
+
+      const result = await createModel('gpt-5').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "container_id": "cntr_test",
+                    "end_index": 10,
+                    "file_id": "file-container",
+                    "filename": "data.csv",
+                    "start_index": 0,
+                    "type": "container_file_citation",
+                  },
+                ],
+                "itemId": "msg_container",
+              },
+            },
+            "text": "Generated with container file.",
+            "type": "text",
+          },
+          {
+            "filename": "data.csv",
+            "id": "id-0",
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "containerId": "cntr_test",
+                "fileId": "file-container",
+                "type": "container_file_citation",
+              },
+            },
+            "sourceType": "document",
+            "title": "data.csv",
+            "type": "source",
+          },
+        ]
+      `);
+    });
+
+    it('should handle file_path annotations', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_file_path',
+          object: 'response',
+          created_at: 1234567890,
+          status: 'completed',
+          error: null,
+          incomplete_details: null,
+          input: [],
+          instructions: null,
+          max_output_tokens: null,
+          model: 'gpt-4o',
+          output: [
+            {
+              id: 'msg_file_path',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Output written to file.',
+                  annotations: [
+                    {
+                      type: 'file_path',
+                      file_id: 'file-path-123',
+                      index: 0,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          parallel_tool_calls: true,
+          previous_response_id: null,
+          reasoning: { effort: null, summary: null },
+          store: true,
+          temperature: 0,
+          text: { format: { type: 'text' } },
+          tool_choice: 'auto',
+          tools: [],
+          top_p: 1,
+          truncation: 'disabled',
+          usage: {
+            input_tokens: 10,
+            input_tokens_details: { cached_tokens: 0 },
+            output_tokens: 5,
+            output_tokens_details: { reasoning_tokens: 0 },
+            total_tokens: 15,
+          },
+          user: null,
+          metadata: {},
+        },
+      };
+
+      const result = await createModel('gpt-4o').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "file_id": "file-path-123",
+                    "index": 0,
+                    "type": "file_path",
+                  },
+                ],
+                "itemId": "msg_file_path",
+              },
+            },
+            "text": "Output written to file.",
+            "type": "text",
+          },
+          {
+            "filename": "file-path-123",
+            "id": "id-0",
+            "mediaType": "application/octet-stream",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-path-123",
+                "index": 0,
+                "type": "file_path",
+              },
+            },
+            "sourceType": "document",
+            "title": "file-path-123",
+            "type": "source",
+          },
+        ]
+      `);
+    });
+
+    describe('providerMetadata key based on provider string', () => {
+      const baseResponseBody = {
+        id: 'resp_provider_metadata',
+        object: 'response',
+        created_at: 1234567890,
+        status: 'completed',
+        error: null,
+        incomplete_details: null,
+        input: [],
+        instructions: null,
+        max_output_tokens: null,
+        model: 'gpt-4o',
+        parallel_tool_calls: true,
+        previous_response_id: null,
+        reasoning: { effort: null, summary: null },
+        store: true,
+        temperature: 0,
+        text: { format: { type: 'text' } },
+        tool_choice: 'auto',
+        tools: [],
+        top_p: 1,
+        truncation: 'disabled',
+        usage: {
+          input_tokens: 10,
+          input_tokens_details: { cached_tokens: 0 },
+          output_tokens: 5,
+          output_tokens_details: { reasoning_tokens: 0 },
+          total_tokens: 15,
+        },
+        user: null,
+        metadata: {},
+      };
+
+      it('should use "azure" as providerMetadata key when provider includes "azure"', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            ...baseResponseBody,
+            id: 'resp_provider_metadata_azure',
+            output: [
+              {
+                id: 'msg_azure_text',
+                type: 'message',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'Hello from Azure!',
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+          },
+        };
+
+        const model = new OpenAIResponsesLanguageModel('gpt-4o', {
+          provider: 'azure.responses',
+          url: ({ path }) => `https://api.openai.com/v1${path}`,
+          headers: () => ({ Authorization: `Bearer APIKEY` }),
+          generateId: mockId(),
+        });
+
+        const { providerMetadata } = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(providerMetadata).toHaveProperty('azure');
+        expect(providerMetadata).not.toHaveProperty('openai');
+        expect(providerMetadata?.azure).toMatchObject({
+          responseId: 'resp_provider_metadata_azure',
+        });
+      });
+
+      it('should use "openai" as providerMetadata key when provider does not include "azure"', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            ...baseResponseBody,
+            id: 'resp_provider_metadata_openai',
+            output: [
+              {
+                id: 'msg_openai_text',
+                type: 'message',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'Hello from OpenAI!',
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+          },
+        };
+
+        const { providerMetadata } = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(providerMetadata).toHaveProperty('openai');
+        expect(providerMetadata).not.toHaveProperty('azure');
+        expect(providerMetadata?.openai).toMatchObject({
+          responseId: 'resp_provider_metadata_openai',
+        });
+      });
+
+      it('should use "azure" as providerMetadata key in tool call content when provider includes "azure"', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            ...baseResponseBody,
+            id: 'resp_provider_metadata_tool_call',
+            output: [
+              {
+                id: 'fc_azure',
+                type: 'function_call',
+                status: 'completed',
+                call_id: 'call_azure',
+                name: 'weather',
+                arguments: '{"location":"Seattle"}',
+              },
+            ],
+          },
+        };
+
+        const model = new OpenAIResponsesLanguageModel('gpt-4o', {
+          provider: 'azure.responses',
+          url: ({ path }) => `https://api.openai.com/v1${path}`,
+          headers: () => ({ Authorization: `Bearer APIKEY` }),
+          generateId: mockId(),
+        });
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: TEST_TOOLS,
+        });
+
+        const toolCallPart = result.content.find(
+          (
+            part,
+          ): part is Extract<LanguageModelV3Content, { type: 'tool-call' }> =>
+            part.type === 'tool-call',
+        );
+
+        expect(toolCallPart?.providerMetadata).toHaveProperty('azure');
+        expect(toolCallPart?.providerMetadata).not.toHaveProperty('openai');
+      });
+    });
+
+    describe('phase', () => {
+      it('should include phase in provider metadata for message output items', async () => {
+        prepareJsonFixtureResponse('openai-phase.1');
+
+        const result = await createModel('gpt-5.3-codex').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        const textParts = result.content.filter(
+          (part): part is Extract<LanguageModelV3Content, { type: 'text' }> =>
+            part.type === 'text',
+        );
+
+        expect(textParts).toHaveLength(2);
+        expect(textParts[0].providerMetadata?.openai).toMatchObject({
+          itemId: 'msg_0465b6d1ae1f97c500699f883243a481a3b50b985223592984',
+          phase: 'commentary',
+        });
+        expect(textParts[1].providerMetadata?.openai).toMatchObject({
+          itemId: 'msg_0465b6d1ae1f97c500699f8835e09c81a3b91e9d502ff18555',
+          phase: 'final_answer',
+        });
+      });
+    });
+>>>>>>> 66a374c23 (feat(openai): support phase parameter on Responses API message items (#12860))
   });
 
   describe('doStream', () => {
@@ -4923,6 +5307,55 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         ]
       `);
+    });
+
+    describe('phase', () => {
+      it('should include phase in provider metadata for streamed message items', async () => {
+        prepareChunksFixtureResponse('openai-phase.1');
+
+        const { stream } = await createModel('gpt-5.3-codex').doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        const textStartParts = parts.filter(
+          (
+            part,
+          ): part is Extract<
+            LanguageModelV3StreamPart,
+            { type: 'text-start' }
+          > => part.type === 'text-start',
+        );
+
+        expect(textStartParts).toHaveLength(2);
+        expect(textStartParts[0].providerMetadata?.openai).toMatchObject({
+          itemId: 'msg_0a63f40a2632b74300699f8819a5e08196ac270722d369af5a',
+          phase: 'commentary',
+        });
+        expect(textStartParts[1].providerMetadata?.openai).toMatchObject({
+          itemId: 'msg_0a63f40a2632b74300699f881bfbc88196aec38f30c3dd24b0',
+          phase: 'final_answer',
+        });
+
+        const textEndParts = parts.filter(
+          (
+            part,
+          ): part is Extract<LanguageModelV3StreamPart, { type: 'text-end' }> =>
+            part.type === 'text-end',
+        );
+
+        expect(textEndParts).toHaveLength(2);
+        expect(textEndParts[0].providerMetadata?.openai).toMatchObject({
+          itemId: 'msg_0a63f40a2632b74300699f8819a5e08196ac270722d369af5a',
+          phase: 'commentary',
+        });
+        expect(textEndParts[1].providerMetadata?.openai).toMatchObject({
+          itemId: 'msg_0a63f40a2632b74300699f881bfbc88196aec38f30c3dd24b0',
+          phase: 'final_answer',
+        });
+      });
     });
   });
 
