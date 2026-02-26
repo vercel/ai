@@ -137,8 +137,12 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   generateId: IdGenerator;
   stepNumber?: number;
   model?: { provider: string; modelId: string };
-  onToolCallStart?: StreamTextOnToolCallStartCallback<TOOLS>;
-  onToolCallFinish?: StreamTextOnToolCallFinishCallback<TOOLS>;
+  onToolCallStart?:
+    | StreamTextOnToolCallStartCallback<TOOLS>
+    | Array<StreamTextOnToolCallStartCallback<TOOLS> | undefined | null>;
+  onToolCallFinish?:
+    | StreamTextOnToolCallFinishCallback<TOOLS>
+    | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
