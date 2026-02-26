@@ -1,4 +1,7 @@
 export type GatewayEmbeddingModelId =
+  | 'alibaba/qwen3-embedding-0.6b'
+  | 'alibaba/qwen3-embedding-4b'
+  | 'alibaba/qwen3-embedding-8b'
   | 'amazon/titan-embed-text-v2'
   | 'cohere/embed-v4.0'
   | 'google/gemini-embedding-001'
@@ -12,8 +15,8 @@ export type GatewayEmbeddingModelId =
   | 'voyage/voyage-3-large'
   | 'voyage/voyage-3.5'
   | 'voyage/voyage-3.5-lite'
+  | 'voyage/voyage-code-2'
   | 'voyage/voyage-code-3'
   | 'voyage/voyage-finance-2'
   | 'voyage/voyage-law-2'
-  | 'voyage/voyage-code-2'
   | (string & {});
