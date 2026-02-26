@@ -1,9 +1,0 @@
-{
-  "id": "skillver_def789",
-  "version": "2",
-  "name": "my-skill",
-  "description": "An updated skill",
-  "object": "skill.version",
-  "skill_id": "skill_abc123",
-  "created_at": 1700100000
-}
