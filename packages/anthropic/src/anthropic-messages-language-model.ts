@@ -348,29 +348,30 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           ...(thinkingBudget != null && { budget_tokens: thinkingBudget }),
         },
       }),
+      ...((anthropicOptions?.effort ||
+        (useStructuredOutput &&
+          responseFormat?.type === 'json' &&
+          responseFormat.schema != null)) && {
+        output_config: {
+          ...(anthropicOptions?.effort && {
+            effort: anthropicOptions.effort,
+          }),
+          ...(useStructuredOutput &&
+            responseFormat?.type === 'json' &&
+            responseFormat.schema != null && {
+              format: {
+                type: 'json_schema',
+                schema: responseFormat.schema,
+              },
+            }),
+        },
+      }),
       ...(anthropicOptions?.speed && {
         speed: anthropicOptions.speed,
       }),
-      // output_config (effort + structured output format):
-      ...(() => {
-        const outputConfig: Record<string, unknown> = {};
-        if (anthropicOptions?.effort) {
-          outputConfig.effort = anthropicOptions.effort;
-        }
-        if (
-          useStructuredOutput &&
-          responseFormat?.type === 'json' &&
-          responseFormat.schema != null
-        ) {
-          outputConfig.format = {
-            type: 'json_schema',
-            schema: responseFormat.schema,
-          };
-        }
-        return Object.keys(outputConfig).length > 0
-          ? { output_config: outputConfig }
-          : {};
-      })(),
+      ...(anthropicOptions?.cacheControl && {
+        cache_control: anthropicOptions.cacheControl,
+      }),
 
       // mcp servers:
       ...(anthropicOptions?.mcpServers &&
@@ -592,17 +593,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     // only when streaming: enable fine-grained tool streaming
     if (stream && (anthropicOptions?.toolStreaming ?? true)) {
       betas.add('fine-grained-tool-streaming-2025-05-14');
-    }
-
-    // structured output:
-    // Only pass beta when actually using native output_config.format
-    const usingNativeOutputFormat =
-      useStructuredOutput &&
-      responseFormat?.type === 'json' &&
-      responseFormat.schema != null;
-
-    if (usingNativeOutputFormat) {
-      betas.add('structured-outputs-2025-11-13');
     }
 
     const {
