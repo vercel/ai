@@ -81,6 +81,23 @@ Creates a model for image generation.
   imageModel(modelId: TogetherAIImageModelId): ImageModelV2;
 }
 
+function loadDeprecatedApiKey(): string | undefined {
+  if (typeof process === 'undefined') {
+    return undefined;
+  }
+  // If the new env var is set, let loadApiKey handle it
+  if (typeof process.env.TOGETHER_API_KEY === 'string') {
+    return undefined;
+  }
+  const key = process.env.TOGETHER_AI_API_KEY;
+  if (typeof key === 'string') {
+    console.warn(
+      'TOGETHER_AI_API_KEY is deprecated and will be removed in a future release. Please use TOGETHER_API_KEY instead.',
+    );
+  }
+  return key;
+}
+
 export function createTogetherAI(
   options: TogetherAIProviderSettings = {},
 ): TogetherAIProvider {
@@ -91,8 +108,8 @@ export function createTogetherAI(
     withUserAgentSuffix(
       {
         Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'TOGETHER_AI_API_KEY',
+          apiKey: options.apiKey ?? loadDeprecatedApiKey(),
+          environmentVariableName: 'TOGETHER_API_KEY',
           description: 'TogetherAI',
         })}`,
         ...options.headers,
