@@ -1,9 +1,0 @@
-{
-  "id": "skill_699fc58f408c8191825d8d06ae75fd5c06de7b381a5db7f5",
-  "object": "skill",
-  "name": "test-capture-skill",
-  "description": "A test skill for fixture capture",
-  "default_version": "2",
-  "latest_version": "2",
-  "created_at": 1772078479
-}

@@ -11,7 +11,6 @@ import {
   FetchFunction,
   getFromApi,
   postFormDataToApi,
-  postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import {
@@ -123,12 +122,11 @@ export class OpenAISkillsManager implements Experimental_SkillsManagerV1 {
   }
 
   /*
-   * Update creates a new version, then promotes it to default_version.
-   * OpenAI does not auto-promote new versions, so we must explicitly POST
-   * to the skill endpoint to set default_version. The version create
-   * response contains the freshest name/description (parsed from SKILL.md
-   * frontmatter), which may not yet be reflected in the skill response,
-   * so we prefer version metadata when mapping.
+   * Update creates a new version, then retrieves the skill to get the
+   * latest state. The version create response contains the freshest
+   * name/description (parsed from SKILL.md frontmatter), which may not
+   * yet be reflected in the skill response, so we prefer version metadata
+   * when mapping.
    */
   async update(
     params: Parameters<Experimental_SkillsManagerV1['update']>[0],
@@ -157,12 +155,9 @@ export class OpenAISkillsManager implements Experimental_SkillsManagerV1 {
       fetch: this.config.fetch,
     });
 
-    const { value: skillResponse } = await postJsonToApi({
+    const { value: skillResponse } = await getFromApi({
       url: this.config.url({ path: `/skills/${params.skillId}` }),
       headers,
-      body: {
-        default_version: versionResponse.version,
-      },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openaiSkillResponseSchema,
