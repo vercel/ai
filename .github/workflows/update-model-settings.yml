@@ -5,7 +5,6 @@ on:
     # Run every weekday at 8:00 AM Pacific Time (4:00 PM UTC)
     - cron: '0 16 * * 1-5'
   workflow_dispatch:
-  pull_request:
 
 permissions:
   contents: write
@@ -174,5 +173,5 @@ jobs:
           TITLE: ${{ steps.create-pr.outputs.pr-title }}
           URL: ${{ steps.create-pr.outputs.pr-url }}
           TARGET_BRANCH: ${{ matrix.target-branch }}
-          CHANNEL_ID: 'C0A7TF81HS5'
+          CHANNEL_ID: 'C099VQB75TP'
           REVIEWER: 'U0A54KMV02E'
