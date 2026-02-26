@@ -14,13 +14,13 @@
  * mutually exclusive by design — the practical runtime behaviour is
  * identical and Anthropic only supports `anyOf`.
  */
-export function replaceOneOfWithAnyOf(schema: unknown): unknown {
+export function replaceOneOfWithAnyOf<T>(schema: T): T {
   if (schema == null || typeof schema !== 'object') {
     return schema;
   }
 
   if (Array.isArray(schema)) {
-    return schema.map(item => replaceOneOfWithAnyOf(item));
+    return schema.map(item => replaceOneOfWithAnyOf(item)) as T;
   }
 
   const result: Record<string, unknown> = {};
@@ -36,5 +36,5 @@ export function replaceOneOfWithAnyOf(schema: unknown): unknown {
     }
   }
 
-  return result;
+  return result as T;
 }
