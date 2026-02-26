@@ -187,7 +187,7 @@ export const googleLanguageModelOptions = lazySchema(() =>
               '4:1',
             ])
             .optional(),
-          imageSize: z.enum(['1K', '2K', '4K']).optional(),
+          imageSize: z.enum(['1K', '2K', '4K', '512']).optional(),
         })
         .optional(),
 
