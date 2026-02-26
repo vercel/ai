@@ -36,7 +36,7 @@ run(async () => {
       files: [
         {
           path: 'greeting/SKILL.md',
-          content: new TextEncoder().encode(
+          content: btoa(
             '---\nname: greeting\ndescription: An updated greeting skill\n---\n\n# Greeting\nHello, updated world!',
           ),
         },
