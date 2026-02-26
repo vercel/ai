@@ -26,9 +26,7 @@ run(async () => {
         shell: openai.tools.shell({
           environment: {
             type: 'containerAuto',
-            skills: [
-              { type: 'skillReference', skillId: skill.id, version: '1' },
-            ],
+            skills: [{ type: 'skillReference', skillId: skill.id }],
           },
         }),
       },
