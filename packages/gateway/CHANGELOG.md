@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.45
+
+### Patch Changes
+
+- 9212b2d: feat (provider/gateway): pass through project id when available for o11y
+
 ## 2.0.44
 
 ### Patch Changes
