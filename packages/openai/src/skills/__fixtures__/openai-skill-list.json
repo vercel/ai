@@ -1,0 +1,22 @@
+{
+  "data": [
+    {
+      "id": "skill_abc123",
+      "object": "skill",
+      "name": "my-skill",
+      "description": "A test skill",
+      "default_version": "1",
+      "latest_version": "1",
+      "created_at": 1700000000
+    },
+    {
+      "id": "skill_def456",
+      "object": "skill",
+      "name": "another-skill",
+      "description": "Another test skill",
+      "default_version": "1",
+      "latest_version": "1",
+      "created_at": 1700100000
+    }
+  ]
+}

@@ -2,6 +2,7 @@ import { EmbeddingModelV3 } from '../../embedding-model/v3/embedding-model-v3';
 import { ImageModelV3 } from '../../image-model/v3/image-model-v3';
 import { LanguageModelV3 } from '../../language-model/v3/language-model-v3';
 import { RerankingModelV3 } from '../../reranking-model/v3/reranking-model-v3';
+import { SkillsManagerV1 } from '../../skills-manager/v1/skills-manager-v1';
 import { SpeechModelV3 } from '../../speech-model/v3/speech-model-v3';
 import { TranscriptionModelV3 } from '../../transcription-model/v3/transcription-model-v3';
 
@@ -90,4 +91,11 @@ export interface ProviderV3 {
    * @throws {NoSuchModelError} If no such model exists.
    */
   rerankingModel?(modelId: string): RerankingModelV3;
+
+  /**
+   * Returns the skills manager for this provider, if supported.
+   *
+   * @returns {SkillsManagerV1} The skills manager for this provider.
+   */
+  skillsManager?(): SkillsManagerV1;
 }

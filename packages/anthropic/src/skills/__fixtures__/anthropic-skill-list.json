@@ -1,0 +1,20 @@
+{
+  "data": [
+    {
+      "id": "skill_xyz789",
+      "display_title": "My Skill",
+      "latest_version": "1705312200000000",
+      "source": "upload",
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T10:30:00Z"
+    },
+    {
+      "id": "skill_uvw012",
+      "display_title": "Another Skill",
+      "latest_version": "1705398600000000",
+      "source": "upload",
+      "created_at": "2024-01-16T12:00:00Z",
+      "updated_at": "2024-01-16T12:00:00Z"
+    }
+  ]
+}

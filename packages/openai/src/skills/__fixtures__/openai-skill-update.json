@@ -1,0 +1,10 @@
+{
+  "id": "skill_abc123",
+  "object": "skill",
+  "name": "my-skill",
+  "description": "A test skill",
+  "default_version": "2",
+  "latest_version": "2",
+  "created_at": 1700000000,
+  "updated_at": 1700100000
+}

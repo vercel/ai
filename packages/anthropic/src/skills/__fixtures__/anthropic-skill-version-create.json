@@ -1,0 +1,10 @@
+{
+  "type": "skill_version",
+  "skill_id": "skill_xyz789",
+  "id": "skill_version_abc123",
+  "version": "1705312200000000",
+  "directory": "my-skill",
+  "name": "my-skill",
+  "description": "A test skill",
+  "created_at": "2024-01-16T12:00:00Z"
+}
