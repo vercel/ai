@@ -1,6 +1,15 @@
-import { ProviderV3, UnsupportedFunctionalityError } from '@ai-sdk/provider';
+import {
+  ProviderV3,
+  Experimental_SkillsManagerV1Skill,
+  UnsupportedFunctionalityError,
+} from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
-import { ListSkillsResult } from './list-skills-result';
+import { Warning } from '../types/warning';
+
+export interface ListSkillsResult {
+  readonly skills: Experimental_SkillsManagerV1Skill[];
+  readonly warnings: Warning[];
+}
 
 export async function experimental_listSkills({
   provider,

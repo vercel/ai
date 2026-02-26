@@ -1,6 +1,10 @@
 import { ProviderV3, UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
-import { DeleteSkillResult } from './delete-skill-result';
+import { Warning } from '../types/warning';
+
+export interface DeleteSkillResult {
+  readonly warnings: Warning[];
+}
 
 export async function experimental_deleteSkill({
   provider,
