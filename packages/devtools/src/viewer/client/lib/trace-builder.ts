@@ -97,7 +97,8 @@ export function buildTraceTree(run: Run, steps: Step[]): Span {
     },
   };
 
-  for (const step of steps) {
+  for (let stepIdx = 0; stepIdx < steps.length; stepIdx++) {
+    const step = steps[stepIdx]!;
     const stepStartMs = new Date(step.started_at).getTime() - runStartMs;
     const stepDurationMs = step.duration_ms ?? 0;
     const output = safeParseJson(step.output) as Record<string, unknown> | null;
@@ -130,6 +131,7 @@ export function buildTraceTree(run: Run, steps: Step[]): Span {
       },
     };
 
+    // Real timing data from onToolCallStart/onToolCallFinish
     const toolCallTimings = safeParseJson(step.tool_calls) as
       | ToolCallTiming[]
       | null;
@@ -137,6 +139,32 @@ export function buildTraceTree(run: Run, steps: Step[]): Span {
     if (toolCallTimings) {
       for (const tc of toolCallTimings) {
         toolTimingMap.set(tc.toolCallId, tc);
+      }
+    }
+
+    // Fallback: extract tool results from the next step's input messages
+    const nextStep = steps[stepIdx + 1];
+    const toolResultMap = new Map<string, unknown>();
+    if (nextStep) {
+      const nextInput = safeParseJson(nextStep.input) as Record<
+        string,
+        unknown
+      > | null;
+      const nextPrompt = (nextInput?.prompt ?? []) as Array<
+        Record<string, unknown>
+      >;
+      for (const msg of nextPrompt) {
+        if (msg.role !== 'tool') continue;
+        const parts = msg.content as Array<Record<string, unknown>> | undefined;
+        if (!Array.isArray(parts)) continue;
+        for (const p of parts) {
+          if (p.type === 'tool-result' && p.toolCallId) {
+            toolResultMap.set(
+              p.toolCallId as string,
+              p.result ?? p.output ?? p,
+            );
+          }
+        }
       }
     }
 
@@ -195,6 +223,8 @@ export function buildTraceTree(run: Run, steps: Step[]): Span {
           : stepStartMs + childOffsetMs;
         const tcDurationMs = timing?.duration_ms ?? 0;
 
+        const fallbackResult = toolResultMap.get(toolCallId);
+
         stepSpan.children.push({
           id: `${step.id}-tc-${toolCallId}`,
           parentId: step.id,
@@ -206,10 +236,10 @@ export function buildTraceTree(run: Run, steps: Step[]): Span {
           metadata: {
             toolCallId,
             toolName,
-            args: timing?.args ?? part.args,
-            output: timing?.output,
-            error: timing?.error,
-            success: timing?.success,
+            args: timing?.args ?? part.input ?? part.args,
+            output: timing?.output ?? fallbackResult,
+            error: timing?.error ?? null,
+            success: timing?.success ?? fallbackResult != null,
           },
         });
         if (!timing) {

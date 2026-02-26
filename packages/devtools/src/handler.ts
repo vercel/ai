@@ -152,7 +152,7 @@ export function devToolsHandler(): TelemetryHandler {
           ? new Date(startTime).toISOString()
           : new Date().toISOString(),
         duration_ms: durationMs,
-        args: toolCall.args,
+        args: toolCall.input ?? toolCall.args,
         output: event.success ? event.output : null,
         error: event.success ? null : event.error,
         success: event.success,
