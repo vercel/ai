@@ -21,7 +21,7 @@ run(async () => {
 
   for (const file of result.files) {
     if (file.mediaType.startsWith('image/')) {
-        presentImages([file]);
+      presentImages([file]);
     }
   }
 });
