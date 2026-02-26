@@ -65,6 +65,7 @@ interface Step {
   raw_response: string | null;
   raw_chunks: string | null;
   provider_options: string | null;
+  tool_calls: string | null;
 }
 
 interface RunDetail {
