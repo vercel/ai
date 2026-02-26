@@ -1,6 +1,6 @@
 import {
   ProviderV3,
-  SkillsManagerV1File,
+  Experimental_SkillsManagerV1File,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
@@ -13,7 +13,7 @@ export async function experimental_createSkill({
   providerOptions,
 }: {
   provider: ProviderV3;
-  files: SkillsManagerV1File[];
+  files: Experimental_SkillsManagerV1File[];
   displayTitle?: string;
   providerOptions?: ProviderOptions;
 }): Promise<CreateSkillResult> {

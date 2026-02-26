@@ -1,6 +1,6 @@
 import {
   ProviderV3,
-  SkillsManagerV1File,
+  Experimental_SkillsManagerV1File,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
@@ -14,7 +14,7 @@ export async function experimental_updateSkill({
 }: {
   provider: ProviderV3;
   skillId: string;
-  files: SkillsManagerV1File[];
+  files: Experimental_SkillsManagerV1File[];
   providerOptions?: ProviderOptions;
 }): Promise<UpdateSkillResult> {
   const skillsManager = provider.skillsManager?.();

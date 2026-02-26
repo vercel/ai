@@ -1,14 +1,14 @@
 import {
   ProviderV3,
-  SkillsManagerV1,
+  Experimental_SkillsManagerV1,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { describe, it, expect, vi } from 'vitest';
 import { experimental_deleteSkill } from './experimental-delete-skill';
 
 function createMockSkillsManager(
-  overrides: Partial<SkillsManagerV1> = {},
-): SkillsManagerV1 {
+  overrides: Partial<Experimental_SkillsManagerV1> = {},
+): Experimental_SkillsManagerV1 {
   return {
     specificationVersion: 'v1',
     provider: 'mock-provider',
@@ -23,7 +23,9 @@ function createMockSkillsManager(
   };
 }
 
-function createMockProvider(skillsManager?: SkillsManagerV1): ProviderV3 {
+function createMockProvider(
+  skillsManager?: Experimental_SkillsManagerV1,
+): ProviderV3 {
   return {
     specificationVersion: 'v3',
     languageModel: vi.fn() as any,

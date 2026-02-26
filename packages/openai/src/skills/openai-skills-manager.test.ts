@@ -72,7 +72,7 @@ describe('OpenAISkillsManager', () => {
       });
     });
 
-    it('should map response to SkillsManagerV1Skill', async () => {
+    it('should map response to Experimental_SkillsManagerV1Skill', async () => {
       prepareResponse({
         url: 'https://api.openai.com/v1/skills',
         filename: 'openai-skill-create',
@@ -181,7 +181,7 @@ describe('OpenAISkillsManager', () => {
       });
     });
 
-    it('should map response to SkillsManagerV1Skill array', async () => {
+    it('should map response to Experimental_SkillsManagerV1Skill array', async () => {
       prepareResponse({
         url: 'https://api.openai.com/v1/skills',
         filename: 'openai-skill-list',
@@ -255,7 +255,7 @@ describe('OpenAISkillsManager', () => {
       });
     });
 
-    it('should map response to SkillsManagerV1Skill', async () => {
+    it('should map response to Experimental_SkillsManagerV1Skill', async () => {
       prepareResponse({
         url: 'https://api.openai.com/v1/skills/:skillId',
         filename: 'openai-skill-retrieve',

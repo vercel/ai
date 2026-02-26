@@ -3,7 +3,7 @@ import {
   ImageModelV3,
   LanguageModelV3,
   ProviderV3,
-  SkillsManagerV1,
+  Experimental_SkillsManagerV1,
   SpeechModelV3,
   TranscriptionModelV3,
 } from '@ai-sdk/provider';
@@ -98,7 +98,7 @@ export interface OpenAIProvider extends ProviderV3 {
   /**
    * Returns the skills manager for this provider.
    */
-  skillsManager(): SkillsManagerV1;
+  skillsManager(): Experimental_SkillsManagerV1;
 
   /**
    * OpenAI-specific tools.
