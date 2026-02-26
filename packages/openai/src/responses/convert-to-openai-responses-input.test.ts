@@ -411,7 +411,7 @@ describe('convertToOpenAIResponsesInput', () => {
           content: [
             {
               type: 'input_file',
-              filename: 'part-0',
+              filename: 'part-0.pdf',
               file_data: 'data:application/pdf;base64,AQIDBAU=',
             },
           ],
@@ -447,7 +447,7 @@ describe('convertToOpenAIResponsesInput', () => {
           content: [
             {
               type: 'input_file',
-              filename: 'part-0',
+              filename: 'part-0.plain',
               file_data: 'data:text/plain;base64,AQIDBAU=',
             },
           ],

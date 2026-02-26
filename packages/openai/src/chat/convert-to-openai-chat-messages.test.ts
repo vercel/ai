@@ -139,7 +139,7 @@ describe('user messages', () => {
             {
               type: 'file',
               file: {
-                filename: 'part-0',
+                filename: 'part-0.something',
                 file_data: 'data:application/something;base64,AAECAw==',
               },
             },
@@ -383,7 +383,7 @@ describe('user messages', () => {
             {
               type: 'file',
               file: {
-                filename: 'part-0',
+                filename: 'part-0.pdf',
                 file_data: 'data:application/pdf;base64,AQIDBAU=',
               },
             },
@@ -448,7 +448,7 @@ describe('user messages', () => {
             {
               type: 'file',
               file: {
-                filename: 'part-0',
+                filename: 'part-0.plain',
                 file_data: 'data:text/plain;base64,SGVsbG8=',
               },
             },
