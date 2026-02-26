@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.48
+
+### Patch Changes
+
+- 2164cdf: feat(anthropic): add the new code_execution tool
+
 ## 3.0.47
 
 ### Patch Changes
