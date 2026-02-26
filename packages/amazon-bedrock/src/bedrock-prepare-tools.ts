@@ -136,6 +136,7 @@ export async function prepareTools({
         ...(tool.description?.trim() !== ''
           ? { description: tool.description }
           : {}),
+        ...(tool.strict != null ? { strict: tool.strict } : {}),
         inputSchema: {
           json: tool.inputSchema as JSONObject,
         },
