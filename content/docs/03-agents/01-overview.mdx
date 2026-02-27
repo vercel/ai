@@ -66,17 +66,17 @@ The agent automatically:
 2. Calls `convertFahrenheitToCelsius` to convert it
 3. Generates a final text response with the result
 
-The Agent class handles the loop, context management, and stopping conditions.
+The ToolLoopAgent handles the loop, context management, and stopping conditions.
 
-## Why Use the Agent Class?
+## Why Use the ToolLoopAgent?
 
-The Agent class is the recommended approach for building agents with the AI SDK because it:
+The ToolLoopAgent is the recommended approach for building agents with the AI SDK because it:
 
 - **Reduces boilerplate** - Manages loops and message arrays
 - **Improves reusability** - Define once, use throughout your application
 - **Simplifies maintenance** - Single place to update agent configuration
 
-For most use cases, start with the Agent class. Use core functions (`generateText`, `streamText`) when you need explicit control over each step for complex structured workflows.
+For most use cases, start with the ToolLoopAgent. Use core functions (`generateText`, `streamText`) when you need explicit control over each step for complex structured workflows.
 
 ## Structured Workflows
 
@@ -91,6 +91,6 @@ Agents are flexible and powerful, but non-deterministic. When you need reliable,
 
 ## Next Steps
 
-- **[Building Agents](/docs/agents/building-agents)** - Guide to creating agents with the Agent class
+- **[Building Agents](/docs/agents/building-agents)** - Guide to creating agents with the ToolLoopAgent
 - **[Workflow Patterns](/docs/agents/workflows)** - Structured patterns using core functions for complex workflows
 - **[Loop Control](/docs/agents/loop-control)** - Execution control with stopWhen and prepareStep
