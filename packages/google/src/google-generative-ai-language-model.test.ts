@@ -3764,10 +3764,7 @@ describe('doStream', () => {
         ],
       });
 
-      const events: any[] = [];
-      for await (const event of stream) {
-        events.push(event);
-      }
+      const events = await convertReadableStreamToArray(stream);
 
       expect(events[0]).toMatchInlineSnapshot(`
         {
