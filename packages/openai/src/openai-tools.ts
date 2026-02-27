@@ -61,7 +61,7 @@ export const openaiTools = {
    * Local shell is a tool that allows agents to run shell commands locally
    * on a machine you or the user provides.
    *
-   * Supported models: `gpt-5-codex` and `codex-mini-latest`
+   * Supported models: `gpt-5-codex`
    */
   localShell,
 
