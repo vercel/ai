@@ -61,10 +61,6 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
 
-  if (tool?.execute == null) {
-    return undefined;
-  }
-
   const baseCallbackEvent = {
     stepNumber,
     model,
@@ -94,6 +90,10 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     }),
     tracer,
     fn: async span => {
+      if (tool?.execute == null) {
+        return undefined;
+      }
+
       let output: unknown;
 
       await notify({ event: baseCallbackEvent, callbacks: onToolCallStart });
