@@ -132,8 +132,8 @@ The following optional provider options are available for xAI chat models:
 <Note>
   `frequencyPenalty` and `stopSequences` are not supported by reasoning models.
   `presencePenalty` is not supported by `grok-3` and reasoning models. The AI
-  SDK forwards these settings, and xAI may reject requests for unsupported
-  models.
+  SDK removes unsupported settings and includes unsupported warnings in the
+  response.
 </Note>
 
 ## Responses API (Agentic Tools)
