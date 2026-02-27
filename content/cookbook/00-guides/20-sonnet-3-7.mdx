@@ -27,7 +27,7 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text, reasoningText, reasoning } = await generateText({
-  model: anthropic('claude-3-7-sonnet-20250219'),
+  model: anthropic('claude-sonnet-4-5-20250929'),
   prompt: 'How many people will live in the world in 2040?',
 });
 console.log(text); // text response
@@ -40,7 +40,7 @@ import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
 const { reasoning, text } = await generateText({
-  model: bedrock('anthropic.claude-3-7-sonnet-20250219-v1:0'),
+  model: bedrock('anthropic.claude-sonnet-4-5-20250929-v1:0'),
   prompt: 'How many people will live in the world in 2040?',
 });
 ```
@@ -54,7 +54,7 @@ import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text, reasoningText, reasoning } = await generateText({
-  model: anthropic('claude-3-7-sonnet-20250219'),
+  model: anthropic('claude-sonnet-4-5-20250929'),
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
     anthropic: {
@@ -92,7 +92,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: anthropic('claude-3-7-sonnet-20250219'),
+    model: anthropic('claude-sonnet-4-5-20250929'),
     messages: await convertToModelMessages(messages),
     providerOptions: {
       anthropic: {
