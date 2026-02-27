@@ -546,7 +546,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
       });
 
-      it('should pass json schema response format as output format', async () => {
+      it('should pass json schema response format as output_config.format', async () => {
         expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
           {
             "max_tokens": 64000,
@@ -562,21 +562,23 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ],
             "model": "claude-sonnet-4-5",
-            "output_format": {
-              "schema": {
-                "$schema": "http://json-schema.org/draft-07/schema#",
-                "additionalProperties": false,
-                "properties": {
-                  "name": {
-                    "type": "string",
+            "output_config": {
+              "format": {
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
                   },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
                 },
-                "required": [
-                  "name",
-                ],
-                "type": "object",
+                "type": "json_schema",
               },
-              "type": "json_schema",
             },
           }
         `);
@@ -631,7 +633,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
       });
 
-      it('should pass json schema response format as output format', async () => {
+      it('should pass json schema response format as output_config.format', async () => {
         expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
           {
             "max_tokens": 4096,
@@ -647,21 +649,23 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ],
             "model": "claude-unknown",
-            "output_format": {
-              "schema": {
-                "$schema": "http://json-schema.org/draft-07/schema#",
-                "additionalProperties": false,
-                "properties": {
-                  "name": {
-                    "type": "string",
+            "output_config": {
+              "format": {
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
                   },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
                 },
-                "required": [
-                  "name",
-                ],
-                "type": "object",
+                "type": "json_schema",
               },
-              "type": "json_schema",
             },
           }
         `);
@@ -705,7 +709,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         `);
       });
 
-      it('should include beta header when using json schema response format with supported model', async () => {
+      it('should NOT include beta header when using json schema response format (structured outputs are GA)', async () => {
         prepareJsonFixtureResponse('anthropic-json-output-format.1');
 
         await provider('claude-sonnet-4-5').doGenerate({
@@ -722,7 +726,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
           {
-            "anthropic-beta": "structured-outputs-2025-11-13",
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
             "x-api-key": "test-api-key",
@@ -5454,7 +5457,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
       });
 
-      it('should pass json schema response format as output format', async () => {
+      it('should pass json schema response format as output_config.format', async () => {
         expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
           {
             "max_tokens": 64000,
@@ -5470,41 +5473,43 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ],
             "model": "claude-sonnet-4-5",
-            "output_format": {
-              "schema": {
-                "$schema": "http://json-schema.org/draft-07/schema#",
-                "additionalProperties": false,
-                "properties": {
-                  "characters": {
-                    "items": {
-                      "additionalProperties": false,
-                      "properties": {
-                        "class": {
-                          "type": "string",
+            "output_config": {
+              "format": {
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "characters": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "class": {
+                            "type": "string",
+                          },
+                          "description": {
+                            "type": "string",
+                          },
+                          "name": {
+                            "type": "string",
+                          },
                         },
-                        "description": {
-                          "type": "string",
-                        },
-                        "name": {
-                          "type": "string",
-                        },
+                        "required": [
+                          "name",
+                          "class",
+                          "description",
+                        ],
+                        "type": "object",
                       },
-                      "required": [
-                        "name",
-                        "class",
-                        "description",
-                      ],
-                      "type": "object",
+                      "type": "array",
                     },
-                    "type": "array",
                   },
+                  "required": [
+                    "characters",
+                  ],
+                  "type": "object",
                 },
-                "required": [
-                  "characters",
-                ],
-                "type": "object",
+                "type": "json_schema",
               },
-              "type": "json_schema",
             },
             "stream": true,
           }
