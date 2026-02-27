@@ -385,10 +385,23 @@ export async function generateObject<
                       result.providerMetadata,
                     ),
 
-                    // TODO rename telemetry attributes to inputTokens and outputTokens
+                    // deprecated:
                     'ai.usage.promptTokens': result.usage.inputTokens.total,
                     'ai.usage.completionTokens':
                       result.usage.outputTokens.total,
+
+                    'ai.usage.inputTokens': result.usage.inputTokens.total,
+                    'ai.usage.outputTokens': result.usage.outputTokens.total,
+                    'ai.usage.totalTokens':
+                      result.usage.inputTokens.total != null ||
+                      result.usage.outputTokens.total != null
+                        ? (result.usage.inputTokens.total ?? 0) +
+                          (result.usage.outputTokens.total ?? 0)
+                        : undefined,
+                    'ai.usage.reasoningTokens':
+                      result.usage.outputTokens.reasoning,
+                    'ai.usage.cachedInputTokens':
+                      result.usage.inputTokens.cacheRead,
 
                     // standardized gen-ai llm span attributes:
                     'gen_ai.response.finish_reasons': [
@@ -452,9 +465,15 @@ export async function generateObject<
                 resultProviderMetadata,
               ),
 
-              // TODO rename telemetry attributes to inputTokens and outputTokens
+              // deprecated:
               'ai.usage.promptTokens': usage.inputTokens,
               'ai.usage.completionTokens': usage.outputTokens,
+
+              'ai.usage.inputTokens': usage.inputTokens,
+              'ai.usage.outputTokens': usage.outputTokens,
+              'ai.usage.totalTokens': usage.totalTokens,
+              'ai.usage.reasoningTokens': usage.reasoningTokens,
+              'ai.usage.cachedInputTokens': usage.cachedInputTokens,
             },
           }),
         );
