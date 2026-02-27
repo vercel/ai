@@ -654,6 +654,17 @@ export async function generateText<
         >();
 
         do {
+          // Check if the abort signal was triggered between steps.
+          // Some providers return a partial result with finishReason:'unknown'
+          // instead of throwing when aborted; this guard ensures the AbortError
+          // always propagates out of the multi-step loop.
+          if (mergedAbortSignal?.aborted) {
+            throw (
+              mergedAbortSignal.reason ??
+              new DOMException('This operation was aborted', 'AbortError')
+            );
+          }
+
           // Set up step timeout if configured
           const stepTimeoutId =
             stepTimeoutMs != null
