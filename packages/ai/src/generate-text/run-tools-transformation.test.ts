@@ -1535,4 +1535,73 @@ describe('runToolsTransformation', () => {
       });
     });
   });
+
+  describe('error handling', () => {
+    it('should not crash when generator stream errors while tools are executing', async () => {
+      // Simulates the race condition: the LLM stream errors while async
+      // tool executions are still pending. The tool callbacks fire after the
+      // controller has been closed by the error cascade.
+      const generatorStream = new ReadableStream<LanguageModelV3StreamPart>({
+        start(controller) {
+          controller.enqueue({
+            type: 'response-metadata',
+            id: 'resp-1',
+            modelId: 'mock',
+            timestamp: new Date(),
+          });
+          controller.enqueue({
+            type: 'tool-call',
+            toolCallId: 'call_1',
+            toolName: 'slow_tool',
+            input: '{"q":"a"}',
+          });
+          // Error the stream while the tool is still executing
+          setTimeout(() => {
+            controller.error(new Error('simulated LLM stream error'));
+          }, 50);
+        },
+      });
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          slow_tool: tool({
+            inputSchema: z.object({ q: z.string() }),
+            execute: async () => {
+              await delay(2000);
+              return { ok: true };
+            },
+          }),
+        },
+        generatorStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        system: undefined,
+        messages: [],
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      // Consume the stream - it should error gracefully, not crash
+      const reader = transformedStream.getReader();
+      const chunks: any[] = [];
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+        }
+      } catch {
+        // Expected: the stream errors due to the simulated LLM error
+      }
+
+      // Wait for the slow tool to complete - it should NOT cause an
+      // unhandled rejection when it tries to enqueue on the closed controller
+      await delay(3000);
+
+      // If we get here without an unhandled rejection, the fix works
+      expect(true).toBe(true);
+    });
+  });
 });
