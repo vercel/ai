@@ -8843,5 +8843,26 @@ describe('AnthropicMessagesLanguageModel', () => {
         model.doCountTokens!({ prompt: TEST_PROMPT }),
       ).rejects.toThrow(APICallError);
     });
+
+    it('should not include generation-specific fields in request body', async () => {
+      prepareCountTokensResponse({ inputTokens: 10 });
+
+      const result = await model.doCountTokens!({
+        prompt: TEST_PROMPT,
+      });
+
+      const requestBody = (result.request?.body as any) ?? {};
+      expect(requestBody.model).toBe('claude-3-haiku-20240307');
+      expect(requestBody.messages).toBeDefined();
+      expect(requestBody).not.toHaveProperty('max_tokens');
+      expect(requestBody).not.toHaveProperty('temperature');
+      expect(requestBody).not.toHaveProperty('top_k');
+      expect(requestBody).not.toHaveProperty('top_p');
+      expect(requestBody).not.toHaveProperty('stop_sequences');
+      expect(requestBody).not.toHaveProperty('tool_choice');
+      expect(requestBody).not.toHaveProperty('stream');
+      expect(requestBody).not.toHaveProperty('thinking');
+      expect(requestBody).not.toHaveProperty('output_format');
+    });
   });
 });

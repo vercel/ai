@@ -5358,4 +5358,20 @@ describe('doCountTokens', () => {
     expect(requestBody.input.converse).toBeDefined();
     expect(requestBody.input.converse.messages).toBeDefined();
   });
+
+  it('should not include generation-specific fields in request body', async () => {
+    prepareCountTokensResponse({ inputTokens: 10 });
+
+    const result = await model.doCountTokens!({
+      prompt: TEST_PROMPT,
+    });
+
+    const converseInput = (result.request?.body as any)?.input?.converse ?? {};
+    expect(converseInput.messages).toBeDefined();
+    expect(converseInput).not.toHaveProperty('inferenceConfig');
+    expect(converseInput).not.toHaveProperty('additionalModelRequestFields');
+    expect(converseInput).not.toHaveProperty(
+      'additionalModelResponseFieldPaths',
+    );
+  });
 });

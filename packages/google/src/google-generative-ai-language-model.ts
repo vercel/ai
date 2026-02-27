@@ -675,35 +675,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   async doCountTokens(
     options: LanguageModelV3CountTokensOptions,
   ): Promise<LanguageModelV3CountTokensResult> {
-    const warnings: SharedV3Warning[] = [];
+    const { args, warnings, providerOptionsName } = await this.getArgs(options);
 
-    const providerOptionsName = this.config.provider.includes('vertex')
-      ? 'vertex'
-      : 'google';
-    const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
-
-    // Reuse existing prompt conversion
-    const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
-      options.prompt,
-      {
-        isGemmaModel,
-        providerOptionsName,
-      },
-    );
-
-    // Prepare tools
-    const { tools: googleTools, toolConfig: googleToolConfig } = prepareTools({
-      tools: options.tools,
-      toolChoice: undefined,
-      modelId: this.modelId,
-    });
-
-    const body = {
-      contents,
-      systemInstruction: isGemmaModel ? undefined : systemInstruction,
-      tools: googleTools,
-      toolConfig: googleToolConfig,
-    };
+    // Strip generation-specific fields
+    const {
+      generationConfig,
+      safetySettings,
+      cachedContent,
+      labels,
+      ...countTokensBody
+    } = args;
 
     const mergedHeaders = combineHeaders(
       await resolve(this.config.headers),
@@ -717,7 +698,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     } = await postJsonToApi({
       url: `${this.config.baseURL}/${getModelPath(this.modelId)}:countTokens`,
       headers: mergedHeaders,
-      body,
+      body: countTokensBody,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         countTokensResponseSchema,
@@ -729,7 +710,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     return {
       tokens: response.totalTokens,
       warnings,
-      request: { body },
+      request: { body: countTokensBody },
       response: { headers: responseHeaders, body: rawResponse },
       providerMetadata: {
         [providerOptionsName]: {

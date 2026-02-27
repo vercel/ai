@@ -5072,4 +5072,19 @@ describe('doCountTokens', () => {
     expect(result.request?.body).toBeDefined();
     expect(result.response?.body).toEqual({ totalTokens: 12 });
   });
+
+  it('should not include generation-specific fields in request body', async () => {
+    prepareCountTokensResponse({ totalTokens: 10 });
+
+    const result = await model.doCountTokens!({
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = (result.request?.body as any) ?? {};
+    expect(requestBody.contents).toBeDefined();
+    expect(requestBody).not.toHaveProperty('generationConfig');
+    expect(requestBody).not.toHaveProperty('safetySettings');
+    expect(requestBody).not.toHaveProperty('cachedContent');
+    expect(requestBody).not.toHaveProperty('labels');
+  });
 });

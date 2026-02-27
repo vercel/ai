@@ -2181,62 +2181,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
   async doCountTokens(
     options: LanguageModelV3CountTokensOptions,
   ): Promise<LanguageModelV3CountTokensResult> {
-    const warnings: SharedV3Warning[] = [];
-
-    // Create a shared cache control validator to track breakpoints across tools and messages
-    const cacheControlValidator = new CacheControlValidator();
-
-    const toolNameMapping = createToolNameMapping({
-      tools: options.tools,
-      providerToolNames: {
-        'anthropic.code_execution_20250522': 'code_execution',
-        'anthropic.code_execution_20250825': 'code_execution',
-        'anthropic.computer_20241022': 'computer',
-        'anthropic.computer_20250124': 'computer',
-        'anthropic.text_editor_20241022': 'str_replace_editor',
-        'anthropic.text_editor_20250124': 'str_replace_editor',
-        'anthropic.text_editor_20250429': 'str_replace_based_edit_tool',
-        'anthropic.text_editor_20250728': 'str_replace_based_edit_tool',
-        'anthropic.bash_20241022': 'bash',
-        'anthropic.bash_20250124': 'bash',
-        'anthropic.memory_20250818': 'memory',
-        'anthropic.web_search_20250305': 'web_search',
-        'anthropic.web_fetch_20250910': 'web_fetch',
-        'anthropic.tool_search_regex_20251119': 'tool_search_tool_regex',
-        'anthropic.tool_search_bm25_20251119': 'tool_search_tool_bm25',
-      },
+    const { args, warnings, betas } = await this.getArgs({
+      ...options,
+      stream: false,
+      userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
     });
 
-    // Reuse existing prompt conversion
-    const { prompt: messagesPrompt, betas } =
-      await convertToAnthropicMessagesPrompt({
-        prompt: options.prompt,
-        sendReasoning: true,
-        warnings,
-        cacheControlValidator,
-        toolNameMapping,
-      });
-
-    // Prepare tools (reuse existing prepareTools)
-    const { tools: anthropicTools, betas: toolsBetas } = await prepareTools({
-      tools: options.tools ?? [],
-      toolChoice: undefined,
-      disableParallelToolUse: undefined,
-      cacheControlValidator,
-      supportsStructuredOutput: false,
-    });
-
-    const body = {
-      model: this.modelId,
-      messages: messagesPrompt.messages,
-      system: messagesPrompt.system,
-      tools: anthropicTools,
-    };
-
-    // Extract cache control warnings once at the end
-    const cacheWarnings = cacheControlValidator.getWarnings();
-
-    const allBetas = new Set([...betas, ...toolsBetas]);
+    // Keep only fields the count_tokens API accepts
+    const { model, system, messages, tools } = args;
+    const body = { model, system, messages, tools };
 
     const {
       responseHeaders,
@@ -2245,7 +2198,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     } = await postJsonToApi({
       url: `${this.config.baseURL}/messages/count_tokens`,
       headers: await this.getHeaders({
-        betas: allBetas,
+        betas,
         headers: options.headers,
       }),
       body,
@@ -2259,7 +2212,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     return {
       tokens: response.input_tokens,
-      warnings: [...warnings, ...cacheWarnings],
+      warnings,
       request: { body },
       response: { headers: responseHeaders, body: rawResponse },
     };

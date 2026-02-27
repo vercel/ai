@@ -941,38 +941,23 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
   async doCountTokens(
     options: LanguageModelV3CountTokensOptions,
   ): Promise<LanguageModelV3CountTokensResult> {
-    const warnings: SharedV3Warning[] = [];
+    const { command, warnings } = await this.getArgs(options);
 
-    // Convert prompt to Bedrock format
-    const isMistral = isMistralModel(this.modelId);
-    const { system, messages } = await convertToBedrockChatMessages(
-      options.prompt,
-      isMistral,
-    );
-
-    // Prepare tools if provided
-    const { toolConfig, toolWarnings } = await prepareTools({
-      tools: options.tools,
-      toolChoice: undefined,
-      modelId: this.modelId,
-    });
-    warnings.push(...toolWarnings);
-
-    // Build the converse input for count-tokens
+    // Build the converse input for count-tokens using only prompt-related fields
     const converseInput: {
-      messages: typeof messages;
-      system?: typeof system;
-      toolConfig?: typeof toolConfig;
+      messages: typeof command.messages;
+      system?: typeof command.system;
+      toolConfig?: typeof command.toolConfig;
     } = {
-      messages,
+      messages: command.messages,
     };
 
-    if (system && system.length > 0) {
-      converseInput.system = system;
+    if (command.system && command.system.length > 0) {
+      converseInput.system = command.system;
     }
 
-    if (toolConfig.tools && toolConfig.tools.length > 0) {
-      converseInput.toolConfig = toolConfig;
+    if (command.toolConfig?.tools && command.toolConfig.tools.length > 0) {
+      converseInput.toolConfig = command.toolConfig;
     }
 
     const body = {
