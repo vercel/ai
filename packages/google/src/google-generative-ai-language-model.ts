@@ -729,6 +729,17 @@ function extractSources({
         url: chunk.web.uri,
         title: chunk.web.title ?? undefined,
       });
+    } else if (chunk.image != null) {
+      // Handle image chunks as image sources
+      sources.push({
+        type: 'source',
+        sourceType: 'url',
+        id: generateId(),
+        // Google requires attribution to the source URI, not the actual image URI.
+        // TODO: add another type in v7 to allow both the image and source URL to be included separately
+        url: chunk.image.sourceUri,
+        title: chunk.image.title ?? undefined,
+      });
     } else if (chunk.retrievedContext != null) {
       // Handle retrievedContext chunks from RAG operations
       const uri = chunk.retrievedContext.uri;
@@ -808,6 +819,7 @@ function extractSources({
 export const getGroundingMetadataSchema = () =>
   z.object({
     webSearchQueries: z.array(z.string()).nullish(),
+    imageSearchQueries: z.array(z.string()).nullish(),
     retrievalQueries: z.array(z.string()).nullish(),
     searchEntryPoint: z.object({ renderedContent: z.string() }).nullish(),
     groundingChunks: z
@@ -815,6 +827,14 @@ export const getGroundingMetadataSchema = () =>
         z.object({
           web: z
             .object({ uri: z.string(), title: z.string().nullish() })
+            .nullish(),
+          image: z
+            .object({
+              sourceUri: z.string(),
+              imageUri: z.string(),
+              title: z.string().nullish(),
+              domain: z.string().nullish(),
+            })
             .nullish(),
           retrievedContext: z
             .object({
