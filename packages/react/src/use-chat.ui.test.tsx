@@ -2661,3 +2661,60 @@ describe('streaming with id change from undefined to defined', () => {
     });
   });
 });
+
+describe('transport body reactivity', () => {
+  it('should send the latest body after state change (no stale closure)', async () => {
+    const Test = () => {
+      const [subagent, setSubagent] = React.useState('agent-a');
+
+      const { sendMessage, status } = useChat({
+        transport: new DefaultChatTransport({
+          body: { subagent },
+        }),
+        generateId: mockId(),
+      });
+
+      return (
+        <div>
+          <div data-testid="status">{status.toString()}</div>
+          <button
+            data-testid="switch-agent"
+            onClick={() => setSubagent('agent-b')}
+          />
+          <button
+            data-testid="do-send"
+            onClick={() => {
+              sendMessage({
+                parts: [{ text: 'hi', type: 'text' }],
+              });
+            }}
+          />
+        </div>
+      );
+    };
+
+    render(<Test />);
+
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatChunk({ type: 'text-start', id: '0' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatChunk({ type: 'text-end', id: '0' }),
+      ],
+    };
+
+    // Switch from 'agent-a' to 'agent-b' before sending
+    await userEvent.click(screen.getByTestId('switch-agent'));
+
+    // Send message — body should contain 'agent-b', not stale 'agent-a'
+    await userEvent.click(screen.getByTestId('do-send'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('ready');
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({ subagent: 'agent-b' });
+  });
+});
