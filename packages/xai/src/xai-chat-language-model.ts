@@ -41,6 +41,24 @@ type XaiChatConfig = {
   fetch?: FetchFunction;
 };
 
+const reasoningModelIds = new Set<string>([
+  'grok-4-1-fast-reasoning',
+  'grok-4-fast-reasoning',
+  'grok-3-mini',
+  'grok-3-mini-latest',
+  'grok-3-mini-fast',
+  'grok-3-mini-fast-latest',
+  'grok-code-fast-1',
+]);
+
+function isReasoningModel(modelId: string): boolean {
+  return reasoningModelIds.has(modelId) || modelId.includes('-reasoning');
+}
+
+function isGrokThreeModel(modelId: string): boolean {
+  return modelId.startsWith('grok-3');
+}
+
 export class XaiChatLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
 
@@ -89,6 +107,36 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
     // check for unsupported parameters
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
+    }
+
+    const reasoningModel = isReasoningModel(this.modelId);
+    const grokThreeModel = isGrokThreeModel(this.modelId);
+
+    if (frequencyPenalty != null && reasoningModel) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'frequencyPenalty',
+        details:
+          'xAI does not support frequencyPenalty on reasoning models. The value is forwarded and may be rejected by the API.',
+      });
+    }
+
+    if (presencePenalty != null && (grokThreeModel || reasoningModel)) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'presencePenalty',
+        details:
+          'xAI does not support presencePenalty on grok-3 or reasoning models. The value is forwarded and may be rejected by the API.',
+      });
+    }
+
+    if (stopSequences != null && reasoningModel) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'stopSequences',
+        details:
+          'xAI does not support stopSequences on reasoning models. The value is forwarded and may be rejected by the API.',
+      });
     }
 
     // convert ai sdk messages to xai format
