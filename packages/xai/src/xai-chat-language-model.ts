@@ -30,6 +30,7 @@ import {
   XaiChatModelId,
   xaiLanguageModelChatOptions,
 } from './xai-chat-options';
+import { getXaiChatModelCapabilities } from './xai-chat-model-capabilities';
 import { xaiFailedResponseHandler } from './xai-error';
 import { prepareTools } from './xai-prepare-tools';
 
@@ -40,24 +41,6 @@ type XaiChatConfig = {
   generateId: () => string;
   fetch?: FetchFunction;
 };
-
-const reasoningModelIds = new Set<string>([
-  'grok-4-1-fast-reasoning',
-  'grok-4-fast-reasoning',
-  'grok-3-mini',
-  'grok-3-mini-latest',
-  'grok-3-mini-fast',
-  'grok-3-mini-fast-latest',
-  'grok-code-fast-1',
-]);
-
-function isReasoningModel(modelId: string): boolean {
-  return reasoningModelIds.has(modelId) || modelId.includes('-reasoning');
-}
-
-function isGrokThreeModel(modelId: string): boolean {
-  return modelId.startsWith('grok-3');
-}
 
 export class XaiChatLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -109,33 +92,41 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
-    const reasoningModel = isReasoningModel(this.modelId);
-    const grokThreeModel = isGrokThreeModel(this.modelId);
+    const modelCapabilities = getXaiChatModelCapabilities(this.modelId);
+    let xaiFrequencyPenalty = frequencyPenalty;
+    let xaiPresencePenalty = presencePenalty;
+    let xaiStopSequences = stopSequences;
 
-    if (frequencyPenalty != null && reasoningModel) {
+    if (xaiFrequencyPenalty != null && modelCapabilities.isReasoningModel) {
+      xaiFrequencyPenalty = undefined;
       warnings.push({
         type: 'unsupported',
         feature: 'frequencyPenalty',
         details:
-          'xAI does not support frequencyPenalty on reasoning models. The value is forwarded and may be rejected by the API.',
+          'xAI does not support frequencyPenalty on reasoning models and it has been removed.',
       });
     }
 
-    if (presencePenalty != null && (grokThreeModel || reasoningModel)) {
+    if (
+      xaiPresencePenalty != null &&
+      (modelCapabilities.isReasoningModel || modelCapabilities.isGrokThreeModel)
+    ) {
+      xaiPresencePenalty = undefined;
       warnings.push({
         type: 'unsupported',
         feature: 'presencePenalty',
         details:
-          'xAI does not support presencePenalty on grok-3 or reasoning models. The value is forwarded and may be rejected by the API.',
+          'xAI does not support presencePenalty on grok-3 and reasoning models and it has been removed.',
       });
     }
 
-    if (stopSequences != null && reasoningModel) {
+    if (xaiStopSequences != null && modelCapabilities.isReasoningModel) {
+      xaiStopSequences = undefined;
       warnings.push({
         type: 'unsupported',
         feature: 'stopSequences',
         details:
-          'xAI does not support stopSequences on reasoning models. The value is forwarded and may be rejected by the API.',
+          'xAI does not support stopSequences on reasoning models and they have been removed.',
       });
     }
 
@@ -163,9 +154,9 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
       max_completion_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
-      frequency_penalty: frequencyPenalty,
-      presence_penalty: presencePenalty,
-      stop: stopSequences,
+      frequency_penalty: xaiFrequencyPenalty,
+      presence_penalty: xaiPresencePenalty,
+      stop: xaiStopSequences,
       seed,
       reasoning_effort: options.reasoningEffort,
 

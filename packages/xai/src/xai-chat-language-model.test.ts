@@ -238,7 +238,7 @@ describe('XaiChatLanguageModel', () => {
       });
     });
 
-    it('should warn for presencePenalty on grok-3 models', async () => {
+    it('should strip presencePenalty on grok-3 models', async () => {
       prepareJsonFixtureResponse('xai-text');
       const grokThreeModel = new XaiChatLanguageModel('grok-3', testConfig);
 
@@ -252,13 +252,38 @@ describe('XaiChatLanguageModel', () => {
           type: 'unsupported',
           feature: 'presencePenalty',
           details:
-            'xAI does not support presencePenalty on grok-3 or reasoning models. The value is forwarded and may be rejected by the API.',
+            'xAI does not support presencePenalty on grok-3 and reasoning models and it has been removed.',
         },
       ]);
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchObject({
         model: 'grok-3',
         messages: [{ role: 'user', content: 'Hello' }],
+      });
+      expect(requestBody).not.toHaveProperty('presence_penalty');
+    });
+
+    it('should pass penalties and stopSequences on explicit non reasoning grok-4 models', async () => {
+      prepareJsonFixtureResponse('xai-text');
+      const nonReasoningModel = new XaiChatLanguageModel(
+        'grok-4-fast-non-reasoning',
+        testConfig,
+      );
+
+      const { warnings } = await nonReasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        frequencyPenalty: 0.5,
+        presencePenalty: 1,
+        stopSequences: ['###', 'END'],
+      });
+
+      expect(warnings).toEqual([]);
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'grok-4-fast-non-reasoning',
+        messages: [{ role: 'user', content: 'Hello' }],
+        frequency_penalty: 0.5,
         presence_penalty: 1,
+        stop: ['###', 'END'],
       });
     });
 
@@ -1237,28 +1262,70 @@ describe('XaiChatLanguageModel', () => {
           type: 'unsupported',
           feature: 'frequencyPenalty',
           details:
-            'xAI does not support frequencyPenalty on reasoning models. The value is forwarded and may be rejected by the API.',
+            'xAI does not support frequencyPenalty on reasoning models and it has been removed.',
         },
         {
           type: 'unsupported',
           feature: 'presencePenalty',
           details:
-            'xAI does not support presencePenalty on grok-3 or reasoning models. The value is forwarded and may be rejected by the API.',
+            'xAI does not support presencePenalty on grok-3 and reasoning models and it has been removed.',
         },
         {
           type: 'unsupported',
           feature: 'stopSequences',
           details:
-            'xAI does not support stopSequences on reasoning models. The value is forwarded and may be rejected by the API.',
+            'xAI does not support stopSequences on reasoning models and they have been removed.',
         },
       ]);
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchObject({
         model: 'grok-3-mini',
         messages: [{ role: 'user', content: 'Hello' }],
-        frequency_penalty: 0.5,
-        presence_penalty: 1,
-        stop: ['###', 'END'],
       });
+      expect(requestBody).not.toHaveProperty('frequency_penalty');
+      expect(requestBody).not.toHaveProperty('presence_penalty');
+      expect(requestBody).not.toHaveProperty('stop');
+    });
+
+    it('should strip penalties and stopSequences on grok-4 reasoning models', async () => {
+      prepareJsonFixtureResponse('xai-text');
+      const grokFourModel = new XaiChatLanguageModel('grok-4', testConfig);
+
+      const { warnings } = await grokFourModel.doGenerate({
+        prompt: TEST_PROMPT,
+        frequencyPenalty: 0.5,
+        presencePenalty: 1,
+        stopSequences: ['###', 'END'],
+      });
+
+      expect(warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'frequencyPenalty',
+          details:
+            'xAI does not support frequencyPenalty on reasoning models and it has been removed.',
+        },
+        {
+          type: 'unsupported',
+          feature: 'presencePenalty',
+          details:
+            'xAI does not support presencePenalty on grok-3 and reasoning models and it has been removed.',
+        },
+        {
+          type: 'unsupported',
+          feature: 'stopSequences',
+          details:
+            'xAI does not support stopSequences on reasoning models and they have been removed.',
+        },
+      ]);
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchObject({
+        model: 'grok-4',
+        messages: [{ role: 'user', content: 'Hello' }],
+      });
+      expect(requestBody).not.toHaveProperty('frequency_penalty');
+      expect(requestBody).not.toHaveProperty('presence_penalty');
+      expect(requestBody).not.toHaveProperty('stop');
     });
 
     it('should extract reasoning content', async () => {
