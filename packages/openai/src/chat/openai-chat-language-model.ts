@@ -551,7 +551,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 
                 // Tool call start. OpenAI returns all information except the arguments in the first chunk.
                 if (toolCalls[index] == null) {
-                  if (toolCallDelta.type !== 'function') {
+                  if (
+                    toolCallDelta.type != null &&
+                    toolCallDelta.type !== 'function'
+                  ) {
                     throw new InvalidResponseDataError({
                       data: toolCallDelta,
                       message: `Expected 'function' type.`,

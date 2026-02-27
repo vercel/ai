@@ -3518,6 +3518,104 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should only send the forced tool when toolChoice specifies a specific tool', async () => {
+    prepareJsonFixtureResponse('bedrock-text');
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'getWeatherByCity',
+          description: 'Get weather by city',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+            additionalProperties: false,
+          },
+        },
+        {
+          type: 'function',
+          name: 'getCurrentWeather',
+          description: 'Get current weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+            required: ['location'],
+            additionalProperties: false,
+          },
+        },
+        {
+          type: 'function',
+          name: 'getWeatherForecast',
+          description: 'Get forecast',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              location: { type: 'string' },
+              days: { type: 'number' },
+            },
+            required: ['location', 'days'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      toolChoice: { type: 'tool', toolName: 'getWeatherByCity' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.toolConfig.tools).toHaveLength(1);
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe(
+      'getWeatherByCity',
+    );
+    expect(requestBody.toolConfig.toolChoice).toEqual({
+      tool: { name: 'getWeatherByCity' },
+    });
+  });
+
+  it('should send all tools when toolChoice is auto', async () => {
+    prepareJsonFixtureResponse('bedrock-text');
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'getWeatherByCity',
+          description: 'Get weather by city',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+            additionalProperties: false,
+          },
+        },
+        {
+          type: 'function',
+          name: 'getCurrentWeather',
+          description: 'Get current weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+            required: ['location'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      toolChoice: { type: 'auto' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.toolConfig.tools).toHaveLength(2);
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe(
+      'getWeatherByCity',
+    );
+    expect(requestBody.toolConfig.tools[1].toolSpec.name).toBe(
+      'getCurrentWeather',
+    );
+  });
+
   it('should omit empty tool descriptions to avoid Bedrock validation errors', async () => {
     prepareJsonFixtureResponse('bedrock-text');
 
