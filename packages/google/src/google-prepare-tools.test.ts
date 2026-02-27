@@ -492,7 +492,7 @@ it('should use VALIDATED mode with toolChoice auto when strict: true', () => {
   });
 });
 
-it('should use VALIDATED mode with toolChoice required when strict: true', () => {
+it('should keep ANY mode with toolChoice required when strict: true (and add warning)', () => {
   const result = prepareTools({
     tools: [
       {
@@ -507,11 +507,19 @@ it('should use VALIDATED mode with toolChoice required when strict: true', () =>
     modelId: 'gemini-2.5-flash',
   });
   expect(result.toolConfig).toEqual({
-    functionCallingConfig: { mode: 'VALIDATED' },
+    functionCallingConfig: { mode: 'ANY' },
   });
+  expect(result.toolWarnings).toEqual([
+    {
+      type: 'unsupported',
+      feature: 'strict tools with toolChoice required',
+      details:
+        "Gemini's VALIDATED mode does not guarantee forced function calling; keeping ANY mode to preserve toolChoice required semantics.",
+    },
+  ]);
 });
 
-it('should use VALIDATED mode with toolChoice tool when strict: true', () => {
+it('should keep ANY mode with toolChoice tool when strict: true (and add warning)', () => {
   const result = prepareTools({
     tools: [
       {
@@ -527,10 +535,18 @@ it('should use VALIDATED mode with toolChoice tool when strict: true', () => {
   });
   expect(result.toolConfig).toEqual({
     functionCallingConfig: {
-      mode: 'VALIDATED',
+      mode: 'ANY',
       allowedFunctionNames: ['strictTool'],
     },
   });
+  expect(result.toolWarnings).toEqual([
+    {
+      type: 'unsupported',
+      feature: 'strict tools with toolChoice tool',
+      details:
+        "Gemini's VALIDATED mode does not guarantee forced function calling; keeping ANY mode to preserve toolChoice tool semantics.",
+    },
+  ]);
 });
 
 it('should not use VALIDATED mode when no tool has strict: true', () => {

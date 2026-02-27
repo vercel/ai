@@ -250,27 +250,47 @@ export function prepareTools({
         toolConfig: { functionCallingConfig: { mode: 'NONE' } },
         toolWarnings,
       };
-    case 'required':
+    case 'required': {
+      if (hasStrictTool) {
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: 'strict tools with toolChoice required',
+          details:
+            "Gemini's VALIDATED mode does not guarantee forced function calling; keeping ANY mode to preserve toolChoice required semantics.",
+        });
+      }
+
       return {
         tools: [{ functionDeclarations }],
         toolConfig: {
           functionCallingConfig: {
-            mode: hasStrictTool ? 'VALIDATED' : 'ANY',
+            mode: 'ANY',
           },
         },
         toolWarnings,
       };
-    case 'tool':
+    }
+    case 'tool': {
+      if (hasStrictTool) {
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: 'strict tools with toolChoice tool',
+          details:
+            "Gemini's VALIDATED mode does not guarantee forced function calling; keeping ANY mode to preserve toolChoice tool semantics.",
+        });
+      }
+
       return {
         tools: [{ functionDeclarations }],
         toolConfig: {
           functionCallingConfig: {
-            mode: hasStrictTool ? 'VALIDATED' : 'ANY',
+            mode: 'ANY',
             allowedFunctionNames: [toolChoice.toolName],
           },
         },
         toolWarnings,
       };
+    }
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({
