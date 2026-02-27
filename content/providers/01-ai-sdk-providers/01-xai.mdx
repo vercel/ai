@@ -446,6 +446,12 @@ The following provider options are available:
 
   Control the reasoning effort for the model. Higher effort may produce more thorough results at the cost of increased latency and token usage.
 
+- **searchParameters** _object_
+
+  Configure Live Search request parameters (`mode`, `returnCitations`, `fromDate`, `toDate`, `maxSearchResults`, `sources`).
+
+  xAI currently recommends server-side tools (`web_search`, `x_search`) for Responses API search. `searchParameters` currently returns `410 Gone` with a deprecation message.
+
 - **include** _Array&lt;'file_search_call.results'&gt;_
 
   Specify additional output data to include in the model response. Use `['file_search_call.results']` to include file search results with scores and content.
