@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.68
+
+### Patch Changes
+
+- d98d9ba: Migrated deprecated `output_format` parameter to `output_config.format` for structured outputs + Enabled native structured output support for Bedrock Anthropic models via `output_config.format`.
+- Updated dependencies [d98d9ba]
+  - @ai-sdk/anthropic@3.0.49
+
 ## 4.0.67
 
 ### Patch Changes
