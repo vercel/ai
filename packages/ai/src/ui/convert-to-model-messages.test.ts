@@ -1583,6 +1583,15 @@ describe('convertToModelMessages', () => {
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
               },
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "I don't want to approve this",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
+              },
             ],
             "role": "tool",
           },
@@ -1678,6 +1687,15 @@ describe('convertToModelMessages', () => {
                 "providerExecuted": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
+              },
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "I don't want to approve this",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
               },
             ],
             "role": "tool",
@@ -2082,6 +2100,142 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('ignoreIncompleteToolCalls with approval-requested', () => {
+    it('should filter out approval-requested tool parts when ignoreIncompleteToolCalls is true', async () => {
+      const result = await convertToModelMessages(
+        [
+          {
+            role: 'user',
+            parts: [{ type: 'text', text: 'What is the weather?' }],
+          },
+          {
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-weather',
+                state: 'approval-requested',
+                toolCallId: 'call-1',
+                input: { city: 'Tokyo' },
+                approval: {
+                  id: 'approval-1',
+                },
+              },
+            ],
+          },
+        ],
+        { ignoreIncompleteToolCalls: true },
+      );
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('approval-responded in tool message', () => {
+    it('should emit denied tool-result for approval-responded with approved=false', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'user',
+          parts: [{ type: 'text', text: 'What is the weather?' }],
+        },
+        {
+          parts: [
+            { type: 'step-start' },
+            {
+              approval: {
+                approved: false,
+                id: 'approval-1',
+                reason: 'Not allowed',
+              },
+              input: { city: 'Tokyo' },
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      // The tool message should contain an approval-response AND a tool-result
+      const toolMessage = result.find(m => m.role === 'tool');
+      expect(toolMessage).toBeDefined();
+      expect(toolMessage!.content).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'tool-approval-response',
+            approved: false,
+          }),
+          expect.objectContaining({
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            output: {
+              type: 'error-text',
+              value: 'Not allowed',
+            },
+          }),
+        ]),
+      );
+    });
+
+    it('should emit tool-approval-response but no tool-result for approval-responded with approved=true', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'user',
+          parts: [{ type: 'text', text: 'What is the weather?' }],
+        },
+        {
+          parts: [
+            { type: 'step-start' },
+            {
+              approval: {
+                approved: true,
+                id: 'approval-1',
+                reason: undefined,
+              },
+              input: { city: 'Tokyo' },
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      // Tool message should contain approval-response but NOT a tool-result
+      const toolMessage = result.find(m => m.role === 'tool');
+      expect(toolMessage).toBeDefined();
+
+      const approvalResponse = toolMessage!.content.find(
+        (p: any) => p.type === 'tool-approval-response',
+      );
+      expect(approvalResponse).toEqual(
+        expect.objectContaining({
+          type: 'tool-approval-response',
+          approved: true,
+        }),
+      );
+
+      const toolResult = toolMessage!.content.find(
+        (p: any) => p.type === 'tool-result',
+      );
+      expect(toolResult).toBeUndefined();
     });
   });
 

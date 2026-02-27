@@ -967,6 +967,123 @@ describe('convertToLanguageModelPrompt', () => {
     });
   });
 
+  describe('unresolved approved tool-calls', () => {
+    it('should strip approved tool-call with no matching result from assistant message', async () => {
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'toolCallId',
+                  toolName: 'toolName',
+                  input: {},
+                },
+                {
+                  type: 'tool-approval-request',
+                  approvalId: 'approvalId',
+                  toolCallId: 'toolCallId',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-approval-response',
+                  approvalId: 'approvalId',
+                  approved: true,
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: undefined,
+      });
+
+      // The assistant message should have the tool-call stripped
+      // since it's approved but has no matching tool-result
+      const assistantMessage = result.find(m => m.role === 'assistant');
+      if (assistantMessage && assistantMessage.role === 'assistant') {
+        const toolCalls = assistantMessage.content.filter(
+          p => p.type === 'tool-call',
+        );
+        expect(toolCalls).toHaveLength(0);
+      }
+
+      // Empty tool messages (after approval-response removal) should be filtered out
+      const toolMessages = result.filter(m => m.role === 'tool');
+      expect(toolMessages).toHaveLength(0);
+    });
+
+    it('should preserve approved tool-call when matching result exists', async () => {
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'toolCallId',
+                  toolName: 'toolName',
+                  input: {},
+                },
+                {
+                  type: 'tool-approval-request',
+                  approvalId: 'approvalId',
+                  toolCallId: 'toolCallId',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-approval-response',
+                  approvalId: 'approvalId',
+                  approved: true,
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolName: 'toolName',
+                  toolCallId: 'toolCallId',
+                  output: { type: 'json', value: { weather: 'sunny' } },
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: undefined,
+      });
+
+      // The assistant message should preserve the tool-call since a result exists
+      const assistantMessage = result.find(m => m.role === 'assistant');
+      expect(assistantMessage).toBeDefined();
+      if (assistantMessage && assistantMessage.role === 'assistant') {
+        const toolCalls = assistantMessage.content.filter(
+          p => p.type === 'tool-call',
+        );
+        expect(toolCalls).toHaveLength(1);
+        expect(toolCalls[0]).toEqual(
+          expect.objectContaining({
+            toolCallId: 'toolCallId',
+            toolName: 'toolName',
+          }),
+        );
+      }
+    });
+  });
+
   describe('custom download function', () => {
     it('should use custom download function to fetch URL content', async () => {
       const mockDownload = vi.fn().mockResolvedValue([
