@@ -18,6 +18,7 @@ run(async () => {
   });
 
   console.log('Text:', result.text);
+  console.log('Warnings:', result.warnings);
   console.log();
   console.log('Sources:');
   for (const content of result.content) {
