@@ -29,21 +29,20 @@ export function convertToAlibabaChatMessages({
   const messages: AlibabaChatPrompt = [];
 
   for (const { role, content, ...message } of prompt) {
+    const messageCacheControl = cacheControlValidator?.getCacheControl(
+      message.providerOptions,
+    );
+
     switch (role) {
       case 'system': {
-        const cacheControl = cacheControlValidator?.getCacheControl(
-          message.providerOptions,
-        );
-
-        // If cache_control is present, convert to array format
-        if (cacheControl) {
+        if (messageCacheControl) {
           messages.push({
             role: 'system',
             content: [
               {
                 type: 'text',
                 text: content,
-                cache_control: cacheControl,
+                cache_control: messageCacheControl,
               },
             ],
           });
@@ -54,8 +53,13 @@ export function convertToAlibabaChatMessages({
       }
 
       case 'user': {
-        // Single text part -> use string content
-        if (content.length === 1 && content[0].type === 'text') {
+        const isSinglePart = content.length === 1;
+
+        if (
+          isSinglePart &&
+          content[0].type === 'text' &&
+          !messageCacheControl
+        ) {
           messages.push({
             role: 'user',
             content: content[0].text,
@@ -63,13 +67,22 @@ export function convertToAlibabaChatMessages({
           break;
         }
 
-        // Multi-part content
         messages.push({
           role: 'user',
           content: content.map(part => {
+            const partCacheControl = isSinglePart
+              ? messageCacheControl
+              : cacheControlValidator?.getCacheControl(part.providerOptions);
+
             switch (part.type) {
               case 'text': {
-                return { type: 'text', text: part.text };
+                return {
+                  type: 'text',
+                  text: part.text,
+                  ...(partCacheControl
+                    ? { cache_control: partCacheControl }
+                    : {}),
+                };
               }
 
               case 'file': {
@@ -84,6 +97,9 @@ export function convertToAlibabaChatMessages({
                     image_url: {
                       url: formatImageUrl({ data: part.data, mediaType }),
                     },
+                    ...(partCacheControl
+                      ? { cache_control: partCacheControl }
+                      : {}),
                   };
                 } else {
                   throw new UnsupportedFunctionalityError({
@@ -133,7 +149,9 @@ export function convertToAlibabaChatMessages({
 
         messages.push({
           role: 'assistant',
-          content: text || null,
+          content: messageCacheControl
+            ? [{ type: 'text', text, cache_control: messageCacheControl }]
+            : text || null,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
 
@@ -141,11 +159,21 @@ export function convertToAlibabaChatMessages({
       }
 
       case 'tool': {
-        for (const toolResponse of content) {
-          if (toolResponse.type === 'tool-approval-response') {
-            continue;
-          }
+        const toolResponses = content.filter(
+          r => r.type !== 'tool-approval-response',
+        );
+
+        const isSinglePart = toolResponses.length === 1;
+
+        for (let i = 0; i < toolResponses.length; i++) {
+          const toolResponse = toolResponses[i];
           const output = toolResponse.output;
+
+          const partCacheControl = isSinglePart
+            ? messageCacheControl
+            : cacheControlValidator?.getCacheControl(
+                (toolResponse as any).providerOptions,
+              );
 
           let contentValue: string;
           switch (output.type) {
@@ -166,7 +194,15 @@ export function convertToAlibabaChatMessages({
           messages.push({
             role: 'tool',
             tool_call_id: toolResponse.toolCallId,
-            content: contentValue,
+            content: partCacheControl
+              ? [
+                  {
+                    type: 'text',
+                    text: contentValue,
+                    cache_control: partCacheControl,
+                  },
+                ]
+              : contentValue,
           });
         }
         break;

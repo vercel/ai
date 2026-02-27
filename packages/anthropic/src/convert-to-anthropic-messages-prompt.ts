@@ -648,10 +648,14 @@ export async function convertToAnthropicMessagesPrompt({
                   | { caller?: { type: string; toolId?: string } }
                   | undefined;
                 const caller = callerOptions?.caller
-                  ? callerOptions.caller.type === 'code_execution_20250825' &&
+                  ? (callerOptions.caller.type === 'code_execution_20250825' ||
+                      callerOptions.caller.type ===
+                        'code_execution_20260120') &&
                     callerOptions.caller.toolId
                     ? {
-                        type: 'code_execution_20250825' as const,
+                        type: callerOptions.caller.type as
+                          | 'code_execution_20250825'
+                          | 'code_execution_20260120',
                         tool_id: callerOptions.caller.toolId,
                       }
                     : callerOptions.caller.type === 'direct'

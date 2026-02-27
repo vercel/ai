@@ -123,7 +123,8 @@ const { text } = await generateText({
 });
 ```
 
-OpenAI language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
+OpenAI language models can also be used in the `streamText` function
+and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
 ### Responses Models
@@ -339,6 +340,67 @@ console.log('Reasoning:', result.reasoning);
 ```
 
 Learn more about reasoning summaries in the [OpenAI documentation](https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries).
+
+#### WebSocket Transport
+
+OpenAI's [WebSocket API](https://developers.openai.com/api/docs/guides/websocket-mode) keeps a persistent connection open, which can significantly
+reduce Time-to-First-Byte (TTFB) in agentic workflows with many tool calls.
+After the initial connection, subsequent requests skip TCP/TLS/HTTP negotiation entirely.
+
+The [`ai-sdk-openai-websocket-fetch`](https://www.npmjs.com/package/ai-sdk-openai-websocket-fetch)
+package provides a drop-in `fetch` replacement that routes streaming requests
+through a persistent WebSocket connection.
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add ai-sdk-openai-websocket-fetch" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install ai-sdk-openai-websocket-fetch" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add ai-sdk-openai-websocket-fetch" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add ai-sdk-openai-websocket-fetch" dark />
+  </Tab>
+</Tabs>
+
+Pass the WebSocket fetch to `createOpenAI` via the `fetch` option:
+
+```ts highlight="2,6-7,15"
+import { createOpenAI } from '@ai-sdk/openai';
+import { createWebSocketFetch } from 'ai-sdk-openai-websocket-fetch';
+import { streamText } from 'ai';
+
+// Create a WebSocket-backed fetch instance
+const wsFetch = createWebSocketFetch();
+const openai = createOpenAI({ fetch: wsFetch });
+
+const result = streamText({
+  model: openai('gpt-4.1-mini'),
+  prompt: 'Hello!',
+  tools: {
+    // ...
+  },
+  onFinish: () => wsFetch.close(), // close the WebSocket when done
+});
+```
+
+The first request will be slower because it must establish the WebSocket connection
+(DNS + TCP + TLS + WebSocket upgrade). After that, subsequent steps in a
+multi-step tool-calling loop reuse the open connection, resulting in lower TTFB
+per step.
+
+<Note>
+  The WebSocket transport only routes streaming requests to the OpenAI Responses
+  API (`POST /responses` with `stream: true`) through the WebSocket. All other
+  requests (non-streaming, embeddings, etc.) fall through to the standard
+  `fetch` implementation.
+</Note>
+
+You can see a live side-by-side comparison of HTTP vs WebSocket streaming performance
+in the [demo app](https://github.com/vercel-labs/ai-sdk-openai-websocket).
 
 #### Verbosity Control
 
@@ -999,37 +1061,26 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 #### Structured Outputs
 
-The OpenAI Responses API supports structured outputs. You can enforce structured outputs using `generateObject` or `streamObject`, which expose a `schema` option. Additionally, you can pass a Zod or JSON Schema object to the `output` option when using `generateText` or `streamText`.
+The OpenAI Responses API supports structured outputs. You can use `generateText` or `streamText` with [`Output`](/docs/reference/ai-sdk-core/output) to enforce structured outputs.
 
 ```ts
-// Using generateObject
-const result = await generateObject({
+const result = await generateText({
   model: openai('gpt-4.1'),
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(
-        z.object({
-          name: z.string(),
-          amount: z.string(),
-        }),
-      ),
-      steps: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(
+          z.object({
+            name: z.string(),
+            amount: z.string(),
+          }),
+        ),
+        steps: z.array(z.string()),
+      }),
     }),
   }),
   prompt: 'Generate a lasagna recipe.',
-});
-
-// Using generateText
-const result = await generateText({
-  model: openai('gpt-4.1'),
-  prompt: 'How do I make a pizza?',
-  output: Output.object({
-    schema: z.object({
-      ingredients: z.array(z.string()),
-      steps: z.array(z.string()),
-    }),
-  }),
 });
 ```
 
@@ -1458,32 +1509,34 @@ You can disable them by setting the `strictJsonSchema` option to `false`.
 
 ```ts highlight="7"
 import { openai, OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
-const result = await generateObject({
+const result = await generateText({
   model: openai.chat('gpt-4o-2024-08-06'),
   providerOptions: {
     openai: {
       strictJsonSchema: false,
     } satisfies OpenAILanguageModelChatOptions,
   },
-  schemaName: 'recipe',
-  schemaDescription: 'A recipe for lasagna.',
-  schema: z.object({
-    name: z.string(),
-    ingredients: z.array(
-      z.object({
-        name: z.string(),
-        amount: z.string(),
-      }),
-    ),
-    steps: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      name: z.string(),
+      ingredients: z.array(
+        z.object({
+          name: z.string(),
+          amount: z.string(),
+        }),
+      ),
+      steps: z.array(z.string()),
+    }),
+    schemaName: 'recipe',
+    schemaDescription: 'A recipe for lasagna.',
   }),
   prompt: 'Generate a lasagna recipe.',
 });
 
-console.log(JSON.stringify(result.object, null, 2));
+console.log(JSON.stringify(result.output, null, 2));
 ```
 
 <Note type="warning">

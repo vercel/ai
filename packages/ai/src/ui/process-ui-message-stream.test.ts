@@ -6433,6 +6433,108 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('tool input error with dynamic flag mismatch', () => {
+    // Regression: when tool-input-start creates a static part (dynamic is
+    // undefined because the tool isn't in the tools object) and tool-input-error
+    // arrives with dynamic: true (from parseToolCall's catch for NoSuchToolError),
+    // the error should update the existing static part instead of creating a
+    // second dynamic-tool part.
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        {
+          type: 'start',
+        },
+        {
+          type: 'start-step',
+        },
+        {
+          toolCallId: 'call-1',
+          toolName: 'nonExistentTool',
+          type: 'tool-input-start',
+          // dynamic is NOT set (undefined) — this is what happens when the
+          // tool isn't in the tools object and the provider doesn't set it
+        },
+        {
+          inputTextDelta: '{ "foo": "bar" }',
+          toolCallId: 'call-1',
+          type: 'tool-input-delta',
+        },
+        {
+          errorText: "Model tried to call unavailable tool 'nonExistentTool'.",
+          input: '{ "foo": "bar" }',
+          toolCallId: 'call-1',
+          toolName: 'nonExistentTool',
+          type: 'tool-input-error',
+          // dynamic IS set to true — this is what parseToolCall returns for
+          // invalid tool calls (NoSuchToolError catch)
+          dynamic: true,
+        },
+        {
+          errorText: "Model tried to call unavailable tool 'nonExistentTool'.",
+          toolCallId: 'call-1',
+          type: 'tool-output-error',
+        },
+        {
+          type: 'finish-step',
+        },
+        {
+          type: 'finish',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should produce exactly one tool part (no duplicate)', async () => {
+      const toolParts = state!.message.parts.filter(
+        (p: any) => p.toolCallId === 'call-1',
+      );
+      expect(toolParts).toHaveLength(1);
+    });
+
+    it('should keep the static tool type from tool-input-start', async () => {
+      const toolPart = state!.message.parts.find(
+        (p: any) => p.toolCallId === 'call-1',
+      ) as any;
+      expect(toolPart.type).toBe('tool-nonExistentTool');
+    });
+
+    it('should have the correct final message state', async () => {
+      expect(state!.message.parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "step-start",
+          },
+          {
+            "errorText": "Model tried to call unavailable tool 'nonExistentTool'.",
+            "input": undefined,
+            "output": undefined,
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "rawInput": "{ "foo": "bar" }",
+            "state": "output-error",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "type": "tool-nonExistentTool",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('preliminary tool results', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([

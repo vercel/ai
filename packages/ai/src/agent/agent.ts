@@ -5,7 +5,14 @@ import { StreamTextTransform } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 import { TimeoutConfiguration } from '../prompt/call-settings';
-import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
+import type {
+  ToolLoopAgentOnFinishCallback,
+  ToolLoopAgentOnStartCallback,
+  ToolLoopAgentOnStepFinishCallback,
+  ToolLoopAgentOnStepStartCallback,
+  ToolLoopAgentOnToolCallFinishCallback,
+  ToolLoopAgentOnToolCallStartCallback,
+} from './tool-loop-agent-settings';
 
 /**
  * Parameters for calling an agent.
@@ -58,9 +65,34 @@ export type AgentCallParameters<CALL_OPTIONS, TOOLS extends ToolSet = {}> = ([
     timeout?: TimeoutConfiguration;
 
     /**
+     * Callback that is called when the agent operation begins, before any LLM calls.
+     */
+    experimental_onStart?: ToolLoopAgentOnStartCallback<TOOLS>;
+
+    /**
+     * Callback that is called when a step (LLM call) begins, before the provider is called.
+     */
+    experimental_onStepStart?: ToolLoopAgentOnStepStartCallback<TOOLS>;
+
+    /**
+     * Callback that is called before each tool execution begins.
+     */
+    experimental_onToolCallStart?: ToolLoopAgentOnToolCallStartCallback<TOOLS>;
+
+    /**
+     * Callback that is called after each tool execution completes.
+     */
+    experimental_onToolCallFinish?: ToolLoopAgentOnToolCallFinishCallback<TOOLS>;
+
+    /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
      */
     onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
+
+    /**
+     * Callback that is called when all steps are finished and the response is complete.
+     */
+    onFinish?: ToolLoopAgentOnFinishCallback<TOOLS>;
   };
 
 /**

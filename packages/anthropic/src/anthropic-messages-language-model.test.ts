@@ -3671,6 +3671,74 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    describe('code execution 20260120', () => {
+      it('should send request body with tool and no beta header', async () => {
+        prepareJsonFixtureResponse('anthropic-code-execution-20250825.1');
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20260120',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tools": [
+              {
+                "name": "code_execution",
+                "type": "code_execution_20260120",
+              },
+            ],
+          }
+        `);
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
+      });
+
+      it('should include code execution tool call and result in content', async () => {
+        prepareJsonFixtureResponse('anthropic-code-execution-20250825.1');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20260120',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
     describe('code execution 20250522', () => {
       const TEST_PROMPT = [
         {
@@ -4168,6 +4236,79 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(result.warnings).toStrictEqual([]);
     });
 
+    it('should pass cache_control to request body', async () => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            cacheControl: { type: 'ephemeral' },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "cache_control": {
+            "type": "ephemeral",
+          },
+          "max_tokens": 4096,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "claude-3-haiku-20240307",
+        }
+      `);
+
+      expect(result.warnings).toStrictEqual([]);
+    });
+
+    it('should pass cache_control with ttl to request body', async () => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            cacheControl: { type: 'ephemeral', ttl: '1h' },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "cache_control": {
+            "ttl": "1h",
+            "type": "ephemeral",
+          },
+          "max_tokens": 4096,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "claude-3-haiku-20240307",
+        }
+      `);
+
+      expect(result.warnings).toStrictEqual([]);
+    });
+
     describe('context management', () => {
       it('should send context_management in request body', async () => {
         prepareJsonFixtureResponse('anthropic-text');
@@ -4514,6 +4655,230 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
           ],
         });
+      });
+
+      it('should parse clear_tool_uses response with context_management', async () => {
+        prepareJsonFixtureResponse('anthropic-clear-tool-uses.1');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'text',
+            text: expect.stringContaining(
+              "Here's a comparison of the weather in both cities",
+            ),
+          },
+        ]);
+
+        expect(result.providerMetadata?.anthropic?.contextManagement).toEqual({
+          appliedEdits: [],
+        });
+
+        expect(result.usage).toMatchInlineSnapshot(
+          {
+            inputTokens: { total: 859 },
+            outputTokens: { total: 132 },
+          },
+          `
+          {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "noCache": 859,
+              "total": 859,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": 132,
+            },
+            "raw": {
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 0,
+                "ephemeral_5m_input_tokens": 0,
+              },
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "inference_geo": "not_available",
+              "input_tokens": 859,
+              "output_tokens": 132,
+              "service_tier": "standard",
+            },
+          }
+        `,
+        );
+      });
+
+      it('should parse clear_thinking response with thinking and context_management', async () => {
+        prepareJsonFixtureResponse('anthropic-clear-thinking.1');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'reasoning',
+            text: '925 divided by 5 = 185',
+            providerMetadata: {
+              anthropic: {
+                signature: expect.any(String),
+              },
+            },
+          },
+          {
+            type: 'text',
+            text: '925 ÷ 5 = 185',
+          },
+        ]);
+
+        expect(result.providerMetadata?.anthropic?.contextManagement).toEqual({
+          appliedEdits: [],
+        });
+
+        expect(result.usage).toMatchInlineSnapshot(
+          {
+            inputTokens: { total: 69 },
+            outputTokens: { total: 33 },
+          },
+          `
+          {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "noCache": 69,
+              "total": 69,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": 33,
+            },
+            "raw": {
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 0,
+                "ephemeral_5m_input_tokens": 0,
+              },
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "inference_geo": "not_available",
+              "input_tokens": 69,
+              "output_tokens": 33,
+              "service_tier": "standard",
+            },
+          }
+        `,
+        );
+      });
+
+      it('should parse combined clear_thinking and clear_tool_uses response', async () => {
+        prepareJsonFixtureResponse('anthropic-combined-context-editing.1');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              thinking: { type: 'enabled', budgetTokens: 5000 },
+              contextManagement: {
+                edits: [
+                  {
+                    type: 'clear_thinking_20251015',
+                    keep: { type: 'thinking_turns', value: 1 },
+                  },
+                  {
+                    type: 'clear_tool_uses_20250919',
+                    trigger: { type: 'tool_uses', value: 4 },
+                    keep: { type: 'tool_uses', value: 1 },
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'reasoning',
+            text: expect.stringContaining('25 * 37'),
+            providerMetadata: {
+              anthropic: {
+                signature: expect.any(String),
+              },
+            },
+          },
+          {
+            type: 'text',
+            text: expect.stringContaining('925'),
+          },
+        ]);
+
+        expect(result.providerMetadata?.anthropic?.contextManagement).toEqual({
+          appliedEdits: [],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(
+          {
+            context_management: {
+              edits: [
+                {
+                  type: 'clear_thinking_20251015',
+                  keep: { type: 'thinking_turns', value: 1 },
+                },
+                {
+                  type: 'clear_tool_uses_20250919',
+                  trigger: { type: 'tool_uses', value: 4 },
+                  keep: { type: 'tool_uses', value: 1 },
+                },
+              ],
+            },
+          },
+          `
+          {
+            "context_management": {
+              "edits": [
+                {
+                  "keep": {
+                    "type": "thinking_turns",
+                    "value": 1,
+                  },
+                  "type": "clear_thinking_20251015",
+                },
+                {
+                  "keep": {
+                    "type": "tool_uses",
+                    "value": 1,
+                  },
+                  "trigger": {
+                    "type": "tool_uses",
+                    "value": 4,
+                  },
+                  "type": "clear_tool_uses_20250919",
+                },
+              ],
+            },
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "thinking": {
+              "budget_tokens": 5000,
+              "type": "enabled",
+            },
+          }
+        `,
+        );
       });
 
       it('should return compaction stop reason as other', async () => {
@@ -5676,6 +6041,239 @@ describe('AnthropicMessagesLanguageModel', () => {
         outputTokens: {
           total: 522 + 2819,
         },
+      });
+    });
+
+    it('should handle compaction_delta with null content', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_test","type":"message","role":"assistant","model":"claude-3-haiku-20240307","stop_sequence":null,"usage":{"input_tokens":100,"output_tokens":0},"content":[],"stop_reason":null}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"compaction","content":null}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"compaction_delta","content":null}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"compaction_delta","content":"Summary of conversation."}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":10}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      // No parsing errors should occur (schema must accept null content)
+      const errors = result.filter(part => part.type === 'error');
+      expect(errors).toHaveLength(0);
+
+      const compactionDeltas = result.filter(
+        part => part.type === 'text-delta' && part.id === '0',
+      );
+      // null content delta should be skipped, only the string delta comes through
+      expect(compactionDeltas).toHaveLength(1);
+      expect((compactionDeltas[0] as { delta: string }).delta).toBe(
+        'Summary of conversation.',
+      );
+    });
+
+    it('should stream clear_tool_uses response with context_management', async () => {
+      prepareChunksFixtureResponse('anthropic-clear-tool-uses.1');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      const textDeltas = result.filter(
+        part => part.type === 'text-delta' && part.id === '0',
+      );
+      expect(textDeltas.length).toBeGreaterThan(0);
+
+      const fullText = textDeltas
+        .map(d => (d as { delta: string }).delta)
+        .join('');
+      expect(fullText).toContain(
+        "Here's a comparison of the weather in both cities",
+      );
+
+      const finishPart = result.find(part => part.type === 'finish');
+      expect(
+        finishPart?.providerMetadata?.anthropic?.contextManagement,
+      ).toEqual({
+        appliedEdits: [],
+      });
+
+      expect(finishPart?.usage).toMatchInlineSnapshot(
+        {
+          inputTokens: { total: 859 },
+          outputTokens: { total: 122 },
+        },
+        `
+        {
+          "inputTokens": {
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "noCache": 859,
+            "total": 859,
+          },
+          "outputTokens": {
+            "reasoning": undefined,
+            "text": undefined,
+            "total": 122,
+          },
+          "raw": {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0,
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "inference_geo": "not_available",
+            "input_tokens": 859,
+            "output_tokens": 122,
+            "service_tier": "standard",
+          },
+        }
+      `,
+      );
+    });
+
+    it('should stream clear_thinking response with thinking and text blocks', async () => {
+      prepareChunksFixtureResponse('anthropic-clear-thinking.1');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      const reasoningStart = result.find(
+        part => part.type === 'reasoning-start',
+      );
+      expect(reasoningStart).toBeDefined();
+
+      const reasoningDeltas = result.filter(
+        part => part.type === 'reasoning-delta',
+      );
+      expect(reasoningDeltas.length).toBeGreaterThan(0);
+      const fullReasoning = reasoningDeltas
+        .map(d => (d as { delta: string }).delta)
+        .join('');
+      expect(fullReasoning).toContain('925');
+      expect(fullReasoning).toContain('185');
+
+      const signatureParts = result.filter(
+        (
+          part,
+        ): part is LanguageModelV3StreamPart & {
+          type: 'reasoning-delta';
+        } =>
+          part.type === 'reasoning-delta' &&
+          part.providerMetadata?.anthropic != null,
+      );
+      expect(signatureParts).toHaveLength(1);
+      expect(
+        signatureParts[0].providerMetadata?.anthropic?.signature,
+      ).toBeTruthy();
+
+      const textDeltas = result.filter(
+        part => part.type === 'text-delta' && part.id === '1',
+      );
+      expect(textDeltas.length).toBeGreaterThan(0);
+      const fullText = textDeltas
+        .map(d => (d as { delta: string }).delta)
+        .join('');
+      expect(fullText).toBe('925 ÷ 5 = 185');
+
+      const finishPart = result.find(part => part.type === 'finish');
+      expect(
+        finishPart?.providerMetadata?.anthropic?.contextManagement,
+      ).toEqual({
+        appliedEdits: [],
+      });
+
+      expect(finishPart?.usage).toMatchInlineSnapshot(
+        {
+          inputTokens: { total: 69 },
+          outputTokens: { total: 53 },
+        },
+        `
+        {
+          "inputTokens": {
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "noCache": 69,
+            "total": 69,
+          },
+          "outputTokens": {
+            "reasoning": undefined,
+            "text": undefined,
+            "total": 53,
+          },
+          "raw": {
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0,
+            },
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "inference_geo": "not_available",
+            "input_tokens": 69,
+            "output_tokens": 53,
+            "service_tier": "standard",
+          },
+        }
+      `,
+      );
+    });
+
+    it('should stream combined clear_thinking and clear_tool_uses response', async () => {
+      prepareChunksFixtureResponse('anthropic-combined-context-editing.1');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      const reasoningDeltas = result.filter(
+        part =>
+          part.type === 'reasoning-delta' &&
+          (part as { providerMetadata?: Record<string, unknown> })
+            .providerMetadata?.anthropic == null,
+      );
+      expect(reasoningDeltas.length).toBeGreaterThan(0);
+      const fullReasoning = reasoningDeltas
+        .map(d => (d as { delta: string }).delta)
+        .join('');
+      expect(fullReasoning).toContain('25 * 37');
+      expect(fullReasoning).toContain('925');
+
+      const signatureParts = result.filter(
+        part =>
+          part.type === 'reasoning-delta' &&
+          (part as { providerMetadata?: Record<string, unknown> })
+            .providerMetadata?.anthropic != null,
+      );
+      expect(signatureParts).toHaveLength(1);
+
+      const textDeltas = result.filter(
+        part => part.type === 'text-delta' && part.id === '1',
+      );
+      expect(textDeltas.length).toBeGreaterThan(0);
+      const fullText = textDeltas
+        .map(d => (d as { delta: string }).delta)
+        .join('');
+      expect(fullText).toContain('925');
+
+      const finishPart = result.find(part => part.type === 'finish');
+      expect(
+        finishPart?.providerMetadata?.anthropic?.contextManagement,
+      ).toEqual({
+        appliedEdits: [],
       });
     });
 
@@ -7362,6 +7960,27 @@ describe('AnthropicMessagesLanguageModel', () => {
           ],
         });
 
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('code execution 20260120 tool', () => {
+      it('should stream code execution tool results without beta header', async () => {
+        prepareChunksFixtureResponse('anthropic-code-execution-20250825.1');
+
+        const result = await model.doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20260120',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
