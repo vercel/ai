@@ -4238,6 +4238,51 @@ describe('generateText', () => {
       `);
     });
 
+    it('should record telemetry for tool call without execute', async () => {
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({}) => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: `{ "value": "value" }`,
+              },
+            ],
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            // no execute — client-side tool
+          },
+        },
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          tracer,
+        },
+        _internal: {
+          generateId: () => 'test-id',
+        },
+      });
+
+      expect(tracer.jsonSpans).toHaveLength(3);
+      expect(tracer.jsonSpans[0].name).toBe('ai.generateText');
+      expect(tracer.jsonSpans[1].name).toBe('ai.generateText.doGenerate');
+      expect(tracer.jsonSpans[2].name).toBe('ai.toolCall');
+
+      const toolCallSpan = tracer.jsonSpans[2];
+      expect(toolCallSpan.attributes).toMatchObject({
+        'ai.toolCall.name': 'tool1',
+        'ai.toolCall.id': 'call-1',
+        'ai.toolCall.args': '{"value":"value"}',
+      });
+    });
+
     it('should record error on tool call', async () => {
       await generateText({
         model: new MockLanguageModelV3({
