@@ -40,6 +40,7 @@ async function getEncoderForModel(
     if (
       modelId.startsWith('o1') ||
       modelId.startsWith('o3') ||
+      modelId.startsWith('o4') ||
       modelId.startsWith('gpt-4o')
     ) {
       encodingName = 'o200k_base';
@@ -148,7 +149,9 @@ export async function countTokensForOpenAI({
     // Each message has overhead tokens (role, separators)
     totalTokens += 4; // <|start|>role<|end|>
 
-    if (Array.isArray(message.content)) {
+    if (typeof message.content === 'string') {
+      totalTokens += encoder.encode(message.content).length;
+    } else if (Array.isArray(message.content)) {
       for (const part of message.content) {
         if (part.type === 'text') {
           totalTokens += encoder.encode(part.text).length;

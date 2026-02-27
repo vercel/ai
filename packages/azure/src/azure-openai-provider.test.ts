@@ -1730,4 +1730,17 @@ describe('responses', () => {
       });
     });
   });
+
+  describe('doCountTokens', () => {
+    it('should return token count for simple prompt', async () => {
+      const model = createModel('test-deployment');
+      const result = await model.doCountTokens!({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.tokens).toBeGreaterThan(0);
+      expect(result.warnings).toEqual([]);
+      expect(result.providerMetadata?.openai?.estimatedTokenCount).toBe(true);
+    });
+  });
 });

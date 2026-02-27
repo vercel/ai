@@ -1,6 +1,6 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { countTokens } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   const result = await countTokens({

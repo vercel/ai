@@ -1,7 +1,7 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { countTokens, tool } from 'ai';
 import { z } from 'zod';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   const result = await countTokens({

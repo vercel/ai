@@ -1,14 +1,14 @@
-import { openai } from '@ai-sdk/openai';
+import { azure } from '@ai-sdk/azure';
 import { countTokens } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   const result = await countTokens({
-    model: openai('gpt-4o'),
+    model: azure('gpt-4o'),
     messages: [
       {
         role: 'user',
-        content: 'Explain the difference between TCP and UDP.',
+        content: 'What are the benefits of cloud computing?',
       },
     ],
   });

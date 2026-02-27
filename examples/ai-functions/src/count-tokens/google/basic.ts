@@ -1,14 +1,14 @@
-import { vertex } from '@ai-sdk/google-vertex';
+import { google } from '@ai-sdk/google';
 import { countTokens } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   const result = await countTokens({
-    model: vertex('gemini-2.0-flash'),
+    model: google('gemini-2.0-flash'),
     messages: [
       {
         role: 'user',
-        content: 'Explain machine learning in simple terms.',
+        content: 'Write a haiku about programming.',
       },
     ],
   });

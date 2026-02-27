@@ -3745,5 +3745,29 @@ describe('doStream', () => {
 
       expect(result.tokens).toBeGreaterThan(10);
     });
+
+    it('should count system message content tokens', async () => {
+      const promptWithoutSystem: LanguageModelV3Prompt = [
+        { role: 'user', content: [{ type: 'text' as const, text: 'Hello' }] },
+      ];
+
+      const promptWithSystem: LanguageModelV3Prompt = [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant that speaks French.',
+        },
+        { role: 'user', content: [{ type: 'text' as const, text: 'Hello' }] },
+      ];
+
+      const resultWithout = await model.doCountTokens!({
+        prompt: promptWithoutSystem,
+      });
+      const resultWith = await model.doCountTokens!({
+        prompt: promptWithSystem,
+      });
+
+      // System message should add more than just the 4-token overhead
+      expect(resultWith.tokens).toBeGreaterThan(resultWithout.tokens + 4);
+    });
   });
 });

@@ -7919,4 +7919,31 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
   });
+
+  describe('doCountTokens', () => {
+    it('should return token count for simple prompt', async () => {
+      const model = createModel('gpt-4o');
+      const result = await model.doCountTokens!({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.tokens).toBeGreaterThan(0);
+      expect(result.warnings).toEqual([]);
+      expect(result.providerMetadata?.openai?.estimatedTokenCount).toBe(true);
+    });
+
+    it('should return higher count with tools', async () => {
+      const model = createModel('gpt-4o');
+      const resultWithoutTools = await model.doCountTokens!({
+        prompt: TEST_PROMPT,
+      });
+
+      const resultWithTools = await model.doCountTokens!({
+        prompt: TEST_PROMPT,
+        tools: TEST_TOOLS,
+      });
+
+      expect(resultWithTools.tokens).toBeGreaterThan(resultWithoutTools.tokens);
+    });
+  });
 });

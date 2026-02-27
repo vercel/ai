@@ -1,6 +1,5 @@
 ---
 '@ai-sdk/amazon-bedrock': patch
-'@example/ai-functions': patch
 '@ai-sdk/anthropic': patch
 '@ai-sdk/provider': patch
 '@ai-sdk/google': patch
@@ -8,4 +7,11 @@
 'ai': patch
 ---
 
-feat(ai): Added countTokens function to languageModelv3
+feat(ai): Add countTokens function for token estimation
+
+Added a new `countTokens` function to the `ai` package that allows counting input tokens before making a generation call. This helps with cost estimation and staying within context window limits.
+
+- Added optional `doCountTokens` method to the `LanguageModelV3` interface
+- Anthropic, Google (Gemini/Vertex), and Amazon Bedrock use native API endpoints for exact token counts
+- OpenAI and Azure use local tiktoken estimation (flagged via `providerMetadata.openai.estimatedTokenCount`)
+- Providers without `doCountTokens` throw `UnsupportedFunctionalityError`
