@@ -20,6 +20,7 @@ Response: I'll go with "Hello" as it's a common greeting and keeps it simple.",
   },
   "request": {
     "body": {
+      "frequency_penalty": undefined,
       "max_completion_tokens": undefined,
       "messages": [
         {
@@ -29,10 +30,12 @@ Response: I'll go with "Hello" as it's a common greeting and keeps it simple.",
       ],
       "model": "grok-beta",
       "parallel_function_calling": undefined,
+      "presence_penalty": undefined,
       "reasoning_effort": undefined,
       "response_format": undefined,
       "search_parameters": undefined,
       "seed": undefined,
+      "stop": undefined,
       "temperature": undefined,
       "tool_choice": undefined,
       "tools": undefined,
@@ -146,6 +149,7 @@ I should call this function to advance the user's request.",
   },
   "request": {
     "body": {
+      "frequency_penalty": undefined,
       "max_completion_tokens": undefined,
       "messages": [
         {
@@ -155,10 +159,12 @@ I should call this function to advance the user's request.",
       ],
       "model": "grok-beta",
       "parallel_function_calling": undefined,
+      "presence_penalty": undefined,
       "reasoning_effort": undefined,
       "response_format": undefined,
       "search_parameters": undefined,
       "seed": undefined,
+      "stop": undefined,
       "temperature": undefined,
       "tool_choice": undefined,
       "tools": undefined,

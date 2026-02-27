@@ -218,6 +218,26 @@ describe('XaiChatLanguageModel', () => {
       `);
     });
 
+    it('should pass frequencyPenalty, presencePenalty, and stopSequences', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      const { warnings } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        frequencyPenalty: 0.5,
+        presencePenalty: 1,
+        stopSequences: ['###', 'END'],
+      });
+
+      expect(warnings).toEqual([]);
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'grok-beta',
+        messages: [{ role: 'user', content: 'Hello' }],
+        frequency_penalty: 0.5,
+        presence_penalty: 1,
+        stop: ['###', 'END'],
+      });
+    });
+
     it('should pass tools and toolChoice', async () => {
       prepareJsonFixtureResponse('xai-text');
 
@@ -364,6 +384,7 @@ describe('XaiChatLanguageModel', () => {
       expect(request).toMatchInlineSnapshot(`
         {
           "body": {
+            "frequency_penalty": undefined,
             "max_completion_tokens": undefined,
             "messages": [
               {
@@ -373,10 +394,12 @@ describe('XaiChatLanguageModel', () => {
             ],
             "model": "grok-beta",
             "parallel_function_calling": undefined,
+            "presence_penalty": undefined,
             "reasoning_effort": undefined,
             "response_format": undefined,
             "search_parameters": undefined,
             "seed": undefined,
+            "stop": undefined,
             "temperature": undefined,
             "tool_choice": undefined,
             "tools": undefined,
@@ -982,6 +1005,7 @@ describe('XaiChatLanguageModel', () => {
       expect(request).toMatchInlineSnapshot(`
         {
           "body": {
+            "frequency_penalty": undefined,
             "max_completion_tokens": undefined,
             "messages": [
               {
@@ -991,10 +1015,12 @@ describe('XaiChatLanguageModel', () => {
             ],
             "model": "grok-beta",
             "parallel_function_calling": undefined,
+            "presence_penalty": undefined,
             "reasoning_effort": undefined,
             "response_format": undefined,
             "search_parameters": undefined,
             "seed": undefined,
+            "stop": undefined,
             "stream": true,
             "stream_options": {
               "include_usage": true,
