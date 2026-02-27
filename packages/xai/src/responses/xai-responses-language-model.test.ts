@@ -378,6 +378,146 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.reasoning.effort).toBe('high');
         });
 
+        it('searchParameters', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          const result = await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                searchParameters: {
+                  mode: 'auto',
+                  returnCitations: true,
+                  fromDate: '2024-01-01',
+                  toDate: '2024-12-31',
+                  maxSearchResults: 10,
+                },
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          expect(result.warnings).toMatchInlineSnapshot(`
+            [
+              {
+                "message": "xAI currently rejects searchParameters with 410 (Live Search deprecated). Use server-side tools like xai.tools.webSearch() and xai.tools.xSearch() instead.",
+                "type": "other",
+              },
+            ]
+          `);
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.search_parameters).toMatchInlineSnapshot(`
+            {
+              "from_date": "2024-01-01",
+              "max_search_results": 10,
+              "mode": "auto",
+              "return_citations": true,
+              "to_date": "2024-12-31",
+            }
+          `);
+        });
+
+        it('searchParameters with sources', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          const result = await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                searchParameters: {
+                  mode: 'on',
+                  sources: [
+                    {
+                      type: 'web',
+                      country: 'US',
+                      allowedWebsites: ['arxiv.org'],
+                      safeSearch: true,
+                    },
+                    {
+                      type: 'x',
+                      xHandles: ['xai'],
+                      excludedXHandles: ['spam'],
+                      postFavoriteCount: 5,
+                      postViewCount: 10,
+                    },
+                    {
+                      type: 'news',
+                      country: 'GB',
+                      excludedWebsites: ['example.com'],
+                    },
+                    {
+                      type: 'rss',
+                      links: ['https://status.x.ai/feed.xml'],
+                    },
+                  ],
+                },
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          expect(result.warnings).toMatchInlineSnapshot(`
+            [
+              {
+                "message": "xAI currently rejects searchParameters with 410 (Live Search deprecated). Use server-side tools like xai.tools.webSearch() and xai.tools.xSearch() instead.",
+                "type": "other",
+              },
+            ]
+          `);
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.search_parameters).toMatchInlineSnapshot(`
+            {
+              "mode": "on",
+              "sources": [
+                {
+                  "allowed_websites": [
+                    "arxiv.org",
+                  ],
+                  "country": "US",
+                  "safe_search": true,
+                  "type": "web",
+                },
+                {
+                  "excluded_x_handles": [
+                    "spam",
+                  ],
+                  "included_x_handles": [
+                    "xai",
+                  ],
+                  "post_favorite_count": 5,
+                  "post_view_count": 10,
+                  "type": "x",
+                },
+                {
+                  "country": "GB",
+                  "excluded_websites": [
+                    "example.com",
+                  ],
+                  "type": "news",
+                },
+                {
+                  "links": [
+                    "https://status.x.ai/feed.xml",
+                  ],
+                  "type": "rss",
+                },
+              ],
+            }
+          `);
+        });
+
         it('store:true', async () => {
           prepareJsonResponse({
             id: 'resp_123',
