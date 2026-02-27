@@ -238,6 +238,30 @@ describe('XaiChatLanguageModel', () => {
       });
     });
 
+    it('should warn for presencePenalty on grok-3 models', async () => {
+      prepareJsonFixtureResponse('xai-text');
+      const grokThreeModel = new XaiChatLanguageModel('grok-3', testConfig);
+
+      const { warnings } = await grokThreeModel.doGenerate({
+        prompt: TEST_PROMPT,
+        presencePenalty: 1,
+      });
+
+      expect(warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'presencePenalty',
+          details:
+            'xAI does not support presencePenalty on grok-3 or reasoning models. The value is forwarded and may be rejected by the API.',
+        },
+      ]);
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'grok-3',
+        messages: [{ role: 'user', content: 'Hello' }],
+        presence_penalty: 1,
+      });
+    });
+
     it('should pass tools and toolChoice', async () => {
       prepareJsonFixtureResponse('xai-text');
 
@@ -1196,6 +1220,45 @@ describe('XaiChatLanguageModel', () => {
           "reasoning_effort": "high",
         }
       `);
+    });
+
+    it('should warn for penalties and stopSequences on reasoning models', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      const { warnings } = await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        frequencyPenalty: 0.5,
+        presencePenalty: 1,
+        stopSequences: ['###', 'END'],
+      });
+
+      expect(warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'frequencyPenalty',
+          details:
+            'xAI does not support frequencyPenalty on reasoning models. The value is forwarded and may be rejected by the API.',
+        },
+        {
+          type: 'unsupported',
+          feature: 'presencePenalty',
+          details:
+            'xAI does not support presencePenalty on grok-3 or reasoning models. The value is forwarded and may be rejected by the API.',
+        },
+        {
+          type: 'unsupported',
+          feature: 'stopSequences',
+          details:
+            'xAI does not support stopSequences on reasoning models. The value is forwarded and may be rejected by the API.',
+        },
+      ]);
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'grok-3-mini',
+        messages: [{ role: 'user', content: 'Hello' }],
+        frequency_penalty: 0.5,
+        presence_penalty: 1,
+        stop: ['###', 'END'],
+      });
     });
 
     it('should extract reasoning content', async () => {
