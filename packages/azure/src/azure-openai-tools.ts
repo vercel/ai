@@ -3,6 +3,7 @@ import {
   fileSearch,
   imageGeneration,
   webSearchPreview,
+  mcp,
 } from '@ai-sdk/openai/internal';
 
 export const azureOpenaiTools: {
@@ -10,9 +11,11 @@ export const azureOpenaiTools: {
   fileSearch: typeof fileSearch;
   imageGeneration: typeof imageGeneration;
   webSearchPreview: typeof webSearchPreview;
+  mcp: typeof mcp;
 } = {
   codeInterpreter,
   fileSearch,
   imageGeneration,
   webSearchPreview,
+  mcp,
 };
