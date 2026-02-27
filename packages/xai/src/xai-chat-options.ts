@@ -13,10 +13,13 @@ export type XaiChatModelId =
   | 'grok-3'
   | 'grok-3-latest'
   | 'grok-3-mini'
+  | 'grok-3-mini-latest'
   | 'grok-2-vision-1212'
   | 'grok-2-vision'
+  | 'grok-2-vision-latest'
   | 'grok-2-image-1212'
   | 'grok-2-image'
+  | 'grok-2-image-latest'
   | (string & {});
 
 // search source schemas

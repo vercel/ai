@@ -26,14 +26,14 @@ The Google Vertex provider has two different authentication implementations depe
 
 ### Node.js Runtime
 
-The Node.js runtime is the default runtime supported by the AI SDK. You can use the default provider instance to generate text with the `gemini-1.5-flash` model like this:
+The Node.js runtime is the default runtime supported by the AI SDK. You can use the default provider instance to generate text with the `gemini-2.5-flash` model like this:
 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vertex('gemini-1.5-flash'),
+  model: vertex('gemini-2.5-flash'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
@@ -44,14 +44,14 @@ This provider supports all standard Google Cloud authentication options through 
 
 The Edge runtime is supported through the `@ai-sdk/google-vertex/edge` module. Note the additional sub-module path `/edge` required to differentiate the Edge provider from the Node.js provider.
 
-You can use the default provider instance to generate text with the `gemini-1.5-flash` model like this:
+You can use the default provider instance to generate text with the `gemini-2.5-flash` model like this:
 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex/edge';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vertex('gemini-1.5-flash'),
+  model: vertex('gemini-2.5-flash'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
@@ -160,7 +160,7 @@ const customProvider = createVertex({
 });
 
 const { text } = await generateText({
-  model: customProvider('gemini-1.5-flash'),
+  model: customProvider('gemini-2.5-flash'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
@@ -183,7 +183,7 @@ const customProvider = createVertex({
 });
 
 const { text } = await generateText({
-  model: customProvider('gemini-1.5-flash'),
+  model: customProvider('gemini-2.5-flash'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
