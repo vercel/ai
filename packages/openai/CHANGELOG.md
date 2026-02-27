@@ -1,5 +1,35 @@
 # @ai-sdk/openai
 
+## 3.0.36
+
+### Patch Changes
+
+- 53bdfa5: fix(openai): allow null/undefined type in streaming tool call deltas
+
+  Azure AI Foundry and Mistral deployed on Azure omit the `type` field in
+  streaming tool_calls deltas. The chat stream parser now accepts a missing
+  `type` field (treating it as `"function"`) instead of throwing
+  `InvalidResponseDataError: Expected 'function' type.`
+
+  Fixes #12770
+
+## 3.0.35
+
+### Patch Changes
+
+- 5e18272: fix(openai): include reasoning parts without itemId when encrypted_content is present
+
+  When `providerOptions.openai.itemId` is absent on a reasoning content part,
+  the converter now uses `encrypted_content` as a fallback instead of silently
+  skipping the part with a warning. The OpenAI Responses API accepts reasoning
+  items without an `id` when `encrypted_content` is supplied, enabling
+  multi-turn reasoning even when item IDs are stripped from provider options.
+
+  Also makes the `id` field optional on the `OpenAIResponsesReasoning` type to
+  reflect that the API does not require it.
+
+  Fixes #12853
+
 ## 3.0.34
 
 ### Patch Changes

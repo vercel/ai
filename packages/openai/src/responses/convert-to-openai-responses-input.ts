@@ -428,10 +428,36 @@ export async function convertToOpenAIResponsesInput({
                   }
                 }
               } else {
-                warnings.push({
-                  type: 'other',
-                  message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${JSON.stringify(part)}.`,
-                });
+                // No itemId — fall back to encrypted_content if available.
+                // The OpenAI Responses API accepts reasoning items without an
+                // id when encrypted_content is provided, enabling multi-turn
+                // reasoning even when server-side item persistence is not used
+                // or when itemId has been stripped from providerOptions.
+                const encryptedContent =
+                  providerOptions?.reasoningEncryptedContent;
+
+                if (encryptedContent != null) {
+                  const summaryParts: Array<{
+                    type: 'summary_text';
+                    text: string;
+                  }> = [];
+                  if (part.text.length > 0) {
+                    summaryParts.push({
+                      type: 'summary_text',
+                      text: part.text,
+                    });
+                  }
+                  input.push({
+                    type: 'reasoning',
+                    encrypted_content: encryptedContent,
+                    summary: summaryParts,
+                  });
+                } else {
+                  warnings.push({
+                    type: 'other',
+                    message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                  });
+                }
               }
               break;
             }
