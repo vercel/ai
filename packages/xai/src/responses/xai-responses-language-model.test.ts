@@ -378,6 +378,55 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.reasoning.effort).toBe('high');
         });
 
+        it('logprobs and topLogprobs', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                logprobs: true,
+                topLogprobs: 6,
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.logprobs).toBe(true);
+          expect(requestBody.top_logprobs).toBe(6);
+        });
+
+        it('topLogprobs enables logprobs', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                topLogprobs: 2,
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.logprobs).toBe(true);
+          expect(requestBody.top_logprobs).toBe(2);
+        });
+
         it('store:true', async () => {
           prepareJsonResponse({
             id: 'resp_123',

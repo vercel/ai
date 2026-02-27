@@ -364,6 +364,7 @@ describe('XaiChatLanguageModel', () => {
       expect(request).toMatchInlineSnapshot(`
         {
           "body": {
+            "logprobs": undefined,
             "max_completion_tokens": undefined,
             "messages": [
               {
@@ -380,8 +381,64 @@ describe('XaiChatLanguageModel', () => {
             "temperature": undefined,
             "tool_choice": undefined,
             "tools": undefined,
+            "top_logprobs": undefined,
             "top_p": undefined,
           },
+        }
+      `);
+    });
+
+    it('should pass logprobs provider options', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: {
+            logprobs: true,
+            topLogprobs: 5,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "logprobs": true,
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "grok-beta",
+          "top_logprobs": 5,
+        }
+      `);
+    });
+
+    it('should enable logprobs when topLogprobs is set', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          xai: {
+            topLogprobs: 3,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "logprobs": true,
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "grok-beta",
+          "top_logprobs": 3,
         }
       `);
     });
@@ -982,6 +1039,7 @@ describe('XaiChatLanguageModel', () => {
       expect(request).toMatchInlineSnapshot(`
         {
           "body": {
+            "logprobs": undefined,
             "max_completion_tokens": undefined,
             "messages": [
               {
@@ -1002,6 +1060,7 @@ describe('XaiChatLanguageModel', () => {
             "temperature": undefined,
             "tool_choice": undefined,
             "tools": undefined,
+            "top_logprobs": undefined,
             "top_p": undefined,
           },
         }
