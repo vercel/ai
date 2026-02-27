@@ -221,8 +221,13 @@ Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.s
 - `ai.settings.maxRetries`: the maximum number of retries that were set
 - `ai.telemetry.functionId`: the functionId that was set through `telemetry.functionId`
 - `ai.telemetry.metadata.*`: the metadata that was passed in through `telemetry.metadata`
-- `ai.usage.completionTokens`: the number of completion tokens that were used
-- `ai.usage.promptTokens`: the number of prompt tokens that were used
+- `ai.usage.inputTokens`: the number of input (prompt) tokens that were used
+- `ai.usage.outputTokens`: the number of output (completion) tokens that were used
+- `ai.usage.totalTokens`: the total number of tokens (input + output)
+- `ai.usage.reasoningTokens`: the number of reasoning/thinking tokens (when the model reports them, e.g. extended thinking)
+- `ai.usage.cachedInputTokens`: the number of input tokens served from cache (when the provider reports cache reads)
+- `ai.usage.promptTokens`: same as `ai.usage.inputTokens`
+- `ai.usage.completionTokens`: same as `ai.usage.outputTokens`
 
 ### Call LLM span information
 
