@@ -125,6 +125,14 @@ The following optional provider options are available for xAI chat models:
 
   Reasoning effort for reasoning models.
 
+- **logprobs** _boolean_
+
+  Return log probabilities for output tokens.
+
+- **topLogprobs** _number_
+
+  Number of most likely tokens to return per token position (0-8). When set, `logprobs` is automatically enabled.
+
 - **parallel_function_calling** _boolean_
 
   Whether to enable parallel function calling during tool use. When true, the model can call multiple functions in parallel. When false, the model will call functions sequentially. Defaults to `true`.
@@ -445,6 +453,14 @@ The following provider options are available:
 - **reasoningEffort** _'low' | 'medium' | 'high'_
 
   Control the reasoning effort for the model. Higher effort may produce more thorough results at the cost of increased latency and token usage.
+
+- **logprobs** _boolean_
+
+  Return log probabilities for output tokens.
+
+- **topLogprobs** _number_
+
+  Number of most likely tokens to return per token position (0-8). When set, `logprobs` is automatically enabled.
 
 - **include** _Array&lt;'file_search_call.results'&gt;_
 
