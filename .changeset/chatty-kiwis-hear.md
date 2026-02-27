@@ -2,4 +2,4 @@
 '@ai-sdk/xai': patch
 ---
 
-add searchParameters support for xAI Responses API calls via providerOptions.xai, including request mapping for mode, citations, dates, max results, and sources
+deprecate providerOptions.xai.searchParameters handling for xAI chat and responses and warn users to use server-side tools instead of forwarding deprecated search_parameters

@@ -406,21 +406,13 @@ describe('XaiResponsesLanguageModel', () => {
           expect(result.warnings).toMatchInlineSnapshot(`
             [
               {
-                "message": "xAI currently rejects searchParameters with 410 (Live Search deprecated). Use server-side tools like xai.tools.webSearch() and xai.tools.xSearch() instead.",
+                "message": "xAI deprecated searchParameters. Use server-side tools like xai.tools.webSearch() and xai.tools.xSearch() instead.",
                 "type": "other",
               },
             ]
           `);
           const requestBody = await server.calls[0].requestBodyJson;
-          expect(requestBody.search_parameters).toMatchInlineSnapshot(`
-            {
-              "from_date": "2024-01-01",
-              "max_search_results": 10,
-              "mode": "auto",
-              "return_citations": true,
-              "to_date": "2024-12-31",
-            }
-          `);
+          expect(requestBody.search_parameters).toBe(undefined);
         });
 
         it('searchParameters with sources', async () => {
@@ -471,51 +463,13 @@ describe('XaiResponsesLanguageModel', () => {
           expect(result.warnings).toMatchInlineSnapshot(`
             [
               {
-                "message": "xAI currently rejects searchParameters with 410 (Live Search deprecated). Use server-side tools like xai.tools.webSearch() and xai.tools.xSearch() instead.",
+                "message": "xAI deprecated searchParameters. Use server-side tools like xai.tools.webSearch() and xai.tools.xSearch() instead.",
                 "type": "other",
               },
             ]
           `);
           const requestBody = await server.calls[0].requestBodyJson;
-          expect(requestBody.search_parameters).toMatchInlineSnapshot(`
-            {
-              "mode": "on",
-              "sources": [
-                {
-                  "allowed_websites": [
-                    "arxiv.org",
-                  ],
-                  "country": "US",
-                  "safe_search": true,
-                  "type": "web",
-                },
-                {
-                  "excluded_x_handles": [
-                    "spam",
-                  ],
-                  "included_x_handles": [
-                    "xai",
-                  ],
-                  "post_favorite_count": 5,
-                  "post_view_count": 10,
-                  "type": "x",
-                },
-                {
-                  "country": "GB",
-                  "excluded_websites": [
-                    "example.com",
-                  ],
-                  "type": "news",
-                },
-                {
-                  "links": [
-                    "https://status.x.ai/feed.xml",
-                  ],
-                  "type": "rss",
-                },
-              ],
-            }
-          `);
+          expect(requestBody.search_parameters).toBe(undefined);
         });
 
         it('store:true', async () => {

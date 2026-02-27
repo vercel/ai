@@ -448,9 +448,9 @@ The following provider options are available:
 
 - **searchParameters** _object_
 
-  Configure Live Search request parameters (`mode`, `returnCitations`, `fromDate`, `toDate`, `maxSearchResults`, `sources`).
+  Deprecated. Kept for compatibility and ignored by the SDK
 
-  xAI currently recommends server-side tools (`web_search`, `x_search`) for Responses API search. `searchParameters` currently returns `410 Gone` with a deprecation message.
+  xAI returns `410 Gone` when `search_parameters` is sent on both Chat Completions and Responses. Use server-side tools (`web_search`, `x_search`) for search
 
 - **include** _Array&lt;'file_search_call.results'&gt;_
 

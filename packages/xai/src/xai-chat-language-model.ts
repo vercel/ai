@@ -32,6 +32,7 @@ import {
 } from './xai-chat-options';
 import { xaiFailedResponseHandler } from './xai-error';
 import { prepareTools } from './xai-prepare-tools';
+import { searchParametersWarning } from './search-parameters-warning';
 
 type XaiChatConfig = {
   provider: string;
@@ -103,6 +104,13 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
       warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
+    if (options.searchParameters != null) {
+      warnings.push({
+        type: 'other',
+        message: searchParametersWarning,
+      });
+    }
+
     // convert ai sdk messages to xai format
     const { messages, warnings: messageWarnings } =
       convertToXaiChatMessages(prompt);
@@ -147,40 +155,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
               }
             : { type: 'json_object' }
           : undefined,
-
-      // search parameters
-      search_parameters: options.searchParameters
-        ? {
-            mode: options.searchParameters.mode,
-            return_citations: options.searchParameters.returnCitations,
-            from_date: options.searchParameters.fromDate,
-            to_date: options.searchParameters.toDate,
-            max_search_results: options.searchParameters.maxSearchResults,
-            sources: options.searchParameters.sources?.map(source => ({
-              type: source.type,
-              ...(source.type === 'web' && {
-                country: source.country,
-                excluded_websites: source.excludedWebsites,
-                allowed_websites: source.allowedWebsites,
-                safe_search: source.safeSearch,
-              }),
-              ...(source.type === 'x' && {
-                excluded_x_handles: source.excludedXHandles,
-                included_x_handles: source.includedXHandles ?? source.xHandles,
-                post_favorite_count: source.postFavoriteCount,
-                post_view_count: source.postViewCount,
-              }),
-              ...(source.type === 'news' && {
-                country: source.country,
-                excluded_websites: source.excludedWebsites,
-                safe_search: source.safeSearch,
-              }),
-              ...(source.type === 'rss' && {
-                links: source.links,
-              }),
-            })),
-          }
-        : undefined,
+      search_parameters: undefined,
 
       // messages in xai format
       messages,

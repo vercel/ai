@@ -34,6 +34,7 @@ import {
   xaiLanguageModelResponsesOptions,
 } from './xai-responses-options';
 import { prepareResponsesTools } from './xai-responses-prepare-tools';
+import { searchParametersWarning } from '../search-parameters-warning';
 
 type XaiResponsesConfig = {
   provider: string;
@@ -87,8 +88,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     if (options.searchParameters != null) {
       warnings.push({
         type: 'other',
-        message:
-          'xAI currently rejects searchParameters with 410 (Live Search deprecated). Use server-side tools like xai.tools.webSearch() and xai.tools.xSearch() instead.',
+        message: searchParametersWarning,
       });
     }
 
@@ -179,38 +179,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       }),
       ...(options.previousResponseId != null && {
         previous_response_id: options.previousResponseId,
-      }),
-      ...(options.searchParameters != null && {
-        search_parameters: {
-          mode: options.searchParameters.mode,
-          return_citations: options.searchParameters.returnCitations,
-          from_date: options.searchParameters.fromDate,
-          to_date: options.searchParameters.toDate,
-          max_search_results: options.searchParameters.maxSearchResults,
-          sources: options.searchParameters.sources?.map(source => ({
-            type: source.type,
-            ...(source.type === 'web' && {
-              country: source.country,
-              excluded_websites: source.excludedWebsites,
-              allowed_websites: source.allowedWebsites,
-              safe_search: source.safeSearch,
-            }),
-            ...(source.type === 'x' && {
-              excluded_x_handles: source.excludedXHandles,
-              included_x_handles: source.includedXHandles ?? source.xHandles,
-              post_favorite_count: source.postFavoriteCount,
-              post_view_count: source.postViewCount,
-            }),
-            ...(source.type === 'news' && {
-              country: source.country,
-              excluded_websites: source.excludedWebsites,
-              safe_search: source.safeSearch,
-            }),
-            ...(source.type === 'rss' && {
-              links: source.links,
-            }),
-          })),
-        },
       }),
     };
 

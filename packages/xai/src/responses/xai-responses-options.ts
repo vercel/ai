@@ -32,7 +32,8 @@ export const xaiLanguageModelResponsesOptions = z.object({
    */
   include: z.array(z.enum(['file_search_call.results'])).nullish(),
   /**
-   * Parameters to control realtime search data.
+   * Deprecated. Kept for compatibility and ignored at request time.
+   * Use server-side tools (`web_search`, `x_search`) instead.
    */
   searchParameters: z
     .object({
