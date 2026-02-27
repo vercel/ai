@@ -850,6 +850,50 @@ describe('generateImage', () => {
       });
     });
 
+    it('should aggregate numeric gateway metadata (cost) across multiple calls', async () => {
+      let callIndex = 0;
+      const result = await generateImage({
+        model: new MockImageModelV3({
+          maxImagesPerCall: 1,
+          doGenerate: async () => {
+            switch (callIndex++) {
+              case 0:
+                return createMockResponse({
+                  images: [pngBase64],
+                  providerMetaData: {
+                    gateway: {
+                      images: [],
+                      cost: '0.02',
+                      routing: { provider: 'test1' },
+                    },
+                  },
+                });
+              case 1:
+                return createMockResponse({
+                  images: [jpegBase64],
+                  providerMetaData: {
+                    gateway: {
+                      images: [],
+                      cost: '0.03',
+                      routing: { provider: 'test2' },
+                    },
+                  },
+                });
+              default:
+                throw new Error('Unexpected call');
+            }
+          },
+        }),
+        prompt,
+        n: 2,
+      });
+
+      expect(result.providerMetadata.gateway).toStrictEqual({
+        routing: { provider: 'test2' },
+        cost: '0.05',
+      });
+    });
+
     it('should drop empty images array for gateway provider', async () => {
       const result = await generateImage({
         model: new MockImageModelV3({
