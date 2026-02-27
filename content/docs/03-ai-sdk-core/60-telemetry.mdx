@@ -73,48 +73,48 @@ const result = await generateText({
 });
 ```
 
-## Telemetry Handlers
+## Telemetry Integrations
 
-Telemetry handlers let you hook into the generation lifecycle to build custom observability integrations — logging, analytics, DevTools, or any other monitoring system. Instead of wiring up individual callbacks on every call, you implement a `TelemetryHandler` once and pass it via `experimental_telemetry.handlers`.
+Telemetry integrations let you hook into the generation lifecycle to build custom observability — logging, analytics, DevTools, or any other monitoring system. Instead of wiring up individual callbacks on every call, you implement a `TelemetryIntegration` once and pass it via `experimental_telemetry.integrations`.
 
-### Using a handler
+### Using an integration
 
-Pass one or more handlers to any `generateText` or `streamText` call:
+Pass one or more integrations to any `generateText` or `streamText` call:
 
 ```ts highlight="6-8"
 import { streamText } from 'ai';
-import { devToolsHandler } from '@ai-sdk/devtools';
+import { devToolsIntegration } from '@ai-sdk/devtools';
 
 const result = streamText({
   model: openai('gpt-4o'),
   prompt: 'Hello!',
   experimental_telemetry: {
     isEnabled: true,
-    handlers: [devToolsHandler()],
+    integrations: [devToolsIntegration()],
   },
 });
 ```
 
-You can combine multiple handlers — they all receive the same lifecycle events:
+You can combine multiple integrations — they all receive the same lifecycle events:
 
 ```ts
 experimental_telemetry: {
   isEnabled: true,
-  handlers: [devToolsHandler(), otelHandler(), customLogger()],
+  integrations: [devToolsIntegration(), otelIntegration(), customLogger()],
 },
 ```
 
-Errors inside handlers are caught and do not break the generation flow.
+Errors inside integrations are caught and do not break the generation flow.
 
-### Building a custom handler
+### Building a custom integration
 
-Implement the `TelemetryHandler` interface from the `ai` package. All methods are optional — implement only the lifecycle events you care about:
+Implement the `TelemetryIntegration` interface from the `ai` package. All methods are optional — implement only the lifecycle events you care about:
 
 ```ts
-import type { TelemetryHandler } from 'ai';
-import { bindTelemetryHandler } from 'ai';
+import type { TelemetryIntegration } from 'ai';
+import { bindTelemetryIntegration } from 'ai';
 
-class MyHandler implements TelemetryHandler {
+class MyIntegration implements TelemetryIntegration {
   async onStart(event) {
     console.log('Generation started:', event.model.modelId);
   }
@@ -142,12 +142,12 @@ class MyHandler implements TelemetryHandler {
   }
 }
 
-export function myHandler(): TelemetryHandler {
-  return bindTelemetryHandler(new MyHandler());
+export function myIntegration(): TelemetryIntegration {
+  return bindTelemetryIntegration(new MyIntegration());
 }
 ```
 
-Use `bindTelemetryHandler` for class-based handlers to ensure `this` is correctly bound when methods are extracted and called as callbacks.
+Use `bindTelemetryIntegration` for class-based integrations to ensure `this` is correctly bound when methods are extracted and called as callbacks.
 
 ### Available lifecycle methods
 
@@ -190,10 +190,6 @@ Use `bindTelemetryHandler` for class-based handlers to ensure `this` is correctl
 />
 
 The event types for each method are the same as the corresponding [event callbacks](/docs/ai-sdk-core/event-listeners). See the event callbacks documentation for the full property reference of each event.
-
-### Publishing a handler
-
-If you build a handler that others can use, publish it as an npm package and add it to the [Telemetry Registry](https://ai-sdk.dev/telemetry-registry). See the [contributing guide](https://github.com/vercel/ai/blob/main/contributing/add-new-telemetry-handler-to-registry.md) for details.
 
 ## Collected Data
 

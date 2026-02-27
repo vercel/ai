@@ -10,10 +10,10 @@ import type { Output } from '../generate-text/output';
 import type { ToolSet } from '../generate-text/tool-set';
 
 /**
- * Implement this interface to create custom telemetry integrations
+ * Implement this interface to create custom telemetry integrations.
  * Methods can be sync or return a PromiseLike.
  */
-export interface TelemetryHandler<
+export interface TelemetryIntegration<
   TOOLS extends ToolSet = ToolSet,
   OUTPUT extends Output = Output,
 > {

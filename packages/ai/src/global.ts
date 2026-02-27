@@ -1,5 +1,6 @@
 import { ProviderV3 } from '@ai-sdk/provider';
 import { LogWarningsFunction } from './logger/log-warnings';
+import type { TelemetryIntegration } from './telemetry/telemetry-integration';
 
 // add AI SDK default provider to the globalThis object
 declare global {
@@ -21,4 +22,15 @@ declare global {
    * If set to false, no warnings are logged.
    */
   var AI_SDK_LOG_WARNINGS: LogWarningsFunction | undefined | false;
+
+  /**
+   * Globally registered telemetry integrations for the AI SDK.
+   *
+   * Integrations registered here receive lifecycle events (onStart, onStepStart,
+   * etc.) from every `generateText`, `streamText`, and similar call.
+   *
+   * Prefer using `registerTelemetryIntegration()` from `'ai'` instead of
+   * assigning this directly.
+   */
+  var AI_SDK_TELEMETRY_INTEGRATIONS: TelemetryIntegration[] | undefined;
 }

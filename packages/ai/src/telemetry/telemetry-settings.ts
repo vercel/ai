@@ -1,5 +1,5 @@
 import { AttributeValue, Tracer } from '@opentelemetry/api';
-import type { TelemetryHandler } from './telemetry-handler';
+import type { TelemetryIntegration } from './telemetry-integration';
 
 /**
  * Telemetry configuration.
@@ -44,10 +44,10 @@ export type TelemetrySettings = {
   tracer?: Tracer;
 
   /**
-   * Telemetry handlers that receive lifecycle events during generation.
+   * Per-call telemetry integrations that receive lifecycle events during generation.
    *
-   * Handlers are called for each lifecycle event (onStart, onStepStart, etc.)
-   * alongside any globally registered handlers from `telemetryHandlerRegistry`.
+   * These integrations run after any globally registered integrations
+   * (see `registerTelemetryIntegration`).
    */
-  handlers?: TelemetryHandler | TelemetryHandler[];
+  integrations?: TelemetryIntegration | TelemetryIntegration[];
 };
