@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: google('gemini-exp-1206'),
+    model: google('gemini-2.5-flash'),
     output: Output.object({
       schema: z.object({
         title: z.string(),

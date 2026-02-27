@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-3-7-sonnet-latest'),
+    model: anthropic('claude-sonnet-4-5-20250929'),
     output: Output.object({
       schema: type({
         recipe: {

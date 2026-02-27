@@ -12,7 +12,7 @@ const cachedMessage = `The time is ${new Date().toISOString()}. Error message: $
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-3-5-haiku-latest'),
+    model: anthropic('claude-haiku-4-5'),
     headers: {
       'anthropic-beta': 'extended-cache-ttl-2025-04-11',
     },
@@ -55,7 +55,7 @@ run(async () => {
   // }
 
   const cachedResult = await generateText({
-    model: anthropic('claude-3-5-haiku-latest'),
+    model: anthropic('claude-haiku-4-5'),
     headers: {
       'anthropic-beta': 'extended-cache-ttl-2025-04-11',
     },
