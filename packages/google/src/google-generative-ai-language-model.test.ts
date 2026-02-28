@@ -295,6 +295,13 @@ describe('urlContextMetadata', () => {
     const result = urlContextMetadataSchema.safeParse(output);
     expect(result.success).toBe(true);
   });
+
+  it('validates empty object without urlMetadata key', () => {
+    const output = {};
+
+    const result = urlContextMetadataSchema.safeParse(output);
+    expect(result.success).toBe(true);
+  });
 });
 
 describe('doGenerate', () => {
