@@ -51,6 +51,7 @@ import {
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
+import { convertJSONSchemaToAnthropicSchema } from './convert-schema';
 
 function createCitationSource(
   citation: Citation,
@@ -373,6 +374,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         cache_control: anthropicOptions.cacheControl,
       }),
 
+      // structured output:
+      ...(useStructuredOutput &&
+        responseFormat?.type === 'json' &&
+        responseFormat.schema != null && {
+          output_format: {
+            type: 'json_schema',
+            schema: convertJSONSchemaToAnthropicSchema(responseFormat.schema),
+          },
+        }),
+
+>>>>>>> d532bd9 (fix(anthropic): convert oneOf to anyOf in JSON schemas)
       // mcp servers:
       ...(anthropicOptions?.mcpServers &&
         anthropicOptions.mcpServers.length > 0 && {
