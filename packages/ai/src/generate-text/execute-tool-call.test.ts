@@ -673,4 +673,58 @@ describe('executeToolCall', () => {
       expect(result).toBeUndefined();
     });
   });
+
+  describe('when tool execution throws AbortError', () => {
+    it('should re-throw AbortError instead of returning tool-error', async () => {
+      const abortError = new DOMException(
+        'The operation was aborted',
+        'AbortError',
+      );
+
+      await expect(
+        executeToolCall({
+          toolCall: createToolCall(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async (): Promise<string> => {
+                throw abortError;
+              },
+            }),
+          },
+          tracer,
+          telemetry: undefined,
+          messages: [],
+          abortSignal: undefined,
+          experimental_context: undefined,
+        }),
+      ).rejects.toThrow(abortError);
+    });
+
+    it('should re-throw TimeoutError instead of returning tool-error', async () => {
+      const timeoutError = new DOMException(
+        'Signal timed out',
+        'TimeoutError',
+      );
+
+      await expect(
+        executeToolCall({
+          toolCall: createToolCall(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async (): Promise<string> => {
+                throw timeoutError;
+              },
+            }),
+          },
+          tracer,
+          telemetry: undefined,
+          messages: [],
+          abortSignal: undefined,
+          experimental_context: undefined,
+        }),
+      ).rejects.toThrow(timeoutError);
+    });
+  });
 });
