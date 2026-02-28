@@ -881,6 +881,9 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
+                  // ideally we'd switch schema based on the tool version (e.g.
+                  // web_fetch_20260209 vs web_fetch_20250910), but since both
+                  // versions share an identical output schema, we use one here.
                   const webFetchOutput = await validateTypes({
                     value: output.value,
                     schema: webFetch_20250910OutputSchema,
@@ -925,6 +928,9 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
+                  // ideally we'd switch schema based on the tool version (e.g.
+                  // web_search_20260209 vs web_search_20250305), but since both
+                  // versions share an identical output schema, we use one here.
                   const webSearchOutput = await validateTypes({
                     value: output.value,
                     schema: webSearch_20250305OutputSchema,
