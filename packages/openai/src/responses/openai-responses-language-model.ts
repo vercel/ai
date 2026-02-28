@@ -181,15 +181,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       });
     }
 
-    // Collect custom tool names from provider tools before creating the mapping.
-    // Custom tools each have their own unique name, so we need dynamic entries.
-    const customToolProviderNames: Record<string, string> = {};
     const customToolNames = new Set<string>();
     if (tools) {
       for (const tool of tools) {
         if (tool.type === 'provider' && tool.id === 'openai.custom') {
           const args = tool.args as { name: string };
-          customToolProviderNames[`openai.custom`] = args.name;
           customToolNames.add(args.name);
         }
       }
@@ -430,6 +426,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     } = await prepareResponsesTools({
       tools,
       toolChoice,
+      customToolNames: customToolNames.size > 0 ? customToolNames : undefined,
     });
 
     const shellToolEnvType = (
@@ -738,7 +735,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             type: 'tool-call',
             toolCallId: part.call_id,
             toolName: part.name,
-            input: part.input,
+            input: JSON.stringify(part.input),
             providerMetadata: {
               [providerOptionsName]: {
                 itemId: part.id,
@@ -1319,7 +1316,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   },
                 });
               } else if (value.item.type === 'custom_tool_call') {
-                const toolCall = ongoingToolCalls[value.output_index];
                 ongoingToolCalls[value.output_index] = undefined;
                 hasFunctionCall = true;
 
@@ -1332,7 +1328,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'tool-call',
                   toolCallId: value.item.call_id,
                   toolName: value.item.name,
-                  input: value.item.input,
+                  input: JSON.stringify(value.item.input),
                   providerMetadata: {
                     [providerOptionsName]: {
                       itemId: value.item.id,
