@@ -521,13 +521,21 @@ export async function convertToAnthropicMessagesPrompt({
                     } else {
                       warnings.push({
                         type: 'other',
-                        message: 'unsupported reasoning metadata',
+                        message:
+                          'Reasoning part is missing required Anthropic metadata (signature or redactedData). ' +
+                          'The thinking block will be omitted from the prompt. ' +
+                          'When thinking is enabled, Anthropic requires that the last assistant message starts with a thinking block. ' +
+                          'Ensure that providerOptions with the Anthropic signature are preserved when storing and restoring messages.',
                       });
                     }
                   } else {
                     warnings.push({
                       type: 'other',
-                      message: 'unsupported reasoning metadata',
+                      message:
+                        'Reasoning part is missing required Anthropic metadata (signature or redactedData). ' +
+                        'The thinking block will be omitted from the prompt. ' +
+                        'When thinking is enabled, Anthropic requires that the last assistant message starts with a thinking block. ' +
+                        'Ensure that providerOptions with the Anthropic signature are preserved when storing and restoring messages.',
                     });
                   }
                 } else {

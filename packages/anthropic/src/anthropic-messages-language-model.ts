@@ -328,6 +328,33 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         ? anthropicOptions?.thinking?.budgetTokens
         : undefined;
 
+    // Validate thinking block requirement:
+    // When thinking is enabled, Anthropic requires the last assistant message
+    // to start with a thinking or redacted_thinking block.
+    if (isThinking && messagesPrompt.messages.length > 0) {
+      const lastAssistantMessage = [...messagesPrompt.messages]
+        .reverse()
+        .find(msg => msg.role === 'assistant');
+      if (lastAssistantMessage != null) {
+        const content = lastAssistantMessage.content;
+        if (
+          content.length > 0 &&
+          content[0].type !== 'thinking' &&
+          content[0].type !== 'redacted_thinking'
+        ) {
+          throw new Error(
+            'Anthropic requires that when thinking is enabled, the last assistant message ' +
+              'must start with a thinking or redacted_thinking block, but the last assistant ' +
+              `message starts with "${content[0].type}". ` +
+              'This typically happens when reasoning parts lose their providerOptions ' +
+              '(containing the Anthropic signature) during message storage/retrieval, ' +
+              'or when prepareStep modifies messages in a way that removes thinking blocks. ' +
+              'Ensure that providerOptions on reasoning parts are preserved when persisting messages.',
+          );
+        }
+      }
+    }
+
     const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
 
     const baseArgs = {

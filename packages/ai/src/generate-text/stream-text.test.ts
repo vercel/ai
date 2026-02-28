@@ -3044,6 +3044,37 @@ describe('streamText', () => {
         `);
     });
 
+    it('should not send reasoning content when sendReasoning is false', async () => {
+      const result = streamText({
+        model: modelWithReasoning,
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream({
+        sendReasoning: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(uiMessageStream);
+
+      // Verify no reasoning-start, reasoning-delta, or reasoning-end chunks are emitted
+      const reasoningChunks = chunks.filter(
+        (chunk: { type: string }) =>
+          chunk.type === 'reasoning-start' ||
+          chunk.type === 'reasoning-delta' ||
+          chunk.type === 'reasoning-end',
+      );
+      expect(reasoningChunks).toEqual([]);
+
+      // Verify text content is still emitted
+      const textChunks = chunks.filter(
+        (chunk: { type: string }) =>
+          chunk.type === 'text-start' ||
+          chunk.type === 'text-delta' ||
+          chunk.type === 'text-end',
+      );
+      expect(textChunks.length).toBeGreaterThan(0);
+    });
+
     it('should send source content when sendSources is true', async () => {
       const result = streamText({
         model: modelWithSources,

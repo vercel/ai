@@ -217,6 +217,119 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    describe('thinking block validation', () => {
+      it('should throw when thinking is enabled and last assistant message starts with text instead of thinking', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await expect(
+          provider('claude-sonnet-4-5').doGenerate({
+            prompt: [
+              { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+              {
+                role: 'assistant',
+                content: [
+                  { type: 'text', text: 'I will help you.' },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-1',
+                    toolName: 'myTool',
+                    input: { query: 'test' },
+                  },
+                ],
+              },
+              {
+                role: 'tool',
+                content: [
+                  {
+                    type: 'tool-result',
+                    toolCallId: 'call-1',
+                    toolName: 'myTool',
+                    output: { type: 'text', value: 'test result' },
+                  },
+                ],
+              },
+            ],
+            providerOptions: {
+              anthropic: {
+                thinking: { type: 'enabled', budgetTokens: 1024 },
+              } satisfies AnthropicLanguageModelOptions,
+            },
+          }),
+        ).rejects.toThrow(
+          'Anthropic requires that when thinking is enabled, the last assistant message must start with a thinking or redacted_thinking block',
+        );
+      });
+
+      it('should not throw when thinking is enabled and last assistant message starts with thinking', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: [
+            { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'Let me think...',
+                  providerOptions: {
+                    anthropic: {
+                      signature: 'test-signature-abc123',
+                    },
+                  },
+                },
+                { type: 'text', text: 'I will help you.' },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'myTool',
+                  input: { query: 'test' },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-1',
+                  toolName: 'myTool',
+                  output: { type: 'text', value: 'test result' },
+                },
+              ],
+            },
+          ],
+          providerOptions: {
+            anthropic: {
+              thinking: { type: 'enabled', budgetTokens: 1024 },
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        // Should not throw — request succeeds
+        expect(server.calls.length).toBe(1);
+      });
+
+      it('should not throw when thinking is disabled and last assistant message starts with text', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: [
+            { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+            {
+              role: 'assistant',
+              content: [
+                { type: 'text', text: 'I will help you.' },
+              ],
+            },
+          ],
+        });
+
+        // Should not throw
+        expect(server.calls.length).toBe(1);
+      });
+    });
+
     describe('json schema response format with json tool response (unsupported model)', () => {
       let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
