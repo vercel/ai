@@ -30,6 +30,7 @@ import {
   XaiChatModelId,
   xaiLanguageModelChatOptions,
 } from './xai-chat-options';
+import { getXaiChatModelCapabilities } from './xai-chat-model-capabilities';
 import { xaiFailedResponseHandler } from './xai-error';
 import { prepareTools } from './xai-prepare-tools';
 
@@ -91,16 +92,42 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
-    if (frequencyPenalty != null) {
-      warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
+    const modelCapabilities = getXaiChatModelCapabilities(this.modelId);
+    let xaiFrequencyPenalty = frequencyPenalty;
+    let xaiPresencePenalty = presencePenalty;
+    let xaiStopSequences = stopSequences;
+
+    if (xaiFrequencyPenalty != null && modelCapabilities.isReasoningModel) {
+      xaiFrequencyPenalty = undefined;
+      warnings.push({
+        type: 'unsupported',
+        feature: 'frequencyPenalty',
+        details:
+          'xAI does not support frequencyPenalty on reasoning models and it has been removed.',
+      });
     }
 
-    if (presencePenalty != null) {
-      warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
+    if (
+      xaiPresencePenalty != null &&
+      (modelCapabilities.isReasoningModel || modelCapabilities.isGrokThreeModel)
+    ) {
+      xaiPresencePenalty = undefined;
+      warnings.push({
+        type: 'unsupported',
+        feature: 'presencePenalty',
+        details:
+          'xAI does not support presencePenalty on grok-3 and reasoning models and it has been removed.',
+      });
     }
 
-    if (stopSequences != null) {
-      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
+    if (xaiStopSequences != null && modelCapabilities.isReasoningModel) {
+      xaiStopSequences = undefined;
+      warnings.push({
+        type: 'unsupported',
+        feature: 'stopSequences',
+        details:
+          'xAI does not support stopSequences on reasoning models and they have been removed.',
+      });
     }
 
     // convert ai sdk messages to xai format
@@ -127,6 +154,9 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
       max_completion_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
+      frequency_penalty: xaiFrequencyPenalty,
+      presence_penalty: xaiPresencePenalty,
+      stop: xaiStopSequences,
       seed,
       reasoning_effort: options.reasoningEffort,
 

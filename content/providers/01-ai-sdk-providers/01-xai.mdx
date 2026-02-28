@@ -129,6 +129,13 @@ The following optional provider options are available for xAI chat models:
 
   Whether to enable parallel function calling during tool use. When true, the model can call multiple functions in parallel. When false, the model will call functions sequentially. Defaults to `true`.
 
+<Note>
+  `frequencyPenalty` and `stopSequences` are not supported by reasoning models.
+  `presencePenalty` is not supported by `grok-3` and reasoning models. The AI
+  SDK removes unsupported settings and includes unsupported warnings in the
+  response.
+</Note>
+
 ## Responses API (Agentic Tools)
 
 You can use the xAI Responses API with the `xai.responses(modelId)` factory method for server-side agentic tool calling. This enables the model to autonomously orchestrate tool calls and research on xAI's servers.
