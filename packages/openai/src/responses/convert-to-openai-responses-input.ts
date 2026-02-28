@@ -48,7 +48,7 @@ export async function convertToOpenAIResponsesInput({
   hasLocalShellTool = false,
   hasShellTool = false,
   hasApplyPatchTool = false,
-  customToolNames,
+  customProviderToolNames,
 }: {
   prompt: LanguageModelV3Prompt;
   toolNameMapping: ToolNameMapping;
@@ -60,7 +60,7 @@ export async function convertToOpenAIResponsesInput({
   hasLocalShellTool?: boolean;
   hasShellTool?: boolean;
   hasApplyPatchTool?: boolean;
-  customToolNames?: Set<string>;
+  customProviderToolNames?: Set<string>;
 }): Promise<{
   input: OpenAIResponsesInput;
   warnings: Array<SharedV3Warning>;
@@ -280,7 +280,7 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
-              if (customToolNames?.has(resolvedToolName)) {
+              if (customProviderToolNames?.has(resolvedToolName)) {
                 input.push({
                   type: 'custom_tool_call',
                   call_id: part.toolCallId,
@@ -592,8 +592,8 @@ export async function convertToOpenAIResponsesInput({
             continue;
           }
 
-          if (customToolNames?.has(resolvedToolName)) {
-            let outputValue: string;
+          if (customProviderToolNames?.has(resolvedToolName)) {
+            let outputValue: OpenAIResponsesCustomToolCallOutput['output'];
             switch (output.type) {
               case 'text':
               case 'error-text':
@@ -605,6 +605,38 @@ export async function convertToOpenAIResponsesInput({
               case 'json':
               case 'error-json':
                 outputValue = JSON.stringify(output.value);
+                break;
+              case 'content':
+                outputValue = output.value
+                  .map(item => {
+                    switch (item.type) {
+                      case 'text':
+                        return { type: 'input_text' as const, text: item.text };
+                      case 'image-data':
+                        return {
+                          type: 'input_image' as const,
+                          image_url: `data:${item.mediaType};base64,${item.data}`,
+                        };
+                      case 'image-url':
+                        return {
+                          type: 'input_image' as const,
+                          image_url: item.url,
+                        };
+                      case 'file-data':
+                        return {
+                          type: 'input_file' as const,
+                          filename: item.filename ?? 'data',
+                          file_data: `data:${item.mediaType};base64,${item.data}`,
+                        };
+                      default:
+                        warnings.push({
+                          type: 'other',
+                          message: `unsupported custom tool content part type: ${item.type}`,
+                        });
+                        return undefined;
+                    }
+                  })
+                  .filter(isNonNullable);
                 break;
               default:
                 outputValue = '';

@@ -181,16 +181,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       });
     }
 
-    const customToolNames = new Set<string>();
-    if (tools) {
-      for (const tool of tools) {
-        if (tool.type === 'provider' && tool.id === 'openai.custom') {
-          const args = tool.args as { name: string };
-          customToolNames.add(args.name);
-        }
-      }
-    }
-
     const toolNameMapping = createToolNameMapping({
       tools,
       providerToolNames: {
@@ -204,6 +194,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         'openai.mcp': 'mcp',
         'openai.apply_patch': 'apply_patch',
       },
+      resolveProviderToolName: tool =>
+        tool.id === 'openai.custom'
+          ? (tool.args as { name?: string }).name
+          : undefined,
+    });
+
+    const customProviderToolNames = new Set<string>();
+    const {
+      tools: openaiTools,
+      toolChoice: openaiToolChoice,
+      toolWarnings,
+    } = await prepareResponsesTools({
+      tools,
+      toolChoice,
+      toolNameMapping,
+      customProviderToolNames,
     });
 
     const { input, warnings: inputWarnings } =
@@ -222,7 +228,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
         hasShellTool: hasOpenAITool('openai.shell'),
         hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
-        customToolNames: customToolNames.size > 0 ? customToolNames : undefined,
+        customProviderToolNames:
+          customProviderToolNames.size > 0
+            ? customProviderToolNames
+            : undefined,
       });
 
     warnings.push(...inputWarnings);
@@ -418,16 +427,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       // Remove from args if not supported
       delete (baseArgs as any).service_tier;
     }
-
-    const {
-      tools: openaiTools,
-      toolChoice: openaiToolChoice,
-      toolWarnings,
-    } = await prepareResponsesTools({
-      tools,
-      toolChoice,
-      customToolNames: customToolNames.size > 0 ? customToolNames : undefined,
-    });
 
     const shellToolEnvType = (
       tools?.find(
@@ -730,11 +729,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
         case 'custom_tool_call': {
           hasFunctionCall = true;
+          const toolName = toolNameMapping.toCustomToolName(part.name);
 
           content.push({
             type: 'tool-call',
             toolCallId: part.call_id,
-            toolName: part.name,
+            toolName,
             input: JSON.stringify(part.input),
             providerMetadata: {
               [providerOptionsName]: {
@@ -1092,15 +1092,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolName: value.item.name,
                 });
               } else if (value.item.type === 'custom_tool_call') {
+                const toolName = toolNameMapping.toCustomToolName(
+                  value.item.name,
+                );
                 ongoingToolCalls[value.output_index] = {
-                  toolName: value.item.name,
+                  toolName,
                   toolCallId: value.item.call_id,
                 };
 
                 controller.enqueue({
                   type: 'tool-input-start',
                   id: value.item.call_id,
-                  toolName: value.item.name,
+                  toolName,
                 });
               } else if (value.item.type === 'web_search_call') {
                 ongoingToolCalls[value.output_index] = {
@@ -1318,6 +1321,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               } else if (value.item.type === 'custom_tool_call') {
                 ongoingToolCalls[value.output_index] = undefined;
                 hasFunctionCall = true;
+                const toolName = toolNameMapping.toCustomToolName(
+                  value.item.name,
+                );
 
                 controller.enqueue({
                   type: 'tool-input-end',
@@ -1327,7 +1333,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.call_id,
-                  toolName: value.item.name,
+                  toolName,
                   input: JSON.stringify(value.item.input),
                   providerMetadata: {
                     [providerOptionsName]: {

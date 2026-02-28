@@ -107,7 +107,7 @@ export type OpenAIResponsesCustomToolCall = {
 export type OpenAIResponsesCustomToolCallOutput = {
   type: 'custom_tool_call_output';
   call_id: string;
-  output: string;
+  output: OpenAIResponsesFunctionCallOutput['output'];
 };
 
 export type OpenAIResponsesMcpApprovalResponse = {

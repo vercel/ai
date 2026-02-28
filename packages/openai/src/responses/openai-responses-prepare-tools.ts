@@ -3,7 +3,7 @@ import {
   SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { validateTypes } from '@ai-sdk/provider-utils';
+import { ToolNameMapping, validateTypes } from '@ai-sdk/provider-utils';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
 import { fileSearchArgsSchema } from '../tool/file-search';
 import { imageGenerationArgsSchema } from '../tool/image-generation';
@@ -17,11 +17,13 @@ import { OpenAIResponsesTool } from './openai-responses-api';
 export async function prepareResponsesTools({
   tools,
   toolChoice,
-  customToolNames,
+  toolNameMapping,
+  customProviderToolNames,
 }: {
   tools: LanguageModelV3CallOptions['tools'];
   toolChoice: LanguageModelV3CallOptions['toolChoice'] | undefined;
-  customToolNames?: Set<string>;
+  toolNameMapping?: ToolNameMapping;
+  customProviderToolNames?: Set<string>;
 }): Promise<{
   tools?: Array<OpenAIResponsesTool>;
   toolChoice?:
@@ -49,6 +51,8 @@ export async function prepareResponsesTools({
   }
 
   const openaiTools: Array<OpenAIResponsesTool> = [];
+  const resolvedCustomProviderToolNames =
+    customProviderToolNames ?? new Set<string>();
 
   for (const tool of tools) {
     switch (tool.type) {
@@ -241,6 +245,7 @@ export async function prepareResponsesTools({
               description: args.description,
               format: args.format,
             });
+            resolvedCustomProviderToolNames.add(args.name);
             break;
           }
         }
@@ -266,23 +271,28 @@ export async function prepareResponsesTools({
     case 'none':
     case 'required':
       return { tools: openaiTools, toolChoice: type, toolWarnings };
-    case 'tool':
+    case 'tool': {
+      const resolvedToolName =
+        toolNameMapping?.toProviderToolName(toolChoice.toolName) ??
+        toolChoice.toolName;
+
       return {
         tools: openaiTools,
         toolChoice:
-          toolChoice.toolName === 'code_interpreter' ||
-          toolChoice.toolName === 'file_search' ||
-          toolChoice.toolName === 'image_generation' ||
-          toolChoice.toolName === 'web_search_preview' ||
-          toolChoice.toolName === 'web_search' ||
-          toolChoice.toolName === 'mcp' ||
-          toolChoice.toolName === 'apply_patch'
-            ? { type: toolChoice.toolName }
-            : customToolNames?.has(toolChoice.toolName)
-              ? { type: 'custom', name: toolChoice.toolName }
-              : { type: 'function', name: toolChoice.toolName },
+          resolvedToolName === 'code_interpreter' ||
+          resolvedToolName === 'file_search' ||
+          resolvedToolName === 'image_generation' ||
+          resolvedToolName === 'web_search_preview' ||
+          resolvedToolName === 'web_search' ||
+          resolvedToolName === 'mcp' ||
+          resolvedToolName === 'apply_patch'
+            ? { type: resolvedToolName }
+            : resolvedCustomProviderToolNames.has(resolvedToolName)
+              ? { type: 'custom', name: resolvedToolName }
+              : { type: 'function', name: resolvedToolName },
         toolWarnings,
       };
+    }
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({
