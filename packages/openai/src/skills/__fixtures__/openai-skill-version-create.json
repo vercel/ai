@@ -1,0 +1,9 @@
+{
+  "id": "skillver_699fc58feb3c8191943bc5046265c1d406de7b381a5db7f5",
+  "object": "skill.version",
+  "version": "2",
+  "name": "test-capture-skill",
+  "description": "An updated test skill for fixture capture",
+  "skill_id": "skill_699fc58f408c8191825d8d06ae75fd5c06de7b381a5db7f5",
+  "created_at": 1772078479
+}
