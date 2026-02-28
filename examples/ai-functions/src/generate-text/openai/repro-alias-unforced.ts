@@ -16,8 +16,13 @@ run(async () => {
     stopWhen: stepCountIs(5),
   });
 
+  const allToolCalls = result.steps.flatMap(step => step.toolCalls);
+  const allToolResults = result.steps.flatMap(step => step.toolResults);
+
   console.log('Text:', result.text);
-  console.log('Tool calls:', result.toolCalls);
-  console.log('Tool results:', result.toolResults);
+  console.log('Tool calls (final step):', result.toolCalls);
+  console.log('Tool results (final step):', result.toolResults);
+  console.log('Tool calls (all steps):', allToolCalls);
+  console.log('Tool results (all steps):', allToolResults);
   console.log('Steps:', result.steps.length);
 });
