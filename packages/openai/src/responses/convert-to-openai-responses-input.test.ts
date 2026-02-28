@@ -419,29 +419,177 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
-    it('should throw error for unsupported file types', async () => {
+    it('should convert text/plain file parts with base64 data to input_file', async () => {
       const base64Data = 'AQIDBAU=';
 
-      await expect(
-        convertToOpenAIResponsesInput({
-          prompt: [
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'text/plain',
+                data: base64Data,
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
             {
-              role: 'user',
-              content: [
-                {
-                  type: 'file',
-                  mediaType: 'text/plain',
-                  data: base64Data,
-                },
-              ],
+              type: 'input_file',
+              filename: 'part-0.plain',
+              file_data: 'data:text/plain;base64,AQIDBAU=',
             },
           ],
-          toolNameMapping: testToolNameMapping,
-          systemMessageMode: 'system',
-          providerOptionsName: 'openai',
-          store: true,
-        }),
-      ).rejects.toThrow('file part media type text/plain');
+        },
+      ]);
+    });
+
+    it('should convert text/plain file parts with URL to input_file with file_url', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'text/plain',
+                data: new URL('https://example.com/file.txt'),
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_file',
+              file_url: 'https://example.com/file.txt',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should convert text/plain file parts with file_id to input_file with file_id', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'text/plain',
+                data: 'file-text-abc123',
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        fileIdPrefixes: ['file-'],
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_file',
+              file_id: 'file-text-abc123',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should convert application/json file parts with base64 data to input_file', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/json',
+                data: 'e30=',
+                filename: 'data.json',
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_file',
+              filename: 'data.json',
+              file_data: 'data:application/json;base64,e30=',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should convert text/javascript file parts to input_file', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'text/javascript',
+                data: 'Y29uc29sZS5sb2coImhpIik=',
+                filename: 'app.js',
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_file',
+              filename: 'app.js',
+              file_data: 'data:text/javascript;base64,Y29uc29sZS5sb2coImhpIik=',
+            },
+          ],
+        },
+      ]);
     });
 
     it('should convert PDF file parts with URL to input_file with file_url', async () => {
