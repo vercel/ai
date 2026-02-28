@@ -428,7 +428,6 @@ export async function convertToOpenAIResponsesInput({
                   if (reasoningMessage === undefined) {
                     reasoningMessages[reasoningId] = {
                       type: 'reasoning',
-                      id: reasoningId,
                       encrypted_content:
                         providerOptions?.reasoningEncryptedContent,
                       summary: summaryParts,
