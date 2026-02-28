@@ -128,6 +128,11 @@ const originalGenerateId = createIdGenerator({
   size: 24,
 });
 
+const originalGenerateCallId = createIdGenerator({
+  prefix: 'call',
+  size: 24,
+});
+
 /**
  * A transformation that is applied to the stream.
  *
@@ -329,7 +334,11 @@ export function streamText<
   experimental_onToolCallFinish: onToolCallFinish,
   experimental_context,
   experimental_include: include,
-  _internal: { now = originalNow, generateId = originalGenerateId } = {},
+  _internal: {
+    now = originalNow,
+    generateId = originalGenerateId,
+    generateCallId = originalGenerateCallId,
+  } = {},
   ...settings
 }: CallSettings &
   Prompt & {
@@ -523,6 +532,7 @@ export function streamText<
     _internal?: {
       now?: () => number;
       generateId?: IdGenerator;
+      generateCallId?: IdGenerator;
     };
   }): StreamTextResult<TOOLS, OUTPUT> {
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
@@ -575,6 +585,7 @@ export function streamText<
     onToolCallFinish,
     now,
     generateId,
+    generateCallId,
     experimental_context,
     download,
     include,
@@ -741,6 +752,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     includeRawChunks,
     now,
     generateId,
+    generateCallId,
     timeout,
     stopWhen,
     originalAbortSignal,
@@ -782,6 +794,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     includeRawChunks: boolean;
     now: () => number;
     generateId: () => string;
+    generateCallId: () => string;
     timeout: TimeoutConfiguration | undefined;
     stopWhen:
       | StopCondition<NoInfer<TOOLS>>
@@ -1012,6 +1025,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
+            callId,
             stepNumber: recordedSteps.length,
             model: modelInfo,
             ...callbackTelemetryProps,
@@ -1088,6 +1102,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           await notify({
             event: {
+              callId,
               stepNumber: finalStep.stepNumber,
               model: finalStep.model,
               functionId: finalStep.functionId,
@@ -1247,6 +1262,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     const self = this;
 
     const modelInfo = { provider: model.provider, modelId: model.modelId };
+    const callId = generateCallId();
     const callbackTelemetryProps = {
       functionId: telemetry?.functionId,
       metadata: telemetry?.metadata as Record<string, unknown> | undefined,
@@ -1278,6 +1294,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
         await notify({
           event: {
+            callId,
             model: modelInfo,
             system,
             prompt,
@@ -1301,6 +1318,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             output,
             abortSignal: originalAbortSignal,
             include,
+            telemetry,
             ...callbackTelemetryProps,
             experimental_context,
           },
@@ -1369,6 +1387,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   tools,
                   tracer,
                   telemetry,
+                  callId,
                   messages: initialMessages,
                   abortSignal,
                   experimental_context,
@@ -1555,6 +1574,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
             await notify({
               event: {
+                callId,
                 stepNumber: recordedSteps.length,
                 model: stepModelInfo,
                 system: stepSystem,
@@ -1648,6 +1668,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               generatorStream: stream,
               tracer,
               telemetry,
+              callId,
               system,
               messages: stepInputMessages,
               repairToolCall,

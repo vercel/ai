@@ -5,6 +5,7 @@ import type {
   SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import type { TimeoutConfiguration } from '../prompt/call-settings';
+import type { TelemetrySettings } from '../telemetry/telemetry-settings';
 import type { ToolChoice } from '../types/language-model';
 import type { LanguageModelUsage } from '../types/usage';
 import type { Output } from './output';
@@ -33,6 +34,9 @@ export interface OnStartEvent<
   OUTPUT extends Output = Output,
   INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
+  /** Unique identifier for this generation call, used to correlate events. */
+  readonly callId: string;
+
   /** The model being used for generation. */
   readonly model: CallbackModelInfo;
 
@@ -109,11 +113,8 @@ export interface OnStartEvent<
    */
   readonly include: INCLUDE | undefined;
 
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-
-  /** Additional metadata passed to the generation. */
-  readonly metadata: Record<string, unknown> | undefined;
+  /** Telemetry settings for this generation (includes functionId, metadata, etc.). */
+  readonly telemetry: TelemetrySettings | undefined;
 
   /**
    * User-defined context object that flows through the entire generation lifecycle.
@@ -133,6 +134,9 @@ export interface OnStepStartEvent<
   OUTPUT extends Output = Output,
   INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
+  /** Unique identifier for this generation call, used to correlate events. */
+  readonly callId: string;
+
   /** Zero-based index of the current step. */
   readonly stepNumber: number;
 
@@ -217,6 +221,9 @@ export interface OnStepStartEvent<
  * Called when a tool execution begins, before the tool's `execute` function is invoked.
  */
 export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
+  /** Unique identifier for this generation call, used to correlate events. */
+  readonly callId: string;
+
   /** Zero-based index of the current step where this tool call occurs. */
   readonly stepNumber: number | undefined;
 
@@ -249,6 +256,9 @@ export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
  * Uses a discriminated union on the `success` field.
  */
 export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
+  /** Unique identifier for this generation call, used to correlate events. */
+  readonly callId: string;
+
   /** Zero-based index of the current step where this tool call occurred. */
   readonly stepNumber: number | undefined;
 
@@ -296,7 +306,7 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
  * Event passed to the `onStepFinish` callback.
  *
  * Called when a step (LLM call) completes.
- * This is simply the StepResult for that step.
+ * Includes the StepResult for that step along with the call identifier.
  */
 export type OnStepFinishEvent<TOOLS extends ToolSet = ToolSet> =
   StepResult<TOOLS>;
@@ -314,19 +324,4 @@ export type OnFinishEvent<TOOLS extends ToolSet = ToolSet> =
 
     /** Aggregated token usage across all steps. */
     readonly totalUsage: LanguageModelUsage;
-
-    /**
-     * The final state of the user-defined context object.
-     *
-     * Experimental (can break in patch releases).
-     *
-     * @default undefined
-     */
-    experimental_context: unknown;
-
-    /** Identifier from telemetry settings for grouping related operations. */
-    readonly functionId: string | undefined;
-
-    /** Additional metadata from telemetry settings. */
-    readonly metadata: Record<string, unknown> | undefined;
   };

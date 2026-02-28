@@ -32,6 +32,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   tools,
   tracer,
   telemetry,
+  callId,
   messages,
   abortSignal,
   experimental_context,
@@ -45,6 +46,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   tools: TOOLS | undefined;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
+  callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
@@ -62,6 +64,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   }
 
   const baseCallbackEvent = {
+    callId,
     stepNumber,
     model,
     toolCall,

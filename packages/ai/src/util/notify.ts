@@ -5,12 +5,14 @@ export type Listener<EVENT> = (event: EVENT) => PromiseLike<void> | void;
 /**
  * Notifies all provided callbacks with the given event.
  * Errors in callbacks do not break the generation flow.
+ * Undefined entries in the callbacks array are silently skipped.
  */
 export async function notify<EVENT>(options: {
   event: EVENT;
-  callbacks?: Listener<EVENT> | Array<Listener<EVENT>>;
+  callbacks?: Listener<EVENT> | Array<Listener<EVENT> | undefined>;
 }): Promise<void> {
   for (const callback of asArray(options.callbacks)) {
+    if (callback == null) continue;
     try {
       await callback(options.event);
     } catch (_ignored) {}
