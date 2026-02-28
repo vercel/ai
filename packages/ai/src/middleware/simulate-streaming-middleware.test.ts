@@ -84,7 +84,9 @@ describe('simulateStreamingMiddleware', () => {
             "type": "start",
           },
           {
-            "request": {},
+            "request": {
+              "body": undefined,
+            },
             "type": "start-step",
             "warnings": [],
           },
@@ -190,7 +192,9 @@ describe('simulateStreamingMiddleware', () => {
             "type": "start",
           },
           {
-            "request": {},
+            "request": {
+              "body": undefined,
+            },
             "type": "start-step",
             "warnings": [],
           },
@@ -323,7 +327,9 @@ describe('simulateStreamingMiddleware', () => {
             "type": "start",
           },
           {
-            "request": {},
+            "request": {
+              "body": undefined,
+            },
             "type": "start-step",
             "warnings": [],
           },
@@ -487,7 +493,9 @@ describe('simulateStreamingMiddleware', () => {
             "type": "start",
           },
           {
-            "request": {},
+            "request": {
+              "body": undefined,
+            },
             "type": "start-step",
             "warnings": [],
           },
@@ -651,7 +659,9 @@ describe('simulateStreamingMiddleware', () => {
             "type": "start",
           },
           {
-            "request": {},
+            "request": {
+              "body": undefined,
+            },
             "type": "start-step",
             "warnings": [],
           },
@@ -773,7 +783,9 @@ describe('simulateStreamingMiddleware', () => {
             "type": "start",
           },
           {
-            "request": {},
+            "request": {
+              "body": undefined,
+            },
             "type": "start-step",
             "warnings": [],
           },

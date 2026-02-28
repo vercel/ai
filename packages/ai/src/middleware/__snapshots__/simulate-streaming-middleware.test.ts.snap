@@ -6,7 +6,9 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
     "type": "start",
   },
   {
-    "request": {},
+    "request": {
+      "body": undefined,
+    },
     "type": "start-step",
     "warnings": [],
   },

@@ -270,7 +270,7 @@ export async function generateText<
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
   experimental_context,
-  experimental_include: include,
+  include,
   _internal: { generateId = originalGenerateId } = {},
   experimental_onStart: onStart,
   experimental_onStepStart: onStepStart,
@@ -416,19 +416,19 @@ export async function generateText<
      * Disabling inclusion can help reduce memory usage when processing
      * large payloads like images.
      *
-     * By default, all data is included for backwards compatibility.
+     * By default, bodies are excluded to reduce memory usage.
      */
-    experimental_include?: {
+    include?: {
       /**
        * Whether to retain the request body in step results.
        * The request body can be large when sending images or files.
-       * @default true
+       * @default false
        */
       requestBody?: boolean;
 
       /**
        * Whether to retain the response body in step results.
-       * @default true
+       * @default false
        */
       responseBody?: boolean;
     };
@@ -1013,7 +1013,7 @@ export async function generateText<
             // Conditionally include request.body and response.body based on include settings.
             // Large payloads (e.g., base64-encoded images) can cause memory issues.
             const stepRequest: LanguageModelRequestMetadata =
-              (include?.requestBody ?? true)
+              (include?.requestBody ?? false)
                 ? (currentModelResponse.request ?? {})
                 : { ...currentModelResponse.request, body: undefined };
 
@@ -1023,7 +1023,7 @@ export async function generateText<
               messages: structuredClone(responseMessages),
               // Conditionally include response body:
               body:
-                (include?.responseBody ?? true)
+                (include?.responseBody ?? false)
                   ? currentModelResponse.response?.body
                   : undefined,
             };
