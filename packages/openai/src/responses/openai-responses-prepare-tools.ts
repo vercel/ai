@@ -7,6 +7,7 @@ import { validateTypes } from '@ai-sdk/provider-utils';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
 import { fileSearchArgsSchema } from '../tool/file-search';
 import { imageGenerationArgsSchema } from '../tool/image-generation';
+import { customArgsSchema } from '../tool/custom';
 import { mcpArgsSchema } from '../tool/mcp';
 import { shellArgsSchema } from '../tool/shell';
 import { webSearchArgsSchema } from '../tool/web-search';
@@ -223,6 +224,24 @@ export async function prepareResponsesTools({
               server_url: args.serverUrl,
             });
 
+            break;
+          }
+          case 'openai.custom': {
+            const args = await validateTypes({
+              value: tool.args,
+              schema: customArgsSchema,
+            });
+
+            openaiTools.push({
+              type: 'custom',
+              name: args.name,
+              description: args.description,
+              format: {
+                type: 'grammar',
+                syntax: args.format.syntax,
+                definition: args.format.definition,
+              },
+            });
             break;
           }
         }

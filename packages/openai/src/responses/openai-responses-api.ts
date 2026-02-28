@@ -10,6 +10,8 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesAssistantMessage
   | OpenAIResponsesFunctionCall
   | OpenAIResponsesFunctionCallOutput
+  | OpenAIResponsesCustomToolCall
+  | OpenAIResponsesCustomToolCallOutput
   | OpenAIResponsesMcpApprovalResponse
   | OpenAIResponsesComputerCall
   | OpenAIResponsesLocalShellCall
@@ -92,6 +94,20 @@ export type OpenAIResponsesFunctionCallOutput = {
         | { type: 'input_image'; image_url: string }
         | { type: 'input_file'; filename: string; file_data: string }
       >;
+};
+
+export type OpenAIResponsesCustomToolCall = {
+  type: 'custom_tool_call';
+  id?: string;
+  call_id: string;
+  name: string;
+  input: string;
+};
+
+export type OpenAIResponsesCustomToolCallOutput = {
+  type: 'custom_tool_call_output';
+  call_id: string;
+  output: string;
 };
 
 export type OpenAIResponsesMcpApprovalResponse = {
@@ -327,6 +343,16 @@ export type OpenAIResponsesTool =
       server_url: string | undefined;
     }
   | {
+      type: 'custom';
+      name: string;
+      description?: string;
+      format: {
+        type: 'grammar';
+        syntax: 'regex' | 'lark';
+        definition: string;
+      };
+    }
+  | {
       type: 'local_shell';
     }
   | {
@@ -528,6 +554,13 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             ]),
           }),
           z.object({
+            type: z.literal('custom_tool_call'),
+            id: z.string(),
+            call_id: z.string(),
+            name: z.string(),
+            input: z.string(),
+          }),
+          z.object({
             type: z.literal('shell_call'),
             id: z.string(),
             call_id: z.string(),
@@ -577,6 +610,14 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             call_id: z.string(),
             name: z.string(),
             arguments: z.string(),
+            status: z.literal('completed'),
+          }),
+          z.object({
+            type: z.literal('custom_tool_call'),
+            id: z.string(),
+            call_id: z.string(),
+            name: z.string(),
+            input: z.string(),
             status: z.literal('completed'),
           }),
           z.object({
@@ -774,6 +815,12 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
       }),
       z.object({
         type: z.literal('response.function_call_arguments.delta'),
+        item_id: z.string(),
+        output_index: z.number(),
+        delta: z.string(),
+      }),
+      z.object({
+        type: z.literal('response.custom_tool_call_input.delta'),
         item_id: z.string(),
         output_index: z.number(),
         delta: z.string(),
@@ -1057,6 +1104,13 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               call_id: z.string(),
               name: z.string(),
               arguments: z.string(),
+              id: z.string(),
+            }),
+            z.object({
+              type: z.literal('custom_tool_call'),
+              call_id: z.string(),
+              name: z.string(),
+              input: z.string(),
               id: z.string(),
             }),
             z.object({

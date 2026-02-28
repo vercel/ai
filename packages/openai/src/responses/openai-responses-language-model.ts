@@ -181,6 +181,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       });
     }
 
+    // Collect custom tool names from provider tools before creating the mapping.
+    // Custom tools each have their own unique name, so we need dynamic entries.
+    const customToolProviderNames: Record<string, string> = {};
+    const customToolNames = new Set<string>();
+    if (tools) {
+      for (const tool of tools) {
+        if (tool.type === 'provider' && tool.id === 'openai.custom') {
+          const args = tool.args as { name: string };
+          customToolProviderNames[`openai.custom`] = args.name;
+          customToolNames.add(args.name);
+        }
+      }
+    }
+
     const toolNameMapping = createToolNameMapping({
       tools,
       providerToolNames: {
@@ -212,6 +226,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
         hasShellTool: hasOpenAITool('openai.shell'),
         hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
+        customToolNames: customToolNames.size > 0 ? customToolNames : undefined,
       });
 
     warnings.push(...inputWarnings);
@@ -716,6 +731,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           break;
         }
 
+        case 'custom_tool_call': {
+          hasFunctionCall = true;
+
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.call_id,
+            toolName: part.name,
+            input: part.input,
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id,
+              },
+            },
+          });
+          break;
+        }
+
         case 'web_search_call': {
           content.push({
             type: 'tool-call',
@@ -1062,6 +1094,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   id: value.item.call_id,
                   toolName: value.item.name,
                 });
+              } else if (value.item.type === 'custom_tool_call') {
+                ongoingToolCalls[value.output_index] = {
+                  toolName: value.item.name,
+                  toolCallId: value.item.call_id,
+                };
+
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: value.item.call_id,
+                  toolName: value.item.name,
+                });
               } else if (value.item.type === 'web_search_call') {
                 ongoingToolCalls[value.output_index] = {
                   toolName: toolNameMapping.toCustomToolName(
@@ -1269,6 +1312,27 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolCallId: value.item.call_id,
                   toolName: value.item.name,
                   input: value.item.arguments,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      itemId: value.item.id,
+                    },
+                  },
+                });
+              } else if (value.item.type === 'custom_tool_call') {
+                const toolCall = ongoingToolCalls[value.output_index];
+                ongoingToolCalls[value.output_index] = undefined;
+                hasFunctionCall = true;
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.call_id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.call_id,
+                  toolName: value.item.name,
+                  input: value.item.input,
                   providerMetadata: {
                     [providerOptionsName]: {
                       itemId: value.item.id,
@@ -1583,6 +1647,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 delete activeReasoning[value.item.id];
               }
             } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
+              const toolCall = ongoingToolCalls[value.output_index];
+
+              if (toolCall != null) {
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: toolCall.toolCallId,
+                  delta: value.delta,
+                });
+              }
+            } else if (isResponseCustomToolCallInputDeltaChunk(value)) {
               const toolCall = ongoingToolCalls[value.output_index];
 
               if (toolCall != null) {
@@ -1923,6 +1997,15 @@ function isResponseFunctionCallArgumentsDeltaChunk(
 } {
   return chunk.type === 'response.function_call_arguments.delta';
 }
+
+function isResponseCustomToolCallInputDeltaChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.custom_tool_call_input.delta';
+} {
+  return chunk.type === 'response.custom_tool_call_input.delta';
+}
+
 function isResponseImageGenerationCallPartialImageChunk(
   chunk: OpenAIResponsesChunk,
 ): chunk is OpenAIResponsesChunk & {
