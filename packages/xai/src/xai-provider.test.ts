@@ -145,7 +145,7 @@ describe('xAIProvider', () => {
       const customHeaders = { 'Custom-Header': 'test-value' };
       const provider = createXai({ headers: customHeaders });
 
-      provider.imageModel('grok-2-image');
+      provider.imageModel('grok-2-image-1212');
 
       const constructorCall = XaiImageModelMock.mock.calls[0];
       const config = constructorCall[1];

@@ -13,7 +13,7 @@ function createModel({
   headers?: () => Record<string, string>;
   currentDate?: () => Date;
 } = {}) {
-  return new XaiImageModel('grok-2-image', {
+  return new XaiImageModel('grok-2-image-1212', {
     provider: 'xai.image',
     baseURL: 'https://api.example.com',
     headers: headers ?? (() => ({ 'api-key': 'test-key' })),
@@ -54,7 +54,7 @@ describe('XaiImageModel', () => {
       const model = createModel();
 
       expect(model.provider).toBe('xai.image');
-      expect(model.modelId).toBe('grok-2-image');
+      expect(model.modelId).toBe('grok-2-image-1212');
       expect(model.specificationVersion).toBe('v3');
       expect(model.maxImagesPerCall).toBe(1);
     });
@@ -80,7 +80,7 @@ describe('XaiImageModel', () => {
         'https://api.example.com/images/generations',
       );
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-2-image',
+        model: 'grok-2-image-1212',
         prompt,
         n: 1,
         response_format: 'url',
@@ -113,7 +113,7 @@ describe('XaiImageModel', () => {
         'https://api.example.com/images/edits',
       );
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-2-image',
+        model: 'grok-2-image-1212',
         prompt: 'Turn the cat into a dog',
         n: 1,
         response_format: 'url',
@@ -144,7 +144,7 @@ describe('XaiImageModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-2-image',
+        model: 'grok-2-image-1212',
         prompt: 'Edit this image',
         n: 1,
         response_format: 'url',
@@ -176,7 +176,7 @@ describe('XaiImageModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-2-image',
+        model: 'grok-2-image-1212',
         prompt: 'Edit this image',
         n: 1,
         response_format: 'url',
@@ -256,7 +256,7 @@ describe('XaiImageModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-2-image',
+        model: 'grok-2-image-1212',
         prompt,
         n: 1,
         response_format: 'url',
@@ -284,7 +284,7 @@ describe('XaiImageModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-2-image',
+        model: 'grok-2-image-1212',
         prompt,
         n: 1,
         response_format: 'url',
@@ -340,7 +340,7 @@ describe('XaiImageModel', () => {
 
         expect(result.response).toStrictEqual({
           timestamp: testDate,
-          modelId: 'grok-2-image',
+          modelId: 'grok-2-image-1212',
           headers: expect.any(Object),
         });
       });

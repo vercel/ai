@@ -20,7 +20,7 @@ import { generateText, Output } from 'ai';
 import * as v from 'valibot';
 
 const result = await generateText({
-  model: anthropic('claude-3-7-sonnet-latest'),
+  model: anthropic('claude-sonnet-4-5-20250929'),
   output: Output.object({
     schema: valibotSchema(
       v.object({

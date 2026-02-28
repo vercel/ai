@@ -3,7 +3,7 @@ import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const model = bedrock('us.anthropic.claude-3-7-sonnet-20250219-v1:0');
+  const model = bedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0');
 
   const documentContent =
     'This is a sample text document for testing prompt cache effectiveness.\n\nThe key improvement: documents now have consistent names like document-01, document-02, etc. instead of random names, enabling proper prompt caching.';

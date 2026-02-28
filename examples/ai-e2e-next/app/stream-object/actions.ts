@@ -9,7 +9,7 @@ export async function generateNotifications(context: string) {
   const notificationsStream = createStreamableValue<PartialNotification>();
 
   const result = streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-5-mini'),
     prompt: `Generate 3 notifications for a messages app in this context: ${context}`,
     output: Output.object({ schema: notificationSchema }),
   });

@@ -134,7 +134,7 @@ The following optional provider options are available for xAI chat models:
 You can use the xAI Responses API with the `xai.responses(modelId)` factory method for server-side agentic tool calling. This enables the model to autonomously orchestrate tool calls and research on xAI's servers.
 
 ```ts
-const model = xai.responses('grok-4-fast');
+const model = xai.responses('grok-4-fast-non-reasoning');
 ```
 
 The Responses API provides server-side tools that the model can autonomously execute during its reasoning process:
@@ -178,7 +178,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
-  model: xai.responses('grok-4-fast'),
+  model: xai.responses('grok-4-fast-non-reasoning'),
   prompt: 'What are the latest developments in AI?',
   tools: {
     web_search: xai.tools.webSearch({
@@ -212,7 +212,7 @@ The X search tool enables searching X (Twitter) for posts, with filtering by han
 
 ```ts
 const { text, sources } = await generateText({
-  model: xai.responses('grok-4-fast'),
+  model: xai.responses('grok-4-fast-non-reasoning'),
   prompt: 'What are people saying about AI on X this week?',
   tools: {
     x_search: xai.tools.xSearch({
@@ -258,7 +258,7 @@ The code execution tool enables the model to write and execute Python code for c
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4-fast'),
+  model: xai.responses('grok-4-fast-non-reasoning'),
   prompt:
     'Calculate the compound interest for $10,000 at 5% annually for 10 years',
   tools: {
@@ -273,7 +273,7 @@ The view image tool enables the model to view and analyze images:
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4-fast'),
+  model: xai.responses('grok-4-fast-non-reasoning'),
   prompt: 'Describe what you see in the image',
   tools: {
     view_image: xai.tools.viewImage(),
@@ -287,7 +287,7 @@ The view X video tool enables the model to view and analyze videos from X (Twitt
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4-fast'),
+  model: xai.responses('grok-4-fast-non-reasoning'),
   prompt: 'Summarize the content of this X video',
   tools: {
     view_x_video: xai.tools.viewXVideo(),
@@ -301,7 +301,7 @@ The MCP server tool enables the model to connect to remote [Model Context Protoc
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4-fast'),
+  model: xai.responses('grok-4-fast-non-reasoning'),
   prompt: 'Use the weather tool to check conditions in San Francisco',
   tools: {
     weather_server: xai.tools.mcpServer({
@@ -396,7 +396,7 @@ import { xai } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 
 const { fullStream } = streamText({
-  model: xai.responses('grok-4-fast'),
+  model: xai.responses('grok-4-fast-non-reasoning'),
   prompt: 'Research AI safety developments and calculate risk metrics',
   tools: {
     web_search: xai.tools.webSearch(),
@@ -430,7 +430,7 @@ import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: xai.responses('grok-4-fast'),
+  model: xai.responses('grok-4-fast-non-reasoning'),
   providerOptions: {
     xai: {
       reasoningEffort: 'high',
@@ -763,20 +763,11 @@ console.log('Sources:', await result.sources);
 | `grok-4-latest`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `grok-3`                      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `grok-3-latest`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-3-fast`                 | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-3-fast-latest`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `grok-3-mini`                 | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `grok-3-mini-latest`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-3-mini-fast`            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-3-mini-fast-latest`     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-2`                      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-2-latest`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-2-1212`                 | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `grok-2-vision`               | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `grok-2-vision-latest`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `grok-2-vision-1212`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-beta`                   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-vision-beta`            | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [xAI

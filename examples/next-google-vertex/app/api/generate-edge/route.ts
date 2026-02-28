@@ -4,7 +4,7 @@ import { generateText } from 'ai';
 import { vertex } from '@ai-sdk/google-vertex/edge';
 
 export async function GET() {
-  const model = vertex('gemini-1.5-flash');
+  const model = vertex('gemini-2.5-flash');
   const { text } = await generateText({
     model,
     prompt: 'tell me a story',

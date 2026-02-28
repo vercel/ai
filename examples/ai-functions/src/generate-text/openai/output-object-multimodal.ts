@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { output } = await generateText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-5-mini'),
     output: Output.object({
       schema: z.object({
         artwork: z.object({

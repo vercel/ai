@@ -2211,10 +2211,7 @@ function getModelCapabilities(modelId: string): {
       supportsStructuredOutput: true,
       isKnownModel: true,
     };
-  } else if (
-    modelId.includes('claude-sonnet-4-') ||
-    modelId.includes('claude-3-7-sonnet')
-  ) {
+  } else if (modelId.includes('claude-sonnet-4-')) {
     return {
       maxOutputTokens: 64000,
       supportsStructuredOutput: false,
@@ -2223,12 +2220,6 @@ function getModelCapabilities(modelId: string): {
   } else if (modelId.includes('claude-opus-4-')) {
     return {
       maxOutputTokens: 32000,
-      supportsStructuredOutput: false,
-      isKnownModel: true,
-    };
-  } else if (modelId.includes('claude-3-5-haiku')) {
-    return {
-      maxOutputTokens: 8192,
       supportsStructuredOutput: false,
       isKnownModel: true,
     };

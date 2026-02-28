@@ -21,7 +21,7 @@ const testConfig = {
   generateId: () => 'test-id',
 };
 
-const model = new XaiChatLanguageModel('grok-beta', testConfig);
+const model = new XaiChatLanguageModel('grok-3', testConfig);
 
 const server = createTestServer({
   'https://api.x.ai/v1/chat/completions': {},
@@ -60,7 +60,7 @@ function prepareChunksFixtureResponse(
 
 describe('XaiChatLanguageModel', () => {
   it('should be instantiated correctly', () => {
-    expect(model.modelId).toBe('grok-beta');
+    expect(model.modelId).toBe('grok-3');
     expect(model.provider).toBe('xai.chat');
     expect(model.specificationVersion).toBe('v3');
   });
@@ -213,7 +213,7 @@ describe('XaiChatLanguageModel', () => {
               "role": "user",
             },
           ],
-          "model": "grok-beta",
+          "model": "grok-3",
         }
       `);
     });
@@ -250,7 +250,7 @@ describe('XaiChatLanguageModel', () => {
               "role": "user",
             },
           ],
-          "model": "grok-beta",
+          "model": "grok-3",
           "tool_choice": {
             "function": {
               "name": "test-tool",
@@ -295,7 +295,7 @@ describe('XaiChatLanguageModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        model: 'grok-beta',
+        model: 'grok-3',
         messages: [{ role: 'user', content: 'Hello' }],
         parallel_function_calling: false,
       });
@@ -304,7 +304,7 @@ describe('XaiChatLanguageModel', () => {
     it('should pass headers', async () => {
       prepareJsonFixtureResponse('xai-text');
 
-      const modelWithHeaders = new XaiChatLanguageModel('grok-beta', {
+      const modelWithHeaders = new XaiChatLanguageModel('grok-3', {
         provider: 'xai.chat',
         baseURL: 'https://api.x.ai/v1',
         headers: () => ({
@@ -342,7 +342,7 @@ describe('XaiChatLanguageModel', () => {
         headers: { 'Custom-Provider-Header': 'provider-header-value' },
       });
 
-      const modelWithHeaders = xai.chat('grok-beta');
+      const modelWithHeaders = xai.chat('grok-3');
 
       await modelWithHeaders.doGenerate({
         prompt: TEST_PROMPT,
@@ -371,7 +371,7 @@ describe('XaiChatLanguageModel', () => {
                 "role": "user",
               },
             ],
-            "model": "grok-beta",
+            "model": "grok-3",
             "parallel_function_calling": undefined,
             "reasoning_effort": undefined,
             "response_format": undefined,
@@ -412,7 +412,7 @@ describe('XaiChatLanguageModel', () => {
               "role": "user",
             },
           ],
-          "model": "grok-beta",
+          "model": "grok-3",
           "search_parameters": {
             "from_date": "2024-01-01",
             "max_search_results": 10,
@@ -469,7 +469,7 @@ describe('XaiChatLanguageModel', () => {
               "role": "user",
             },
           ],
-          "model": "grok-beta",
+          "model": "grok-3",
           "search_parameters": {
             "mode": "on",
             "sources": [
@@ -515,7 +515,7 @@ describe('XaiChatLanguageModel', () => {
           id: 'object-id',
           object: 'chat.completion',
           created: 1699472111,
-          model: 'grok-beta',
+          model: 'grok-3',
           choices: [
             {
               index: 0,
@@ -552,7 +552,7 @@ describe('XaiChatLanguageModel', () => {
           id: 'citations-test',
           object: 'chat.completion',
           created: 1699472111,
-          model: 'grok-beta',
+          model: 'grok-3',
           choices: [
             {
               index: 0,
@@ -652,7 +652,7 @@ describe('XaiChatLanguageModel', () => {
               "role": "user",
             },
           ],
-          "model": "grok-beta",
+          "model": "grok-3",
           "search_parameters": {
             "from_date": "2024-01-01",
             "max_search_results": 15,
@@ -701,7 +701,7 @@ describe('XaiChatLanguageModel', () => {
           id: 'no-citations-test',
           object: 'chat.completion',
           created: 1699472111,
-          model: 'grok-beta',
+          model: 'grok-3',
           choices: [
             {
               index: 0,
@@ -780,7 +780,7 @@ describe('XaiChatLanguageModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        model: 'grok-beta',
+        model: 'grok-3',
         response_format: {
           type: 'json_schema',
           json_schema: {
@@ -805,7 +805,7 @@ describe('XaiChatLanguageModel', () => {
           id: 'no-usage-test',
           object: 'chat.completion',
           created: 1699472111,
-          model: 'grok-beta',
+          model: 'grok-3',
           choices: [
             {
               index: 0,
@@ -931,7 +931,7 @@ describe('XaiChatLanguageModel', () => {
               "role": "user",
             },
           ],
-          "model": "grok-beta",
+          "model": "grok-3",
           "stream": true,
           "stream_options": {
             "include_usage": true,
@@ -943,7 +943,7 @@ describe('XaiChatLanguageModel', () => {
     it('should pass headers', async () => {
       prepareChunksFixtureResponse('xai-text');
 
-      const modelWithHeaders = new XaiChatLanguageModel('grok-beta', {
+      const modelWithHeaders = new XaiChatLanguageModel('grok-3', {
         provider: 'xai.chat',
         baseURL: 'https://api.x.ai/v1',
         headers: () => ({
@@ -989,7 +989,7 @@ describe('XaiChatLanguageModel', () => {
                 "role": "user",
               },
             ],
-            "model": "grok-beta",
+            "model": "grok-3",
             "parallel_function_calling": undefined,
             "reasoning_effort": undefined,
             "response_format": undefined,
@@ -1012,9 +1012,9 @@ describe('XaiChatLanguageModel', () => {
       server.urls['https://api.x.ai/v1/chat/completions'].response = {
         type: 'stream-chunks',
         chunks: [
-          `data: {"id":"no-usage-test","object":"chat.completion.chunk","created":1750537778,"model":"grok-beta","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
-          `data: {"id":"no-usage-test","object":"chat.completion.chunk","created":1750537778,"model":"grok-beta","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n`,
-          `data: {"id":"no-usage-test","object":"chat.completion.chunk","created":1750537778,"model":"grok-beta","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+          `data: {"id":"no-usage-test","object":"chat.completion.chunk","created":1750537778,"model":"grok-3","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+          `data: {"id":"no-usage-test","object":"chat.completion.chunk","created":1750537778,"model":"grok-3","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"no-usage-test","object":"chat.completion.chunk","created":1750537778,"model":"grok-3","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
           `data: [DONE]\n\n`,
         ],
       };
@@ -1053,11 +1053,11 @@ describe('XaiChatLanguageModel', () => {
       server.urls['https://api.x.ai/v1/chat/completions'].response = {
         type: 'stream-chunks',
         chunks: [
-          `data: {"id":"c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c","object":"chat.completion.chunk","created":1750538200,"model":"grok-beta",` +
+          `data: {"id":"c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c","object":"chat.completion.chunk","created":1750538200,"model":"grok-3",` +
             `"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}],"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
-          `data: {"id":"c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c","object":"chat.completion.chunk","created":1750538200,"model":"grok-beta",` +
+          `data: {"id":"c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c","object":"chat.completion.chunk","created":1750538200,"model":"grok-3",` +
             `"choices":[{"index":0,"delta":{"content":"Latest AI news"},"finish_reason":null}],"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
-          `data: {"id":"c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c","object":"chat.completion.chunk","created":1750538200,"model":"grok-beta",` +
+          `data: {"id":"c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c","object":"chat.completion.chunk","created":1750538200,"model":"grok-3",` +
             `"choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
             `"usage":{"prompt_tokens":4,"total_tokens":34,"completion_tokens":30},` +
             `"citations":["https://example.com/source1","https://example.com/source2"],"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
@@ -1086,7 +1086,7 @@ describe('XaiChatLanguageModel', () => {
           },
           {
             "id": "c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c",
-            "modelId": "grok-beta",
+            "modelId": "grok-3",
             "timestamp": 2025-06-21T20:36:40.000Z,
             "type": "response-metadata",
           },
@@ -1382,9 +1382,9 @@ describe('doStream with raw chunks', () => {
     server.urls['https://api.x.ai/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"d9f56e23-8b4c-4e7a-9d2f-6c8a9b5e3f7d","object":"chat.completion.chunk","created":1750538300,"model":"grok-beta","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}],"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
-        `data: {"id":"e2a47b89-3f6d-4c8e-9a1b-7d5f8c9e2a4b","object":"chat.completion.chunk","created":1750538301,"model":"grok-beta","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}],"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
-        `data: {"id":"f3b58c9a-4e7f-5d9e-ab2c-8e6f9d0e3b5c","object":"chat.completion.chunk","created":1750538302,"model":"grok-beta","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15},"citations":["https://example.com"],"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
+        `data: {"id":"d9f56e23-8b4c-4e7a-9d2f-6c8a9b5e3f7d","object":"chat.completion.chunk","created":1750538300,"model":"grok-3","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}],"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
+        `data: {"id":"e2a47b89-3f6d-4c8e-9a1b-7d5f8c9e2a4b","object":"chat.completion.chunk","created":1750538301,"model":"grok-3","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}],"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
+        `data: {"id":"f3b58c9a-4e7f-5d9e-ab2c-8e6f9d0e3b5c","object":"chat.completion.chunk","created":1750538302,"model":"grok-3","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15},"citations":["https://example.com"],"system_fingerprint":"fp_13a6dc65a6"}\n\n`,
         'data: [DONE]\n\n',
       ],
     };
@@ -1416,7 +1416,7 @@ describe('doStream with raw chunks', () => {
             ],
             "created": 1750538300,
             "id": "d9f56e23-8b4c-4e7a-9d2f-6c8a9b5e3f7d",
-            "model": "grok-beta",
+            "model": "grok-3",
             "object": "chat.completion.chunk",
             "system_fingerprint": "fp_13a6dc65a6",
           },
@@ -1424,7 +1424,7 @@ describe('doStream with raw chunks', () => {
         },
         {
           "id": "d9f56e23-8b4c-4e7a-9d2f-6c8a9b5e3f7d",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2025-06-21T20:38:20.000Z,
           "type": "response-metadata",
         },
@@ -1450,7 +1450,7 @@ describe('doStream with raw chunks', () => {
             ],
             "created": 1750538301,
             "id": "e2a47b89-3f6d-4c8e-9a1b-7d5f8c9e2a4b",
-            "model": "grok-beta",
+            "model": "grok-3",
             "object": "chat.completion.chunk",
             "system_fingerprint": "fp_13a6dc65a6",
           },
@@ -1479,7 +1479,7 @@ describe('doStream with raw chunks', () => {
             ],
             "created": 1750538302,
             "id": "f3b58c9a-4e7f-5d9e-ab2c-8e6f9d0e3b5c",
-            "model": "grok-beta",
+            "model": "grok-3",
             "object": "chat.completion.chunk",
             "system_fingerprint": "fp_13a6dc65a6",
             "usage": {

@@ -10,9 +10,7 @@ const models = [
   'grok-4-fast-non-reasoning',
   'grok-code-fast-1',
   'grok-3',
-  'grok-3-fast',
   'grok-3-mini',
-  'grok-3-mini-fast',
 ];
 
 run(async () => {
