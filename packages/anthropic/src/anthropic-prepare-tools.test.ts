@@ -62,6 +62,54 @@ describe('prepareTools', () => {
     expect(result.toolWarnings).toEqual([]);
   });
 
+  it('should convert oneOf to anyOf in tool input_schema (discriminated union)', async () => {
+    // Zod discriminatedUnion() emits oneOf in JSON Schema.
+    // Anthropic rejects oneOf — it must be converted to anyOf before sending.
+    const result = await prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'getCar',
+          description: 'Returns car info',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              car: {
+                oneOf: [
+                  {
+                    type: 'object',
+                    properties: { brand: { const: 'BMW' } },
+                    required: ['brand'],
+                  },
+                  {
+                    type: 'object',
+                    properties: { brand: { const: 'Mercedes' } },
+                    required: ['brand'],
+                  },
+                ],
+              },
+            },
+            required: ['car'],
+          },
+        },
+      ],
+      toolChoice: undefined,
+      supportsStructuredOutput: false,
+    });
+
+    const inputSchema = result.tools?.[0]?.input_schema as Record<
+      string,
+      unknown
+    >;
+    const carProp = (inputSchema.properties as Record<string, unknown>)
+      .car as Record<string, unknown>;
+
+    // oneOf must be replaced with anyOf
+    expect(carProp).toHaveProperty('anyOf');
+    expect(carProp).not.toHaveProperty('oneOf');
+    expect((carProp.anyOf as unknown[]).length).toBe(2);
+  });
+
   it('should correctly preserve tool input examples', async () => {
     const result = await prepareTools({
       tools: [

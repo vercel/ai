@@ -48,6 +48,7 @@ import {
   AnthropicMessagesUsage,
   convertAnthropicMessagesUsage,
 } from './convert-anthropic-messages-usage';
+import { replaceOneOfWithAnyOf } from './convert-anthropic-schema';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
@@ -372,6 +373,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       ...(anthropicOptions?.cacheControl && {
         cache_control: anthropicOptions.cacheControl,
       }),
+
+      // structured output:
+      ...(useStructuredOutput &&
+        responseFormat?.type === 'json' &&
+        responseFormat.schema != null && {
+          output_format: {
+            type: 'json_schema',
+            schema: replaceOneOfWithAnyOf(responseFormat.schema),
+          },
+        }),
 
       // mcp servers:
       ...(anthropicOptions?.mcpServers &&
