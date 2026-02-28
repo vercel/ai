@@ -651,6 +651,35 @@ describe('Chat', () => {
               "role": "assistant",
             },
           ],
+          [
+            {
+              "id": "id-0",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "streaming",
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
         ]
       `);
     });
@@ -1457,6 +1486,53 @@ describe('Chat', () => {
 
     expect(chat.error).toMatchInlineSnapshot(`[Error: test-error]`);
     expect(chat.status).toBe('error');
+  });
+
+  it('should preserve partial message on stream error', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:3000/api/chat'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    const finishPromise = createResolvablePromise<void>();
+
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: new DefaultChatTransport({
+        api: 'http://localhost:3000/api/chat',
+      }),
+      onFinish: () => finishPromise.resolve(),
+    });
+
+    chat.sendMessage({
+      text: 'Hello, world!',
+    });
+
+    controller.write(formatChunk({ type: 'start' }));
+    controller.write(formatChunk({ type: 'start-step' }));
+    controller.write(formatChunk({ type: 'text-start', id: 'text-1' }));
+    controller.write(
+      formatChunk({ type: 'text-delta', id: 'text-1', delta: 'Partial' }),
+    );
+
+    // wait until the partial text is visible
+    while ((chat.messages[1]?.parts[1] as any)?.text !== 'Partial') {
+      await delay();
+    }
+
+    // trigger an error mid-stream
+    controller.error(new Error('Server error'));
+
+    await finishPromise.promise;
+
+    // partial message should be preserved in messages
+    expect(chat.status).toBe('error');
+    expect(chat.messages.length).toBe(2);
+    expect(chat.messages[1].role).toBe('assistant');
+    expect((chat.messages[1].parts[1] as any).text).toBe('Partial');
   });
 
   describe('sendAutomaticallyWhen', () => {
