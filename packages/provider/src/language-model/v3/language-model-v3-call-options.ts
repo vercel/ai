@@ -117,6 +117,20 @@ export type LanguageModelV3CallOptions = {
   headers?: Record<string, string | undefined>;
 
   /**
+   * Reasoning configuration. Controls how much reasoning/thinking the model
+   * performs before generating a response. When not specified, the provider
+   * default is used.
+   *
+   * - `'none'`: Disable reasoning/thinking.
+   * - `'low'`: Use minimal reasoning.
+   * - `'medium'`: Use moderate reasoning.
+   * - `'high'`: Use maximum reasoning.
+   */
+  reasoning?: {
+    effort?: 'none' | 'low' | 'medium' | 'high';
+  };
+
+  /**
    * Additional provider-specific options. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.

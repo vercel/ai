@@ -145,4 +145,18 @@ export type CallSettings = {
    * Only applicable for HTTP-based providers.
    */
   headers?: Record<string, string | undefined>;
+
+  /**
+   * Reasoning configuration. Controls how much reasoning/thinking the model
+   * performs before generating a response. When not specified, the provider
+   * default behavior is used.
+   *
+   * - `effort: 'none'`: Disable reasoning/thinking.
+   * - `effort: 'low'`: Use minimal reasoning.
+   * - `effort: 'medium'`: Use moderate reasoning.
+   * - `effort: 'high'`: Use maximum reasoning.
+   */
+  reasoning?: {
+    effort?: 'none' | 'low' | 'medium' | 'high';
+  };
 };

@@ -136,6 +136,14 @@ describe('prepareCallSettings', () => {
     });
   });
 
+  it('should pass through reasoning configuration', () => {
+    const settings = prepareCallSettings({
+      reasoning: { effort: 'high' },
+    });
+
+    expect(settings.reasoning).toEqual({ effort: 'high' });
+  });
+
   it('should return a new object with limited values', () => {
     const settings = prepareCallSettings({
       maxOutputTokens: 100,
@@ -148,6 +156,7 @@ describe('prepareCallSettings', () => {
         "frequencyPenalty": undefined,
         "maxOutputTokens": 100,
         "presencePenalty": undefined,
+        "reasoning": undefined,
         "seed": undefined,
         "stopSequences": undefined,
         "temperature": 0.7,

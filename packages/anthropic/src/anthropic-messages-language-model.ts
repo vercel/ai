@@ -181,6 +181,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     providerOptions,
+    reasoning,
     stream,
   }: LanguageModelV3CallOptions & {
     stream: boolean;
@@ -320,13 +321,25 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         toolNameMapping,
       });
 
-    const thinkingType = anthropicOptions?.thinking?.type;
+    // Apply top-level reasoning configuration if provider-specific options
+    // are not already set. Provider-specific options take precedence.
+    const resolvedThinking =
+      anthropicOptions?.thinking ??
+      (reasoning?.effort === 'none'
+        ? { type: 'disabled' as const }
+        : undefined);
+
+    const resolvedEffort =
+      anthropicOptions?.effort ??
+      (reasoning?.effort != null && reasoning.effort !== 'none'
+        ? (reasoning.effort as 'low' | 'medium' | 'high')
+        : undefined);
+
+    const thinkingType = resolvedThinking?.type;
     const isThinking =
       thinkingType === 'enabled' || thinkingType === 'adaptive';
     let thinkingBudget =
-      thinkingType === 'enabled'
-        ? anthropicOptions?.thinking?.budgetTokens
-        : undefined;
+      thinkingType === 'enabled' ? resolvedThinking?.budgetTokens : undefined;
 
     const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
 
@@ -348,13 +361,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           ...(thinkingBudget != null && { budget_tokens: thinkingBudget }),
         },
       }),
-      ...((anthropicOptions?.effort ||
+      ...((resolvedEffort ||
         (useStructuredOutput &&
           responseFormat?.type === 'json' &&
           responseFormat.schema != null)) && {
         output_config: {
-          ...(anthropicOptions?.effort && {
-            effort: anthropicOptions.effort,
+          ...(resolvedEffort && {
+            effort: resolvedEffort,
           }),
           ...(useStructuredOutput &&
             responseFormat?.type === 'json' &&

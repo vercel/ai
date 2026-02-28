@@ -638,6 +638,43 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should use top-level reasoning effort when no provider-specific reasoningEffort is set', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('o4-mini');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: { effort: 'medium' },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'o4-mini',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'medium',
+    });
+  });
+
+  it('should prefer provider-specific reasoningEffort over top-level reasoning', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('o4-mini');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: { effort: 'low' },
+      providerOptions: {
+        openai: { reasoningEffort: 'high' },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'o4-mini',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'high',
+    });
+  });
+
   it('should pass textVerbosity setting from provider options', async () => {
     prepareJsonFixtureResponse('openai-text');
 

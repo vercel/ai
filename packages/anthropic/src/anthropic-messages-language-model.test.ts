@@ -217,6 +217,74 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    describe('reasoning (top-level reasoning field)', () => {
+      it('should map top-level reasoning effort to output_config effort', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: { effort: 'high' },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.output_config).toMatchObject({
+          effort: 'high',
+        });
+      });
+
+      it('should not add thinking or effort when top-level reasoning effort is none', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: { effort: 'none' },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toBeUndefined();
+        expect(requestBody.output_config).toBeUndefined();
+      });
+
+      it('should prefer provider-specific thinking option over top-level reasoning', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: { effort: 'low' },
+          providerOptions: {
+            anthropic: {
+              thinking: { type: 'adaptive' },
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toMatchObject({
+          type: 'adaptive',
+        });
+        expect(requestBody.output_config).toBeUndefined();
+      });
+
+      it('should prefer provider-specific effort option over top-level reasoning', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: { effort: 'low' },
+          providerOptions: {
+            anthropic: {
+              effort: 'max',
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.output_config).toMatchObject({
+          effort: 'max',
+        });
+      });
+    });
+
     describe('json schema response format with json tool response (unsupported model)', () => {
       let result: Awaited<ReturnType<typeof model.doGenerate>>;
 

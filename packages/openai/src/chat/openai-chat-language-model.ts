@@ -82,6 +82,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     providerOptions,
+    reasoning,
   }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
 
@@ -96,6 +97,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
     const isReasoningModel =
       openaiOptions.forceReasoning ?? modelCapabilities.isReasoningModel;
+
+    // Apply top-level reasoning configuration if provider-specific option is
+    // not already set. Provider-specific options take precedence.
+    const resolvedReasoningEffort =
+      openaiOptions.reasoningEffort ??
+      (reasoning?.effort != null ? reasoning.effort : undefined);
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -168,7 +175,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       store: openaiOptions.store,
       metadata: openaiOptions.metadata,
       prediction: openaiOptions.prediction,
-      reasoning_effort: openaiOptions.reasoningEffort,
+      reasoning_effort: resolvedReasoningEffort,
       service_tier: openaiOptions.serviceTier,
       prompt_cache_key: openaiOptions.promptCacheKey,
       prompt_cache_retention: openaiOptions.promptCacheRetention,
@@ -184,7 +191,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       // when reasoning effort is none, gpt-5.1 models allow temperature, topP, logprobs
       //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
       if (
-        openaiOptions.reasoningEffort !== 'none' ||
+        resolvedReasoningEffort !== 'none' ||
         !modelCapabilities.supportsNonReasoningParameters
       ) {
         if (baseArgs.temperature != null) {
