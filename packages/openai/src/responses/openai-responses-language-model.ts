@@ -1867,6 +1867,25 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
               }
+            } else if (isResponseFailedChunk(value)) {
+              const errorCode =
+                value.response.error?.code ?? 'unknown_error';
+              const errorMessage =
+                value.response.error?.message ?? 'Response failed';
+              controller.enqueue({
+                type: 'error',
+                error: new APICallError({
+                  message: `OpenAI response failed: [${errorCode}] ${errorMessage}`,
+                  url: '',
+                  requestBodyValues: body as Record<string, unknown>,
+                  statusCode: mapErrorCodeToStatusCode(errorCode),
+                  isRetryable: isRetryableErrorCode(errorCode),
+                }),
+              });
+              finishReason = {
+                unified: 'error',
+                raw: errorCode,
+              };
             } else if (isResponseAnnotationAddedChunk(value)) {
               ongoingAnnotations.push(value.annotation);
               if (value.annotation.type === 'url_citation') {
@@ -1936,7 +1955,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 });
               }
             } else if (isErrorChunk(value)) {
-              controller.enqueue({ type: 'error', error: value });
+              controller.enqueue({
+                type: 'error',
+                error: new APICallError({
+                  message: `OpenAI API error during streaming: [${value.error.code}] ${value.error.message}`,
+                  url: '',
+                  requestBodyValues: body as Record<string, unknown>,
+                  statusCode: mapErrorCodeToStatusCode(value.error.code),
+                  isRetryable: isRetryableErrorCode(value.error.code),
+                }),
+              });
+              finishReason = {
+                unified: 'error',
+                raw: value.error.code,
+              };
             }
           },
 
@@ -1984,6 +2016,12 @@ function isResponseFinishedChunk(
   return (
     chunk.type === 'response.completed' || chunk.type === 'response.incomplete'
   );
+}
+
+function isResponseFailedChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.failed' } {
+  return chunk.type === 'response.failed';
 }
 
 function isResponseCreatedChunk(
@@ -2062,6 +2100,27 @@ function isErrorChunk(
   chunk: OpenAIResponsesChunk,
 ): chunk is OpenAIResponsesChunk & { type: 'error' } {
   return chunk.type === 'error';
+}
+
+function mapErrorCodeToStatusCode(code: string): number {
+  switch (code) {
+    case 'rate_limit_exceeded':
+      return 429;
+    case 'invalid_api_key':
+    case 'unauthorized':
+      return 401;
+    case 'insufficient_quota':
+      return 403;
+    case 'server_error':
+    case 'internal_error':
+      return 500;
+    default:
+      return 400;
+  }
+}
+
+function isRetryableErrorCode(code: string): boolean {
+  return code === 'rate_limit_exceeded' || code === 'server_error';
 }
 
 function mapWebSearchOutput(

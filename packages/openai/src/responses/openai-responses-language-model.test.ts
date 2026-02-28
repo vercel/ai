@@ -6253,22 +6253,17 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "response-metadata",
               },
               {
-                "error": {
-                  "error": {
-                    "code": "insufficient_quota",
-                    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.",
-                    "param": null,
-                    "type": "insufficient_quota",
-                  },
-                  "sequence_number": 2,
-                  "type": "error",
-                },
+                "error": [AI_APICallError: OpenAI API error during streaming: [insufficient_quota] You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.],
+                "type": "error",
+              },
+              {
+                "error": [AI_APICallError: OpenAI response failed: [insufficient_quota] You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.],
                 "type": "error",
               },
               {
                 "finishReason": {
-                  "raw": undefined,
-                  "unified": "other",
+                  "raw": "insufficient_quota",
+                  "unified": "error",
                 },
                 "providerMetadata": {
                   "openai": {
@@ -6293,6 +6288,50 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
             ]
           `);
+      });
+
+      it('should set finishReason to error with error code', async () => {
+        prepareChunksFixtureResponse('openai-error.1');
+
+        const { stream } = await createModel('gpt-4o-mini').doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const finishPart = parts.find(
+          (p: Record<string, unknown>) => p.type === 'finish',
+        );
+        expect(finishPart).toBeDefined();
+        expect(finishPart!.finishReason).toEqual({
+          unified: 'error',
+          raw: 'insufficient_quota',
+        });
+      });
+
+      it('should produce APICallError with correct properties for stream errors', async () => {
+        prepareChunksFixtureResponse('openai-error.1');
+
+        const { stream } = await createModel('gpt-4o-mini').doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const errorParts = parts.filter(
+          (p: Record<string, unknown>) => p.type === 'error',
+        );
+        expect(errorParts.length).toBe(2);
+
+        // First error from the 'error' event
+        const errorEvent = errorParts[0].error;
+        expect(errorEvent.statusCode).toBe(403);
+        expect(errorEvent.isRetryable).toBe(false);
+
+        // Second error from 'response.failed' event
+        const failedEvent = errorParts[1].error;
+        expect(failedEvent.statusCode).toBe(403);
+        expect(failedEvent.isRetryable).toBe(false);
       });
     });
 
