@@ -831,10 +831,25 @@ export async function generateText<
                           result.providerMetadata,
                         ),
 
-                        // TODO rename telemetry attributes to inputTokens and outputTokens
+                        // deprecated telemetry attributes:
                         'ai.usage.promptTokens': result.usage.inputTokens.total,
                         'ai.usage.completionTokens':
                           result.usage.outputTokens.total,
+
+                        // current telemetry attributes:
+                        'ai.usage.inputTokens': result.usage.inputTokens.total,
+                        'ai.usage.outputTokens':
+                          result.usage.outputTokens.total,
+                        'ai.usage.totalTokens':
+                          result.usage.inputTokens.total != null ||
+                          result.usage.outputTokens.total != null
+                            ? (result.usage.inputTokens.total ?? 0) +
+                              (result.usage.outputTokens.total ?? 0)
+                            : undefined,
+                        'ai.usage.reasoningTokens':
+                          result.usage.outputTokens.reasoning,
+                        'ai.usage.cachedInputTokens':
+                          result.usage.inputTokens.cacheRead,
 
                         // standardized gen-ai llm span attributes:
                         'gen_ai.response.finish_reasons': [
@@ -1073,6 +1088,21 @@ export async function generateText<
           !(await isStopConditionMet({ stopConditions, steps }))
         );
 
+        const lastStep = steps[steps.length - 1];
+
+        const totalUsage = steps.reduce(
+          (totalUsage, step) => {
+            return addLanguageModelUsage(totalUsage, step.usage);
+          },
+          {
+            inputTokens: undefined,
+            outputTokens: undefined,
+            totalTokens: undefined,
+            reasoningTokens: undefined,
+            cachedInputTokens: undefined,
+          } as LanguageModelUsage,
+        );
+
         // Add response information to the span:
         span.setAttributes(
           await selectTelemetryAttributes({
@@ -1099,28 +1129,20 @@ export async function generateText<
                 currentModelResponse.providerMetadata,
               ),
 
-              // TODO rename telemetry attributes to inputTokens and outputTokens
+              // deprecated telemetry attributes:
               'ai.usage.promptTokens':
                 currentModelResponse.usage.inputTokens.total,
               'ai.usage.completionTokens':
                 currentModelResponse.usage.outputTokens.total,
+
+              // current telemetry attributes (total across all steps):
+              'ai.usage.inputTokens': totalUsage.inputTokens,
+              'ai.usage.outputTokens': totalUsage.outputTokens,
+              'ai.usage.totalTokens': totalUsage.totalTokens,
+              'ai.usage.reasoningTokens': totalUsage.reasoningTokens,
+              'ai.usage.cachedInputTokens': totalUsage.cachedInputTokens,
             },
           }),
-        );
-
-        const lastStep = steps[steps.length - 1];
-
-        const totalUsage = steps.reduce(
-          (totalUsage, step) => {
-            return addLanguageModelUsage(totalUsage, step.usage);
-          },
-          {
-            inputTokens: undefined,
-            outputTokens: undefined,
-            totalTokens: undefined,
-            reasoningTokens: undefined,
-            cachedInputTokens: undefined,
-          } as LanguageModelUsage,
         );
 
         await notify({
