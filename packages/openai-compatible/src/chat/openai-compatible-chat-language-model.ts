@@ -35,10 +35,16 @@ import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
   OpenAICompatibleChatModelId,
+  openaiCompatibleLanguageModelChatLegacyOptions,
   openaiCompatibleLanguageModelChatOptions,
 } from './openai-compatible-chat-options';
 import { MetadataExtractor } from './openai-compatible-metadata-extractor';
 import { prepareTools } from './openai-compatible-prepare-tools';
+
+const compatibilityOptionKeys = new Set([
+  ...Object.keys(openaiCompatibleLanguageModelChatOptions.shape),
+  ...Object.keys(openaiCompatibleLanguageModelChatLegacyOptions.shape),
+]);
 
 export type OpenAICompatibleChatConfig = {
   provider: string;
@@ -129,34 +135,70 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     const warnings: SharedV3Warning[] = [];
 
     // Parse provider options - check for deprecated 'openai-compatible' key
-    const deprecatedOptions = await parseProviderOptions({
+    const deprecatedBaseOptions = await parseProviderOptions({
       provider: 'openai-compatible',
       providerOptions,
       schema: openaiCompatibleLanguageModelChatOptions,
     });
+    const deprecatedLegacyOptions = await parseProviderOptions({
+      provider: 'openai-compatible',
+      providerOptions,
+      schema: openaiCompatibleLanguageModelChatLegacyOptions,
+    });
 
-    if (deprecatedOptions != null) {
+    if (deprecatedBaseOptions != null || deprecatedLegacyOptions != null) {
       warnings.push({
         type: 'other',
         message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
       });
     }
 
+    const openaiCompatibleBaseOptions = await parseProviderOptions({
+      provider: 'openaiCompatible',
+      providerOptions,
+      schema: openaiCompatibleLanguageModelChatOptions,
+    });
+
+    const openaiCompatibleLegacyOptions = await parseProviderOptions({
+      provider: 'openaiCompatible',
+      providerOptions,
+      schema: openaiCompatibleLanguageModelChatLegacyOptions,
+    });
+
+    const providerBaseOptions = await parseProviderOptions({
+      provider: this.providerOptionsName,
+      providerOptions,
+      schema: openaiCompatibleLanguageModelChatOptions,
+    });
+
+    const providerLegacyOptions = await parseProviderOptions({
+      provider: this.providerOptionsName,
+      providerOptions,
+      schema: openaiCompatibleLanguageModelChatLegacyOptions,
+    });
+
     const compatibleOptions = Object.assign(
-      deprecatedOptions ?? {},
-      (await parseProviderOptions({
-        provider: 'openaiCompatible',
-        providerOptions,
-        schema: openaiCompatibleLanguageModelChatOptions,
-      })) ?? {},
-      (await parseProviderOptions({
-        provider: this.providerOptionsName,
-        providerOptions,
-        schema: openaiCompatibleLanguageModelChatOptions,
-      })) ?? {},
+      deprecatedBaseOptions ?? {},
+      openaiCompatibleBaseOptions ?? {},
+      providerBaseOptions ?? {},
+    );
+    const legacyCompatibilityOptions = Object.assign(
+      deprecatedLegacyOptions ?? {},
+      openaiCompatibleLegacyOptions ?? {},
+      providerLegacyOptions ?? {},
     );
 
-    const strictJsonSchema = compatibleOptions?.strictJsonSchema ?? true;
+    if (Object.keys(legacyCompatibilityOptions).length > 0) {
+      warnings.push({
+        type: 'other',
+        message:
+          `The normalized OpenAI-compatible chat options ('reasoningEffort', 'textVerbosity', 'strictJsonSchema') are deprecated. ` +
+          `Use provider-native fields in providerOptions.${this.providerOptionsName} instead.`,
+      });
+    }
+
+    const strictJsonSchema =
+      legacyCompatibilityOptions.strictJsonSchema ?? true;
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -219,16 +261,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         ...Object.fromEntries(
           Object.entries(
             providerOptions?.[this.providerOptionsName] ?? {},
-          ).filter(
-            ([key]) =>
-              !Object.keys(
-                openaiCompatibleLanguageModelChatOptions.shape,
-              ).includes(key),
-          ),
+          ).filter(([key]) => !compatibilityOptionKeys.has(key)),
         ),
 
-        reasoning_effort: compatibleOptions.reasoningEffort,
-        verbosity: compatibleOptions.textVerbosity,
+        reasoning_effort: legacyCompatibilityOptions.reasoningEffort,
+        verbosity: legacyCompatibilityOptions.textVerbosity,
 
         // messages:
         messages: convertToOpenAICompatibleChatMessages(prompt),

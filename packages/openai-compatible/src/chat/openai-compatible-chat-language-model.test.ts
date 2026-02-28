@@ -469,6 +469,38 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should keep normalized chat options for compatibility and emit deprecation warning', async () => {
+    prepareJsonResponse();
+
+    const result = await provider('grok-beta').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        'test-provider': {
+          reasoningEffort: 'high',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "grok-beta",
+        "reasoning_effort": "high",
+      }
+    `);
+
+    expect(result.warnings).toContainEqual({
+      type: 'other',
+      message:
+        "The normalized OpenAI-compatible chat options ('reasoningEffort', 'textVerbosity', 'strictJsonSchema') are deprecated. Use provider-native fields in providerOptions.test-provider instead.",
+    });
+  });
+
   it('should include provider-specific options', async () => {
     prepareJsonResponse();
 
