@@ -654,6 +654,13 @@ export async function generateText<
         >();
 
         do {
+          // Check if the abort signal has been triggered before starting a new step.
+          // This prevents continuing with an already-aborted signal, which would
+          // produce partial/empty results instead of properly throwing:
+          if (mergedAbortSignal?.aborted) {
+            throw mergedAbortSignal.reason ?? new Error('Aborted');
+          }
+
           // Set up step timeout if configured
           const stepTimeoutId =
             stepTimeoutMs != null
