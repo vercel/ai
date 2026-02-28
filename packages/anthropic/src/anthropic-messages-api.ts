@@ -239,6 +239,13 @@ export interface AnthropicCodeExecutionToolResultContent {
         content: Array<{ type: 'code_execution_output'; file_id: string }>;
       }
     | {
+        type: 'encrypted_code_execution_result';
+        encrypted_stdout: string;
+        stderr: string;
+        return_code: number;
+        content: Array<{ type: 'code_execution_output'; file_id: string }>;
+      }
+    | {
         type: 'code_execution_tool_result_error';
         error_code: string;
       };
@@ -622,6 +629,17 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
             id: z.string(),
             name: z.string(),
             input: z.record(z.string(), z.unknown()).nullish(),
+            caller: z
+              .union([
+                z.object({
+                  type: z.literal('code_execution_20260120'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('direct'),
+                }),
+              ])
+              .optional(),
           }),
           z.object({
             type: z.literal('mcp_tool_use'),
@@ -700,6 +718,21 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
               z.object({
                 type: z.literal('code_execution_result'),
                 stdout: z.string(),
+                stderr: z.string(),
+                return_code: z.number(),
+                content: z
+                  .array(
+                    z.object({
+                      type: z.literal('code_execution_output'),
+                      file_id: z.string(),
+                    }),
+                  )
+                  .optional()
+                  .default([]),
+              }),
+              z.object({
+                type: z.literal('encrypted_code_execution_result'),
+                encrypted_stdout: z.string(),
                 stderr: z.string(),
                 return_code: z.number(),
                 content: z
@@ -954,6 +987,17 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             id: z.string(),
             name: z.string(),
             input: z.record(z.string(), z.unknown()).nullish(),
+            caller: z
+              .union([
+                z.object({
+                  type: z.literal('code_execution_20260120'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('direct'),
+                }),
+              ])
+              .optional(),
           }),
           z.object({
             type: z.literal('mcp_tool_use'),
@@ -1032,6 +1076,21 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
               z.object({
                 type: z.literal('code_execution_result'),
                 stdout: z.string(),
+                stderr: z.string(),
+                return_code: z.number(),
+                content: z
+                  .array(
+                    z.object({
+                      type: z.literal('code_execution_output'),
+                      file_id: z.string(),
+                    }),
+                  )
+                  .optional()
+                  .default([]),
+              }),
+              z.object({
+                type: z.literal('encrypted_code_execution_result'),
+                encrypted_stdout: z.string(),
                 stderr: z.string(),
                 return_code: z.number(),
                 content: z

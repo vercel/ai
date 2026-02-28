@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-sonnet-4-20250514'),
+    model: anthropic('claude-sonnet-4-6'),
     prompt: 'What happened in tech news today?',
     tools: {
       web_search: anthropic.tools.webSearch_20260209({

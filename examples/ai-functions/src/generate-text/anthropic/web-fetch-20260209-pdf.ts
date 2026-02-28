@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-sonnet-4-20250514'),
+    model: anthropic('claude-sonnet-4-6'),
     prompt:
       'What does this pdf say about AI?\n' +
       'https://raw.githubusercontent.com/vercel/ai/main/examples/ai-functions/data/ai.pdf',

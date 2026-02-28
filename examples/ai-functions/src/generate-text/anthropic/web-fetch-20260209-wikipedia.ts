@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-sonnet-4-20250514'),
+    model: anthropic('claude-sonnet-4-6'),
     prompt:
       'What is this page about? https://en.wikipedia.org/wiki/Maglemosian_culture',
     tools: {
