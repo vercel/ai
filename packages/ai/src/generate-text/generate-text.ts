@@ -835,6 +835,19 @@ export async function generateText<
                         'ai.usage.promptTokens': result.usage.inputTokens.total,
                         'ai.usage.completionTokens':
                           result.usage.outputTokens.total,
+                        'ai.usage.inputTokens': result.usage.inputTokens.total,
+                        'ai.usage.outputTokens':
+                          result.usage.outputTokens.total,
+                        'ai.usage.totalTokens':
+                          result.usage.inputTokens.total != null ||
+                          result.usage.outputTokens.total != null
+                            ? (result.usage.inputTokens.total ?? 0) +
+                              (result.usage.outputTokens.total ?? 0)
+                            : undefined,
+                        'ai.usage.reasoningTokens':
+                          result.usage.outputTokens.reasoning,
+                        'ai.usage.cachedInputTokens':
+                          result.usage.inputTokens.cacheRead,
 
                         // standardized gen-ai llm span attributes:
                         'gen_ai.response.finish_reasons': [
@@ -1104,6 +1117,20 @@ export async function generateText<
                 currentModelResponse.usage.inputTokens.total,
               'ai.usage.completionTokens':
                 currentModelResponse.usage.outputTokens.total,
+              'ai.usage.inputTokens':
+                currentModelResponse.usage.inputTokens.total,
+              'ai.usage.outputTokens':
+                currentModelResponse.usage.outputTokens.total,
+              'ai.usage.totalTokens':
+                currentModelResponse.usage.inputTokens.total != null ||
+                currentModelResponse.usage.outputTokens.total != null
+                  ? (currentModelResponse.usage.inputTokens.total ?? 0) +
+                    (currentModelResponse.usage.outputTokens.total ?? 0)
+                  : undefined,
+              'ai.usage.reasoningTokens':
+                currentModelResponse.usage.outputTokens.reasoning,
+              'ai.usage.cachedInputTokens':
+                currentModelResponse.usage.inputTokens.cacheRead,
             },
           }),
         );
