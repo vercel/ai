@@ -455,7 +455,7 @@ describe('tool calls', () => {
     expect(result.messages).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             type: 'function',
@@ -471,6 +471,77 @@ describe('tool calls', () => {
         role: 'tool',
         content: JSON.stringify({ oof: '321rab' }),
         tool_call_id: 'quux',
+      },
+    ]);
+  });
+
+  it('should send content as null for tool-call-only assistant messages', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: { location: 'Seattle' },
+              toolCallId: 'call_1',
+              toolName: 'get_weather',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call_1',
+            function: {
+              name: 'get_weather',
+              arguments: JSON.stringify({ location: 'Seattle' }),
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should preserve text content alongside tool calls', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'Let me check the weather.' },
+            {
+              type: 'tool-call',
+              input: { location: 'Seattle' },
+              toolCallId: 'call_1',
+              toolName: 'get_weather',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'assistant',
+        content: 'Let me check the weather.',
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call_1',
+            function: {
+              name: 'get_weather',
+              arguments: JSON.stringify({ location: 'Seattle' }),
+            },
+          },
+        ],
       },
     ]);
   });
