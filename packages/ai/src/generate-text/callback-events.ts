@@ -293,6 +293,15 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
 );
 
 /**
+ * Event passed to the telemetry handler's `onChunk` callback (streamText only).
+ *
+ * for observing the raw model-level stream
+ */
+export interface OnChunkEvent {
+  readonly chunk: { readonly type: string; readonly [key: string]: unknown };
+}
+
+/**
  * Event passed to the `onStepFinish` callback.
  *
  * Called when a step (LLM call) completes.

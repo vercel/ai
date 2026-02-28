@@ -38,6 +38,17 @@ export interface Run {
   started_at: string;
 }
 
+export interface ToolCallTiming {
+  toolCallId: string;
+  toolName: string;
+  started_at: string;
+  duration_ms: number;
+  args: unknown;
+  output: unknown;
+  error: unknown;
+  success: boolean;
+}
+
 export interface Step {
   id: string;
   run_id: string;
@@ -55,6 +66,7 @@ export interface Step {
   raw_response: string | null;
   raw_chunks: string | null;
   provider_options: string | null;
+  tool_calls: string | null;
 }
 
 export interface StepResult {
@@ -65,6 +77,7 @@ export interface StepResult {
   raw_request?: string | null;
   raw_response?: string | null;
   raw_chunks?: string | null;
+  tool_calls?: string | null;
 }
 
 interface Database {
@@ -172,6 +185,7 @@ export const createStep = async (
     | 'raw_request'
     | 'raw_response'
     | 'raw_chunks'
+    | 'tool_calls'
   >,
 ): Promise<void> => {
   const db = getDb();
@@ -184,6 +198,7 @@ export const createStep = async (
     raw_request: null,
     raw_response: null,
     raw_chunks: null,
+    tool_calls: null,
   };
   db.steps.push(newStep);
   saveDb(db);
@@ -204,6 +219,7 @@ export const updateStepResult = async (
     step.raw_request = result.raw_request ?? null;
     step.raw_response = result.raw_response ?? null;
     step.raw_chunks = result.raw_chunks ?? null;
+    step.tool_calls = result.tool_calls ?? null;
     saveDb(db);
     notifyServer('step-update');
   }

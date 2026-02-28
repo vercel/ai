@@ -120,6 +120,7 @@ import { toResponseMessages } from './to-response-messages';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolOutput } from './tool-output';
+import { expandHandlers } from './telemetry-handler';
 import { StaticToolOutputDenied } from './tool-output-denied';
 import { ToolSet } from './tool-set';
 
@@ -807,6 +808,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     this.includeRawChunks = includeRawChunks;
     this.tools = tools;
 
+    const telemetryListeners = expandHandlers<TOOLS, OUTPUT>(
+      telemetry?.handlers,
+    );
+
     // promise to ensure that the step has been fully processed by the event processor
     // before a new step is started. This is required because the continuation condition
     // needs the updated steps to determine if another step is needed.
@@ -1029,7 +1034,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             providerMetadata: part.providerMetadata,
           });
 
-          await notify({ event: currentStepResult, callbacks: onStepFinish });
+          await notify({
+            event: currentStepResult,
+            callbacks: [onStepFinish, telemetryListeners.onStepFinish],
+          });
 
           logWarnings({
             warnings: recordedWarnings,
@@ -1115,7 +1123,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               providerMetadata: finalStep.providerMetadata,
               steps: recordedSteps,
             },
-            callbacks: onFinish,
+            callbacks: [onFinish, telemetryListeners.onFinish],
           });
 
           // Add response information to the root span:
@@ -1304,7 +1312,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             ...callbackTelemetryProps,
             experimental_context,
           },
-          callbacks: onStart,
+          callbacks: [onStart, telemetryListeners.onStart],
         });
 
         const initialMessages = initialPrompt.messages;
@@ -1374,8 +1382,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   experimental_context,
                   stepNumber: recordedSteps.length,
                   model: modelInfo,
-                  onToolCallStart,
-                  onToolCallFinish,
+                  onToolCallStart: [
+                    onToolCallStart,
+                    telemetryListeners.onToolCallStart,
+                  ],
+                  onToolCallFinish: [
+                    onToolCallFinish,
+                    telemetryListeners.onToolCallFinish,
+                  ],
                   onPreliminaryToolResult: result => {
                     toolExecutionStepStreamController?.enqueue(result);
                   },
@@ -1573,7 +1587,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 ...callbackTelemetryProps,
                 experimental_context,
               },
-              callbacks: onStepStart,
+              callbacks: [onStepStart, telemetryListeners.onStepStart],
             });
 
             const {
@@ -1656,8 +1670,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               generateId,
               stepNumber: recordedSteps.length,
               model: stepModelInfo,
-              onToolCallStart,
-              onToolCallFinish,
+              onToolCallStart: [
+                onToolCallStart,
+                telemetryListeners.onToolCallStart,
+              ],
+              onToolCallFinish: [
+                onToolCallFinish,
+                telemetryListeners.onToolCallFinish,
+              ],
             });
 
             // Conditionally include request.body based on include settings.
@@ -1696,6 +1716,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 >({
                   async transform(chunk, controller): Promise<void> {
                     resetChunkTimeout();
+
+                    if (telemetryListeners.onChunk) {
+                      try {
+                        await telemetryListeners.onChunk({ chunk });
+                      } catch (_ignored) {}
+                    }
 
                     if (chunk.type === 'stream-start') {
                       warnings = chunk.warnings;

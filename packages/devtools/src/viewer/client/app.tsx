@@ -14,6 +14,8 @@ import {
   Brain,
   Loader2,
   BarChart3,
+  GanttChart,
+  List,
 } from 'lucide-react';
 import { AISDKLogo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -37,6 +39,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { buildTraceTree, type Span } from '@/lib/trace-builder';
+import { SpanTimeline } from '@/components/span-timeline';
+import { SpanDetail } from '@/components/span-detail';
 
 interface Run {
   id: string;
@@ -65,6 +70,7 @@ interface Step {
   raw_response: string | null;
   raw_chunks: string | null;
   provider_options: string | null;
+  tool_calls: string | null;
 }
 
 interface RunDetail {
@@ -277,11 +283,19 @@ function getStepSummary(output: any, error: string | null): StepSummary {
   return { type: 'response', icon: 'message', label: 'Response' };
 }
 
+type ViewMode = 'steps' | 'spans';
+
 function App() {
   const [runs, setRuns] = useState<Run[]>([]);
   const [selectedRun, setSelectedRun] = useState<RunDetail | null>(null);
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>('steps');
+  const [selectedSpan, setSelectedSpan] = useState<Span | null>(null);
+
+  const traceTree = selectedRun
+    ? buildTraceTree(selectedRun.run, selectedRun.steps)
+    : null;
 
   const fetchRuns = async () => {
     try {
@@ -360,8 +374,8 @@ function App() {
     const res = await fetch(`/api/runs/${runId}`);
     const data = await res.json();
     setSelectedRun(data);
-    // Start with all steps collapsed
     setExpandedSteps(new Set());
+    setSelectedSpan(null);
   };
 
   const toggleStep = (stepId: string) => {
@@ -643,246 +657,291 @@ function App() {
                     <span>
                       {new Date(selectedRun.run.started_at).toLocaleString()}
                     </span>
+                    <span className="px-3 text-muted-foreground/30">·</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2.5 text-[11px] gap-1.5"
+                      onClick={() => {
+                        setViewMode(viewMode === 'steps' ? 'spans' : 'steps');
+                        setSelectedSpan(null);
+                      }}
+                    >
+                      {viewMode === 'steps' ? (
+                        <>
+                          <GanttChart className="size-3" />
+                          View Spans
+                        </>
+                      ) : (
+                        <>
+                          <List className="size-3" />
+                          View Steps
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
 
-                {/* Steps */}
-                <div className="flex flex-col gap-3">
-                  {selectedRun.steps.map((step, index) => {
-                    const isExpanded = expandedSteps.has(step.id);
-                    const isLastStep = index === selectedRun.steps.length - 1;
-                    const isActiveStep =
-                      isLastStep && selectedRun.run.isInProgress;
-                    const input = parseJson(step.input);
-                    const output = parseJson(step.output);
-                    const usage = parseJson(step.usage);
+                {/* Span View */}
+                {viewMode === 'spans' && traceTree ? (
+                  <div className="flex gap-0 h-[calc(100vh-160px)]">
+                    <div className={selectedSpan ? 'flex-1 min-w-0' : 'w-full'}>
+                      <SpanTimeline
+                        root={traceTree}
+                        selectedSpanId={selectedSpan?.id ?? null}
+                        onSelectSpan={setSelectedSpan}
+                      />
+                    </div>
+                    {selectedSpan && (
+                      <div className="w-[420px] shrink-0">
+                        <SpanDetail
+                          span={selectedSpan}
+                          onClose={() => setSelectedSpan(null)}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Steps View */
+                  <div className="flex flex-col gap-3">
+                    {selectedRun.steps.map((step, index) => {
+                      const isExpanded = expandedSteps.has(step.id);
+                      const isLastStep = index === selectedRun.steps.length - 1;
+                      const isActiveStep =
+                        isLastStep && selectedRun.run.isInProgress;
+                      const input = parseJson(step.input);
+                      const output = parseJson(step.output);
+                      const usage = parseJson(step.usage);
 
-                    // Get tool results from next step's input
-                    const nextStep = selectedRun.steps[index + 1];
-                    const nextInput = nextStep
-                      ? parseJson(nextStep.input)
-                      : null;
-                    const toolResults =
-                      nextInput?.prompt
-                        ?.filter((msg: any) => msg.role === 'tool')
-                        ?.flatMap((msg: any) => msg.content) ?? [];
+                      // Get tool results from next step's input
+                      const nextStep = selectedRun.steps[index + 1];
+                      const nextInput = nextStep
+                        ? parseJson(nextStep.input)
+                        : null;
+                      const toolResults =
+                        nextInput?.prompt
+                          ?.filter((msg: any) => msg.role === 'tool')
+                          ?.flatMap((msg: any) => msg.content) ?? [];
 
-                    const summary = getStepSummary(output, step.error);
-                    const isFirstStep = index === 0;
-                    const inputSummary = getStepInputSummary(
-                      input,
-                      isFirstStep,
-                    );
+                      const summary = getStepSummary(output, step.error);
+                      const isFirstStep = index === 0;
+                      const inputSummary = getStepInputSummary(
+                        input,
+                        isFirstStep,
+                      );
 
-                    return (
-                      <Collapsible
-                        key={step.id}
-                        open={isExpanded}
-                        onOpenChange={() => toggleStep(step.id)}
-                      >
-                        <Card
-                          className={`overflow-hidden py-0 gap-0 ${isActiveStep ? 'ring-2 ring-blue-500/50 ring-offset-1 ring-offset-background' : ''}`}
+                      return (
+                        <Collapsible
+                          key={step.id}
+                          open={isExpanded}
+                          onOpenChange={() => toggleStep(step.id)}
                         >
-                          {/* Step Header */}
-                          <CollapsibleTrigger asChild>
-                            <button
-                              className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors hover:bg-accent/50 ${
-                                isExpanded ? 'border-b border-border' : ''
-                              }`}
-                            >
-                              <div className="flex items-center gap-3">
-                                <span className="text-xs text-muted-foreground font-mono w-4">
-                                  {step.step_number}
-                                </span>
-                                <div className="flex items-center gap-2">
-                                  {/* Input side */}
-                                  {inputSummary && (
-                                    <>
-                                      {inputSummary.type === 'user' ? (
-                                        <MessageSquare className="size-3.5 text-muted-foreground" />
-                                      ) : (
-                                        <Wrench className="size-3.5 text-muted-foreground" />
-                                      )}
-                                      {inputSummary.fullText ||
-                                      inputSummary.toolDetails ? (
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <span
-                                              className={`text-sm text-muted-foreground ${inputSummary.type === 'tool' ? 'font-mono' : ''}`}
+                          <Card
+                            className={`overflow-hidden py-0 gap-0 ${isActiveStep ? 'ring-2 ring-blue-500/50 ring-offset-1 ring-offset-background' : ''}`}
+                          >
+                            {/* Step Header */}
+                            <CollapsibleTrigger asChild>
+                              <button
+                                className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors hover:bg-accent/50 ${
+                                  isExpanded ? 'border-b border-border' : ''
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <span className="text-xs text-muted-foreground font-mono w-4">
+                                    {step.step_number}
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    {/* Input side */}
+                                    {inputSummary && (
+                                      <>
+                                        {inputSummary.type === 'user' ? (
+                                          <MessageSquare className="size-3.5 text-muted-foreground" />
+                                        ) : (
+                                          <Wrench className="size-3.5 text-muted-foreground" />
+                                        )}
+                                        {inputSummary.fullText ||
+                                        inputSummary.toolDetails ? (
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <span
+                                                className={`text-sm text-muted-foreground ${inputSummary.type === 'tool' ? 'font-mono' : ''}`}
+                                              >
+                                                {inputSummary.label}
+                                              </span>
+                                            </TooltipTrigger>
+                                            <TooltipContent
+                                              side="bottom"
+                                              className="max-w-sm max-h-40 overflow-hidden"
                                             >
-                                              {inputSummary.label}
-                                            </span>
-                                          </TooltipTrigger>
-                                          <TooltipContent
-                                            side="bottom"
-                                            className="max-w-sm max-h-40 overflow-hidden"
+                                              <span className="line-clamp-6">
+                                                {inputSummary.fullText ||
+                                                  inputSummary.toolDetails}
+                                              </span>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        ) : (
+                                          <span
+                                            className={`text-sm text-muted-foreground ${inputSummary.type === 'tool' ? 'font-mono' : ''}`}
                                           >
-                                            <span className="line-clamp-6">
-                                              {inputSummary.fullText ||
-                                                inputSummary.toolDetails}
-                                            </span>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      ) : (
-                                        <span
-                                          className={`text-sm text-muted-foreground ${inputSummary.type === 'tool' ? 'font-mono' : ''}`}
-                                        >
-                                          {inputSummary.label}
+                                            {inputSummary.label}
+                                          </span>
+                                        )}
+                                        <span className="text-muted-foreground/50 mx-1">
+                                          →
                                         </span>
-                                      )}
-                                      <span className="text-muted-foreground/50 mx-1">
-                                        →
+                                      </>
+                                    )}
+
+                                    {/* Output side */}
+                                    {summary.icon === 'wrench' && (
+                                      <Wrench className="size-3.5 text-muted-foreground" />
+                                    )}
+                                    {summary.icon === 'message' && (
+                                      <MessageSquare className="size-3.5 text-muted-foreground" />
+                                    )}
+                                    {summary.icon === 'alert' && (
+                                      <AlertCircle className="size-3.5 text-destructive" />
+                                    )}
+
+                                    {summary.toolDetails ? (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="text-sm font-medium font-mono">
+                                            {summary.label}
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          {summary.toolDetails}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    ) : (
+                                      <span
+                                        className={`text-sm font-medium ${
+                                          summary.icon === 'wrench'
+                                            ? 'font-mono'
+                                            : ''
+                                        }`}
+                                      >
+                                        {summary.label}
                                       </span>
-                                    </>
-                                  )}
+                                    )}
+                                  </div>
+                                </div>
 
-                                  {/* Output side */}
-                                  {summary.icon === 'wrench' && (
-                                    <Wrench className="size-3.5 text-muted-foreground" />
+                                <div className="flex items-center gap-4">
+                                  {isActiveStep ? (
+                                    <span className="text-[11px] text-blue-400 font-medium flex items-center gap-1.5">
+                                      <Loader2 className="size-3 animate-spin" />
+                                      streaming
+                                    </span>
+                                  ) : (
+                                    <span className="text-[11px] text-muted-foreground font-mono">
+                                      {formatDuration(step.duration_ms)}
+                                    </span>
                                   )}
-                                  {summary.icon === 'message' && (
-                                    <MessageSquare className="size-3.5 text-muted-foreground" />
-                                  )}
-                                  {summary.icon === 'alert' && (
-                                    <AlertCircle className="size-3.5 text-destructive" />
-                                  )}
-
-                                  {summary.toolDetails ? (
+                                  {usage && (
                                     <Tooltip>
                                       <TooltipTrigger asChild>
-                                        <span className="text-sm font-medium font-mono">
-                                          {summary.label}
+                                        <span className="text-[11px] font-mono text-muted-foreground cursor-help">
+                                          {formatInputTokens(
+                                            getInputTokenBreakdown(
+                                              usage.inputTokens,
+                                            ),
+                                          )}{' '}
+                                          <span className="text-muted-foreground/50">
+                                            →
+                                          </span>{' '}
+                                          {formatOutputTokens(
+                                            getOutputTokenBreakdown(
+                                              usage.outputTokens,
+                                            ),
+                                          )}
                                         </span>
                                       </TooltipTrigger>
                                       <TooltipContent>
-                                        {summary.toolDetails}
+                                        <TokenBreakdownTooltip
+                                          input={getInputTokenBreakdown(
+                                            usage.inputTokens,
+                                          )}
+                                          output={getOutputTokenBreakdown(
+                                            usage.outputTokens,
+                                          )}
+                                          raw={usage.raw}
+                                        />
                                       </TooltipContent>
                                     </Tooltip>
+                                  )}
+                                  <ChevronDown
+                                    className={`size-4 text-muted-foreground transition-transform ${
+                                      isExpanded ? 'rotate-180' : ''
+                                    }`}
+                                  />
+                                </div>
+                              </button>
+                            </CollapsibleTrigger>
+
+                            {/* Step Content */}
+                            <CollapsibleContent>
+                              {/* Config Bar */}
+                              <StepConfigBar
+                                modelId={step.model_id}
+                                provider={step.provider}
+                                input={input}
+                                providerOptions={parseJson(
+                                  step.provider_options,
+                                )}
+                                usage={usage}
+                              />
+
+                              {/* Two Panel Layout */}
+                              <div className="grid grid-cols-2 divide-x divide-border">
+                                {/* INPUT Panel */}
+                                <div className="bg-card/50">
+                                  <InputPanel input={input} />
+                                </div>
+
+                                {/* OUTPUT Panel */}
+                                <div className="p-4 bg-background min-h-full">
+                                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                                    Output
+                                  </h3>
+
+                                  {step.error ? (
+                                    <div className="p-3 rounded-md bg-destructive/10 border border-destructive/30 text-sm text-destructive-foreground font-mono">
+                                      {step.error}
+                                    </div>
+                                  ) : output ? (
+                                    <OutputDisplay
+                                      output={output}
+                                      toolResults={toolResults}
+                                    />
+                                  ) : isActiveStep ? (
+                                    <div className="flex items-center gap-2 text-sm text-blue-400">
+                                      <Loader2 className="size-4 animate-spin" />
+                                      <span>Waiting for response...</span>
+                                    </div>
                                   ) : (
-                                    <span
-                                      className={`text-sm font-medium ${
-                                        summary.icon === 'wrench'
-                                          ? 'font-mono'
-                                          : ''
-                                      }`}
-                                    >
-                                      {summary.label}
-                                    </span>
+                                    <p className="text-sm text-muted-foreground">
+                                      No output
+                                    </p>
                                   )}
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-4">
-                                {isActiveStep ? (
-                                  <span className="text-[11px] text-blue-400 font-medium flex items-center gap-1.5">
-                                    <Loader2 className="size-3 animate-spin" />
-                                    streaming
-                                  </span>
-                                ) : (
-                                  <span className="text-[11px] text-muted-foreground font-mono">
-                                    {formatDuration(step.duration_ms)}
-                                  </span>
-                                )}
-                                {usage && (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <span className="text-[11px] font-mono text-muted-foreground cursor-help">
-                                        {formatInputTokens(
-                                          getInputTokenBreakdown(
-                                            usage.inputTokens,
-                                          ),
-                                        )}{' '}
-                                        <span className="text-muted-foreground/50">
-                                          →
-                                        </span>{' '}
-                                        {formatOutputTokens(
-                                          getOutputTokenBreakdown(
-                                            usage.outputTokens,
-                                          ),
-                                        )}
-                                      </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <TokenBreakdownTooltip
-                                        input={getInputTokenBreakdown(
-                                          usage.inputTokens,
-                                        )}
-                                        output={getOutputTokenBreakdown(
-                                          usage.outputTokens,
-                                        )}
-                                        raw={usage.raw}
-                                      />
-                                    </TooltipContent>
-                                  </Tooltip>
-                                )}
-                                <ChevronDown
-                                  className={`size-4 text-muted-foreground transition-transform ${
-                                    isExpanded ? 'rotate-180' : ''
-                                  }`}
-                                />
-                              </div>
-                            </button>
-                          </CollapsibleTrigger>
-
-                          {/* Step Content */}
-                          <CollapsibleContent>
-                            {/* Config Bar */}
-                            <StepConfigBar
-                              modelId={step.model_id}
-                              provider={step.provider}
-                              input={input}
-                              providerOptions={parseJson(step.provider_options)}
-                              usage={usage}
-                            />
-
-                            {/* Two Panel Layout */}
-                            <div className="grid grid-cols-2 divide-x divide-border">
-                              {/* INPUT Panel */}
-                              <div className="bg-card/50">
-                                <InputPanel input={input} />
-                              </div>
-
-                              {/* OUTPUT Panel */}
-                              <div className="p-4 bg-background min-h-full">
-                                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                                  Output
-                                </h3>
-
-                                {step.error ? (
-                                  <div className="p-3 rounded-md bg-destructive/10 border border-destructive/30 text-sm text-destructive-foreground font-mono">
-                                    {step.error}
-                                  </div>
-                                ) : output ? (
-                                  <OutputDisplay
-                                    output={output}
-                                    toolResults={toolResults}
-                                  />
-                                ) : isActiveStep ? (
-                                  <div className="flex items-center gap-2 text-sm text-blue-400">
-                                    <Loader2 className="size-4 animate-spin" />
-                                    <span>Waiting for response...</span>
-                                  </div>
-                                ) : (
-                                  <p className="text-sm text-muted-foreground">
-                                    No output
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Raw Data Toggle */}
-                            <RawDataSection
-                              rawRequest={step.raw_request}
-                              rawResponse={step.raw_response}
-                              rawChunks={step.raw_chunks}
-                              isStream={step.type === 'stream'}
-                            />
-                          </CollapsibleContent>
-                        </Card>
-                      </Collapsible>
-                    );
-                  })}
-                </div>
+                              {/* Raw Data Toggle */}
+                              <RawDataSection
+                                rawRequest={step.raw_request}
+                                rawResponse={step.raw_response}
+                                rawChunks={step.raw_chunks}
+                                isStream={step.type === 'stream'}
+                              />
+                            </CollapsibleContent>
+                          </Card>
+                        </Collapsible>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </ScrollArea>
