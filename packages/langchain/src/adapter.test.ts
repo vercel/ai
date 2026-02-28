@@ -6,6 +6,8 @@ import {
   toUIMessageStream,
   toBaseMessages,
   convertModelMessages,
+  baseMessagesToUIMessages,
+  stateSnapshotToUIMessages,
 } from './adapter';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { ModelMessage, UIMessage } from 'ai';
@@ -2293,5 +2295,574 @@ describe('toUIMessageStream callbacks', () => {
     );
 
     expect(onFinish).toHaveBeenCalledWith(valuesData);
+  });
+});
+
+describe('baseMessagesToUIMessages', () => {
+  it('should return empty array for empty input', () => {
+    expect(baseMessagesToUIMessages([])).toEqual([]);
+  });
+
+  it('should convert HumanMessage to user UIMessage', () => {
+    const messages = [new HumanMessage({ content: 'Hello', id: 'msg-1' })];
+    const result = baseMessagesToUIMessages(messages);
+
+    expect(result).toEqual([
+      {
+        id: 'msg-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'Hello' }],
+      },
+    ]);
+  });
+
+  it('should convert SystemMessage to system UIMessage', () => {
+    const messages = [
+      new SystemMessage({ content: 'You are helpful', id: 'sys-1' }),
+    ];
+    const result = baseMessagesToUIMessages(messages);
+
+    expect(result).toEqual([
+      {
+        id: 'sys-1',
+        role: 'system',
+        parts: [{ type: 'text', text: 'You are helpful' }],
+      },
+    ]);
+  });
+
+  it('should convert AIMessage with text to assistant UIMessage', () => {
+    const messages = [new AIMessage({ content: 'Hi there!', id: 'ai-1' })];
+    const result = baseMessagesToUIMessages(messages);
+
+    expect(result).toEqual([
+      {
+        id: 'ai-1',
+        role: 'assistant',
+        parts: [{ type: 'text', text: 'Hi there!' }],
+      },
+    ]);
+  });
+
+  it('should convert AIMessage with tool_calls and ToolMessages', () => {
+    const messages = [
+      new HumanMessage({ content: 'What is the weather?', id: 'h-1' }),
+      new AIMessage({
+        content: '',
+        id: 'ai-1',
+        tool_calls: [
+          { id: 'call-1', name: 'get_weather', args: { city: 'NYC' } },
+        ],
+      }),
+      new ToolMessage({
+        content: 'Sunny, 72°F',
+        tool_call_id: 'call-1',
+        id: 'tool-1',
+      }),
+    ];
+    const result = baseMessagesToUIMessages(messages);
+
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({
+      id: 'h-1',
+      role: 'user',
+      parts: [{ type: 'text', text: 'What is the weather?' }],
+    });
+    expect(result[1].role).toBe('assistant');
+    expect(result[1].parts).toEqual([
+      {
+        type: 'dynamic-tool',
+        toolCallId: 'call-1',
+        toolName: 'get_weather',
+        state: 'output-available',
+        input: { city: 'NYC' },
+        output: 'Sunny, 72°F',
+      },
+    ]);
+  });
+
+  it('should handle AIMessage with text and tool_calls', () => {
+    const messages = [
+      new AIMessage({
+        content: 'Let me check the weather.',
+        id: 'ai-1',
+        tool_calls: [
+          { id: 'call-1', name: 'get_weather', args: { city: 'NYC' } },
+        ],
+      }),
+    ];
+    const result = baseMessagesToUIMessages(messages);
+
+    expect(result[0].parts).toEqual([
+      { type: 'text', text: 'Let me check the weather.' },
+      {
+        type: 'dynamic-tool',
+        toolCallId: 'call-1',
+        toolName: 'get_weather',
+        state: 'input-available',
+        input: { city: 'NYC' },
+      },
+    ]);
+  });
+
+  it('should handle AIMessage with array content', () => {
+    const messages = [
+      new AIMessage({
+        content: [
+          { type: 'text', text: 'Hello ' },
+          { type: 'text', text: 'World' },
+        ],
+        id: 'ai-1',
+      }),
+    ];
+    const result = baseMessagesToUIMessages(messages);
+
+    expect(result[0].parts).toEqual([{ type: 'text', text: 'Hello World' }]);
+  });
+
+  it('should handle multiple consecutive user messages', () => {
+    const messages = [
+      new HumanMessage({ content: 'First', id: 'h-1' }),
+      new HumanMessage({ content: 'Second', id: 'h-2' }),
+    ];
+    const result = baseMessagesToUIMessages(messages);
+
+    expect(result).toHaveLength(2);
+    expect(result[0].role).toBe('user');
+    expect(result[1].role).toBe('user');
+  });
+
+  it('should handle partial tool results (some ToolMessages missing)', () => {
+    const messages = [
+      new AIMessage({
+        content: '',
+        id: 'ai-1',
+        tool_calls: [
+          { id: 'call-1', name: 'tool_a', args: {} },
+          { id: 'call-2', name: 'tool_b', args: {} },
+        ],
+      }),
+      new ToolMessage({
+        content: 'Result A',
+        tool_call_id: 'call-1',
+        id: 'tool-1',
+      }),
+    ];
+    const result = baseMessagesToUIMessages(messages);
+
+    const parts = result[0].parts;
+    expect(parts).toHaveLength(2);
+    // First tool call should have output
+    expect(parts[0]).toMatchObject({
+      type: 'dynamic-tool',
+      toolCallId: 'call-1',
+      state: 'output-available',
+      output: 'Result A',
+    });
+    // Second tool call should remain input-available
+    expect(parts[1]).toMatchObject({
+      type: 'dynamic-tool',
+      toolCallId: 'call-2',
+      state: 'input-available',
+    });
+  });
+
+  it('should generate IDs for messages without IDs', () => {
+    const messages = [new HumanMessage({ content: 'Hello' })];
+    const result = baseMessagesToUIMessages(messages);
+
+    expect(result[0].id).toBeDefined();
+    expect(typeof result[0].id).toBe('string');
+    expect(result[0].id.length).toBeGreaterThan(0);
+  });
+
+  it('should handle plain object messages (serialized/RemoteGraph format)', () => {
+    const messages = [
+      {
+        type: 'human',
+        content: 'Hello',
+        id: 'h-1',
+      },
+      {
+        type: 'ai',
+        content: 'Hi!',
+        id: 'ai-1',
+        tool_calls: [],
+      },
+    ] as unknown as BaseMessage[];
+
+    const result = baseMessagesToUIMessages(messages);
+
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({
+      id: 'h-1',
+      role: 'user',
+      parts: [{ type: 'text', text: 'Hello' }],
+    });
+    expect(result[1]).toEqual({
+      id: 'ai-1',
+      role: 'assistant',
+      parts: [{ type: 'text', text: 'Hi!' }],
+    });
+  });
+
+  it('should handle serialized LangChain message format (constructor)', () => {
+    const messages = [
+      {
+        lc: 1,
+        type: 'constructor',
+        id: ['langchain_core', 'messages', 'HumanMessage'],
+        kwargs: {
+          content: 'Hello',
+          id: 'h-1',
+        },
+      },
+      {
+        lc: 1,
+        type: 'constructor',
+        id: ['langchain_core', 'messages', 'AIMessage'],
+        kwargs: {
+          content: 'Hi there!',
+          id: 'ai-1',
+          tool_calls: [],
+        },
+      },
+    ] as unknown as BaseMessage[];
+
+    const result = baseMessagesToUIMessages(messages);
+
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({
+      id: 'h-1',
+      role: 'user',
+      parts: [{ type: 'text', text: 'Hello' }],
+    });
+    expect(result[1]).toEqual({
+      id: 'ai-1',
+      role: 'assistant',
+      parts: [{ type: 'text', text: 'Hi there!' }],
+    });
+  });
+
+  it('should handle orphaned ToolMessage gracefully', () => {
+    const messages = [
+      new ToolMessage({
+        content: 'orphan result',
+        tool_call_id: 'call-999',
+        id: 'tool-orphan',
+      }),
+    ];
+    const result = baseMessagesToUIMessages(messages);
+
+    // Orphaned tool messages should be skipped
+    expect(result).toHaveLength(0);
+  });
+
+  it('should handle AIMessage with reasoning content (Anthropic thinking)', () => {
+    const messages = [
+      new AIMessage({
+        content: [
+          { type: 'thinking', thinking: 'Let me think about this...' },
+          { type: 'text', text: 'Here is my answer.' },
+        ],
+        id: 'ai-1',
+      }),
+    ];
+    const result = baseMessagesToUIMessages(messages);
+
+    // Reasoning is extracted from contentBlocks, text from content
+    expect(result[0].parts).toContainEqual({
+      type: 'text',
+      text: 'Here is my answer.',
+    });
+  });
+
+  it('should handle AIMessage with GPT-5 reasoning in response_metadata', () => {
+    const messages = [
+      new AIMessage({
+        content: 'Final answer',
+        id: 'ai-1',
+        response_metadata: {
+          output: [
+            {
+              id: 'reasoning-1',
+              type: 'reasoning',
+              summary: [{ type: 'summary_text', text: 'I thought about it.' }],
+            },
+          ],
+        },
+      }),
+    ];
+    const result = baseMessagesToUIMessages(messages);
+
+    expect(result[0].parts).toContainEqual({
+      type: 'reasoning',
+      text: 'I thought about it.',
+      state: 'done',
+    });
+    expect(result[0].parts).toContainEqual({
+      type: 'text',
+      text: 'Final answer',
+    });
+  });
+});
+
+describe('stateSnapshotToUIMessages', () => {
+  it('should return empty array for snapshot without messages', () => {
+    const snapshot = { values: {} };
+    expect(
+      stateSnapshotToUIMessages(
+        snapshot as { values: Record<string, unknown> },
+      ),
+    ).toEqual([]);
+  });
+
+  it('should convert snapshot messages to UIMessages', () => {
+    const snapshot = {
+      values: {
+        messages: [
+          new HumanMessage({ content: 'Hello', id: 'h-1' }),
+          new AIMessage({ content: 'Hi!', id: 'ai-1' }),
+        ],
+      },
+    };
+    const result = stateSnapshotToUIMessages(snapshot);
+
+    expect(result).toHaveLength(2);
+    expect(result[0].role).toBe('user');
+    expect(result[1].role).toBe('assistant');
+  });
+
+  it('should handle snapshot with tool call conversation', () => {
+    const snapshot = {
+      values: {
+        messages: [
+          new HumanMessage({ content: 'Search for cats', id: 'h-1' }),
+          new AIMessage({
+            content: '',
+            id: 'ai-1',
+            tool_calls: [
+              { id: 'call-1', name: 'search', args: { query: 'cats' } },
+            ],
+          }),
+          new ToolMessage({
+            content: 'Found 10 results about cats',
+            tool_call_id: 'call-1',
+            id: 'tool-1',
+          }),
+          new AIMessage({
+            content: 'I found 10 results about cats.',
+            id: 'ai-2',
+          }),
+        ],
+      },
+    };
+    const result = stateSnapshotToUIMessages(snapshot);
+
+    expect(result).toHaveLength(3);
+    expect(result[0].role).toBe('user');
+    expect(result[1].role).toBe('assistant');
+    expect(result[1].parts[0]).toMatchObject({
+      type: 'dynamic-tool',
+      toolCallId: 'call-1',
+      state: 'output-available',
+    });
+    expect(result[2].role).toBe('assistant');
+    expect(result[2].parts).toEqual([
+      { type: 'text', text: 'I found 10 results about cats.' },
+    ]);
+  });
+
+  it('should handle pending interrupts from snapshot tasks', () => {
+    const snapshot = {
+      values: {
+        messages: [
+          new HumanMessage({ content: 'Send an email', id: 'h-1' }),
+          new AIMessage({
+            content: 'I will send the email now.',
+            id: 'ai-1',
+          }),
+        ],
+      },
+      tasks: [
+        {
+          id: 'task-1',
+          name: 'agent',
+          interrupts: [
+            {
+              value: {
+                action_requests: [
+                  {
+                    name: 'send_email',
+                    arguments: { to: 'user@example.com', body: 'Hello' },
+                    id: 'call-email-1',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const result = stateSnapshotToUIMessages(snapshot);
+
+    expect(result).toHaveLength(2);
+    expect(result[1].role).toBe('assistant');
+    // Last part should be the interrupt tool call
+    const lastPart = result[1].parts[result[1].parts.length - 1];
+    expect(lastPart).toMatchObject({
+      type: 'dynamic-tool',
+      toolCallId: 'call-email-1',
+      toolName: 'send_email',
+      state: 'input-available',
+      input: { to: 'user@example.com', body: 'Hello' },
+    });
+  });
+
+  it('should handle multiple interrupts with camelCase action requests', () => {
+    const snapshot = {
+      values: {
+        messages: [
+          new HumanMessage({ content: 'Do tasks', id: 'h-1' }),
+          new AIMessage({ content: '', id: 'ai-1' }),
+        ],
+      },
+      tasks: [
+        {
+          id: 'task-1',
+          name: 'agent',
+          interrupts: [
+            {
+              value: {
+                actionRequests: [
+                  {
+                    name: 'delete_file',
+                    args: { filename: 'temp.txt' },
+                    id: 'call-del-1',
+                  },
+                  {
+                    name: 'send_notification',
+                    args: { channel: '#general' },
+                    id: 'call-notif-1',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const result = stateSnapshotToUIMessages(snapshot);
+
+    expect(result[1].parts).toHaveLength(2);
+    expect(result[1].parts[0]).toMatchObject({
+      type: 'dynamic-tool',
+      toolCallId: 'call-del-1',
+      toolName: 'delete_file',
+      state: 'input-available',
+    });
+    expect(result[1].parts[1]).toMatchObject({
+      type: 'dynamic-tool',
+      toolCallId: 'call-notif-1',
+      toolName: 'send_notification',
+      state: 'input-available',
+    });
+  });
+
+  it('should create assistant message for interrupts when none exists', () => {
+    const snapshot = {
+      values: {
+        messages: [new HumanMessage({ content: 'Hello', id: 'h-1' })],
+      },
+      tasks: [
+        {
+          id: 'task-1',
+          name: 'agent',
+          interrupts: [
+            {
+              value: {
+                action_requests: [
+                  { name: 'confirm', arguments: {}, id: 'call-1' },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const result = stateSnapshotToUIMessages(snapshot);
+
+    expect(result).toHaveLength(2);
+    expect(result[1].role).toBe('assistant');
+    expect(result[1].parts[0]).toMatchObject({
+      type: 'dynamic-tool',
+      toolName: 'confirm',
+      state: 'input-available',
+    });
+  });
+
+  it('should deduplicate interrupt parts matching existing tool calls', () => {
+    const snapshot = {
+      values: {
+        messages: [
+          new HumanMessage({ content: 'Send email', id: 'h-1' }),
+          new AIMessage({
+            content: '',
+            id: 'ai-1',
+            tool_calls: [
+              {
+                id: 'call-email-1',
+                name: 'send_email',
+                args: { to: 'user@example.com' },
+              },
+            ],
+          }),
+        ],
+      },
+      tasks: [
+        {
+          id: 'task-1',
+          name: 'agent',
+          interrupts: [
+            {
+              value: {
+                action_requests: [
+                  {
+                    name: 'send_email',
+                    arguments: { to: 'user@example.com' },
+                    id: 'call-email-1',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const result = stateSnapshotToUIMessages(snapshot);
+
+    // Should have only one dynamic-tool part, not duplicated
+    const toolParts = result[1].parts.filter(p => p.type === 'dynamic-tool');
+    expect(toolParts).toHaveLength(1);
+    expect(toolParts[0]).toMatchObject({
+      toolCallId: 'call-email-1',
+      toolName: 'send_email',
+    });
+  });
+
+  it('should ignore tasks without interrupts', () => {
+    const snapshot = {
+      values: {
+        messages: [
+          new HumanMessage({ content: 'Hello', id: 'h-1' }),
+          new AIMessage({ content: 'Hi!', id: 'ai-1' }),
+        ],
+      },
+      tasks: [{ id: 'task-1', name: 'agent' }],
+    };
+    const result = stateSnapshotToUIMessages(snapshot);
+
+    expect(result).toHaveLength(2);
+    expect(result[1].parts).toEqual([{ type: 'text', text: 'Hi!' }]);
   });
 });

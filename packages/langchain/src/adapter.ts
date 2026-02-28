@@ -8,6 +8,7 @@ import {
   type UIMessageChunk,
   convertToModelMessages,
   type ModelMessage,
+  generateId,
 } from 'ai';
 import {
   convertToolResultPart,
@@ -18,6 +19,13 @@ import {
   parseLangGraphEvent,
   isToolResultPart,
   extractReasoningFromContentBlocks,
+  getMessageText,
+  isToolMessageType,
+  isAIMessageChunk,
+  isPlainMessageObject,
+  getMessageId,
+  extractReasoningFromValuesMessage,
+  extractImageOutputs,
 } from './utils';
 import { type LangGraphEventState } from './types';
 import { type StreamCallbacks } from './stream-callbacks';
@@ -570,4 +578,449 @@ export function toUIMessageStream<TState = unknown>(
       }
     },
   });
+}
+
+/**
+ * Gets the message type from a BaseMessage, handling both class instances and plain/serialized objects.
+ *
+ * @param msg - The message to get the type from.
+ * @returns The message type string (e.g., 'human', 'ai', 'system', 'tool').
+ */
+function getMessageType(msg: unknown): string | undefined {
+  if (msg == null || typeof msg !== 'object') return undefined;
+
+  const msgObj = msg as Record<string, unknown>;
+
+  /**
+   * Class instances have _getType method
+   */
+  if (typeof (msgObj as { _getType?: () => string })._getType === 'function') {
+    return (msgObj as { _getType: () => string })._getType();
+  }
+
+  /**
+   * Plain objects from RemoteGraph API have type directly
+   */
+  if (typeof msgObj.type === 'string' && msgObj.type !== 'constructor') {
+    return msgObj.type;
+  }
+
+  /**
+   * Serialized LangChain messages: { type: "constructor", id: ["...", "HumanMessage"], kwargs: {...} }
+   */
+  if (msgObj.type === 'constructor' && Array.isArray(msgObj.id)) {
+    const ids = msgObj.id as string[];
+    if (ids.includes('HumanMessage') || ids.includes('HumanMessageChunk'))
+      return 'human';
+    if (ids.includes('AIMessage') || ids.includes('AIMessageChunk'))
+      return 'ai';
+    if (ids.includes('SystemMessage') || ids.includes('SystemMessageChunk'))
+      return 'system';
+    if (ids.includes('ToolMessage') || ids.includes('ToolMessageChunk'))
+      return 'tool';
+  }
+
+  return undefined;
+}
+
+/**
+ * Gets tool_call_id from a ToolMessage, handling both class instances and plain/serialized objects.
+ */
+function getToolCallId(msg: unknown): string | undefined {
+  if (msg == null || typeof msg !== 'object') return undefined;
+
+  const msgObj = msg as Record<string, unknown>;
+
+  /**
+   * For serialized LangChain messages, data is in kwargs
+   */
+  const dataSource =
+    msgObj.type === 'constructor' &&
+    msgObj.kwargs &&
+    typeof msgObj.kwargs === 'object'
+      ? (msgObj.kwargs as Record<string, unknown>)
+      : msgObj;
+
+  return typeof dataSource.tool_call_id === 'string'
+    ? dataSource.tool_call_id
+    : undefined;
+}
+
+/**
+ * Gets tool_calls from an AI message, handling both class instances and plain/serialized objects.
+ */
+function getToolCalls(
+  msg: unknown,
+): Array<{ id: string; name: string; args: Record<string, unknown> }> {
+  if (msg == null || typeof msg !== 'object') return [];
+
+  const msgObj = msg as Record<string, unknown>;
+
+  /**
+   * For serialized LangChain messages, data is in kwargs
+   */
+  const dataSource =
+    msgObj.type === 'constructor' &&
+    msgObj.kwargs &&
+    typeof msgObj.kwargs === 'object'
+      ? (msgObj.kwargs as Record<string, unknown>)
+      : msgObj;
+
+  if (Array.isArray(dataSource.tool_calls)) {
+    return dataSource.tool_calls as Array<{
+      id: string;
+      name: string;
+      args: Record<string, unknown>;
+    }>;
+  }
+
+  /**
+   * Fall back to additional_kwargs.tool_calls (OpenAI format)
+   */
+  if (
+    dataSource.additional_kwargs &&
+    typeof dataSource.additional_kwargs === 'object'
+  ) {
+    const additionalKwargs = dataSource.additional_kwargs as Record<
+      string,
+      unknown
+    >;
+    if (Array.isArray(additionalKwargs.tool_calls)) {
+      return (
+        additionalKwargs.tool_calls as Array<{
+          id?: string;
+          function?: { name?: string; arguments?: string };
+        }>
+      ).map((tc, idx) => {
+        let args: Record<string, unknown>;
+        try {
+          args = tc.function?.arguments
+            ? JSON.parse(tc.function.arguments)
+            : {};
+        } catch {
+          args = {};
+        }
+        return {
+          id: tc.id || `call_${idx}`,
+          name: tc.function?.name || 'unknown',
+          args,
+        };
+      });
+    }
+  }
+
+  return [];
+}
+
+/**
+ * Gets additional_kwargs from a message, handling both class instances and plain/serialized objects.
+ */
+function getAdditionalKwargs(
+  msg: unknown,
+): Record<string, unknown> | undefined {
+  if (msg == null || typeof msg !== 'object') return undefined;
+
+  const msgObj = msg as Record<string, unknown>;
+
+  const dataSource =
+    msgObj.type === 'constructor' &&
+    msgObj.kwargs &&
+    typeof msgObj.kwargs === 'object'
+      ? (msgObj.kwargs as Record<string, unknown>)
+      : msgObj;
+
+  return dataSource.additional_kwargs as Record<string, unknown> | undefined;
+}
+
+/**
+ * Converts LangChain BaseMessage objects to AI SDK UIMessage objects.
+ *
+ * This function transforms LangChain's message format into the AI SDK's UIMessage
+ * format, enabling chat history restoration from LangGraph checkpointers for use
+ * with `useChat`'s `initialMessages`.
+ *
+ * @param messages - Array of LangChain BaseMessage objects to convert.
+ * @returns Array of AI SDK UIMessage objects.
+ *
+ * @example
+ * ```ts
+ * import { baseMessagesToUIMessages } from '@ai-sdk/langchain';
+ *
+ * const uiMessages = baseMessagesToUIMessages(langchainMessages);
+ *
+ * // Use with useChat
+ * const { messages } = useChat({ initialMessages: uiMessages });
+ * ```
+ */
+export function baseMessagesToUIMessages(messages: BaseMessage[]): UIMessage[] {
+  const result: UIMessage[] = [];
+  let currentAssistant: UIMessage | null = null;
+
+  for (const msg of messages) {
+    const msgType = getMessageType(msg);
+    const msgId = getMessageId(msg) ?? generateId();
+
+    switch (msgType) {
+      case 'human': {
+        currentAssistant = null;
+        const text = getMessageText(msg);
+        result.push({
+          id: msgId,
+          role: 'user',
+          parts: [{ type: 'text', text }],
+        });
+        break;
+      }
+
+      case 'system': {
+        currentAssistant = null;
+        const text = getMessageText(msg);
+        result.push({
+          id: msgId,
+          role: 'system',
+          parts: [{ type: 'text', text }],
+        });
+        break;
+      }
+
+      case 'ai': {
+        const parts: UIMessage['parts'] = [];
+
+        /**
+         * Extract reasoning content
+         */
+        const reasoning =
+          extractReasoningFromContentBlocks(msg) ||
+          extractReasoningFromValuesMessage(msg);
+        if (reasoning) {
+          parts.push({ type: 'reasoning', text: reasoning, state: 'done' });
+        }
+
+        /**
+         * Extract text content
+         */
+        const text = getMessageText(msg);
+        if (text) {
+          parts.push({ type: 'text', text });
+        }
+
+        /**
+         * Extract image generation outputs
+         */
+        const additionalKwargs = getAdditionalKwargs(msg);
+        const imageOutputs = extractImageOutputs(additionalKwargs);
+        for (const imageOutput of imageOutputs) {
+          if (imageOutput.result) {
+            const mediaType = `image/${imageOutput.output_format || 'png'}`;
+            parts.push({
+              type: 'file',
+              mediaType,
+              url: `data:${mediaType};base64,${imageOutput.result}`,
+            });
+          }
+        }
+
+        /**
+         * Extract tool calls
+         */
+        const toolCalls = getToolCalls(msg);
+        for (const toolCall of toolCalls) {
+          parts.push({
+            type: 'dynamic-tool',
+            toolCallId: toolCall.id,
+            toolName: toolCall.name,
+            state: 'input-available',
+            input: toolCall.args,
+          });
+        }
+
+        const assistantMessage: UIMessage = {
+          id: msgId,
+          role: 'assistant',
+          parts,
+        };
+
+        result.push(assistantMessage);
+        currentAssistant = assistantMessage;
+        break;
+      }
+
+      case 'tool': {
+        const toolCallId = getToolCallId(msg);
+        if (toolCallId && currentAssistant) {
+          /**
+           * Find the matching tool-invocation part in the current assistant message
+           */
+          const toolPart = currentAssistant.parts.find(
+            (
+              p,
+            ): p is Extract<
+              UIMessage['parts'][number],
+              { type: 'dynamic-tool' }
+            > => p.type === 'dynamic-tool' && p.toolCallId === toolCallId,
+          );
+
+          if (toolPart) {
+            /**
+             * Upgrade the tool part to output-available state
+             */
+            const idx = currentAssistant.parts.indexOf(toolPart);
+            const content = getMessageText(msg);
+            currentAssistant.parts[idx] = {
+              type: 'dynamic-tool',
+              toolCallId: toolPart.toolCallId,
+              toolName: toolPart.toolName,
+              state: 'output-available',
+              input: toolPart.input,
+              output: content,
+            };
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Minimal type for LangGraph StateSnapshot.
+ * Uses inline type to avoid requiring `@langchain/langgraph` as a runtime dependency.
+ */
+interface InterruptActionRequest {
+  name: string;
+  args?: Record<string, unknown>;
+  arguments?: Record<string, unknown>;
+  id?: string;
+}
+
+interface InterruptValue {
+  actionRequests?: InterruptActionRequest[];
+  action_requests?: InterruptActionRequest[];
+}
+
+interface PregelInterrupt {
+  value?: InterruptValue | unknown;
+}
+
+interface PregelTask {
+  interrupts?: PregelInterrupt[];
+  [key: string]: unknown;
+}
+
+interface StateSnapshotLike {
+  values: { messages?: BaseMessage[] } & Record<string, unknown>;
+  tasks?: PregelTask[];
+}
+
+/**
+ * Converts a LangGraph StateSnapshot to AI SDK UIMessage objects.
+ *
+ * This function extracts the messages from a LangGraph state snapshot and converts
+ * them to AI SDK UIMessage format, enabling chat history restoration from
+ * LangGraph checkpointers.
+ *
+ * @param snapshot - A LangGraph StateSnapshot object.
+ * @returns Array of AI SDK UIMessage objects.
+ *
+ * @example
+ * ```ts
+ * import { stateSnapshotToUIMessages } from '@ai-sdk/langchain';
+ *
+ * const snapshot = await graph.getState(threadConfig);
+ * const uiMessages = stateSnapshotToUIMessages(snapshot);
+ *
+ * // Use with useChat
+ * const { messages } = useChat({ initialMessages: uiMessages });
+ * ```
+ */
+export function stateSnapshotToUIMessages(
+  snapshot: StateSnapshotLike,
+): UIMessage[] {
+  const messages = snapshot.values?.messages;
+  if (!Array.isArray(messages)) {
+    return [];
+  }
+  const uiMessages = baseMessagesToUIMessages(messages);
+
+  // Extract pending interrupts from snapshot tasks
+  const interruptParts = extractInterruptParts(snapshot.tasks);
+  if (interruptParts.length > 0) {
+    // Find or create the last assistant message to attach interrupt parts
+    let lastAssistant = uiMessages.findLast(m => m.role === 'assistant');
+    if (!lastAssistant) {
+      lastAssistant = {
+        id: generateId(),
+        role: 'assistant' as const,
+        parts: [],
+      };
+      uiMessages.push(lastAssistant);
+    }
+    // Deduplicate: skip interrupt parts that already exist on the assistant
+    // (e.g., when the AI message's tool_calls match the interrupt's actionRequests)
+    const existingToolCallIds = new Set<string>();
+    const existingToolParts = new Set<string>();
+    for (const part of lastAssistant.parts) {
+      if (part.type === 'dynamic-tool') {
+        existingToolCallIds.add(part.toolCallId);
+        existingToolParts.add(`${part.toolName}:${JSON.stringify(part.input)}`);
+      }
+    }
+    for (const interruptPart of interruptParts) {
+      const toolCallKey = `${interruptPart.toolName}:${JSON.stringify(interruptPart.input)}`;
+      if (
+        !existingToolCallIds.has(interruptPart.toolCallId) &&
+        !existingToolParts.has(toolCallKey)
+      ) {
+        lastAssistant.parts.push(interruptPart);
+      }
+    }
+  }
+
+  return uiMessages;
+}
+
+function extractInterruptParts(tasks?: PregelTask[]): Array<{
+  type: 'dynamic-tool';
+  toolCallId: string;
+  toolName: string;
+  state: 'input-available';
+  input: Record<string, unknown>;
+}> {
+  if (!Array.isArray(tasks)) return [];
+
+  const parts: Array<{
+    type: 'dynamic-tool';
+    toolCallId: string;
+    toolName: string;
+    state: 'input-available';
+    input: Record<string, unknown>;
+  }> = [];
+
+  for (const task of tasks) {
+    if (!Array.isArray(task.interrupts)) continue;
+
+    for (const interrupt of task.interrupts) {
+      if (!interrupt.value || typeof interrupt.value !== 'object') continue;
+
+      const interruptValue = interrupt.value as InterruptValue;
+      const actionRequests =
+        interruptValue.actionRequests ?? interruptValue.action_requests;
+
+      if (!Array.isArray(actionRequests)) continue;
+
+      for (const request of actionRequests) {
+        parts.push({
+          type: 'dynamic-tool',
+          toolCallId: request.id ?? generateId(),
+          toolName: request.name,
+          state: 'input-available',
+          input: request.args ?? request.arguments ?? {},
+        });
+      }
+    }
+  }
+
+  return parts;
 }
