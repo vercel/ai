@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 3.0.37
+
+### Patch Changes
+
+- 58bc42d: feat(provider/openai): support custom tools with alias mapping
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+
 ## 3.0.36
 
 ### Patch Changes
