@@ -8,6 +8,7 @@ import { AbstractChat, ChatInit, ChatState, ChatStatus } from './chat';
 import { UIMessage } from './ui-messages';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { DefaultChatTransport } from './default-chat-transport';
+import { ChatTransport } from './chat-transport';
 import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { delay } from '@ai-sdk/provider-utils';
@@ -2781,6 +2782,85 @@ describe('Chat', () => {
           "trigger": "submit-message",
         }
       `);
+    });
+  });
+
+  describe('ignoreIncompleteToolCalls option', () => {
+    it('should pass ignoreIncompleteToolCalls to transport.sendMessages', async () => {
+      let capturedOptions:
+        | Parameters<ChatTransport<UIMessage>['sendMessages']>[0]
+        | null = null;
+
+      const mockTransport: ChatTransport<UIMessage> = {
+        sendMessages: async options => {
+          capturedOptions = options;
+          return new ReadableStream({
+            start(controller) {
+              controller.enqueue({ type: 'start' });
+              controller.enqueue({ type: 'start-step' });
+              controller.enqueue({ type: 'finish-step' });
+              controller.enqueue({ type: 'finish', finishReason: 'stop' });
+              controller.close();
+            },
+          });
+        },
+        reconnectToStream: async () => null,
+      };
+
+      const finishPromise = createResolvablePromise<void>();
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: mockTransport,
+        ignoreIncompleteToolCalls: true,
+        onFinish: () => finishPromise.resolve(),
+      });
+
+      chat.sendMessage({ text: 'Hello' });
+
+      await finishPromise.promise;
+
+      expect(capturedOptions).not.toBeNull();
+      expect(capturedOptions!.ignoreIncompleteToolCalls).toBe(true);
+    });
+
+    it('should not pass ignoreIncompleteToolCalls when not set', async () => {
+      let capturedOptions:
+        | Parameters<ChatTransport<UIMessage>['sendMessages']>[0]
+        | null = null;
+
+      const mockTransport: ChatTransport<UIMessage> = {
+        sendMessages: async options => {
+          capturedOptions = options;
+          return new ReadableStream({
+            start(controller) {
+              controller.enqueue({ type: 'start' });
+              controller.enqueue({ type: 'start-step' });
+              controller.enqueue({ type: 'finish-step' });
+              controller.enqueue({ type: 'finish', finishReason: 'stop' });
+              controller.close();
+            },
+          });
+        },
+        reconnectToStream: async () => null,
+      };
+
+      const finishPromise = createResolvablePromise<void>();
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: mockTransport,
+        onFinish: () => finishPromise.resolve(),
+      });
+
+      chat.sendMessage({ text: 'Hello' });
+
+      await finishPromise.promise;
+
+      expect(capturedOptions).not.toBeNull();
+      expect(capturedOptions!.ignoreIncompleteToolCalls).toBeUndefined();
     });
   });
 });

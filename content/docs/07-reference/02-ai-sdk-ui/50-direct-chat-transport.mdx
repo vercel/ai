@@ -177,6 +177,13 @@ const stream = await transport.sendMessages({
       isOptional: true,
       description: 'Custom metadata (ignored by DirectChatTransport).',
     },
+    {
+      name: 'ignoreIncompleteToolCalls',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'When true, tool calls with state "input-streaming" or "input-available" are filtered out before sending to the model.',
+    },
   ]}
 />
 
