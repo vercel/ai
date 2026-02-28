@@ -17,9 +17,11 @@ import { OpenAIResponsesTool } from './openai-responses-api';
 export async function prepareResponsesTools({
   tools,
   toolChoice,
+  customToolNames,
 }: {
   tools: LanguageModelV3CallOptions['tools'];
   toolChoice: LanguageModelV3CallOptions['toolChoice'] | undefined;
+  customToolNames?: Set<string>;
 }): Promise<{
   tools?: Array<OpenAIResponsesTool>;
   toolChoice?:
@@ -30,6 +32,7 @@ export async function prepareResponsesTools({
     | { type: 'web_search_preview' }
     | { type: 'web_search' }
     | { type: 'function'; name: string }
+    | { type: 'custom'; name: string }
     | { type: 'code_interpreter' }
     | { type: 'mcp' }
     | { type: 'image_generation' }
@@ -236,11 +239,7 @@ export async function prepareResponsesTools({
               type: 'custom',
               name: args.name,
               description: args.description,
-              format: {
-                type: 'grammar',
-                syntax: args.format.syntax,
-                definition: args.format.definition,
-              },
+              format: args.format,
             });
             break;
           }
@@ -279,7 +278,9 @@ export async function prepareResponsesTools({
           toolChoice.toolName === 'mcp' ||
           toolChoice.toolName === 'apply_patch'
             ? { type: toolChoice.toolName }
-            : { type: 'function', name: toolChoice.toolName },
+            : customToolNames?.has(toolChoice.toolName)
+              ? { type: 'custom', name: toolChoice.toolName }
+              : { type: 'function', name: toolChoice.toolName },
         toolWarnings,
       };
     default: {
