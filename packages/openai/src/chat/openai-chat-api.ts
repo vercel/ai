@@ -123,7 +123,7 @@ export const openaiChatChunkSchema = lazySchema(() =>
                     z.object({
                       index: z.number(),
                       id: z.string().nullish(),
-                      type: z.literal('function').nullish(),
+                      type: z.string().nullish(),
                       function: z.object({
                         name: z.string().nullish(),
                         arguments: z.string().nullish(),
