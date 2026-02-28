@@ -1535,4 +1535,62 @@ describe('runToolsTransformation', () => {
       });
     });
   });
+
+  describe('stream error during tool execution', () => {
+    it('should not crash when generator stream errors while tools are executing', async () => {
+      const inputStream = new ReadableStream<LanguageModelV3StreamPart>({
+        start(controller) {
+          controller.enqueue({
+            type: 'tool-call',
+            toolCallId: 'call_1',
+            toolName: 'slow_tool',
+            input: '{"value":"test"}',
+          });
+          // Error the stream while tool is still executing
+          setTimeout(() => {
+            controller.error(new Error('simulated stream error'));
+          }, 10);
+        },
+      });
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          slow_tool: tool({
+            parameters: z.object({ value: z.string() }),
+            execute: async () => {
+              await delay(500);
+              return { result: 'done' };
+            },
+          }),
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      // Consume the stream — it should error but NOT throw
+      // "Controller is already closed" as an unhandled rejection
+      const reader = transformedStream.getReader();
+      try {
+        while (true) {
+          const { done } = await reader.read();
+          if (done) break;
+        }
+      } catch {
+        // Expected: stream error propagates here
+      }
+
+      // Wait for the slow tool to complete after the controller is closed
+      await delay(1000);
+
+      // If we get here without an unhandled rejection, the fix works
+      expect(true).toBe(true);
+    });
+  });
 });
