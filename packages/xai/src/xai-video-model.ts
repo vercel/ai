@@ -167,6 +167,11 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
+    // output.upload_url: signed URL for xAI to PUT the video
+    if (xaiOptions?.uploadUrl != null) {
+      body.output = { upload_url: xaiOptions.uploadUrl };
+    }
+
     if (xaiOptions != null) {
       for (const [key, value] of Object.entries(xaiOptions)) {
         if (
@@ -175,6 +180,7 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
             'pollTimeoutMs',
             'resolution',
             'videoUrl',
+            'uploadUrl',
           ].includes(key)
         ) {
           body[key] = value;
@@ -239,6 +245,15 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
         statusResponse.status === 'done' ||
         (statusResponse.status == null && statusResponse.video?.url)
       ) {
+        // respect_moderation === false means content was rejected; URL will be empty
+        if (statusResponse.video?.respect_moderation === false) {
+          throw new AISDKError({
+            name: 'XAI_VIDEO_GENERATION_MODERATION',
+            message:
+              'Video generation was blocked by content moderation policy.',
+          });
+        }
+
         if (!statusResponse.video?.url) {
           throw new AISDKError({
             name: 'XAI_VIDEO_GENERATION_ERROR',
@@ -268,6 +283,9 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
               ...(statusResponse.video.duration != null
                 ? { duration: statusResponse.video.duration }
                 : {}),
+              ...(statusResponse.usage?.cost_in_usd_ticks != null
+                ? { costInUsdTicks: statusResponse.usage.cost_in_usd_ticks }
+                : {}),
             },
           },
         };
@@ -280,7 +298,7 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
         });
       }
 
-      // 'pending' → continue polling
+      // status === 'pending' (or HTTP 202 in-progress) → continue polling
     }
   }
 }
@@ -299,4 +317,9 @@ const xaiVideoStatusResponseSchema = z.object({
     })
     .nullish(),
   model: z.string().nullish(),
+  usage: z
+    .object({
+      cost_in_usd_ticks: z.number().nullish(),
+    })
+    .nullish(),
 });

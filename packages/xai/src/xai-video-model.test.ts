@@ -671,4 +671,139 @@ describe('XaiVideoModel', () => {
       };
     });
   });
+
+  describe('uploadUrl and user options', () => {
+    it('should send output.upload_url in request body when uploadUrl is provided', async () => {
+      const model = createModel();
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            uploadUrl: 'https://signed.example.com/upload?token=abc',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        output: { upload_url: 'https://signed.example.com/upload?token=abc' },
+      });
+    });
+
+    it('should send output.upload_url for edit endpoint when uploadUrl is provided', async () => {
+      const model = createModel();
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            videoUrl: 'https://example.com/source.mp4',
+            uploadUrl: 'https://signed.example.com/upload?token=abc',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+      expect(server.calls[0].requestUrl).toBe(`${TEST_BASE_URL}/videos/edits`);
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        output: { upload_url: 'https://signed.example.com/upload?token=abc' },
+      });
+    });
+
+    it('should not include output key in body when uploadUrl is not provided', async () => {
+      const model = createModel();
+      await model.doGenerate({ ...defaultOptions });
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('output');
+    });
+
+    it('should send user identifier in request body when user is provided', async () => {
+      const model = createModel();
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            user: 'user-abc-123',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ user: 'user-abc-123' });
+    });
+  });
+
+  describe('moderation handling', () => {
+    it('should throw moderation error when respect_moderation is false', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'done',
+          video: { url: '', duration: null, respect_moderation: false },
+          model: 'grok-imagine-video',
+        },
+      };
+      const model = createModel();
+      await expect(
+        model.doGenerate({ ...defaultOptions }),
+      ).rejects.toMatchObject({
+        name: 'XAI_VIDEO_GENERATION_MODERATION',
+      });
+      // Reset
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+
+    it('should include moderation in error message when respect_moderation is false', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'done',
+          video: { url: '', respect_moderation: false },
+          model: 'grok-imagine-video',
+        },
+      };
+      const model = createModel();
+      await expect(model.doGenerate({ ...defaultOptions })).rejects.toThrow(
+        'moderation',
+      );
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+  });
+
+  describe('cost metadata', () => {
+    it('should include costInUsdTicks in providerMetadata when usage is present', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: { ...doneStatusResponse, usage: { cost_in_usd_ticks: 42000 } },
+      };
+      const model = createModel();
+      const result = await model.doGenerate({ ...defaultOptions });
+      expect(result.providerMetadata).toStrictEqual({
+        xai: {
+          requestId: 'req-123',
+          videoUrl: 'https://vidgen.x.ai/output/video-001.mp4',
+          duration: 5,
+          costInUsdTicks: 42000,
+        },
+      });
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+
+    it('should not include costInUsdTicks in providerMetadata when usage is absent', async () => {
+      const model = createModel();
+      const result = await model.doGenerate({ ...defaultOptions });
+      expect(result.providerMetadata?.xai).not.toHaveProperty('costInUsdTicks');
+    });
+  });
 });
