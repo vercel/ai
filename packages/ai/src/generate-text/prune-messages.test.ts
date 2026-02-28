@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { pruneMessages } from './prune-messages';
 import { ModelMessage } from '@ai-sdk/provider-utils';
+import { UIMessage } from '../ui';
 
 const messagesFixture1: ModelMessage[] = [
   {
@@ -641,7 +642,16 @@ describe('pruneMessages', () => {
 
     describe('two tool settings', () => {
       it('should prune all tool calls, results, errors, and approvals', () => {
-        const result = pruneMessages({
+        type MyUIMessage = UIMessage<
+          unknown,
+          {},
+          {
+            'get-weather-tool-1': { input: unknown; output: unknown };
+            'get-weather-tool-2': { input: unknown; output: unknown };
+          }
+        >;
+
+        const result = pruneMessages<MyUIMessage>({
           messages: messagesFixture1,
           toolCalls: [
             { type: 'all', tools: ['get-weather-tool-1'] },

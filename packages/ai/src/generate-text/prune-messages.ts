@@ -3,6 +3,7 @@ import {
   ModelMessage,
   ToolModelMessage,
 } from '@ai-sdk/provider-utils';
+import { InferUIMessageTools, UIMessage } from '../ui/ui-messages';
 
 /**
  * Prunes model messages from a list of model messages.
@@ -14,7 +15,7 @@ import {
  *
  * @returns The pruned list of model messages.
  */
-export function pruneMessages({
+export function pruneMessages<UI_MESSAGE extends UIMessage = UIMessage>({
   messages,
   reasoning = 'none',
   toolCalls = [],
@@ -29,7 +30,7 @@ export function pruneMessages({
     | 'none'
     | Array<{
         type: 'all' | 'before-last-message' | `before-last-${number}-messages`;
-        tools?: string[];
+        tools?: Array<keyof InferUIMessageTools<UI_MESSAGE>>;
       }>;
   emptyMessages?: 'keep' | 'remove';
 }): ModelMessage[] {
