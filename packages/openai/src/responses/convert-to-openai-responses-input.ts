@@ -22,6 +22,7 @@ import {
 } from '../tool/local-shell';
 import { shellInputSchema, shellOutputSchema } from '../tool/shell';
 import {
+  OpenAIResponsesCustomToolCallOutput,
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
@@ -47,6 +48,7 @@ export async function convertToOpenAIResponsesInput({
   hasLocalShellTool = false,
   hasShellTool = false,
   hasApplyPatchTool = false,
+  customProviderToolNames,
 }: {
   prompt: LanguageModelV3Prompt;
   toolNameMapping: ToolNameMapping;
@@ -58,6 +60,7 @@ export async function convertToOpenAIResponsesInput({
   hasLocalShellTool?: boolean;
   hasShellTool?: boolean;
   hasApplyPatchTool?: boolean;
+  customProviderToolNames?: Set<string>;
 }): Promise<{
   input: OpenAIResponsesInput;
   warnings: Array<SharedV3Warning>;
@@ -274,6 +277,20 @@ export async function convertToOpenAIResponsesInput({
                   operation: parsedInput.operation,
                 });
 
+                break;
+              }
+
+              if (customProviderToolNames?.has(resolvedToolName)) {
+                input.push({
+                  type: 'custom_tool_call',
+                  call_id: part.toolCallId,
+                  name: resolvedToolName,
+                  input:
+                    typeof part.input === 'string'
+                      ? part.input
+                      : JSON.stringify(part.input),
+                  id,
+                });
                 break;
               }
 
@@ -572,6 +589,63 @@ export async function convertToOpenAIResponsesInput({
               status: parsedOutput.status,
               output: parsedOutput.output,
             });
+            continue;
+          }
+
+          if (customProviderToolNames?.has(resolvedToolName)) {
+            let outputValue: OpenAIResponsesCustomToolCallOutput['output'];
+            switch (output.type) {
+              case 'text':
+              case 'error-text':
+                outputValue = output.value;
+                break;
+              case 'execution-denied':
+                outputValue = output.reason ?? 'Tool execution denied.';
+                break;
+              case 'json':
+              case 'error-json':
+                outputValue = JSON.stringify(output.value);
+                break;
+              case 'content':
+                outputValue = output.value
+                  .map(item => {
+                    switch (item.type) {
+                      case 'text':
+                        return { type: 'input_text' as const, text: item.text };
+                      case 'image-data':
+                        return {
+                          type: 'input_image' as const,
+                          image_url: `data:${item.mediaType};base64,${item.data}`,
+                        };
+                      case 'image-url':
+                        return {
+                          type: 'input_image' as const,
+                          image_url: item.url,
+                        };
+                      case 'file-data':
+                        return {
+                          type: 'input_file' as const,
+                          filename: item.filename ?? 'data',
+                          file_data: `data:${item.mediaType};base64,${item.data}`,
+                        };
+                      default:
+                        warnings.push({
+                          type: 'other',
+                          message: `unsupported custom tool content part type: ${item.type}`,
+                        });
+                        return undefined;
+                    }
+                  })
+                  .filter(isNonNullable);
+                break;
+              default:
+                outputValue = '';
+            }
+            input.push({
+              type: 'custom_tool_call_output',
+              call_id: part.toolCallId,
+              output: outputValue,
+            } satisfies OpenAIResponsesCustomToolCallOutput);
             continue;
           }
 
