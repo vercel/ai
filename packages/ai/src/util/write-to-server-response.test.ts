@@ -264,3 +264,107 @@ function createBackpressureMockResponse(): ServerResponse &
   return new BackpressureMockResponse() as ServerResponse &
     BackpressureMockResponse;
 }
+
+describe('flush functionality', () => {
+  it('should call flush when available on response and write succeeds', async () => {
+    let flushCallCount = 0;
+    const mockResponse = createMockServerResponse();
+
+    (mockResponse as any).flush = () => {
+      flushCallCount++;
+    };
+
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('test chunk'));
+        controller.close();
+      },
+    });
+
+    writeToServerResponse({
+      response: mockResponse,
+      status: 200,
+      stream,
+    });
+
+    await mockResponse.waitForEnd();
+
+    expect(flushCallCount).toBe(1);
+    expect(mockResponse.writtenChunks).toHaveLength(1);
+    expect(mockResponse.ended).toBe(true);
+  });
+
+  it('should not call flush when write causes backpressure', async () => {
+    let flushCallCount = 0;
+    const mockResponse = createBackpressureMockResponse();
+
+    (mockResponse as any).flush = () => {
+      flushCallCount++;
+    };
+
+    let readyToEnqueue: ((value: unknown) => void) | null = null;
+
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('chunk1'));
+        readyToEnqueue = value => {
+          if (value === null) {
+            controller.close();
+          } else {
+            controller.enqueue(value as Uint8Array);
+          }
+        };
+      },
+    });
+
+    writeToServerResponse({
+      response: mockResponse,
+      status: 200,
+      stream,
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 10));
+    expect(mockResponse.writeCallCount).toBe(1);
+    expect(flushCallCount).toBe(1);
+
+    readyToEnqueue!(new TextEncoder().encode('chunk2'));
+    await new Promise(resolve => setTimeout(resolve, 5));
+    expect(mockResponse.writeCallCount).toBe(2);
+    expect(flushCallCount).toBe(1);
+
+    mockResponse.simulateDrain();
+    readyToEnqueue!(new TextEncoder().encode('chunk3'));
+    await new Promise(resolve => setTimeout(resolve, 10));
+    expect(mockResponse.writeCallCount).toBe(3);
+    expect(flushCallCount).toBe(2);
+
+    readyToEnqueue!(null);
+    await mockResponse.waitForEnd();
+
+    expect(mockResponse.writtenChunks).toHaveLength(3);
+  });
+
+  it('should not call flush when not available on response', async () => {
+    const mockResponse = createMockServerResponse();
+
+    expect('flush' in mockResponse).toBe(false);
+
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('test chunk'));
+        controller.close();
+      },
+    });
+
+    writeToServerResponse({
+      response: mockResponse,
+      status: 200,
+      stream,
+    });
+
+    await mockResponse.waitForEnd();
+
+    expect(mockResponse.writtenChunks).toHaveLength(1);
+    expect(mockResponse.ended).toBe(true);
+  });
+});
