@@ -959,7 +959,6 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.input).toEqual([
             {
               type: 'reasoning',
-              id: 'reasoning_001',
               encrypted_content: undefined,
               summary: [
                 {
@@ -1001,7 +1000,6 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.input).toEqual([
             {
               type: 'reasoning',
-              id: 'reasoning_001',
               encrypted_content: 'encrypted_content_001',
               summary: [
                 {
@@ -1043,7 +1041,6 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.input).toEqual([
             {
               type: 'reasoning',
-              id: 'reasoning_001',
               encrypted_content: null,
               summary: [
                 {
@@ -1086,7 +1083,6 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.input).toEqual([
             {
               type: 'reasoning',
-              id: 'reasoning_001',
               encrypted_content: undefined,
               summary: [],
             },
@@ -1123,7 +1119,6 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.input).toEqual([
             {
               type: 'reasoning',
-              id: 'reasoning_001',
               encrypted_content: 'encrypted_content_001',
               summary: [],
             },
@@ -1168,7 +1163,6 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.input).toEqual([
             {
               type: 'reasoning',
-              id: 'reasoning_001',
               encrypted_content: undefined,
               summary: [
                 {
@@ -1230,7 +1224,6 @@ describe('convertToOpenAIResponsesInput', () => {
             [
               {
                 "encrypted_content": "encrypted_content_001",
-                "id": "reasoning_001",
                 "summary": [
                   {
                     "text": "First reasoning step",
@@ -1285,7 +1278,6 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.input).toEqual([
             {
               type: 'reasoning',
-              id: 'reasoning_001',
               encrypted_content: undefined,
               summary: [
                 {
@@ -1296,7 +1288,6 @@ describe('convertToOpenAIResponsesInput', () => {
             },
             {
               type: 'reasoning',
-              id: 'reasoning_002',
               encrypted_content: undefined,
               summary: [
                 {
@@ -1485,7 +1476,6 @@ describe('convertToOpenAIResponsesInput', () => {
             },
             {
               type: 'reasoning',
-              id: 'reasoning_001',
               encrypted_content: undefined,
               summary: [
                 {
@@ -1508,7 +1498,6 @@ describe('convertToOpenAIResponsesInput', () => {
             },
             {
               type: 'reasoning',
-              id: 'reasoning_002',
               encrypted_content: undefined,
               summary: [
                 {
@@ -1656,7 +1645,6 @@ describe('convertToOpenAIResponsesInput', () => {
             // First reasoning block (2 parts merged)
             {
               type: 'reasoning',
-              id: 'reasoning_001',
               encrypted_content: 'encrypted_content_001',
               summary: [
                 {
@@ -1685,7 +1673,6 @@ describe('convertToOpenAIResponsesInput', () => {
             // Second reasoning block (3 parts merged)
             {
               type: 'reasoning',
-              id: 'reasoning_002',
               encrypted_content: 'encrypted_content_002',
               summary: [
                 {
