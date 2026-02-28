@@ -958,6 +958,84 @@ Your execute function must return:
 - **status** _'completed' | 'failed'_ - Whether the patch was applied successfully
 - **output** _string_ (optional) - Human-readable log text (e.g., results or error messages)
 
+#### Custom Tool
+
+The OpenAI Responses API supports
+[custom tools](https://developers.openai.com/api/docs/guides/function-calling/#custom-tools)
+through the `openai.tools.customTool` tool.
+Custom tools let you constrain model output to a grammar (regex or Lark syntax),
+making them useful for generating structured text like SQL queries, code snippets,
+or any output that must match a specific pattern.
+Unlike function tools which use JSON Schema parameters, custom tools use a `format`
+field specifying the output grammar and return a raw string matching that grammar.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('gpt-5.2-codex'),
+  tools: {
+    write_sql: openai.tools.customTool({
+      name: 'write_sql',
+      description: 'Write a SQL SELECT query to answer the user question.',
+      format: {
+        type: 'grammar',
+        syntax: 'regex',
+        definition: 'SELECT .+',
+      },
+    }),
+  },
+  toolChoice: 'required',
+  prompt: 'Write a SQL query to get all users older than 25.',
+});
+
+for (const toolCall of result.toolCalls) {
+  console.log(`Tool: ${toolCall.toolName}`);
+  console.log(`Input: ${toolCall.input}`); // raw string, e.g. "SELECT * FROM users WHERE age > 25"
+}
+```
+
+Custom tools also work with `streamText`:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: openai.responses('gpt-5.2-codex'),
+  tools: {
+    write_sql: openai.tools.customTool({
+      name: 'write_sql',
+      description: 'Write a SQL SELECT query to answer the user question.',
+      format: {
+        type: 'grammar',
+        syntax: 'regex',
+        definition: 'SELECT .+',
+      },
+    }),
+  },
+  toolChoice: 'required',
+  prompt: 'Write a SQL query to get all users older than 25.',
+});
+
+for await (const chunk of result.fullStream) {
+  if (chunk.type === 'tool-call') {
+    console.log(`Tool: ${chunk.toolName}`);
+    console.log(`Input: ${chunk.input}`);
+  }
+}
+```
+
+The custom tool can be configured with:
+
+- **name** _string_ (required) - The name of the custom tool. Used to identify the tool in tool calls.
+- **description** _string_ (optional) - A description of what the tool does, to help the model understand when to use it.
+- **format** _object_ (required) - The output format constraint:
+  - **type** _'grammar'_ - The type of format constraint (always `'grammar'`).
+  - **syntax** _'regex' | 'lark'_ - The grammar syntax. Use `'regex'` for regular expression patterns or `'lark'` for [Lark parser grammar](https://lark-parser.readthedocs.io/).
+  - **definition** _string_ - The grammar definition string (a regex pattern or Lark grammar).
+
 #### Image Inputs
 
 The OpenAI Responses API supports Image inputs for appropriate models.
