@@ -553,6 +553,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
                 if (toolCalls[index] == null) {
                   if (
                     toolCallDelta.type != null &&
+                    toolCallDelta.type !== '' &&
                     toolCallDelta.type !== 'function'
                   ) {
                     throw new InvalidResponseDataError({
