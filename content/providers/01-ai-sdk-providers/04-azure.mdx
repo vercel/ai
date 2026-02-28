@@ -576,16 +576,13 @@ The model proposes shell commands; your integration executes them and returns th
   The Azure OpenAI Responses API provides the shell tool, but it currently
   does not support OpenAI-hosted container environments (`containerAuto`,
   `containerReference`) or Skills.
-
-This means:
-
-- Hosted container execution is not available.
-- `skills` configuration is not supported.
-- The `environment` parameter is currently not supported.
-
-When using `@ai-sdk/azure`, the shell tool must be executed via a local
-`execute` callback, and sandboxing must be handled entirely by your
-application.
+  This means:
+  - Hosted container execution is not available.
+  - `skills` configuration is not supported.
+  - The `environment` parameter is currently not supported.
+  When using `@ai-sdk/azure`, the shell tool must be executed via a local
+  `execute` callback, and sandboxing must be handled entirely by your
+  application.
 
 </Note>
 
