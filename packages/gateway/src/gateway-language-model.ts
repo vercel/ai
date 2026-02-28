@@ -6,6 +6,7 @@ import type {
   LanguageModelV3StreamPart,
   LanguageModelV3GenerateResult,
   LanguageModelV3StreamResult,
+  LanguageModelV3Usage,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -83,6 +84,7 @@ export class GatewayLanguageModel implements LanguageModelV3 {
 
       return {
         ...responseBody,
+        usage: normalizeUsage(responseBody.usage),
         request: { body: args },
         response: { headers: responseHeaders, body: rawResponse },
         warnings,
@@ -148,6 +150,15 @@ export class GatewayLanguageModel implements LanguageModelV3 {
                   streamPart.timestamp = new Date(streamPart.timestamp);
                 }
 
+                // Normalize V2 flat usage to V3 nested format in finish chunks
+                if (streamPart.type === 'finish' && streamPart.usage) {
+                  controller.enqueue({
+                    ...streamPart,
+                    usage: normalizeUsage(streamPart.usage),
+                  });
+                  return;
+                }
+
                 controller.enqueue(streamPart);
               } else {
                 controller.error(
@@ -209,4 +220,45 @@ export class GatewayLanguageModel implements LanguageModelV3 {
       'ai-language-model-streaming': String(streaming),
     };
   }
+}
+
+/**
+Detect whether a usage object is in V2 flat format (e.g. `{ inputTokens: 9 }`)
+rather than V3 nested format (e.g. `{ inputTokens: { total: 9, ... } }`).
+The gateway backend may return V2 usage even though the client declares V3.
+ */
+function isV2Usage(usage: unknown): usage is {
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  reasoningTokens?: number;
+  cachedInputTokens?: number;
+} {
+  if (usage == null || typeof usage !== 'object') return false;
+  const u = usage as Record<string, unknown>;
+  // V3 usage has nested objects; V2 has flat numbers.
+  return (
+    ('inputTokens' in u && typeof u.inputTokens !== 'object') ||
+    ('outputTokens' in u && typeof u.outputTokens !== 'object')
+  );
+}
+
+function normalizeUsage(usage: unknown): LanguageModelV3Usage {
+  if (!isV2Usage(usage)) {
+    return usage as LanguageModelV3Usage;
+  }
+
+  return {
+    inputTokens: {
+      total: usage.inputTokens,
+      noCache: undefined,
+      cacheRead: usage.cachedInputTokens,
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: usage.outputTokens,
+      text: undefined,
+      reasoning: usage.reasoningTokens,
+    },
+  };
 }

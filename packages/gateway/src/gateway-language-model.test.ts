@@ -1482,4 +1482,117 @@ describe('GatewayLanguageModel', () => {
       });
     });
   });
+
+  describe('V2 usage normalization', () => {
+    it('should convert V2 flat usage to V3 nested format in doGenerate', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-id',
+          content: { type: 'text', text: 'Hello' },
+          usage: {
+            inputTokens: 9,
+            outputTokens: 11,
+            totalTokens: 20,
+            reasoningTokens: 0,
+            cachedInputTokens: 5,
+          },
+        },
+      };
+
+      const result = await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.usage).toEqual({
+        inputTokens: {
+          total: 9,
+          noCache: undefined,
+          cacheRead: 5,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 11,
+          text: undefined,
+          reasoning: 0,
+        },
+      });
+    });
+
+    it('should pass through V3 nested usage as-is in doGenerate', async () => {
+      const v3Usage = {
+        inputTokens: {
+          total: 9,
+          noCache: 4,
+          cacheRead: 5,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 11,
+          text: 11,
+          reasoning: 0,
+        },
+      };
+
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-id',
+          content: { type: 'text', text: 'Hello' },
+          usage: v3Usage,
+        },
+      };
+
+      const result = await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.usage).toEqual(v3Usage);
+    });
+
+    it('should convert V2 flat usage to V3 nested format in doStream finish chunk', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'text-delta',
+            textDelta: 'Hi',
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'finish',
+            finishReason: 'stop',
+            usage: {
+              inputTokens: 9,
+              outputTokens: 11,
+              totalTokens: 20,
+              reasoningTokens: 0,
+              cachedInputTokens: 5,
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+      const finishChunk = chunks.find(c => c.type === 'finish');
+
+      expect(finishChunk?.usage).toEqual({
+        inputTokens: {
+          total: 9,
+          noCache: undefined,
+          cacheRead: 5,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 11,
+          text: undefined,
+          reasoning: 0,
+        },
+      });
+    });
+  });
 });
