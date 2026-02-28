@@ -429,6 +429,18 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         }),
       }),
       z.object({
+        type: z.literal('response.failed'),
+        response: z.object({
+          error: z
+            .object({
+              code: z.string(),
+              message: z.string(),
+            })
+            .nullish(),
+          status: z.string().nullish(),
+        }),
+      }),
+      z.object({
         type: z.literal('response.created'),
         response: z.object({
           id: z.string(),
