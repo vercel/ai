@@ -963,15 +963,13 @@ Your execute function must return:
 The OpenAI Responses API supports
 [custom tools](https://developers.openai.com/api/docs/guides/function-calling/#custom-tools)
 through the `openai.tools.customTool` tool.
-Custom tools let you constrain model output to a grammar (regex or Lark syntax),
-making them useful for generating structured text like SQL queries, code snippets,
-or any output that must match a specific pattern.
-Unlike function tools which use JSON Schema parameters, custom tools use a `format`
-field specifying the output grammar and return a raw string matching that grammar.
+Custom tools return a raw string instead of JSON, optionally constrained to a grammar
+(regex or Lark syntax). This makes them useful for generating structured text like
+SQL queries, code snippets, or any output that must match a specific pattern.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
+import { generateText, stepCountIs } from 'ai';
 
 const result = await generateText({
   model: openai.responses('gpt-5.2-codex'),
@@ -984,16 +982,17 @@ const result = await generateText({
         syntax: 'regex',
         definition: 'SELECT .+',
       },
+      execute: async input => {
+        // input is a raw string matching the grammar, e.g. "SELECT * FROM users WHERE age > 25"
+        const rows = await db.query(input);
+        return JSON.stringify(rows);
+      },
     }),
   },
   toolChoice: 'required',
   prompt: 'Write a SQL query to get all users older than 25.',
+  stopWhen: stepCountIs(3),
 });
-
-for (const toolCall of result.toolCalls) {
-  console.log(`Tool: ${toolCall.toolName}`);
-  console.log(`Input: ${toolCall.input}`); // raw string, e.g. "SELECT * FROM users WHERE age > 25"
-}
 ```
 
 Custom tools also work with `streamText`:
@@ -1031,10 +1030,11 @@ The custom tool can be configured with:
 
 - **name** _string_ (required) - The name of the custom tool. Used to identify the tool in tool calls.
 - **description** _string_ (optional) - A description of what the tool does, to help the model understand when to use it.
-- **format** _object_ (required) - The output format constraint:
-  - **type** _'grammar'_ - The type of format constraint (always `'grammar'`).
-  - **syntax** _'regex' | 'lark'_ - The grammar syntax. Use `'regex'` for regular expression patterns or `'lark'` for [Lark parser grammar](https://lark-parser.readthedocs.io/).
-  - **definition** _string_ - The grammar definition string (a regex pattern or Lark grammar).
+- **format** _object_ (optional) - The output format constraint. Omit for unconstrained text output.
+  - **type** _'grammar' | 'text'_ - The format type. Use `'grammar'` for constrained output or `'text'` for explicit unconstrained text.
+  - **syntax** _'regex' | 'lark'_ - (grammar only) The grammar syntax. Use `'regex'` for regular expression patterns or `'lark'` for [Lark parser grammar](https://lark-parser.readthedocs.io/).
+  - **definition** _string_ - (grammar only) The grammar definition string (a regex pattern or Lark grammar).
+- **execute** _function_ (optional) - An async function that receives the raw string input and returns a string result. Enables multi-turn tool calling.
 
 #### Image Inputs
 
