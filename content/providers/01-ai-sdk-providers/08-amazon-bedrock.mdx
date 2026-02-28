@@ -1406,6 +1406,21 @@ const result = await generateText({
 });
 ```
 
+You can also apply automatic (request-level) caching to the entire request by setting `cacheControl` in the top-level `providerOptions`:
+
+```ts
+import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: bedrockAnthropic('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  providerOptions: {
+    anthropic: { cacheControl: { type: 'ephemeral' } },
+  },
+});
+```
+
 <Note>
   Cache control requires a minimum of 1024 tokens before the cache checkpoint.
   See the [Amazon Bedrock prompt caching

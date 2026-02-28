@@ -258,6 +258,55 @@ describe('bedrock-anthropic-provider', () => {
     expect(transformedBody).toHaveProperty('anthropic_version');
   });
 
+  it('should pass through cache_control in request body', () => {
+    const provider = createBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider('test-model-id');
+
+    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
+      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const config = constructorCall[1];
+
+    const transformedBody = config.transformRequestBody?.({
+      model: 'test-model-id',
+      messages: [{ role: 'user', content: 'Hello' }],
+      max_tokens: 1024,
+      cache_control: { type: 'ephemeral' },
+    });
+
+    expect(transformedBody).toHaveProperty('cache_control', {
+      type: 'ephemeral',
+    });
+  });
+
+  it('should pass through cache_control with ttl in request body', () => {
+    const provider = createBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider('test-model-id');
+
+    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
+      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const config = constructorCall[1];
+
+    const transformedBody = config.transformRequestBody?.({
+      model: 'test-model-id',
+      messages: [{ role: 'user', content: 'Hello' }],
+      max_tokens: 1024,
+      cache_control: { type: 'ephemeral', ttl: '1h' },
+    });
+
+    expect(transformedBody).toHaveProperty('cache_control', {
+      type: 'ephemeral',
+      ttl: '1h',
+    });
+  });
+
   it('should strip disable_parallel_tool_use from tool_choice', () => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
