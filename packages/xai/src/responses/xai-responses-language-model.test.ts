@@ -49,13 +49,6 @@ describe('XaiResponsesLanguageModel', () => {
     };
   }
 
-  function prepareJsonResponse(body: Record<string, unknown>) {
-    server.urls['https://api.x.ai/v1/responses'].response = {
-      type: 'json-value',
-      body,
-    };
-  }
-
   function prepareStreamChunks(chunks: string[]) {
     server.urls['https://api.x.ai/v1/responses'].response = {
       type: 'stream-chunks',
@@ -68,33 +61,36 @@ describe('XaiResponsesLanguageModel', () => {
   describe('doGenerate', () => {
     describe('basic text generation', () => {
       it('should generate text content', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          created_at: 1700000000,
-          status: 'completed',
-          model: 'grok-4-fast',
-          output: [
-            {
-              type: 'message',
-              id: 'msg_123',
-              status: 'completed',
-              role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: 'hello world',
-                  annotations: [],
-                },
-              ],
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_123',
+            object: 'response',
+            created_at: 1700000000,
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [
+              {
+                type: 'message',
+                id: 'msg_123',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'hello world',
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+            usage: {
+              input_tokens: 10,
+              output_tokens: 5,
+              total_tokens: 15,
             },
-          ],
-          usage: {
-            input_tokens: 10,
-            output_tokens: 5,
-            total_tokens: 15,
           },
-        });
+        };
 
         const result = await createModel().doGenerate({
           prompt: TEST_PROMPT,
@@ -111,21 +107,24 @@ describe('XaiResponsesLanguageModel', () => {
       });
 
       it('should extract usage correctly', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast',
-          output: [],
-          usage: {
-            input_tokens: 345,
-            output_tokens: 538,
-            total_tokens: 883,
-            output_tokens_details: {
-              reasoning_tokens: 123,
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: {
+              input_tokens: 345,
+              output_tokens: 538,
+              total_tokens: 883,
+              output_tokens_details: {
+                reasoning_tokens: 123,
+              },
             },
           },
-        });
+        };
 
         const result = await createModel().doGenerate({
           prompt: TEST_PROMPT,
@@ -157,14 +156,17 @@ describe('XaiResponsesLanguageModel', () => {
       });
 
       it('should extract finish reason from status', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast',
-          output: [],
-          usage: { input_tokens: 10, output_tokens: 5 },
-        });
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          },
+        };
 
         const result = await createModel().doGenerate({
           prompt: TEST_PROMPT,
@@ -181,46 +183,49 @@ describe('XaiResponsesLanguageModel', () => {
 
     describe('reasoning content', () => {
       it('should extract reasoning with encrypted content when store=false', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast',
-          output: [
-            {
-              type: 'reasoning',
-              id: 'rs_456',
-              status: 'completed',
-              summary: [
-                {
-                  type: 'summary_text',
-                  text: 'First, analyze the question carefully.',
-                },
-              ],
-              encrypted_content: 'abc123encryptedcontent',
-            },
-            {
-              type: 'message',
-              id: 'msg_123',
-              status: 'completed',
-              role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: 'The answer is 42.',
-                  annotations: [],
-                },
-              ],
-            },
-          ],
-          usage: {
-            input_tokens: 10,
-            output_tokens: 20,
-            output_tokens_details: {
-              reasoning_tokens: 15,
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [
+              {
+                type: 'reasoning',
+                id: 'rs_456',
+                status: 'completed',
+                summary: [
+                  {
+                    type: 'summary_text',
+                    text: 'First, analyze the question carefully.',
+                  },
+                ],
+                encrypted_content: 'abc123encryptedcontent',
+              },
+              {
+                type: 'message',
+                id: 'msg_123',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'The answer is 42.',
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+            usage: {
+              input_tokens: 10,
+              output_tokens: 20,
+              output_tokens_details: {
+                reasoning_tokens: 15,
+              },
             },
           },
-        });
+        };
 
         const result = await createModel().doGenerate({
           prompt: TEST_PROMPT,
@@ -247,42 +252,45 @@ describe('XaiResponsesLanguageModel', () => {
       });
 
       it('should handle reasoning without encrypted content', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast',
-          output: [
-            {
-              type: 'reasoning',
-              id: 'rs_456',
-              status: 'completed',
-              summary: [
-                {
-                  type: 'summary_text',
-                  text: 'Thinking through the problem.',
-                },
-              ],
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [
+              {
+                type: 'reasoning',
+                id: 'rs_456',
+                status: 'completed',
+                summary: [
+                  {
+                    type: 'summary_text',
+                    text: 'Thinking through the problem.',
+                  },
+                ],
+              },
+              {
+                type: 'message',
+                id: 'msg_123',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'Solution found.',
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+            usage: {
+              input_tokens: 10,
+              output_tokens: 15,
             },
-            {
-              type: 'message',
-              id: 'msg_123',
-              status: 'completed',
-              role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: 'Solution found.',
-                  annotations: [],
-                },
-              ],
-            },
-          ],
-          usage: {
-            input_tokens: 10,
-            output_tokens: 15,
           },
-        });
+        };
 
         const result = await createModel().doGenerate({
           prompt: TEST_PROMPT,
@@ -310,14 +318,17 @@ describe('XaiResponsesLanguageModel', () => {
 
     describe('settings and options', () => {
       it('should send model id and settings', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast',
-          output: [],
-          usage: { input_tokens: 10, output_tokens: 5 },
-        });
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          },
+        };
 
         await createModel('grok-4-fast').doGenerate({
           prompt: [
@@ -356,14 +367,17 @@ describe('XaiResponsesLanguageModel', () => {
 
       describe('provider options', () => {
         it('reasoningEffort', async () => {
-          prepareJsonResponse({
-            id: 'resp_123',
-            object: 'response',
-            status: 'completed',
-            model: 'grok-4-fast',
-            output: [],
-            usage: { input_tokens: 10, output_tokens: 5 },
-          });
+          server.urls['https://api.x.ai/v1/responses'].response = {
+            type: 'json-value',
+            body: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              model: 'grok-4-fast',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          };
 
           await createModel().doGenerate({
             prompt: TEST_PROMPT,
@@ -379,14 +393,17 @@ describe('XaiResponsesLanguageModel', () => {
         });
 
         it('store:true', async () => {
-          prepareJsonResponse({
-            id: 'resp_123',
-            object: 'response',
-            status: 'completed',
-            model: 'grok-4-fast',
-            output: [],
-            usage: { input_tokens: 10, output_tokens: 5 },
-          });
+          server.urls['https://api.x.ai/v1/responses'].response = {
+            type: 'json-value',
+            body: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              model: 'grok-4-fast',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          };
 
           await createModel().doGenerate({
             prompt: TEST_PROMPT,
@@ -403,14 +420,17 @@ describe('XaiResponsesLanguageModel', () => {
         });
 
         it('store:false', async () => {
-          prepareJsonResponse({
-            id: 'resp_123',
-            object: 'response',
-            status: 'completed',
-            model: 'grok-4-fast',
-            output: [],
-            usage: { input_tokens: 10, output_tokens: 5 },
-          });
+          server.urls['https://api.x.ai/v1/responses'].response = {
+            type: 'json-value',
+            body: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              model: 'grok-4-fast',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          };
 
           await createModel().doGenerate({
             prompt: TEST_PROMPT,
@@ -429,14 +449,17 @@ describe('XaiResponsesLanguageModel', () => {
         });
 
         it('previousResponseId', async () => {
-          prepareJsonResponse({
-            id: 'resp_123',
-            object: 'response',
-            status: 'completed',
-            model: 'grok-4-fast',
-            output: [],
-            usage: { input_tokens: 10, output_tokens: 5 },
-          });
+          server.urls['https://api.x.ai/v1/responses'].response = {
+            type: 'json-value',
+            body: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              model: 'grok-4-fast',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          };
 
           await createModel().doGenerate({
             prompt: TEST_PROMPT,
@@ -452,14 +475,17 @@ describe('XaiResponsesLanguageModel', () => {
         });
 
         it('include with file_search_call.results', async () => {
-          prepareJsonResponse({
-            id: 'resp_123',
-            object: 'response',
-            status: 'completed',
-            model: 'grok-4-fast',
-            output: [],
-            usage: { input_tokens: 10, output_tokens: 5 },
-          });
+          server.urls['https://api.x.ai/v1/responses'].response = {
+            type: 'json-value',
+            body: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              model: 'grok-4-fast',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          };
 
           await createModel().doGenerate({
             prompt: TEST_PROMPT,
@@ -477,14 +503,17 @@ describe('XaiResponsesLanguageModel', () => {
         });
 
         it('include with file_search_call.results and store:false', async () => {
-          prepareJsonResponse({
-            id: 'resp_123',
-            object: 'response',
-            status: 'completed',
-            model: 'grok-4-fast',
-            output: [],
-            usage: { input_tokens: 10, output_tokens: 5 },
-          });
+          server.urls['https://api.x.ai/v1/responses'].response = {
+            type: 'json-value',
+            body: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              model: 'grok-4-fast',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          };
 
           await createModel().doGenerate({
             prompt: TEST_PROMPT,
@@ -506,14 +535,17 @@ describe('XaiResponsesLanguageModel', () => {
       });
 
       it('should warn about unsupported stopSequences', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast',
-          output: [],
-          usage: { input_tokens: 10, output_tokens: 5 },
-        });
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          },
+        };
 
         const result = await createModel().doGenerate({
           prompt: TEST_PROMPT,
@@ -532,14 +564,17 @@ describe('XaiResponsesLanguageModel', () => {
 
       describe('responseFormat', () => {
         it('should send response format json schema', async () => {
-          prepareJsonResponse({
-            id: 'resp_123',
-            object: 'response',
-            status: 'completed',
-            model: 'grok-4-fast',
-            output: [],
-            usage: { input_tokens: 10, output_tokens: 5 },
-          });
+          server.urls['https://api.x.ai/v1/responses'].response = {
+            type: 'json-value',
+            body: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              model: 'grok-4-fast',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          };
 
           await createModel().doGenerate({
             prompt: TEST_PROMPT,
@@ -605,14 +640,17 @@ describe('XaiResponsesLanguageModel', () => {
         });
 
         it('should send response format json object when no schema provided', async () => {
-          prepareJsonResponse({
-            id: 'resp_123',
-            object: 'response',
-            status: 'completed',
-            model: 'grok-4-fast',
-            output: [],
-            usage: { input_tokens: 10, output_tokens: 5 },
-          });
+          server.urls['https://api.x.ai/v1/responses'].response = {
+            type: 'json-value',
+            body: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              model: 'grok-4-fast',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          };
 
           await createModel().doGenerate({
             prompt: TEST_PROMPT,
@@ -645,14 +683,17 @@ describe('XaiResponsesLanguageModel', () => {
         });
 
         it('should use default name when responseFormat.name is not provided', async () => {
-          prepareJsonResponse({
-            id: 'resp_123',
-            object: 'response',
-            status: 'completed',
-            model: 'grok-4-fast',
-            output: [],
-            usage: { input_tokens: 10, output_tokens: 5 },
-          });
+          server.urls['https://api.x.ai/v1/responses'].response = {
+            type: 'json-value',
+            body: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              model: 'grok-4-fast',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          };
 
           await createModel().doGenerate({
             prompt: TEST_PROMPT,
@@ -697,14 +738,17 @@ describe('XaiResponsesLanguageModel', () => {
       });
 
       it('should send web_search tool with args in request', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast',
-          output: [],
-          usage: { input_tokens: 10, output_tokens: 5 },
-        });
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          },
+        };
 
         await createModel().doGenerate({
           prompt: TEST_PROMPT,
@@ -845,35 +889,38 @@ describe('XaiResponsesLanguageModel', () => {
       });
 
       it('should handle file_search with null results', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast',
-          output: [
-            {
-              type: 'file_search_call',
-              id: 'fs_456',
-              status: 'completed',
-              queries: ['nonexistent topic'],
-              results: null,
-            },
-            {
-              type: 'message',
-              id: 'msg_456',
-              status: 'completed',
-              role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: 'No relevant documents found.',
-                  annotations: [],
-                },
-              ],
-            },
-          ],
-          usage: { input_tokens: 100, output_tokens: 20 },
-        });
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [
+              {
+                type: 'file_search_call',
+                id: 'fs_456',
+                status: 'completed',
+                queries: ['nonexistent topic'],
+                results: null,
+              },
+              {
+                type: 'message',
+                id: 'msg_456',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'No relevant documents found.',
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+            usage: { input_tokens: 100, output_tokens: 20 },
+          },
+        };
 
         const result = await createModel().doGenerate({
           prompt: TEST_PROMPT,
@@ -920,22 +967,25 @@ describe('XaiResponsesLanguageModel', () => {
 
     describe('function tools', () => {
       it('should include function tool calls without providerExecuted', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast',
-          output: [
-            {
-              type: 'function_call',
-              id: 'fc_123',
-              name: 'weather',
-              arguments: '{"location":"sf"}',
-              call_id: 'call_123',
-            },
-          ],
-          usage: { input_tokens: 10, output_tokens: 5 },
-        });
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [
+              {
+                type: 'function_call',
+                id: 'fc_123',
+                name: 'weather',
+                arguments: '{"location":"sf"}',
+                call_id: 'call_123',
+              },
+            ],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          },
+        };
 
         const result = await createModel().doGenerate({
           prompt: TEST_PROMPT,
@@ -967,38 +1017,41 @@ describe('XaiResponsesLanguageModel', () => {
 
     describe('citations', () => {
       it('should extract citations from annotations', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast',
-          output: [
-            {
-              type: 'message',
-              id: 'msg_123',
-              status: 'completed',
-              role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: 'based on research',
-                  annotations: [
-                    {
-                      type: 'url_citation',
-                      url: 'https://example.com',
-                      title: 'example title',
-                    },
-                    {
-                      type: 'url_citation',
-                      url: 'https://test.com',
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-          usage: { input_tokens: 10, output_tokens: 5 },
-        });
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [
+              {
+                type: 'message',
+                id: 'msg_123',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'based on research',
+                    annotations: [
+                      {
+                        type: 'url_citation',
+                        url: 'https://example.com',
+                        title: 'example title',
+                      },
+                      {
+                        type: 'url_citation',
+                        url: 'https://test.com',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          },
+        };
 
         const result = await createModel().doGenerate({
           prompt: TEST_PROMPT,
@@ -1031,31 +1084,34 @@ describe('XaiResponsesLanguageModel', () => {
 
     describe('multiple tools', () => {
       it('should handle multiple server-side tools', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast',
-          output: [
-            {
-              type: 'web_search_call',
-              id: 'ws_123',
-              name: 'web_search',
-              arguments: '{}',
-              call_id: '',
-              status: 'completed',
-            },
-            {
-              type: 'code_interpreter_call',
-              id: 'code_123',
-              name: 'code_execution',
-              arguments: '{}',
-              call_id: '',
-              status: 'completed',
-            },
-          ],
-          usage: { input_tokens: 10, output_tokens: 5 },
-        });
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [
+              {
+                type: 'web_search_call',
+                id: 'ws_123',
+                name: 'web_search',
+                arguments: '{}',
+                call_id: '',
+                status: 'completed',
+              },
+              {
+                type: 'code_interpreter_call',
+                id: 'code_123',
+                name: 'code_execution',
+                arguments: '{}',
+                call_id: '',
+                status: 'completed',
+              },
+            ],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          },
+        };
 
         const result = await createModel().doGenerate({
           prompt: TEST_PROMPT,
@@ -1083,23 +1139,26 @@ describe('XaiResponsesLanguageModel', () => {
 
     describe('tool name mapping by type', () => {
       it('should map web_search_call type to web_search tool name when name is empty', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast',
-          output: [
-            {
-              type: 'web_search_call',
-              id: 'ws_123',
-              name: '',
-              arguments: '{"query":"test"}',
-              call_id: '',
-              status: 'completed',
-            },
-          ],
-          usage: { input_tokens: 10, output_tokens: 5 },
-        });
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [
+              {
+                type: 'web_search_call',
+                id: 'ws_123',
+                name: '',
+                arguments: '{"query":"test"}',
+                call_id: '',
+                status: 'completed',
+              },
+            ],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          },
+        };
 
         const result = await createModel().doGenerate({
           prompt: TEST_PROMPT,
@@ -1125,23 +1184,26 @@ describe('XaiResponsesLanguageModel', () => {
       });
 
       it('should map x_search_call type to x_search tool name when name is empty', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast',
-          output: [
-            {
-              type: 'x_search_call',
-              id: 'xs_123',
-              name: '',
-              arguments: '{"query":"test"}',
-              call_id: '',
-              status: 'completed',
-            },
-          ],
-          usage: { input_tokens: 10, output_tokens: 5 },
-        });
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [
+              {
+                type: 'x_search_call',
+                id: 'xs_123',
+                name: '',
+                arguments: '{"query":"test"}',
+                call_id: '',
+                status: 'completed',
+              },
+            ],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          },
+        };
 
         const result = await createModel().doGenerate({
           prompt: TEST_PROMPT,
@@ -1167,23 +1229,26 @@ describe('XaiResponsesLanguageModel', () => {
       });
 
       it('should map code_interpreter_call type to code_execution tool name when name is empty', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast',
-          output: [
-            {
-              type: 'code_interpreter_call',
-              id: 'ci_123',
-              name: '',
-              arguments: '{}',
-              call_id: '',
-              status: 'completed',
-            },
-          ],
-          usage: { input_tokens: 10, output_tokens: 5 },
-        });
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [
+              {
+                type: 'code_interpreter_call',
+                id: 'ci_123',
+                name: '',
+                arguments: '{}',
+                call_id: '',
+                status: 'completed',
+              },
+            ],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          },
+        };
 
         const result = await createModel().doGenerate({
           prompt: TEST_PROMPT,
@@ -1209,23 +1274,26 @@ describe('XaiResponsesLanguageModel', () => {
       });
 
       it('should map code_execution_call type to code_execution tool name when name is empty', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast',
-          output: [
-            {
-              type: 'code_execution_call',
-              id: 'ce_123',
-              name: '',
-              arguments: '{}',
-              call_id: '',
-              status: 'completed',
-            },
-          ],
-          usage: { input_tokens: 10, output_tokens: 5 },
-        });
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [
+              {
+                type: 'code_execution_call',
+                id: 'ce_123',
+                name: '',
+                arguments: '{}',
+                call_id: '',
+                status: 'completed',
+              },
+            ],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          },
+        };
 
         const result = await createModel().doGenerate({
           prompt: TEST_PROMPT,
@@ -1251,23 +1319,26 @@ describe('XaiResponsesLanguageModel', () => {
       });
 
       it('should use custom tool name from provider tool when type matches', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast',
-          output: [
-            {
-              type: 'web_search_call',
-              id: 'ws_123',
-              name: '',
-              arguments: '{}',
-              call_id: '',
-              status: 'completed',
-            },
-          ],
-          usage: { input_tokens: 10, output_tokens: 5 },
-        });
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [
+              {
+                type: 'web_search_call',
+                id: 'ws_123',
+                name: '',
+                arguments: '{}',
+                call_id: '',
+                status: 'completed',
+              },
+            ],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          },
+        };
 
         const result = await createModel().doGenerate({
           prompt: TEST_PROMPT,

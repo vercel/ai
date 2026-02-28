@@ -1,0 +1,20 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`doGenerate > response headers > should include response data with timestamp, modelId and headers 1`] = `
+{
+  "body": {
+    "text": " Hello from the Versal AISDK.",
+    "x_groq": {
+      "id": "req_01kha51bpcezj8q824a6zfchr1",
+    },
+  },
+  "headers": {
+    "content-length": "89",
+    "content-type": "application/json",
+    "x-ratelimit-remaining": "123",
+    "x-request-id": "test-request-id",
+  },
+  "modelId": "whisper-large-v3-turbo",
+  "timestamp": 1970-01-01T00:00:00.000Z,
+}
+`;
