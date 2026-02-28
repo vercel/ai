@@ -346,11 +346,15 @@ export type OpenAIResponsesTool =
       type: 'custom';
       name: string;
       description?: string;
-      format: {
-        type: 'grammar';
-        syntax: 'regex' | 'lark';
-        definition: string;
-      };
+      format?:
+        | {
+            type: 'grammar';
+            syntax: 'regex' | 'lark';
+            definition: string;
+          }
+        | {
+            type: 'text';
+          };
     }
   | {
       type: 'local_shell';
