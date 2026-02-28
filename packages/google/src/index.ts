@@ -27,3 +27,12 @@ export type {
   GoogleGenerativeAIProviderSettings,
 } from './google-provider';
 export { VERSION } from './version';
+export { GoogleFilesClient, createGoogleFilesClient } from './google-files';
+export type {
+  GoogleFile,
+  GoogleFileState,
+  GoogleFileUploadOptions,
+  GoogleFileWaitOptions,
+  GoogleFileListOptions,
+  GoogleFileListResult,
+} from './google-files';
