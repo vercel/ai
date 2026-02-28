@@ -90,6 +90,27 @@ describe('MoonshotAIProvider', () => {
       expect(model).toBeInstanceOf(MoonshotAIChatLanguageModel);
     });
 
+    it.each([
+      ['kimi-k2.5', true],
+      ['kimi-k2.5-turbo', true],
+      ['kimi-k2-thinking', true],
+      ['moonshot-v1-8k', false],
+      ['kimi-k2', true],
+    ])(
+      'should set supportsStructuredOutputs=%s for %s',
+      (modelId, expectedSupportsStructuredOutputs) => {
+        const provider = createMoonshotAI();
+        provider.chatModel(modelId);
+
+        const constructorCall = MoonshotAIChatLanguageModelMock.mock.calls[0];
+        const config = constructorCall[1];
+
+        expect(config.supportsStructuredOutputs).toBe(
+          expectedSupportsStructuredOutputs,
+        );
+      },
+    );
+
     it('should pass transformRequestBody that converts thinking options', () => {
       const provider = createMoonshotAI();
       provider.chatModel('kimi-k2-thinking');
