@@ -3809,7 +3809,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "input": "SELECT * FROM users WHERE age > 25",
+              "input": ""SELECT * FROM users WHERE age > 25"",
               "providerMetadata": {
                 "openai": {
                   "itemId": "ct_abc123def456",
@@ -5406,89 +5406,89 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(await convertReadableStreamToArray(stream))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "stream-start",
-              "warnings": [],
-            },
-            {
-              "id": "resp_custom_tool_test_001",
-              "modelId": "gpt-5.2-codex",
-              "timestamp": 2025-03-06T10:42:10.000Z,
-              "type": "response-metadata",
-            },
-            {
-              "id": "call_custom_sql_001",
-              "toolName": "write_sql",
-              "type": "tool-input-start",
-            },
-            {
-              "delta": "SELECT * ",
-              "id": "call_custom_sql_001",
-              "type": "tool-input-delta",
-            },
-            {
-              "delta": "FROM users ",
-              "id": "call_custom_sql_001",
-              "type": "tool-input-delta",
-            },
-            {
-              "delta": "WHERE age > 25",
-              "id": "call_custom_sql_001",
-              "type": "tool-input-delta",
-            },
-            {
-              "id": "call_custom_sql_001",
-              "type": "tool-input-end",
-            },
-            {
-              "input": "SELECT * FROM users WHERE age > 25",
-              "providerMetadata": {
-                "openai": {
-                  "itemId": "ct_abc123def456",
-                },
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
               },
-              "toolCallId": "call_custom_sql_001",
-              "toolName": "write_sql",
-              "type": "tool-call",
-            },
-            {
-              "finishReason": {
-                "raw": undefined,
-                "unified": "tool-calls",
+              {
+                "id": "resp_custom_tool_test_001",
+                "modelId": "gpt-5.2-codex",
+                "timestamp": 2025-03-06T10:42:10.000Z,
+                "type": "response-metadata",
               },
-              "providerMetadata": {
-                "openai": {
-                  "responseId": "resp_custom_tool_test_001",
-                },
+              {
+                "id": "call_custom_sql_001",
+                "toolName": "write_sql",
+                "type": "tool-input-start",
               },
-              "type": "finish",
-              "usage": {
-                "inputTokens": {
-                  "cacheRead": 0,
-                  "cacheWrite": undefined,
-                  "noCache": 50,
-                  "total": 50,
-                },
-                "outputTokens": {
-                  "reasoning": 0,
-                  "text": 20,
-                  "total": 20,
-                },
-                "raw": {
-                  "input_tokens": 50,
-                  "input_tokens_details": {
-                    "cached_tokens": 0,
-                  },
-                  "output_tokens": 20,
-                  "output_tokens_details": {
-                    "reasoning_tokens": 0,
+              {
+                "delta": "SELECT * ",
+                "id": "call_custom_sql_001",
+                "type": "tool-input-delta",
+              },
+              {
+                "delta": "FROM users ",
+                "id": "call_custom_sql_001",
+                "type": "tool-input-delta",
+              },
+              {
+                "delta": "WHERE age > 25",
+                "id": "call_custom_sql_001",
+                "type": "tool-input-delta",
+              },
+              {
+                "id": "call_custom_sql_001",
+                "type": "tool-input-end",
+              },
+              {
+                "input": ""SELECT * FROM users WHERE age > 25"",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "ct_abc123def456",
                   },
                 },
+                "toolCallId": "call_custom_sql_001",
+                "toolName": "write_sql",
+                "type": "tool-call",
               },
-            },
-          ]
-        `);
+              {
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "tool-calls",
+                },
+                "providerMetadata": {
+                  "openai": {
+                    "responseId": "resp_custom_tool_test_001",
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "inputTokens": {
+                    "cacheRead": 0,
+                    "cacheWrite": undefined,
+                    "noCache": 50,
+                    "total": 50,
+                  },
+                  "outputTokens": {
+                    "reasoning": 0,
+                    "text": 20,
+                    "total": 20,
+                  },
+                  "raw": {
+                    "input_tokens": 50,
+                    "input_tokens_details": {
+                      "cached_tokens": 0,
+                    },
+                    "output_tokens": 20,
+                    "output_tokens_details": {
+                      "reasoning_tokens": 0,
+                    },
+                  },
+                },
+              },
+            ]
+          `);
       });
     });
 
