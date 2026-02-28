@@ -17,6 +17,11 @@ run(async () => {
     stopWhen: stepCountIs(2),
   });
 
+  const stepOneRequestBody = result.steps[0]?.request?.body as
+    | { tool_choice?: unknown }
+    | undefined;
+
+  console.log('Step 1 tool_choice:', stepOneRequestBody?.tool_choice);
   console.log('Tool calls:', result.toolCalls);
   console.log('Tool results:', result.toolResults);
   console.log('Steps:', result.steps.length);

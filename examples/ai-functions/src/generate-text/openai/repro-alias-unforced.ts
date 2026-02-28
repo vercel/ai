@@ -16,9 +16,13 @@ run(async () => {
     stopWhen: stepCountIs(5),
   });
 
+  const stepOneRequestBody = result.steps[0]?.request?.body as
+    | { tool_choice?: unknown }
+    | undefined;
   const allToolCalls = result.steps.flatMap(step => step.toolCalls);
   const allToolResults = result.steps.flatMap(step => step.toolResults);
 
+  console.log('Step 1 tool_choice:', stepOneRequestBody?.tool_choice);
   console.log('Text:', result.text);
   console.log('Tool calls (final step):', result.toolCalls);
   console.log('Tool results (final step):', result.toolResults);
