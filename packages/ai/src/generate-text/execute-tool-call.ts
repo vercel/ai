@@ -1,4 +1,8 @@
-import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
+import {
+  executeTool,
+  isAbortError,
+  ModelMessage,
+} from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { notify } from '../util/notify';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -121,6 +125,10 @@ export async function executeToolCall<TOOLS extends ToolSet>({
           }
         }
       } catch (error) {
+        if (isAbortError(error)) {
+          throw error; // propagate abort errors instead of converting to tool-error
+        }
+
         const durationMs = now() - startTime;
 
         await notify({
