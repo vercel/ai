@@ -129,4 +129,84 @@ describe('convertOneOfToAnyOf', () => {
     expect(convertOneOfToAnyOf(null as any)).toBe(null);
     expect(convertOneOfToAnyOf(true as any)).toBe(true);
   });
+
+  it('should convert oneOf nested inside allOf', () => {
+    const schema = {
+      allOf: [
+        {
+          type: 'object' as const,
+          properties: {
+            status: {
+              oneOf: [{ const: 'active' }, { const: 'inactive' }],
+            },
+          },
+        },
+      ],
+    };
+    const result = convertOneOfToAnyOf(schema);
+    expect((result as any).allOf[0].properties.status).toEqual({
+      anyOf: [{ const: 'active' }, { const: 'inactive' }],
+    });
+  });
+
+  it('should convert oneOf nested inside definitions', () => {
+    const schema = {
+      type: 'object' as const,
+      definitions: {
+        Shape: {
+          oneOf: [
+            { type: 'object' as const, properties: { kind: { const: 'circle' } } },
+            { type: 'object' as const, properties: { kind: { const: 'square' } } },
+          ],
+        },
+      },
+    };
+    const result = convertOneOfToAnyOf(schema);
+    expect((result as any).definitions.Shape).toEqual({
+      anyOf: [
+        { type: 'object', properties: { kind: { const: 'circle' } } },
+        { type: 'object', properties: { kind: { const: 'square' } } },
+      ],
+    });
+  });
+
+  it('should convert oneOf nested inside not', () => {
+    const schema = {
+      not: {
+        oneOf: [{ type: 'string' as const }, { type: 'number' as const }],
+      },
+    };
+    const result = convertOneOfToAnyOf(schema);
+    expect((result as any).not).toEqual({
+      anyOf: [{ type: 'string' }, { type: 'number' }],
+    });
+  });
+
+  it('should convert oneOf nested inside if/then/else', () => {
+    const schema = {
+      if: {
+        properties: {
+          kind: {
+            oneOf: [{ const: 'a' }, { const: 'b' }],
+          },
+        },
+      },
+      then: {
+        oneOf: [{ type: 'string' as const }, { type: 'number' as const }],
+      },
+      else: {
+        oneOf: [{ type: 'boolean' as const }, { type: 'null' as const }],
+      },
+    };
+    const result = convertOneOfToAnyOf(schema);
+    expect((result as any).if.properties.kind).toEqual({
+      anyOf: [{ const: 'a' }, { const: 'b' }],
+    });
+    expect((result as any).then).toEqual({
+      anyOf: [{ type: 'string' }, { type: 'number' }],
+    });
+    expect((result as any).else).toEqual({
+      anyOf: [{ type: 'boolean' }, { type: 'null' }],
+    });
+  });
 });

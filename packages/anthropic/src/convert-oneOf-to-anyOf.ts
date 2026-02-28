@@ -55,8 +55,32 @@ export function convertOneOfToAnyOf(schema: JSONSchema7): JSONSchema7 {
             : defValue;
       }
       result[key] = converted;
+    } else if (key === 'allOf' && Array.isArray(value)) {
+      result[key] = value.map(item =>
+        typeof item === 'object' && item !== null
+          ? convertOneOfToAnyOf(item as JSONSchema7)
+          : item,
+      );
     } else if (
-      key === 'additionalProperties' &&
+      key === 'definitions' &&
+      typeof value === 'object' &&
+      value !== null
+    ) {
+      const converted: Record<string, unknown> = {};
+      for (const [defKey, defValue] of Object.entries(value)) {
+        converted[defKey] =
+          typeof defValue === 'object' && defValue !== null
+            ? convertOneOfToAnyOf(defValue as JSONSchema7)
+            : defValue;
+      }
+      result[key] = converted;
+    } else if (
+      (key === 'not' ||
+        key === 'if' ||
+        key === 'then' ||
+        key === 'else' ||
+        key === 'contains' ||
+        key === 'additionalProperties') &&
       typeof value === 'object' &&
       value !== null
     ) {
