@@ -544,7 +544,7 @@ Local shell is a tool that allows agents to run shell commands locally on a mach
 
 ```ts
 import { azure } from '@ai-sdk/azure';
-import { generateText } from 'ai';
+import { generateText, stepCountIs } from 'ai';
 
 const result = await generateText({
   model: azure.responses('gpt-5-codex'),
