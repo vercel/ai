@@ -2089,6 +2089,57 @@ describe('assistant messages', () => {
       `);
     });
   });
+
+  it('should spread message-level providerOptions.anthropic onto assistant message', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Hello' }],
+          providerOptions: {
+            anthropic: {
+              reasoning_content: 'I thought about it...',
+            },
+          },
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    const msg = result.prompt.messages[0] as any;
+    expect(msg.reasoning_content).toBe('I thought about it...');
+    expect(msg.content).toEqual([
+      { type: 'text', text: 'Hello', cache_control: undefined },
+    ]);
+  });
+
+  it('should exclude cacheControl and cache_control from spread', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Hello' }],
+          providerOptions: {
+            anthropic: {
+              cacheControl: { type: 'ephemeral' },
+              cache_control: { type: 'ephemeral' },
+              reasoning_content: 'thinking...',
+            },
+          },
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    const msg = result.prompt.messages[0] as any;
+    expect(msg.reasoning_content).toBe('thinking...');
+    expect(msg.cacheControl).toBeUndefined();
+    expect(msg.cache_control).toBeUndefined();
+  });
 });
 
 describe('cache control', () => {
