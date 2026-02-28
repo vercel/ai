@@ -76,6 +76,18 @@ export function convertJSONSchemaToOpenAPISchema(
   // Handle enum
   if (enumValues !== undefined) {
     result.enum = enumValues;
+
+    // Gemini requires `type` alongside `enum`. When Zod v4 emits
+    // `{ enum: [...] }` without a `type`, infer it from the values.
+    if (result.type === undefined && enumValues.length > 0) {
+      if (enumValues.every(v => typeof v === 'string')) {
+        result.type = 'string';
+      } else if (enumValues.every(v => typeof v === 'number')) {
+        result.type = 'number';
+      } else if (enumValues.every(v => typeof v === 'boolean')) {
+        result.type = 'boolean';
+      }
+    }
   }
 
   if (properties != null) {

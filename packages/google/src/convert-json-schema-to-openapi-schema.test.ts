@@ -604,6 +604,31 @@ it('should convert string enum properties', () => {
   });
 });
 
+it('should infer type "string" for enum without explicit type (Zod v4)', () => {
+  const schemaWithEnumNoType: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      value: {
+        enum: ['foo', 'bar'],
+      },
+    },
+    required: ['value'],
+    additionalProperties: false,
+    $schema: 'http://json-schema.org/draft-07/schema#',
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(schemaWithEnumNoType)).toEqual({
+    type: 'object',
+    properties: {
+      value: {
+        type: 'string',
+        enum: ['foo', 'bar'],
+      },
+    },
+    required: ['value'],
+  });
+});
+
 it('should convert nullable string enum', () => {
   const schemaWithEnumProperty: JSONSchema7 = {
     type: 'object',
