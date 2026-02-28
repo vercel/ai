@@ -1,5 +1,6 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
+import { BedrockEmbeddingModelId } from './bedrock-embedding-options';
 import { injectFetchHeaders } from './inject-fetch-headers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -22,6 +23,10 @@ const cohereEmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${
 
 const cohereV4EmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encodeURIComponent(
   'cohere.embed-v4:0',
+)}/invoke`;
+
+const crossRegionCohereEmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encodeURIComponent(
+  'eu.cohere.embed-v4:0',
 )}/invoke`;
 
 describe('doEmbed', () => {
@@ -59,6 +64,19 @@ describe('doEmbed', () => {
       },
     },
     [cohereV4EmbedUrl]: {
+      response: {
+        type: 'binary',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: Buffer.from(
+          JSON.stringify({
+            embeddings: { float: [mockEmbeddings[0]] },
+          }),
+        ),
+      },
+    },
+    [crossRegionCohereEmbedUrl]: {
       response: {
         type: 'binary',
         headers: {
@@ -183,6 +201,40 @@ describe('doEmbed', () => {
       ]
     `);
     expect(Number.isNaN(usage?.tokens)).toBe(true);
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).toEqual({
+      input_type: 'search_query',
+      texts: [testValues[0]],
+      truncate: undefined,
+      output_dimension: undefined,
+    });
+  });
+
+  it('should support cross-region Cohere embedding models (e.g. eu.cohere.embed-v4:0)', async () => {
+    const crossRegionModel = new BedrockEmbeddingModel(
+      'eu.cohere.embed-v4:0' as BedrockEmbeddingModelId,
+      {
+        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+        headers: mockConfigHeaders,
+        fetch: fakeFetchWithAuth,
+      },
+    );
+
+    const { embeddings } = await crossRegionModel.doEmbed({
+      values: [testValues[0]],
+    });
+
+    expect(embeddings.length).toBe(1);
+    expect(embeddings[0]).toMatchInlineSnapshot(`
+      [
+        -0.09,
+        0.05,
+        -0.02,
+        0.01,
+        0.04,
+      ]
+    `);
 
     const body = await server.calls[0].requestBodyJson;
     expect(body).toEqual({
