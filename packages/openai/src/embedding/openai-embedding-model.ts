@@ -35,6 +35,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV3 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -72,7 +73,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV3 {
         model: this.modelId,
         input: values,
         encoding_format: 'float',
-        dimensions: openaiOptions.dimensions,
+        dimensions: openaiOptions.dimensions ?? dimensions,
         user: openaiOptions.user,
       },
       failedResponseHandler: openaiFailedResponseHandler,

@@ -47,6 +47,7 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -88,7 +89,8 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
           content: {
             parts: [{ text: values[0] }],
           },
-          outputDimensionality: googleOptions?.outputDimensionality,
+          outputDimensionality:
+            googleOptions?.outputDimensionality ?? dimensions,
           taskType: googleOptions?.taskType,
         },
         failedResponseHandler: googleFailedResponseHandler,
@@ -118,7 +120,8 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
         requests: values.map(value => ({
           model: `models/${this.modelId}`,
           content: { role: 'user', parts: [{ text: value }] },
-          outputDimensionality: googleOptions?.outputDimensionality,
+          outputDimensionality:
+            googleOptions?.outputDimensionality ?? dimensions,
           taskType: googleOptions?.taskType,
         })),
       },

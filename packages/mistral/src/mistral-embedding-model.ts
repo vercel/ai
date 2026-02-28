@@ -1,6 +1,7 @@
 import {
   EmbeddingModelV3,
   TooManyEmbeddingValuesForCallError,
+  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -41,11 +42,18 @@ export class MistralEmbeddingModel implements EmbeddingModelV3 {
 
   async doEmbed({
     values,
+    dimensions,
     abortSignal,
     headers,
   }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
     Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
   > {
+    if (dimensions != null) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'dimensions',
+      });
+    }
+
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
         provider: this.provider,
