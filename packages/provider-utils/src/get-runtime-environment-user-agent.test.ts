@@ -26,6 +26,26 @@ describe('getRuntimeEnvironmentUserAgent', () => {
     ).toBe('runtime/test');
   });
 
+  it('should return RFC-compliant user agent for Bun', () => {
+    expect(
+      getRuntimeEnvironmentUserAgent({
+        navigator: {
+          userAgent: 'Bun/1.3.9',
+        },
+      }),
+    ).toBe('runtime-bun/1.3.9');
+  });
+
+  it('should return RFC-compliant user agent for Deno', () => {
+    expect(
+      getRuntimeEnvironmentUserAgent({
+        navigator: {
+          userAgent: 'Deno/2.1.0',
+        },
+      }),
+    ).toBe('runtime-deno/2.1.0');
+  });
+
   it('should return the correct user agent for Edge Runtime', () => {
     expect(
       getRuntimeEnvironmentUserAgent({
@@ -39,9 +59,9 @@ describe('getRuntimeEnvironmentUserAgent', () => {
       getRuntimeEnvironmentUserAgent({
         process: {
           versions: { node: 'test' },
-          version: 'test',
+          version: 'v22.0.0',
         },
       }),
-    ).toBe('runtime/node.js/test');
+    ).toBe('runtime-node/v22.0.0');
   });
 });
