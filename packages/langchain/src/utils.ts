@@ -1461,6 +1461,15 @@ export function processLangGraphEvent(
                     input: toolCall.args,
                     dynamic: true,
                   });
+                } else if (
+                  toolCall.id &&
+                  emittedToolCalls.has(toolCall.id)
+                ) {
+                  // Tool call was already emitted via messages mode — still
+                  // register the key mapping so the HITL interrupt handler can
+                  // match by name+args and use the original toolCallId.
+                  const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
+                  emittedToolCallsByKey.set(toolCallKey, toolCall.id);
                 }
               }
             }
