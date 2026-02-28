@@ -231,11 +231,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const candidate = response.candidates[0];
+    const candidate = response.candidates?.[0];
     const content: Array<LanguageModelV3Content> = [];
 
     // map ordered parts to content:
-    const parts = candidate.content?.parts ?? [];
+    const parts = candidate?.content?.parts ?? [];
 
     const usageMetadata = response.usageMetadata;
 
@@ -321,33 +321,36 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
     const sources =
       extractSources({
-        groundingMetadata: candidate.groundingMetadata,
+        groundingMetadata: candidate?.groundingMetadata,
         generateId: this.config.generateId,
       }) ?? [];
     for (const source of sources) {
       content.push(source);
     }
 
+    const rawFinishReason =
+      candidate?.finishReason ?? response.promptFeedback?.blockReason;
+
     return {
       content,
       finishReason: {
         unified: mapGoogleGenerativeAIFinishReason({
-          finishReason: candidate.finishReason,
+          finishReason: rawFinishReason,
           // Only count client-executed tool calls for finish reason determination.
           hasToolCalls: content.some(
             part => part.type === 'tool-call' && !part.providerExecuted,
           ),
         }),
-        raw: candidate.finishReason ?? undefined,
+        raw: rawFinishReason ?? undefined,
       },
       usage: convertGoogleGenerativeAIUsage(usageMetadata),
       warnings,
       providerMetadata: {
         [providerOptionsName]: {
           promptFeedback: response.promptFeedback ?? null,
-          groundingMetadata: candidate.groundingMetadata ?? null,
-          urlContextMetadata: candidate.urlContextMetadata ?? null,
-          safetyRatings: candidate.safetyRatings ?? null,
+          groundingMetadata: candidate?.groundingMetadata ?? null,
+          urlContextMetadata: candidate?.urlContextMetadata ?? null,
+          safetyRatings: candidate?.safetyRatings ?? null,
           usageMetadata: usageMetadata ?? null,
         },
       },
@@ -432,8 +435,34 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
             const candidate = value.candidates?.[0];
 
-            // sometimes the API returns an empty candidates array
+            // Handle chunks with no candidates (e.g. blocked by promptFeedback)
             if (candidate == null) {
+              if (value.promptFeedback?.blockReason != null) {
+                finishReason = {
+                  unified: mapGoogleGenerativeAIFinishReason({
+                    finishReason: value.promptFeedback.blockReason,
+                    hasToolCalls,
+                  }),
+                  raw: value.promptFeedback.blockReason,
+                };
+
+                providerMetadata = {
+                  [providerOptionsName]: {
+                    promptFeedback: value.promptFeedback ?? null,
+                    groundingMetadata: null,
+                    urlContextMetadata: null,
+                    safetyRatings: null,
+                  },
+                };
+                if (usageMetadata != null) {
+                  (
+                    providerMetadata[providerOptionsName] as Record<
+                      string,
+                      unknown
+                    >
+                  ).usageMetadata = usageMetadata;
+                }
+              }
               return;
             }
 
@@ -940,19 +969,22 @@ export const getUrlContextMetadataSchema = () =>
 const responseSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      candidates: z.array(
-        z.object({
-          content: getContentSchema().nullish().or(z.object({}).strict()),
-          finishReason: z.string().nullish(),
-          safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
-          groundingMetadata: getGroundingMetadataSchema().nullish(),
-          urlContextMetadata: getUrlContextMetadataSchema().nullish(),
-        }),
-      ),
+      candidates: z
+        .array(
+          z.object({
+            content: getContentSchema().nullish().or(z.object({}).strict()),
+            finishReason: z.string().nullish(),
+            safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
+            groundingMetadata: getGroundingMetadataSchema().nullish(),
+            urlContextMetadata: getUrlContextMetadataSchema().nullish(),
+          }),
+        )
+        .nullish(),
       usageMetadata: usageSchema.nullish(),
       promptFeedback: z
         .object({
           blockReason: z.string().nullish(),
+          blockReasonMessage: z.string().nullish(),
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
         })
         .nullish(),
@@ -960,11 +992,12 @@ const responseSchema = lazySchema(() =>
   ),
 );
 
-type ContentSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['content']
->;
+type CandidateSchema = NonNullable<
+  InferSchema<typeof responseSchema>['candidates']
+>[number];
+type ContentSchema = NonNullable<CandidateSchema['content']>;
 export type GroundingMetadataSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['groundingMetadata']
+  CandidateSchema['groundingMetadata']
 >;
 
 type GroundingChunkSchema = NonNullable<
@@ -972,11 +1005,11 @@ type GroundingChunkSchema = NonNullable<
 >[number];
 
 export type UrlContextMetadataSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['urlContextMetadata']
+  CandidateSchema['urlContextMetadata']
 >;
 
 export type SafetyRatingSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['safetyRatings']
+  CandidateSchema['safetyRatings']
 >[number];
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -999,6 +1032,7 @@ const chunkSchema = lazySchema(() =>
       promptFeedback: z
         .object({
           blockReason: z.string().nullish(),
+          blockReasonMessage: z.string().nullish(),
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
         })
         .nullish(),
