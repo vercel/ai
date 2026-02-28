@@ -98,6 +98,35 @@ export function pruneMessages({
           }
         }
       }
+
+      // Transitively keep tool calls referenced via provider-specific
+      // caller dependencies (e.g. Anthropic's code_execution caller.toolId).
+      let previousSize = 0;
+      while (keptToolCallIds.size !== previousSize) {
+        previousSize = keptToolCallIds.size;
+        for (const message of messages) {
+          if (
+            message.role === 'assistant' &&
+            typeof message.content !== 'string'
+          ) {
+            for (const part of message.content) {
+              if (
+                part.type === 'tool-call' &&
+                keptToolCallIds.has(part.toolCallId)
+              ) {
+                const callerToolId = (
+                  part.providerOptions?.anthropic as
+                    | { caller?: { toolId?: string } }
+                    | undefined
+                )?.caller?.toolId;
+                if (callerToolId) {
+                  keptToolCallIds.add(callerToolId);
+                }
+              }
+            }
+          }
+        }
+      }
     }
 
     messages = messages.map((message, messageIndex) => {
