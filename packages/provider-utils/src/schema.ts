@@ -133,7 +133,11 @@ export function asSchema<OBJECT>(
   schema: FlexibleSchema<OBJECT> | undefined,
 ): Schema<OBJECT> {
   return schema == null
-    ? jsonSchema({ properties: {}, additionalProperties: false })
+    ? jsonSchema({
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      })
     : isSchema(schema)
       ? schema
       : '~standard' in schema
