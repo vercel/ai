@@ -715,6 +715,21 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         isDisconnect = true;
       }
 
+      // Persist the partial message (including metadata) so it's not lost on error.
+      if (this.activeResponse?.state.message) {
+        const replaceLastMessage =
+          this.activeResponse.state.message.id === this.lastMessage?.id;
+
+        if (replaceLastMessage) {
+          this.state.replaceMessage(
+            this.state.messages.length - 1,
+            this.activeResponse.state.message,
+          );
+        } else {
+          this.state.pushMessage(this.activeResponse.state.message);
+        }
+      }
+
       if (this.onError && err instanceof Error) {
         this.onError(err);
       }
