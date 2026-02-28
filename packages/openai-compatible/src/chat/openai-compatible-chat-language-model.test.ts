@@ -835,7 +835,7 @@ describe('doGenerate', () => {
       `);
     });
 
-    it('should forward json response format as "json_object" and omit schema when structuredOutputs are disabled', async () => {
+    it('should forward json response format as "json_object" and inject schema instruction when structuredOutputs are disabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
       const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
@@ -862,6 +862,12 @@ describe('doGenerate', () => {
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
           "messages": [
+            {
+              "content": "JSON schema:
+        {"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}
+        You MUST answer with a JSON object that matches the JSON schema above.",
+              "role": "system",
+            },
             {
               "content": "Hello",
               "role": "user",
