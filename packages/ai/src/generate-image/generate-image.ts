@@ -57,6 +57,17 @@ export type GenerateImagePrompt =
  *
  * @returns A result object that contains the generated images.
  */
+
+function sumCosts(cost1: unknown, cost2: unknown): number | string | undefined {
+  if (cost1 == null) return cost2 as number | string | undefined;
+  if (cost2 == null) return cost1 as number | string | undefined;
+  const n1 = typeof cost1 === 'string' ? parseFloat(cost1) : (cost1 as number);
+  const n2 = typeof cost2 === 'string' ? parseFloat(cost2) : (cost2 as number);
+  if (isNaN(n1) || isNaN(n2)) return cost2 as number | string;
+  const sum = n1 + n2;
+  return typeof cost1 === 'string' ? String(parseFloat(sum.toFixed(10))) : sum;
+}
+
 export async function generateImage({
   model: modelArg,
   prompt: promptArg,
@@ -228,6 +239,10 @@ export async function generateImage({
             providerMetadata[providerName] = {
               ...(currentEntry as object),
               ...metadata,
+              cost: sumCosts(
+                (currentEntry as { cost?: unknown }).cost,
+                (metadata as { cost?: unknown }).cost,
+              ),
             } as ImageModelV3ProviderMetadata[string];
           } else {
             providerMetadata[providerName] =
