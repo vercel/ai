@@ -1,6 +1,6 @@
 ---
 title: SigNoz
-description: Monitor, obeserve and debug your AI SDK application with SigNoz
+description: Monitor, observe and debug your AI SDK application with SigNoz
 ---
 
 # SigNoz Observability
@@ -51,7 +51,7 @@ export default nextConfig;
 import { registerOTel, OTLPHttpJsonTraceExporter } from '@vercel/otel';
 // Add otel logging
 import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
-diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR); // set diaglog level to DEBUG when debugging
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR); // set diag log level to DEBUG when debugging
 export function register() {
   registerOTel({
     serviceName: '<service_name>',

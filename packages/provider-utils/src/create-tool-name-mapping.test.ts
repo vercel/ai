@@ -160,4 +160,29 @@ describe('createToolNameMapping', () => {
     expect(mapping.toProviderToolName('provider-tool')).toBe('computer_use');
     expect(mapping.toCustomToolName('computer_use')).toBe('provider-tool');
   });
+
+  it('should support dynamic provider tool names via resolver', () => {
+    const tools: Array<
+      LanguageModelV3FunctionTool | LanguageModelV3ProviderTool
+    > = [
+      {
+        type: 'provider',
+        id: 'openai.custom',
+        name: 'alias_name',
+        args: { name: 'write_sql' },
+      },
+    ];
+
+    const mapping = createToolNameMapping({
+      tools,
+      providerToolNames: {},
+      resolveProviderToolName: tool =>
+        tool.id === 'openai.custom'
+          ? (tool.args as { name?: string }).name
+          : undefined,
+    });
+
+    expect(mapping.toProviderToolName('alias_name')).toBe('write_sql');
+    expect(mapping.toCustomToolName('write_sql')).toBe('alias_name');
+  });
 });

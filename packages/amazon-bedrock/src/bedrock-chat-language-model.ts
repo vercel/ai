@@ -136,8 +136,21 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       });
     }
 
+    const isAnthropicModel = this.modelId.includes('anthropic');
+    const isThinkingEnabled =
+      bedrockOptions.reasoningConfig?.type === 'enabled' ||
+      bedrockOptions.reasoningConfig?.type === 'adaptive';
+
+    const useNativeStructuredOutput =
+      isAnthropicModel &&
+      isThinkingEnabled &&
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null;
+
     const jsonResponseTool: LanguageModelV3FunctionTool | undefined =
-      responseFormat?.type === 'json' && responseFormat.schema != null
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      !useNativeStructuredOutput
         ? {
             type: 'function',
             name: 'json',
@@ -176,15 +189,12 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       };
     }
 
-    const isAnthropicModel = this.modelId.includes('anthropic');
     const thinkingType = bedrockOptions.reasoningConfig?.type;
-    const isThinkingRequested =
-      thinkingType === 'enabled' || thinkingType === 'adaptive';
     const thinkingBudget =
       thinkingType === 'enabled'
         ? bedrockOptions.reasoningConfig?.budgetTokens
         : undefined;
-    const isAnthropicThinkingEnabled = isAnthropicModel && isThinkingRequested;
+    const isAnthropicThinkingEnabled = isAnthropicModel && isThinkingEnabled;
 
     const inferenceConfig = {
       ...(maxOutputTokens != null && { maxTokens: maxOutputTokens }),
@@ -244,6 +254,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         bedrockOptions.additionalModelRequestFields = {
           ...bedrockOptions.additionalModelRequestFields,
           output_config: {
+            ...bedrockOptions.additionalModelRequestFields?.output_config,
             effort: maxReasoningEffort,
           },
         };
@@ -265,6 +276,19 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           },
         };
       }
+    }
+
+    if (useNativeStructuredOutput) {
+      bedrockOptions.additionalModelRequestFields = {
+        ...bedrockOptions.additionalModelRequestFields,
+        output_config: {
+          ...bedrockOptions.additionalModelRequestFields?.output_config,
+          format: {
+            type: 'json_schema',
+            schema: responseFormat!.schema,
+          },
+        },
+      };
     }
 
     if (isAnthropicThinkingEnabled && inferenceConfig.temperature != null) {

@@ -348,8 +348,23 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           ...(thinkingBudget != null && { budget_tokens: thinkingBudget }),
         },
       }),
-      ...(anthropicOptions?.effort && {
-        output_config: { effort: anthropicOptions.effort },
+      ...((anthropicOptions?.effort ||
+        (useStructuredOutput &&
+          responseFormat?.type === 'json' &&
+          responseFormat.schema != null)) && {
+        output_config: {
+          ...(anthropicOptions?.effort && {
+            effort: anthropicOptions.effort,
+          }),
+          ...(useStructuredOutput &&
+            responseFormat?.type === 'json' &&
+            responseFormat.schema != null && {
+              format: {
+                type: 'json_schema',
+                schema: responseFormat.schema,
+              },
+            }),
+        },
       }),
       ...(anthropicOptions?.speed && {
         speed: anthropicOptions.speed,
@@ -357,16 +372,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       ...(anthropicOptions?.cacheControl && {
         cache_control: anthropicOptions.cacheControl,
       }),
-
-      // structured output:
-      ...(useStructuredOutput &&
-        responseFormat?.type === 'json' &&
-        responseFormat.schema != null && {
-          output_format: {
-            type: 'json_schema',
-            schema: responseFormat.schema,
-          },
-        }),
 
       // mcp servers:
       ...(anthropicOptions?.mcpServers &&
@@ -588,17 +593,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     // only when streaming: enable fine-grained tool streaming
     if (stream && (anthropicOptions?.toolStreaming ?? true)) {
       betas.add('fine-grained-tool-streaming-2025-05-14');
-    }
-
-    // structured output:
-    // Only pass beta when actually using native output_format
-    const usingNativeOutputFormat =
-      useStructuredOutput &&
-      responseFormat?.type === 'json' &&
-      responseFormat.schema != null;
-
-    if (usingNativeOutputFormat) {
-      betas.add('structured-outputs-2025-11-13');
     }
 
     const {
