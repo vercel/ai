@@ -110,6 +110,10 @@ export async function convertToLanguageModelPrompt({
   }
 
   const toolCallIds = new Set<string>();
+  // Track approved tool-calls that have no matching tool-result.
+  // These must be stripped from assistant messages before sending to the
+  // provider, otherwise we get orphaned tool_use blocks.
+  const unresolvedApprovedToolCallIds = new Set<string>();
 
   for (const message of combinedMessages) {
     switch (message.role) {
@@ -125,6 +129,7 @@ export async function convertToLanguageModelPrompt({
         for (const content of message.content) {
           if (content.type === 'tool-result') {
             toolCallIds.delete(content.toolCallId);
+            unresolvedApprovedToolCallIds.delete(content.toolCallId);
           }
         }
         break;
@@ -133,6 +138,9 @@ export async function convertToLanguageModelPrompt({
       case 'system':
         // remove approved tool calls from the set before checking:
         for (const id of approvedToolCallIds) {
+          if (toolCallIds.has(id)) {
+            unresolvedApprovedToolCallIds.add(id);
+          }
           toolCallIds.delete(id);
         }
 
@@ -147,6 +155,9 @@ export async function convertToLanguageModelPrompt({
 
   // remove approved tool calls from the set before checking:
   for (const id of approvedToolCallIds) {
+    if (toolCallIds.has(id)) {
+      unresolvedApprovedToolCallIds.add(id);
+    }
     toolCallIds.delete(id);
   }
 
@@ -154,12 +165,28 @@ export async function convertToLanguageModelPrompt({
     throw new MissingToolResultsError({ toolCallIds: Array.from(toolCallIds) });
   }
 
+  // Strip unresolved approved tool-calls from assistant messages so
+  // providers never see a tool_use without a matching tool_result.
+  if (unresolvedApprovedToolCallIds.size > 0) {
+    for (const message of combinedMessages) {
+      if (message.role === 'assistant') {
+        message.content = message.content.filter(
+          part =>
+            part.type !== 'tool-call' ||
+            !unresolvedApprovedToolCallIds.has(part.toolCallId),
+        );
+      }
+    }
+  }
+
   return combinedMessages.filter(
     // Filter out empty tool messages (e.g. if they only contained
     // tool-approval-response parts that were removed).
     // This prevents sending invalid empty messages to the provider.
     // Note: provider-executed tool-approval-response parts are preserved.
-    message => message.role !== 'tool' || message.content.length > 0,
+    message =>
+      (message.role !== 'tool' && message.role !== 'assistant') ||
+      message.content.length > 0,
   );
 }
 
