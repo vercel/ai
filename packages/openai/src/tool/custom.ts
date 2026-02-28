@@ -10,11 +10,18 @@ export const customArgsSchema = lazySchema(() =>
     z.object({
       name: z.string(),
       description: z.string().optional(),
-      format: z.object({
-        type: z.literal('grammar'),
-        syntax: z.enum(['regex', 'lark']),
-        definition: z.string(),
-      }),
+      format: z
+        .union([
+          z.object({
+            type: z.literal('grammar'),
+            syntax: z.enum(['regex', 'lark']),
+            definition: z.string(),
+          }),
+          z.object({
+            type: z.literal('text'),
+          }),
+        ])
+        .optional(),
     }),
   ),
 );
@@ -36,25 +43,17 @@ export const customToolFactory = createProviderToolFactory<
 
     /**
      * The output format specification for the tool.
+     * Omit for unconstrained text output.
      */
-    format: {
-      /**
-       * The type of format constraint (always 'grammar').
-       */
-      type: 'grammar';
-
-      /**
-       * The grammar syntax used for the definition.
-       * - 'regex': Regular expression syntax
-       * - 'lark': Lark parser grammar syntax
-       */
-      syntax: 'regex' | 'lark';
-
-      /**
-       * The grammar definition string (regex pattern or Lark grammar).
-       */
-      definition: string;
-    };
+    format?:
+      | {
+          type: 'grammar';
+          syntax: 'regex' | 'lark';
+          definition: string;
+        }
+      | {
+          type: 'text';
+        };
   }
 >({
   id: 'openai.custom',
