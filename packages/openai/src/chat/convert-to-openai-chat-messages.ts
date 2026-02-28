@@ -6,12 +6,19 @@ import {
 import { OpenAIChatPrompt } from './openai-chat-prompt';
 import { convertToBase64, mediaTypeToExtension } from '@ai-sdk/provider-utils';
 
+function isFileId(data: string, prefixes?: readonly string[]): boolean {
+  if (!prefixes) return false;
+  return prefixes.some(prefix => data.startsWith(prefix));
+}
+
 export function convertToOpenAIChatMessages({
   prompt,
   systemMessageMode = 'system',
+  fileIdPrefixes = ['file-'],
 }: {
   prompt: LanguageModelV3Prompt;
   systemMessageMode?: 'system' | 'developer' | 'remove';
+  fileIdPrefixes?: readonly string[];
 }): {
   messages: OpenAIChatPrompt;
   warnings: Array<SharedV3Warning>;
@@ -131,7 +138,7 @@ export function convertToOpenAIChatMessages({
                     type: 'file',
                     file:
                       typeof part.data === 'string' &&
-                      part.data.startsWith('file-')
+                      isFileId(part.data, fileIdPrefixes)
                         ? { file_id: part.data }
                         : {
                             filename:
