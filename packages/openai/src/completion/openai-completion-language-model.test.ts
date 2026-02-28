@@ -775,4 +775,36 @@ describe('doStream', () => {
       `ai-sdk/openai/0.0.0-test`,
     );
   });
+
+  describe('doCountTokens', () => {
+    it('should return token count for simple prompt', async () => {
+      const result = await model.doCountTokens!({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.tokens).toBeGreaterThan(0);
+      expect(result.warnings).toEqual([]);
+      expect(result.providerMetadata?.openai?.estimatedTokenCount).toBe(true);
+    });
+
+    it('should count tokens even when tools are passed', async () => {
+      const result = await model.doCountTokens!({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the weather in a location',
+            inputSchema: {
+              type: 'object',
+              properties: { location: { type: 'string' } },
+            },
+          },
+        ],
+      });
+
+      // Completion model ignores tools, so count should still work
+      expect(result.tokens).toBeGreaterThan(0);
+    });
+  });
 });

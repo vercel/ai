@@ -4,6 +4,8 @@ import {
   LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3Content,
+  LanguageModelV3CountTokensOptions,
+  LanguageModelV3CountTokensResult,
   LanguageModelV3FinishReason,
   LanguageModelV3FunctionTool,
   LanguageModelV3GenerateResult,
@@ -33,6 +35,7 @@ import { anthropicFailedResponseHandler } from './anthropic-error';
 import { AnthropicMessageMetadata } from './anthropic-message-metadata';
 import {
   AnthropicContainer,
+  anthropicCountTokensResponseSchema,
   anthropicMessagesChunkSchema,
   anthropicMessagesResponseSchema,
   AnthropicReasoningMetadata,
@@ -2171,6 +2174,46 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       stream: streamForConsumer,
       request: { body },
       response: { headers: responseHeaders },
+    };
+  }
+
+  async doCountTokens(
+    options: LanguageModelV3CountTokensOptions,
+  ): Promise<LanguageModelV3CountTokensResult> {
+    const { args, warnings, betas } = await this.getArgs({
+      ...options,
+      stream: false,
+      userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
+    });
+
+    // Keep only fields the count_tokens API accepts
+    const { model, system, messages, tools } = args;
+    const body = { model, system, messages, tools };
+
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
+      url: `${this.config.baseURL}/messages/count_tokens`,
+      headers: await this.getHeaders({
+        betas,
+        headers: options.headers,
+      }),
+      body,
+      failedResponseHandler: anthropicFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        anthropicCountTokensResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    return {
+      tokens: response.input_tokens,
+      warnings,
+      request: { body },
+      response: { headers: responseHeaders, body: rawResponse },
     };
   }
 }
