@@ -99,3 +99,37 @@ const validatedMessages = await validateUIMessages({
   tools,
 });
 ```
+
+## Validation Behavior
+
+### Tool Part Lifecycle States
+
+`validateUIMessages` validates tool parts across all seven lifecycle states:
+
+| State | Description | Key Fields |
+| -------------------- | ----------------------------------------- | --------------------------------------------------- |
+| `input-streaming` | Tool input is being streamed | `input` (optional) |
+| `input-available` | Tool input is fully available | `input` (required) |
+| `approval-requested` | Waiting for user approval | `input`, `approval.id` |
+| `approval-responded` | User has approved or denied | `input`, `approval.id`, `approval.approved` |
+| `output-available` | Tool execution completed successfully | `input`, `output` |
+| `output-error` | Tool execution failed | `input`, `errorText` |
+| `output-denied` | User denied tool execution | `input`, `approval.id`, `approval.approved` (false) |
+
+All tool part types (`tool-*` and `dynamic-tool`) support an optional `title` field for human-readable display names.
+
+### Tool Input Schema Validation
+
+When the `tools` parameter is provided, tool input is validated against the tool's `inputSchema` only for these states:
+
+- `input-available`
+- `output-available`
+- `output-error` (when `input` is present)
+
+Input is **not** validated for `input-streaming`, `approval-requested`, `approval-responded`, or `output-denied` states.
+
+### Dynamic Tool Handling
+
+Dynamic tool parts (with `type: 'dynamic-tool'`) are structurally validated — their shape, required fields, and lifecycle state are all checked. However, when the `tools` parameter is provided, dynamic tool input and output are **not** schema-validated against tool definitions. Only static tool parts (with `type: 'tool-*'`) have their input and output validated against the matching tool schema.
+
+Additionally, `dynamic-tool` parts in the `output-available` state are validated to ensure the `output` field is present.

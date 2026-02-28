@@ -721,6 +721,1406 @@ describe('validateUIMessages', () => {
         ]
       `);
     });
+
+    it('should validate an assistant message with a dynamic tool part in approval-requested state', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'dynamic-tool',
+                toolName: 'foo',
+                toolCallId: '1',
+                state: 'approval-requested',
+                input: { foo: 'bar' },
+                approval: { id: 'approval-1' },
+              },
+            ],
+          },
+        ],
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "approval": {
+                  "id": "approval-1",
+                },
+                "input": {
+                  "foo": "bar",
+                },
+                "state": "approval-requested",
+                "toolCallId": "1",
+                "toolName": "foo",
+                "type": "dynamic-tool",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should validate an assistant message with a dynamic tool part in approval-responded state', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'dynamic-tool',
+                toolName: 'foo',
+                toolCallId: '1',
+                state: 'approval-responded',
+                input: { foo: 'bar' },
+                approval: {
+                  id: 'approval-1',
+                  approved: true,
+                  reason: 'User confirmed',
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "approval": {
+                  "approved": true,
+                  "id": "approval-1",
+                  "reason": "User confirmed",
+                },
+                "input": {
+                  "foo": "bar",
+                },
+                "state": "approval-responded",
+                "toolCallId": "1",
+                "toolName": "foo",
+                "type": "dynamic-tool",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should validate an assistant message with a dynamic tool part in output-denied state', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'dynamic-tool',
+                toolName: 'foo',
+                toolCallId: '1',
+                state: 'output-denied',
+                input: { foo: 'bar' },
+                approval: {
+                  id: 'approval-1',
+                  approved: false,
+                  reason: 'User denied',
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "approval": {
+                  "approved": false,
+                  "id": "approval-1",
+                  "reason": "User denied",
+                },
+                "input": {
+                  "foo": "bar",
+                },
+                "state": "output-denied",
+                "toolCallId": "1",
+                "toolName": "foo",
+                "type": "dynamic-tool",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    // ========================================
+    // Dynamic Tool Negative + Structural Tests
+    // ========================================
+
+    it('should reject dynamic tool part in approval-requested state without approval field', async () => {
+      await expect(
+        validateUIMessages({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'dynamic-tool',
+                  toolName: 'foo',
+                  toolCallId: '1',
+                  state: 'approval-requested',
+                  input: { foo: 'bar' },
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`
+        [AI_TypeValidationError: Type validation failed: Value: [{"id":"1","role":"assistant","parts":[{"type":"dynamic-tool","toolName":"foo","toolCallId":"1","state":"approval-requested","input":{"foo":"bar"}}]}].
+        Error message: [
+          {
+            "code": "invalid_union",
+            "errors": [
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "text"
+                  ],
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid input: expected \\"text\\""
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "text"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                },
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "streaming",
+                    "done"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid option: expected one of \\"streaming\\"|\\"done\\""
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "reasoning"
+                  ],
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid input: expected \\"reasoning\\""
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "text"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                },
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "streaming",
+                    "done"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid option: expected one of \\"streaming\\"|\\"done\\""
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "source-url"
+                  ],
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid input: expected \\"source-url\\""
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "sourceId"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "url"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "source-document"
+                  ],
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid input: expected \\"source-document\\""
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "sourceId"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "mediaType"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "title"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "file"
+                  ],
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid input: expected \\"file\\""
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "mediaType"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "url"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "step-start"
+                  ],
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid input: expected \\"step-start\\""
+                }
+              ],
+              [
+                {
+                  "origin": "string",
+                  "code": "invalid_format",
+                  "format": "starts_with",
+                  "prefix": "data-",
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid string: must start with \\"data-\\""
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "input-streaming"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"input-streaming\\""
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "input-available"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"input-available\\""
+                }
+              ],
+              [
+                {
+                  "expected": "object",
+                  "code": "invalid_type",
+                  "path": [
+                    "approval"
+                  ],
+                  "message": "Invalid input: expected object, received undefined"
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "approval-responded"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"approval-responded\\""
+                },
+                {
+                  "expected": "object",
+                  "code": "invalid_type",
+                  "path": [
+                    "approval"
+                  ],
+                  "message": "Invalid input: expected object, received undefined"
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "output-available"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"output-available\\""
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "output-error"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"output-error\\""
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "errorText"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "output-denied"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"output-denied\\""
+                },
+                {
+                  "expected": "object",
+                  "code": "invalid_type",
+                  "path": [
+                    "approval"
+                  ],
+                  "message": "Invalid input: expected object, received undefined"
+                }
+              ],
+              [
+                {
+                  "origin": "string",
+                  "code": "invalid_format",
+                  "format": "starts_with",
+                  "prefix": "tool-",
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid string: must start with \\"tool-\\""
+                },
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "input-streaming"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"input-streaming\\""
+                }
+              ],
+              [
+                {
+                  "origin": "string",
+                  "code": "invalid_format",
+                  "format": "starts_with",
+                  "prefix": "tool-",
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid string: must start with \\"tool-\\""
+                },
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "input-available"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"input-available\\""
+                }
+              ],
+              [
+                {
+                  "origin": "string",
+                  "code": "invalid_format",
+                  "format": "starts_with",
+                  "prefix": "tool-",
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid string: must start with \\"tool-\\""
+                },
+                {
+                  "expected": "object",
+                  "code": "invalid_type",
+                  "path": [
+                    "approval"
+                  ],
+                  "message": "Invalid input: expected object, received undefined"
+                }
+              ],
+              [
+                {
+                  "origin": "string",
+                  "code": "invalid_format",
+                  "format": "starts_with",
+                  "prefix": "tool-",
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid string: must start with \\"tool-\\""
+                },
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "approval-responded"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"approval-responded\\""
+                },
+                {
+                  "expected": "object",
+                  "code": "invalid_type",
+                  "path": [
+                    "approval"
+                  ],
+                  "message": "Invalid input: expected object, received undefined"
+                }
+              ],
+              [
+                {
+                  "origin": "string",
+                  "code": "invalid_format",
+                  "format": "starts_with",
+                  "prefix": "tool-",
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid string: must start with \\"tool-\\""
+                },
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "output-available"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"output-available\\""
+                }
+              ],
+              [
+                {
+                  "origin": "string",
+                  "code": "invalid_format",
+                  "format": "starts_with",
+                  "prefix": "tool-",
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid string: must start with \\"tool-\\""
+                },
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "output-error"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"output-error\\""
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "errorText"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                }
+              ],
+              [
+                {
+                  "origin": "string",
+                  "code": "invalid_format",
+                  "format": "starts_with",
+                  "prefix": "tool-",
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid string: must start with \\"tool-\\""
+                },
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "output-denied"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"output-denied\\""
+                },
+                {
+                  "expected": "object",
+                  "code": "invalid_type",
+                  "path": [
+                    "approval"
+                  ],
+                  "message": "Invalid input: expected object, received undefined"
+                }
+              ]
+            ],
+            "path": [
+              0,
+              "parts",
+              0
+            ],
+            "message": "Invalid input"
+          }
+        ]]
+      `);
+    });
+
+    it('should reject dynamic tool part in output-available state without output field', async () => {
+      await expect(
+        validateUIMessages({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'dynamic-tool',
+                  toolName: 'foo',
+                  toolCallId: '1',
+                  state: 'output-available',
+                  input: { foo: 'bar' },
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`
+        [AI_TypeValidationError: Type validation failed for messages[0].parts[0].output (foo, id: "1"): Value: {"type":"dynamic-tool","toolName":"foo","toolCallId":"1","state":"output-available","input":{"foo":"bar"}}.
+        Error message: output is required for dynamic-tool part in output-available state]
+      `);
+    });
+
+    it('should reject dynamic tool part with an invalid state value', async () => {
+      await expect(
+        validateUIMessages({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'dynamic-tool',
+                  toolName: 'foo',
+                  toolCallId: '1',
+                  state: 'invalid-state',
+                  input: { foo: 'bar' },
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`
+        [AI_TypeValidationError: Type validation failed: Value: [{"id":"1","role":"assistant","parts":[{"type":"dynamic-tool","toolName":"foo","toolCallId":"1","state":"invalid-state","input":{"foo":"bar"}}]}].
+        Error message: [
+          {
+            "code": "invalid_union",
+            "errors": [
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "text"
+                  ],
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid input: expected \\"text\\""
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "text"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                },
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "streaming",
+                    "done"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid option: expected one of \\"streaming\\"|\\"done\\""
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "reasoning"
+                  ],
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid input: expected \\"reasoning\\""
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "text"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                },
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "streaming",
+                    "done"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid option: expected one of \\"streaming\\"|\\"done\\""
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "source-url"
+                  ],
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid input: expected \\"source-url\\""
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "sourceId"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "url"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "source-document"
+                  ],
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid input: expected \\"source-document\\""
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "sourceId"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "mediaType"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "title"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "file"
+                  ],
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid input: expected \\"file\\""
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "mediaType"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "url"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "step-start"
+                  ],
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid input: expected \\"step-start\\""
+                }
+              ],
+              [
+                {
+                  "origin": "string",
+                  "code": "invalid_format",
+                  "format": "starts_with",
+                  "prefix": "data-",
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid string: must start with \\"data-\\""
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "input-streaming"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"input-streaming\\""
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "input-available"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"input-available\\""
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "approval-requested"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"approval-requested\\""
+                },
+                {
+                  "expected": "object",
+                  "code": "invalid_type",
+                  "path": [
+                    "approval"
+                  ],
+                  "message": "Invalid input: expected object, received undefined"
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "approval-responded"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"approval-responded\\""
+                },
+                {
+                  "expected": "object",
+                  "code": "invalid_type",
+                  "path": [
+                    "approval"
+                  ],
+                  "message": "Invalid input: expected object, received undefined"
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "output-available"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"output-available\\""
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "output-error"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"output-error\\""
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "errorText"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                }
+              ],
+              [
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "output-denied"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"output-denied\\""
+                },
+                {
+                  "expected": "object",
+                  "code": "invalid_type",
+                  "path": [
+                    "approval"
+                  ],
+                  "message": "Invalid input: expected object, received undefined"
+                }
+              ],
+              [
+                {
+                  "origin": "string",
+                  "code": "invalid_format",
+                  "format": "starts_with",
+                  "prefix": "tool-",
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid string: must start with \\"tool-\\""
+                },
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "input-streaming"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"input-streaming\\""
+                }
+              ],
+              [
+                {
+                  "origin": "string",
+                  "code": "invalid_format",
+                  "format": "starts_with",
+                  "prefix": "tool-",
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid string: must start with \\"tool-\\""
+                },
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "input-available"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"input-available\\""
+                }
+              ],
+              [
+                {
+                  "origin": "string",
+                  "code": "invalid_format",
+                  "format": "starts_with",
+                  "prefix": "tool-",
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid string: must start with \\"tool-\\""
+                },
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "approval-requested"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"approval-requested\\""
+                },
+                {
+                  "expected": "object",
+                  "code": "invalid_type",
+                  "path": [
+                    "approval"
+                  ],
+                  "message": "Invalid input: expected object, received undefined"
+                }
+              ],
+              [
+                {
+                  "origin": "string",
+                  "code": "invalid_format",
+                  "format": "starts_with",
+                  "prefix": "tool-",
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid string: must start with \\"tool-\\""
+                },
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "approval-responded"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"approval-responded\\""
+                },
+                {
+                  "expected": "object",
+                  "code": "invalid_type",
+                  "path": [
+                    "approval"
+                  ],
+                  "message": "Invalid input: expected object, received undefined"
+                }
+              ],
+              [
+                {
+                  "origin": "string",
+                  "code": "invalid_format",
+                  "format": "starts_with",
+                  "prefix": "tool-",
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid string: must start with \\"tool-\\""
+                },
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "output-available"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"output-available\\""
+                }
+              ],
+              [
+                {
+                  "origin": "string",
+                  "code": "invalid_format",
+                  "format": "starts_with",
+                  "prefix": "tool-",
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid string: must start with \\"tool-\\""
+                },
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "output-error"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"output-error\\""
+                },
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [
+                    "errorText"
+                  ],
+                  "message": "Invalid input: expected string, received undefined"
+                }
+              ],
+              [
+                {
+                  "origin": "string",
+                  "code": "invalid_format",
+                  "format": "starts_with",
+                  "prefix": "tool-",
+                  "path": [
+                    "type"
+                  ],
+                  "message": "Invalid string: must start with \\"tool-\\""
+                },
+                {
+                  "code": "invalid_value",
+                  "values": [
+                    "output-denied"
+                  ],
+                  "path": [
+                    "state"
+                  ],
+                  "message": "Invalid input: expected \\"output-denied\\""
+                },
+                {
+                  "expected": "object",
+                  "code": "invalid_type",
+                  "path": [
+                    "approval"
+                  ],
+                  "message": "Invalid input: expected object, received undefined"
+                }
+              ]
+            ],
+            "path": [
+              0,
+              "parts",
+              0
+            ],
+            "message": "Invalid input"
+          }
+        ]]
+      `);
+    });
+
+    // ========================================
+    // Dynamic Tool with `tools` Parameter
+    // Documents current behavior: dynamic-tool parts are NOT schema-validated
+    // even when tools param is provided, because type 'dynamic-tool' does not
+    // match the part.type.startsWith('tool-') conditional.
+    // See: // TODO support dynamic tools in validate-ui-messages.ts
+    // ========================================
+
+    describe('with tools parameter', () => {
+      const testTool = {
+        name: 'foo',
+        inputSchema: z.object({ foo: z.string() }),
+        outputSchema: z.object({ result: z.string() }),
+      };
+
+      it('should not validate dynamic tool input when tools param is provided', async () => {
+        const messages = await validateUIMessages({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'dynamic-tool',
+                  toolName: 'foo',
+                  toolCallId: '1',
+                  state: 'input-available',
+                  input: { foo: 'bar' },
+                },
+              ],
+            },
+          ],
+          tools: { foo: testTool },
+        });
+
+        expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+        expect(messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "1",
+              "parts": [
+                {
+                  "input": {
+                    "foo": "bar",
+                  },
+                  "state": "input-available",
+                  "toolCallId": "1",
+                  "toolName": "foo",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should not validate dynamic tool input with matching toolName and invalid input', async () => {
+        // Despite tools param having a schema for 'foo', dynamic-tool parts
+        // bypass the tools validation conditional (type.startsWith('tool-')).
+        // This documents the TODO gap — invalid input passes without error.
+        const messages = await validateUIMessages({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'dynamic-tool',
+                  toolName: 'foo',
+                  toolCallId: '1',
+                  state: 'input-available',
+                  input: { wrong: 'type' },
+                },
+              ],
+            },
+          ],
+          tools: { foo: testTool },
+        });
+
+        expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+        expect(messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "1",
+              "parts": [
+                {
+                  "input": {
+                    "wrong": "type",
+                  },
+                  "state": "input-available",
+                  "toolCallId": "1",
+                  "toolName": "foo",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should not validate dynamic tool output when tools param is provided', async () => {
+        const messages = await validateUIMessages({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'dynamic-tool',
+                  toolName: 'foo',
+                  toolCallId: '1',
+                  state: 'output-available',
+                  input: { foo: 'bar' },
+                  output: { result: 'success' },
+                },
+              ],
+            },
+          ],
+          tools: { foo: testTool },
+        });
+
+        expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+        expect(messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "1",
+              "parts": [
+                {
+                  "input": {
+                    "foo": "bar",
+                  },
+                  "output": {
+                    "result": "success",
+                  },
+                  "state": "output-available",
+                  "toolCallId": "1",
+                  "toolName": "foo",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should validate static tool and not validate dynamic tool in mixed message', async () => {
+        const messages = await validateUIMessages({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'input-available',
+                  input: { foo: 'bar' },
+                  providerExecuted: true,
+                },
+                {
+                  type: 'dynamic-tool',
+                  toolName: 'some-dynamic-tool',
+                  toolCallId: '2',
+                  state: 'input-available',
+                  input: { anything: 'goes' },
+                },
+              ],
+            },
+          ],
+          tools: { foo: testTool },
+        });
+
+        expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+        expect(messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "1",
+              "parts": [
+                {
+                  "input": {
+                    "foo": "bar",
+                  },
+                  "providerExecuted": true,
+                  "state": "input-available",
+                  "toolCallId": "1",
+                  "type": "tool-foo",
+                },
+                {
+                  "input": {
+                    "anything": "goes",
+                  },
+                  "state": "input-available",
+                  "toolCallId": "2",
+                  "toolName": "some-dynamic-tool",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
   });
 
   describe('tool parts', () => {
@@ -900,6 +2300,153 @@ describe('validateUIMessages', () => {
                 },
                 "providerExecuted": true,
                 "state": "output-error",
+                "toolCallId": "1",
+                "type": "tool-foo",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should validate an assistant message with a tool part in approval-requested state', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'approval-requested',
+                input: { foo: 'bar' },
+                providerExecuted: true,
+                approval: { id: 'approval-1' },
+              },
+            ],
+          },
+        ],
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "approval": {
+                  "id": "approval-1",
+                },
+                "input": {
+                  "foo": "bar",
+                },
+                "providerExecuted": true,
+                "state": "approval-requested",
+                "toolCallId": "1",
+                "type": "tool-foo",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should validate an assistant message with a tool part in approval-responded state', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'approval-responded',
+                input: { foo: 'bar' },
+                providerExecuted: true,
+                approval: {
+                  id: 'approval-1',
+                  approved: true,
+                  reason: 'User confirmed',
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "approval": {
+                  "approved": true,
+                  "id": "approval-1",
+                  "reason": "User confirmed",
+                },
+                "input": {
+                  "foo": "bar",
+                },
+                "providerExecuted": true,
+                "state": "approval-responded",
+                "toolCallId": "1",
+                "type": "tool-foo",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should validate an assistant message with a tool part in output-denied state', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'output-denied',
+                input: { foo: 'bar' },
+                providerExecuted: true,
+                approval: {
+                  id: 'approval-1',
+                  approved: false,
+                  reason: 'User denied',
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "approval": {
+                  "approved": false,
+                  "id": "approval-1",
+                  "reason": "User denied",
+                },
+                "input": {
+                  "foo": "bar",
+                },
+                "providerExecuted": true,
+                "state": "output-denied",
                 "toolCallId": "1",
                 "type": "tool-foo",
               },
@@ -1265,6 +2812,206 @@ describe('validateUIMessages', () => {
         ]
       `);
     });
+
+    describe('with tools parameter - approval states', () => {
+      it('should not validate tool input when state is approval-requested', async () => {
+        const messages = await validateUIMessages<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'approval-requested',
+                  input: { foo: 'bar' },
+                  providerExecuted: true,
+                  approval: { id: 'approval-1' },
+                },
+              ],
+            },
+          ],
+          tools: { foo: testTool },
+        });
+
+        expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
+        expect(messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "1",
+              "parts": [
+                {
+                  "approval": {
+                    "id": "approval-1",
+                  },
+                  "input": {
+                    "foo": "bar",
+                  },
+                  "providerExecuted": true,
+                  "state": "approval-requested",
+                  "toolCallId": "1",
+                  "type": "tool-foo",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should not validate tool input when state is approval-responded', async () => {
+        const messages = await validateUIMessages<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'approval-responded',
+                  input: { foo: 'bar' },
+                  providerExecuted: true,
+                  approval: {
+                    id: 'approval-1',
+                    approved: true,
+                    reason: 'User confirmed',
+                  },
+                },
+              ],
+            },
+          ],
+          tools: { foo: testTool },
+        });
+
+        expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
+        expect(messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "1",
+              "parts": [
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "approval-1",
+                    "reason": "User confirmed",
+                  },
+                  "input": {
+                    "foo": "bar",
+                  },
+                  "providerExecuted": true,
+                  "state": "approval-responded",
+                  "toolCallId": "1",
+                  "type": "tool-foo",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should not validate tool input when state is output-denied', async () => {
+        const messages = await validateUIMessages<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'output-denied',
+                  input: { foo: 'bar' },
+                  providerExecuted: true,
+                  approval: {
+                    id: 'approval-1',
+                    approved: false,
+                    reason: 'User denied',
+                  },
+                },
+              ],
+            },
+          ],
+          tools: { foo: testTool },
+        });
+
+        expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
+        expect(messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "1",
+              "parts": [
+                {
+                  "approval": {
+                    "approved": false,
+                    "id": "approval-1",
+                    "reason": "User denied",
+                  },
+                  "input": {
+                    "foo": "bar",
+                  },
+                  "providerExecuted": true,
+                  "state": "output-denied",
+                  "toolCallId": "1",
+                  "type": "tool-foo",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should not validate tool input when state is approval-requested even with invalid input', async () => {
+        // Proves input validation is skipped for approval states —
+        // { foo: 123 } violates z.object({ foo: z.string() }) but passes.
+        const messages = await validateUIMessages<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-foo',
+                  toolCallId: '1',
+                  state: 'approval-requested',
+                  input: { foo: 123 },
+                  providerExecuted: true,
+                  approval: { id: 'approval-1' },
+                },
+              ],
+            },
+          ],
+          tools: { foo: testTool },
+        });
+
+        expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
+        expect(messages).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "1",
+              "parts": [
+                {
+                  "approval": {
+                    "id": "approval-1",
+                  },
+                  "input": {
+                    "foo": 123,
+                  },
+                  "providerExecuted": true,
+                  "state": "approval-requested",
+                  "toolCallId": "1",
+                  "type": "tool-foo",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
   });
 });
 
@@ -1424,5 +3171,117 @@ describe('safeValidateUIMessages', () => {
 
     expectToBe(result.success, false);
     expect(result.error.name).toBe('AI_TypeValidationError');
+  });
+
+  it('should return success result for dynamic tool with tools param', async () => {
+    const testTool = {
+      name: 'foo',
+      inputSchema: z.object({ foo: z.string() }),
+      outputSchema: z.object({ result: z.string() }),
+    };
+
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'dynamic-tool',
+              toolName: 'foo',
+              toolCallId: '1',
+              state: 'input-available',
+              input: { foo: 'bar' },
+            },
+          ],
+        },
+      ],
+      tools: { foo: testTool },
+    });
+
+    expectToBe(result.success, true);
+    expect(result.data).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "1",
+          "parts": [
+            {
+              "input": {
+                "foo": "bar",
+              },
+              "state": "input-available",
+              "toolCallId": "1",
+              "toolName": "foo",
+              "type": "dynamic-tool",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
+  });
+
+  it('should return success result for mixed static and dynamic tools with tools param', async () => {
+    const testTool = {
+      name: 'foo',
+      inputSchema: z.object({ foo: z.string() }),
+      outputSchema: z.object({ result: z.string() }),
+    };
+
+    const result = await safeValidateUIMessages({
+      messages: [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-foo',
+              toolCallId: '1',
+              state: 'input-available',
+              input: { foo: 'bar' },
+              providerExecuted: true,
+            },
+            {
+              type: 'dynamic-tool',
+              toolName: 'some-dynamic-tool',
+              toolCallId: '2',
+              state: 'input-available',
+              input: { anything: 'goes' },
+            },
+          ],
+        },
+      ],
+      tools: { foo: testTool },
+    });
+
+    expectToBe(result.success, true);
+    expect(result.data).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "1",
+          "parts": [
+            {
+              "input": {
+                "foo": "bar",
+              },
+              "providerExecuted": true,
+              "state": "input-available",
+              "toolCallId": "1",
+              "type": "tool-foo",
+            },
+            {
+              "input": {
+                "anything": "goes",
+              },
+              "state": "input-available",
+              "toolCallId": "2",
+              "toolName": "some-dynamic-tool",
+              "type": "dynamic-tool",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 });
