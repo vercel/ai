@@ -4470,16 +4470,16 @@ describe('processUIMessageStream', () => {
         { type: 'start-step' },
         {
           type: 'file',
-          url: 'data:text/plain;base64,SGVsbG8gV29ybGQ=',
-          mediaType: 'text/plain',
+          url: 'data:image/png;base64,iVBOR',
+          mediaType: 'image/png',
           providerMetadata: {
-            testProvider: { signature: 'sig-1' },
+            custom: { fileId: 'file-abc-123' },
           },
         },
         {
           type: 'file',
-          url: 'data:image/jpeg;base64,QkFVRw==',
-          mediaType: 'image/jpeg',
+          url: 'data:text/plain;base64,SGVsbG8=',
+          mediaType: 'text/plain',
         },
         { type: 'finish-step' },
         { type: 'finish' },
@@ -4501,34 +4501,25 @@ describe('processUIMessageStream', () => {
       });
     });
 
-    it('should have the correct final message state', async () => {
-      expect(state!.message).toMatchInlineSnapshot(`
+    it('should pass through providerMetadata on file parts', async () => {
+      expect(state.message.parts).toStrictEqual([
         {
-          "id": "msg-123",
-          "metadata": undefined,
-          "parts": [
-            {
-              "type": "step-start",
-            },
-            {
-              "mediaType": "text/plain",
-              "providerMetadata": {
-                "testProvider": {
-                  "signature": "sig-1",
-                },
-              },
-              "type": "file",
-              "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
-            },
-            {
-              "mediaType": "image/jpeg",
-              "type": "file",
-              "url": "data:image/jpeg;base64,QkFVRw==",
-            },
-          ],
-          "role": "assistant",
-        }
-      `);
+          type: 'step-start',
+        },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          url: 'data:image/png;base64,iVBOR',
+          providerMetadata: {
+            custom: { fileId: 'file-abc-123' },
+          },
+        },
+        {
+          type: 'file',
+          mediaType: 'text/plain',
+          url: 'data:text/plain;base64,SGVsbG8=',
+        },
+      ]);
     });
   });
 
