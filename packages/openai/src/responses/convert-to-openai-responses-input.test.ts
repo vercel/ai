@@ -3403,4 +3403,302 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
   });
+
+  describe('custom tool calls', () => {
+    const customProviderToolNames = new Set(['write_sql']);
+
+    it('should convert custom tool call to custom_tool_call input item', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_custom_001',
+                toolName: 'write_sql',
+                input: 'SELECT * FROM users WHERE age > 25',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_001",
+            "id": undefined,
+            "input": "SELECT * FROM users WHERE age > 25",
+            "name": "write_sql",
+            "type": "custom_tool_call",
+          },
+        ]
+      `);
+    });
+
+    it('should JSON.stringify non-string custom tool call input', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_custom_002',
+                toolName: 'write_sql',
+                input: { query: 'test' },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_002",
+            "id": undefined,
+            "input": "{"query":"test"}",
+            "name": "write_sql",
+            "type": "custom_tool_call",
+          },
+        ]
+      `);
+    });
+
+    it('should convert custom tool call with itemId to item_reference when store: true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_custom_003',
+                toolName: 'write_sql',
+                input: 'SELECT 1',
+                providerOptions: {
+                  openai: {
+                    itemId: 'ct_ref_123',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "ct_ref_123",
+            "type": "item_reference",
+          },
+        ]
+      `);
+    });
+
+    it('should convert custom tool result to custom_tool_call_output with text value', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_custom_001',
+                toolName: 'write_sql',
+                output: {
+                  type: 'text',
+                  value: 'Query executed successfully. 42 rows returned.',
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_001",
+            "output": "Query executed successfully. 42 rows returned.",
+            "type": "custom_tool_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert custom tool result to custom_tool_call_output with json value', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_custom_002',
+                toolName: 'write_sql',
+                output: {
+                  type: 'json',
+                  value: { rows: 42, status: 'ok' },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_002",
+            "output": "{"rows":42,"status":"ok"}",
+            "type": "custom_tool_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert aliased tool name to provider custom tool name', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: {
+          toProviderToolName: name =>
+            name === 'alias_name' ? 'write_sql' : name,
+          toCustomToolName: name =>
+            name === 'write_sql' ? 'alias_name' : name,
+        },
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_custom_004',
+                toolName: 'alias_name',
+                input: 'SELECT 1',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_004",
+            "id": undefined,
+            "input": "SELECT 1",
+            "name": "write_sql",
+            "type": "custom_tool_call",
+          },
+        ]
+      `);
+    });
+
+    it('should convert custom tool result content output', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_custom_005',
+                toolName: 'write_sql',
+                output: {
+                  type: 'content',
+                  value: [{ type: 'text', text: 'hello' }],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_005",
+            "output": [
+              {
+                "text": "hello",
+                "type": "input_text",
+              },
+            ],
+            "type": "custom_tool_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should not emit custom_tool_call when customProviderToolNames is not provided', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_custom_001',
+                toolName: 'write_sql',
+                input: 'SELECT 1',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "arguments": ""SELECT 1"",
+            "call_id": "call_custom_001",
+            "id": undefined,
+            "name": "write_sql",
+            "type": "function_call",
+          },
+        ]
+      `);
+    });
+  });
 });
