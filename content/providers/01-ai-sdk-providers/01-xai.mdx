@@ -446,6 +446,12 @@ The following provider options are available:
 
   Control the reasoning effort for the model. Higher effort may produce more thorough results at the cost of increased latency and token usage.
 
+- **searchParameters** _object_
+
+  Deprecated. Kept for compatibility and ignored by the SDK
+
+  xAI returns `410 Gone` when `search_parameters` is sent on both Chat Completions and Responses. Use server-side tools (`web_search`, `x_search`) for search
+
 - **include** _Array&lt;'file_search_call.results'&gt;_
 
   Specify additional output data to include in the model response. Use `['file_search_call.results']` to include file search results with scores and content.

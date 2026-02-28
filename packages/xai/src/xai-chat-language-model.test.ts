@@ -386,10 +386,10 @@ describe('XaiChatLanguageModel', () => {
       `);
     });
 
-    it('should pass search parameters', async () => {
+    it('should warn and strip search parameters', async () => {
       prepareJsonFixtureResponse('xai-text');
 
-      await model.doGenerate({
+      const result = await model.doGenerate({
         prompt: TEST_PROMPT,
         providerOptions: {
           xai: {
@@ -404,6 +404,15 @@ describe('XaiChatLanguageModel', () => {
         },
       });
 
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "xAI deprecated searchParameters. Use server-side tools like xai.tools.webSearch() and xai.tools.xSearch() instead.",
+            "type": "other",
+          },
+        ]
+      `);
+
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
           "messages": [
@@ -413,21 +422,14 @@ describe('XaiChatLanguageModel', () => {
             },
           ],
           "model": "grok-beta",
-          "search_parameters": {
-            "from_date": "2024-01-01",
-            "max_search_results": 10,
-            "mode": "auto",
-            "return_citations": true,
-            "to_date": "2024-12-31",
-          },
         }
       `);
     });
 
-    it('should pass search parameters with sources array', async () => {
+    it('should warn and strip search parameters with sources array', async () => {
       prepareJsonFixtureResponse('xai-text');
 
-      await model.doGenerate({
+      const result = await model.doGenerate({
         prompt: TEST_PROMPT,
         providerOptions: {
           xai: {
@@ -461,6 +463,15 @@ describe('XaiChatLanguageModel', () => {
         },
       });
 
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "xAI deprecated searchParameters. Use server-side tools like xai.tools.webSearch() and xai.tools.xSearch() instead.",
+            "type": "other",
+          },
+        ]
+      `);
+
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
           "messages": [
@@ -470,40 +481,6 @@ describe('XaiChatLanguageModel', () => {
             },
           ],
           "model": "grok-beta",
-          "search_parameters": {
-            "mode": "on",
-            "sources": [
-              {
-                "country": "US",
-                "excluded_websites": [
-                  "example.com",
-                ],
-                "safe_search": false,
-                "type": "web",
-              },
-              {
-                "excluded_x_handles": [
-                  "openai",
-                ],
-                "included_x_handles": [
-                  "grok",
-                ],
-                "post_favorite_count": 5,
-                "post_view_count": 50,
-                "type": "x",
-              },
-              {
-                "country": "GB",
-                "type": "news",
-              },
-              {
-                "links": [
-                  "https://status.x.ai/feed.xml",
-                ],
-                "type": "rss",
-              },
-            ],
-          },
         }
       `);
     });
@@ -606,10 +583,10 @@ describe('XaiChatLanguageModel', () => {
       `);
     });
 
-    it('should handle complex search parameter combinations', async () => {
+    it('should strip complex search parameter combinations', async () => {
       prepareJsonFixtureResponse('xai-text');
 
-      await model.doGenerate({
+      const result = await model.doGenerate({
         prompt: TEST_PROMPT,
         providerOptions: {
           xai: {
@@ -644,6 +621,15 @@ describe('XaiChatLanguageModel', () => {
         },
       });
 
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "xAI deprecated searchParameters. Use server-side tools like xai.tools.webSearch() and xai.tools.xSearch() instead.",
+            "type": "other",
+          },
+        ]
+      `);
+
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
           "messages": [
@@ -653,43 +639,6 @@ describe('XaiChatLanguageModel', () => {
             },
           ],
           "model": "grok-beta",
-          "search_parameters": {
-            "from_date": "2024-01-01",
-            "max_search_results": 15,
-            "mode": "on",
-            "return_citations": true,
-            "sources": [
-              {
-                "allowed_websites": [
-                  "arxiv.org",
-                  "nature.com",
-                ],
-                "country": "US",
-                "safe_search": true,
-                "type": "web",
-              },
-              {
-                "country": "GB",
-                "excluded_websites": [
-                  "tabloid.com",
-                ],
-                "type": "news",
-              },
-              {
-                "excluded_x_handles": [
-                  "grok",
-                ],
-                "included_x_handles": [
-                  "openai",
-                  "deepmind",
-                ],
-                "post_favorite_count": 10,
-                "post_view_count": 100,
-                "type": "x",
-              },
-            ],
-            "to_date": "2024-12-31",
-          },
         }
       `);
     });
@@ -1082,7 +1031,12 @@ describe('XaiChatLanguageModel', () => {
         [
           {
             "type": "stream-start",
-            "warnings": [],
+            "warnings": [
+              {
+                "message": "xAI deprecated searchParameters. Use server-side tools like xai.tools.webSearch() and xai.tools.xSearch() instead.",
+                "type": "other",
+              },
+            ],
           },
           {
             "id": "c8e45f92-7a3b-4d8e-9c1f-5e6a8b9d2f4c",

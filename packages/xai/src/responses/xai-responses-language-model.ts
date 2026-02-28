@@ -34,6 +34,7 @@ import {
   xaiLanguageModelResponsesOptions,
 } from './xai-responses-options';
 import { prepareResponsesTools } from './xai-responses-prepare-tools';
+import { searchParametersWarning } from '../search-parameters-warning';
 
 type XaiResponsesConfig = {
   provider: string;
@@ -83,6 +84,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
         providerOptions,
         schema: xaiLanguageModelResponsesOptions,
       })) ?? {};
+
+    if (options.searchParameters != null) {
+      warnings.push({
+        type: 'other',
+        message: searchParametersWarning,
+      });
+    }
 
     if (stopSequences != null) {
       warnings.push({ type: 'unsupported', feature: 'stopSequences' });

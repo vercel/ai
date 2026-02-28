@@ -83,6 +83,10 @@ export const xaiLanguageModelChatOptions = z.object({
    */
   parallel_function_calling: z.boolean().optional(),
 
+  /**
+   * Deprecated. Kept for compatibility and ignored at request time.
+   * Use server-side tools (`web_search`, `x_search`) instead.
+   */
   searchParameters: z
     .object({
       /**
