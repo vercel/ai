@@ -74,24 +74,42 @@ export function convertToOpenAICompatibleChatMessages(
                 }
 
                 if (part.mediaType.startsWith('audio/')) {
-                  if (part.data instanceof URL) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'audio file parts with URLs',
-                    });
-                  }
-
                   const format = getAudioFormat(part.mediaType);
-                  if (format === null) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: `audio media type ${part.mediaType}`,
-                    });
+
+                  if (format !== null && !(part.data instanceof URL)) {
+                    return {
+                      type: 'input_audio',
+                      input_audio: {
+                        data: convertToBase64(part.data),
+                        format,
+                      },
+                      ...partMetadata,
+                    };
                   }
 
+                  // For unsupported audio formats or URL-based audio,
+                  // pass through as image_url (the generic OpenAI-compatible
+                  // inline media format used by Gemini and other providers).
                   return {
-                    type: 'input_audio',
-                    input_audio: {
-                      data: convertToBase64(part.data),
-                      format,
+                    type: 'image_url',
+                    image_url: {
+                      url:
+                        part.data instanceof URL
+                          ? part.data.toString()
+                          : `data:${part.mediaType};base64,${convertToBase64(part.data)}`,
+                    },
+                    ...partMetadata,
+                  };
+                }
+
+                if (part.mediaType.startsWith('video/')) {
+                  return {
+                    type: 'image_url',
+                    image_url: {
+                      url:
+                        part.data instanceof URL
+                          ? part.data.toString()
+                          : `data:${part.mediaType};base64,${convertToBase64(part.data)}`,
                     },
                     ...partMetadata,
                   };
