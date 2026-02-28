@@ -47,11 +47,15 @@ export async function prepareTools({
           canCache: true,
         });
 
+        const eagerInputStreaming =
+          tool.providerOptions?.anthropic?.eagerInputStreaming === true;
+
         anthropicTools.push({
           name: tool.name,
           description: tool.description,
           input_schema: tool.inputSchema,
           cache_control: cacheControl,
+          ...(eagerInputStreaming ? { eager_input_streaming: true } : {}),
         });
         break;
       }
