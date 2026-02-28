@@ -6,6 +6,6 @@ export function getMoonshotAILanguageModelCapabilities(
   modelId: string,
 ): MoonshotAILanguageModelCapabilities {
   return {
-    supportsStructuredOutputs: modelId.startsWith('kimi-k2.5'),
+    supportsStructuredOutputs: modelId.startsWith('kimi-'),
   };
 }

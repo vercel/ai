@@ -93,8 +93,9 @@ describe('MoonshotAIProvider', () => {
     it.each([
       ['kimi-k2.5', true],
       ['kimi-k2.5-turbo', true],
+      ['kimi-k2-thinking', true],
       ['moonshot-v1-8k', false],
-      ['kimi-k2', false],
+      ['kimi-k2', true],
     ])(
       'should set supportsStructuredOutputs=%s for %s',
       (modelId, expectedSupportsStructuredOutputs) => {
