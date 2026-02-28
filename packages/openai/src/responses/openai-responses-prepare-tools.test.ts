@@ -1292,6 +1292,154 @@ describe('prepareResponsesTools', () => {
     });
   });
 
+  describe('custom tool', () => {
+    it('should prepare custom tool with regex format', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'write_sql',
+            args: {
+              name: 'write_sql',
+              description: 'Write a SQL SELECT query.',
+              format: {
+                type: 'grammar',
+                syntax: 'regex',
+                definition: 'SELECT .+',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "Write a SQL SELECT query.",
+              "format": {
+                "definition": "SELECT .+",
+                "syntax": "regex",
+                "type": "grammar",
+              },
+              "name": "write_sql",
+              "type": "custom",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare custom tool with lark format', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'generate_json',
+            args: {
+              name: 'generate_json',
+              format: {
+                type: 'grammar',
+                syntax: 'lark',
+                definition: 'start: "{"  "}"',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": undefined,
+              "format": {
+                "definition": "start: "{"  "}"",
+                "syntax": "lark",
+                "type": "grammar",
+              },
+              "name": "generate_json",
+              "type": "custom",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should handle multiple tools including custom tool', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                input: { type: 'string' },
+              },
+            },
+          },
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'write_sql',
+            args: {
+              name: 'write_sql',
+              description: 'Write SQL.',
+              format: {
+                type: 'grammar',
+                syntax: 'regex',
+                definition: 'SELECT .+',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "A test function",
+              "name": "testFunction",
+              "parameters": {
+                "properties": {
+                  "input": {
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+              "type": "function",
+            },
+            {
+              "description": "Write SQL.",
+              "format": {
+                "definition": "SELECT .+",
+                "syntax": "regex",
+                "type": "grammar",
+              },
+              "name": "write_sql",
+              "type": "custom",
+            },
+          ],
+        }
+      `);
+    });
+  });
+
   describe('apply_patch', () => {
     it('should prepare apply_patch tool', async () => {
       const result = await prepareResponsesTools({
