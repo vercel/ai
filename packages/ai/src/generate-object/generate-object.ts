@@ -385,10 +385,21 @@ export async function generateObject<
                       result.providerMetadata,
                     ),
 
-                    // TODO rename telemetry attributes to inputTokens and outputTokens
+                    // deprecated telemetry attributes:
                     'ai.usage.promptTokens': result.usage.inputTokens.total,
                     'ai.usage.completionTokens':
                       result.usage.outputTokens.total,
+
+                    // current telemetry attributes:
+                    'ai.usage.inputTokens': result.usage.inputTokens.total,
+                    'ai.usage.outputTokens': result.usage.outputTokens.total,
+                    'ai.usage.totalTokens':
+                      (result.usage.inputTokens.total ?? 0) +
+                      (result.usage.outputTokens.total ?? 0),
+                    'ai.usage.reasoningTokens':
+                      result.usage.outputTokens.reasoning,
+                    'ai.usage.cachedInputTokens':
+                      result.usage.inputTokens.cacheRead,
 
                     // standardized gen-ai llm span attributes:
                     'gen_ai.response.finish_reasons': [
@@ -452,9 +463,16 @@ export async function generateObject<
                 resultProviderMetadata,
               ),
 
-              // TODO rename telemetry attributes to inputTokens and outputTokens
+              // deprecated telemetry attributes:
               'ai.usage.promptTokens': usage.inputTokens,
               'ai.usage.completionTokens': usage.outputTokens,
+
+              // current telemetry attributes:
+              'ai.usage.inputTokens': usage.inputTokens,
+              'ai.usage.outputTokens': usage.outputTokens,
+              'ai.usage.totalTokens': usage.totalTokens,
+              'ai.usage.reasoningTokens': usage.reasoningTokens,
+              'ai.usage.cachedInputTokens': usage.cachedInputTokens,
             },
           }),
         );
