@@ -394,8 +394,11 @@ export async function generateObject<
                     'ai.usage.inputTokens': result.usage.inputTokens.total,
                     'ai.usage.outputTokens': result.usage.outputTokens.total,
                     'ai.usage.totalTokens':
-                      (result.usage.inputTokens.total ?? 0) +
-                      (result.usage.outputTokens.total ?? 0),
+                      result.usage.inputTokens.total != null ||
+                      result.usage.outputTokens.total != null
+                        ? (result.usage.inputTokens.total ?? 0) +
+                          (result.usage.outputTokens.total ?? 0)
+                        : undefined,
                     'ai.usage.reasoningTokens':
                       result.usage.outputTokens.reasoning,
                     'ai.usage.cachedInputTokens':
