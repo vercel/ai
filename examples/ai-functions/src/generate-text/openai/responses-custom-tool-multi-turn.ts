@@ -25,8 +25,13 @@ run(async () => {
     stopWhen: stepCountIs(3),
   });
 
+  const allToolCalls = result.steps.flatMap(step => step.toolCalls);
+  const allToolResults = result.steps.flatMap(step => step.toolResults);
+
   print('Text:', result.text);
   print('Steps:', result.steps.length);
-  print('Tool calls:', result.toolCalls);
-  print('Tool results:', result.toolResults);
+  print('Tool calls (final step):', result.toolCalls);
+  print('Tool results (final step):', result.toolResults);
+  print('Tool calls (all steps):', allToolCalls);
+  print('Tool results (all steps):', allToolResults);
 });
