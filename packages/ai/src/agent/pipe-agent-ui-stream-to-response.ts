@@ -8,7 +8,6 @@ import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-str
 import { InferUITools, UIMessage } from '../ui/ui-messages';
 import { Agent } from './agent';
 import { createAgentUIStream } from './create-agent-ui-stream';
-import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settings';
 
 /**
  * Pipes the agent UI message stream to a Node.js ServerResponse object.
@@ -20,7 +19,6 @@ import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settin
  * @param timeout - Timeout in milliseconds. Optional.
  * @param options - The options for the agent. Optional.
  * @param experimental_transform - Stream transformations. Optional.
- * @param onStepFinish - Callback that is called when each step is finished. Optional.
  * @param headers - Additional headers for the response. Optional.
  * @param status - The status code for the response. Optional.
  * @param statusText - The status text for the response. Optional.
@@ -48,7 +46,6 @@ export async function pipeAgentUIStreamToResponse<
   experimental_transform?:
     | StreamTextTransform<TOOLS>
     | Array<StreamTextTransform<TOOLS>>;
-  onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
 } & UIMessageStreamResponseInit &
   UIMessageStreamOptions<
     UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
