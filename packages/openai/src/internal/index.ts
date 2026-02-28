@@ -16,4 +16,6 @@ export * from '../tool/apply-patch';
 export * from '../tool/code-interpreter';
 export * from '../tool/file-search';
 export * from '../tool/image-generation';
+export * from '../tool/local-shell';
+export * from '../tool/shell';
 export * from '../tool/web-search-preview';
