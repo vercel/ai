@@ -2,6 +2,8 @@
 # but is not following semantic versioning. Instead, it uses `patch` for both fixes
 # and features. It uses `minor` for "marketing releases", accompanied by a blog post and migration guide.
 # This workflow verifies that all `.changeset/*.md` files use `patch` unless a `minor-release` label is present.
+# It also verifies that every PR with code changes in `packages/*` has a corresponding `.changeset/*.md` file,
+# and that all changed packages are listed in the changeset frontmatter.
 name: Verify Changesets
 
 on:
@@ -11,6 +13,7 @@ on:
       - main
     paths:
       - '.changeset/*.md'
+      - 'packages/**'
 
 jobs:
   verify-changesets:
@@ -24,17 +27,19 @@ jobs:
           node-version: 'lts/*'
           cache: 'npm'
           cache-dependency-path: .github/workflows/actions/verify-changesets/package.json
-      - name: get all changed files from .changeset/*.md
-        id: changeset-files
+      - name: get all changed files
+        id: changed-files
         run: |
-          echo "changed-files=$(git diff --diff-filter=dr --name-only $BASE_SHA -- '.changeset/*.md' | tr '\n' ' ')" >> $GITHUB_OUTPUT
+          echo "changeset-files=$(git diff --diff-filter=dr --name-only $BASE_SHA -- '.changeset/*.md' | tr '\n' ' ')" >> $GITHUB_OUTPUT
+          echo "package-files=$(git diff --name-only $BASE_SHA -- 'packages/**' | tr '\n' ' ')" >> $GITHUB_OUTPUT
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
       - name: Verify changesets
-        if: steps.changeset-files.outputs.changed-files != ''
+        if: steps.changed-files.outputs.changeset-files != '' || steps.changed-files.outputs.package-files != ''
         working-directory: .github/workflows/actions/verify-changesets
         run: |
           node index.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CHANGED_FILES: ${{ steps.changeset-files.outputs.changed-files }}
+          CHANGED_FILES: ${{ steps.changed-files.outputs.changeset-files }}
+          CHANGED_PACKAGE_FILES: ${{ steps.changed-files.outputs.package-files }}
