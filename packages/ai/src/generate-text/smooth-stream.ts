@@ -113,15 +113,28 @@ export function smoothStream<TOOLS extends ToolSet>({
     function flushBuffer(
       controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>,
     ) {
-      if (buffer.length > 0 && type !== undefined) {
-        controller.enqueue({
-          type,
-          text: buffer,
-          id,
-          ...(providerMetadata != null ? { providerMetadata } : {}),
-        });
-        buffer = '';
-        providerMetadata = undefined;
+      if (type !== undefined) {
+        if (buffer.length > 0) {
+          controller.enqueue({
+            type,
+            text: buffer,
+            id,
+            ...(providerMetadata != null ? { providerMetadata } : {}),
+          });
+          buffer = '';
+          providerMetadata = undefined;
+        } else if (providerMetadata != null) {
+          // Flush providerMetadata even when buffer is empty (e.g., Anthropic
+          // thinking signature arriving after all reasoning text has been
+          // chunked out). Without this, the signature is silently dropped.
+          controller.enqueue({
+            type,
+            text: '',
+            id,
+            providerMetadata,
+          });
+          providerMetadata = undefined;
+        }
       }
     }
 
