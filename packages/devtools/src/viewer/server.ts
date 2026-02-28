@@ -12,6 +12,8 @@ import {
   getStepsForRun,
   clearDatabase,
   reloadDb,
+  getDataDirPath,
+  setDataDir,
 } from '../db.js';
 
 // SSE client management
@@ -243,7 +245,12 @@ app.get('*', async c => {
   }
 });
 
-export const startViewer = (port = 4983) => {
+export const startViewer = (port = 4983, dataDir?: string) => {
+  // Set custom data directory if provided
+  if (dataDir) {
+    setDataDir(dataDir);
+  }
+
   const server = serve(
     {
       fetch: app.fetch,
@@ -255,6 +262,7 @@ export const startViewer = (port = 4983) => {
         console.log(`   Open http://localhost:5173 for the dev UI`);
       } else {
         console.log(`🔍 AI SDK DevTools running at http://localhost:${port}`);
+        console.log(`   Data directory: ${getDataDirPath()}`);
       }
     },
   );
