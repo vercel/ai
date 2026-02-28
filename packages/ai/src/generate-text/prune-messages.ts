@@ -98,6 +98,12 @@ export function pruneMessages({
           }
         }
       }
+
+      // Transitively trace caller.toolId dependencies across all messages.
+      // When a tool-call references another tool via providerOptions caller.toolId
+      // (e.g. Anthropic programmatic tool calling), the referenced tool must also
+      // be kept to avoid orphaned references.
+      traceCallerDependencies(messages, keptToolCallIds);
     }
 
     messages = messages.map((message, messageIndex) => {
@@ -164,4 +170,63 @@ export function pruneMessages({
   }
 
   return messages;
+}
+
+/**
+ * Traces caller.toolId dependencies across all messages, adding referenced
+ * toolCallIds to the kept set. This handles cases where a tool-call references
+ * another tool via providerOptions (e.g. Anthropic's code_execution
+ * programmatic tool calling where caller.toolId points to a server_tool_use).
+ */
+function traceCallerDependencies(
+  messages: ModelMessage[],
+  keptToolCallIds: Set<string>,
+): void {
+  // Build a map from toolCallId to its caller.toolId for all tool-call parts
+  const callerDeps = new Map<string, string>();
+  for (const message of messages) {
+    if (
+      (message.role === 'assistant' || message.role === 'tool') &&
+      typeof message.content !== 'string'
+    ) {
+      for (const part of message.content) {
+        if (part.type === 'tool-call') {
+          const callerToolId = getCallerToolId(part.providerOptions);
+          if (callerToolId != null) {
+            callerDeps.set(part.toolCallId, callerToolId);
+          }
+        }
+      }
+    }
+  }
+
+  // Iteratively resolve: if a kept tool-call depends on another tool,
+  // add that tool to the kept set. Repeat until stable.
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const toolCallId of keptToolCallIds) {
+      const depId = callerDeps.get(toolCallId);
+      if (depId != null && !keptToolCallIds.has(depId)) {
+        keptToolCallIds.add(depId);
+        changed = true;
+      }
+    }
+  }
+}
+
+function getCallerToolId(
+  providerOptions: Record<string, Record<string, unknown>> | undefined,
+): string | undefined {
+  if (providerOptions == null) return undefined;
+
+  // Search across all provider namespaces for a caller.toolId reference
+  for (const providerData of Object.values(providerOptions)) {
+    const caller = providerData?.caller as { toolId?: string } | undefined;
+    if (typeof caller?.toolId === 'string') {
+      return caller.toolId;
+    }
+  }
+
+  return undefined;
 }

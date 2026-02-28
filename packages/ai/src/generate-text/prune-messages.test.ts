@@ -716,5 +716,333 @@ describe('pruneMessages', () => {
         `);
       });
     });
+
+    describe('caller.toolId dependencies', () => {
+      it('should keep server_tool_use referenced by a kept tool-call via providerOptions caller.toolId', () => {
+        const messages: ModelMessage[] = [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Run code and query db' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_01CodeExec',
+                toolName: 'code_execution',
+                input: '{"code":"print(1)"}',
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'toolu_01Query',
+                toolName: 'query_database',
+                input: '{"sql":"SELECT 1"}',
+                providerOptions: {
+                  anthropic: {
+                    caller: {
+                      type: 'code_execution_20250825',
+                      toolId: 'srvtoolu_01CodeExec',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'srvtoolu_01CodeExec',
+                toolName: 'code_execution',
+                output: { type: 'text', value: '1' },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'toolu_01Query',
+                toolName: 'query_database',
+                output: { type: 'text', value: 'result' },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Done' }],
+          },
+        ];
+
+        const result = pruneMessages({
+          messages,
+          toolCalls: 'before-last-2-messages',
+        });
+
+        // Both tool calls and results should be kept because toolu_01Query
+        // references srvtoolu_01CodeExec via caller.toolId
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Run code and query db",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "content": [
+                {
+                  "input": "{"code":"print(1)"}",
+                  "providerExecuted": true,
+                  "toolCallId": "srvtoolu_01CodeExec",
+                  "toolName": "code_execution",
+                  "type": "tool-call",
+                },
+                {
+                  "input": "{"sql":"SELECT 1"}",
+                  "providerOptions": {
+                    "anthropic": {
+                      "caller": {
+                        "toolId": "srvtoolu_01CodeExec",
+                        "type": "code_execution_20250825",
+                      },
+                    },
+                  },
+                  "toolCallId": "toolu_01Query",
+                  "toolName": "query_database",
+                  "type": "tool-call",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "output": {
+                    "type": "text",
+                    "value": "1",
+                  },
+                  "toolCallId": "srvtoolu_01CodeExec",
+                  "toolName": "code_execution",
+                  "type": "tool-result",
+                },
+                {
+                  "output": {
+                    "type": "text",
+                    "value": "result",
+                  },
+                  "toolCallId": "toolu_01Query",
+                  "toolName": "query_database",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+            {
+              "content": [
+                {
+                  "text": "Done",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should transitively trace caller.toolId chains', () => {
+        const messages: ModelMessage[] = [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'nested tool calls' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'srv_root',
+                toolName: 'code_execution',
+                input: '{}',
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'srv_mid',
+                toolName: 'intermediate_tool',
+                input: '{}',
+                providerOptions: {
+                  anthropic: {
+                    caller: {
+                      type: 'code_execution_20250825',
+                      toolId: 'srv_root',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'srv_root',
+                toolName: 'code_execution',
+                output: { type: 'text', value: 'ok' },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'srv_mid',
+                toolName: 'intermediate_tool',
+                output: { type: 'text', value: 'ok' },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'toolu_leaf',
+                toolName: 'leaf_tool',
+                input: '{}',
+                providerOptions: {
+                  anthropic: {
+                    caller: {
+                      type: 'code_execution_20250825',
+                      toolId: 'srv_mid',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'toolu_leaf',
+                toolName: 'leaf_tool',
+                output: { type: 'text', value: 'leaf result' },
+              },
+            ],
+          },
+        ];
+
+        const result = pruneMessages({
+          messages,
+          toolCalls: 'before-last-2-messages',
+        });
+
+        // toolu_leaf (kept) -> srv_mid -> srv_root: all should be kept
+        const allToolCallIds = result.flatMap(m =>
+          typeof m.content === 'string'
+            ? []
+            : m.content
+                .filter(
+                  (p): p is { type: 'tool-call'; toolCallId: string } =>
+                    p.type === 'tool-call',
+                )
+                .map(p => p.toolCallId),
+        );
+        expect(allToolCallIds).toContain('srv_root');
+        expect(allToolCallIds).toContain('srv_mid');
+        expect(allToolCallIds).toContain('toolu_leaf');
+      });
+
+      it('should not affect pruning when no caller.toolId is present', () => {
+        // This verifies backward compatibility
+        const result = pruneMessages({
+          messages: messagesFixture1,
+          toolCalls: 'before-last-2-messages',
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Weather in Tokyo and Busan?",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "content": [
+                {
+                  "text": "I need to get the weather in Tokyo and Busan.",
+                  "type": "reasoning",
+                },
+                {
+                  "input": "{"city": "Tokyo"}",
+                  "toolCallId": "call-1",
+                  "toolName": "get-weather-tool-1",
+                  "type": "tool-call",
+                },
+                {
+                  "input": "{"city": "Busan"}",
+                  "toolCallId": "call-2",
+                  "toolName": "get-weather-tool-2",
+                  "type": "tool-call",
+                },
+                {
+                  "approvalId": "approval-1",
+                  "toolCallId": "call-2",
+                  "type": "tool-approval-request",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "approvalId": "approval-1",
+                  "approved": true,
+                  "type": "tool-approval-response",
+                },
+                {
+                  "output": {
+                    "type": "text",
+                    "value": "sunny",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "get-weather-tool-1",
+                  "type": "tool-result",
+                },
+                {
+                  "output": {
+                    "type": "error-text",
+                    "value": "Error: Fetching weather data failed",
+                  },
+                  "toolCallId": "call-2",
+                  "toolName": "get-weather-tool-2",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+            {
+              "content": [
+                {
+                  "text": "I have got the weather in Tokyo and Busan.",
+                  "type": "reasoning",
+                },
+                {
+                  "text": "The weather in Tokyo is sunny. I could not get the weather in Busan.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
   });
 });
