@@ -279,6 +279,27 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   }
 
                   switch (toolPart.state) {
+                    case 'approval-requested': {
+                      // Tool call is still pending approval or the approval
+                      // response hasn't been processed yet (e.g. the user sent
+                      // a new message without responding to the approval
+                      // request). Treat as an implicit denial so the model
+                      // receives a well-formed tool result.
+                      content.push({
+                        type: 'tool-result',
+                        toolCallId: toolPart.toolCallId,
+                        toolName: getToolName(toolPart),
+                        output: {
+                          type: 'error-text' as const,
+                          value: 'Tool execution denied.',
+                        },
+                        ...(toolPart.callProviderMetadata != null
+                          ? { providerOptions: toolPart.callProviderMetadata }
+                          : {}),
+                      });
+                      break;
+                    }
+
                     case 'output-denied': {
                       content.push({
                         type: 'tool-result',
