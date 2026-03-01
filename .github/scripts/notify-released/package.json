@@ -2,6 +2,6 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "octokit": "^4.1.2"
+    "octokit": "^5.0.0"
   }
 }
