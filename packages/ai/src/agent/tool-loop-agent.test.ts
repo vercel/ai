@@ -3,6 +3,7 @@ import { tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
+import { Output } from '../generate-text';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { ToolLoopAgent } from './tool-loop-agent';
 import type {
@@ -96,6 +97,56 @@ describe('ToolLoopAgent', () => {
 
       // timeout is merged into abortSignal, so we check that an abort signal was created
       expect(doGenerateOptions?.abortSignal).toBeDefined();
+    });
+
+    // Regression: locks down that ToolLoopAgent.generate() forwards
+    // Output.object() as responseFormat: { type: 'json' } to the model.
+    // Without this, the agent path could silently drop JSON mode, causing
+    // providers to return unstructured text instead of valid JSON (#12491).
+    it('should forward Output.object responseFormat to generateText', async () => {
+      let jsonDoGenerateOptions: LanguageModelV3CallOptions | undefined;
+      const jsonModel = new MockLanguageModelV3({
+        doGenerate: async options => {
+          jsonDoGenerateOptions = options;
+          return {
+            content: [{ type: 'text', text: '{"value":"ok"}' }],
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: {
+              cachedInputTokens: undefined,
+              inputTokens: {
+                total: 3,
+                noCache: 3,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 10,
+                text: 10,
+                reasoning: undefined,
+              },
+            },
+            warnings: [],
+          };
+        },
+      });
+
+      const agent = new ToolLoopAgent({
+        model: jsonModel,
+        output: Output.object({
+          schema: z.object({ value: z.string() }),
+        }),
+      });
+
+      await agent.generate({
+        prompt: 'Hello, world!',
+      });
+
+      expect(jsonDoGenerateOptions?.responseFormat).toMatchObject({
+        type: 'json',
+        schema: expect.objectContaining({
+          type: 'object',
+        }),
+      });
     });
 
     it('should pass experimental_download to generateText', async () => {
@@ -373,6 +424,76 @@ describe('ToolLoopAgent', () => {
 
       // timeout is merged into abortSignal, so we check that an abort signal was created
       expect(doStreamOptions?.abortSignal).toBeDefined();
+    });
+
+    // Regression: locks down that ToolLoopAgent.stream() forwards
+    // Output.object() as responseFormat: { type: 'json' } to the model.
+    // Without this, the agent streaming path could silently drop JSON mode,
+    // causing providers to return unstructured text instead of valid JSON (#12491).
+    it('should forward Output.object responseFormat to streamText', async () => {
+      let jsonDoStreamOptions: LanguageModelV3CallOptions | undefined;
+      const jsonModel = new MockLanguageModelV3({
+        doStream: async options => {
+          jsonDoStreamOptions = options;
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'stream-start',
+                warnings: [],
+              },
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{"value":"ok"}' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: {
+                  inputTokens: {
+                    total: 3,
+                    noCache: 3,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: {
+                    total: 10,
+                    text: 10,
+                    reasoning: undefined,
+                  },
+                },
+                providerMetadata: {
+                  testProvider: { testKey: 'testValue' },
+                },
+              },
+            ]),
+          };
+        },
+      });
+
+      const agent = new ToolLoopAgent({
+        model: jsonModel,
+        output: Output.object({
+          schema: z.object({ value: z.string() }),
+        }),
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+      });
+
+      await result.consumeStream();
+
+      expect(jsonDoStreamOptions?.responseFormat).toMatchObject({
+        type: 'json',
+        schema: expect.objectContaining({
+          type: 'object',
+        }),
+      });
     });
 
     it('should pass string instructions', async () => {
