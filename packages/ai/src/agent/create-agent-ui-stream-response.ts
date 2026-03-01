@@ -7,7 +7,7 @@ import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-str
 import { InferUITools, UIMessage } from '../ui/ui-messages';
 import { Agent } from './agent';
 import { createAgentUIStream } from './create-agent-ui-stream';
-import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settings';
+import { UIMessageStreamOnStepFinishCallback } from '../ui-message-stream/ui-message-stream-on-step-finish-callback';
 
 /**
  * Runs the agent and returns a response object with a UI message stream.
@@ -46,7 +46,9 @@ export async function createAgentUIStreamResponse<
   experimental_transform?:
     | StreamTextTransform<TOOLS>
     | Array<StreamTextTransform<TOOLS>>;
-  onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
+  onStepFinish?: UIMessageStreamOnStepFinishCallback<
+    UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
+  >;
 } & UIMessageStreamResponseInit &
   UIMessageStreamOptions<
     UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
