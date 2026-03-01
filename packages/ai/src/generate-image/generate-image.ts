@@ -238,7 +238,8 @@ export async function generateImage({
                 currentVal != null &&
                 newVal != null &&
                 (typeof currentVal === 'number' ||
-                  typeof currentVal === 'string')
+                  typeof currentVal === 'string') &&
+                (typeof newVal === 'number' || typeof newVal === 'string')
               ) {
                 const currentNum = Number(currentVal);
                 const newNum = Number(newVal);
