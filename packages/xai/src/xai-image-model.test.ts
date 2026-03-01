@@ -206,9 +206,9 @@ describe('XaiImageModel', () => {
       });
 
       expect(result.images).toHaveLength(1);
-      expect(result.images[0]).toBeInstanceOf(Uint8Array);
-      expect(Buffer.from(result.images[0] as Uint8Array).toString()).toBe(
-        'test-binary-content',
+      expect(typeof result.images[0]).toBe('string');
+      expect(result.images[0]).toBe(
+        Buffer.from('test-binary-content').toString('base64'),
       );
       // Only 1 call (generation), no download call
       expect(server.calls).toHaveLength(1);

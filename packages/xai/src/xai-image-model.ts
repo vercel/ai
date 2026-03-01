@@ -165,9 +165,10 @@ export class XaiImageModel implements ImageModelV3 {
     const images = await Promise.all(
       response.data.map(image => {
         if (image.b64_json != null) {
-          return Promise.resolve(
-            new Uint8Array(Buffer.from(image.b64_json, 'base64')),
-          );
+          // Return base64 string directly per ImageModelV3 spec:
+          // "If the API returns base64 encoded strings, the images should be
+          // returned as base64 encoded strings."
+          return Promise.resolve(image.b64_json);
         }
         // Fallback to URL download (safety net)
         return this.downloadImage(image.url!, abortSignal);
