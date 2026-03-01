@@ -1695,6 +1695,106 @@ describe('convertToModelMessages', () => {
       `);
     });
 
+    it('should treat approval-requested tool as implicit denial when user sends new message', async () => {
+      const result = await convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            {
+              type: 'step-start',
+            },
+            {
+              approval: {
+                approved: undefined,
+                id: 'approval-1',
+                reason: undefined,
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-requested',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+        {
+          parts: [
+            {
+              text: 'Never mind, tell me about London instead.',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "Tool execution denied.",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+          {
+            "content": [
+              {
+                "text": "Never mind, tell me about London instead.",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
     it('should convert tool output denied (static tool)', async () => {
       const result = await convertToModelMessages([
         {
