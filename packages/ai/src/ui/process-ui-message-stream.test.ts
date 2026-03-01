@@ -4463,6 +4463,66 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('file parts with providerMetadata', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'file',
+          url: 'data:image/png;base64,iVBOR',
+          mediaType: 'image/png',
+          providerMetadata: {
+            custom: { fileId: 'file-abc-123' },
+          },
+        },
+        {
+          type: 'file',
+          url: 'data:text/plain;base64,SGVsbG8=',
+          mediaType: 'text/plain',
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should pass through providerMetadata on file parts', async () => {
+      expect(state!.message.parts).toStrictEqual([
+        {
+          type: 'step-start',
+        },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          url: 'data:image/png;base64,iVBOR',
+          providerMetadata: {
+            custom: { fileId: 'file-abc-123' },
+          },
+        },
+        {
+          type: 'file',
+          mediaType: 'text/plain',
+          url: 'data:text/plain;base64,SGVsbG8=',
+        },
+      ]);
+    });
+  });
+
   describe('data ui parts (single part)', () => {
     let dataCalls: InferUIMessageData<UIMessage>[] = [];
 
@@ -5549,7 +5609,7 @@ describe('processUIMessageStream', () => {
 
     expect(onToolCallInvoked).toBe(true);
 
-    expect(state.message.parts).toMatchInlineSnapshot(`
+    expect(state!.message.parts).toMatchInlineSnapshot(`
       [
         {
           "type": "step-start",
