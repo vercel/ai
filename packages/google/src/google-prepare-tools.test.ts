@@ -472,3 +472,98 @@ it('should add warnings for google maps on unsupported models', () => {
     ]
   `);
 });
+
+it('should use VALIDATED mode when any function tool has strict: true', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'createMeeting',
+        description: 'Create a meeting',
+        inputSchema: {
+          type: 'object',
+          properties: { title: { type: 'string' } },
+          required: ['title'],
+          additionalProperties: false,
+        },
+        strict: true,
+      },
+    ],
+    modelId: 'gemini-3-flash-preview',
+  });
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'VALIDATED' },
+  });
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should use VALIDATED mode with toolChoice auto when strict: true', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'getWeather',
+        description: 'Get weather',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+          additionalProperties: false,
+        },
+        strict: true,
+      },
+    ],
+    toolChoice: { type: 'auto' },
+    modelId: 'gemini-3-flash-preview',
+  });
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'VALIDATED' },
+  });
+});
+
+it('should use VALIDATED mode with toolChoice required when strict: true', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'getWeather',
+        description: 'Get weather',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+          additionalProperties: false,
+        },
+        strict: true,
+      },
+    ],
+    toolChoice: { type: 'required' },
+    modelId: 'gemini-3-flash-preview',
+  });
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'VALIDATED' },
+  });
+});
+
+it('should use AUTO mode when no tools have strict: true', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'getWeather',
+        description: 'Get weather',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+          additionalProperties: false,
+        },
+      },
+    ],
+    toolChoice: { type: 'auto' },
+    modelId: 'gemini-3-flash-preview',
+  });
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'AUTO' },
+  });
+});
