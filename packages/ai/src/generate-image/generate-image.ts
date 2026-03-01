@@ -234,7 +234,13 @@ export async function generateImage({
             for (const key of Object.keys(metadata as object)) {
               const currentVal = (currentEntry as Record<string, unknown>)[key];
               const newVal = (metadata as Record<string, unknown>)[key];
-              if (currentVal != null && newVal != null) {
+              if (
+                currentVal != null &&
+                newVal != null &&
+                (typeof currentVal === 'number' ||
+                  typeof currentVal === 'string') &&
+                (typeof newVal === 'number' || typeof newVal === 'string')
+              ) {
                 const currentNum = Number(currentVal);
                 const newNum = Number(newVal);
                 if (!isNaN(currentNum) && !isNaN(newNum)) {
