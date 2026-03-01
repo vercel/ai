@@ -3,7 +3,7 @@ import { tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
-import { object } from '../generate-text/output';
+import { Output } from '../generate-text';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { ToolLoopAgent } from './tool-loop-agent';
 import type {
@@ -128,7 +128,7 @@ describe('ToolLoopAgent', () => {
 
       const agent = new ToolLoopAgent({
         model: jsonModel,
-        output: object({
+        output: Output.object({
           schema: z.object({ value: z.string() }),
         }),
       });
@@ -469,7 +469,7 @@ describe('ToolLoopAgent', () => {
 
       const agent = new ToolLoopAgent({
         model: jsonModel,
-        output: object({
+        output: Output.object({
           schema: z.object({ value: z.string() }),
         }),
       });
