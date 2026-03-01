@@ -99,6 +99,10 @@ describe('ToolLoopAgent', () => {
       expect(doGenerateOptions?.abortSignal).toBeDefined();
     });
 
+    // Regression: locks down that ToolLoopAgent.generate() forwards
+    // Output.object() as responseFormat: { type: 'json' } to the model.
+    // Without this, the agent path could silently drop JSON mode, causing
+    // providers to return unstructured text instead of valid JSON (#12491).
     it('should forward Output.object responseFormat to generateText', async () => {
       let jsonDoGenerateOptions: LanguageModelV3CallOptions | undefined;
       const jsonModel = new MockLanguageModelV3({
@@ -422,6 +426,10 @@ describe('ToolLoopAgent', () => {
       expect(doStreamOptions?.abortSignal).toBeDefined();
     });
 
+    // Regression: locks down that ToolLoopAgent.stream() forwards
+    // Output.object() as responseFormat: { type: 'json' } to the model.
+    // Without this, the agent streaming path could silently drop JSON mode,
+    // causing providers to return unstructured text instead of valid JSON (#12491).
     it('should forward Output.object responseFormat to streamText', async () => {
       let jsonDoStreamOptions: LanguageModelV3CallOptions | undefined;
       const jsonModel = new MockLanguageModelV3({
