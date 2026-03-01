@@ -1,16 +1,10 @@
 import {
   LanguageModelV3Prompt,
-  SharedV3ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
-
-function getOpenAIMetadata(message: {
-  providerOptions?: SharedV3ProviderMetadata;
-}) {
-  return message?.providerOptions?.openaiCompatible ?? {};
-}
+import { getProviderMetadata } from './get-provider-metadata';
 
 function getAudioFormat(mediaType: string): 'wav' | 'mp3' | null {
   switch (mediaType) {
@@ -26,10 +20,11 @@ function getAudioFormat(mediaType: string): 'wav' | 'mp3' | null {
 
 export function convertToOpenAICompatibleChatMessages(
   prompt: LanguageModelV3Prompt,
+  providerName: string = 'openaiCompatible',
 ): OpenAICompatibleChatPrompt {
   const messages: OpenAICompatibleChatPrompt = [];
   for (const { role, content, ...message } of prompt) {
-    const metadata = getOpenAIMetadata({ ...message });
+    const metadata = getProviderMetadata({ ...message }, providerName);
     switch (role) {
       case 'system': {
         messages.push({ role: 'system', content, ...metadata });
@@ -41,7 +36,7 @@ export function convertToOpenAICompatibleChatMessages(
           messages.push({
             role: 'user',
             content: content[0].text,
-            ...getOpenAIMetadata(content[0]),
+            ...getProviderMetadata(content[0], providerName),
           });
           break;
         }
@@ -49,7 +44,7 @@ export function convertToOpenAICompatibleChatMessages(
         messages.push({
           role: 'user',
           content: content.map(part => {
-            const partMetadata = getOpenAIMetadata(part);
+            const partMetadata = getProviderMetadata(part, providerName);
             switch (part.type) {
               case 'text': {
                 return { type: 'text', text: part.text, ...partMetadata };
@@ -157,7 +152,7 @@ export function convertToOpenAICompatibleChatMessages(
         }> = [];
 
         for (const part of content) {
-          const partMetadata = getOpenAIMetadata(part);
+          const partMetadata = getProviderMetadata(part, providerName);
           switch (part.type) {
             case 'text': {
               text += part.text;
@@ -230,7 +225,10 @@ export function convertToOpenAICompatibleChatMessages(
               break;
           }
 
-          const toolResponseMetadata = getOpenAIMetadata(toolResponse);
+          const toolResponseMetadata = getProviderMetadata(
+            toolResponse,
+            providerName,
+          );
           messages.push({
             role: 'tool',
             tool_call_id: toolResponse.toolCallId,
