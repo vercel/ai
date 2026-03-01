@@ -155,7 +155,7 @@ export class SseMCPTransport implements MCPTransport {
 
                   this.connected = true;
                   resolve();
-                } else if (event === 'message') {
+                } else if (!event || event === 'message') {
                   try {
                     const message = JSONRPCMessageSchema.parse(
                       JSON.parse(data),
