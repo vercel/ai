@@ -181,24 +181,65 @@ describe('user messages', () => {
     ]);
   });
 
-  it('should throw error for audio parts with URLs', async () => {
-    expect(() =>
-      convertToOpenAICompatibleChatMessages([
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'file',
-              data: new URL('https://example.com/audio.wav'),
-              mediaType: 'audio/wav',
+  it('should convert audio parts with URLs to file parts', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: new URL('https://example.com/audio.wav'),
+            mediaType: 'audio/wav',
+          },
+        ],
+      },
+    ]);
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            file: {
+              filename: 'audio.wav',
+              file_data: 'https://example.com/audio.wav',
             },
-          ],
-        },
-      ]),
-    ).toThrow("'audio file parts with URLs' functionality not supported");
+          },
+        ],
+      },
+    ]);
   });
 
-  it('should throw error for unsupported audio format', async () => {
+  it('should convert extended audio format (ogg) to file part', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: new Uint8Array([0, 1, 2, 3]),
+            mediaType: 'audio/ogg',
+          },
+        ],
+      },
+    ]);
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            file: {
+              filename: 'audio.ogg',
+              file_data: 'data:audio/ogg;base64,AAECAw==',
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should throw error for truly unsupported audio formats', async () => {
     expect(() =>
       convertToOpenAICompatibleChatMessages([
         {
@@ -207,12 +248,14 @@ describe('user messages', () => {
             {
               type: 'file',
               data: new Uint8Array([0, 1, 2, 3]),
-              mediaType: 'audio/ogg',
+              mediaType: 'audio/unsupported-format',
             },
           ],
         },
       ]),
-    ).toThrow("'audio media type audio/ogg' functionality not supported");
+    ).toThrow(
+      "'audio media type audio/unsupported-format' functionality not supported",
+    );
   });
 
   it('should convert messages with PDF parts', async () => {
@@ -379,7 +422,36 @@ describe('user messages', () => {
     ]);
   });
 
-  it('should throw error for unsupported file types', async () => {
+  it('should convert video parts to file parts', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: new Uint8Array([0, 1, 2, 3]),
+            mediaType: 'video/mp4',
+          },
+        ],
+      },
+    ]);
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            file: {
+              filename: 'video.mp4',
+              file_data: 'data:video/mp4;base64,AAECAw==',
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should throw error for truly unsupported file types', async () => {
     expect(() =>
       convertToOpenAICompatibleChatMessages([
         {
@@ -388,12 +460,14 @@ describe('user messages', () => {
             {
               type: 'file',
               data: new Uint8Array([0, 1, 2, 3]),
-              mediaType: 'video/mp4',
+              mediaType: 'application/octet-stream',
             },
           ],
         },
       ]),
-    ).toThrow("'file part media type video/mp4' functionality not supported");
+    ).toThrow(
+      "'file part media type application/octet-stream' functionality not supported",
+    );
   });
 });
 
