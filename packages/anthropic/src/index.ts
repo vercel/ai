@@ -13,5 +13,9 @@ export type {
   AnthropicProvider,
   AnthropicProviderSettings,
 } from './anthropic-provider';
-export { forwardAnthropicContainerIdFromLastStep } from './forward-anthropic-container-id-from-last-step';
+export {
+  forwardAnthropicContainerIdFromLastStep,
+  extractAnthropicContainerReuseDetails,
+} from './forward-anthropic-container-id-from-last-step';
+export type { AnthropicContainerReuseDetails } from './forward-anthropic-container-id-from-last-step';
 export { VERSION } from './version';
