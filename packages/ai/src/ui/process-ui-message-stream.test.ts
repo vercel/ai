@@ -4502,7 +4502,7 @@ describe('processUIMessageStream', () => {
     });
 
     it('should pass through providerMetadata on file parts', async () => {
-      expect(state.message.parts).toStrictEqual([
+      expect(state!.message.parts).toStrictEqual([
         {
           type: 'step-start',
         },
@@ -5609,7 +5609,7 @@ describe('processUIMessageStream', () => {
 
     expect(onToolCallInvoked).toBe(true);
 
-    expect(state.message.parts).toMatchInlineSnapshot(`
+    expect(state!.message.parts).toMatchInlineSnapshot(`
       [
         {
           "type": "step-start",
