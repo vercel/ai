@@ -29,7 +29,9 @@ describe('XaiImageModel', () => {
       response: {
         type: 'json-value',
         body: {
-          data: [{ url: imageUrl }],
+          data: [
+            { b64_json: Buffer.from('test-binary-content').toString('base64') },
+          ],
         },
       },
     },
@@ -37,7 +39,9 @@ describe('XaiImageModel', () => {
       response: {
         type: 'json-value',
         body: {
-          data: [{ url: imageUrl }],
+          data: [
+            { b64_json: Buffer.from('test-binary-content').toString('base64') },
+          ],
         },
       },
     },
@@ -83,7 +87,7 @@ describe('XaiImageModel', () => {
         model: 'grok-2-image',
         prompt,
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         aspect_ratio: '16:9',
       });
     });
@@ -116,7 +120,7 @@ describe('XaiImageModel', () => {
         model: 'grok-2-image',
         prompt: 'Turn the cat into a dog',
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         image: {
           url: 'data:image/png;base64,iVBORw==',
           type: 'image_url',
@@ -147,7 +151,7 @@ describe('XaiImageModel', () => {
         model: 'grok-2-image',
         prompt: 'Edit this image',
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         image: {
           url: 'https://example.com/input.png',
           type: 'image_url',
@@ -179,7 +183,7 @@ describe('XaiImageModel', () => {
         model: 'grok-2-image',
         prompt: 'Edit this image',
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         image: {
           url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAE=',
           type: 'image_url',
@@ -187,7 +191,7 @@ describe('XaiImageModel', () => {
       });
     });
 
-    it('should download images from returned URLs', async () => {
+    it('should decode b64_json images directly without download', async () => {
       const model = createModel();
 
       const result = await model.doGenerate({
@@ -206,6 +210,27 @@ describe('XaiImageModel', () => {
       expect(Buffer.from(result.images[0] as Uint8Array).toString()).toBe(
         'test-binary-content',
       );
+      // Only 1 call (generation), no download call
+      expect(server.calls).toHaveLength(1);
+    });
+
+    it('should use b64_json response_format in request', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(
+        ((await server.calls[0].requestBodyJson) as any).response_format,
+      ).toBe('b64_json');
     });
 
     it('should pass headers', async () => {
@@ -259,7 +284,7 @@ describe('XaiImageModel', () => {
         model: 'grok-2-image',
         prompt,
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         output_format: 'jpeg',
         sync_mode: true,
       });
@@ -287,8 +312,28 @@ describe('XaiImageModel', () => {
         model: 'grok-2-image',
         prompt,
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         resolution: '2k',
+      });
+    });
+
+    it('should pass quality and user provider options', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: { xai: { quality: 'high', user: 'user-123' } },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        quality: 'high',
+        user: 'user-123',
       });
     });
 
@@ -296,7 +341,12 @@ describe('XaiImageModel', () => {
       server.urls['https://api.example.com/images/generations'].response = {
         type: 'json-value',
         body: {
-          data: [{ url: imageUrl, revised_prompt: 'A revised prompt' }],
+          data: [
+            {
+              b64_json: Buffer.from('img').toString('base64'),
+              revised_prompt: 'A revised prompt',
+            },
+          ],
         },
       };
 
@@ -318,6 +368,30 @@ describe('XaiImageModel', () => {
           images: [{ revisedPrompt: 'A revised prompt' }],
         },
       });
+    });
+
+    it('should include costInUsdTicks in providerMetadata when returned', async () => {
+      server.urls['https://api.example.com/images/generations'].response = {
+        type: 'json-value',
+        body: {
+          data: [{ b64_json: Buffer.from('img').toString('base64') }],
+          usage: { cost_in_usd_ticks: 42 },
+        },
+      };
+
+      const model = createModel();
+      const result = await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.providerMetadata?.xai?.costInUsdTicks).toBe(42);
     });
 
     describe('response metadata', () => {
@@ -389,23 +463,41 @@ describe('XaiImageModel', () => {
         });
       });
 
-      it('should warn when mask is provided', async () => {
+      it('should send mask as image_url in edits request', async () => {
         const model = createModel();
+        const imageData = new Uint8Array([137, 80, 78, 71]);
+        const maskData = new Uint8Array([255, 255, 255, 0]);
 
         const result = await model.doGenerate({
           prompt: 'Edit this',
-          files: [
-            {
-              type: 'file',
-              data: new Uint8Array([137, 80, 78, 71]),
-              mediaType: 'image/png',
-            },
-          ],
+          files: [{ type: 'file', data: imageData, mediaType: 'image/png' }],
+          mask: { type: 'file', data: maskData, mediaType: 'image/png' },
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        });
+
+        expect(result.warnings).not.toContainEqual({
+          type: 'unsupported',
+          feature: 'mask',
+        });
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
           mask: {
-            type: 'file',
-            data: new Uint8Array([255, 255, 255, 0]),
-            mediaType: 'image/png',
+            url: expect.stringMatching(/^data:image\/png;base64,/),
+            type: 'image_url',
           },
+        });
+      });
+
+      it('should warn when mask is provided without files (generation mode)', async () => {
+        const model = createModel();
+
+        const result = await model.doGenerate({
+          prompt: 'Generate',
+          files: undefined,
+          mask: { type: 'url', url: 'https://example.com/mask.png' },
           n: 1,
           size: undefined,
           aspectRatio: undefined,
@@ -416,26 +508,39 @@ describe('XaiImageModel', () => {
         expect(result.warnings).toContainEqual({
           type: 'unsupported',
           feature: 'mask',
+          details: expect.stringContaining('only supported for image editing'),
         });
       });
 
-      it('should warn when multiple files are provided', async () => {
+      it('should send URL-based mask as image_url', async () => {
+        const model = createModel();
+
+        await model.doGenerate({
+          prompt: 'Edit this',
+          files: [{ type: 'url', url: 'https://example.com/input.png' }],
+          mask: { type: 'url', url: 'https://example.com/mask.png' },
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          image: { url: 'https://example.com/input.png', type: 'image_url' },
+          mask: { url: 'https://example.com/mask.png', type: 'image_url' },
+        });
+      });
+
+      it('should send multiple files as images array for multi-reference editing', async () => {
         const model = createModel();
         const imageData = new Uint8Array([137, 80, 78, 71]);
 
         const result = await model.doGenerate({
-          prompt: 'Edit images',
+          prompt: 'Combine <IMAGE_0> and <IMAGE_1>',
           files: [
-            {
-              type: 'file',
-              data: imageData,
-              mediaType: 'image/png',
-            },
-            {
-              type: 'file',
-              data: imageData,
-              mediaType: 'image/png',
-            },
+            { type: 'file', data: imageData, mediaType: 'image/png' },
+            { type: 'file', data: imageData, mediaType: 'image/png' },
           ],
           mask: undefined,
           n: 1,
@@ -445,11 +550,18 @@ describe('XaiImageModel', () => {
           providerOptions: {},
         });
 
-        expect(result.warnings).toContainEqual({
+        expect(result.warnings).not.toContainEqual({
           type: 'other',
-          message:
-            'xAI only supports a single input image. Additional images are ignored.',
+          message: expect.stringContaining('single input image'),
         });
+
+        const body = (await server.calls[0].requestBodyJson) as any;
+        expect(body.images).toHaveLength(2);
+        expect(body.images[0]).toMatchObject({
+          type: 'image_url',
+          url: expect.stringMatching(/^data:image\/png;base64,/),
+        });
+        expect(body).not.toHaveProperty('image');
       });
     });
 
