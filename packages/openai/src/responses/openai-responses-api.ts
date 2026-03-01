@@ -283,7 +283,24 @@ export type OpenAIResponsesTool =
     }
   | {
       type: 'code_interpreter';
-      container: string | { type: 'auto'; file_ids: string[] | undefined };
+      container:
+        | string
+        | {
+            type: 'auto';
+            file_ids: string[] | undefined;
+            memory_limit?: '1g' | '4g' | '16g' | '64g';
+            network_policy?:
+              | { type: 'disabled' }
+              | {
+                  type: 'allowlist';
+                  allowed_domains: string[];
+                  domain_secrets?: Array<{
+                    domain: string;
+                    name: string;
+                    value: string;
+                  }>;
+                };
+          };
     }
   | {
       type: 'file_search';
