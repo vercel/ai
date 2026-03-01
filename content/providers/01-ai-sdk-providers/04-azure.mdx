@@ -537,6 +537,84 @@ The code interpreter tool can be configured with:
   Source Document Parts](#typed-providermetadata-in-source-document-parts).
 </Note>
 
+#### Custom Tool
+
+The Azure OpenAI Responses API supports
+[custom tools](https://developers.openai.com/api/docs/guides/function-calling/#custom-tools)
+through the `azure.tools.customTool` tool.
+Custom tools return a raw string instead of JSON, optionally constrained to a grammar
+(regex or Lark syntax). This makes them useful for generating structured text like
+SQL queries, code snippets, or any output that must match a specific pattern.
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText, stepCountIs } from 'ai';
+
+const result = await generateText({
+  model: azure.responses('gpt-5.2-codex'),
+  tools: {
+    write_sql: azure.tools.customTool({
+      name: 'write_sql',
+      description: 'Write a SQL SELECT query to answer the user question.',
+      format: {
+        type: 'grammar',
+        syntax: 'regex',
+        definition: 'SELECT .+',
+      },
+      execute: async input => {
+        // input is a raw string matching the grammar, e.g. "SELECT * FROM users WHERE age > 25"
+        const rows = await db.query(input);
+        return JSON.stringify(rows);
+      },
+    }),
+  },
+  toolChoice: 'required',
+  prompt: 'Write a SQL query to get all users older than 25.',
+  stopWhen: stepCountIs(3),
+});
+```
+
+Custom tools also work with `streamText`:
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: azure.responses('gpt-5.2-codex'),
+  tools: {
+    write_sql: azure.tools.customTool({
+      name: 'write_sql',
+      description: 'Write a SQL SELECT query to answer the user question.',
+      format: {
+        type: 'grammar',
+        syntax: 'regex',
+        definition: 'SELECT .+',
+      },
+    }),
+  },
+  toolChoice: 'required',
+  prompt: 'Write a SQL query to get all users older than 25.',
+});
+
+for await (const chunk of result.fullStream) {
+  if (chunk.type === 'tool-call') {
+    console.log(`Tool: ${chunk.toolName}`);
+    console.log(`Input: ${chunk.input}`);
+  }
+}
+```
+
+The custom tool can be configured with:
+
+- **name** _string_ (required) - The name of the custom tool. Used to identify the tool in tool calls.
+- **description** _string_ (optional) - A description of what the tool does, to help the model understand when to use it.
+- **format** _object_ (optional) - The output format constraint. Omit for unconstrained text output.
+  - **type** _'grammar' | 'text'_ - The format type. Use `'grammar'` for constrained output or `'text'` for explicit unconstrained text.
+  - **syntax** _'regex' | 'lark'_ - (grammar only) The grammar syntax. Use `'regex'` for regular expression patterns or `'lark'` for [Lark parser grammar](https://lark-parser.readthedocs.io/).
+  - **definition** _string_ - (grammar only) The grammar definition string (a regex pattern or Lark grammar).
+- **execute** _function_ (optional) - An async function that receives the raw string input and returns a string result. Enables multi-turn tool calling.
+
 #### PDF support
 
 The Azure OpenAI provider supports reading PDF files.
