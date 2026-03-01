@@ -54,6 +54,7 @@ export {
   type Schema,
   type ValidationResult,
 } from './schema';
+export { stripFileExtension } from './strip-file-extension';
 export * from './uint8-utils';
 export * from './validate-types';
 export { VERSION } from './version';
