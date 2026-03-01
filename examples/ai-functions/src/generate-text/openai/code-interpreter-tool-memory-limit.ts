@@ -2,13 +2,48 @@ import { openai } from '@ai-sdk/openai';
 import { generateText, stepCountIs } from 'ai';
 import { run } from '../../lib/run';
 
+type OpenAIContainer = {
+  id: string;
+  status?: string;
+  memory_limit?: '1g' | '4g' | '16g' | '64g';
+  [key: string]: unknown;
+};
+
+async function retrieveContainer(
+  containerId: string,
+): Promise<OpenAIContainer> {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY is not set');
+  }
+
+  const response = await fetch(
+    `https://api.openai.com/v1/containers/${containerId}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to retrieve container: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  return (await response.json()) as OpenAIContainer;
+}
+
 run(async () => {
   const result = await generateText({
     model: openai.responses('gpt-5-nano'),
     tools: {
       code_interpreter: openai.tools.codeInterpreter({
         container: {
-          memoryLimit: '1g',
+          memoryLimit: '4g',
         },
       }),
     },
@@ -37,5 +72,9 @@ run(async () => {
   const {
     input: { containerId },
   } = codeInterpreter;
-  console.log(`containerId:${containerId}`);
+  console.log(`containerId: ${containerId}`);
+
+  const container = await retrieveContainer(containerId);
+  console.log('container memory_limit:', container.memory_limit);
+  console.log('container detail:', container);
 });
