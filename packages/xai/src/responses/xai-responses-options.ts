@@ -31,6 +31,27 @@ export const xaiLanguageModelResponsesOptions = z.object({
    * Example values: 'file_search_call.results'.
    */
   include: z.array(z.enum(['file_search_call.results'])).nullish(),
+  /**
+   * Whether to enable parallel tool calling during tool use.
+   * When true (default), the model can call multiple tools in parallel.
+   * When false, the model calls tools sequentially.
+   */
+  parallelToolCalls: z.boolean().optional(),
+  /**
+   * A unique key for prompt caching. Sent as the `x-grok-conv-id` HTTP request header
+   * and returned in the response body as `prompt_cache_key`.
+   */
+  promptCacheKey: z.string().optional(),
+  /**
+   * Controls how reasoning summaries are included in the response.
+   * Use alongside `reasoningEffort` for fine-grained reasoning control.
+   * Possible values: 'auto', 'concise', 'detailed'.
+   */
+  reasoningSummary: z.enum(['auto', 'concise', 'detailed']).optional(),
+  /**
+   * An end-user identifier for monitoring and safety purposes.
+   */
+  user: z.string().optional(),
 });
 
 export type XaiLanguageModelResponsesOptions = z.infer<
