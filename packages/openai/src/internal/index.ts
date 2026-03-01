@@ -13,6 +13,7 @@ export * from '../speech/openai-speech-options';
 export * from '../responses/openai-responses-language-model';
 export * from '../responses/openai-responses-provider-metadata';
 export * from '../tool/apply-patch';
+export * from '../tool/custom';
 export * from '../tool/code-interpreter';
 export * from '../tool/file-search';
 export * from '../tool/image-generation';
