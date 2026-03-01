@@ -31,7 +31,7 @@ export function prepareTools({
     | undefined
     | {
         functionCallingConfig: {
-          mode: 'AUTO' | 'NONE' | 'ANY';
+          mode: 'AUTO' | 'NONE' | 'ANY' | 'VALIDATED';
           allowedFunctionNames?: string[];
         };
       };
@@ -196,6 +196,7 @@ export function prepareTools({
   }
 
   const functionDeclarations = [];
+  let hasStrictTools = false;
   for (const tool of tools) {
     switch (tool.type) {
       case 'function':
@@ -204,6 +205,9 @@ export function prepareTools({
           description: tool.description ?? '',
           parameters: convertJSONSchemaToOpenAPISchema(tool.inputSchema),
         });
+        if (tool.strict === true) {
+          hasStrictTools = true;
+        }
         break;
       default:
         toolWarnings.push({
@@ -217,7 +221,9 @@ export function prepareTools({
   if (toolChoice == null) {
     return {
       tools: [{ functionDeclarations }],
-      toolConfig: undefined,
+      toolConfig: hasStrictTools
+        ? { functionCallingConfig: { mode: 'VALIDATED' } }
+        : undefined,
       toolWarnings,
     };
   }
@@ -228,7 +234,11 @@ export function prepareTools({
     case 'auto':
       return {
         tools: [{ functionDeclarations }],
-        toolConfig: { functionCallingConfig: { mode: 'AUTO' } },
+        toolConfig: {
+          functionCallingConfig: {
+            mode: hasStrictTools ? 'VALIDATED' : 'AUTO',
+          },
+        },
         toolWarnings,
       };
     case 'none':
@@ -240,7 +250,11 @@ export function prepareTools({
     case 'required':
       return {
         tools: [{ functionDeclarations }],
-        toolConfig: { functionCallingConfig: { mode: 'ANY' } },
+        toolConfig: {
+          functionCallingConfig: {
+            mode: hasStrictTools ? 'VALIDATED' : 'ANY',
+          },
+        },
         toolWarnings,
       };
     case 'tool':
@@ -248,7 +262,7 @@ export function prepareTools({
         tools: [{ functionDeclarations }],
         toolConfig: {
           functionCallingConfig: {
-            mode: 'ANY',
+            mode: hasStrictTools ? 'VALIDATED' : 'ANY',
             allowedFunctionNames: [toolChoice.toolName],
           },
         },
