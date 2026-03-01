@@ -687,6 +687,27 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
 
+            // go through all tool calls and send the ones that are not finished
+            for (const toolCall of toolCalls.filter(
+              toolCall => !toolCall.hasFinished,
+            )) {
+              // Only send tool calls with valid JSON arguments to comply with spec:
+              // "input must be valid JSON that matches the parameters schema"
+              if (isParsableJson(toolCall.function.arguments)) {
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: toolCall.id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: toolCall.id ?? generateId(),
+                  toolName: toolCall.function.name,
+                  input: toolCall.function.arguments,
+                });
+              }
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,
