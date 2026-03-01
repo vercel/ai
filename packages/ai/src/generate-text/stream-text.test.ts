@@ -3223,6 +3223,44 @@ describe('streamText', () => {
         `);
     });
 
+    it('should pass through providerMetadata on file parts', async () => {
+      const modelWithFileProviderMeta = new MockLanguageModelV3({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'file',
+              data: 'SGVsbG8=',
+              mediaType: 'image/png',
+              providerMetadata: { custom: { fileId: 'file-42' } },
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+      });
+
+      const result = streamText({
+        model: modelWithFileProviderMeta,
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream();
+      const parts = await convertReadableStreamToArray(uiMessageStream);
+      const filePart = parts.find(
+        (p: Record<string, unknown>) => p.type === 'file',
+      );
+
+      expect(filePart).toEqual({
+        type: 'file',
+        mediaType: 'image/png',
+        url: 'data:image/png;base64,SGVsbG8=',
+        providerMetadata: { custom: { fileId: 'file-42' } },
+      });
+    });
+
     it('should not generate a new message id when onFinish is provided and generateMessageId is not provided', async () => {
       const result = streamText({
         model: createTestModel(),
