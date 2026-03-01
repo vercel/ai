@@ -303,7 +303,9 @@ describe('user messages', () => {
           { type: 'text', text: 'Summarize this document' },
           {
             type: 'file',
-            data: '# Hello World\n\nThis is **markdown** content.',
+            data: Buffer.from(
+              '# Hello World\n\nThis is **markdown** content.',
+            ).toString('base64'),
             mediaType: 'text/markdown',
           },
         ],
@@ -333,6 +335,33 @@ describe('user messages', () => {
           {
             type: 'file',
             data: encoder.encode('Plain text content'),
+            mediaType: 'text/plain',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Plain text content',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should decode base64 string data for text/* file parts', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: Buffer.from('Plain text content').toString('base64'),
             mediaType: 'text/plain',
           },
         ],
