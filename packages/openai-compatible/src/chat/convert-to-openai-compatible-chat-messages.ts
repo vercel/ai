@@ -119,7 +119,7 @@ export function convertToOpenAICompatibleChatMessages(
                     part.data instanceof URL
                       ? part.data.toString()
                       : typeof part.data === 'string'
-                        ? part.data
+                        ? Buffer.from(part.data, 'base64').toString('utf-8')
                         : new TextDecoder().decode(part.data);
 
                   return {
