@@ -225,10 +225,35 @@ export async function generateImage({
         if (providerName === 'gateway') {
           const currentEntry = providerMetadata[providerName];
           if (currentEntry != null && typeof currentEntry === 'object') {
-            providerMetadata[providerName] = {
-              ...(currentEntry as object),
-              ...metadata,
-            } as ImageModelV3ProviderMetadata[string];
+            const merged = {
+              ...(currentEntry as Record<string, unknown>),
+              ...(metadata as Record<string, unknown>),
+            };
+
+            // Aggregate numeric/numeric-string values (e.g. cost) across calls
+            for (const key of Object.keys(metadata as object)) {
+              const currentVal = (currentEntry as Record<string, unknown>)[key];
+              const newVal = (metadata as Record<string, unknown>)[key];
+              if (
+                currentVal != null &&
+                newVal != null &&
+                (typeof currentVal === 'number' ||
+                  typeof currentVal === 'string') &&
+                (typeof newVal === 'number' || typeof newVal === 'string')
+              ) {
+                const currentNum = Number(currentVal);
+                const newNum = Number(newVal);
+                if (!isNaN(currentNum) && !isNaN(newNum)) {
+                  merged[key] =
+                    typeof currentVal === 'string'
+                      ? String(currentNum + newNum)
+                      : currentNum + newNum;
+                }
+              }
+            }
+
+            providerMetadata[providerName] =
+              merged as ImageModelV3ProviderMetadata[string];
           } else {
             providerMetadata[providerName] =
               metadata as ImageModelV3ProviderMetadata[string];
