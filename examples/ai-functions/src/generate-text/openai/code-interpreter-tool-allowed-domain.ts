@@ -1,6 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText, stepCountIs } from 'ai';
 import { run } from '../../lib/run';
+import { retrieveOpenAIContainer } from '../../lib/retrieve-openai-container';
 
 /**
  * Note:
@@ -13,6 +14,7 @@ import { run } from '../../lib/run';
  * 4. Click "Save".
  * Without this configuration, outbound requests from the container
  * will fail even if `networkPolicy` is specified in the API request.
+ *
  * ⚠️ Security note:
  * Enabling outbound networking allows executed code to communicate
  * with external services. Ensure that only trusted domains are
@@ -31,41 +33,6 @@ import { run } from '../../lib/run';
  * 2) Use a strongly explicit prompt that clearly instructs the model
  *    to execute code via the Code Interpreter.
  */
-
-type OpenAIContainer = {
-  id: string;
-  status?: string;
-  memory_limit?: '1g' | '4g' | '16g' | '64g';
-  [key: string]: unknown;
-};
-
-async function retrieveContainer(
-  containerId: string,
-): Promise<OpenAIContainer> {
-  const apiKey = process.env.OPENAI_API_KEY;
-
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not set');
-  }
-
-  const response = await fetch(
-    `https://api.openai.com/v1/containers/${containerId}`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to retrieve container: ${response.status} ${response.statusText}`,
-    );
-  }
-
-  return (await response.json()) as OpenAIContainer;
-}
 
 run(async () => {
   const result = await generateText({
@@ -124,10 +91,11 @@ run(async () => {
   const {
     input: { containerId },
   } = codeInterpreter;
-  console.log(`containerId: ${containerId}`);
+  const container = await retrieveOpenAIContainer(containerId);
 
-  const container = await retrieveContainer(containerId);
-  console.log('container memory_limit:', container.memory_limit);
-  console.log('container detail:', container);
-  console.dir(result, { depth: Infinity });
+  console.log(`containerId: ${containerId}`);
+  console.log();
+  console.log('container detail: ', container);
+  console.log();
+  console.log('Answer: ', result.text);
 });
