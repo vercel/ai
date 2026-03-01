@@ -95,7 +95,7 @@ run(async () => {
 
   console.log(`containerId: ${containerId}`);
   console.log();
-  console.log('container detail: ', container);
+  console.log('container network policy: ', container.network_policy);
   console.log();
   console.log('Answer: ', result.text);
 });
