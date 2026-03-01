@@ -70,13 +70,6 @@ export class XaiImageModel implements ImageModelV3 {
       });
     }
 
-    if (mask != null) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'mask',
-      });
-    }
-
     const xaiOptions = await parseProviderOptions({
       provider: 'xai',
       providerOptions,
@@ -85,17 +78,24 @@ export class XaiImageModel implements ImageModelV3 {
 
     const hasFiles = files != null && files.length > 0;
     let imageUrl: string | undefined;
+    let imageUrls: string[] | undefined;
 
     if (hasFiles) {
-      imageUrl = convertImageModelFileToDataUri(files[0]);
-
-      if (files.length > 1) {
-        warnings.push({
-          type: 'other',
-          message:
-            'xAI only supports a single input image. Additional images are ignored.',
-        });
+      if (files!.length === 1) {
+        imageUrl = convertImageModelFileToDataUri(files![0]);
+      } else {
+        // Multi-reference editing: use images array (mutually exclusive with image)
+        imageUrls = files!.map(file => convertImageModelFileToDataUri(file));
       }
+    }
+
+    if (mask != null && !hasFiles) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'mask',
+        details:
+          'Mask is only supported for image editing (when files are provided).',
+      });
     }
 
     const endpoint = hasFiles ? '/images/edits' : '/images/generations';
@@ -104,7 +104,7 @@ export class XaiImageModel implements ImageModelV3 {
       model: this.modelId,
       prompt,
       n,
-      response_format: 'url',
+      response_format: 'b64_json',
     };
 
     if (aspectRatio != null) {
@@ -127,8 +127,25 @@ export class XaiImageModel implements ImageModelV3 {
       body.resolution = xaiOptions.resolution;
     }
 
+    if (xaiOptions?.quality != null) {
+      body.quality = xaiOptions.quality;
+    }
+
+    if (xaiOptions?.user != null) {
+      body.user = xaiOptions.user;
+    }
+
     if (imageUrl != null) {
       body.image = { url: imageUrl, type: 'image_url' };
+    }
+
+    if (imageUrls != null) {
+      body.images = imageUrls.map(url => ({ url, type: 'image_url' }));
+    }
+
+    if (mask != null && hasFiles) {
+      const maskUrl = convertImageModelFileToDataUri(mask);
+      body.mask = { url: maskUrl, type: 'image_url' };
     }
 
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
@@ -145,12 +162,20 @@ export class XaiImageModel implements ImageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const downloadedImages = await Promise.all(
-      response.data.map(image => this.downloadImage(image.url, abortSignal)),
+    const images = await Promise.all(
+      response.data.map(image => {
+        if (image.b64_json != null) {
+          return Promise.resolve(
+            new Uint8Array(Buffer.from(image.b64_json, 'base64')),
+          );
+        }
+        // Fallback to URL download (safety net)
+        return this.downloadImage(image.url!, abortSignal);
+      }),
     );
 
     return {
-      images: downloadedImages,
+      images,
       warnings,
       response: {
         timestamp: currentDate,
@@ -164,6 +189,9 @@ export class XaiImageModel implements ImageModelV3 {
               ? { revisedPrompt: item.revised_prompt }
               : {}),
           })),
+          ...(response.usage?.cost_in_usd_ticks != null
+            ? { costInUsdTicks: response.usage.cost_in_usd_ticks }
+            : {}),
         },
       },
     };
@@ -187,8 +215,14 @@ export class XaiImageModel implements ImageModelV3 {
 const xaiImageResponseSchema = z.object({
   data: z.array(
     z.object({
-      url: z.string(),
+      url: z.string().nullish(),
+      b64_json: z.string().nullish(),
       revised_prompt: z.string().nullish(),
     }),
   ),
+  usage: z
+    .object({
+      cost_in_usd_ticks: z.number().nullish(),
+    })
+    .nullish(),
 });
