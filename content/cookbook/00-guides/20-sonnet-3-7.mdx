@@ -26,7 +26,7 @@ At the center of the AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which 
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
-const { text, reasoning, reasoningDetails } = await generateText({
+const { text, reasoningText, reasoning } = await generateText({
   model: anthropic('claude-3-7-sonnet-20250219'),
   prompt: 'How many people will live in the world in 2040?',
 });
@@ -53,7 +53,7 @@ Claude 3.7 Sonnet introduces a new extended thinking—the ability to solve comp
 import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
-const { text, reasoning, reasoningDetails } = await generateText({
+const { text, reasoningText, reasoning } = await generateText({
   model: anthropic('claude-3-7-sonnet-20250219'),
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
@@ -63,8 +63,8 @@ const { text, reasoning, reasoningDetails } = await generateText({
   },
 });
 
-console.log(reasoning); // reasoning text
-console.log(reasoningDetails); // reasoning details including redacted reasoning
+console.log(reasoningText); // reasoning text
+console.log(reasoning); // reasoning details including redacted reasoning
 console.log(text); // text response
 ```
 
