@@ -160,8 +160,16 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               : { type: 'json_object' },
         },
       }),
-      ...(options.reasoningEffort != null && {
-        reasoning: { effort: options.reasoningEffort },
+      ...((options.reasoningEffort != null ||
+        options.reasoningSummary != null) && {
+        reasoning: {
+          ...(options.reasoningEffort != null && {
+            effort: options.reasoningEffort,
+          }),
+          ...(options.reasoningSummary != null && {
+            summary: options.reasoningSummary,
+          }),
+        },
       }),
       ...(options.store === false && {
         store: options.store,
@@ -171,6 +179,12 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       }),
       ...(options.previousResponseId != null && {
         previous_response_id: options.previousResponseId,
+      }),
+      ...(options.parallelToolCalls != null && {
+        parallel_tool_calls: options.parallelToolCalls,
+      }),
+      ...(options.user != null && {
+        user: options.user,
       }),
     };
 
@@ -185,6 +199,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     return {
       args: baseArgs,
       warnings,
+      promptCacheKey: options.promptCacheKey ?? null,
       webSearchToolName,
       xSearchToolName,
       codeExecutionToolName,
@@ -199,6 +214,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     const {
       args: body,
       warnings,
+      promptCacheKey,
       webSearchToolName,
       xSearchToolName,
       codeExecutionToolName,
@@ -212,7 +228,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL ?? 'https://api.x.ai/v1'}/responses`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(
+        this.config.headers(),
+        options.headers,
+        promptCacheKey != null
+          ? { 'x-grok-conv-id': promptCacheKey }
+          : undefined,
+      ),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -409,6 +431,26 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
         body: rawResponse,
       },
       warnings,
+      providerMetadata: {
+        xai: {
+          ...(response.safety_identifier != null && {
+            safetyIdentifier: response.safety_identifier,
+          }),
+          ...(response.prompt_cache_key != null && {
+            promptCacheKey: response.prompt_cache_key,
+          }),
+          ...(response.usage?.cost_in_usd_ticks != null && {
+            costInUsdTicks: response.usage.cost_in_usd_ticks,
+          }),
+          ...(response.usage?.cost_in_nano_usd != null && {
+            costInNanoUsd: response.usage.cost_in_nano_usd,
+          }),
+          ...(response.usage?.server_side_tool_usage_details != null && {
+            serverSideToolUsageDetails:
+              response.usage.server_side_tool_usage_details,
+          }),
+        },
+      },
     };
   }
 
@@ -418,6 +460,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     const {
       args,
       warnings,
+      promptCacheKey: streamPromptCacheKey,
       webSearchToolName,
       xSearchToolName,
       codeExecutionToolName,
@@ -431,7 +474,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL ?? 'https://api.x.ai/v1'}/responses`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(
+        this.config.headers(),
+        options.headers,
+        streamPromptCacheKey != null
+          ? { 'x-grok-conv-id': streamPromptCacheKey }
+          : undefined,
+      ),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -446,6 +495,12 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       raw: undefined,
     };
     let usage: LanguageModelV3Usage | undefined = undefined;
+    let streamSafetyIdentifier: string | undefined = undefined;
+    let streamResponsePromptCacheKey: string | undefined = undefined;
+    let streamCostInUsdTicks: number | undefined = undefined;
+    let streamCostInNanoUsd: number | undefined = undefined;
+    let streamServerSideToolUsageDetails: Record<string, number> | undefined =
+      undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -641,6 +696,23 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                   unified: mapXaiResponsesFinishReason(response.status),
                   raw: response.status,
                 };
+              }
+
+              if (response.safety_identifier != null) {
+                streamSafetyIdentifier = response.safety_identifier;
+              }
+              if (response.prompt_cache_key != null) {
+                streamResponsePromptCacheKey = response.prompt_cache_key;
+              }
+              if (response.usage?.cost_in_usd_ticks != null) {
+                streamCostInUsdTicks = response.usage.cost_in_usd_ticks;
+              }
+              if (response.usage?.cost_in_nano_usd != null) {
+                streamCostInNanoUsd = response.usage.cost_in_nano_usd;
+              }
+              if (response.usage?.server_side_tool_usage_details != null) {
+                streamServerSideToolUsageDetails =
+                  response.usage.server_side_tool_usage_details;
               }
 
               return;
@@ -945,6 +1017,26 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                   cacheWrite: 0,
                 },
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
+              },
+              providerMetadata: {
+                xai: {
+                  ...(streamSafetyIdentifier != null && {
+                    safetyIdentifier: streamSafetyIdentifier,
+                  }),
+                  ...(streamResponsePromptCacheKey != null && {
+                    promptCacheKey: streamResponsePromptCacheKey,
+                  }),
+                  ...(streamCostInUsdTicks != null && {
+                    costInUsdTicks: streamCostInUsdTicks,
+                  }),
+                  ...(streamCostInNanoUsd != null && {
+                    costInNanoUsd: streamCostInNanoUsd,
+                  }),
+                  ...(streamServerSideToolUsageDetails != null && {
+                    serverSideToolUsageDetails:
+                      streamServerSideToolUsageDetails,
+                  }),
+                },
               },
             });
           },

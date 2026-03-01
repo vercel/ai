@@ -243,6 +243,18 @@ export const xaiResponsesUsageSchema = z.object({
     .optional(),
   num_sources_used: z.number().optional(),
   num_server_side_tools_used: z.number().optional(),
+  cost_in_usd_ticks: z.number().optional(),
+  cost_in_nano_usd: z.number().optional(),
+  server_side_tool_usage_details: z
+    .object({
+      web_search_calls: z.number().optional(),
+      x_search_calls: z.number().optional(),
+      code_interpreter_calls: z.number().optional(),
+      file_search_calls: z.number().optional(),
+      mcp_calls: z.number().optional(),
+      document_search_calls: z.number().optional(),
+    })
+    .optional(),
 });
 
 export const xaiResponsesResponseSchema = z.object({
@@ -253,6 +265,8 @@ export const xaiResponsesResponseSchema = z.object({
   output: z.array(outputItemSchema),
   usage: xaiResponsesUsageSchema.nullish(),
   status: z.string(),
+  safety_identifier: z.string().nullish(),
+  prompt_cache_key: z.string().nullish(),
 });
 
 export const xaiResponsesChunkSchema = z.union([

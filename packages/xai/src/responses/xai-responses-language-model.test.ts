@@ -503,6 +503,196 @@ describe('XaiResponsesLanguageModel', () => {
             'reasoning.encrypted_content',
           ]);
         });
+
+        it('parallelToolCalls: true', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                parallelToolCalls: true,
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.parallel_tool_calls).toBe(true);
+        });
+
+        it('parallelToolCalls: false', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                parallelToolCalls: false,
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.parallel_tool_calls).toBe(false);
+        });
+
+        it('should not include parallel_tool_calls when not specified', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({ prompt: TEST_PROMPT });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.parallel_tool_calls).toBeUndefined();
+        });
+
+        it('promptCacheKey sends x-grok-conv-id header', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                promptCacheKey: 'conv-abc-123',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestHeaders = server.calls[0].requestHeaders;
+          expect(requestHeaders['x-grok-conv-id']).toBe('conv-abc-123');
+        });
+
+        it('should not send x-grok-conv-id header when promptCacheKey is not set', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({ prompt: TEST_PROMPT });
+
+          const requestHeaders = server.calls[0].requestHeaders;
+          expect(requestHeaders['x-grok-conv-id']).toBeUndefined();
+        });
+
+        it('reasoningSummary only', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                reasoningSummary: 'concise',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning).toEqual({ summary: 'concise' });
+        });
+
+        it('reasoningEffort and reasoningSummary merged', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                reasoningEffort: 'high',
+                reasoningSummary: 'detailed',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning).toEqual({
+            effort: 'high',
+            summary: 'detailed',
+          });
+        });
+
+        it('user', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                user: 'user-123',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.user).toBe('user-123');
+        });
+
+        it('should not include user when not specified', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({ prompt: TEST_PROMPT });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.user).toBeUndefined();
+        });
       });
 
       it('should warn about unsupported stopSequences', async () => {
@@ -1290,6 +1480,118 @@ describe('XaiResponsesLanguageModel', () => {
             providerExecuted: true,
           },
         ]);
+      });
+    });
+  });
+
+  describe('providerMetadata', () => {
+    it('should parse prompt_cache_key from response into providerMetadata', async () => {
+      prepareJsonResponse({
+        id: 'resp_123',
+        object: 'response',
+        status: 'completed',
+        model: 'grok-4-fast',
+        output: [],
+        usage: { input_tokens: 10, output_tokens: 5 },
+        prompt_cache_key: 'conv-abc-123',
+      });
+
+      const result = await createModel().doGenerate({ prompt: TEST_PROMPT });
+      expect(result.providerMetadata?.xai?.promptCacheKey).toBe('conv-abc-123');
+    });
+
+    it('should parse safety_identifier from response into providerMetadata', async () => {
+      prepareJsonResponse({
+        id: 'resp_123',
+        object: 'response',
+        status: 'completed',
+        model: 'grok-4-fast',
+        output: [],
+        usage: { input_tokens: 10, output_tokens: 5 },
+        safety_identifier: 'safe-001',
+      });
+
+      const result = await createModel().doGenerate({ prompt: TEST_PROMPT });
+      expect(result.providerMetadata?.xai?.safetyIdentifier).toBe('safe-001');
+    });
+
+    it('should expose cost_in_usd_ticks in providerMetadata', async () => {
+      prepareJsonResponse({
+        id: 'resp_123',
+        object: 'response',
+        status: 'completed',
+        model: 'grok-4-fast',
+        output: [],
+        usage: {
+          input_tokens: 10,
+          output_tokens: 5,
+          cost_in_usd_ticks: 1176500,
+        },
+      });
+
+      const result = await createModel().doGenerate({ prompt: TEST_PROMPT });
+      expect(result.providerMetadata?.xai?.costInUsdTicks).toBe(1176500);
+    });
+
+    it('should expose cost_in_nano_usd in providerMetadata', async () => {
+      prepareJsonResponse({
+        id: 'resp_123',
+        object: 'response',
+        status: 'completed',
+        model: 'grok-4-fast',
+        output: [],
+        usage: { input_tokens: 10, output_tokens: 5, cost_in_nano_usd: 500000 },
+      });
+
+      const result = await createModel().doGenerate({ prompt: TEST_PROMPT });
+      expect(result.providerMetadata?.xai?.costInNanoUsd).toBe(500000);
+    });
+
+    it('should not include cost fields in providerMetadata when absent', async () => {
+      prepareJsonResponse({
+        id: 'resp_123',
+        object: 'response',
+        status: 'completed',
+        model: 'grok-4-fast',
+        output: [],
+        usage: { input_tokens: 10, output_tokens: 5 },
+      });
+
+      const result = await createModel().doGenerate({ prompt: TEST_PROMPT });
+      expect(result.providerMetadata?.xai?.costInUsdTicks).toBeUndefined();
+      expect(result.providerMetadata?.xai?.costInNanoUsd).toBeUndefined();
+    });
+
+    it('should expose server_side_tool_usage_details in providerMetadata', async () => {
+      prepareJsonResponse({
+        id: 'resp_123',
+        object: 'response',
+        status: 'completed',
+        model: 'grok-4-fast',
+        output: [],
+        usage: {
+          input_tokens: 10,
+          output_tokens: 5,
+          num_server_side_tools_used: 1,
+          server_side_tool_usage_details: {
+            web_search_calls: 1,
+            x_search_calls: 0,
+            code_interpreter_calls: 0,
+            file_search_calls: 0,
+            mcp_calls: 0,
+            document_search_calls: 0,
+          },
+        },
+      });
+
+      const result = await createModel().doGenerate({ prompt: TEST_PROMPT });
+      expect(result.providerMetadata?.xai?.serverSideToolUsageDetails).toEqual({
+        web_search_calls: 1,
+        x_search_calls: 0,
+        code_interpreter_calls: 0,
+        file_search_calls: 0,
+        mcp_calls: 0,
+        document_search_calls: 0,
       });
     });
   });
