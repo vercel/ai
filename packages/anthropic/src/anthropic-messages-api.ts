@@ -46,7 +46,7 @@ export interface AnthropicAssistantMessage {
 
 export interface AnthropicCompactionContent {
   type: 'compaction';
-  content: string;
+  content?: string | null;
   cache_control?: AnthropicCacheControl;
 }
 
