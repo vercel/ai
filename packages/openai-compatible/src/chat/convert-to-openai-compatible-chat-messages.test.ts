@@ -2,7 +2,7 @@ import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compa
 import { describe, it, expect } from 'vitest';
 
 describe('user messages', () => {
-  it('should convert messages with only a text part to a string content', async () => {
+  it('should keep messages with only a text part in structured array format', async () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
         role: 'user',
@@ -10,7 +10,9 @@ describe('user messages', () => {
       },
     ]);
 
-    expect(result).toEqual([{ role: 'user', content: 'Hello' }]);
+    expect(result).toEqual([
+      { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+    ]);
   });
 
   it('should convert messages with image parts', async () => {
@@ -243,8 +245,13 @@ describe('provider-specific metadata merging', () => {
     expect(result).toEqual([
       {
         role: 'user',
-        content: 'Hello',
-        cacheControl: { type: 'ephemeral' },
+        content: [
+          {
+            type: 'text',
+            text: 'Hello',
+            cacheControl: { type: 'ephemeral' },
+          },
+        ],
       },
     ]);
   });
@@ -275,8 +282,14 @@ describe('provider-specific metadata merging', () => {
     expect(result).toEqual([
       {
         role: 'user',
-        content: 'Hello',
-        contentLevel: true,
+        content: [
+          {
+            type: 'text',
+            text: 'Hello',
+            contentLevel: true,
+          },
+        ],
+        messageLevel: true,
       },
     ]);
   });
