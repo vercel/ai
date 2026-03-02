@@ -5,7 +5,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: ModelMessage[] } = await req.json();
 
   const { response } = await generateText({
-    model: openai('gpt-4'),
+    model: openai('gpt-5'),
     system: 'You are a helpful assistant.',
     messages,
   });

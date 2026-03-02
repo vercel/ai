@@ -9,7 +9,7 @@ export default async function handler(
   const { messages } = await request.body;
 
   const result = streamText({
-    model: openai('gpt-4-turbo-preview'),
+    model: openai('gpt-5-mini'),
     messages,
   });
 

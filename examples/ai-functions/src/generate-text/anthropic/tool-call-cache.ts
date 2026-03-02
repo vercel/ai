@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-3-5-haiku-latest'),
+    model: anthropic('claude-haiku-4-5'),
     tools: {
       cityAttractions: tool({
         inputSchema: z.object({ city: z.string() }),

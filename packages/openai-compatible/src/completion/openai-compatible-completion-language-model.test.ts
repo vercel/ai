@@ -28,7 +28,7 @@ const server = createTestServer({
 
 describe('config', () => {
   it('should extract base name from provider string', () => {
-    const model = new OpenAICompatibleCompletionLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleCompletionLanguageModel('gpt-5', {
       provider: 'anthropic.beta',
       url: () => '',
       headers: () => ({}),
@@ -38,7 +38,7 @@ describe('config', () => {
   });
 
   it('should handle provider without dot notation', () => {
-    const model = new OpenAICompatibleCompletionLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleCompletionLanguageModel('gpt-5', {
       provider: 'openai',
       url: () => '',
       headers: () => ({}),
@@ -49,7 +49,7 @@ describe('config', () => {
 
   it('should return empty for empty provider', () => {
     const model = new OpenAICompatibleCompletionLanguageModel(
-      'gpt-4',
+      'gpt-5',
 
       {
         provider: '',

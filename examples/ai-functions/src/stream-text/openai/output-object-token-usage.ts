@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-5-mini'),
     output: Output.object({
       schema: z.object({
         recipe: z.object({

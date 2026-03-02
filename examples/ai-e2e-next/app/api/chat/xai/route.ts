@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: xai('grok-beta'),
+    model: xai('grok-3'),
     messages: await convertToModelMessages(messages),
   });
 

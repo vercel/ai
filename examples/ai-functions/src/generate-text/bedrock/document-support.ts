@@ -5,7 +5,7 @@ import { join } from 'path';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const model = bedrock('us.anthropic.claude-3-7-sonnet-20250219-v1:0');
+  const model = bedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0');
 
   const testCases = [
     {

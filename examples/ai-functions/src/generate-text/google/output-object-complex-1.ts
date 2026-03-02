@@ -11,7 +11,7 @@ run(async () => {
   });
 
   const result = await generateText({
-    model: google('gemini-exp-1206'),
+    model: google('gemini-2.5-flash'),
     output: Output.object({ schema: Team }),
     prompt: 'Generate a fake team of developers and designers.',
   });

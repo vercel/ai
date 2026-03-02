@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: xai.responses('grok-4-fast'),
+    model: xai.responses('grok-4-fast-non-reasoning'),
     tools: {
       web_search: xai.tools.webSearch(),
     },
