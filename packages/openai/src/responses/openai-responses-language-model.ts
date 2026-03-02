@@ -320,14 +320,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       }),
 
       // provider options:
-      ...(openaiOptions?.contextManagement != null && {
-        context_management: openaiOptions.contextManagement.map(entry => ({
-          type: entry.type,
-          ...(entry.compactThreshold != null && {
-            compact_threshold: entry.compactThreshold,
-          }),
-        })),
-      }),
+      context_management: openaiOptions?.contextManagement?.map(entry => ({
+        type: entry.type,
+        ...(entry.compactThreshold != null && {
+          compact_threshold: entry.compactThreshold,
+        }),
+      })),
       conversation: openaiOptions?.conversation,
       max_tool_calls: openaiOptions?.maxToolCalls,
       metadata: openaiOptions?.metadata,
