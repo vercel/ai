@@ -410,7 +410,7 @@ describe('XaiChatLanguageModel', () => {
               "role": "user",
             },
           ],
-          "model": "grok-beta",
+          "model": "grok-3",
           "top_logprobs": 5,
         }
       `);
@@ -437,7 +437,7 @@ describe('XaiChatLanguageModel', () => {
               "role": "user",
             },
           ],
-          "model": "grok-beta",
+          "model": "grok-3",
           "top_logprobs": 3,
         }
       `);
