@@ -1,5 +1,18 @@
 # @ai-sdk/groq
 
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+
+## 3.0.25
+
+### Patch Changes
+
+- 91f8777: fix(bedrock/groq): pass strict mode for tools
+
 ## 3.0.24
 
 ### Patch Changes

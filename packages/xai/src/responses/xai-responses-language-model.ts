@@ -142,6 +142,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     const baseArgs: Record<string, unknown> = {
       model: this.modelId,
       input,
+      logprobs:
+        options.logprobs === true || options.topLogprobs != null
+          ? true
+          : undefined,
+      top_logprobs: options.topLogprobs,
       max_output_tokens: maxOutputTokens,
       temperature,
       top_p: topP,

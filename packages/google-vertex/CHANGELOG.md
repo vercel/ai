@@ -1,5 +1,43 @@
 # @ai-sdk/google-vertex
 
+## 4.0.68
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+  - @ai-sdk/anthropic@3.0.50
+  - @ai-sdk/google@3.0.34
+
+## 4.0.67
+
+### Patch Changes
+
+- Updated dependencies [d98d9ba]
+  - @ai-sdk/anthropic@3.0.49
+
+## 4.0.66
+
+### Patch Changes
+
+- Updated dependencies [2164cdf]
+  - @ai-sdk/anthropic@3.0.48
+
+## 4.0.65
+
+### Patch Changes
+
+- Updated dependencies [1ece97a]
+  - @ai-sdk/google@3.0.33
+
+## 4.0.64
+
+### Patch Changes
+
+- 45f0a7f: feat(provider/google): add support for gemini-3.1-flash-image-preview
+- Updated dependencies [45f0a7f]
+  - @ai-sdk/google@3.0.32
+
 ## 4.0.63
 
 ### Patch Changes

@@ -71,7 +71,7 @@ describe('bedrock-anthropic-provider', () => {
         buildRequestUrl: expect.any(Function),
         transformRequestBody: expect.any(Function),
         supportedUrls: expect.any(Function),
-        supportsNativeStructuredOutput: false,
+        supportsNativeStructuredOutput: true,
       }),
     );
   });

@@ -22,7 +22,7 @@ run(async () => {
       'However, one player is cheating by using a loaded die. ' +
       'Use the rollDie tool to determine the outcome of each roll.',
     tools: {
-      code_execution: anthropic.tools.codeExecution_20250825(),
+      code_execution: anthropic.tools.codeExecution_20260120(),
 
       rollDie: tool({
         description: 'Roll a die and return the result.',
@@ -45,7 +45,7 @@ run(async () => {
         },
         providerOptions: {
           anthropic: {
-            allowedCallers: ['code_execution_20250825'],
+            allowedCallers: ['code_execution_20260120'],
           },
         },
       }),
