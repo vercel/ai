@@ -21,21 +21,12 @@ We use [changesets](https://github.com/changesets/action) for automated releases
   1. Create a pull request against the maintenance branch.
   2. Merge it to trigger the release workflow.
 
-## Beta Releases
+## Beta / Pre-Release Cycle
 
-- Create a maintenance branch for the current stable minor version (e.g., if latest is `5.0.24`, create `release-v5.0`).
-- Switch `main` branch to beta release mode:
+For starting and managing a major-version pre-release cycle (beta releases on `main` while maintaining stable patches), see **[Pre-Release Cycle](./pre-release-cycle.md)**.
 
-  ```bash
-  pnpm changeset pre enter beta
-  ```
+Quick reference:
 
-  (This creates a PR like #8710).
-
-- During beta: All PRs continue to target main.
-- In order to backport pull requests to the stable release, add the `backport` label. This will create a new pull request with the same changes against the stable release branch.
-- To exit the beta release mode, run:
-
-  ```bash
-  pnpm changeset pre exit
-  ```
+- Enter beta mode: `pnpm changeset pre enter beta`
+- Exit beta mode: `pnpm changeset pre exit`
+- Backport fixes: add the `backport` label to the merged PR

@@ -1,5 +1,31 @@
 # @ai-sdk/anthropic
 
+## 3.0.53
+
+### Patch Changes
+
+- 89caf28: fix(openai-compat): decode base64 string data
+
+## 3.0.52
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+
+## 3.0.51
+
+### Patch Changes
+
+- 64a8fae: chore: remove obsolete model IDs for Anthropic, Google, OpenAI, xAI
+
+## 3.0.50
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+
 ## 3.0.49
 
 ### Patch Changes
