@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.53
+
+### Patch Changes
+
+- 89caf28: fix(openai-compat): decode base64 string data
+
 ## 3.0.52
 
 ### Patch Changes
