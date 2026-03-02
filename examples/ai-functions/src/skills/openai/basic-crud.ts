@@ -24,6 +24,9 @@ run(async () => {
   try {
     console.log('Created:', skill);
 
+    console.log('Waiting 15 seconds for skill to propagate...');
+    await new Promise(resolve => setTimeout(resolve, 15000));
+
     const { skills } = await experimental_listSkills({
       skillsManager: openai.skillsManager(),
     });

@@ -294,14 +294,14 @@ describe('OpenAISkillsManager', () => {
   });
 
   describe('update', () => {
-    it('should create a version then retrieve the skill', async () => {
+    it('should create a version then promote it to default', async () => {
       prepareResponse({
         url: 'https://api.openai.com/v1/skills/:skillId/versions',
         filename: 'openai-skill-version-create',
       });
       prepareResponse({
         url: 'https://api.openai.com/v1/skills/:skillId',
-        filename: 'openai-skill-retrieve',
+        filename: 'openai-skill-promote',
       });
 
       const skillsManager = provider.skillsManager();
@@ -320,10 +320,15 @@ describe('OpenAISkillsManager', () => {
       expect(versionBody).toBeTruthy();
       expect(versionBody!['files[]']).toBeInstanceOf(File);
 
-      expect(server.calls[1].requestMethod).toBe('GET');
+      expect(server.calls[1].requestMethod).toBe('POST');
       expect(server.calls[1].requestUrl).toBe(
         'https://api.openai.com/v1/skills/skill_abc123',
       );
+      expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "default_version": "2",
+        }
+      `);
     });
 
     it('should pass authorization headers on both requests', async () => {
@@ -333,7 +338,7 @@ describe('OpenAISkillsManager', () => {
       });
       prepareResponse({
         url: 'https://api.openai.com/v1/skills/:skillId',
-        filename: 'openai-skill-retrieve',
+        filename: 'openai-skill-promote',
       });
 
       const skillsManager = provider.skillsManager();
@@ -350,14 +355,14 @@ describe('OpenAISkillsManager', () => {
       });
     });
 
-    it('should prefer version create metadata over stale skill response', async () => {
+    it('should return promoted skill with updated description', async () => {
       prepareResponse({
         url: 'https://api.openai.com/v1/skills/:skillId/versions',
         filename: 'openai-skill-version-create',
       });
       prepareResponse({
         url: 'https://api.openai.com/v1/skills/:skillId',
-        filename: 'openai-skill-retrieve',
+        filename: 'openai-skill-promote',
       });
 
       const skillsManager = provider.skillsManager();
@@ -385,7 +390,7 @@ describe('OpenAISkillsManager', () => {
       });
       prepareResponse({
         url: 'https://api.openai.com/v1/skills/:skillId',
-        filename: 'openai-skill-retrieve',
+        filename: 'openai-skill-promote',
       });
 
       const skillsManager = provider.skillsManager();
@@ -404,7 +409,7 @@ describe('OpenAISkillsManager', () => {
       });
       prepareResponse({
         url: 'https://api.openai.com/v1/skills/:skillId',
-        filename: 'openai-skill-retrieve',
+        filename: 'openai-skill-promote',
       });
 
       const skillsManager = provider.skillsManager();

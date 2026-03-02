@@ -11,6 +11,7 @@ import {
   FetchFunction,
   getFromApi,
   postFormDataToApi,
+  postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import {
@@ -36,12 +37,6 @@ export class OpenAISkillsManager implements Experimental_SkillsManagerV1 {
 
   constructor(private readonly config: OpenAISkillsManagerConfig) {}
 
-  /*
-   * Unlike Anthropic, OpenAI returns name and description directly on the
-   * skill response, so no version enrichment is needed for create/retrieve.
-   * OpenAI's version list/retrieve endpoints are currently non-functional
-   * (list returns empty, retrieve returns 404).
-   */
   async create(
     params: Parameters<Experimental_SkillsManagerV1['create']>[0],
   ): Promise<Awaited<ReturnType<Experimental_SkillsManagerV1['create']>>> {
@@ -122,11 +117,14 @@ export class OpenAISkillsManager implements Experimental_SkillsManagerV1 {
   }
 
   /*
-   * Update creates a new version, then retrieves the skill to get the
-   * latest state. The version create response contains the freshest
-   * name/description (parsed from SKILL.md frontmatter), which may not
-   * yet be reflected in the skill response, so we prefer version metadata
-   * when mapping.
+   * Update creates a new version, then promotes it to the default version.
+   * OpenAI does not auto-promote new versions, so without the explicit
+   * promote call the skill-level name/description remain stale and
+   * inference continues using the old version.
+   *
+   * The promote endpoint (POST /skills/{id}) may fail with a 404 if the
+   * newly created version has not yet propagated. When that happens, the
+   * method retries with exponential backoff.
    */
   async update(
     params: Parameters<Experimental_SkillsManagerV1['update']>[0],
@@ -155,23 +153,16 @@ export class OpenAISkillsManager implements Experimental_SkillsManagerV1 {
       fetch: this.config.fetch,
     });
 
-    const { value: skillResponse } = await getFromApi({
+    const { value: skillResponse } = await promoteVersionWithRetry({
       url: this.config.url({ path: `/skills/${params.skillId}` }),
       headers,
+      version: versionResponse.version ?? '1',
       failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        openaiSkillResponseSchema,
-      ),
       fetch: this.config.fetch,
     });
 
     return {
-      skill: mapOpenAISkill(skillResponse, {
-        ...(versionResponse.name != null && { name: versionResponse.name }),
-        ...(versionResponse.description != null && {
-          description: versionResponse.description,
-        }),
-      }),
+      skill: mapOpenAISkill(skillResponse),
       warnings: [],
     };
   }
@@ -195,22 +186,64 @@ export class OpenAISkillsManager implements Experimental_SkillsManagerV1 {
   }
 }
 
-function mapOpenAISkill(
-  response: {
-    id: string;
-    name?: string | null;
-    description?: string | null;
-    created_at: number;
-    updated_at?: number | null;
-  },
-  versionMetadata?: { name?: string; description?: string },
-): Experimental_SkillsManagerV1Skill {
-  const name = versionMetadata?.name ?? response.name;
-  const description = versionMetadata?.description ?? response.description;
+const PROMOTE_MAX_RETRIES = 5;
+const PROMOTE_INITIAL_DELAY_MS = 2000;
+
+async function promoteVersionWithRetry({
+  url,
+  headers,
+  version,
+  failedResponseHandler,
+  fetch,
+}: {
+  url: string;
+  headers: Record<string, string | undefined>;
+  version: string;
+  failedResponseHandler: typeof openaiFailedResponseHandler;
+  fetch?: FetchFunction;
+}) {
+  for (let attempt = 0; attempt <= PROMOTE_MAX_RETRIES; attempt++) {
+    try {
+      return await postJsonToApi({
+        url,
+        headers,
+        body: { default_version: version },
+        failedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          openaiSkillResponseSchema,
+        ),
+        fetch,
+      });
+    } catch (error: unknown) {
+      const isRetryable =
+        error instanceof Error &&
+        'statusCode' in error &&
+        (error as { statusCode: number }).statusCode === 404;
+
+      if (!isRetryable || attempt === PROMOTE_MAX_RETRIES) {
+        throw error;
+      }
+
+      await new Promise(resolve =>
+        setTimeout(resolve, PROMOTE_INITIAL_DELAY_MS * 2 ** attempt),
+      );
+    }
+  }
+
+  throw new Error('Unreachable');
+}
+
+function mapOpenAISkill(response: {
+  id: string;
+  name?: string | null;
+  description?: string | null;
+  created_at: number;
+  updated_at?: number | null;
+}): Experimental_SkillsManagerV1Skill {
   return {
     id: response.id,
-    ...(name != null && { name }),
-    ...(description != null && { description }),
+    ...(response.name != null && { name: response.name }),
+    ...(response.description != null && { description: response.description }),
     source: 'user',
     createdAt: new Date(response.created_at * 1000),
     updatedAt: new Date((response.updated_at ?? response.created_at) * 1000),
