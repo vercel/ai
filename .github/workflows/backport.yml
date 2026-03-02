@@ -1,6 +1,7 @@
-# Backport pull requests to the latest stable release branch
-# by adding a "backport" label to pull request against the
-# main branch. The label can be added before or after merging.
+# Backport pull requests to the next-older release branch by adding
+# a "backport" label. Works on PRs against `main` (targets the latest
+# release-v* branch) and on PRs against `release-v*` branches
+# (targets the next-older release-v* branch).
 
 name: Backport
 
@@ -9,6 +10,7 @@ on:
     types: [closed, labeled]
     branches:
       - main
+      - release-v*
 
 concurrency: ${{ github.workflow }}-${{ github.event.pull_request.number }}
 
@@ -18,17 +20,15 @@ permissions:
 
 jobs:
   find-branch:
-    name: Find latest release branch
+    name: Find target release branch
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    # Only run when backport label is present and PR is merged in main repository
     if: |
       github.repository_owner == 'vercel' &&
       github.event.pull_request.merged == true &&
-      contains(github.event.pull_request.labels.*.name, 'backport') &&
-      github.event.pull_request.base.ref == 'main'
+      contains(github.event.pull_request.labels.*.name, 'backport')
     outputs:
-      release-branch: ${{ steps.find-latest-release.outputs.release-branch }}
+      release-branch: ${{ steps.find-target.outputs.release-branch }}
 
     steps:
       - name: Checkout Repository
@@ -36,13 +36,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Find latest release branch
-        id: find-latest-release
+      - name: Find target release branch
+        id: find-target
         run: |
-          # Fetch all remote branches
           git fetch --all
 
-          # Find all release branches matching the pattern release-vX.Y
+          BASE_REF="${{ github.event.pull_request.base.ref }}"
           RELEASE_BRANCHES=$(git branch -r | grep -E 'origin/release-v[0-9]+\.[0-9]+$' | sed 's/.*origin\///' | sort -V)
 
           if [ -z "$RELEASE_BRANCHES" ]; then
@@ -50,24 +49,30 @@ jobs:
             exit 1
           fi
 
-          # Get the latest release branch (last in sorted order)
-          LATEST_RELEASE=$(echo "$RELEASE_BRANCHES" | tail -n 1)
-
           echo "Found release branches: $RELEASE_BRANCHES"
-          echo "Latest release branch: $LATEST_RELEASE"
-          echo "release-branch=$LATEST_RELEASE" >> "$GITHUB_OUTPUT"
+
+          if [ "$BASE_REF" = "main" ]; then
+            TARGET=$(echo "$RELEASE_BRANCHES" | tail -n 1)
+          else
+            TARGET=$(echo "$RELEASE_BRANCHES" | grep -B1 "^${BASE_REF}$" | head -n 1)
+            if [ "$TARGET" = "$BASE_REF" ] || [ -z "$TARGET" ]; then
+              echo "::error::No older release branch found before $BASE_REF"
+              exit 1
+            fi
+          fi
+
+          echo "Target release branch: $TARGET"
+          echo "release-branch=$TARGET" >> "$GITHUB_OUTPUT"
 
   backport:
     name: Backport to ${{ needs.find-branch.outputs.release-branch }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: find-branch
-    # Only run on merged PRs with backport label in the main repository
     if: |
       github.repository_owner == 'vercel' &&
       github.event.pull_request.merged == true &&
-      contains(github.event.pull_request.labels.*.name, 'backport') &&
-      github.event.pull_request.base.ref == 'main'
+      contains(github.event.pull_request.labels.*.name, 'backport')
 
     steps:
       - name: Create access token for GitHub App
