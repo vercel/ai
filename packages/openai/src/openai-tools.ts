@@ -1,5 +1,6 @@
 import { applyPatch } from './tool/apply-patch';
 import { codeInterpreter } from './tool/code-interpreter';
+import { customTool } from './tool/custom';
 import { fileSearch } from './tool/file-search';
 import { imageGeneration } from './tool/image-generation';
 import { localShell } from './tool/local-shell';
@@ -17,6 +18,17 @@ export const openaiTools = {
    *
    */
   applyPatch,
+
+  /**
+   * Custom tools let callers constrain model output to a grammar (regex or
+   * Lark syntax). The model returns a `custom_tool_call` output item whose
+   * `input` field is a string matching the specified grammar.
+   *
+   * @param name - The name of the custom tool.
+   * @param description - An optional description of the tool.
+   * @param format - The output format constraint (grammar type, syntax, and definition).
+   */
+  customTool,
 
   /**
    * The Code Interpreter tool allows models to write and run Python code in a
