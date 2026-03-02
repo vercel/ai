@@ -84,6 +84,13 @@ export interface AmazonBedrockProviderSettings {
    */
   baseURL?: string;
 
+
+  /**
+   * Whether to use the FIPS endpoint for Bedrock. Defaults to `false`. If set to `true`, the provider will use the FIPS-compliant endpoint for Bedrock.
+   */
+  useFipsEndpoint?: boolean;
+
+
   /**
    * Custom headers to include in the requests.
    */
@@ -263,27 +270,32 @@ export function createAmazonBedrock(
     return withUserAgentSuffix(baseHeaders, `ai-sdk/amazon-bedrock/${VERSION}`);
   };
 
+  const useFipsEndpoint = loadOptionalSetting<boolean>({
+    settingValue: options.useFipsEndpoint,
+    environmentVariableName: 'AWS_USE_FIPS_ENDPOINT',
+  });
+
   const getBedrockRuntimeBaseUrl = (): string =>
     withoutTrailingSlash(
       options.baseURL ??
-        `https://bedrock-runtime.${loadSetting({
+        `https://${useFipsEndpoint() ? "bedrock-runtime-fips" : "bedrock-runtime"}.${loadSetting({
           settingValue: options.region,
           settingName: 'region',
           environmentVariableName: 'AWS_REGION',
           description: 'AWS region',
         })}.amazonaws.com`,
-    ) ?? `https://bedrock-runtime.us-east-1.amazonaws.com`;
+    ) ?? `https://${useFipsEndpoint() ? "bedrock-runtime-fips" : "bedrock-runtime"}.us-east-1.amazonaws.com`;
 
   const getBedrockAgentRuntimeBaseUrl = (): string =>
     withoutTrailingSlash(
       options.baseURL ??
-        `https://bedrock-agent-runtime.${loadSetting({
+        `https://${useFipsEndpoint() ? "bedrock-agent-runtime-fips" : "bedrock-agent-runtime"}.${loadSetting({
           settingValue: options.region,
           settingName: 'region',
           environmentVariableName: 'AWS_REGION',
           description: 'AWS region',
         })}.amazonaws.com`,
-    ) ?? `https://bedrock-agent-runtime.us-west-2.amazonaws.com`;
+    ) ?? `https://${useFipsEndpoint() ? "bedrock-agent-runtime-fips" : "bedrock-agent-runtime"}.us-west-2.amazonaws.com`;
 
   const createChatModel = (modelId: BedrockChatModelId) =>
     new BedrockChatLanguageModel(modelId, {

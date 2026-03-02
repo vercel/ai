@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, Mock, afterAll } from 'vitest';
 import { createAmazonBedrock } from './bedrock-provider';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
@@ -69,11 +69,12 @@ import {
   createSigV4FetchFunction,
   createApiKeyFetchFunction,
 } from './bedrock-sigv4-fetch';
-import { loadOptionalSetting } from '@ai-sdk/provider-utils';
+import { loadOptionalSetting, loadSetting } from '@ai-sdk/provider-utils';
 
 const mockCreateSigV4FetchFunction = vi.mocked(createSigV4FetchFunction);
 const mockCreateApiKeyFetchFunction = vi.mocked(createApiKeyFetchFunction);
 const mockLoadOptionalSetting = vi.mocked(loadOptionalSetting);
+const mockLoadSetting = vi.mocked(loadSetting);
 
 describe('AmazonBedrockProvider', () => {
   beforeEach(() => {
@@ -107,7 +108,7 @@ describe('AmazonBedrockProvider', () => {
       const options = {
         region: 'eu-west-1',
         baseURL: 'https://custom.url',
-        headers: customHeaders,
+        headers: customHeaders
       };
 
       const provider = createAmazonBedrock(options);
@@ -413,6 +414,75 @@ describe('AmazonBedrockProvider', () => {
         expect(mockCreateApiKeyFetchFunction).not.toHaveBeenCalled();
       });
     });
+
+    describe('FIPS endpoint configuration', () => {
+      beforeEach(() => {
+        // Clear environment variables before each test
+        delete process.env.AWS_USE_FIPS_ENDPOINT;
+        delete process.env.AWS_REGION;
+      });
+      afterAll(() => {
+        // Clean up environment variables after all tests
+        delete process.env.AWS_USE_FIPS_ENDPOINT;
+        delete process.env.AWS_REGION;
+      });
+      it('should create a provider instance with fips option in default AWS region when useFipsEndpoint is explicitly set to true', () => {
+        const options = {
+          useFipsEndpoint: true,
+        };
+
+        const provider = createAmazonBedrock(options);
+        provider('anthropic.claude-v2');
+
+        const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
+        expect(constructorCall[1].baseUrl()).toBe(
+          'https://bedrock-runtime-fips.us-east-1.amazonaws.com',
+        );
+      });
+
+        it('should create a provider instance with fips option in specied AWS region when useFipsEndpoint is explicitly set to true', () => {
+        const options = {
+          useFipsEndpoint: true,
+          region: 'us-west-2',
+        };
+
+        const provider = createAmazonBedrock(options);
+        provider('anthropic.claude-v2');
+
+        const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
+        expect(constructorCall[1].baseUrl()).toBe(
+          'https://bedrock-runtime-fips.us-west-2.amazonaws.com',
+        );
+      });
+
+      it('should create a provider instance with fips option in default AWS region when AWS_USE_FIPS_ENDPOINT is true', () => {
+        process.env.AWS_USE_FIPS_ENDPOINT = 'true'
+
+        const provider = createAmazonBedrock();
+        provider('anthropic.claude-v2');
+
+        const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
+        expect(constructorCall[1].baseUrl()).toBe(
+          'https://bedrock-runtime-fips.us-east-1.amazonaws.com',
+        );
+      });
+
+        it('should create a provider instance with fips option when AWS_REGION and  AWS_USE_FIPS_ENDPOINT are set', () => {
+        process.env.AWS_USE_FIPS_ENDPOINT = 'true'
+        process.env.AWS_REGION = 'us-west-2'
+
+        const provider = createAmazonBedrock();
+        provider('anthropic.claude-v2');
+
+        const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
+        expect(constructorCall[1].baseUrl()).toBe(
+          'https://bedrock-runtime-fips.us-west-2.amazonaws.com',
+        );
+
+      });
+
+    });
+
   });
 
   describe('provider methods', () => {
