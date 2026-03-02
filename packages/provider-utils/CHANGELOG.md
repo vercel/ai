@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.17
+
+### Patch Changes
+
+- 08336f1: fix(bedrock): strip file extensions from filename
+
 ## 4.0.16
 
 ### Patch Changes
