@@ -74,6 +74,8 @@ const searchSourceSchema = z.discriminatedUnion('type', [
 // xai-specific provider options
 export const xaiLanguageModelChatOptions = z.object({
   reasoningEffort: z.enum(['low', 'high']).optional(),
+  logprobs: z.boolean().optional(),
+  topLogprobs: z.number().int().min(0).max(8).optional(),
 
   /**
    * Whether to enable parallel function calling during tool use.
