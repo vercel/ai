@@ -52,12 +52,20 @@ export async function verifyChangesets(
   env = process.env,
   readFile = fs.readFile,
 ) {
-  // Skip check if pull request has "minor-release" label
+  // Skip check if pull request has "minor" or "major" label
   const byPassLabel = event.pull_request.labels.find(label =>
     BYPASS_LABELS.includes(label.name),
   );
   if (byPassLabel) {
     return `Skipping changeset verification - "${byPassLabel.name}" label found`;
+  }
+
+  // Skip check if pre-release mode is active (.changeset/pre.json exists)
+  try {
+    await readFile('../../../../.changeset/pre.json', 'utf-8');
+    return 'Skipping changeset verification - pre-release mode is active';
+  } catch {
+    // pre.json doesn't exist, continue with verification
   }
 
   // Iterate through all changed .changeset/*.md files
