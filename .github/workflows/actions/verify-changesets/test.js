@@ -201,7 +201,7 @@ test('major update - with "major" label', async () => {
   );
 });
 
-test('major update - skipped when pre-release mode is active', async () => {
+test('major update - allowed when pre-release mode is active', async () => {
   const event = {
     pull_request: {
       labels: [],
@@ -219,14 +219,40 @@ test('major update - skipped when pre-release mode is active', async () => {
     return `---\n@ai-sdk/provider: major\n---\n## Test changeset`;
   });
 
-  const message = await verifyChangesets(event, env, readFile);
-  assert.strictEqual(
-    message,
-    'Skipping changeset verification - pre-release mode is active',
+  await verifyChangesets(event, env, readFile);
+
+  assert.strictEqual(readFile.mock.callCount(), 2);
+  assert.deepStrictEqual(readFile.mock.calls[1].arguments, [
+    '../../../../.changeset/major-update.md',
+    'utf-8',
+  ]);
+});
+
+test('invalid changeset - still rejected in pre-release mode', async () => {
+  const event = {
+    pull_request: {
+      labels: [],
+    },
+  };
+  const env = {
+    CHANGED_FILES: '.changeset/bad-changeset.md',
+  };
+
+  const readFile = mock.fn(async path => {
+    if (path.endsWith('pre.json')) {
+      return '{"mode":"pre","tag":"beta"}';
+    }
+
+    return 'frontmatter missing';
+  });
+
+  await assert.rejects(
+    () => verifyChangesets(event, env, readFile),
+    error => error.message.includes('no frontmatter found'),
   );
 });
 
-test('patch update - still verified when pre.json does not exist', async () => {
+test('major update - rejected when not in pre-release mode', async () => {
   const event = {
     pull_request: {
       labels: [],
@@ -236,11 +262,7 @@ test('patch update - still verified when pre.json does not exist', async () => {
     CHANGED_FILES: '.changeset/minor-update.md',
   };
 
-  const readFile = mock.fn(async path => {
-    if (path.endsWith('pre.json')) {
-      throw new Error('ENOENT');
-    }
-
+  const readFile = mockReadFile(async () => {
     return `---\n@ai-sdk/provider: minor\n---\n## Test changeset`;
   });
 

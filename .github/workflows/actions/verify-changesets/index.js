@@ -60,12 +60,13 @@ export async function verifyChangesets(
     return `Skipping changeset verification - "${byPassLabel.name}" label found`;
   }
 
-  // Skip check if pre-release mode is active (.changeset/pre.json exists)
+  // Check if pre-release mode is active (.changeset/pre.json exists)
+  let isPreRelease = false;
   try {
     await readFile('../../../../.changeset/pre.json', 'utf-8');
-    return 'Skipping changeset verification - pre-release mode is active';
+    isPreRelease = true;
   } catch {
-    // pre.json doesn't exist, continue with verification
+    // pre.json doesn't exist
   }
 
   // Iterate through all changed .changeset/*.md files
@@ -127,9 +128,10 @@ export async function verifyChangesets(
       versionBumps[packageName] = versionBump;
     }
 
-    // check if any of the version bumps are not "patch"
+    const allowedBumps = isPreRelease ? ['patch', 'minor', 'major'] : ['patch'];
+
     const invalidVersionBumps = Object.entries(versionBumps).filter(
-      ([, versionBump]) => versionBump !== 'patch',
+      ([, versionBump]) => !allowedBumps.includes(versionBump),
     );
 
     if (invalidVersionBumps.length > 0) {
