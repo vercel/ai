@@ -151,7 +151,7 @@ describe('user messages', () => {
     `);
   });
 
-  it('should be converted with actual filename when provided', async () => {
+  it('should strip file extension when filename is provided', async () => {
     const fileData = new Uint8Array([0, 1, 2, 3]);
 
     const { messages } = await convertToBedrockChatMessages([
@@ -159,6 +159,46 @@ describe('user messages', () => {
         role: 'user',
         content: [
           { type: 'text', text: 'Hello' },
+          {
+            type: 'file',
+            data: Buffer.from(fileData).toString('base64'),
+            mediaType: 'application/pdf',
+            filename: 'custom-filename.pdf',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Hello",
+            },
+            {
+              "document": {
+                "format": "pdf",
+                "name": "custom-filename",
+                "source": {
+                  "bytes": "AAECAw==",
+                },
+              },
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
+  it('should preserve filename without extension when provided', async () => {
+    const fileData = new Uint8Array([0, 1, 2, 3]);
+
+    const { messages } = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
           {
             type: 'file',
             data: Buffer.from(fileData).toString('base64'),
@@ -173,9 +213,6 @@ describe('user messages', () => {
       [
         {
           "content": [
-            {
-              "text": "Hello",
-            },
             {
               "document": {
                 "format": "pdf",
