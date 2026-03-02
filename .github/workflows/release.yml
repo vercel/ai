@@ -68,3 +68,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}
+
+      - name: Find release PR number
+        if: steps.changesets.outputs.published == 'true'
+        id: release-pr
+        run: echo "number=$(gh api repos/${{ github.repository }}/commits/${{ github.sha }}/pulls --jq '.[0].number')" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Notify released PRs and issues
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          cd .github/scripts/notify-released
+          npm install --no-save
+          node index.mjs
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
+          PULL_REQUEST_NUMBER: ${{ steps.release-pr.outputs.number }}

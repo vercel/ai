@@ -1,5 +1,84 @@
 # @ai-sdk/gateway
 
+## 3.0.59
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+
+## 3.0.58
+
+### Patch Changes
+
+- 1330f2f: chore(provider/gateway): update gateway model settings files
+
+## 3.0.57
+
+### Patch Changes
+
+- ba63bc2: chore(provider/gateway): update gateway model settings files
+
+## 3.0.56
+
+### Patch Changes
+
+- 45f0a7f: feat(provider/google): add support for gemini-3.1-flash-image-preview
+
+## 3.0.55
+
+### Patch Changes
+
+- e8172b6: feat (provider/gateway): pass through project id when available for o11y
+
+## 3.0.54
+
+### Patch Changes
+
+- 0c9395b: feat(provider/openai): add `gpt-5.3-codex`
+
+## 3.0.53
+
+### Patch Changes
+
+- 73b7e09: feat (provider/gateway): add SSE support for video generation with heartbeat keep-alive
+
+## 3.0.52
+
+### Patch Changes
+
+- 363fa44: chore(provider/gateway): update gateway model settings files
+
+## 3.0.51
+
+### Patch Changes
+
+- 765b013: feat(provider/google): add support for `gemini-3.1-pro-preview`
+
+## 3.0.50
+
+### Patch Changes
+
+- a433cd3: chore(provider/gateway): update gateway model settings files
+
+## 3.0.49
+
+### Patch Changes
+
+- 5f693c8: chore(provider/gateway): update gateway model settings files
+
+## 3.0.48
+
+### Patch Changes
+
+- 2a1c664: feat(provider/anthropic): add support for new Claude Sonnet 4.6 model
+
+## 3.0.47
+
+### Patch Changes
+
+- 6bbd05b: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.46
 
 ### Patch Changes

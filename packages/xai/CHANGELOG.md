@@ -1,5 +1,31 @@
 # @ai-sdk/xai
 
+## 3.0.60
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+  - @ai-sdk/openai-compatible@2.0.31
+
+## 3.0.59
+
+### Patch Changes
+
+- 8641667: Added `resolution` provider option (`"1k"` or `"2k"`) for xAI image models, enabling higher resolution output for grok-imagine models.
+
+## 3.0.58
+
+### Patch Changes
+
+- 6af6c5c: Added `grok-imagine-image-pro` and `grok-2-image-1212` to XaiImageModelId type for better autocomplete support.
+
+## 3.0.57
+
+### Patch Changes
+
+- 56dfdf6: feat (provider/xai): add video support
+
 ## 3.0.56
 
 ### Patch Changes

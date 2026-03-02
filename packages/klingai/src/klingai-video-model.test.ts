@@ -657,6 +657,108 @@ describe('KlingAIVideoModel', () => {
       });
     });
 
+    it('should derive model_name kling-v3 for kling-v3.0-t2v', async () => {
+      const model = createBasicModel({ modelId: 'kling-v3.0-t2v' });
+
+      await model.doGenerate({ ...t2vDefaultOptions });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ model_name: 'kling-v3' });
+    });
+
+    it('should send multi_shot and shot_type when provided', async () => {
+      const model = createBasicModel({ modelId: 'kling-v3.0-t2v' });
+
+      await model.doGenerate({
+        ...t2vDefaultOptions,
+        providerOptions: {
+          klingai: {
+            ...t2vProviderOptions.klingai,
+            multiShot: true,
+            shotType: 'customize',
+            multiPrompt: [
+              { index: 1, prompt: 'A sunrise over mountains', duration: '4' },
+              {
+                index: 2,
+                prompt: 'A bird flying across the sky',
+                duration: '3',
+              },
+            ],
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        multi_shot: true,
+        shot_type: 'customize',
+        multi_prompt: [
+          { index: 1, prompt: 'A sunrise over mountains', duration: '4' },
+          { index: 2, prompt: 'A bird flying across the sky', duration: '3' },
+        ],
+      });
+    });
+
+    it('should send multi_shot with intelligence shot_type', async () => {
+      const model = createBasicModel({ modelId: 'kling-v3.0-t2v' });
+
+      await model.doGenerate({
+        ...t2vDefaultOptions,
+        providerOptions: {
+          klingai: {
+            ...t2vProviderOptions.klingai,
+            multiShot: true,
+            shotType: 'intelligence',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        multi_shot: true,
+        shot_type: 'intelligence',
+      });
+      expect(body).not.toHaveProperty('multi_prompt');
+    });
+
+    it('should send voice_list when provided for T2V', async () => {
+      const model = createBasicModel({ modelId: 'kling-v3.0-t2v' });
+
+      await model.doGenerate({
+        ...t2vDefaultOptions,
+        providerOptions: {
+          klingai: {
+            ...t2vProviderOptions.klingai,
+            voiceList: [{ voice_id: 'voice-abc' }],
+            sound: 'on',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        voice_list: [{ voice_id: 'voice-abc' }],
+        sound: 'on',
+      });
+    });
+
+    it('should not send element_list for T2V', async () => {
+      const model = createBasicModel({ modelId: 'kling-v3.0-t2v' });
+
+      await model.doGenerate({
+        ...t2vDefaultOptions,
+        providerOptions: {
+          klingai: {
+            ...t2vProviderOptions.klingai,
+            elementList: [{ element_id: 101 }],
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('element_list');
+    });
+
     it('should warn when image is provided for T2V', async () => {
       const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
 
@@ -885,6 +987,84 @@ describe('KlingAIVideoModel', () => {
 
       const body = await server.calls[0].requestBodyJson;
       expect(body).toMatchObject({ dynamic_masks: dynamicMasks });
+    });
+
+    it('should derive model_name kling-v3 for kling-v3.0-i2v', async () => {
+      const model = createBasicModel({ modelId: 'kling-v3.0-i2v' });
+
+      await model.doGenerate({ ...i2vDefaultOptions });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ model_name: 'kling-v3' });
+    });
+
+    it('should send multi_shot and multi_prompt for I2V', async () => {
+      const model = createBasicModel({ modelId: 'kling-v3.0-i2v' });
+
+      await model.doGenerate({
+        ...i2vDefaultOptions,
+        providerOptions: {
+          klingai: {
+            ...i2vProviderOptions.klingai,
+            multiShot: true,
+            shotType: 'customize',
+            multiPrompt: [
+              { index: 1, prompt: 'The cat stretches lazily', duration: '3' },
+              { index: 2, prompt: 'The cat pounces on a toy', duration: '2' },
+            ],
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        multi_shot: true,
+        shot_type: 'customize',
+        multi_prompt: [
+          { index: 1, prompt: 'The cat stretches lazily', duration: '3' },
+          { index: 2, prompt: 'The cat pounces on a toy', duration: '2' },
+        ],
+      });
+    });
+
+    it('should send element_list when provided for I2V', async () => {
+      const model = createBasicModel({ modelId: 'kling-v3.0-i2v' });
+
+      await model.doGenerate({
+        ...i2vDefaultOptions,
+        providerOptions: {
+          klingai: {
+            ...i2vProviderOptions.klingai,
+            elementList: [{ element_id: 101 }, { element_id: 202 }],
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        element_list: [{ element_id: 101 }, { element_id: 202 }],
+      });
+    });
+
+    it('should send voice_list when provided for I2V', async () => {
+      const model = createBasicModel({ modelId: 'kling-v3.0-i2v' });
+
+      await model.doGenerate({
+        ...i2vDefaultOptions,
+        providerOptions: {
+          klingai: {
+            ...i2vProviderOptions.klingai,
+            voiceList: [{ voice_id: 'voice-abc' }, { voice_id: 'voice-def' }],
+            sound: 'on',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        voice_list: [{ voice_id: 'voice-abc' }, { voice_id: 'voice-def' }],
+        sound: 'on',
+      });
     });
 
     it('should send negative_prompt for I2V', async () => {

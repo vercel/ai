@@ -114,6 +114,10 @@ export type AnthropicToolCallCaller =
       tool_id: string;
     }
   | {
+      type: 'code_execution_20260120';
+      tool_id: string;
+    }
+  | {
       type: 'direct';
     };
 
@@ -354,7 +358,9 @@ export type AnthropicTool =
        *
        * @example ['code_execution_20250825']
        */
-      allowed_callers?: Array<'code_execution_20250825'>;
+      allowed_callers?: Array<
+        'direct' | 'code_execution_20250825' | 'code_execution_20260120'
+      >;
     }
   | {
       type: 'code_execution_20250522';
@@ -363,6 +369,10 @@ export type AnthropicTool =
     }
   | {
       type: 'code_execution_20250825';
+      name: string;
+    }
+  | {
+      type: 'code_execution_20260120';
       name: string;
     }
   | {
@@ -438,6 +448,8 @@ export type AnthropicTool =
       type: 'tool_search_tool_bm25_20251119';
       name: string;
     };
+
+export type AnthropicSpeed = 'fast' | 'standard';
 
 export type AnthropicToolChoice =
   | { type: 'auto' | 'any'; disable_parallel_tool_use?: boolean }
@@ -593,6 +605,10 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
               .union([
                 z.object({
                   type: z.literal('code_execution_20250825'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('code_execution_20260120'),
                   tool_id: z.string(),
                 }),
                 z.object({
@@ -869,6 +885,10 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                         tool_id: z.string(),
                       }),
                       z.object({
+                        type: z.literal('code_execution_20260120'),
+                        tool_id: z.string(),
+                      }),
+                      z.object({
                         type: z.literal('direct'),
                       }),
                     ])
@@ -909,6 +929,10 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
               .union([
                 z.object({
                   type: z.literal('code_execution_20250825'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('code_execution_20260120'),
                   tool_id: z.string(),
                 }),
                 z.object({
@@ -1126,7 +1150,7 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
           }),
           z.object({
             type: z.literal('compaction_delta'),
-            content: z.string(),
+            content: z.string().nullish(),
           }),
           z.object({
             type: z.literal('citations_delta'),

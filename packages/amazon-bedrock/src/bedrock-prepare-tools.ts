@@ -124,14 +124,19 @@ export async function prepareTools({
     }
   }
 
-  // Handle standard function tools for all models
-  for (const tool of functionTools) {
+  const filteredFunctionTools =
+    toolChoice?.type === 'tool'
+      ? functionTools.filter(t => t.name === toolChoice.toolName)
+      : functionTools;
+
+  for (const tool of filteredFunctionTools) {
     bedrockTools.push({
       toolSpec: {
         name: tool.name,
         ...(tool.description?.trim() !== ''
           ? { description: tool.description }
           : {}),
+        ...(tool.strict != null ? { strict: tool.strict } : {}),
         inputSchema: {
           json: tool.inputSchema as JSONObject,
         },

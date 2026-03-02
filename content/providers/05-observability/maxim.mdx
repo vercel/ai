@@ -95,24 +95,26 @@ console.log('Response:', response.text);
 
 The wrapped model works seamlessly with all Vercel AI SDK functions:
 
-### **Generate Object**
+### **Structured Output**
 
 ```javascript
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
-const response = await generateObject({
+const response = await generateText({
   model: model,
   prompt: 'Generate a user profile for John Doe',
-  schema: z.object({
-    name: z.string(),
-    age: z.number(),
-    email: z.string().email(),
-    interests: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      name: z.string(),
+      age: z.number(),
+      email: z.string().email(),
+      interests: z.array(z.string()),
+    }),
   }),
 });
 
-console.log(response.object);
+console.log(response.output);
 ```
 
 ### **Stream Text**

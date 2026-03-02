@@ -1,5 +1,36 @@
 # @ai-sdk/google
 
+## 3.0.34
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+
+## 3.0.33
+
+### Patch Changes
+
+- 1ece97a: feat(provider/google): add support for new Google image model aspect ratios and sizes
+
+## 3.0.32
+
+### Patch Changes
+
+- 45f0a7f: feat(provider/google): add support for gemini-3.1-flash-image-preview
+
+## 3.0.31
+
+### Patch Changes
+
+- 2fa3ca8: Added missing model IDs to GoogleGenerativeAIModelId and GoogleGenerativeAIVideoModelId types for better autocomplete support.
+
+## 3.0.30
+
+### Patch Changes
+
+- 765b013: feat(provider/google): add support for `gemini-3.1-pro-preview`
+
 ## 3.0.29
 
 ### Patch Changes

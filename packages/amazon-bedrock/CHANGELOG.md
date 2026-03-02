@@ -1,5 +1,75 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.69
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+  - @ai-sdk/anthropic@3.0.50
+
+## 4.0.68
+
+### Patch Changes
+
+- d98d9ba: Migrated deprecated `output_format` parameter to `output_config.format` for structured outputs + Enabled native structured output support for Bedrock Anthropic models via `output_config.format`.
+- Updated dependencies [d98d9ba]
+  - @ai-sdk/anthropic@3.0.49
+
+## 4.0.67
+
+### Patch Changes
+
+- Updated dependencies [2164cdf]
+  - @ai-sdk/anthropic@3.0.48
+
+## 4.0.66
+
+### Patch Changes
+
+- 91f8777: fix(bedrock/groq): pass strict mode for tools
+
+## 4.0.65
+
+### Patch Changes
+
+- a1a8091: fix(bedrock): ensure tool choice option is enforced
+
+## 4.0.64
+
+### Patch Changes
+
+- Updated dependencies [17978c6]
+  - @ai-sdk/anthropic@3.0.47
+
+## 4.0.63
+
+### Patch Changes
+
+- dc34ced: fix(provider/amazon-bedrock): add missing latest Anthropic model IDs to `BedrockChatModelId`
+
+## 4.0.62
+
+### Patch Changes
+
+- Updated dependencies [b094c07]
+  - @ai-sdk/anthropic@3.0.46
+
+## 4.0.61
+
+### Patch Changes
+
+- 2a1c664: feat(provider/anthropic): add support for new Claude Sonnet 4.6 model
+- Updated dependencies [2a1c664]
+  - @ai-sdk/anthropic@3.0.45
+
+## 4.0.60
+
+### Patch Changes
+
+- Updated dependencies [23ac4a3]
+  - @ai-sdk/anthropic@3.0.44
+
 ## 4.0.59
 
 ### Patch Changes

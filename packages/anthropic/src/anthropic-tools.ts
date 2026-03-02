@@ -2,6 +2,7 @@ import { bash_20241022 } from './tool/bash_20241022';
 import { bash_20250124 } from './tool/bash_20250124';
 import { codeExecution_20250522 } from './tool/code-execution_20250522';
 import { codeExecution_20250825 } from './tool/code-execution_20250825';
+import { codeExecution_20260120 } from './tool/code-execution_20260120';
 import { computer_20241022 } from './tool/computer_20241022';
 import { computer_20250124 } from './tool/computer_20250124';
 import { computer_20251124 } from './tool/computer_20251124';
@@ -53,6 +54,20 @@ export const anthropicTools = {
    * This is the latest version with enhanced Bash support and file operations.
    */
   codeExecution_20250825,
+
+  /**
+   * Claude can analyze data, create visualizations, perform complex calculations,
+   * run system commands, create and edit files, and process uploaded files directly within
+   * the API conversation.
+   *
+   * The code execution tool allows Claude to run both Python and Bash commands and manipulate files,
+   * including writing code, in a secure, sandboxed environment.
+   *
+   * This is the recommended version. Does not require a beta header.
+   *
+   * Supported models: Claude Opus 4.6, Sonnet 4.6, Sonnet 4.5, Opus 4.5
+   */
+  codeExecution_20260120,
 
   /**
    * Claude can interact with computer environments through the computer use tool, which

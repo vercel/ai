@@ -265,6 +265,33 @@ describe('XaiImageModel', () => {
       });
     });
 
+    it('should pass resolution provider option', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          xai: {
+            resolution: '2k',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'grok-2-image',
+        prompt,
+        n: 1,
+        response_format: 'url',
+        resolution: '2k',
+      });
+    });
+
     it('should include revised_prompt in providerMetadata', async () => {
       server.urls['https://api.example.com/images/generations'].response = {
         type: 'json-value',

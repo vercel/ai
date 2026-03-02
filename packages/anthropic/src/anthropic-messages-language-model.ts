@@ -294,6 +294,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       providerToolNames: {
         'anthropic.code_execution_20250522': 'code_execution',
         'anthropic.code_execution_20250825': 'code_execution',
+        'anthropic.code_execution_20260120': 'code_execution',
         'anthropic.computer_20241022': 'computer',
         'anthropic.computer_20250124': 'computer',
         'anthropic.text_editor_20241022': 'str_replace_editor',
@@ -347,22 +348,30 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           ...(thinkingBudget != null && { budget_tokens: thinkingBudget }),
         },
       }),
-      ...(anthropicOptions?.effort && {
-        output_config: { effort: anthropicOptions.effort },
+      ...((anthropicOptions?.effort ||
+        (useStructuredOutput &&
+          responseFormat?.type === 'json' &&
+          responseFormat.schema != null)) && {
+        output_config: {
+          ...(anthropicOptions?.effort && {
+            effort: anthropicOptions.effort,
+          }),
+          ...(useStructuredOutput &&
+            responseFormat?.type === 'json' &&
+            responseFormat.schema != null && {
+              format: {
+                type: 'json_schema',
+                schema: responseFormat.schema,
+              },
+            }),
+        },
       }),
       ...(anthropicOptions?.speed && {
         speed: anthropicOptions.speed,
       }),
-
-      // structured output:
-      ...(useStructuredOutput &&
-        responseFormat?.type === 'json' &&
-        responseFormat.schema != null && {
-          output_format: {
-            type: 'json_schema',
-            schema: responseFormat.schema,
-          },
-        }),
+      ...(anthropicOptions?.cacheControl && {
+        cache_control: anthropicOptions.cacheControl,
+      }),
 
       // mcp servers:
       ...(anthropicOptions?.mcpServers &&
@@ -562,7 +571,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         !tools?.some(
           tool =>
             tool.type === 'provider' &&
-            tool.id === 'anthropic.code_execution_20250825',
+            (tool.id === 'anthropic.code_execution_20250825' ||
+              tool.id === 'anthropic.code_execution_20260120'),
         )
       ) {
         warnings.push({
@@ -576,24 +586,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       betas.add('effort-2025-11-24');
     }
 
-    if (anthropicOptions?.speed) {
+    if (anthropicOptions?.speed === 'fast') {
       betas.add('fast-mode-2026-02-01');
     }
 
     // only when streaming: enable fine-grained tool streaming
     if (stream && (anthropicOptions?.toolStreaming ?? true)) {
       betas.add('fine-grained-tool-streaming-2025-05-14');
-    }
-
-    // structured output:
-    // Only pass beta when actually using native output_format
-    const usingNativeOutputFormat =
-      useStructuredOutput &&
-      responseFormat?.type === 'json' &&
-      responseFormat.schema != null;
-
-    if (usingNativeOutputFormat) {
-      betas.add('structured-outputs-2025-11-13');
     }
 
     const {
@@ -1241,7 +1240,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           firstDelta: boolean;
           providerToolName?: string;
           caller?: {
-            type: 'code_execution_20250825' | 'direct';
+            type:
+              | 'code_execution_20250825'
+              | 'code_execution_20260120'
+              | 'direct';
             toolId?: string;
           };
         }
@@ -1840,11 +1842,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 }
 
                 case 'compaction_delta': {
-                  controller.enqueue({
-                    type: 'text-delta',
-                    id: String(value.index),
-                    delta: value.delta.content,
-                  });
+                  if (value.delta.content != null) {
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: String(value.index),
+                      delta: value.delta.content,
+                    });
+                  }
 
                   return;
                 }
@@ -2182,7 +2186,10 @@ function getModelCapabilities(modelId: string): {
   supportsStructuredOutput: boolean;
   isKnownModel: boolean;
 } {
-  if (modelId.includes('claude-opus-4-6')) {
+  if (
+    modelId.includes('claude-sonnet-4-6') ||
+    modelId.includes('claude-opus-4-6')
+  ) {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,

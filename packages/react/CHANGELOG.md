@@ -1,5 +1,127 @@
 # @ai-sdk/react
 
+## 3.0.107
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+  - ai@6.0.105
+
+## 3.0.106
+
+### Patch Changes
+
+- ai@6.0.104
+
+## 3.0.105
+
+### Patch Changes
+
+- ai@6.0.103
+
+## 3.0.104
+
+### Patch Changes
+
+- ai@6.0.102
+
+## 3.0.103
+
+### Patch Changes
+
+- Updated dependencies [5230482]
+  - ai@6.0.101
+
+## 3.0.102
+
+### Patch Changes
+
+- Updated dependencies [b7fba77]
+  - ai@6.0.100
+
+## 3.0.101
+
+### Patch Changes
+
+- ai@6.0.99
+
+## 3.0.100
+
+### Patch Changes
+
+- ai@6.0.98
+
+## 3.0.99
+
+### Patch Changes
+
+- Updated dependencies [ebfdad1]
+  - ai@6.0.97
+
+## 3.0.98
+
+### Patch Changes
+
+- Updated dependencies [30c9de6]
+  - ai@6.0.96
+
+## 3.0.97
+
+### Patch Changes
+
+- ai@6.0.95
+
+## 3.0.96
+
+### Patch Changes
+
+- ai@6.0.94
+
+## 3.0.95
+
+### Patch Changes
+
+- Updated dependencies [d3769ec]
+  - ai@6.0.93
+
+## 3.0.94
+
+### Patch Changes
+
+- ai@6.0.92
+
+## 3.0.93
+
+### Patch Changes
+
+- ai@6.0.91
+
+## 3.0.92
+
+### Patch Changes
+
+- Updated dependencies [98e83ab]
+  - ai@6.0.90
+
+## 3.0.91
+
+### Patch Changes
+
+- ai@6.0.89
+
+## 3.0.90
+
+### Patch Changes
+
+- ai@6.0.88
+
+## 3.0.89
+
+### Patch Changes
+
+- ai@6.0.87
+
 ## 3.0.88
 
 ### Patch Changes

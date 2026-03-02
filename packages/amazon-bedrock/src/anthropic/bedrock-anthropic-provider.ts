@@ -319,8 +319,8 @@ export function createBedrockAnthropic(
 
       // Bedrock Anthropic doesn't support URL sources, force download and base64 conversion
       supportedUrls: () => ({}),
-      // force the use of JSON tool fallback for structured outputs since beta header isn't supported
-      supportsNativeStructuredOutput: false,
+      // native structured output via output_config.format is supported on Bedrock
+      supportsNativeStructuredOutput: true,
     });
 
   const provider = function (modelId: BedrockAnthropicModelId) {

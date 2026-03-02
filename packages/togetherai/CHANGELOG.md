@@ -1,5 +1,19 @@
 # @ai-sdk/togetherai
 
+## 2.0.35
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+  - @ai-sdk/openai-compatible@2.0.31
+
+## 2.0.34
+
+### Patch Changes
+
+- e237ce7: Use `TOGETHER_API_KEY` as the default environment variable for the Together.ai provider, matching Together.ai's own convention. `TOGETHER_AI_API_KEY` is still supported but deprecated and will emit a console warning.
+
 ## 2.0.33
 
 ### Patch Changes

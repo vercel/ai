@@ -260,6 +260,33 @@ describe('doGenerate', () => {
     expect(requestBody).not.toHaveProperty('response_format');
   });
 
+  it('should not include response_format for chatgpt-image-latest', async () => {
+    prepareJsonFixtureResponse('openai-image');
+
+    const chatgptImageModel = provider.image('chatgpt-image-latest');
+    await chatgptImageModel.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    const requestBody =
+      await server.calls[server.calls.length - 1].requestBodyJson;
+    expect(requestBody).toStrictEqual({
+      model: 'chatgpt-image-latest',
+      prompt,
+      n: 1,
+      size: '1024x1024',
+    });
+
+    expect(requestBody).not.toHaveProperty('response_format');
+  });
+
   it('should not include response_format for date-suffixed gpt-image model IDs (Azure deployment names)', async () => {
     prepareJsonFixtureResponse('openai-image');
 

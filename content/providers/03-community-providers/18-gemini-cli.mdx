@@ -94,7 +94,7 @@ const model = gemini('gemini-2.5-pro');
 
 Supported models:
 
-- **gemini-3-pro-preview**: Latest model with enhanced reasoning (supports `thinkingLevel`)
+- **gemini-3.1-pro-preview**: Latest model with enhanced reasoning (supports `thinkingLevel`)
 - **gemini-3-flash-preview**: Fast Gemini 3 model (supports `thinkingLevel`)
 - **gemini-2.5-pro**: Production-ready model with 64K output tokens (supports `thinkingBudget`)
 - **gemini-2.5-flash**: Fast, efficient model with 64K output tokens (supports `thinkingBudget`)
@@ -118,7 +118,7 @@ const { text } = await generateText({
 ### Model Settings
 
 ```ts
-const model = gemini('gemini-3-pro-preview', {
+const model = gemini('gemini-3.1-pro-preview', {
   temperature: 0.7,
   topP: 0.95,
   topK: 40,
@@ -135,6 +135,7 @@ const model = gemini('gemini-3-pro-preview', {
 
 | Model                    | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gemini-3.1-pro-preview` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-3-pro-preview`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-3-flash-preview` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.5-pro`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

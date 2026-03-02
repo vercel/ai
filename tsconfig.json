@@ -10,6 +10,7 @@
     { "path": "packages/azure" },
     { "path": "packages/black-forest-labs" },
     { "path": "packages/baseten" },
+    { "path": "packages/bytedance" },
     { "path": "packages/cerebras" },
     { "path": "packages/codemod" },
     { "path": "packages/cohere" },

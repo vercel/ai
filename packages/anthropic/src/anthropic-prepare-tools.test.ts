@@ -715,6 +715,35 @@ describe('prepareTools', () => {
       `);
     });
 
+    it('should correctly prepare code_execution_20260120 without beta header', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.code_execution_20260120',
+            name: 'code_execution',
+            args: {},
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "name": "code_execution",
+              "type": "code_execution_20260120",
+            },
+          ],
+        }
+      `);
+    });
+
     it('should correctly prepare tool_search_bm25_20251119', async () => {
       const result = await prepareTools({
         tools: [
@@ -944,6 +973,58 @@ describe('prepareTools', () => {
         'code_execution_20250825',
       ]);
       expect(result.betas).toContain('advanced-tool-use-2025-11-20');
+    });
+
+    it('should include allowed_callers with code_execution_20260120', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'query_database',
+            description: 'Query a database',
+            inputSchema: {
+              type: 'object',
+              properties: { sql: { type: 'string' } },
+            },
+            providerOptions: {
+              anthropic: {
+                allowedCallers: ['code_execution_20260120'],
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {
+            "structured-outputs-2025-11-13",
+            "advanced-tool-use-2025-11-20",
+          },
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "allowed_callers": [
+                "code_execution_20260120",
+              ],
+              "cache_control": undefined,
+              "description": "Query a database",
+              "input_schema": {
+                "properties": {
+                  "sql": {
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+              "name": "query_database",
+            },
+          ],
+        }
+      `);
     });
   });
 
