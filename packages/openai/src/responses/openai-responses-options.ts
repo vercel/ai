@@ -120,6 +120,22 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       /**
+       * Configuration for context management, including compaction rules.
+       * Currently only the `compaction` type is supported, which triggers
+       * automatic context compaction when token usage exceeds the threshold.
+       *
+       * @see https://platform.openai.com/docs/api-reference/responses/create#responses-create-context_management
+       */
+      contextManagement: z
+        .array(
+          z.object({
+            type: z.string(),
+            compactThreshold: z.number().nullish(),
+          }),
+        )
+        .nullish(),
+
+      /**
        * The ID of the OpenAI Conversation to continue.
        * You must create a conversation first via the OpenAI API.
        * Cannot be used in conjunction with `previousResponseId`.
