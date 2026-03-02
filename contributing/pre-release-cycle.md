@@ -4,6 +4,8 @@ This guide explains how to start and end a pre-release (beta) cycle for a new ma
 
 ## Overview
 
+Every major release of the AI SDK introduces a new provider specification version (e.g. V3 to V4). Evolving the spec is the reason we do major releases — it lets us make breaking changes to the provider interface while giving provider authors a clear migration target.
+
 A pre-release cycle lets us develop the next major version on `main` while keeping the current stable version available for patches. During the cycle:
 
 - `main` publishes beta releases (e.g. `ai@7.0.0-beta.1`)
@@ -49,9 +51,9 @@ Select **all** published packages and choose `major` for each. Write a summary l
 
 Commit the generated `.changeset/*.md` file.
 
-### 4. Seed the new spec version (if applicable)
+### 4. Seed the new spec version
 
-If the major bump includes a new provider specification version (e.g. V3 to V4):
+Every major release introduces a new provider specification version (e.g. V3 to V4):
 
 1. Copy the current spec directory (e.g. `packages/provider/src/language-model/v3/`) to a new version directory (e.g. `v4/`).
 2. Rename all types from the old version to the new version (e.g. `LanguageModelV3` to `LanguageModelV4`).
