@@ -6934,6 +6934,158 @@ describe('processUIMessageStream', () => {
       });
     });
 
+    describe('dynamic tool with _meta', () => {
+      beforeEach(async () => {
+        const stream = createUIMessageStream([
+          { type: 'start', messageId: 'msg-meta' },
+          { type: 'start-step' },
+          {
+            type: 'tool-input-start',
+            toolCallId: 'tool-call-meta',
+            toolName: 'mcpTool',
+            dynamic: true,
+            title: 'MCP Tool',
+            _meta: {
+              ui: { resourceUri: 'https://example.com/app' },
+            },
+          },
+          {
+            type: 'tool-input-delta',
+            toolCallId: 'tool-call-meta',
+            inputTextDelta: '{"query":"test"}',
+          },
+          {
+            type: 'tool-input-available',
+            toolCallId: 'tool-call-meta',
+            toolName: 'mcpTool',
+            input: { query: 'test' },
+            dynamic: true,
+            title: 'MCP Tool',
+            _meta: {
+              ui: { resourceUri: 'https://example.com/app' },
+            },
+          },
+          {
+            type: 'tool-output-available',
+            toolCallId: 'tool-call-meta',
+            output: { result: 'success' },
+            dynamic: true,
+          },
+          { type: 'finish-step' },
+          { type: 'finish' },
+        ]);
+
+        state = createStreamingUIMessageState({
+          messageId: 'msg-meta',
+          lastMessage: undefined,
+        });
+
+        await consumeStream({
+          stream: processUIMessageStream({
+            stream,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+        });
+      });
+
+      it('should include _meta in dynamic tool invocation', () => {
+        const toolPart = state!.message.parts.find(
+          part => part.type === 'dynamic-tool',
+        );
+
+        expect(toolPart).toBeDefined();
+        expect((toolPart as any)._meta).toEqual({
+          ui: { resourceUri: 'https://example.com/app' },
+        });
+        expect((toolPart as any).toolName).toBe('mcpTool');
+      });
+
+      it('should maintain _meta through dynamic tool states', () => {
+        const finalToolPart = state!.message.parts.find(
+          part => part.type === 'dynamic-tool',
+        ) as any;
+
+        expect(finalToolPart.state).toBe('output-available');
+        expect(finalToolPart._meta).toEqual({
+          ui: { resourceUri: 'https://example.com/app' },
+        });
+        expect(finalToolPart.title).toBe('MCP Tool');
+        expect(finalToolPart.input).toEqual({ query: 'test' });
+        expect(finalToolPart.output).toEqual({ result: 'success' });
+      });
+
+      it('should preserve _meta through streaming states', () => {
+        // Verify _meta was present during each write (snapshot)
+        const dynamicToolWrites = writeCalls
+          .map(call => call.message.parts.find(p => p.type === 'dynamic-tool'))
+          .filter(Boolean);
+
+        // Every write that includes the dynamic tool part should have _meta
+        for (const part of dynamicToolWrites) {
+          expect((part as any)._meta).toEqual({
+            ui: { resourceUri: 'https://example.com/app' },
+          });
+        }
+      });
+    });
+
+    describe('dynamic tool without _meta', () => {
+      beforeEach(async () => {
+        const stream = createUIMessageStream([
+          { type: 'start', messageId: 'msg-no-meta' },
+          { type: 'start-step' },
+          {
+            type: 'tool-input-start',
+            toolCallId: 'tool-call-no-meta',
+            toolName: 'regularTool',
+            dynamic: true,
+          },
+          {
+            type: 'tool-input-available',
+            toolCallId: 'tool-call-no-meta',
+            toolName: 'regularTool',
+            input: { x: 1 },
+            dynamic: true,
+          },
+          {
+            type: 'tool-output-available',
+            toolCallId: 'tool-call-no-meta',
+            output: { y: 2 },
+            dynamic: true,
+          },
+          { type: 'finish-step' },
+          { type: 'finish' },
+        ]);
+
+        state = createStreamingUIMessageState({
+          messageId: 'msg-no-meta',
+          lastMessage: undefined,
+        });
+
+        await consumeStream({
+          stream: processUIMessageStream({
+            stream,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+        });
+      });
+
+      it('should not include _meta when not provided', () => {
+        const toolPart = state!.message.parts.find(
+          part => part.type === 'dynamic-tool',
+        );
+
+        expect(toolPart).toBeDefined();
+        expect((toolPart as any)._meta).toBeUndefined();
+      });
+    });
+
     describe('tool with title in error state', () => {
       beforeEach(async () => {
         const stream = createUIMessageStream([
