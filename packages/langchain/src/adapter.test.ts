@@ -14,6 +14,7 @@ import type { ModelMessage, UIMessage } from 'ai';
 import {
   AIMessage,
   AIMessageChunk,
+  BaseMessage,
   HumanMessage,
   SystemMessage,
   ToolMessage,
