@@ -67,12 +67,12 @@ The `@browser-ai/transformers-js` package is the AI SDK provider for popular ope
 
 ### `@browser-ai/core`
 
-You can import the default provider instance `builtInAI` from `@browser-ai/core`:
+You can import the default provider instance `browserAI` from `@browser-ai/core`:
 
 ```ts
-import { builtInAI } from '@browser-ai/core';
+import { browserAI } from '@browser-ai/core';
 
-const model = builtInAI();
+const model = browserAI();
 ```
 
 You can use the following optional settings to customize the model:
@@ -126,10 +126,10 @@ The provider allows using a ton of popular open-source models from Huggingface w
 
 ```ts
 import { streamText } from 'ai';
-import { builtInAI } from '@browser-ai/core';
+import { browserAI } from '@browser-ai/core';
 
 const result = streamText({
-  model: builtInAI(), // will default to the specific browser model
+  model: browserAI(), // will default to the specific browser model
   prompt: 'Hello, how are you',
 });
 
