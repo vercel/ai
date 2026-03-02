@@ -35,7 +35,7 @@ git checkout main
 pnpm changeset pre enter beta
 ```
 
-This modifies `.changeset/pre.json`. Commit and push the change (or open a PR).
+This modifies `.changeset/pre.json`. Remove any `@example/*` packages from the `initialVersions` field — example packages are private and should not be tracked in pre-release mode. Commit and push the change (or open a PR).
 
 ### 3. Create a major changeset
 
@@ -45,7 +45,7 @@ Create a changeset that bumps every published package to the next major version:
 pnpm changeset
 ```
 
-Select **all** published packages and choose `major` for each. Write a summary like:
+Select all published packages (skip `@example/*` packages — they are private and not published) and choose `major` for each. Write a summary like:
 
 > Start v7 pre-release
 
