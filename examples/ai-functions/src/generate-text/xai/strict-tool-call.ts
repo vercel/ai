@@ -11,7 +11,7 @@ run(async () => {
         description: 'Get weather by city and unit',
         inputSchema: z.object({
           city: z.string(),
-          unit: z.enum(['celsius', 'bomboclat']),
+          unit: z.enum(['celsius', 'fahrenheit']),
         }),
         strict: true,
         execute: async ({ city, unit }) => {
@@ -19,7 +19,7 @@ run(async () => {
         },
       }),
     },
-    prompt: 'What is the weather in Boston in bomboclat?',
+    prompt: 'What is the weather in Boston?',
   });
 
   console.log('Text:', result.text);
