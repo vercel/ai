@@ -295,7 +295,10 @@ describe('user messages', () => {
     ).toThrow("'PDF file parts with URLs' functionality not supported");
   });
 
-  it('should convert messages with text/markdown parts', async () => {
+  it('should convert messages with base64-encoded text/markdown parts', async () => {
+    const markdownText = '# Hello World\n\nThis is **markdown** content.';
+    const base64Data = btoa(markdownText);
+
     const result = convertToOpenAICompatibleChatMessages([
       {
         role: 'user',
@@ -303,7 +306,7 @@ describe('user messages', () => {
           { type: 'text', text: 'Summarize this document' },
           {
             type: 'file',
-            data: '# Hello World\n\nThis is **markdown** content.',
+            data: base64Data,
             mediaType: 'text/markdown',
           },
         ],
@@ -317,7 +320,7 @@ describe('user messages', () => {
           { type: 'text', text: 'Summarize this document' },
           {
             type: 'text',
-            text: '# Hello World\n\nThis is **markdown** content.',
+            text: markdownText,
           },
         ],
       },
@@ -333,6 +336,33 @@ describe('user messages', () => {
           {
             type: 'file',
             data: encoder.encode('Plain text content'),
+            mediaType: 'text/plain',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Plain text content',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should decode base64 string data for text/* file parts', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: Buffer.from('Plain text content').toString('base64'),
             mediaType: 'text/plain',
           },
         ],

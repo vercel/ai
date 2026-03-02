@@ -7,6 +7,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
+  convertBase64ToUint8Array,
   convertToBase64,
   parseProviderOptions,
   validateTypes,
@@ -31,7 +32,7 @@ import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 
 function convertToString(data: LanguageModelV3DataContent): string {
   if (typeof data === 'string') {
-    return Buffer.from(data, 'base64').toString('utf-8');
+    return new TextDecoder().decode(convertBase64ToUint8Array(data));
   }
 
   if (data instanceof Uint8Array) {
