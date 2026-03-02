@@ -6,6 +6,27 @@ import {
 import { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
+/**
+ * Safely decodes a base64 string. If the string is not valid base64,
+ * returns the original string.
+ */
+function safeBase64Decode(data: string): string {
+  try {
+    const decoded = Buffer.from(data, 'base64').toString('utf-8');
+    // Verify it's actually base64 by re-encoding and comparing
+    const reencoded = Buffer.from(decoded, 'utf-8').toString('base64');
+    // Remove padding for comparison since base64 padding can vary
+    const normalizedOriginal = data.replace(/=+$/, '');
+    const normalizedReencoded = reencoded.replace(/=+$/, '');
+    if (normalizedOriginal === normalizedReencoded) {
+      return decoded;
+    }
+  } catch {
+    // Fall through to return original
+  }
+  return data;
+}
+
 function getOpenAIMetadata(message: {
   providerOptions?: SharedV3ProviderMetadata;
 }) {
@@ -119,7 +140,8 @@ export function convertToOpenAICompatibleChatMessages(
                     part.data instanceof URL
                       ? part.data.toString()
                       : typeof part.data === 'string'
-                        ? Buffer.from(part.data, 'base64').toString('utf-8')
+                        ? // Try to decode as base64, fall back to using as-is if not valid base64
+                          safeBase64Decode(part.data)
                         : new TextDecoder().decode(part.data);
 
                   return {

@@ -352,6 +352,36 @@ describe('user messages', () => {
     ]);
   });
 
+  it('should convert messages with text/plain parts from base64 string', async () => {
+    const base64Content = Buffer.from('Base64 encoded content').toString(
+      'base64',
+    );
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: base64Content,
+            mediaType: 'text/plain',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Base64 encoded content',
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should convert text file URL to string', async () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
