@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.61
+
+### Patch Changes
+
+- 2e00e03: add support for `logprobs` and `topLogprobs` in xai chat and responses provider options
+
 ## 3.0.60
 
 ### Patch Changes
