@@ -64,7 +64,21 @@ Every major release introduces a new provider specification version (e.g. V3 to 
 
 Create V4 counterparts for every mock file in `packages/ai/src/test/` (e.g. `mock-language-model-v3.ts` → `mock-language-model-v4.ts`). Update `packages/ai/test/index.ts` to export the new V4 mocks.
 
-### 6. Merge to `main`
+### 6. Set up the documentation site (ai-sdk.dev)
+
+The documentation site lives in the `ai-studio` repository and uses a Git submodule pointing at this repository. During the pre-release cycle the site needs versioned branches and Vercel deployments for both stable and beta docs.
+
+In the `vercel/ai` repository:
+
+1. Update `.github/workflows/update-sdk-submodule-v6.yml` to track the `release-v6.0` branch instead of `main`.
+2. Create `.github/workflows/update-sdk-submodule-v7.yml` — this workflow fetches `main`, checks out the `sdk/v7` branch in `ai-studio`, and pushes to `origin sdk/v7`.
+
+In the `ai-studio` repository:
+
+3. Create a `sdk/v7` branch (the default branch stays `sdk/v6` for now so the production site continues serving stable docs).
+4. In Vercel, create a v7 preview deployment connected to the `sdk/v7` branch (e.g. `v7.ai-sdk.dev`).
+
+### 7. Merge to `main`
 
 Open a PR with all the changes from steps 2-5. Once merged, the first beta release (e.g. `ai@7.0.0-beta.1`) will be published automatically.
 
@@ -101,6 +115,10 @@ This removes `.changeset/pre.json`. Commit and push (or open a PR).
 
 Once the exit-PR is merged, the next **Version Packages** PR will produce stable versions (e.g. `ai@7.0.0`). Merge it to publish.
 
-### 3. Archive the maintenance branch
+### 3. Switch the documentation site
+
+In the `ai-studio` repository, change the default branch from `sdk/v6` to `sdk/v7` so the production site serves the new major version. Update the Vercel production deployment accordingly.
+
+### 4. Archive the maintenance branch
 
 The maintenance branch (e.g. `release-v6.0`) can remain for emergency patches but will no longer receive regular backports.
