@@ -124,6 +124,11 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
       model: this.modelId,
 
       // standard generation settings
+      logprobs:
+        options.logprobs === true || options.topLogprobs != null
+          ? true
+          : undefined,
+      top_logprobs: options.topLogprobs,
       max_completion_tokens: maxOutputTokens,
       temperature,
       top_p: topP,

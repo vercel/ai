@@ -20,6 +20,7 @@ Response: I'll go with "Hello" as it's a common greeting and keeps it simple.",
   },
   "request": {
     "body": {
+      "logprobs": undefined,
       "max_completion_tokens": undefined,
       "messages": [
         {
@@ -36,6 +37,7 @@ Response: I'll go with "Hello" as it's a common greeting and keeps it simple.",
       "temperature": undefined,
       "tool_choice": undefined,
       "tools": undefined,
+      "top_logprobs": undefined,
       "top_p": undefined,
     },
   },
@@ -146,6 +148,7 @@ I should call this function to advance the user's request.",
   },
   "request": {
     "body": {
+      "logprobs": undefined,
       "max_completion_tokens": undefined,
       "messages": [
         {
@@ -162,6 +165,7 @@ I should call this function to advance the user's request.",
       "temperature": undefined,
       "tool_choice": undefined,
       "tools": undefined,
+      "top_logprobs": undefined,
       "top_p": undefined,
     },
   },
