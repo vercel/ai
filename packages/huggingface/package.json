@@ -23,7 +23,7 @@
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch",
-    "clean": "rm -rf dist docs *.tsbuildinfo",
+    "clean": "del-cli dist docs *.tsbuildinfo",
     "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/170-huggingface.mdx ./docs/",
     "postpack": "del-cli docs",
     "lint": "eslint \"./**/*.ts*\"",
