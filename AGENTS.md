@@ -236,7 +236,6 @@ For a focused conceptual walkthrough of AI functions, model specifications, and 
 | Provider architecture | `contributing/provider-architecture.md` |
 | Building new features | `contributing/building-new-features.md` |
 | Codemods              | `contributing/codemods.md`              |
-| Pre-release cycle     | `contributing/pre-release-cycle.md`     |
 
 ## Changesets
 

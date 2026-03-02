@@ -53,17 +53,20 @@ Commit the generated `.changeset/*.md` file.
 
 ### 4. Seed the new spec version
 
-Every major release introduces a new provider specification version (e.g. V3 to V4):
+Every major release introduces a new provider specification version (e.g. V3 to V4). Repeat the following for **every** versioned spec directory under `packages/provider/src/` (language-model, embedding-model, image-model, speech-model, transcription-model, video-model, reranking-model, provider, shared, and all middleware types):
 
-1. Copy the current spec directory (e.g. `packages/provider/src/language-model/v3/`) to a new version directory (e.g. `v4/`).
+1. Copy the current spec directory (e.g. `v3/`) to a new version directory (e.g. `v4/`).
 2. Rename all types from the old version to the new version (e.g. `LanguageModelV3` to `LanguageModelV4`).
 3. Update the `specificationVersion` literal from `'v3'` to `'v4'`.
 4. Add the new version directory to the parent `index.ts` exports.
-5. Create corresponding mock test utilities in `packages/ai/src/test/` for the new spec version.
 
-### 5. Merge to `main`
+### 5. Create mock test utilities
 
-Open a PR with all the changes from steps 2-4. Once merged, the first beta release (e.g. `ai@7.0.0-beta.1`) will be published automatically.
+Create V4 counterparts for every mock file in `packages/ai/src/test/` (e.g. `mock-language-model-v3.ts` → `mock-language-model-v4.ts`). Update `packages/ai/test/index.ts` to export the new V4 mocks.
+
+### 6. Merge to `main`
+
+Open a PR with all the changes from steps 2-5. Once merged, the first beta release (e.g. `ai@7.0.0-beta.1`) will be published automatically.
 
 ## During the Pre-Release Cycle
 
