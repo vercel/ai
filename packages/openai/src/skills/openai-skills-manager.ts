@@ -15,6 +15,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import {
+  OpenAISkillResponse,
   openaiSkillDeleteResponseSchema,
   openaiSkillListResponseSchema,
   openaiSkillResponseSchema,
@@ -233,19 +234,13 @@ async function promoteVersionWithRetry({
   throw new Error('Unreachable');
 }
 
-function mapOpenAISkill(response: {
-  id: string;
-  name?: string | null;
-  description?: string | null;
-  created_at: number;
-  updated_at?: number | null;
-}): Experimental_SkillsManagerV1Skill {
+function mapOpenAISkill(
+  response: Pick<OpenAISkillResponse, 'id' | 'name' | 'description'>,
+): Experimental_SkillsManagerV1Skill {
   return {
     id: response.id,
     ...(response.name != null && { name: response.name }),
     ...(response.description != null && { description: response.description }),
     source: 'user',
-    createdAt: new Date(response.created_at * 1000),
-    updatedAt: new Date((response.updated_at ?? response.created_at) * 1000),
   };
 }

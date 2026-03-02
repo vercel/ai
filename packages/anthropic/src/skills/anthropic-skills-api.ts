@@ -16,6 +16,10 @@ export const anthropicSkillResponseSchema = lazySchema(() =>
   ),
 );
 
+export type AnthropicSkillResponse = ReturnType<
+  typeof anthropicSkillResponseSchema
+>['_type'];
+
 export const anthropicSkillVersionListResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({

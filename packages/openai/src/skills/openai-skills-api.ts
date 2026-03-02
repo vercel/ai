@@ -15,6 +15,10 @@ export const openaiSkillResponseSchema = lazySchema(() =>
   ),
 );
 
+export type OpenAISkillResponse = ReturnType<
+  typeof openaiSkillResponseSchema
+>['_type'];
+
 export const openaiSkillVersionResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({

@@ -100,13 +100,11 @@ describe('AnthropicSkillsManager', () => {
 
       expect(result.skill).toMatchInlineSnapshot(`
         {
-          "createdAt": 2026-02-26T03:59:39.314Z,
           "description": "An updated test skill for fixture capture",
           "displayTitle": "Test Capture Skill",
           "id": "skill_01Xud7kLMsjLfc7Aa6RvigZf",
           "name": "test-capture-skill",
           "source": "user",
-          "updatedAt": 2026-02-26T03:59:39.314Z,
         }
       `);
     });
@@ -201,18 +199,14 @@ describe('AnthropicSkillsManager', () => {
       expect(result.skills).toMatchInlineSnapshot(`
         [
           {
-            "createdAt": 2026-02-26T03:59:39.314Z,
             "displayTitle": "Test Capture Skill",
             "id": "skill_01Xud7kLMsjLfc7Aa6RvigZf",
             "source": "user",
-            "updatedAt": 2026-02-26T03:59:39.315Z,
           },
           {
-            "createdAt": 2025-10-14T08:41:11.530Z,
             "displayTitle": "xlsx",
             "id": "xlsx",
             "source": "provider",
-            "updatedAt": 2026-02-03T15:09:44.321Z,
           },
         ]
       `);
@@ -278,13 +272,11 @@ describe('AnthropicSkillsManager', () => {
 
       expect(result.skill).toMatchInlineSnapshot(`
         {
-          "createdAt": 2026-02-26T03:59:39.314Z,
           "description": "An updated test skill for fixture capture",
           "displayTitle": "Test Capture Skill",
           "id": "skill_01Xud7kLMsjLfc7Aa6RvigZf",
           "name": "test-capture-skill",
           "source": "user",
-          "updatedAt": 2026-02-26T03:59:39.315Z,
         }
       `);
     });
@@ -377,13 +369,11 @@ describe('AnthropicSkillsManager', () => {
 
       expect(result.skill).toMatchInlineSnapshot(`
         {
-          "createdAt": 2026-02-26T03:59:39.314Z,
           "description": "An updated test skill for fixture capture",
           "displayTitle": "Test Capture Skill",
           "id": "skill_01Xud7kLMsjLfc7Aa6RvigZf",
           "name": "test-capture-skill",
           "source": "user",
-          "updatedAt": 2026-02-26T03:59:41.132Z,
         }
       `);
     });

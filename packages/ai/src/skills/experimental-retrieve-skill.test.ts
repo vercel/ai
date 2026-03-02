@@ -7,8 +7,6 @@ const mockSkill = {
   name: 'test-skill',
   description: 'A test skill',
   source: 'upload',
-  createdAt: new Date('2024-01-15T10:30:00Z'),
-  updatedAt: new Date('2024-01-15T10:30:00Z'),
 };
 
 function createMockSkillsManager(
@@ -54,12 +52,10 @@ describe('experimental_retrieveSkill', () => {
 
     expect(result.skill).toMatchInlineSnapshot(`
       {
-        "createdAt": 2024-01-15T10:30:00.000Z,
         "description": "A test skill",
         "id": "skill_123",
         "name": "test-skill",
         "source": "upload",
-        "updatedAt": 2024-01-15T10:30:00.000Z,
       }
     `);
     expect(result.warnings).toMatchInlineSnapshot(`[]`);

@@ -85,12 +85,10 @@ describe('OpenAISkillsManager', () => {
 
       expect(result.skill).toMatchInlineSnapshot(`
         {
-          "createdAt": 2026-02-26T04:01:19.000Z,
           "description": "A test skill for fixture capture",
           "id": "skill_699fc58f408c8191825d8d06ae75fd5c06de7b381a5db7f5",
           "name": "test-capture-skill",
           "source": "user",
-          "updatedAt": 2026-02-26T04:01:19.000Z,
         }
       `);
     });
@@ -193,20 +191,16 @@ describe('OpenAISkillsManager', () => {
       expect(result.skills).toMatchInlineSnapshot(`
         [
           {
-            "createdAt": 2026-02-26T02:57:18.000Z,
             "description": "A greeting skill",
             "id": "skill_699fb68e4c588191834a1c72e682a4b10071874b35792a71",
             "name": "greeting",
             "source": "user",
-            "updatedAt": 2026-02-26T02:57:18.000Z,
           },
           {
-            "createdAt": 2026-02-26T02:30:47.000Z,
             "description": "A greeting skill",
             "id": "skill_699fb05754cc8191924d08e89d3b3ae20cb9c1856e6ae689",
             "name": "greeting",
             "source": "user",
-            "updatedAt": 2026-02-26T02:30:47.000Z,
           },
         ]
       `);
@@ -268,12 +262,10 @@ describe('OpenAISkillsManager', () => {
 
       expect(result.skill).toMatchInlineSnapshot(`
         {
-          "createdAt": 2026-02-26T04:01:19.000Z,
           "description": "A test skill for fixture capture",
           "id": "skill_699fc58f408c8191825d8d06ae75fd5c06de7b381a5db7f5",
           "name": "test-capture-skill",
           "source": "user",
-          "updatedAt": 2026-02-26T04:01:19.000Z,
         }
       `);
     });
@@ -373,12 +365,10 @@ describe('OpenAISkillsManager', () => {
 
       expect(result.skill).toMatchInlineSnapshot(`
         {
-          "createdAt": 2026-02-26T04:01:19.000Z,
           "description": "An updated test skill for fixture capture",
           "id": "skill_699fc58f408c8191825d8d06ae75fd5c06de7b381a5db7f5",
           "name": "test-capture-skill",
           "source": "user",
-          "updatedAt": 2026-02-26T04:01:19.000Z,
         }
       `);
     });

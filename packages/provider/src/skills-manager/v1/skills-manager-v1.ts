@@ -38,16 +38,6 @@ export interface SkillsManagerV1Skill {
    * The source of the skill, either user-created or provider-created.
    */
   source: 'user' | 'provider';
-
-  /**
-   * Timestamp when the skill was created.
-   */
-  createdAt: Date;
-
-  /**
-   * Timestamp when the skill was last updated.
-   */
-  updatedAt: Date;
 }
 
 export interface SkillsManagerV1CreateParams {

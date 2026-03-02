@@ -16,6 +16,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from '../anthropic-error';
 import {
+  AnthropicSkillResponse,
   anthropicSkillDeleteResponseSchema,
   anthropicSkillListResponseSchema,
   anthropicSkillResponseSchema,
@@ -278,15 +279,10 @@ export class AnthropicSkillsManager implements Experimental_SkillsManagerV1 {
 }
 
 function mapAnthropicSkill(
-  response: {
-    id: string;
-    display_title?: string | null;
-    name?: string | null;
-    description?: string | null;
-    source: string;
-    created_at: string;
-    updated_at: string;
-  },
+  response: Pick<
+    AnthropicSkillResponse,
+    'id' | 'display_title' | 'name' | 'description' | 'source'
+  >,
   versionMetadata?: { name?: string; description?: string },
 ): Experimental_SkillsManagerV1Skill {
   const name = versionMetadata?.name ?? response.name;
@@ -299,8 +295,6 @@ function mapAnthropicSkill(
     ...(name != null && { name }),
     ...(description != null && { description }),
     source: mapAnthropicSource(response.source),
-    createdAt: new Date(response.created_at),
-    updatedAt: new Date(response.updated_at),
   };
 }
 
