@@ -1,5 +1,25 @@
 # @ai-sdk/xai
 
+## 3.0.62
+
+### Patch Changes
+
+- 64a8fae: chore: remove obsolete model IDs for Anthropic, Google, OpenAI, xAI
+
+## 3.0.61
+
+### Patch Changes
+
+- 2e00e03: add support for `logprobs` and `topLogprobs` in xai chat and responses provider options
+
+## 3.0.60
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+  - @ai-sdk/openai-compatible@2.0.31
+
 ## 3.0.59
 
 ### Patch Changes

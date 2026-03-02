@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: xai.responses('grok-4-fast'),
+    model: xai.responses('grok-4-fast-non-reasoning'),
     tools: {
       file_search: xai.tools.fileSearch({
         vectorStoreIds: ['collection_your-id-here'],

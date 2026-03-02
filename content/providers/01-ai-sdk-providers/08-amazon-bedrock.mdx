@@ -472,7 +472,7 @@ The following Bedrock-specific metadata may be returned in `providerMetadata.bed
 
 Amazon Bedrock supports model creator-specific reasoning features:
 
-- Anthropic (e.g. `claude-3-7-sonnet-20250219`): enable via the `reasoningConfig` provider option and specifying a thinking budget in tokens (minimum: `1024`, maximum: `64000`).
+- Anthropic (e.g. `claude-sonnet-4-5-20250929`): enable via the `reasoningConfig` provider option and specifying a thinking budget in tokens (minimum: `1024`, maximum: `64000`).
 - Amazon (e.g. `us.amazon.nova-2-lite-v1:0`): enable via the `reasoningConfig` provider option and specifying a maximum reasoning effort level (`'low' | 'medium' | 'high'`).
 
 ```ts
@@ -484,7 +484,7 @@ import { generateText } from 'ai';
 
 // Anthropic example
 const anthropicResult = await generateText({
-  model: bedrock('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
+  model: bedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
     bedrock: {
@@ -713,10 +713,8 @@ These tools can be used in conjunction with the `anthropic.claude-3-5-sonnet-202
 | `anthropic.claude-sonnet-4-5-20250929-v1:0`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-opus-4-20250514-v1:0`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-opus-4-1-20250805-v1:0`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `anthropic.claude-3-7-sonnet-20250219-v1:0`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-5-sonnet-20241022-v2:0`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-5-sonnet-20240620-v1:0`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `anthropic.claude-3-5-haiku-20241022-v1:0`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `anthropic.claude-3-opus-20240229-v1:0`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-sonnet-20240229-v1:0`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-haiku-20240307-v1:0`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -724,10 +722,8 @@ These tools can be used in conjunction with the `anthropic.claude-3-5-sonnet-202
 | `us.anthropic.claude-sonnet-4-5-20250929-v1:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-opus-4-20250514-v1:0`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-opus-4-1-20250805-v1:0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `us.anthropic.claude-3-7-sonnet-20250219-v1:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-3-5-sonnet-20241022-v2:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-3-5-sonnet-20240620-v1:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `us.anthropic.claude-3-5-haiku-20241022-v1:0`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `us.anthropic.claude-3-sonnet-20240229-v1:0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-3-opus-20240229-v1:0`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-3-haiku-20240307-v1:0`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -1389,7 +1385,7 @@ import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: bedrockAnthropic('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
+  model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
   messages: [
     {
       role: 'system',
@@ -1435,7 +1431,7 @@ import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
 import { generateText, stepCountIs } from 'ai';
 
 const result = await generateText({
-  model: bedrockAnthropic('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
+  model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
   tools: {
     bash: bedrockAnthropic.tools.bash_20241022({
       execute: async ({ command }) => {
@@ -1456,7 +1452,7 @@ import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
 import { generateText, stepCountIs } from 'ai';
 
 const result = await generateText({
-  model: bedrockAnthropic('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
+  model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
   tools: {
     str_replace_editor: bedrockAnthropic.tools.textEditor_20241022({
       execute: async ({ command, path, old_str, new_str, insert_text }) => {
@@ -1478,7 +1474,7 @@ import { generateText, stepCountIs } from 'ai';
 import fs from 'fs';
 
 const result = await generateText({
-  model: bedrockAnthropic('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
+  model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
   tools: {
     computer: bedrockAnthropic.tools.computer_20241022({
       displayWidthPx: 1024,
@@ -1524,7 +1520,6 @@ Anthropic has reasoning support for Claude 3.7 and Claude 4 models on Bedrock, i
 - `us.anthropic.claude-sonnet-4-20250514-v1:0`
 - `us.anthropic.claude-opus-4-1-20250805-v1:0`
 - `us.anthropic.claude-haiku-4-5-20251001-v1:0`
-- `us.anthropic.claude-3-7-sonnet-20250219-v1:0`
 
 You can enable it using the `thinking` provider option and specifying a thinking budget in tokens.
 
@@ -1561,9 +1556,7 @@ on how to integrate reasoning into your chatbot.
 | `us.anthropic.claude-sonnet-4-20250514-v1:0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-opus-4-1-20250805-v1:0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-haiku-4-5-20251001-v1:0`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `us.anthropic.claude-3-7-sonnet-20250219-v1:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-3-5-sonnet-20241022-v2:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `us.anthropic.claude-3-5-haiku-20241022-v1:0`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
   The Bedrock Anthropic provider uses the native InvokeModel API and supports

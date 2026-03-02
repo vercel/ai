@@ -1,5 +1,23 @@
 # @ai-sdk/google-vertex
 
+## 4.0.69
+
+### Patch Changes
+
+- 64a8fae: chore: remove obsolete model IDs for Anthropic, Google, OpenAI, xAI
+- Updated dependencies [64a8fae]
+  - @ai-sdk/anthropic@3.0.51
+  - @ai-sdk/google@3.0.35
+
+## 4.0.68
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+  - @ai-sdk/anthropic@3.0.50
+  - @ai-sdk/google@3.0.34
+
 ## 4.0.67
 
 ### Patch Changes

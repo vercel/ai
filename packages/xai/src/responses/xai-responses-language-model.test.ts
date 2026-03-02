@@ -13,7 +13,7 @@ const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'hello' }] },
 ];
 
-function createModel(modelId = 'grok-4-fast') {
+function createModel(modelId = 'grok-4-fast-non-reasoning') {
   return new XaiResponsesLanguageModel(modelId, {
     provider: 'xai.responses',
     baseURL: 'https://api.x.ai/v1',
@@ -73,7 +73,7 @@ describe('XaiResponsesLanguageModel', () => {
           object: 'response',
           created_at: 1700000000,
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'message',
@@ -115,7 +115,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [],
           usage: {
             input_tokens: 345,
@@ -161,7 +161,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [],
           usage: { input_tokens: 10, output_tokens: 5 },
         });
@@ -185,7 +185,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'reasoning',
@@ -251,7 +251,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'reasoning',
@@ -314,12 +314,12 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [],
           usage: { input_tokens: 10, output_tokens: 5 },
         });
 
-        await createModel('grok-4-fast').doGenerate({
+        await createModel('grok-4-fast-non-reasoning').doGenerate({
           prompt: [
             { role: 'system', content: 'you are helpful' },
             { role: 'user', content: [{ type: 'text', text: 'hello' }] },
@@ -347,7 +347,7 @@ describe('XaiResponsesLanguageModel', () => {
               },
             ],
             "max_output_tokens": 100,
-            "model": "grok-4-fast",
+            "model": "grok-4-fast-non-reasoning",
             "temperature": 0.5,
             "top_p": 0.9,
           }
@@ -360,7 +360,7 @@ describe('XaiResponsesLanguageModel', () => {
             id: 'resp_123',
             object: 'response',
             status: 'completed',
-            model: 'grok-4-fast',
+            model: 'grok-4-fast-non-reasoning',
             output: [],
             usage: { input_tokens: 10, output_tokens: 5 },
           });
@@ -378,12 +378,61 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.reasoning.effort).toBe('high');
         });
 
-        it('store:true', async () => {
+        it('logprobs and topLogprobs', async () => {
           prepareJsonResponse({
             id: 'resp_123',
             object: 'response',
             status: 'completed',
             model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                logprobs: true,
+                topLogprobs: 6,
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.logprobs).toBe(true);
+          expect(requestBody.top_logprobs).toBe(6);
+        });
+
+        it('topLogprobs enables logprobs', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                topLogprobs: 2,
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.logprobs).toBe(true);
+          expect(requestBody.top_logprobs).toBe(2);
+        });
+
+        it('store:true', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast-non-reasoning',
             output: [],
             usage: { input_tokens: 10, output_tokens: 5 },
           });
@@ -407,7 +456,7 @@ describe('XaiResponsesLanguageModel', () => {
             id: 'resp_123',
             object: 'response',
             status: 'completed',
-            model: 'grok-4-fast',
+            model: 'grok-4-fast-non-reasoning',
             output: [],
             usage: { input_tokens: 10, output_tokens: 5 },
           });
@@ -433,7 +482,7 @@ describe('XaiResponsesLanguageModel', () => {
             id: 'resp_123',
             object: 'response',
             status: 'completed',
-            model: 'grok-4-fast',
+            model: 'grok-4-fast-non-reasoning',
             output: [],
             usage: { input_tokens: 10, output_tokens: 5 },
           });
@@ -456,7 +505,7 @@ describe('XaiResponsesLanguageModel', () => {
             id: 'resp_123',
             object: 'response',
             status: 'completed',
-            model: 'grok-4-fast',
+            model: 'grok-4-fast-non-reasoning',
             output: [],
             usage: { input_tokens: 10, output_tokens: 5 },
           });
@@ -481,7 +530,7 @@ describe('XaiResponsesLanguageModel', () => {
             id: 'resp_123',
             object: 'response',
             status: 'completed',
-            model: 'grok-4-fast',
+            model: 'grok-4-fast-non-reasoning',
             output: [],
             usage: { input_tokens: 10, output_tokens: 5 },
           });
@@ -510,7 +559,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [],
           usage: { input_tokens: 10, output_tokens: 5 },
         });
@@ -536,7 +585,7 @@ describe('XaiResponsesLanguageModel', () => {
             id: 'resp_123',
             object: 'response',
             status: 'completed',
-            model: 'grok-4-fast',
+            model: 'grok-4-fast-non-reasoning',
             output: [],
             usage: { input_tokens: 10, output_tokens: 5 },
           });
@@ -572,7 +621,7 @@ describe('XaiResponsesLanguageModel', () => {
                   "role": "user",
                 },
               ],
-              "model": "grok-4-fast",
+              "model": "grok-4-fast-non-reasoning",
               "text": {
                 "format": {
                   "description": "A recipe object",
@@ -609,7 +658,7 @@ describe('XaiResponsesLanguageModel', () => {
             id: 'resp_123',
             object: 'response',
             status: 'completed',
-            model: 'grok-4-fast',
+            model: 'grok-4-fast-non-reasoning',
             output: [],
             usage: { input_tokens: 10, output_tokens: 5 },
           });
@@ -634,7 +683,7 @@ describe('XaiResponsesLanguageModel', () => {
                   "role": "user",
                 },
               ],
-              "model": "grok-4-fast",
+              "model": "grok-4-fast-non-reasoning",
               "text": {
                 "format": {
                   "type": "json_object",
@@ -649,7 +698,7 @@ describe('XaiResponsesLanguageModel', () => {
             id: 'resp_123',
             object: 'response',
             status: 'completed',
-            model: 'grok-4-fast',
+            model: 'grok-4-fast-non-reasoning',
             output: [],
             usage: { input_tokens: 10, output_tokens: 5 },
           });
@@ -701,7 +750,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [],
           usage: { input_tokens: 10, output_tokens: 5 },
         });
@@ -734,7 +783,7 @@ describe('XaiResponsesLanguageModel', () => {
                 "role": "user",
               },
             ],
-            "model": "grok-4-fast",
+            "model": "grok-4-fast-non-reasoning",
             "tools": [
               {
                 "type": "web_search",
@@ -849,7 +898,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'file_search_call',
@@ -924,7 +973,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'function_call',
@@ -971,7 +1020,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'message',
@@ -1035,7 +1084,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'web_search_call',
@@ -1087,7 +1136,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'web_search_call',
@@ -1129,7 +1178,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'x_search_call',
@@ -1171,7 +1220,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'code_interpreter_call',
@@ -1213,7 +1262,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'code_execution_call',
@@ -1255,7 +1304,7 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'resp_123',
           object: 'response',
           status: 'completed',
-          model: 'grok-4-fast',
+          model: 'grok-4-fast-non-reasoning',
           output: [
             {
               type: 'web_search_call',
@@ -1361,7 +1410,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               output: [],
             },
           }),
@@ -1430,7 +1479,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               status: 'completed',
               output: [],
               usage: { input_tokens: 10, output_tokens: 20 },
@@ -1468,7 +1517,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               output: [],
             },
           }),
@@ -1518,7 +1567,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               status: 'completed',
               output: [],
               usage: { input_tokens: 10, output_tokens: 20 },
@@ -1742,7 +1791,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               created_at: 1700000000,
               status: 'in_progress',
               output: [],
@@ -1839,7 +1888,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               status: 'in_progress',
               output: [],
             },
@@ -1898,7 +1947,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               status: 'in_progress',
               output: [],
             },
@@ -2008,7 +2057,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               status: 'in_progress',
               output: [],
             },
@@ -2122,7 +2171,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               status: 'in_progress',
               output: [],
             },
@@ -2181,7 +2230,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               status: 'in_progress',
               output: [],
             },
@@ -2240,7 +2289,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               status: 'in_progress',
               output: [],
             },
@@ -2299,7 +2348,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               status: 'in_progress',
               output: [],
             },
@@ -2358,7 +2407,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               status: 'in_progress',
               output: [],
             },
@@ -2419,7 +2468,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               status: 'in_progress',
               output: [],
             },
@@ -2479,7 +2528,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               created_at: 1700000000,
               status: 'in_progress',
               output: [],
@@ -2496,7 +2545,7 @@ describe('XaiResponsesLanguageModel', () => {
             response: {
               id: 'resp_123',
               object: 'response',
-              model: 'grok-4-fast',
+              model: 'grok-4-fast-non-reasoning',
               created_at: 1700000000,
               status: 'completed',
               output: [
@@ -2552,7 +2601,7 @@ describe('XaiResponsesLanguageModel', () => {
           response: {
             id: 'resp_123',
             object: 'response',
-            model: 'grok-4-fast',
+            model: 'grok-4-fast-non-reasoning',
             created_at: 1700000000,
             status: 'in_progress',
             output: [],
@@ -2589,7 +2638,7 @@ describe('XaiResponsesLanguageModel', () => {
           response: {
             id: 'resp_123',
             object: 'response',
-            model: 'grok-4-fast',
+            model: 'grok-4-fast-non-reasoning',
             created_at: 1700000000,
             status: 'completed',
             output: [
@@ -2637,7 +2686,7 @@ describe('XaiResponsesLanguageModel', () => {
           response: {
             id: 'resp_123',
             object: 'response',
-            model: 'grok-4-fast',
+            model: 'grok-4-fast-non-reasoning',
             created_at: 1700000000,
             status: 'in_progress',
             output: [],
@@ -2649,7 +2698,7 @@ describe('XaiResponsesLanguageModel', () => {
           response: {
             id: 'resp_123',
             object: 'response',
-            model: 'grok-4-fast',
+            model: 'grok-4-fast-non-reasoning',
             created_at: 1700000000,
             status: 'in_progress',
             output: [],
@@ -2686,7 +2735,7 @@ describe('XaiResponsesLanguageModel', () => {
           response: {
             id: 'resp_123',
             object: 'response',
-            model: 'grok-4-fast',
+            model: 'grok-4-fast-non-reasoning',
             created_at: 1700000000,
             status: 'completed',
             output: [
