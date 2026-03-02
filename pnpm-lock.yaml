@@ -1078,9 +1078,6 @@ importers:
 
   examples/next-openai-telemetry:
     dependencies:
-      '@ai-sdk/openai':
-        specifier: 3.0.39
-        version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.109
         version: link:../../packages/react
