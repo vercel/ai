@@ -94,17 +94,8 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
-    if (frequencyPenalty != null) {
-      warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
-    }
-
-    if (presencePenalty != null) {
-      warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
-    }
-
-    if (stopSequences != null) {
-      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
-    }
+    // frequencyPenalty, presencePenalty, stopSequences are supported by xAI chat completions
+    // (with caveats for reasoning models, but we pass them through regardless)
 
     // convert ai sdk messages to xai format
     const { messages, warnings: messageWarnings } =
@@ -136,6 +127,9 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
       temperature,
       top_p: topP,
       seed,
+      frequency_penalty: frequencyPenalty,
+      presence_penalty: presencePenalty,
+      stop: stopSequences,
       reasoning_effort:
         options.reasoningEffort ??
         (isCustomReasoning(reasoning)
