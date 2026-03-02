@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.62
+
+### Patch Changes
+
+- 64a8fae: chore: remove obsolete model IDs for Anthropic, Google, OpenAI, xAI
+
 ## 3.0.61
 
 ### Patch Changes
