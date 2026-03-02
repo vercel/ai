@@ -86,9 +86,11 @@ export interface AmazonBedrockProviderSettings {
 
 
   /**
-   * Whether to use the FIPS endpoint for Bedrock. Defaults to `false`. If set to `true`, the provider will use the FIPS-compliant endpoint for Bedrock.
+   * Whether to use the FIPS endpoint for Bedrock. If set to `true`, the provider will use the FIPS-compliant endpoint for Bedrock.
+   * Uses string to be compatible with environment variable loading, where environment variables are always strings.
+   * Defaults to the value of the `AWS_USE_FIPS_ENDPOINT` environment variable if unset, and ultimately defaults to `false` if neither is set.
    */
-  useFipsEndpoint?: boolean;
+  useFipsEndpoint?: 'true';
 
 
   /**
@@ -270,10 +272,12 @@ export function createAmazonBedrock(
     return withUserAgentSuffix(baseHeaders, `ai-sdk/amazon-bedrock/${VERSION}`);
   };
 
-  const useFipsEndpoint = loadOptionalSetting<boolean>({
-    settingValue: options.useFipsEndpoint,
-    environmentVariableName: 'AWS_USE_FIPS_ENDPOINT',
-  });
+  const useFipsEndpoint: () => boolean = () => {
+      return loadOptionalSetting({
+      settingValue: options.useFipsEndpoint,
+      environmentVariableName: 'AWS_USE_FIPS_ENDPOINT',
+    }) == 'true'
+  };
 
   const getBedrockRuntimeBaseUrl = (): string =>
     withoutTrailingSlash(

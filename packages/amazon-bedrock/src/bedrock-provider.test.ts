@@ -69,12 +69,11 @@ import {
   createSigV4FetchFunction,
   createApiKeyFetchFunction,
 } from './bedrock-sigv4-fetch';
-import { loadOptionalSetting, loadSetting } from '@ai-sdk/provider-utils';
+import { loadOptionalSetting } from '@ai-sdk/provider-utils';
 
 const mockCreateSigV4FetchFunction = vi.mocked(createSigV4FetchFunction);
 const mockCreateApiKeyFetchFunction = vi.mocked(createApiKeyFetchFunction);
 const mockLoadOptionalSetting = vi.mocked(loadOptionalSetting);
-const mockLoadSetting = vi.mocked(loadSetting);
 
 describe('AmazonBedrockProvider', () => {
   beforeEach(() => {
