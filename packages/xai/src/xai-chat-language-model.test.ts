@@ -364,6 +364,7 @@ describe('XaiChatLanguageModel', () => {
       expect(request).toMatchInlineSnapshot(`
         {
           "body": {
+            "frequency_penalty": undefined,
             "max_completion_tokens": undefined,
             "messages": [
               {
@@ -373,10 +374,12 @@ describe('XaiChatLanguageModel', () => {
             ],
             "model": "grok-beta",
             "parallel_function_calling": undefined,
+            "presence_penalty": undefined,
             "reasoning_effort": undefined,
             "response_format": undefined,
             "search_parameters": undefined,
             "seed": undefined,
+            "stop": undefined,
             "temperature": undefined,
             "tool_choice": undefined,
             "tools": undefined,
@@ -840,6 +843,44 @@ describe('XaiChatLanguageModel', () => {
         }
       `);
     });
+
+    it('should pass frequencyPenalty, presencePenalty, stopSequences to the API', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      const { request } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.3,
+        stopSequences: ['STOP', '\n\n'],
+      });
+
+      expect(
+        (request.body as Record<string, unknown>)['frequency_penalty'],
+      ).toBe(0.5);
+      expect(
+        (request.body as Record<string, unknown>)['presence_penalty'],
+      ).toBe(0.3);
+      expect((request.body as Record<string, unknown>)['stop']).toEqual([
+        'STOP',
+        '\n\n',
+      ]);
+    });
+
+    it('should not warn when frequencyPenalty, presencePenalty, or stopSequences are set', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      const { warnings } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.3,
+        stopSequences: ['STOP'],
+      });
+
+      const unsupportedWarnings = warnings.filter(
+        w => w.type === 'unsupported',
+      );
+      expect(unsupportedWarnings).toEqual([]);
+    });
   });
 
   describe('doStream', () => {
@@ -982,6 +1023,7 @@ describe('XaiChatLanguageModel', () => {
       expect(request).toMatchInlineSnapshot(`
         {
           "body": {
+            "frequency_penalty": undefined,
             "max_completion_tokens": undefined,
             "messages": [
               {
@@ -991,10 +1033,12 @@ describe('XaiChatLanguageModel', () => {
             ],
             "model": "grok-beta",
             "parallel_function_calling": undefined,
+            "presence_penalty": undefined,
             "reasoning_effort": undefined,
             "response_format": undefined,
             "search_parameters": undefined,
             "seed": undefined,
+            "stop": undefined,
             "stream": true,
             "stream_options": {
               "include_usage": true,
