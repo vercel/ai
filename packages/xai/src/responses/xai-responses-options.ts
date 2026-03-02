@@ -4,8 +4,8 @@ export type XaiResponsesModelId =
   | 'grok-4-1-fast-reasoning'
   | 'grok-4-1-fast-non-reasoning'
   | 'grok-4'
-  | 'grok-4-fast'
   | 'grok-4-fast-non-reasoning'
+  | 'grok-4-fast-reasoning'
   | (string & {});
 
 /**
@@ -17,6 +17,8 @@ export const xaiLanguageModelResponsesOptions = z.object({
    * Possible values are `low` (uses fewer reasoning tokens), `medium` and `high` (uses more reasoning tokens).
    */
   reasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
+  logprobs: z.boolean().optional(),
+  topLogprobs: z.number().int().min(0).max(8).optional(),
   /**
    * Whether to store the input message(s) and model response for later retrieval.
    * @default true

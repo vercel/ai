@@ -34,7 +34,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-5-mini'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
