@@ -1454,11 +1454,21 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     const customToolName =
                       toolNameMapping.toCustomToolName(providerToolName);
 
+                    // Tools like 'web_fetch_20260209' provide input data here.
+                    // Other tools like 'code_execution_20260120' provide input data via deltas.
+                    // So we only use this if it's non-empty to avoid conflicts.
+                    const finalInput =
+                      part.input != null &&
+                      typeof part.input === 'object' &&
+                      Object.keys(part.input).length > 0
+                        ? JSON.stringify(part.input)
+                        : '';
+
                     contentBlocks[value.index] = {
                       type: 'tool-call',
                       toolCallId: part.id,
                       toolName: customToolName,
-                      input: '',
+                      input: finalInput,
                       providerExecuted: true,
                       firstDelta: true,
                       providerToolName: part.name,
