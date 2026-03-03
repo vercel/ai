@@ -59,6 +59,20 @@ const gatewayLanguageModelOptions = lazySchema(() =>
        * used.
        */
       zeroDataRetention: z.boolean().optional(),
+      /**
+       * Per-provider timeouts for BYOK credentials to trigger fast failover
+       * when a provider is slow to respond. Values are in milliseconds.
+       *
+       * If a provider doesn't start responding within the configured timeout,
+       * the request is aborted and falls back to the next available provider.
+       *
+       * Example: `{ byok: { openai: 5000, anthropic: 2000 } }`
+       */
+      providerTimeouts: z
+        .object({
+          byok: z.record(z.string(), z.number().int().min(100)).optional(),
+        })
+        .optional(),
     }),
   ),
 );
