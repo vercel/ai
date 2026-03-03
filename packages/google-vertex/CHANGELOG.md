@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 4.0.69
+
+### Patch Changes
+
+- e33f821: feat(provider/google): add `gemini-3.1-flash-lite-preview`
+- Updated dependencies [e33f821]
+  - @ai-sdk/google@3.0.35
+
 ## 4.0.68
 
 ### Patch Changes

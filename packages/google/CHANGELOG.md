@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.35
+
+### Patch Changes
+
+- e33f821: feat(provider/google): add `gemini-3.1-flash-lite-preview`
+
 ## 3.0.34
 
 ### Patch Changes

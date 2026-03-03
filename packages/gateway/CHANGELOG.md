@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 3.0.61
+
+### Patch Changes
+
+- e33f821: feat(provider/google): add `gemini-3.1-flash-lite-preview`
+- 8bb967c: feat(gateway): add providerTimeouts to provider options
+
 ## 3.0.60
 
 ### Patch Changes
