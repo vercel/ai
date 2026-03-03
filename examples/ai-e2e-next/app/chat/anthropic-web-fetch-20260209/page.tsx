@@ -6,6 +6,7 @@ import ChatInput from '@/components/chat-input';
 import SourcesView from '@/components/sources-view';
 import AnthropicCodeExecution20260120View from '@/components/tool/anthropic-code-execution-20260120-view';
 import AnthropicWebFetch20260209View from '@/components/tool/anthropic-web-fetch-20260209-view';
+import DynamicToolView from '@/components/tool/dynamic-tool-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 
@@ -37,13 +38,29 @@ export default function TestAnthropicWebFetch20260209() {
                   />
                 );
               }
-              case 'tool-code_execution': {
-                return (
-                  <AnthropicCodeExecution20260120View
-                    invocation={part}
-                    key={index}
-                  />
-                );
+              case 'dynamic-tool': {
+                if (part.toolName === 'code_execution') {
+                  return (
+                    <AnthropicCodeExecution20260120View
+                      invocation={
+                        {
+                          ...part,
+                          input: {
+                            type: 'programmatic-tool-call',
+                            code:
+                              typeof part.input === 'object' &&
+                              part.input !== null &&
+                              'code' in part.input
+                                ? String(part.input.code)
+                                : '',
+                          },
+                        } as any
+                      }
+                      key={index}
+                    />
+                  );
+                }
+                return <DynamicToolView invocation={part} key={index} />;
               }
             }
           })}

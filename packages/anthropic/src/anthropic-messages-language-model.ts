@@ -1470,6 +1470,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       toolName: customToolName,
                       input: finalInput,
                       providerExecuted: true,
+                      ...(markCodeExecutionDynamic &&
+                      providerToolName === 'code_execution'
+                        ? { dynamic: true }
+                        : {}),
                       firstDelta: true,
                       providerToolName: part.name,
                     };
@@ -1479,6 +1483,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       id: part.id,
                       toolName: customToolName,
                       providerExecuted: true,
+                      ...(markCodeExecutionDynamic &&
+                      providerToolName === 'code_execution'
+                        ? { dynamic: true }
+                        : {}),
                     });
                   } else if (
                     part.name === 'tool_search_tool_regex' ||
