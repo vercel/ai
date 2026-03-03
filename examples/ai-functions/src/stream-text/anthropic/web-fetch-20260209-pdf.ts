@@ -10,7 +10,6 @@ run(async () => {
       'https://raw.githubusercontent.com/vercel/ai/main/examples/ai-functions/data/ai.pdf',
     tools: {
       web_fetch: anthropic.tools.webFetch_20260209(),
-      code_execution: anthropic.tools.codeExecution_20260120(),
     },
   });
 

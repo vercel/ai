@@ -53,8 +53,6 @@ export async function prepareTools({
   }
 
   const anthropicTools: AnthropicTool[] = [];
-  let hasWebTool20260209 = false;
-  let hasCodeExecution20260120 = false;
 
   for (const tool of tools) {
     switch (tool.type) {
@@ -126,7 +124,6 @@ export async function prepareTools({
             break;
           }
           case 'anthropic.code_execution_20260120': {
-            hasCodeExecution20260120 = true;
             anthropicTools.push({
               type: 'code_execution_20260120',
               name: 'code_execution',
@@ -255,7 +252,6 @@ export async function prepareTools({
             break;
           }
           case 'anthropic.web_fetch_20260209': {
-            hasWebTool20260209 = true;
             betas.add('code-execution-web-tools-2026-02-09');
             const args = await validateTypes({
               value: tool.args,
@@ -290,7 +286,6 @@ export async function prepareTools({
             break;
           }
           case 'anthropic.web_search_20260209': {
-            hasWebTool20260209 = true;
             betas.add('code-execution-web-tools-2026-02-09');
             const args = await validateTypes({
               value: tool.args,
@@ -345,17 +340,6 @@ export async function prepareTools({
         break;
       }
     }
-  }
-
-  // Warn if web tools (20260209) are used without code_execution_20260120
-  if (hasWebTool20260209 && !hasCodeExecution20260120) {
-    toolWarnings.push({
-      type: 'other',
-      message:
-        'web_search_20260209 and web_fetch_20260209 tools require ' +
-        'code_execution_20260120 to work correctly. Add ' +
-        'anthropic.tools.codeExecution_20260120() to your tools configuration.',
-    });
   }
 
   if (toolChoice == null) {

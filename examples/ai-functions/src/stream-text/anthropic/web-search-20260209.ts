@@ -16,7 +16,6 @@ run(async () => {
           timezone: 'America/New_York',
         },
       }),
-      code_execution: anthropic.tools.codeExecution_20260120(),
     },
   });
 
