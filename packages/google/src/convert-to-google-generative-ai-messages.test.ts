@@ -409,7 +409,7 @@ describe('tool messages', () => {
                 name: 'testFunction',
                 response: {
                   name: 'testFunction',
-                  content: { someData: 'test result' },
+                  content: JSON.stringify({ someData: 'test result' }),
                 },
               },
             },
