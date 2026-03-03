@@ -70,7 +70,7 @@ const gatewayLanguageModelOptions = lazySchema(() =>
        */
       providerTimeouts: z
         .object({
-          byok: z.record(z.string(), z.number().int().min(100)).optional(),
+          byok: z.record(z.string(), z.number().int().min(1000)).optional(),
         })
         .optional(),
     }),
