@@ -1,3 +1,5 @@
+import type { Output } from '../generate-text/output';
+import type { ToolSet } from '../generate-text/tool-set';
 import { asArray } from '../util/as-array';
 import type { TelemetryIntegration } from './telemetry-integration';
 import { getGlobalTelemetryIntegrations } from './telemetry-integration-registry';
@@ -25,9 +27,12 @@ export function bindTelemetryIntegration(
  * with per-call integrations into a single composite integration.
  * Global integrations run first.
  */
-export function getGlobalTelemetryIntegration(
+export function getGlobalTelemetryIntegration<
+  TOOLS extends ToolSet = ToolSet,
+  OUTPUT extends Output = Output,
+>(
   integrations: TelemetryIntegration | Array<TelemetryIntegration> | undefined,
-): TelemetryIntegration {
+): TelemetryIntegration<TOOLS, OUTPUT> {
   const globalIntegrations = getGlobalTelemetryIntegrations();
   const localIntegrations = asArray(integrations);
   const allIntegrations = [...globalIntegrations, ...localIntegrations];
@@ -67,5 +72,5 @@ export function getGlobalTelemetryIntegration(
       integration => integration.onStepFinish,
     ),
     onFinish: createTelemetryComposite(integration => integration.onFinish),
-  };
+  } as TelemetryIntegration<TOOLS, OUTPUT>;
 }

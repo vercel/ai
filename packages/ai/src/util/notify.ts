@@ -8,9 +8,10 @@ export type Listener<EVENT> = (event: EVENT) => PromiseLike<void> | void;
  */
 export async function notify<EVENT>(options: {
   event: EVENT;
-  callbacks?: Listener<EVENT> | Array<Listener<EVENT>>;
+  callbacks?: Listener<EVENT> | Array<Listener<EVENT> | undefined | null>;
 }): Promise<void> {
   for (const callback of asArray(options.callbacks)) {
+    if (callback == null) continue;
     try {
       await callback(options.event);
     } catch (_ignored) {}

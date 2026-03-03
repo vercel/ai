@@ -39,6 +39,7 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
+import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
   LanguageModel,
@@ -441,6 +442,9 @@ export async function generateText<
     };
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
   const model = resolveLanguageModel(modelArg);
+  const globalTelemetry = getGlobalTelemetryIntegration<TOOLS, OUTPUT>(
+    telemetry?.integrations,
+  );
   const stopConditions = asArray(stopWhen);
 
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
@@ -509,7 +513,7 @@ export async function generateText<
       metadata: telemetry?.metadata as Record<string, unknown> | undefined,
       experimental_context,
     },
-    callbacks: onStart,
+    callbacks: [onStart, globalTelemetry.onStart],
   });
 
   const tracer = getTracer(telemetry);
@@ -562,8 +566,11 @@ export async function generateText<
             experimental_context,
             stepNumber: 0,
             model: modelInfo,
-            onToolCallStart: onToolCallStart,
-            onToolCallFinish: onToolCallFinish,
+            onToolCallStart: [onToolCallStart, globalTelemetry.onToolCallStart],
+            onToolCallFinish: [
+              onToolCallFinish,
+              globalTelemetry.onToolCallFinish,
+            ],
           });
 
           const toolContent: Array<any> = [];
@@ -735,7 +742,7 @@ export async function generateText<
                   | undefined,
                 experimental_context,
               },
-              callbacks: onStepStart,
+              callbacks: [onStepStart, globalTelemetry.onStepStart],
             });
 
             currentModelResponse = await retry(() =>
@@ -957,8 +964,14 @@ export async function generateText<
                   experimental_context,
                   stepNumber: steps.length,
                   model: stepModelInfo,
-                  onToolCallStart: onToolCallStart,
-                  onToolCallFinish: onToolCallFinish,
+                  onToolCallStart: [
+                    onToolCallStart,
+                    globalTelemetry.onToolCallStart,
+                  ],
+                  onToolCallFinish: [
+                    onToolCallFinish,
+                    globalTelemetry.onToolCallFinish,
+                  ],
                 })),
               );
             }
@@ -1056,7 +1069,10 @@ export async function generateText<
 
             steps.push(currentStepResult);
 
-            await notify({ event: currentStepResult, callbacks: onStepFinish });
+            await notify({
+              event: currentStepResult,
+              callbacks: [onStepFinish, globalTelemetry.onStepFinish],
+            });
           } finally {
             if (stepTimeoutId != null) {
               clearTimeout(stepTimeoutId);
@@ -1152,7 +1168,7 @@ export async function generateText<
             steps,
             totalUsage,
           },
-          callbacks: onFinish,
+          callbacks: [onFinish, globalTelemetry.onFinish],
         });
 
         // parse output only if the last step was finished with "stop":
@@ -1203,8 +1219,14 @@ async function executeTools<TOOLS extends ToolSet>({
   experimental_context: unknown;
   stepNumber: number;
   model: { provider: string; modelId: string };
-  onToolCallStart: GenerateTextOnToolCallStartCallback<TOOLS> | undefined;
-  onToolCallFinish: GenerateTextOnToolCallFinishCallback<TOOLS> | undefined;
+  onToolCallStart:
+    | GenerateTextOnToolCallStartCallback<TOOLS>
+    | Array<GenerateTextOnToolCallStartCallback<TOOLS> | undefined | null>
+    | undefined;
+  onToolCallFinish:
+    | GenerateTextOnToolCallFinishCallback<TOOLS>
+    | Array<GenerateTextOnToolCallFinishCallback<TOOLS> | undefined | null>
+    | undefined;
 }): Promise<Array<ToolOutput<TOOLS>>> {
   const toolOutputs = await Promise.all(
     toolCalls.map(async toolCall =>
