@@ -673,4 +673,140 @@ describe('executeToolCall', () => {
       expect(result).toBeUndefined();
     });
   });
+
+  describe('array callbacks', () => {
+    it('should call all onToolCallStart listeners in an array', async () => {
+      const calls: string[] = [];
+
+      await executeToolCall({
+        toolCall: createToolCall(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        tracer,
+        telemetry: undefined,
+        messages: [],
+        abortSignal: undefined,
+        experimental_context: undefined,
+        onToolCallStart: [
+          async () => {
+            calls.push('first');
+          },
+          async () => {
+            calls.push('second');
+          },
+        ],
+      });
+
+      expect(calls).toEqual(['first', 'second']);
+    });
+
+    it('should call all onToolCallFinish listeners in an array', async () => {
+      const calls: string[] = [];
+
+      await executeToolCall({
+        toolCall: createToolCall(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        tracer,
+        telemetry: undefined,
+        messages: [],
+        abortSignal: undefined,
+        experimental_context: undefined,
+        onToolCallFinish: [
+          async () => {
+            calls.push('first');
+          },
+          async () => {
+            calls.push('second');
+          },
+        ],
+      });
+
+      expect(calls).toEqual(['first', 'second']);
+    });
+
+    it('should skip undefined/null entries in callback arrays', async () => {
+      const calls: string[] = [];
+
+      await executeToolCall({
+        toolCall: createToolCall(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        tracer,
+        telemetry: undefined,
+        messages: [],
+        abortSignal: undefined,
+        experimental_context: undefined,
+        onToolCallStart: [
+          undefined,
+          async () => {
+            calls.push('start');
+          },
+          null,
+        ],
+        onToolCallFinish: [
+          null,
+          async () => {
+            calls.push('finish');
+          },
+          undefined,
+        ],
+      });
+
+      expect(calls).toEqual(['start', 'finish']);
+    });
+
+    it('should not break when one listener in the array throws', async () => {
+      const calls: string[] = [];
+
+      const result = await executeToolCall({
+        toolCall: createToolCall(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        tracer,
+        telemetry: undefined,
+        messages: [],
+        abortSignal: undefined,
+        experimental_context: undefined,
+        onToolCallStart: [
+          async () => {
+            throw new Error('listener error');
+          },
+          async () => {
+            calls.push('second-start');
+          },
+        ],
+        onToolCallFinish: [
+          async () => {
+            throw new Error('listener error');
+          },
+          async () => {
+            calls.push('second-finish');
+          },
+        ],
+      });
+
+      expect(result).toMatchObject({
+        type: 'tool-result',
+        output: 'test-result',
+      });
+      expect(calls).toEqual(['second-start', 'second-finish']);
+    });
+  });
 });
