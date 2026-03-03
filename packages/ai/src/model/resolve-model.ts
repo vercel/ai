@@ -1,6 +1,7 @@
 import { gateway } from '@ai-sdk/gateway';
 import {
   EmbeddingModelV3,
+  Experimental_VideoModelV3,
   ImageModelV3,
   LanguageModelV3,
   ProviderV3,
@@ -18,6 +19,7 @@ import { asLanguageModelV3 } from './as-language-model-v3';
 import { asSpeechModelV3 } from './as-speech-model-v3';
 import { asTranscriptionModelV3 } from './as-transcription-model-v3';
 import { ImageModel } from '../types/image-model';
+import { VideoModel } from '../types/video-model';
 
 export function resolveLanguageModel(model: LanguageModel): LanguageModelV3 {
   if (typeof model !== 'string') {
@@ -119,6 +121,37 @@ export function resolveImageModel(model: ImageModel): ImageModelV3 {
   }
 
   return getGlobalProvider().imageModel(model);
+}
+
+export function resolveVideoModel(
+  model: VideoModel,
+): Experimental_VideoModelV3 {
+  if (typeof model === 'string') {
+    const provider = getGlobalProvider();
+    // TODO AI SDK v7
+    // @ts-expect-error - videoModel support is experimental
+    const videoModel = provider.videoModel;
+
+    if (!videoModel) {
+      throw new Error(
+        'The default provider does not support video models. ' +
+          'Please use a Experimental_VideoModelV3 object from a provider (e.g., vertex.video("model-id")).',
+      );
+    }
+
+    return videoModel(model);
+  }
+
+  if (model.specificationVersion !== 'v3') {
+    const unsupportedModel: any = model;
+    throw new UnsupportedModelVersionError({
+      version: unsupportedModel.specificationVersion,
+      provider: unsupportedModel.provider,
+      modelId: unsupportedModel.modelId,
+    });
+  }
+
+  return model;
 }
 
 function getGlobalProvider(): ProviderV3 {

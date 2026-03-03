@@ -1,20 +1,14 @@
-import {
-  EmbeddingModelV3Embedding,
-  TooManyEmbeddingValuesForCallError,
-} from '@ai-sdk/provider';
+import { TooManyEmbeddingValuesForCallError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import * as fs from 'node:fs';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createVertex } from './google-vertex-provider';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const dummyEmbeddings = [
-  [0.1, 0.2, 0.3],
-  [0.4, 0.5, 0.6],
-];
 const testValues = ['test text one', 'test text two'];
 
 const DEFAULT_URL =
@@ -27,6 +21,19 @@ const server = createTestServer({
   [DEFAULT_URL]: {},
   [CUSTOM_URL]: {},
 });
+
+function prepareJsonFixtureResponse(
+  filename: string,
+  headers?: Record<string, string>,
+) {
+  server.urls[DEFAULT_URL].response = {
+    type: 'json-value',
+    headers,
+    body: JSON.parse(
+      fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+    ),
+  };
+}
 
 describe('GoogleVertexEmbeddingModel', () => {
   const mockModelId = 'textembedding-gecko@001';
@@ -48,154 +55,202 @@ describe('GoogleVertexEmbeddingModel', () => {
 
   const model = new GoogleVertexEmbeddingModel(mockModelId, mockConfig);
 
-  function prepareJsonResponse({
-    embeddings = dummyEmbeddings,
-    tokenCounts = [1, 1],
-    headers,
-  }: {
-    embeddings?: EmbeddingModelV3Embedding[];
-    tokenCounts?: number[];
-    headers?: Record<string, string>;
-  } = {}) {
-    server.urls[DEFAULT_URL].response = {
-      type: 'json-value',
-      headers,
-      body: {
-        predictions: embeddings.map((values, i) => ({
-          embeddings: {
-            values,
-            statistics: { token_count: tokenCounts[i] },
+  describe('embedding', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('google-vertex-embedding');
+    });
+
+    it('should extract embeddings', async () => {
+      const { embeddings } = await model.doEmbed({
+        values: testValues,
+        providerOptions: { google: mockProviderOptions },
+      });
+
+      expect(embeddings).toMatchInlineSnapshot(`
+        [
+          [
+            -0.017999587580561638,
+            -0.006893285550177097,
+            -0.036766719073057175,
+            -0.017558680847287178,
+            -0.019938766956329346,
+          ],
+          [
+            -0.06007182598114014,
+            0.004907649010419846,
+            -0.00690646655857563,
+            -0.007314121350646019,
+            -0.048464205116033554,
+          ],
+        ]
+      `);
+    });
+
+    it('should return full result snapshot', async () => {
+      const result = await model.doEmbed({
+        values: testValues,
+        providerOptions: { google: mockProviderOptions },
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should extract usage', async () => {
+      const { usage } = await model.doEmbed({
+        values: testValues,
+        providerOptions: { google: mockProviderOptions },
+      });
+
+      expect(usage).toMatchInlineSnapshot(`
+        {
+          "tokens": 11,
+        }
+      `);
+    });
+
+    it('should pass the model parameters correctly', async () => {
+      await model.doEmbed({
+        values: testValues,
+        providerOptions: { google: mockProviderOptions },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "instances": [
+            {
+              "content": "test text one",
+              "task_type": "SEMANTIC_SIMILARITY",
+              "title": "test title",
+            },
+            {
+              "content": "test text two",
+              "task_type": "SEMANTIC_SIMILARITY",
+              "title": "test title",
+            },
+          ],
+          "parameters": {
+            "autoTruncate": false,
+            "outputDimensionality": 768,
           },
-        })),
-      },
-    };
-  }
-
-  it('should extract embeddings', async () => {
-    prepareJsonResponse();
-
-    const { embeddings } = await model.doEmbed({
-      values: testValues,
-      providerOptions: { google: mockProviderOptions },
+        }
+      `);
     });
 
-    expect(embeddings).toStrictEqual(dummyEmbeddings);
+    it('should accept vertex as provider options key', async () => {
+      await model.doEmbed({
+        values: testValues,
+        providerOptions: { vertex: mockProviderOptions },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "instances": [
+            {
+              "content": "test text one",
+              "task_type": "SEMANTIC_SIMILARITY",
+              "title": "test title",
+            },
+            {
+              "content": "test text two",
+              "task_type": "SEMANTIC_SIMILARITY",
+              "title": "test title",
+            },
+          ],
+          "parameters": {
+            "autoTruncate": false,
+            "outputDimensionality": 768,
+          },
+        }
+      `);
+    });
+
+    it('should pass the taskType setting in instances', async () => {
+      await model.doEmbed({
+        values: testValues,
+        providerOptions: {
+          google: { taskType: mockProviderOptions.taskType },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "instances": [
+            {
+              "content": "test text one",
+              "task_type": "SEMANTIC_SIMILARITY",
+            },
+            {
+              "content": "test text two",
+              "task_type": "SEMANTIC_SIMILARITY",
+            },
+          ],
+          "parameters": {},
+        }
+      `);
+    });
+
+    it('should pass the title setting in instances', async () => {
+      await model.doEmbed({
+        values: testValues,
+        providerOptions: { google: { title: mockProviderOptions.title } },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "instances": [
+            {
+              "content": "test text one",
+              "title": "test title",
+            },
+            {
+              "content": "test text two",
+              "title": "test title",
+            },
+          ],
+          "parameters": {},
+        }
+      `);
+    });
   });
 
-  it('should expose the raw response', async () => {
-    prepareJsonResponse({
-      headers: {
+  describe('response headers', () => {
+    it('should expose response headers', async () => {
+      prepareJsonFixtureResponse('google-vertex-embedding', {
         'test-header': 'test-value',
-      },
-    });
+      });
 
-    const { response } = await model.doEmbed({
-      values: testValues,
-      providerOptions: { google: mockProviderOptions },
-    });
+      const { response } = await model.doEmbed({
+        values: testValues,
+        providerOptions: { google: mockProviderOptions },
+      });
 
-    expect(response?.headers).toStrictEqual({
-      // default headers:
-      'content-length': '159',
-      'content-type': 'application/json',
-      // custom header
-      'test-header': 'test-value',
-    });
-    expect(response).toMatchSnapshot();
-  });
-
-  it('should extract usage', async () => {
-    prepareJsonResponse({
-      tokenCounts: [10, 15],
-    });
-
-    const { usage } = await model.doEmbed({
-      values: testValues,
-      providerOptions: { google: mockProviderOptions },
-    });
-
-    expect(usage).toStrictEqual({ tokens: 25 });
-  });
-
-  it('should pass the model parameters correctly', async () => {
-    prepareJsonResponse();
-
-    await model.doEmbed({
-      values: testValues,
-      providerOptions: { google: mockProviderOptions },
-    });
-
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      instances: testValues.map(value => ({
-        content: value,
-        task_type: mockProviderOptions.taskType,
-        title: mockProviderOptions.title,
-      })),
-      parameters: {
-        outputDimensionality: mockProviderOptions.outputDimensionality,
-        autoTruncate: mockProviderOptions.autoTruncate,
-      },
+      expect(response?.headers).toMatchInlineSnapshot(`
+        {
+          "content-length": "429",
+          "content-type": "application/json",
+          "test-header": "test-value",
+        }
+      `);
     });
   });
 
-  it('should accept vertex as provider options key', async () => {
-    prepareJsonResponse();
+  describe('response metadata', () => {
+    it('should expose the raw response', async () => {
+      prepareJsonFixtureResponse('google-vertex-embedding', {
+        'test-header': 'test-value',
+      });
 
-    await model.doEmbed({
-      values: testValues,
-      providerOptions: { vertex: mockProviderOptions },
-    });
+      const { response } = await model.doEmbed({
+        values: testValues,
+        providerOptions: { google: mockProviderOptions },
+      });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      instances: testValues.map(value => ({
-        content: value,
-        task_type: mockProviderOptions.taskType,
-        title: mockProviderOptions.title,
-      })),
-      parameters: {
-        outputDimensionality: mockProviderOptions.outputDimensionality,
-        autoTruncate: mockProviderOptions.autoTruncate,
-      },
+      expect(response).toMatchSnapshot();
     });
   });
 
-  it('should pass the taskType setting in instances', async () => {
-    prepareJsonResponse();
-
-    await model.doEmbed({
-      values: testValues,
-      providerOptions: { google: { taskType: mockProviderOptions.taskType } },
-    });
-
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      instances: testValues.map(value => ({
-        content: value,
-        task_type: mockProviderOptions.taskType,
-      })),
-      parameters: {},
-    });
-  });
-
-  it('should pass the title setting in instances', async () => {
-    prepareJsonResponse();
-
-    await model.doEmbed({
-      values: testValues,
-      providerOptions: { google: { title: mockProviderOptions.title } },
-    });
-
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      instances: testValues.map(value => ({
-        content: value,
-        title: mockProviderOptions.title,
-      })),
-      parameters: {},
-    });
-  });
-
-  // changed test to go through the provider `createVertex`
   it('should pass headers correctly', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('google-vertex-embedding');
 
     const provider = createVertex({
       project: 'test-project',
@@ -209,11 +264,13 @@ describe('GoogleVertexEmbeddingModel', () => {
       providerOptions: { google: mockProviderOptions },
     });
 
-    expect(server.calls[0].requestHeaders).toStrictEqual({
-      'content-type': 'application/json',
-      'x-custom-header': 'custom-value',
-      'x-request-header': 'request-value',
-    });
+    expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+      {
+        "content-type": "application/json",
+        "x-custom-header": "custom-value",
+        "x-request-header": "request-value",
+      }
+    `);
     expect(server.calls[0].requestUserAgent).toContain(
       `ai-sdk/google-vertex/0.0.0-test`,
     );
@@ -233,14 +290,12 @@ describe('GoogleVertexEmbeddingModel', () => {
   it('should use custom baseURL when provided', async () => {
     server.urls[CUSTOM_URL].response = {
       type: 'json-value',
-      body: {
-        predictions: dummyEmbeddings.map(values => ({
-          embeddings: {
-            values,
-            statistics: { token_count: 1 },
-          },
-        })),
-      },
+      body: JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/google-vertex-embedding.json',
+          'utf8',
+        ),
+      ),
     };
 
     const modelWithCustomUrl = new GoogleVertexEmbeddingModel(
@@ -259,7 +314,24 @@ describe('GoogleVertexEmbeddingModel', () => {
       },
     });
 
-    expect(response.embeddings).toStrictEqual(dummyEmbeddings);
+    expect(response.embeddings).toMatchInlineSnapshot(`
+      [
+        [
+          -0.017999587580561638,
+          -0.006893285550177097,
+          -0.036766719073057175,
+          -0.017558680847287178,
+          -0.019938766956329346,
+        ],
+        [
+          -0.06007182598114014,
+          0.004907649010419846,
+          -0.00690646655857563,
+          -0.007314121350646019,
+          -0.048464205116033554,
+        ],
+      ]
+    `);
 
     expect(server.calls[0].requestUrl).toBe(
       'https://custom-endpoint.com/models/textembedding-gecko@001:predict',
@@ -267,22 +339,15 @@ describe('GoogleVertexEmbeddingModel', () => {
   });
 
   it('should use custom fetch when provided and include proper request content', async () => {
-    const customFetch = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          predictions: dummyEmbeddings.map(values => ({
-            embeddings: {
-              values,
-              statistics: { token_count: 1 },
-            },
-          })),
-        }),
-      ),
+    const fixture = JSON.parse(
+      fs.readFileSync('src/__fixtures__/google-vertex-embedding.json', 'utf8'),
     );
+    const customFetch = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify(fixture)));
 
     const modelWithCustomFetch = new GoogleVertexEmbeddingModel(
       'textembedding-gecko@001',
-
       {
         headers: () => ({}),
         baseURL: 'https://custom-endpoint.com',
@@ -298,18 +363,44 @@ describe('GoogleVertexEmbeddingModel', () => {
       },
     });
 
-    expect(response.embeddings).toStrictEqual(dummyEmbeddings);
+    expect(response.embeddings).toMatchInlineSnapshot(`
+      [
+        [
+          -0.017999587580561638,
+          -0.006893285550177097,
+          -0.036766719073057175,
+          -0.017558680847287178,
+          -0.019938766956329346,
+        ],
+        [
+          -0.06007182598114014,
+          0.004907649010419846,
+          -0.00690646655857563,
+          -0.007314121350646019,
+          -0.048464205116033554,
+        ],
+      ]
+    `);
 
     expect(customFetch).toHaveBeenCalledWith(CUSTOM_URL, expect.any(Object));
 
     const [_, secondArgument] = customFetch.mock.calls[0];
     const requestBody = JSON.parse(secondArgument.body);
 
-    expect(requestBody).toStrictEqual({
-      instances: testValues.map(value => ({ content: value })),
-      parameters: {
-        outputDimensionality: 768,
-      },
-    });
+    expect(requestBody).toMatchInlineSnapshot(`
+      {
+        "instances": [
+          {
+            "content": "test text one",
+          },
+          {
+            "content": "test text two",
+          },
+        ],
+        "parameters": {
+          "outputDimensionality": 768,
+        },
+      }
+    `);
   });
 });

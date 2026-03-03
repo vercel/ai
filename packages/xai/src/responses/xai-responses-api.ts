@@ -342,6 +342,20 @@ export const xaiResponsesChunkSchema = z.union([
     text: z.string(),
   }),
   z.object({
+    type: z.literal('response.reasoning_text.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    content_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.reasoning_text.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    content_index: z.number(),
+    text: z.string(),
+  }),
+  z.object({
     type: z.literal('response.web_search_call.in_progress'),
     item_id: z.string(),
     output_index: z.number(),
@@ -383,16 +397,6 @@ export const xaiResponsesChunkSchema = z.union([
   }),
   z.object({
     type: z.literal('response.file_search_call.completed'),
-    item_id: z.string(),
-    output_index: z.number(),
-  }),
-  z.object({
-    type: z.literal('response.custom_tool_call_input.done'),
-    item_id: z.string(),
-    output_index: z.number(),
-  }),
-  z.object({
-    type: z.literal('response.custom_tool_call_input.delta'),
     item_id: z.string(),
     output_index: z.number(),
   }),
@@ -455,6 +459,19 @@ export const xaiResponsesChunkSchema = z.union([
     item_id: z.string(),
     output_index: z.number(),
     input: z.string(),
+  }),
+  // Function call arguments streaming events (standard function tools)
+  z.object({
+    type: z.literal('response.function_call_arguments.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.function_call_arguments.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    arguments: z.string(),
   }),
   z.object({
     type: z.literal('response.mcp_call.in_progress'),

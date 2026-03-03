@@ -13,7 +13,7 @@ import {
 } from './cohere-reranking-api';
 import {
   CohereRerankingModelId,
-  cohereRerankingOptionsSchema,
+  cohereRerankingModelOptionsSchema,
 } from './cohere-reranking-options';
 
 type CohereRerankingConfig = {
@@ -52,7 +52,7 @@ export class CohereRerankingModel implements RerankingModelV3 {
     const rerankingOptions = await parseProviderOptions({
       provider: 'cohere',
       providerOptions,
-      schema: cohereRerankingOptionsSchema,
+      schema: cohereRerankingModelOptionsSchema,
     });
 
     const warnings: SharedV3Warning[] = [];

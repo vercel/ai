@@ -11,6 +11,14 @@ The Hume provider is available in the `@ai-sdk/hume` module. You can install it 
 npm i @ai-sdk/hume
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 You can import the default provider instance `hume` from `@ai-sdk/hume`:

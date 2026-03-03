@@ -2,6 +2,40 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { downloadBlob } from './download-blob';
 import { DownloadError } from './download-error';
 
+function createMockStreamResponse({
+  body,
+  ok = true,
+  status = 200,
+  statusText = 'OK',
+  headers = {},
+}: {
+  body?: Uint8Array;
+  ok?: boolean;
+  status?: number;
+  statusText?: string;
+  headers?: Record<string, string>;
+}): Response {
+  const responseHeaders = new Headers(headers);
+
+  const stream =
+    body != null
+      ? new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(body);
+            controller.close();
+          },
+        })
+      : null;
+
+  return {
+    ok,
+    status,
+    statusText,
+    headers: responseHeaders,
+    body: stream,
+  } as unknown as Response;
+}
+
 describe('downloadBlob()', () => {
   const originalFetch = globalThis.fetch;
 
@@ -14,24 +48,32 @@ describe('downloadBlob()', () => {
   });
 
   it('should download a blob successfully', async () => {
-    const mockBlob = new Blob(['test content'], { type: 'image/png' });
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      blob: () => Promise.resolve(mockBlob),
-    });
+    const content = new TextEncoder().encode('test content');
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      createMockStreamResponse({
+        body: content,
+        headers: { 'content-type': 'image/png' },
+      }),
+    );
 
     const result = await downloadBlob('https://example.com/image.png');
 
-    expect(result).toBe(mockBlob);
-    expect(fetch).toHaveBeenCalledWith('https://example.com/image.png');
+    expect(result).toBeInstanceOf(Blob);
+    expect(result.type).toBe('image/png');
+    expect(new Uint8Array(await result.arrayBuffer())).toEqual(content);
+    expect(fetch).toHaveBeenCalledWith('https://example.com/image.png', {
+      signal: undefined,
+    });
   });
 
   it('should throw DownloadError on non-ok response', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 404,
-      statusText: 'Not Found',
-    });
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      createMockStreamResponse({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+      }),
+    );
 
     await expect(
       downloadBlob('https://example.com/not-found.png'),
@@ -90,6 +132,51 @@ describe('downloadBlob()', () => {
         expect(error.statusCode).toBe(500);
       }
     }
+  });
+
+  it('should abort when response exceeds default size limit', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      createMockStreamResponse({
+        body: new Uint8Array(10),
+        headers: {
+          'content-length': `${3 * 1024 * 1024 * 1024}`,
+        },
+      }),
+    );
+
+    try {
+      await downloadBlob('https://example.com/huge.bin');
+      expect.fail('Expected downloadBlob to throw');
+    } catch (error) {
+      expect(DownloadError.isInstance(error)).toBe(true);
+      if (DownloadError.isInstance(error)) {
+        expect(error.message).toContain('exceeded maximum size');
+      }
+    }
+  });
+
+  it('should pass abortSignal to fetch', async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    globalThis.fetch = vi
+      .fn()
+      .mockRejectedValue(
+        new DOMException('The operation was aborted.', 'AbortError'),
+      );
+
+    try {
+      await downloadBlob('https://example.com/file.bin', {
+        abortSignal: controller.signal,
+      });
+      expect.fail('Expected downloadBlob to throw');
+    } catch (error) {
+      expect(DownloadError.isInstance(error)).toBe(true);
+    }
+
+    expect(fetch).toHaveBeenCalledWith('https://example.com/file.bin', {
+      signal: controller.signal,
+    });
   });
 });
 

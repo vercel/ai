@@ -40,7 +40,14 @@ export interface AnthropicAssistantMessage {
     | AnthropicTextEditorCodeExecutionToolResultContent
     | AnthropicMcpToolUseContent
     | AnthropicMcpToolResultContent
+    | AnthropicCompactionContent
   >;
+}
+
+export interface AnthropicCompactionContent {
+  type: 'compaction';
+  content: string;
+  cache_control?: AnthropicCacheControl;
 }
 
 export interface AnthropicTextContent {
@@ -107,6 +114,10 @@ export type AnthropicToolCallCaller =
       tool_id: string;
     }
   | {
+      type: 'code_execution_20260120';
+      tool_id: string;
+    }
+  | {
       type: 'direct';
     };
 
@@ -164,6 +175,11 @@ type AnthropicNestedDocumentContent = Omit<
   cache_control?: never;
 };
 
+export interface AnthropicToolReferenceContent {
+  type: 'tool_reference';
+  tool_name: string;
+}
+
 export interface AnthropicToolResultContent {
   type: 'tool_result';
   tool_use_id: string;
@@ -173,6 +189,7 @@ export interface AnthropicToolResultContent {
         | AnthropicNestedTextContent
         | AnthropicNestedImageContent
         | AnthropicNestedDocumentContent
+        | AnthropicToolReferenceContent
       >;
   is_error: boolean | undefined;
   cache_control: AnthropicCacheControl | undefined;
@@ -341,7 +358,9 @@ export type AnthropicTool =
        *
        * @example ['code_execution_20250825']
        */
-      allowed_callers?: Array<'code_execution_20250825'>;
+      allowed_callers?: Array<
+        'direct' | 'code_execution_20250825' | 'code_execution_20260120'
+      >;
     }
   | {
       type: 'code_execution_20250522';
@@ -350,6 +369,10 @@ export type AnthropicTool =
     }
   | {
       type: 'code_execution_20250825';
+      name: string;
+    }
+  | {
+      type: 'code_execution_20260120';
       name: string;
     }
   | {
@@ -426,6 +449,8 @@ export type AnthropicTool =
       name: string;
     };
 
+export type AnthropicSpeed = 'fast' | 'standard';
+
 export type AnthropicToolChoice =
   | { type: 'auto' | 'any'; disable_parallel_tool_use?: boolean }
   | { type: 'tool'; name: string; disable_parallel_tool_use?: boolean };
@@ -473,9 +498,17 @@ export type AnthropicClearThinkingBlockEdit = {
   keep?: 'all' | { type: 'thinking_turns'; value: number };
 };
 
+export type AnthropicCompactEdit = {
+  type: 'compact_20260112';
+  trigger?: AnthropicInputTokensTrigger;
+  pause_after_compaction?: boolean;
+  instructions?: string;
+};
+
 export type AnthropicContextManagementEdit =
   | AnthropicClearToolUsesEdit
-  | AnthropicClearThinkingBlockEdit;
+  | AnthropicClearThinkingBlockEdit
+  | AnthropicCompactEdit;
 
 export type AnthropicContextManagementConfig = {
   edits: AnthropicContextManagementEdit[];
@@ -493,9 +526,14 @@ export type AnthropicResponseClearThinkingBlockEdit = {
   cleared_input_tokens: number;
 };
 
+export type AnthropicResponseCompactEdit = {
+  type: 'compact_20260112';
+};
+
 export type AnthropicResponseContextManagementEdit =
   | AnthropicResponseClearToolUsesEdit
-  | AnthropicResponseClearThinkingBlockEdit;
+  | AnthropicResponseClearThinkingBlockEdit
+  | AnthropicResponseCompactEdit;
 
 export type AnthropicResponseContextManagement = {
   applied_edits: AnthropicResponseContextManagementEdit[];
@@ -554,6 +592,10 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
             data: z.string(),
           }),
           z.object({
+            type: z.literal('compaction'),
+            content: z.string(),
+          }),
+          z.object({
             type: z.literal('tool_use'),
             id: z.string(),
             name: z.string(),
@@ -563,6 +605,10 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
               .union([
                 z.object({
                   type: z.literal('code_execution_20250825'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('code_execution_20260120'),
                   tool_id: z.string(),
                 }),
                 z.object({
@@ -757,6 +803,15 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
         output_tokens: z.number(),
         cache_creation_input_tokens: z.number().nullish(),
         cache_read_input_tokens: z.number().nullish(),
+        iterations: z
+          .array(
+            z.object({
+              type: z.union([z.literal('compaction'), z.literal('message')]),
+              input_tokens: z.number(),
+              output_tokens: z.number(),
+            }),
+          )
+          .nullish(),
       }),
       container: z
         .object({
@@ -786,6 +841,9 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
                 type: z.literal('clear_thinking_20251015'),
                 cleared_thinking_turns: z.number(),
                 cleared_input_tokens: z.number(),
+              }),
+              z.object({
+                type: z.literal('compact_20260112'),
               }),
             ]),
           ),
@@ -824,6 +882,10 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                     .union([
                       z.object({
                         type: z.literal('code_execution_20250825'),
+                        tool_id: z.string(),
+                      }),
+                      z.object({
+                        type: z.literal('code_execution_20260120'),
                         tool_id: z.string(),
                       }),
                       z.object({
@@ -870,6 +932,10 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                   tool_id: z.string(),
                 }),
                 z.object({
+                  type: z.literal('code_execution_20260120'),
+                  tool_id: z.string(),
+                }),
+                z.object({
                   type: z.literal('direct'),
                 }),
               ])
@@ -878,6 +944,10 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
           z.object({
             type: z.literal('redacted_thinking'),
             data: z.string(),
+          }),
+          z.object({
+            type: z.literal('compaction'),
+            content: z.string().nullish(),
           }),
           z.object({
             type: z.literal('server_tool_use'),
@@ -1079,6 +1149,10 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             signature: z.string(),
           }),
           z.object({
+            type: z.literal('compaction_delta'),
+            content: z.string().nullish(),
+          }),
+          z.object({
             type: z.literal('citations_delta'),
             citation: z.discriminatedUnion('type', [
               z.object({
@@ -1142,31 +1216,43 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                 .nullish(),
             })
             .nullish(),
-          context_management: z
-            .object({
-              applied_edits: z.array(
-                z.union([
-                  z.object({
-                    type: z.literal('clear_tool_uses_20250919'),
-                    cleared_tool_uses: z.number(),
-                    cleared_input_tokens: z.number(),
-                  }),
-                  z.object({
-                    type: z.literal('clear_thinking_20251015'),
-                    cleared_thinking_turns: z.number(),
-                    cleared_input_tokens: z.number(),
-                  }),
-                ]),
-              ),
-            })
-            .nullish(),
         }),
         usage: z.looseObject({
           input_tokens: z.number().nullish(),
           output_tokens: z.number(),
           cache_creation_input_tokens: z.number().nullish(),
           cache_read_input_tokens: z.number().nullish(),
+          iterations: z
+            .array(
+              z.object({
+                type: z.union([z.literal('compaction'), z.literal('message')]),
+                input_tokens: z.number(),
+                output_tokens: z.number(),
+              }),
+            )
+            .nullish(),
         }),
+        context_management: z
+          .object({
+            applied_edits: z.array(
+              z.union([
+                z.object({
+                  type: z.literal('clear_tool_uses_20250919'),
+                  cleared_tool_uses: z.number(),
+                  cleared_input_tokens: z.number(),
+                }),
+                z.object({
+                  type: z.literal('clear_thinking_20251015'),
+                  cleared_thinking_turns: z.number(),
+                  cleared_input_tokens: z.number(),
+                }),
+                z.object({
+                  type: z.literal('compact_20260112'),
+                }),
+              ]),
+            ),
+          })
+          .nullish(),
       }),
       z.object({
         type: z.literal('message_stop'),

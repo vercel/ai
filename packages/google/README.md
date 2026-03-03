@@ -10,6 +10,14 @@ The Google Generative AI provider is available in the `@ai-sdk/google` module. Y
 npm i @ai-sdk/google
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 You can import the default provider instance `google` from `@ai-sdk/google`:
@@ -25,7 +33,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: google('gemini-1.5-pro-latest'),
+  model: google('gemini-2.5-pro'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```

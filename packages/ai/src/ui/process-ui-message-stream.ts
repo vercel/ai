@@ -1,3 +1,4 @@
+import { TypeValidationContext } from '@ai-sdk/provider';
 import { FlexibleSchema, validateTypes } from '@ai-sdk/provider-utils';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 import { ProviderMetadata } from '../types';
@@ -288,6 +289,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 await validateTypes({
                   value: mergedMetadata,
                   schema: messageMetadataSchema,
+                  context: {
+                    field: 'message.metadata',
+                    entityId: state.message.id,
+                  },
                 });
               }
 
@@ -553,7 +558,18 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'tool-input-error': {
-              if (chunk.dynamic) {
+              // When a part already exists for this toolCallId (e.g. from
+              // tool-input-start), honour its type so we update in place
+              // instead of creating a duplicate with a mismatched type.
+              const existingPart = state.message.parts
+                .filter(isToolUIPart)
+                .find(p => p.toolCallId === chunk.toolCallId);
+              const isDynamic =
+                existingPart != null
+                  ? existingPart.type === 'dynamic-tool'
+                  : !!chunk.dynamic;
+
+              if (isDynamic) {
                 updateDynamicToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
@@ -710,9 +726,24 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               if (isDataUIMessageChunk(chunk)) {
                 // validate data chunk if dataPartSchemas is provided
                 if (dataPartSchemas?.[chunk.type] != null) {
+                  const partIdx = state.message.parts.findIndex(
+                    p =>
+                      'id' in p &&
+                      'data' in p &&
+                      p.id === chunk.id &&
+                      p.type === chunk.type,
+                  );
+                  const actualPartIdx =
+                    partIdx >= 0 ? partIdx : state.message.parts.length;
+
                   await validateTypes({
                     value: chunk.data,
                     schema: dataPartSchemas[chunk.type],
+                    context: {
+                      field: `message.parts[${actualPartIdx}].data`,
+                      entityName: chunk.type,
+                      entityId: chunk.id,
+                    },
                   });
                 }
 

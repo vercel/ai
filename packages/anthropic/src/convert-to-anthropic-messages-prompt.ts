@@ -7,6 +7,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
+  convertBase64ToUint8Array,
   convertToBase64,
   parseProviderOptions,
   validateTypes,
@@ -31,7 +32,7 @@ import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 
 function convertToString(data: LanguageModelV3DataContent): string {
   if (typeof data === 'string') {
-    return Buffer.from(data, 'base64').toString('utf-8');
+    return new TextDecoder().decode(convertBase64ToUint8Array(data));
   }
 
   if (data instanceof Uint8Array) {
@@ -355,6 +356,23 @@ export async function convertToAnthropicMessagesPrompt({
 
                             return undefined;
                           }
+                          case 'custom': {
+                            const anthropicOptions = contentPart.providerOptions
+                              ?.anthropic as
+                              | { type: string; toolName?: string }
+                              | undefined;
+                            if (anthropicOptions?.type === 'tool-reference') {
+                              return {
+                                type: 'tool_reference' as const,
+                                tool_name: anthropicOptions.toolName!,
+                              };
+                            }
+                            warnings.push({
+                              type: 'other',
+                              message: `unsupported custom tool content part`,
+                            });
+                            return undefined;
+                          }
                           default: {
                             warnings.push({
                               type: 'other',
@@ -439,18 +457,31 @@ export async function convertToAnthropicMessagesPrompt({
 
             switch (part.type) {
               case 'text': {
-                anthropicContent.push({
-                  type: 'text',
-                  text:
-                    // trim the last text part if it's the last message in the block
-                    // because Anthropic does not allow trailing whitespace
-                    // in pre-filled assistant responses
-                    isLastBlock && isLastMessage && isLastContentPart
-                      ? part.text.trim()
-                      : part.text,
+                // Check if this is a compaction block (via providerMetadata)
+                const textMetadata = part.providerOptions?.anthropic as
+                  | { type?: string }
+                  | undefined;
 
-                  cache_control: cacheControl,
-                });
+                if (textMetadata?.type === 'compaction') {
+                  anthropicContent.push({
+                    type: 'compaction',
+                    content: part.text,
+                    cache_control: cacheControl,
+                  });
+                } else {
+                  anthropicContent.push({
+                    type: 'text',
+                    text:
+                      // trim the last text part if it's the last message in the block
+                      // because Anthropic does not allow trailing whitespace
+                      // in pre-filled assistant responses
+                      isLastBlock && isLastMessage && isLastContentPart
+                        ? part.text.trim()
+                        : part.text,
+
+                    cache_control: cacheControl,
+                  });
+                }
                 break;
               }
 
@@ -618,10 +649,14 @@ export async function convertToAnthropicMessagesPrompt({
                   | { caller?: { type: string; toolId?: string } }
                   | undefined;
                 const caller = callerOptions?.caller
-                  ? callerOptions.caller.type === 'code_execution_20250825' &&
+                  ? (callerOptions.caller.type === 'code_execution_20250825' ||
+                      callerOptions.caller.type ===
+                        'code_execution_20260120') &&
                     callerOptions.caller.toolId
                     ? {
-                        type: 'code_execution_20250825' as const,
+                        type: callerOptions.caller.type as
+                          | 'code_execution_20250825'
+                          | 'code_execution_20260120',
                         tool_id: callerOptions.caller.toolId,
                       }
                     : callerOptions.caller.type === 'direct'

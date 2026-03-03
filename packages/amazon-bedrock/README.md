@@ -11,6 +11,14 @@ The Amazon Bedrock provider is available in the `@ai-sdk/amazon-bedrock` module.
 npm i @ai-sdk/amazon-bedrock
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 You can import the default provider instance `bedrock` from `@ai-sdk/amazon-bedrock`:

@@ -43,11 +43,14 @@ const createSearchGroundedModel = (
     model: vertex(modelId),
     middleware: defaultSettingsMiddleware({
       settings: {
-        providerOptions: {
-          google: {
-            useSearchGrounding: true,
+        tools: [
+          {
+            type: 'provider',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {},
           },
-        },
+        ],
       },
     }),
   }),
@@ -92,11 +95,8 @@ const createModelsForRuntime = (
 ) => ({
   invalidModel: vertex('no-such-model'),
   languageModels: [
-    ...createModelVariants(vertex, 'gemini-2.0-flash-exp'),
-    ...createModelVariants(vertex, 'gemini-1.5-flash'),
-    // Gemini 2.0 and Pro models have low quota limits and may require billing enabled.
-    // ...createModelVariants(vertex, 'gemini-1.5-pro-001'),
-    // ...createModelVariants(vertex, 'gemini-1.0-pro-001'),
+    ...createModelVariants(vertex, 'gemini-2.5-flash-image'),
+    ...createModelVariants(vertex, 'gemini-2.5-flash'),
   ],
   embeddingModels: [
     createEmbeddingModelWithCapabilities(

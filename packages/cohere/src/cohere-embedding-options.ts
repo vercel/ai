@@ -10,7 +10,7 @@ export type CohereEmbeddingModelId =
   | 'embed-multilingual-v2.0'
   | (string & {});
 
-export const cohereEmbeddingOptions = z.object({
+export const cohereEmbeddingModelOptions = z.object({
   /**
    * Specifies the type of input passed to the model. Default is `search_query`.
    *
@@ -32,6 +32,19 @@ export const cohereEmbeddingOptions = z.object({
    * - "END": Will discard the end of the input until the remaining input is exactly the maximum input token length for the model.
    */
   truncate: z.enum(['NONE', 'START', 'END']).optional(),
+
+  /**
+   * The number of dimensions of the output embedding.
+   * Only available for `embed-v4.0` and newer models.
+   *
+   * Possible values are `256`, `512`, `1024`, and `1536`.
+   * The default is `1536`.
+   */
+  outputDimension: z
+    .union([z.literal(256), z.literal(512), z.literal(1024), z.literal(1536)])
+    .optional(),
 });
 
-export type CohereEmbeddingOptions = z.infer<typeof cohereEmbeddingOptions>;
+export type CohereEmbeddingModelOptions = z.infer<
+  typeof cohereEmbeddingModelOptions
+>;

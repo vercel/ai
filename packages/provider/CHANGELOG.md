@@ -1,5 +1,23 @@
 # @ai-sdk/provider
 
+## 3.0.8
+
+### Patch Changes
+
+- 7168375: feat (ai, provider): default global provider video model resolution
+
+## 3.0.7
+
+### Patch Changes
+
+- 53f6731: feat (ai, provider): experimental generate video support
+
+## 3.0.6
+
+### Patch Changes
+
+- 2810850: fix(ai): improve type validation error messages with field paths and entity identifiers
+
 ## 3.0.5
 
 ### Patch Changes
