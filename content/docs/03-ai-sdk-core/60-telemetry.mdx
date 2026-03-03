@@ -73,6 +73,124 @@ const result = await generateText({
 });
 ```
 
+## Telemetry Integrations
+
+Telemetry integrations let you hook into the generation lifecycle to build custom observability — logging, analytics, DevTools, or any other monitoring system. Instead of wiring up individual callbacks on every call, you implement a `TelemetryIntegration` once and pass it via `experimental_telemetry.integrations`.
+
+### Using an integration
+
+Pass one or more integrations to any `generateText` or `streamText` call:
+
+```ts highlight="6-8"
+import { streamText } from 'ai';
+import { devToolsIntegration } from '@ai-sdk/devtools';
+
+const result = streamText({
+  model: openai('gpt-4o'),
+  prompt: 'Hello!',
+  experimental_telemetry: {
+    isEnabled: true,
+    integrations: [devToolsIntegration()],
+  },
+});
+```
+
+You can combine multiple integrations — they all receive the same lifecycle events:
+
+```ts
+experimental_telemetry: {
+  isEnabled: true,
+  integrations: [devToolsIntegration(), otelIntegration(), customLogger()],
+},
+```
+
+Errors inside integrations are caught and do not break the generation flow.
+
+### Building a custom integration
+
+Implement the `TelemetryIntegration` interface from the `ai` package. All methods are optional — implement only the lifecycle events you care about:
+
+```ts
+import type { TelemetryIntegration } from 'ai';
+import { bindTelemetryIntegration } from 'ai';
+
+class MyIntegration implements TelemetryIntegration {
+  async onStart(event) {
+    console.log('Generation started:', event.model.modelId);
+  }
+
+  async onStepFinish(event) {
+    console.log(
+      `Step ${event.stepNumber} done:`,
+      event.usage.totalTokens,
+      'tokens',
+    );
+  }
+
+  async onToolCallFinish(event) {
+    if (event.success) {
+      console.log(
+        `Tool "${event.toolCall.toolName}" took ${event.durationMs}ms`,
+      );
+    } else {
+      console.error(`Tool "${event.toolCall.toolName}" failed:`, event.error);
+    }
+  }
+
+  async onFinish(event) {
+    console.log('Done. Total tokens:', event.totalUsage.totalTokens);
+  }
+}
+
+export function myIntegration(): TelemetryIntegration {
+  return bindTelemetryIntegration(new MyIntegration());
+}
+```
+
+Use `bindTelemetryIntegration` for class-based integrations to ensure `this` is correctly bound when methods are extracted and called as callbacks.
+
+### Available lifecycle methods
+
+<PropertiesTable
+  content={[
+    {
+      name: 'onStart',
+      type: '(event: OnStartEvent) => void | PromiseLike<void>',
+      description:
+        'Called when the generation operation begins, before any LLM calls.',
+    },
+    {
+      name: 'onStepStart',
+      type: '(event: OnStepStartEvent) => void | PromiseLike<void>',
+      description:
+        'Called when a step (LLM call) begins, before the provider is called.',
+    },
+    {
+      name: 'onToolCallStart',
+      type: '(event: OnToolCallStartEvent) => void | PromiseLike<void>',
+      description: "Called when a tool's execute function is about to run.",
+    },
+    {
+      name: 'onToolCallFinish',
+      type: '(event: OnToolCallFinishEvent) => void | PromiseLike<void>',
+      description: "Called when a tool's execute function completes or errors.",
+    },
+    {
+      name: 'onStepFinish',
+      type: '(event: OnStepFinishEvent) => void | PromiseLike<void>',
+      description: 'Called when a step (LLM call) completes.',
+    },
+    {
+      name: 'onFinish',
+      type: '(event: OnFinishEvent) => void | PromiseLike<void>',
+      description:
+        'Called when the entire generation completes (all steps finished).',
+    },
+  ]}
+/>
+
+The event types for each method are the same as the corresponding [event callbacks](/docs/ai-sdk-core/event-listeners). See the event callbacks documentation for the full property reference of each event.
+
 ## Collected Data
 
 ### generateText function

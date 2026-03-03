@@ -1,4 +1,5 @@
 import { AttributeValue, Tracer } from '@opentelemetry/api';
+import type { TelemetryIntegration } from './telemetry-integration';
 
 /**
  * Telemetry configuration.
@@ -41,4 +42,12 @@ export type TelemetrySettings = {
    * A custom tracer to use for the telemetry data.
    */
   tracer?: Tracer;
+
+  /**
+   * Per-call telemetry integrations that receive lifecycle events during generation.
+   *
+   * These integrations run after any globally registered integrations
+   * (see `registerTelemetryIntegration`).
+   */
+  integrations?: TelemetryIntegration | TelemetryIntegration[];
 };
