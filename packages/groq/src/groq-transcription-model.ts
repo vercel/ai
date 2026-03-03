@@ -52,7 +52,7 @@ export class GroqTranscriptionModel implements TranscriptionModelV3 {
     const formData = new FormData();
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
+        ? new Blob([new Uint8Array(audio)])
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     formData.append('model', this.modelId);
