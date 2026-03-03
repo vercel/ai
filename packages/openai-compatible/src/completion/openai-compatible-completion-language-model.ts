@@ -31,7 +31,7 @@ import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
   OpenAICompatibleCompletionModelId,
-  openaiCompatibleCompletionProviderOptions,
+  openaiCompatibleLanguageModelCompletionOptions,
 } from './openai-compatible-completion-options';
 
 type OpenAICompatibleCompletionConfig = {
@@ -108,7 +108,7 @@ export class OpenAICompatibleCompletionLanguageModel
       (await parseProviderOptions({
         provider: this.providerOptionsName,
         providerOptions,
-        schema: openaiCompatibleCompletionProviderOptions,
+        schema: openaiCompatibleLanguageModelCompletionOptions,
       })) ?? {};
 
     if (topK != null) {

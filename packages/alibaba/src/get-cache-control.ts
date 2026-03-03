@@ -32,15 +32,12 @@ export class CacheControlValidator {
       return undefined;
     }
 
-    // Validate cache breakpoint limit
     this.breakpointCount++;
     if (this.breakpointCount > MAX_CACHE_BREAKPOINTS) {
       this.warnings.push({
-        type: 'unsupported',
-        feature: 'cacheControl breakpoint limit',
-        details: `Maximum ${MAX_CACHE_BREAKPOINTS} cache breakpoints exceeded (found ${this.breakpointCount}). This breakpoint will be ignored.`,
+        type: 'other',
+        message: `Max breakpoint limit exceeded. Only the last ${MAX_CACHE_BREAKPOINTS} cache markers will take effect.`,
       });
-      return undefined;
     }
 
     return cacheControlValue;

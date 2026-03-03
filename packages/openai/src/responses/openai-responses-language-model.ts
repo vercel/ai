@@ -37,7 +37,7 @@ import { fileSearchOutputSchema } from '../tool/file-search';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
 import { localShellInputSchema } from '../tool/local-shell';
 import { mcpOutputSchema } from '../tool/mcp';
-import { shellInputSchema } from '../tool/shell';
+import { shellInputSchema, shellOutputSchema } from '../tool/shell';
 import { webSearchOutputSchema } from '../tool/web-search';
 import {
   convertOpenAIResponsesUsage,
@@ -58,7 +58,7 @@ import {
 } from './openai-responses-api';
 import {
   OpenAIResponsesModelId,
-  openaiResponsesProviderOptionsSchema,
+  openaiLanguageModelResponsesOptionsSchema,
   TOP_LOGPROBS_MAX,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
@@ -159,14 +159,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     let openaiOptions = await parseProviderOptions({
       provider: providerOptionsName,
       providerOptions,
-      schema: openaiResponsesProviderOptionsSchema,
+      schema: openaiLanguageModelResponsesOptionsSchema,
     });
 
     if (openaiOptions == null && providerOptionsName !== 'openai') {
       openaiOptions = await parseProviderOptions({
         provider: 'openai',
         providerOptions,
-        schema: openaiResponsesProviderOptionsSchema,
+        schema: openaiLanguageModelResponsesOptionsSchema,
       });
     }
 
@@ -194,6 +194,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         'openai.mcp': 'mcp',
         'openai.apply_patch': 'apply_patch',
       },
+      resolveProviderToolName: tool =>
+        tool.id === 'openai.custom'
+          ? (tool.args as { name?: string }).name
+          : undefined,
+    });
+
+    const customProviderToolNames = new Set<string>();
+    const {
+      tools: openaiTools,
+      toolChoice: openaiToolChoice,
+      toolWarnings,
+    } = await prepareResponsesTools({
+      tools,
+      toolChoice,
+      toolNameMapping,
+      customProviderToolNames,
     });
 
     const { input, warnings: inputWarnings } =
@@ -212,6 +228,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
         hasShellTool: hasOpenAITool('openai.shell'),
         hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
+        customProviderToolNames:
+          customProviderToolNames.size > 0
+            ? customProviderToolNames
+            : undefined,
       });
 
     warnings.push(...inputWarnings);
@@ -408,14 +428,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       delete (baseArgs as any).service_tier;
     }
 
-    const {
-      tools: openaiTools,
-      toolChoice: openaiToolChoice,
-      toolWarnings,
-    } = await prepareResponsesTools({
-      tools,
-      toolChoice,
-    });
+    const shellToolEnvType = (
+      tools?.find(
+        tool => tool.type === 'provider' && tool.id === 'openai.shell',
+      ) as { args?: { environment?: { type?: string } } } | undefined
+    )?.args?.environment?.type;
+
+    const isShellProviderExecuted =
+      shellToolEnvType === 'containerAuto' ||
+      shellToolEnvType === 'containerReference';
 
     return {
       webSearchToolName,
@@ -428,6 +449,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       store,
       toolNameMapping,
       providerOptionsName,
+      isShellProviderExecuted,
     };
   }
 
@@ -440,6 +462,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       webSearchToolName,
       toolNameMapping,
       providerOptionsName,
+      isShellProviderExecuted,
     } = await this.getArgs(options);
     const url = this.config.url({
       path: '/responses',
@@ -556,6 +579,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 commands: part.action.commands,
               },
             } satisfies InferSchema<typeof shellInputSchema>),
+            ...(isShellProviderExecuted && { providerExecuted: true }),
             providerMetadata: {
               [providerOptionsName]: {
                 itemId: part.id,
@@ -563,6 +587,28 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             },
           });
 
+          break;
+        }
+
+        case 'shell_call_output': {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.call_id,
+            toolName: toolNameMapping.toCustomToolName('shell'),
+            result: {
+              output: part.output.map(item => ({
+                stdout: item.stdout,
+                stderr: item.stderr,
+                outcome:
+                  item.outcome.type === 'exit'
+                    ? {
+                        type: 'exit' as const,
+                        exitCode: item.outcome.exit_code,
+                      }
+                    : { type: 'timeout' as const },
+              })),
+            } satisfies InferSchema<typeof shellOutputSchema>,
+          });
           break;
         }
 
@@ -577,6 +623,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
             const providerMetadata: SharedV3ProviderMetadata[string] = {
               itemId: part.id,
+              ...(part.phase != null && { phase: part.phase }),
               ...(contentPart.annotations.length > 0 && {
                 annotations: contentPart.annotations,
               }),
@@ -671,6 +718,24 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             toolCallId: part.call_id,
             toolName: part.name,
             input: part.arguments,
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id,
+              },
+            },
+          });
+          break;
+        }
+
+        case 'custom_tool_call': {
+          hasFunctionCall = true;
+          const toolName = toolNameMapping.toCustomToolName(part.name);
+
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.call_id,
+            toolName,
+            input: JSON.stringify(part.input),
             providerMetadata: {
               [providerOptionsName]: {
                 itemId: part.id,
@@ -910,6 +975,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       toolNameMapping,
       store,
       providerOptionsName,
+      isShellProviderExecuted,
     } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -972,6 +1038,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       >['annotation']
     > = [];
 
+    // track the phase of the current message being streamed
+    let activeMessagePhase: 'commentary' | 'final_answer' | undefined;
+
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
 
@@ -1021,6 +1090,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'tool-input-start',
                   id: value.item.call_id,
                   toolName: value.item.name,
+                });
+              } else if (value.item.type === 'custom_tool_call') {
+                const toolName = toolNameMapping.toCustomToolName(
+                  value.item.name,
+                );
+                ongoingToolCalls[value.output_index] = {
+                  toolName,
+                  toolCallId: value.item.call_id,
+                };
+
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: value.item.call_id,
+                  toolName,
                 });
               } else if (value.item.type === 'web_search_call') {
                 ongoingToolCalls[value.output_index] = {
@@ -1160,14 +1243,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolName: toolNameMapping.toCustomToolName('shell'),
                   toolCallId: value.item.call_id,
                 };
+              } else if (value.item.type === 'shell_call_output') {
+                // shell_call_output is handled in output_item.done
               } else if (value.item.type === 'message') {
                 ongoingAnnotations.splice(0, ongoingAnnotations.length);
+                activeMessagePhase = value.item.phase ?? undefined;
                 controller.enqueue({
                   type: 'text-start',
                   id: value.item.id,
                   providerMetadata: {
                     [providerOptionsName]: {
                       itemId: value.item.id,
+                      ...(value.item.phase != null && {
+                        phase: value.item.phase,
+                      }),
                     },
                   },
                 });
@@ -1194,12 +1283,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               }
             } else if (isResponseOutputItemDoneChunk(value)) {
               if (value.item.type === 'message') {
+                const phase = value.item.phase ?? activeMessagePhase;
+                activeMessagePhase = undefined;
                 controller.enqueue({
                   type: 'text-end',
                   id: value.item.id,
                   providerMetadata: {
                     [providerOptionsName]: {
                       itemId: value.item.id,
+                      ...(phase != null && { phase }),
                       ...(ongoingAnnotations.length > 0 && {
                         annotations: ongoingAnnotations,
                       }),
@@ -1220,6 +1312,29 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolCallId: value.item.call_id,
                   toolName: value.item.name,
                   input: value.item.arguments,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      itemId: value.item.id,
+                    },
+                  },
+                });
+              } else if (value.item.type === 'custom_tool_call') {
+                ongoingToolCalls[value.output_index] = undefined;
+                hasFunctionCall = true;
+                const toolName = toolNameMapping.toCustomToolName(
+                  value.item.name,
+                );
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.call_id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.call_id,
+                  toolName,
+                  input: JSON.stringify(value.item.input),
                   providerMetadata: {
                     [providerOptionsName]: {
                       itemId: value.item.id,
@@ -1469,9 +1584,39 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       commands: value.item.action.commands,
                     },
                   } satisfies InferSchema<typeof shellInputSchema>),
+                  ...(isShellProviderExecuted && {
+                    providerExecuted: true,
+                  }),
                   providerMetadata: {
                     [providerOptionsName]: { itemId: value.item.id },
                   },
+                });
+              } else if (value.item.type === 'shell_call_output') {
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.call_id,
+                  toolName: toolNameMapping.toCustomToolName('shell'),
+                  result: {
+                    output: value.item.output.map(
+                      (item: {
+                        stdout: string;
+                        stderr: string;
+                        outcome:
+                          | { type: 'exit'; exit_code: number }
+                          | { type: 'timeout' };
+                      }) => ({
+                        stdout: item.stdout,
+                        stderr: item.stderr,
+                        outcome:
+                          item.outcome.type === 'exit'
+                            ? {
+                                type: 'exit' as const,
+                                exitCode: item.outcome.exit_code,
+                              }
+                            : { type: 'timeout' as const },
+                      }),
+                    ),
+                  } satisfies InferSchema<typeof shellOutputSchema>,
                 });
               } else if (value.item.type === 'reasoning') {
                 const activeReasoningPart = activeReasoning[value.item.id];
@@ -1504,6 +1649,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 delete activeReasoning[value.item.id];
               }
             } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
+              const toolCall = ongoingToolCalls[value.output_index];
+
+              if (toolCall != null) {
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: toolCall.toolCallId,
+                  delta: value.delta,
+                });
+              }
+            } else if (isResponseCustomToolCallInputDeltaChunk(value)) {
               const toolCall = ongoingToolCalls[value.output_index];
 
               if (toolCall != null) {
@@ -1844,6 +1999,15 @@ function isResponseFunctionCallArgumentsDeltaChunk(
 } {
   return chunk.type === 'response.function_call_arguments.delta';
 }
+
+function isResponseCustomToolCallInputDeltaChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.custom_tool_call_input.delta';
+} {
+  return chunk.type === 'response.custom_tool_call_input.delta';
+}
+
 function isResponseImageGenerationCallPartialImageChunk(
   chunk: OpenAIResponsesChunk,
 ): chunk is OpenAIResponsesChunk & {
@@ -1901,8 +2065,12 @@ function isErrorChunk(
 }
 
 function mapWebSearchOutput(
-  action: OpenAIResponsesWebSearchAction,
+  action: OpenAIResponsesWebSearchAction | null | undefined,
 ): InferSchema<typeof webSearchOutputSchema> {
+  if (action == null) {
+    return {};
+  }
+
   switch (action.type) {
     case 'search':
       return {

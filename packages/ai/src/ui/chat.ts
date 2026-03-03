@@ -582,6 +582,33 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     trigger: 'submit-message' | 'resume-stream' | 'regenerate-message';
     messageId?: string;
   } & ChatRequestOptions) {
+    // For resume-stream, check if there's an active stream before
+    // changing status. This avoids a brief flash of 'submitted' status
+    // when there is no stream to resume (e.g. on page load).
+    let resumeStream: ReadableStream<UIMessageChunk> | undefined;
+    if (trigger === 'resume-stream') {
+      try {
+        const reconnect = await this.transport.reconnectToStream({
+          chatId: this.id,
+          metadata,
+          headers,
+          body,
+        });
+
+        if (reconnect == null) {
+          return; // no active stream found, so we do not resume
+        }
+
+        resumeStream = reconnect;
+      } catch (err) {
+        if (this.onError && err instanceof Error) {
+          this.onError(err);
+        }
+        this.setStatus({ status: 'error', error: err as Error });
+        return;
+      }
+    }
+
     this.setStatus({ status: 'submitted', error: undefined });
 
     const lastMessage = this.lastMessage;
@@ -608,19 +635,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       let stream: ReadableStream<UIMessageChunk>;
 
       if (trigger === 'resume-stream') {
-        const reconnect = await this.transport.reconnectToStream({
-          chatId: this.id,
-          metadata,
-          headers,
-          body,
-        });
-
-        if (reconnect == null) {
-          this.setStatus({ status: 'ready' });
-          return; // no active stream found, so we do not resume
-        }
-
-        stream = reconnect;
+        stream = resumeStream!;
       } else {
         stream = await this.transport.sendMessages({
           chatId: this.id,

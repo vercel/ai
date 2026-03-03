@@ -12,6 +12,10 @@ import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { asLanguageModelUsage } from '../types/usage';
 import { executeToolCall } from './execute-tool-call';
+import {
+  StreamTextOnToolCallFinishCallback,
+  StreamTextOnToolCallStartCallback,
+} from './stream-text';
 import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
 import { parseToolCall } from './parse-tool-call';
@@ -116,6 +120,10 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   repairToolCall,
   experimental_context,
   generateId,
+  stepNumber,
+  model,
+  onToolCallStart,
+  onToolCallFinish,
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV3StreamPart>;
@@ -127,6 +135,10 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   experimental_context: unknown;
   generateId: IdGenerator;
+  stepNumber?: number;
+  model?: { provider: string; modelId: string };
+  onToolCallStart?: StreamTextOnToolCallStartCallback<TOOLS>;
+  onToolCallFinish?: StreamTextOnToolCallFinishCallback<TOOLS>;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
@@ -323,6 +335,10 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 messages,
                 abortSignal,
                 experimental_context,
+                stepNumber,
+                model,
+                onToolCallStart,
+                onToolCallFinish,
                 onPreliminaryToolResult: result => {
                   toolResultsStreamController!.enqueue(result);
                 },

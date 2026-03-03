@@ -1,10 +1,11 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { DownloadError } from '@ai-sdk/provider-utils';
 import { download } from './download';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 const server = createTestServer({
   'http://example.com/file': {},
+  'http://example.com/large': {},
 });
 
 describe('download', () => {
@@ -64,6 +65,54 @@ describe('download', () => {
       expect.fail('Expected download to throw');
     } catch (error: unknown) {
       expect(error).toBeInstanceOf(DownloadError);
+    }
+  });
+
+  it('should abort when response exceeds default size limit', async () => {
+    // Create a response that claims to be larger than 2 GiB
+    server.urls['http://example.com/large'].response = {
+      type: 'binary',
+      headers: {
+        'content-type': 'application/octet-stream',
+        'content-length': `${3 * 1024 * 1024 * 1024}`,
+      },
+      body: Buffer.from(new Uint8Array(10)),
+    };
+
+    try {
+      await download({
+        url: new URL('http://example.com/large'),
+      });
+      expect.fail('Expected download to throw');
+    } catch (error: unknown) {
+      expect(DownloadError.isInstance(error)).toBe(true);
+      expect((error as DownloadError).message).toContain(
+        'exceeded maximum size',
+      );
+    }
+  });
+
+  it('should pass abortSignal to fetch', async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    server.urls['http://example.com/file'].response = {
+      type: 'binary',
+      headers: {
+        'content-type': 'application/octet-stream',
+      },
+      body: Buffer.from(new Uint8Array([1, 2, 3])),
+    };
+
+    try {
+      await download({
+        url: new URL('http://example.com/file'),
+        abortSignal: controller.signal,
+      });
+      expect.fail('Expected download to throw');
+    } catch (error: unknown) {
+      // The fetch should be aborted, resulting in a DownloadError wrapping an AbortError
+      expect(DownloadError.isInstance(error)).toBe(true);
     }
   });
 });

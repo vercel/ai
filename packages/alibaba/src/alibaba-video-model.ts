@@ -21,7 +21,7 @@ import {
 import { z } from 'zod/v4';
 import type { AlibabaVideoModelId } from './alibaba-video-settings';
 
-export type AlibabaVideoProviderOptions = {
+export type AlibabaVideoModelOptions = {
   /** Negative prompt to specify what to avoid (max 500 chars). */
   negativePrompt?: string | null;
   /** URL to audio file for audio-video sync (WAV/MP3, 3-30s, max 15MB). */
@@ -47,7 +47,7 @@ export type AlibabaVideoProviderOptions = {
   [key: string]: unknown;
 };
 
-const alibabaVideoProviderOptionsSchema = lazySchema(() =>
+const alibabaVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
@@ -156,8 +156,8 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
     const alibabaOptions = (await parseProviderOptions({
       provider: 'alibaba',
       providerOptions: options.providerOptions,
-      schema: alibabaVideoProviderOptionsSchema,
-    })) as AlibabaVideoProviderOptions | undefined;
+      schema: alibabaVideoModelOptionsSchema,
+    })) as AlibabaVideoModelOptions | undefined;
 
     // Build input object
     const input: Record<string, unknown> = {};

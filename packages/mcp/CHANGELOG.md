@@ -1,5 +1,32 @@
 # @ai-sdk/mcp
 
+## 1.0.23
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+
+## 1.0.22
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+
+## 1.0.21
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+
+## 1.0.20
+
+### Patch Changes
+
+- 60ee2df: feat(mcp): expose serializable data from the server tools
+
 ## 1.0.19
 
 ### Patch Changes

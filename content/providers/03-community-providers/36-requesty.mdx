@@ -120,26 +120,28 @@ for await (const chunk of result.textStream) {
 }
 ```
 
-### Tool Usage
+### Structured Output
 
 ```javascript
 import { requesty } from '@requesty/ai-sdk';
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
-const { object } = await generateObject({
+const { output } = await generateText({
   model: requesty('openai/gpt-4o'),
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(z.string()),
-      steps: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(z.string()),
+        steps: z.array(z.string()),
+      }),
     }),
   }),
   prompt: 'Generate a recipe for chocolate chip cookies.',
 });
 
-console.log(object.recipe);
+console.log(output.recipe);
 ```
 
 ## Advanced Features

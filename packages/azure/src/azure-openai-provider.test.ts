@@ -1,7 +1,6 @@
 import {
   EmbeddingModelV3Embedding,
   LanguageModelV3,
-  LanguageModelV3FunctionTool,
   LanguageModelV3GenerateResult,
   LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
@@ -23,45 +22,29 @@ const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const TEST_TOOLS: Array<LanguageModelV3FunctionTool> = [
-  {
-    type: 'function',
-    name: 'weather',
-    inputSchema: {
-      type: 'object',
-      properties: { location: { type: 'string' } },
-      required: ['location'],
-      additionalProperties: false,
-    },
-  },
-  {
-    type: 'function',
-    name: 'cityAttractions',
-    inputSchema: {
-      type: 'object',
-      properties: { city: { type: 'string' } },
-      required: ['city'],
-      additionalProperties: false,
-    },
-  },
-];
-
-function prepareJsonFixtureResponse(filename: string) {
+function prepareJsonFixtureResponse(
+  filename: string,
+  headers?: Record<string, string>,
+) {
   server.urls[
     'https://test-resource.openai.azure.com/openai/v1/responses'
   ].response = {
     type: 'json-value',
+    headers,
     body: JSON.parse(
       fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
     ),
   };
-  return;
 }
 
-function prepareChunksFixtureResponse(filename: string) {
+function prepareChunksFixtureResponse(
+  filename: string,
+  headers?: Record<string, string>,
+) {
   const chunks = fs
     .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
     .split('\n')
+    .filter(line => line.trim().length > 0)
     .map(line => `data: ${line}\n\n`);
   chunks.push('data: [DONE]\n\n');
 
@@ -69,6 +52,7 @@ function prepareChunksFixtureResponse(filename: string) {
     'https://test-resource.openai.azure.com/openai/v1/responses'
   ].response = {
     type: 'stream-chunks',
+    headers,
     chunks,
   };
 }
@@ -78,7 +62,6 @@ function createModel(modelId: string) {
     provider: 'azure.responses',
     url: ({ path }) =>
       `https://test-resource.openai.azure.com/openai/v1${path}`,
-    //headers: () => ({ Authorization: `Bearer APIKEY` }),
     headers: () => ({ Authorization: `Bearer APIKEY` }),
     generateId: mockId(),
     fileIdPrefixes: ['assistant-'],
@@ -158,7 +141,7 @@ describe('responses (default language model)', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('v1');
+      ).toMatchInlineSnapshot(`"v1"`);
     });
 
     it('should set the correct modified api version', async () => {
@@ -170,7 +153,7 @@ describe('responses (default language model)', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('2025-04-01-preview');
+      ).toMatchInlineSnapshot(`"2025-04-01-preview"`);
     });
 
     it('should pass headers', async () => {
@@ -191,12 +174,14 @@ describe('responses (default language model)', () => {
         },
       });
 
-      expect(server.calls[0].requestHeaders).toStrictEqual({
-        'api-key': 'test-api-key',
-        'content-type': 'application/json',
-        'custom-provider-header': 'provider-header-value',
-        'custom-request-header': 'request-header-value',
-      });
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "api-key": "test-api-key",
+          "content-type": "application/json",
+          "custom-provider-header": "provider-header-value",
+          "custom-request-header": "request-header-value",
+        }
+      `);
       expect(server.calls[0].requestUserAgent).toContain(
         `ai-sdk/azure/0.0.0-test`,
       );
@@ -213,8 +198,8 @@ describe('responses (default language model)', () => {
       await provider('test-deployment').doGenerate({
         prompt: TEST_PROMPT,
       });
-      expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/responses?api-version=v1',
+      expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
+        `"https://test-resource.openai.azure.com/openai/v1/responses?api-version=v1"`,
       );
     });
   });
@@ -261,7 +246,7 @@ describe('chat', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('v1');
+      ).toMatchInlineSnapshot(`"v1"`);
     });
 
     it('should set the correct modified api version', async () => {
@@ -273,7 +258,7 @@ describe('chat', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('2025-04-01-preview');
+      ).toMatchInlineSnapshot(`"2025-04-01-preview"`);
     });
 
     it('should pass headers', async () => {
@@ -294,12 +279,14 @@ describe('chat', () => {
         },
       });
 
-      expect(server.calls[0].requestHeaders).toStrictEqual({
-        'api-key': 'test-api-key',
-        'content-type': 'application/json',
-        'custom-provider-header': 'provider-header-value',
-        'custom-request-header': 'request-header-value',
-      });
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "api-key": "test-api-key",
+          "content-type": "application/json",
+          "custom-provider-header": "provider-header-value",
+          "custom-request-header": "request-header-value",
+        }
+      `);
       expect(server.calls[0].requestUserAgent).toContain(
         `ai-sdk/azure/0.0.0-test`,
       );
@@ -316,8 +303,8 @@ describe('chat', () => {
       await provider.chat('test-deployment').doGenerate({
         prompt: TEST_PROMPT,
       });
-      expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/chat/completions?api-version=v1',
+      expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
+        `"https://test-resource.openai.azure.com/openai/v1/chat/completions?api-version=v1"`,
       );
     });
   });
@@ -371,7 +358,7 @@ describe('completion', () => {
       });
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('v1');
+      ).toMatchInlineSnapshot(`"v1"`);
     });
 
     it('should pass headers', async () => {
@@ -392,12 +379,14 @@ describe('completion', () => {
         },
       });
 
-      expect(server.calls[0].requestHeaders).toStrictEqual({
-        'api-key': 'test-api-key',
-        'content-type': 'application/json',
-        'custom-provider-header': 'provider-header-value',
-        'custom-request-header': 'request-header-value',
-      });
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "api-key": "test-api-key",
+          "content-type": "application/json",
+          "custom-provider-header": "provider-header-value",
+          "custom-request-header": "request-header-value",
+        }
+      `);
       expect(server.calls[0].requestUserAgent).toContain(
         `ai-sdk/azure/0.0.0-test`,
       );
@@ -425,8 +414,8 @@ describe('transcription', () => {
         mediaType: 'audio/wav',
       });
 
-      expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions?api-version=v1',
+      expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
+        `"https://test-resource.openai.azure.com/openai/v1/audio/transcriptions?api-version=v1"`,
       );
     });
 
@@ -454,8 +443,8 @@ describe('transcription', () => {
         mediaType: 'audio/wav',
       });
 
-      expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions?api-version=v1',
+      expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
+        `"https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions?api-version=v1"`,
       );
     });
   });
@@ -475,8 +464,8 @@ describe('speech', () => {
         text: 'Hello, world!',
       });
 
-      expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/audio/speech?api-version=v1',
+      expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
+        `"https://test-resource.openai.azure.com/openai/v1/audio/speech?api-version=v1"`,
       );
     });
   });
@@ -522,7 +511,7 @@ describe('embedding', () => {
       });
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('v1');
+      ).toMatchInlineSnapshot(`"v1"`);
     });
 
     it('should pass headers', async () => {
@@ -543,12 +532,14 @@ describe('embedding', () => {
         },
       });
 
-      expect(server.calls[0].requestHeaders).toStrictEqual({
-        'api-key': 'test-api-key',
-        'content-type': 'application/json',
-        'custom-provider-header': 'provider-header-value',
-        'custom-request-header': 'request-header-value',
-      });
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "api-key": "test-api-key",
+          "content-type": "application/json",
+          "custom-provider-header": "provider-header-value",
+          "custom-request-header": "request-header-value",
+        }
+      `);
       expect(server.calls[0].requestUserAgent).toContain(
         `ai-sdk/azure/0.0.0-test`,
       );
@@ -597,7 +588,7 @@ describe('image', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('v1');
+      ).toMatchInlineSnapshot(`"v1"`);
     });
 
     it('should set the correct modified api version', async () => {
@@ -618,7 +609,7 @@ describe('image', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('2025-04-01-preview');
+      ).toMatchInlineSnapshot(`"2025-04-01-preview"`);
     });
 
     it('should pass headers', async () => {
@@ -646,12 +637,14 @@ describe('image', () => {
         },
       });
 
-      expect(server.calls[0].requestHeaders).toStrictEqual({
-        'api-key': 'test-api-key',
-        'content-type': 'application/json',
-        'custom-provider-header': 'provider-header-value',
-        'custom-request-header': 'request-header-value',
-      });
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "api-key": "test-api-key",
+          "content-type": "application/json",
+          "custom-provider-header": "provider-header-value",
+          "custom-request-header": "request-header-value",
+        }
+      `);
       expect(server.calls[0].requestUserAgent).toContain(
         `ai-sdk/azure/0.0.0-test`,
       );
@@ -676,8 +669,8 @@ describe('image', () => {
         providerOptions: {},
       });
 
-      expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/images/generations?api-version=v1',
+      expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
+        `"https://test-resource.openai.azure.com/openai/v1/images/generations?api-version=v1"`,
       );
     });
 
@@ -695,7 +688,12 @@ describe('image', () => {
         providerOptions: {},
       });
 
-      expect(result.images).toStrictEqual(['base64-image-1', 'base64-image-2']);
+      expect(result.images).toMatchInlineSnapshot(`
+        [
+          "base64-image-1",
+          "base64-image-2",
+        ]
+      `);
     });
 
     it('should send the correct request body', async () => {
@@ -712,14 +710,16 @@ describe('image', () => {
         providerOptions: { openai: { style: 'natural' } },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'dalle-deployment',
-        prompt,
-        n: 2,
-        size: '1024x1024',
-        style: 'natural',
-        response_format: 'b64_json',
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "model": "dalle-deployment",
+          "n": 2,
+          "prompt": "A cute baby sea otter",
+          "response_format": "b64_json",
+          "size": "1024x1024",
+          "style": "natural",
+        }
+      `);
     });
   });
 
@@ -736,47 +736,102 @@ describe('image', () => {
 
 describe('responses', () => {
   describe('doGenerate', () => {
-    function prepareJsonResponse({
-      content = '',
-      usage = {
-        input_tokens: 4,
-        output_tokens: 30,
-        total_tokens: 34,
-      },
-    } = {}) {
-      server.urls[
-        'https://test-resource.openai.azure.com/openai/v1/responses'
-      ].response = {
-        type: 'json-value',
-        body: {
-          id: 'resp_67c97c0203188190a025beb4a75242bc',
-          object: 'response',
-          created_at: 1741257730,
-          status: 'completed',
-          model: 'test-deployment',
-          output: [
-            {
-              id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
-              type: 'message',
-              status: 'completed',
-              role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: content,
-                  annotations: [],
-                },
-              ],
+    describe('text', () => {
+      beforeEach(() => prepareJsonFixtureResponse('azure-text.1'));
+
+      it('should extract text content', async () => {
+        const result = await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+        expect(result).toMatchSnapshot();
+      });
+    });
+
+    describe('tool call', () => {
+      beforeEach(() => prepareJsonFixtureResponse('azure-tool-call.1'));
+
+      it('should extract tool call content', async () => {
+        const result = await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+        expect(result).toMatchSnapshot();
+      });
+    });
+
+    it('should extract usage', async () => {
+      prepareJsonFixtureResponse('azure-text.1');
+
+      const { usage } = await createModel('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage).toMatchInlineSnapshot(`
+        {
+          "inputTokens": {
+            "cacheRead": 0,
+            "cacheWrite": undefined,
+            "noCache": 11,
+            "total": 11,
+          },
+          "outputTokens": {
+            "reasoning": 0,
+            "text": 11,
+            "total": 11,
+          },
+          "raw": {
+            "input_tokens": 11,
+            "input_tokens_details": {
+              "cached_tokens": 0,
             },
-          ],
-          usage,
-          incomplete_details: null,
-        },
-      };
-    }
+            "output_tokens": 11,
+            "output_tokens_details": {
+              "reasoning_tokens": 0,
+            },
+          },
+        }
+      `);
+    });
+
+    it('should extract response metadata', async () => {
+      prepareJsonFixtureResponse('azure-text.1');
+
+      const { response } = await createModel('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect({
+        id: response?.id,
+        timestamp: response?.timestamp,
+        modelId: response?.modelId,
+      }).toMatchInlineSnapshot(`
+        {
+          "id": "resp_0d6bb044bb6ff37200698c51948054819385e24e2ad931ae6e",
+          "modelId": "gpt-5.1",
+          "timestamp": 2026-02-11T09:53:24.000Z,
+        }
+      `);
+    });
+
+    it('should extract response headers', async () => {
+      prepareJsonFixtureResponse('azure-text.1', {
+        'test-header': 'test-value',
+      });
+
+      const { response } = await createModel('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(response?.headers).toMatchInlineSnapshot(`
+        {
+          "content-length": "1978",
+          "content-type": "application/json",
+          "test-header": "test-value",
+        }
+      `);
+    });
 
     it('should set the correct api version', async () => {
-      prepareJsonResponse();
+      prepareJsonFixtureResponse('azure-text.1');
 
       await provider.responses('test-deployment').doGenerate({
         prompt: TEST_PROMPT,
@@ -784,11 +839,11 @@ describe('responses', () => {
 
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toStrictEqual('v1');
+      ).toMatchInlineSnapshot(`"v1"`);
     });
 
     it('should pass headers', async () => {
-      prepareJsonResponse();
+      prepareJsonFixtureResponse('azure-text.1');
 
       const provider = createAzure({
         resourceName: 'test-resource',
@@ -805,19 +860,21 @@ describe('responses', () => {
         },
       });
 
-      expect(server.calls[0].requestHeaders).toStrictEqual({
-        'api-key': 'test-api-key',
-        'content-type': 'application/json',
-        'custom-provider-header': 'provider-header-value',
-        'custom-request-header': 'request-header-value',
-      });
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "api-key": "test-api-key",
+          "content-type": "application/json",
+          "custom-provider-header": "provider-header-value",
+          "custom-request-header": "request-header-value",
+        }
+      `);
       expect(server.calls[0].requestUserAgent).toContain(
         `ai-sdk/azure/0.0.0-test`,
       );
     });
 
     it('should use the baseURL correctly', async () => {
-      prepareJsonResponse();
+      prepareJsonFixtureResponse('azure-text.1');
 
       const provider = createAzure({
         baseURL: 'https://test-resource.openai.azure.com/openai',
@@ -828,13 +885,13 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(server.calls[0].requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/v1/responses?api-version=v1',
+      expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
+        `"https://test-resource.openai.azure.com/openai/v1/responses?api-version=v1"`,
       );
     });
 
     it('should handle Azure file IDs with assistant- prefix', async () => {
-      prepareJsonResponse({ content: 'I can see the image.' });
+      prepareJsonFixtureResponse('azure-text.1');
 
       const TEST_PROMPT_WITH_AZURE_FILE: LanguageModelV3Prompt = [
         {
@@ -867,7 +924,7 @@ describe('responses', () => {
     });
 
     it('should handle PDF files with assistant- prefix', async () => {
-      prepareJsonResponse({ content: 'I can analyze the PDF.' });
+      prepareJsonFixtureResponse('azure-text.1');
 
       const TEST_PROMPT_WITH_AZURE_PDF: LanguageModelV3Prompt = [
         {
@@ -900,7 +957,7 @@ describe('responses', () => {
     });
 
     it('should fall back to base64 for non-assistant file IDs', async () => {
-      prepareJsonResponse({ content: 'I can see the image.' });
+      prepareJsonFixtureResponse('azure-text.1');
 
       const TEST_PROMPT_WITH_OPENAI_FILE: LanguageModelV3Prompt = [
         {
@@ -910,7 +967,7 @@ describe('responses', () => {
             {
               type: 'file',
               mediaType: 'image/jpeg',
-              data: 'file-abc123', // OpenAI prefix, should fall back to base64
+              data: 'file-abc123',
             },
           ],
         },
@@ -936,7 +993,7 @@ describe('responses', () => {
     });
 
     it('should send include provider option for file search results', async () => {
-      prepareJsonResponse();
+      prepareJsonFixtureResponse('azure-text.1');
 
       const { warnings } = await provider
         .responses('test-deployment')
@@ -988,11 +1045,11 @@ describe('responses', () => {
         }
       `);
 
-      expect(warnings).toStrictEqual([]);
+      expect(warnings).toMatchInlineSnapshot(`[]`);
     });
 
     it('should forward include provider options to request body', async () => {
-      prepareJsonResponse();
+      prepareJsonFixtureResponse('azure-text.1');
 
       const { warnings } = await provider
         .responses('test-deployment')
@@ -1005,15 +1062,27 @@ describe('responses', () => {
           },
         });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'test-deployment',
-        input: [
-          { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-        ],
-        include: ['file_search_call.results'],
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "include": [
+            "file_search_call.results",
+          ],
+          "input": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "input_text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "test-deployment",
+        }
+      `);
 
-      expect(warnings).toStrictEqual([]);
+      expect(warnings).toMatchInlineSnapshot(`[]`);
     });
 
     describe('code interpreter tool', () => {
@@ -1286,34 +1355,33 @@ describe('responses', () => {
         expect(result).toMatchSnapshot();
       });
     });
-  });
 
-  describe('image generation tool', () => {
-    let result: LanguageModelV3GenerateResult;
+    describe('image generation tool', () => {
+      let result: LanguageModelV3GenerateResult;
 
-    beforeEach(async () => {
-      prepareJsonFixtureResponse('azure-image-generation-tool.1');
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('azure-image-generation-tool.1');
 
-      result = await createModel('test-deployment').doGenerate({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'provider',
-            id: 'openai.image_generation',
-            name: 'image_generation',
-            args: {
-              outputFormat: 'webp',
-              quality: 'low',
-              size: '1024x1024',
-              partialImages: 2,
+        result = await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.image_generation',
+              name: 'image_generation',
+              args: {
+                outputFormat: 'webp',
+                quality: 'low',
+                size: '1024x1024',
+                partialImages: 2,
+              },
             },
-          },
-        ],
+          ],
+        });
       });
-    });
 
-    it('should send request body with include and tool', async () => {
-      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      it('should send request body with include and tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
           {
             "input": [
               {
@@ -1338,265 +1406,58 @@ describe('responses', () => {
             ],
           }
         `);
-    });
+      });
 
-    it('should include generate image tool call and result in content', async () => {
-      expect(result.content).toMatchSnapshot();
+      it('should include generate image tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
     });
   });
 
   describe('doStream', () => {
-    it('should stream text deltas', async () => {
-      server.urls[
-        'https://test-resource.openai.azure.com/openai/v1/responses'
-      ].response = {
-        type: 'stream-chunks',
-        chunks: [
-          `data:{"type":"response.created","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"test-deployment","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-          `data:{"type":"response.in_progress","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"test-deployment","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-          `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"msg_67c9a81dea8c8190b79651a2b3adf91e","type":"message","status":"in_progress","role":"assistant","content":[]}}\n\n`,
-          `data:{"type":"response.content_part.added","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[],"logprobs": []}}\n\n`,
-          `data:{"type":"response.output_text.delta","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"delta":"Hello,","logprobs": []}\n\n`,
-          `data:{"type":"response.output_text.delta","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"delta":" World!","logprobs": []}\n\n`,
-          `data:{"type":"response.output_text.done","item_id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","output_index":0,"content_index":0,"text":"Hello, World!"}\n\n`,
-          `data:{"type":"response.content_part.done","item_id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","output_index":0,"content_index":0,"part":{"type":"output_text","text":"Hello, World!","annotations":[],"logprobs": []}}\n\n`,
-          `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello, World!","annotations":[],"logprobs": []}]}}\n\n`,
-          `data:{"type":"response.completed","response":{"id":"resp_67c9a878139c8190aa2e3105411b408b","object":"response","created_at":1741269112,"status":"completed","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"test-deployment","output":[{"id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello, World!","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":{"input_tokens":543,"input_tokens_details":{"cached_tokens":234},"output_tokens":478,"output_tokens_details":{"reasoning_tokens":123},"total_tokens":512},"user":null,"metadata":{}}}\n\n`,
-        ],
-      };
+    describe('text', () => {
+      beforeEach(() => prepareChunksFixtureResponse('azure-text.1'));
 
-      const { stream } = await createModel('test-deployment').doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
+      it('should stream text content', async () => {
+        const { stream } = await createModel('test-deployment').doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
       });
-
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
-        [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "id": "resp_67c9a81b6a048190a9ee441c5755a4e8",
-            "modelId": "test-deployment",
-            "timestamp": 2025-03-06T13:50:19.000Z,
-            "type": "response-metadata",
-          },
-          {
-            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
-            "providerMetadata": {
-              "azure": {
-                "itemId": "msg_67c9a81dea8c8190b79651a2b3adf91e",
-              },
-            },
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello,",
-            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
-            "type": "text-delta",
-          },
-          {
-            "delta": " World!",
-            "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
-            "type": "text-delta",
-          },
-          {
-            "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
-            "providerMetadata": {
-              "azure": {
-                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
-              },
-            },
-            "type": "text-end",
-          },
-          {
-            "finishReason": {
-              "raw": undefined,
-              "unified": "stop",
-            },
-            "providerMetadata": {
-              "azure": {
-                "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
-              },
-            },
-            "type": "finish",
-            "usage": {
-              "inputTokens": {
-                "cacheRead": 234,
-                "cacheWrite": undefined,
-                "noCache": 309,
-                "total": 543,
-              },
-              "outputTokens": {
-                "reasoning": 123,
-                "text": 355,
-                "total": 478,
-              },
-              "raw": {
-                "input_tokens": 543,
-                "input_tokens_details": {
-                  "cached_tokens": 234,
-                },
-                "output_tokens": 478,
-                "output_tokens_details": {
-                  "reasoning_tokens": 123,
-                },
-              },
-            },
-          },
-        ]
-      `);
     });
 
-    it('should send streaming tool calls', async () => {
-      server.urls[
-        'https://test-resource.openai.azure.com/openai/v1/responses'
-      ].response = {
-        type: 'stream-chunks',
-        chunks: [
-          `data:{"type":"response.created","response":{"id":"resp_67cb13a755c08190acbe3839a49632fc","object":"response","created_at":1741362087,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"test-deployment","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"function","description":"Get the current location.","name":"currentLocation","parameters":{"type":"object","properties":{},"additionalProperties":false},"strict":true},{"type":"function","description":"Get the weather in a location","name":"weather","parameters":{"type":"object","properties":{"location":{"type":"string","description":"The location to get the weather for"}},"required":["location"],"additionalProperties":false},"strict":true}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-          `data:{"type":"response.in_progress","response":{"id":"resp_67cb13a755c08190acbe3839a49632fc","object":"response","created_at":1741362087,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"test-deployment","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"function","description":"Get the current location.","name":"currentLocation","parameters":{"type":"object","properties":{},"additionalProperties":false},"strict":true},{"type":"function","description":"Get the weather in a location","name":"weather","parameters":{"type":"object","properties":{"location":{"type":"string","description":"The location to get the weather for"}},"required":["location"],"additionalProperties":false},"strict":true}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-          `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"function_call","id":"fc_67cb13a838088190be08eb3927c87501","call_id":"call_6KxSghkb4MVnunFH2TxPErLP","name":"currentLocation","arguments":"","status":"completed"}}\n\n`,
-          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a838088190be08eb3927c87501","output_index":0,"delta":"{}"}\n\n`,
-          `data:{"type":"response.function_call_arguments.done","item_id":"fc_67cb13a838088190be08eb3927c87501","output_index":0,"arguments":"{}"}\n\n`,
-          `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"function_call","id":"fc_67cb13a838088190be08eb3927c87501","call_id":"call_pgjcAI4ZegMkP6bsAV7sfrJA","name":"currentLocation","arguments":"{}","status":"completed"}}\n\n`,
-          `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"function_call","id":"fc_67cb13a858f081908a600343fa040f47","call_id":"call_Dg6WUmFHNeR5JxX1s53s1G4b","name":"weather","arguments":"","status":"in_progress"}}\n\n`,
-          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"{"}\n\n`,
-          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"\\"location"}\n\n`,
-          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"\\":"}\n\n`,
-          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"\\"Rome"}\n\n`,
-          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"\\"}"}\n\n`,
-          `data:{"type":"response.function_call_arguments.done","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"arguments":"{\\"location\\":\\"Rome\\"}"}\n\n`,
-          `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"function_call","id":"fc_67cb13a858f081908a600343fa040f47","call_id":"call_X2PAkDJInno9VVnNkDrfhboW","name":"weather","arguments":"{\\"location\\":\\"Rome\\"}","status":"completed"}}\n\n`,
-          `data:{"type":"response.completed","response":{"id":"resp_67cb13a755c08190acbe3839a49632fc","object":"response","created_at":1741362087,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"test-deployment","output":[{"type":"function_call","id":"fc_67cb13a838088190be08eb3927c87501","call_id":"call_KsVqaVAf3alAtCCkQe4itE7W","name":"currentLocation","arguments":"{}","status":"completed"},{"type":"function_call","id":"fc_67cb13a858f081908a600343fa040f47","call_id":"call_X2PAkDJInno9VVnNkDrfhboW","name":"weather","arguments":"{\\"location\\":\\"Rome\\"}","status":"completed"}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"function","description":"Get the current location.","name":"currentLocation","parameters":{"type":"object","properties":{},"additionalProperties":false},"strict":true},{"type":"function","description":"Get the weather in a location","name":"weather","parameters":{"type":"object","properties":{"location":{"type":"string","description":"The location to get the weather for"}},"required":["location"],"additionalProperties":false},"strict":true}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":0,"input_tokens_details":{"cached_tokens":0},"output_tokens":0,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":0},"user":null,"metadata":{}}}\n\n`,
-        ],
-      };
+    describe('tool call', () => {
+      beforeEach(() => prepareChunksFixtureResponse('azure-tool-call.1'));
 
-      const { stream } = await createModel('test-deployment').doStream({
-        tools: TEST_TOOLS,
+      it('should stream tool call content', async () => {
+        const { stream } = await createModel('test-deployment').doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+      });
+    });
+
+    it('should extract response headers', async () => {
+      prepareChunksFixtureResponse('azure-text.1', {
+        'test-header': 'test-value',
+      });
+
+      const { response } = await createModel('test-deployment').doStream({
         prompt: TEST_PROMPT,
         includeRawChunks: false,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
-        [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "id": "resp_67cb13a755c08190acbe3839a49632fc",
-            "modelId": "test-deployment",
-            "timestamp": 2025-03-07T15:41:27.000Z,
-            "type": "response-metadata",
-          },
-          {
-            "id": "call_6KxSghkb4MVnunFH2TxPErLP",
-            "toolName": "currentLocation",
-            "type": "tool-input-start",
-          },
-          {
-            "delta": "{}",
-            "id": "call_6KxSghkb4MVnunFH2TxPErLP",
-            "type": "tool-input-delta",
-          },
-          {
-            "id": "call_pgjcAI4ZegMkP6bsAV7sfrJA",
-            "type": "tool-input-end",
-          },
-          {
-            "input": "{}",
-            "providerMetadata": {
-              "azure": {
-                "itemId": "fc_67cb13a838088190be08eb3927c87501",
-              },
-            },
-            "toolCallId": "call_pgjcAI4ZegMkP6bsAV7sfrJA",
-            "toolName": "currentLocation",
-            "type": "tool-call",
-          },
-          {
-            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
-            "toolName": "weather",
-            "type": "tool-input-start",
-          },
-          {
-            "delta": "{",
-            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
-            "type": "tool-input-delta",
-          },
-          {
-            "delta": ""location",
-            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
-            "type": "tool-input-delta",
-          },
-          {
-            "delta": "":",
-            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
-            "type": "tool-input-delta",
-          },
-          {
-            "delta": ""Rome",
-            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
-            "type": "tool-input-delta",
-          },
-          {
-            "delta": ""}",
-            "id": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
-            "type": "tool-input-delta",
-          },
-          {
-            "id": "call_X2PAkDJInno9VVnNkDrfhboW",
-            "type": "tool-input-end",
-          },
-          {
-            "input": "{"location":"Rome"}",
-            "providerMetadata": {
-              "azure": {
-                "itemId": "fc_67cb13a858f081908a600343fa040f47",
-              },
-            },
-            "toolCallId": "call_X2PAkDJInno9VVnNkDrfhboW",
-            "toolName": "weather",
-            "type": "tool-call",
-          },
-          {
-            "finishReason": {
-              "raw": undefined,
-              "unified": "tool-calls",
-            },
-            "providerMetadata": {
-              "azure": {
-                "responseId": "resp_67cb13a755c08190acbe3839a49632fc",
-              },
-            },
-            "type": "finish",
-            "usage": {
-              "inputTokens": {
-                "cacheRead": 0,
-                "cacheWrite": undefined,
-                "noCache": 0,
-                "total": 0,
-              },
-              "outputTokens": {
-                "reasoning": 0,
-                "text": 0,
-                "total": 0,
-              },
-              "raw": {
-                "input_tokens": 0,
-                "input_tokens_details": {
-                  "cached_tokens": 0,
-                },
-                "output_tokens": 0,
-                "output_tokens_details": {
-                  "reasoning_tokens": 0,
-                },
-              },
-            },
-          },
-        ]
+      expect(response?.headers).toMatchInlineSnapshot(`
+        {
+          "cache-control": "no-cache",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "test-header": "test-value",
+        }
       `);
     });
 
@@ -1776,94 +1637,97 @@ describe('responses', () => {
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();
     });
-  });
-  describe('file search tool', () => {
-    it('should stream file search results without results include', async () => {
-      prepareChunksFixtureResponse('openai-file-search-tool.1');
 
-      const result = await createModel('test-deployment').doStream({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'provider',
-            id: 'openai.file_search',
-            name: 'file_search',
-            args: {
-              vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+    describe('file search tool', () => {
+      it('should stream file search results without results include', async () => {
+        prepareChunksFixtureResponse('openai-file-search-tool.1');
+
+        const result = await createModel('test-deployment').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.file_search',
+              name: 'file_search',
+              args: {
+                vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+              },
+            },
+          ],
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+
+      it('should stream file search results with results include', async () => {
+        prepareChunksFixtureResponse('openai-file-search-tool.2');
+
+        const result = await createModel('test-deployment').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.file_search',
+              name: 'file_search',
+              args: {
+                vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+              },
+            },
+          ],
+          providerOptions: {
+            openai: {
+              include: ['file_search_call.results'],
             },
           },
-        ],
-      });
+        });
 
-      expect(
-        await convertReadableStreamToArray(result.stream),
-      ).toMatchSnapshot();
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
     });
 
-    it('should stream file search results with results include', async () => {
-      prepareChunksFixtureResponse('openai-file-search-tool.2');
-
-      const result = await createModel('test-deployment').doStream({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'provider',
-            id: 'openai.file_search',
-            name: 'file_search',
-            args: {
-              vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+    describe('web search preview tool', () => {
+      it('should stream web search preview results include', async () => {
+        prepareChunksFixtureResponse('azure-web-search-preview-tool.1');
+        const result = await createModel('test-deployment').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.web_search_preview',
+              name: 'web_search_preview',
+              args: {},
             },
-          },
-        ],
-        providerOptions: {
-          openai: {
-            include: ['file_search_call.results'],
-          },
-        },
+          ],
+        });
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
       });
-
-      expect(
-        await convertReadableStreamToArray(result.stream),
-      ).toMatchSnapshot();
     });
-  });
-  describe('web search preview tool', () => {
-    it('should stream web search preview results include', async () => {
-      prepareChunksFixtureResponse('azure-web-search-preview-tool.1');
-      const result = await createModel('test-deployment').doStream({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'provider',
-            id: 'openai.web_search_preview',
-            name: 'web_search_preview',
-            args: {},
-          },
-        ],
-      });
-      expect(
-        await convertReadableStreamToArray(result.stream),
-      ).toMatchSnapshot();
-    });
-  });
-  describe('image generation tool', () => {
-    it('should stream image generation tool results include', async () => {
-      prepareChunksFixtureResponse('azure-image-generation-tool.1');
-      const result = await createModel('test-deployment').doStream({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'provider',
-            id: 'openai.image_generation',
-            name: 'image_generation',
-            args: {},
-          },
-        ],
-      });
 
-      expect(
-        await convertReadableStreamToArray(result.stream),
-      ).toMatchSnapshot();
+    describe('image generation tool', () => {
+      it('should stream image generation tool results include', async () => {
+        prepareChunksFixtureResponse('azure-image-generation-tool.1');
+        const result = await createModel('test-deployment').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.image_generation',
+              name: 'image_generation',
+              args: {},
+            },
+          ],
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
     });
   });
 });

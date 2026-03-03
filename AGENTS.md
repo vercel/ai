@@ -84,8 +84,15 @@ Run these from within a package directory (e.g., `packages/ai`):
 
 ```bash
 cd examples/ai-functions
-pnpm tsx src/stream-text/openai.ts    # Run a specific example
+pnpm tsx src/stream-text/openai/basic.ts    # Run a specific example
 ```
+
+### AI Functions Example Layout
+
+- Place examples under `examples/ai-functions/src/<function>/<provider>/`
+- Use `basic.ts` for the provider entry example file
+- Place all other examples in the same provider folder using descriptive `kebab-case` file names
+- Do not create flat top-level provider files like `src/stream-text/openai.ts`
 
 ## Core APIs
 
@@ -198,6 +205,8 @@ The SDK uses a layered provider architecture following the adapter pattern:
 3. **Providers** (`@ai-sdk/<provider>`): Concrete implementations for each AI service
 4. **Core** (`ai`): High-level functions like `generateText`, `streamText`, `generateObject`
 
+For a focused conceptual walkthrough of AI functions, model specifications, and provider implementations, see `architecture/provider-abstraction.md`.
+
 ### Provider Development
 
 **Provider Options Schemas** (user-facing):
@@ -281,3 +290,4 @@ When uncertain about expected artifacts, ask for clarification.
 - Change public APIs without updating documentation
 - Use `require()` for imports
 - Add new dependencies without running `pnpm update-references`
+- Modify `content/docs/08-migration-guides` or `packages/codemod` as part of broader codebase changes

@@ -8,7 +8,7 @@ import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-str
 import { InferUITools, UIMessage } from '../ui/ui-messages';
 import { Agent } from './agent';
 import { createAgentUIStream } from './create-agent-ui-stream';
-import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
+import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settings';
 
 /**
  * Pipes the agent UI message stream to a Node.js ServerResponse object.

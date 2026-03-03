@@ -6,7 +6,7 @@ import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { DeepPartial } from '../util/deep-partial';
 import { AgentCallParameters, AgentStreamParameters } from './agent';
 import { ToolLoopAgent } from './tool-loop-agent';
-import { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-on-finish-callback';
+import type { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-settings';
 
 describe('ToolLoopAgent', () => {
   describe('onFinish callback type compatibility', () => {

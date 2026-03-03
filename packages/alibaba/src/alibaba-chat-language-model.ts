@@ -26,7 +26,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  alibabaProviderOptions,
+  alibabaLanguageModelOptions,
   type AlibabaChatModelId,
 } from './alibaba-chat-options';
 import type { AlibabaConfig } from './alibaba-config';
@@ -89,7 +89,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
     const alibabaOptions = await parseProviderOptions({
       provider: 'alibaba',
       providerOptions,
-      schema: alibabaProviderOptions,
+      schema: alibabaLanguageModelOptions,
     });
 
     // Warn about unsupported features

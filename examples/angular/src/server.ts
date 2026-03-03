@@ -1,9 +1,5 @@
-import {
-  convertToModelMessages,
-  stepCountIs,
-  streamObject,
-  streamText,
-} from 'ai';
+import { type OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
+import { convertToModelMessages, Output, stepCountIs, streamText } from 'ai';
 import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import { z } from 'zod';
@@ -27,7 +23,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       openai: {
         reasoningEffort: 'low',
         reasoningSummary: 'detailed',
-      },
+      } satisfies OpenAILanguageModelResponsesOptions,
     },
     tools: {
       getWeatherInformation: {
@@ -66,13 +62,15 @@ app.post('/api/analyze', async (req: Request, res: Response) => {
   const prompt =
     typeof input === 'string' ? input : JSON.stringify(input ?? null);
 
-  const result = streamObject({
+  const result = streamText({
     model: defaultModel,
-    schema: z.object({
-      title: z.string(),
-      summary: z.string(),
-      tags: z.array(z.string()),
-      sentiment: z.enum(['positive', 'negative', 'neutral']),
+    output: Output.object({
+      schema: z.object({
+        title: z.string(),
+        summary: z.string(),
+        tags: z.array(z.string()),
+        sentiment: z.enum(['positive', 'negative', 'neutral']),
+      }),
     }),
     prompt: `Analyze this content: ${prompt}`,
   });

@@ -32,7 +32,7 @@ import {
 } from './openai-completion-api';
 import {
   OpenAICompletionModelId,
-  openaiCompletionProviderOptions,
+  openaiLanguageModelCompletionOptions,
 } from './openai-completion-options';
 
 type OpenAICompletionConfig = {
@@ -91,12 +91,12 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
       ...(await parseProviderOptions({
         provider: 'openai',
         providerOptions,
-        schema: openaiCompletionProviderOptions,
+        schema: openaiLanguageModelCompletionOptions,
       })),
       ...(await parseProviderOptions({
         provider: this.providerOptionsName,
         providerOptions,
-        schema: openaiCompletionProviderOptions,
+        schema: openaiLanguageModelCompletionOptions,
       })),
     };
 

@@ -2,13 +2,17 @@ import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAlibaba } from './alibaba-provider';
-import type { AlibabaUsage } from './convert-alibaba-usage';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
+
+vi.mock('@ai-sdk/provider-utils', async importOriginal => {
+  const mod = await importOriginal<typeof import('@ai-sdk/provider-utils')>();
+  return { ...mod, generateId: () => 'test-reasoning-id' };
+});
 
 const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -22,39 +26,6 @@ const model = provider.chatModel('qwen-plus');
 const server = createTestServer({ [CHAT_COMPLETIONS_URL]: {} });
 
 describe('doGenerate', () => {
-  function prepareJsonResponse({
-    content = '',
-    usage = {
-      prompt_tokens: 10,
-      completion_tokens: 20,
-      total_tokens: 30,
-    },
-  }: {
-    content?: string;
-    usage?: AlibabaUsage;
-  }) {
-    server.urls[CHAT_COMPLETIONS_URL].response = {
-      type: 'json-value',
-      body: {
-        id: 'test-id',
-        object: 'chat.completion',
-        created: 1234567890,
-        model: 'qwen-plus',
-        choices: [
-          {
-            index: 0,
-            message: {
-              role: 'assistant',
-              content,
-            },
-            finish_reason: 'stop',
-          },
-        ],
-        usage,
-      },
-    };
-  }
-
   function prepareJsonFixtureResponse(filename: string) {
     server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'json-value',
@@ -64,51 +35,128 @@ describe('doGenerate', () => {
     };
   }
 
-  it('should extract text content', async () => {
-    prepareJsonFixtureResponse('alibaba-text');
-
-    const { content } = await model.doGenerate({
-      prompt: TEST_PROMPT,
+  describe('text', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('alibaba-text');
     });
 
-    expect(content).toMatchSnapshot();
+    it('should extract text content', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should send correct request body', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "qwen-plus",
+        }
+      `);
+    });
   });
 
-  it('should extract tool call content', async () => {
-    prepareJsonFixtureResponse('alibaba-tool-call');
-
-    const { content } = await model.doGenerate({
-      prompt: TEST_PROMPT,
+  describe('tool call', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('alibaba-tool-call');
     });
 
-    expect(content).toMatchInlineSnapshot(`
-      [
+    it('should extract tool call content', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+  });
+
+  describe('reasoning', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('alibaba-reasoning');
+    });
+
+    it('should extract reasoning content', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should extract usage with reasoning tokens', async () => {
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage).toMatchInlineSnapshot(`
         {
-          "input": "{"location":"San Francisco"}",
-          "toolCallId": "call-1",
-          "toolName": "get_weather",
-          "type": "tool-call",
-        },
-      ]
-    `);
+          "inputTokens": {
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "noCache": 24,
+            "total": 24,
+          },
+          "outputTokens": {
+            "reasoning": 1353,
+            "text": 315,
+            "total": 1668,
+          },
+          "raw": {
+            "completion_tokens": 1668,
+            "completion_tokens_details": {
+              "reasoning_tokens": 1353,
+            },
+            "prompt_tokens": 24,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+            },
+            "total_tokens": 1692,
+          },
+        }
+      `);
+    });
   });
 
   it('should extract usage with cache tokens', async () => {
-    prepareJsonResponse({
-      content: 'Hello',
-      usage: {
-        prompt_tokens: 100,
-        completion_tokens: 50,
-        total_tokens: 150,
-        prompt_tokens_details: {
-          cached_tokens: 80,
-          cache_creation_input_tokens: 20,
-        },
-        completion_tokens_details: {
-          reasoning_tokens: 10,
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-cache-test',
+        object: 'chat.completion',
+        created: 1770764844,
+        model: 'qwen-plus',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: 'Hello' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 100,
+          completion_tokens: 50,
+          total_tokens: 150,
+          prompt_tokens_details: {
+            cached_tokens: 80,
+            cache_creation_input_tokens: 20,
+          },
+          completion_tokens_details: {
+            reasoning_tokens: 10,
+          },
         },
       },
-    });
+    };
 
     const { usage } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -144,7 +192,7 @@ describe('doGenerate', () => {
   });
 
   it('should send enable_thinking in request body', async () => {
-    prepareJsonResponse({ content: 'Answer' });
+    prepareJsonFixtureResponse('alibaba-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -162,200 +210,68 @@ describe('doGenerate', () => {
       thinking_budget: 2048,
     });
   });
-
-  it('should extract reasoning from reasoning_content field', async () => {
-    prepareJsonFixtureResponse('alibaba-reasoning');
-
-    const { content } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(content).toMatchInlineSnapshot(`
-      [
-        {
-          "text": "The answer is 3.",
-          "type": "text",
-        },
-        {
-          "text": "Let me think about this step by step.",
-          "type": "reasoning",
-        },
-      ]
-    `);
-  });
 });
 
 describe('doStream', () => {
-  function prepareStreamResponse({ content }: { content: string[] }) {
+  function prepareChunksFixtureResponse(filename: string) {
+    const chunks = fs
+      .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
+      .split('\n')
+      .filter(line => line.trim().length > 0)
+      .map(line => `data: ${line}\n\n`);
+    chunks.push('data: [DONE]\n\n');
+
     server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'stream-chunks',
-      chunks: [
-        `data: {"id":"test-id","object":"chat.completion.chunk","created":1234567890,"model":"qwen-plus","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
-        ...content.map(
-          text =>
-            `data: {"id":"test-id","object":"chat.completion.chunk","created":1234567890,"model":"qwen-plus","choices":[{"index":0,"delta":{"content":"${text}"},"finish_reason":null}]}\n\n`,
-        ),
-        `data: {"id":"test-id","object":"chat.completion.chunk","created":1234567890,"model":"qwen-plus","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":20,"total_tokens":30}}\n\n`,
-        `data: [DONE]\n\n`,
-      ],
+      chunks,
     };
   }
 
-  it('should stream text deltas', async () => {
-    prepareStreamResponse({ content: ['Hello', ', ', 'world!'] });
-
-    const { stream } = await model.doStream({
-      prompt: TEST_PROMPT,
-      includeRawChunks: false,
+  describe('text', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('alibaba-text');
     });
 
-    const chunks = await convertReadableStreamToArray(stream);
+    it('should stream text', async () => {
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
 
-    expect(chunks).toMatchInlineSnapshot(`
-      [
-        {
-          "type": "stream-start",
-          "warnings": [],
-        },
-        {
-          "id": "test-id",
-          "modelId": "qwen-plus",
-          "timestamp": 2009-02-13T23:31:30.000Z,
-          "type": "response-metadata",
-        },
-        {
-          "id": "0",
-          "type": "text-start",
-        },
-        {
-          "delta": "Hello",
-          "id": "0",
-          "type": "text-delta",
-        },
-        {
-          "delta": ", ",
-          "id": "0",
-          "type": "text-delta",
-        },
-        {
-          "delta": "world!",
-          "id": "0",
-          "type": "text-delta",
-        },
-        {
-          "id": "0",
-          "type": "text-end",
-        },
-        {
-          "finishReason": {
-            "raw": "stop",
-            "unified": "stop",
-          },
-          "type": "finish",
-          "usage": {
-            "inputTokens": {
-              "cacheRead": 0,
-              "cacheWrite": 0,
-              "noCache": 10,
-              "total": 10,
-            },
-            "outputTokens": {
-              "reasoning": 0,
-              "text": 20,
-              "total": 20,
-            },
-            "raw": {
-              "completion_tokens": 20,
-              "prompt_tokens": 10,
-              "total_tokens": 30,
-            },
-          },
-        },
-      ]
-    `);
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
   });
 
-  it('should stream tool deltas', async () => {
-    server.urls[CHAT_COMPLETIONS_URL].response = {
-      type: 'stream-chunks',
-      chunks: [
-        `data: {"id":"test-id","object":"chat.completion.chunk","created":1234567890,"model":"qwen-plus","choices":[{"index":0,"delta":{"role":"assistant","content":"","tool_calls":[{"index":0,"id":"call-1","type":"function","function":{"name":"get_weather","arguments":""}}]},"finish_reason":null}]}\n\n`,
-        `data: {"id":"test-id","object":"chat.completion.chunk","created":1234567890,"model":"qwen-plus","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\"location"}}]},"finish_reason":null}]}\n\n`,
-        `data: {"id":"test-id","object":"chat.completion.chunk","created":1234567890,"model":"qwen-plus","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\"Paris\\"}"}}]},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":50,"completion_tokens":20,"total_tokens":70}}\n\n`,
-        `data: [DONE]\n\n`,
-      ],
-    };
-
-    const { stream } = await model.doStream({
-      prompt: TEST_PROMPT,
-      includeRawChunks: false,
+  describe('tool call', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('alibaba-tool-call');
     });
 
-    const chunks = await convertReadableStreamToArray(stream);
+    it('should stream tool call', async () => {
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
 
-    expect(chunks).toMatchInlineSnapshot(`
-      [
-        {
-          "type": "stream-start",
-          "warnings": [],
-        },
-        {
-          "id": "test-id",
-          "modelId": "qwen-plus",
-          "timestamp": 2009-02-13T23:31:30.000Z,
-          "type": "response-metadata",
-        },
-        {
-          "id": "call-1",
-          "toolName": "get_weather",
-          "type": "tool-input-start",
-        },
-        {
-          "delta": "{"location",
-          "id": "call-1",
-          "type": "tool-input-delta",
-        },
-        {
-          "delta": "":"Paris"}",
-          "id": "call-1",
-          "type": "tool-input-delta",
-        },
-        {
-          "id": "call-1",
-          "type": "tool-input-end",
-        },
-        {
-          "input": "{"location":"Paris"}",
-          "toolCallId": "call-1",
-          "toolName": "get_weather",
-          "type": "tool-call",
-        },
-        {
-          "finishReason": {
-            "raw": "tool_calls",
-            "unified": "tool-calls",
-          },
-          "type": "finish",
-          "usage": {
-            "inputTokens": {
-              "cacheRead": 0,
-              "cacheWrite": 0,
-              "noCache": 50,
-              "total": 50,
-            },
-            "outputTokens": {
-              "reasoning": 0,
-              "text": 20,
-              "total": 20,
-            },
-            "raw": {
-              "completion_tokens": 20,
-              "prompt_tokens": 50,
-              "total_tokens": 70,
-            },
-          },
-        },
-      ]
-    `);
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
+  });
+
+  describe('reasoning', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('alibaba-reasoning');
+    });
+
+    it('should stream reasoning', async () => {
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
   });
 });

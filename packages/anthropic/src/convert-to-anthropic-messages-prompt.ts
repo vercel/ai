@@ -7,6 +7,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
+  convertBase64ToUint8Array,
   convertToBase64,
   parseProviderOptions,
   validateTypes,
@@ -31,7 +32,7 @@ import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 
 function convertToString(data: LanguageModelV3DataContent): string {
   if (typeof data === 'string') {
-    return Buffer.from(data, 'base64').toString('utf-8');
+    return new TextDecoder().decode(convertBase64ToUint8Array(data));
   }
 
   if (data instanceof Uint8Array) {
@@ -648,10 +649,14 @@ export async function convertToAnthropicMessagesPrompt({
                   | { caller?: { type: string; toolId?: string } }
                   | undefined;
                 const caller = callerOptions?.caller
-                  ? callerOptions.caller.type === 'code_execution_20250825' &&
+                  ? (callerOptions.caller.type === 'code_execution_20250825' ||
+                      callerOptions.caller.type ===
+                        'code_execution_20260120') &&
                     callerOptions.caller.toolId
                     ? {
-                        type: 'code_execution_20250825' as const,
+                        type: callerOptions.caller.type as
+                          | 'code_execution_20250825'
+                          | 'code_execution_20260120',
                         tool_id: callerOptions.caller.toolId,
                       }
                     : callerOptions.caller.type === 'direct'
