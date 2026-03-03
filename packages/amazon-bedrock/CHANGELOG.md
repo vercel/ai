@@ -1,5 +1,21 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.72
+
+### Patch Changes
+
+- Updated dependencies [89caf28]
+  - @ai-sdk/anthropic@3.0.53
+
+## 4.0.71
+
+### Patch Changes
+
+- 08336f1: fix(bedrock): strip file extensions from filename
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+  - @ai-sdk/anthropic@3.0.52
+
 ## 4.0.70
 
 ### Patch Changes

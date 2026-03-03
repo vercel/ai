@@ -1,5 +1,19 @@
 # ai
 
+## 6.0.108
+
+### Patch Changes
+
+- 2a4f512: feat(ai): add telemetry interface and registry
+
+## 6.0.107
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+  - @ai-sdk/gateway@3.0.61
+
 ## 6.0.106
 
 ### Patch Changes
