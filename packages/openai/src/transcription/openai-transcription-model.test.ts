@@ -469,7 +469,7 @@ describe('doGenerate', () => {
   });
 
   it('should set response_format to "diarized_json" when model is "gpt-4o-transcribe-diarize"', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-transcription');
 
     const model = provider.transcription('gpt-4o-transcribe-diarize');
     await model.doGenerate({
@@ -499,7 +499,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass chunking_strategy object when specified', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-transcription');
 
     await model.doGenerate({
       audio: audioData,
