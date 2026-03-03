@@ -663,7 +663,12 @@ describe('prepareTools', () => {
             "code-execution-web-tools-2026-02-09",
           },
           "toolChoice": undefined,
-          "toolWarnings": [],
+          "toolWarnings": [
+            {
+              "message": "web_search_20260209 and web_fetch_20260209 tools require code_execution_20260120 to work correctly. Add anthropic.tools.codeExecution_20260120() to your tools configuration.",
+              "type": "other",
+            },
+          ],
           "tools": [
             {
               "allowed_domains": [
@@ -755,7 +760,12 @@ describe('prepareTools', () => {
             "code-execution-web-tools-2026-02-09",
           },
           "toolChoice": undefined,
-          "toolWarnings": [],
+          "toolWarnings": [
+            {
+              "message": "web_search_20260209 and web_fetch_20260209 tools require code_execution_20260120 to work correctly. Add anthropic.tools.codeExecution_20260120() to your tools configuration.",
+              "type": "other",
+            },
+          ],
           "tools": [
             {
               "allowed_domains": [
