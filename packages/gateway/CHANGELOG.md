@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.50
+
+### Patch Changes
+
+- c4a324b: feat(gateway): add providerTimeouts to provider options
+
 ## 2.0.49
 
 ### Patch Changes
