@@ -24,29 +24,6 @@ function getAudioFormat(mediaType: string): 'wav' | 'mp3' | null {
   }
 }
 
-/**
- * Returns true for audio MIME types not natively supported by the standard
- * OpenAI `input_audio` format (wav/mp3) but accepted by some compatible
- * providers (e.g. Gemini via the OpenAI-compatible endpoint).
- */
-function isExtendedAudioType(mediaType: string): boolean {
-  const extendedTypes = new Set([
-    'audio/x-aac',
-    'audio/aac',
-    'audio/flac',
-    'audio/x-flac',
-    'audio/m4a',
-    'audio/mp4',
-    'audio/mpga',
-    'audio/ogg',
-    'audio/pcm',
-    'audio/webm',
-    'audio/x-wav',
-    'audio/wave',
-  ]);
-  return extendedTypes.has(mediaType);
-}
-
 export function convertToOpenAICompatibleChatMessages(
   prompt: LanguageModelV3Prompt,
 ): OpenAICompatibleChatPrompt {
@@ -111,15 +88,9 @@ export function convertToOpenAICompatibleChatMessages(
                     };
                   }
 
-                  // Extended audio types (or URL-based audio): pass as file
-                  // with a data URI or URL — supported by providers such as
-                  // Gemini via their OpenAI-compatible endpoint.
-                  if (format === null && !isExtendedAudioType(part.mediaType)) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: `audio media type ${part.mediaType}`,
-                    });
-                  }
-
+                  // Any other audio/* type: pass as a file with data URI or URL.
+                  // This matches how video/* is handled and avoids the need to
+                  // maintain a hard-coded allowlist as providers add new formats.
                   const fileData =
                     part.data instanceof URL
                       ? part.data.toString()

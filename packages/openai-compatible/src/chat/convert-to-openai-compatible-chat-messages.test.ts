@@ -239,23 +239,33 @@ describe('user messages', () => {
     ]);
   });
 
-  it('should throw error for truly unsupported audio formats', async () => {
-    expect(() =>
-      convertToOpenAICompatibleChatMessages([
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'file',
-              data: new Uint8Array([0, 1, 2, 3]),
-              mediaType: 'audio/unsupported-format',
+  it('should convert any audio/* type as a file part (wildcard audio support)', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: new Uint8Array([0, 1, 2, 3]),
+            mediaType: 'audio/unsupported-format',
+          },
+        ],
+      },
+    ]);
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            file: {
+              filename: 'audio.unsupported-format',
+              file_data: 'data:audio/unsupported-format;base64,AAECAw==',
             },
-          ],
-        },
-      ]),
-    ).toThrow(
-      "'audio media type audio/unsupported-format' functionality not supported",
-    );
+          },
+        ],
+      },
+    ]);
   });
 
   it('should convert messages with PDF parts', async () => {
