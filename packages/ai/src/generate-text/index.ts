@@ -64,3 +64,11 @@ export type {
   TypedToolResult,
 } from './tool-result';
 export type { ToolSet } from './tool-set';
+export type {
+  OnFinishEvent,
+  OnStartEvent,
+  OnStepFinishEvent,
+  OnStepStartEvent,
+  OnToolCallFinishEvent,
+  OnToolCallStartEvent,
+} from './callback-events';
