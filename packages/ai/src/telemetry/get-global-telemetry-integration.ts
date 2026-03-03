@@ -32,7 +32,7 @@ export function getGlobalTelemetryIntegration<
   OUTPUT extends Output = Output,
 >(
   integrations: TelemetryIntegration | Array<TelemetryIntegration> | undefined,
-): TelemetryIntegration<TOOLS, OUTPUT> {
+): TelemetryIntegration {
   const globalIntegrations = getGlobalTelemetryIntegrations();
   const localIntegrations = asArray(integrations);
   const allIntegrations = [...globalIntegrations, ...localIntegrations];
@@ -45,8 +45,6 @@ export function getGlobalTelemetryIntegration<
     const listeners = allIntegrations
       .map(getListenerFromIntegration)
       .filter(Boolean) as Array<(event: EVENT) => PromiseLike<void> | void>;
-
-    if (listeners.length === 0) return undefined;
 
     return async (event: EVENT) => {
       for (const listener of listeners) {
@@ -72,5 +70,5 @@ export function getGlobalTelemetryIntegration<
       integration => integration.onStepFinish,
     ),
     onFinish: createTelemetryComposite(integration => integration.onFinish),
-  } as TelemetryIntegration<TOOLS, OUTPUT>;
+  };
 }

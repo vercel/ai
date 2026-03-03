@@ -19,7 +19,7 @@ import {
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
-import { notify } from '../util/notify';
+import { Listener, notify } from '../util/notify';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import {
@@ -1123,7 +1123,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               providerMetadata: finalStep.providerMetadata,
               steps: recordedSteps,
             },
-            callbacks: [onFinish, globalTelemetry.onFinish],
+            callbacks: [
+              onFinish,
+              globalTelemetry.onFinish as
+                | undefined
+                | StreamTextOnFinishCallback<TOOLS>,
+            ],
           });
 
           // Add response information to the root span:
@@ -1312,7 +1317,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             ...callbackTelemetryProps,
             experimental_context,
           },
-          callbacks: [onStart, globalTelemetry.onStart],
+          callbacks: [
+            onStart,
+            globalTelemetry.onStart as
+              | undefined
+              | StreamTextOnStartCallback<TOOLS, OUTPUT>,
+          ],
         });
 
         const initialMessages = initialPrompt.messages;
@@ -1384,7 +1394,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   model: modelInfo,
                   onToolCallStart: [
                     onToolCallStart,
-                    globalTelemetry.onToolCallStart,
+                    globalTelemetry.onToolCallStart as
+                      | undefined
+                      | StreamTextOnToolCallStartCallback<TOOLS>,
                   ],
                   onToolCallFinish: [
                     onToolCallFinish,
@@ -1587,7 +1599,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 ...callbackTelemetryProps,
                 experimental_context,
               },
-              callbacks: [onStepStart, globalTelemetry.onStepStart],
+              callbacks: [
+                onStepStart,
+                globalTelemetry.onStepStart as
+                  | undefined
+                  | StreamTextOnStepStartCallback<TOOLS, OUTPUT>,
+              ],
             });
 
             const {
@@ -1672,7 +1689,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               model: stepModelInfo,
               onToolCallStart: [
                 onToolCallStart,
-                globalTelemetry.onToolCallStart,
+                globalTelemetry.onToolCallStart as
+                  | undefined
+                  | StreamTextOnToolCallStartCallback<TOOLS>,
               ],
               onToolCallFinish: [
                 onToolCallFinish,

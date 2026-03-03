@@ -1,5 +1,8 @@
 import { asArray } from './as-array';
 
+/**
+ * A callback function that can be used to notify listeners.
+ */
 export type Listener<EVENT> = (event: EVENT) => PromiseLike<void> | void;
 
 /**

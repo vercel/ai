@@ -513,7 +513,12 @@ export async function generateText<
       metadata: telemetry?.metadata as Record<string, unknown> | undefined,
       experimental_context,
     },
-    callbacks: [onStart, globalTelemetry.onStart],
+    callbacks: [
+      onStart,
+      globalTelemetry.onStart as
+        | undefined
+        | GenerateTextOnStartCallback<TOOLS, OUTPUT>,
+    ],
   });
 
   const tracer = getTracer(telemetry);
@@ -566,10 +571,17 @@ export async function generateText<
             experimental_context,
             stepNumber: 0,
             model: modelInfo,
-            onToolCallStart: [onToolCallStart, globalTelemetry.onToolCallStart],
+            onToolCallStart: [
+              onToolCallStart,
+              globalTelemetry.onToolCallStart as
+                | undefined
+                | GenerateTextOnToolCallStartCallback<TOOLS>,
+            ],
             onToolCallFinish: [
               onToolCallFinish,
-              globalTelemetry.onToolCallFinish,
+              globalTelemetry.onToolCallFinish as
+                | undefined
+                | GenerateTextOnToolCallFinishCallback<TOOLS>,
             ],
           });
 
@@ -742,7 +754,12 @@ export async function generateText<
                   | undefined,
                 experimental_context,
               },
-              callbacks: [onStepStart, globalTelemetry.onStepStart],
+              callbacks: [
+                onStepStart,
+                globalTelemetry.onStepStart as
+                  | undefined
+                  | GenerateTextOnStepStartCallback<TOOLS, OUTPUT>,
+              ],
             });
 
             currentModelResponse = await retry(() =>
@@ -966,7 +983,9 @@ export async function generateText<
                   model: stepModelInfo,
                   onToolCallStart: [
                     onToolCallStart,
-                    globalTelemetry.onToolCallStart,
+                    globalTelemetry.onToolCallStart as
+                      | undefined
+                      | GenerateTextOnToolCallStartCallback<TOOLS>,
                   ],
                   onToolCallFinish: [
                     onToolCallFinish,
@@ -1168,7 +1187,12 @@ export async function generateText<
             steps,
             totalUsage,
           },
-          callbacks: [onFinish, globalTelemetry.onFinish],
+          callbacks: [
+            onFinish,
+            globalTelemetry.onFinish as
+              | undefined
+              | GenerateTextOnFinishCallback<TOOLS>,
+          ],
         });
 
         // parse output only if the last step was finished with "stop":
