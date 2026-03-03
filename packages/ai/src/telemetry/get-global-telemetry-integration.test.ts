@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { TelemetryIntegration } from './telemetry-integration';
 import {
-  expandIntegrations,
+  getGlobalTelemetryIntegration,
   bindTelemetryIntegration,
-} from './expand-integrations';
+} from './get-global-telemetry-integration';
 import { registerTelemetryIntegration } from './telemetry-integration-registry';
 
 const dummyEvent = {} as any;
@@ -12,9 +12,9 @@ beforeEach(() => {
   globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = undefined;
 });
 
-describe('expandIntegrations', () => {
+describe('getGlobalTelemetryIntegration', () => {
   it('returns all undefined listeners when integrations is undefined and no global integrations', () => {
-    const listeners = expandIntegrations(undefined);
+    const listeners = getGlobalTelemetryIntegration(undefined);
 
     expect(listeners.onStart).toBeUndefined();
     expect(listeners.onStepStart).toBeUndefined();
@@ -29,7 +29,7 @@ describe('expandIntegrations', () => {
       onStart: vi.fn(),
     };
 
-    const listeners = expandIntegrations(integration);
+    const listeners = getGlobalTelemetryIntegration(integration);
 
     expect(listeners.onStart).toBeDefined();
     expect(listeners.onStepStart).toBeUndefined();
@@ -39,7 +39,10 @@ describe('expandIntegrations', () => {
     const integration1: TelemetryIntegration = { onStart: vi.fn() };
     const integration2: TelemetryIntegration = { onFinish: vi.fn() };
 
-    const listeners = expandIntegrations([integration1, integration2]);
+    const listeners = getGlobalTelemetryIntegration([
+      integration1,
+      integration2,
+    ]);
 
     expect(listeners.onStart).toBeDefined();
     expect(listeners.onFinish).toBeDefined();
@@ -48,7 +51,7 @@ describe('expandIntegrations', () => {
   it('returns undefined for a lifecycle method no integration implements', () => {
     const integration: TelemetryIntegration = { onStart: vi.fn() };
 
-    const listeners = expandIntegrations([integration]);
+    const listeners = getGlobalTelemetryIntegration([integration]);
 
     expect(listeners.onToolCallStart).toBeUndefined();
     expect(listeners.onToolCallFinish).toBeUndefined();
@@ -62,7 +65,10 @@ describe('expandIntegrations', () => {
     const integration1: TelemetryIntegration = { onStart: onStart1 };
     const integration2: TelemetryIntegration = { onStart: onStart2 };
 
-    const listeners = expandIntegrations([integration1, integration2]);
+    const listeners = getGlobalTelemetryIntegration([
+      integration1,
+      integration2,
+    ]);
     await listeners.onStart!(dummyEvent);
 
     expect(onStart1).toHaveBeenCalledWith(dummyEvent);
@@ -82,7 +88,10 @@ describe('expandIntegrations', () => {
       },
     };
 
-    const listeners = expandIntegrations([integration1, integration2]);
+    const listeners = getGlobalTelemetryIntegration([
+      integration1,
+      integration2,
+    ]);
     await listeners.onFinish!(dummyEvent);
 
     expect(callOrder).toEqual(['first', 'second']);
@@ -93,7 +102,10 @@ describe('expandIntegrations', () => {
     const integration1: TelemetryIntegration = { onStart };
     const integration2: TelemetryIntegration = {};
 
-    const listeners = expandIntegrations([integration1, integration2]);
+    const listeners = getGlobalTelemetryIntegration([
+      integration1,
+      integration2,
+    ]);
     await listeners.onStart!(dummyEvent);
 
     expect(onStart).toHaveBeenCalledOnce();
@@ -105,7 +117,10 @@ describe('expandIntegrations', () => {
     const integration1: TelemetryIntegration = { onStart: onStart1 };
     const integration2: TelemetryIntegration = { onStart: onStart2 };
 
-    const listeners = expandIntegrations([integration1, integration2]);
+    const listeners = getGlobalTelemetryIntegration([
+      integration1,
+      integration2,
+    ]);
     await listeners.onStart!(dummyEvent);
 
     expect(onStart1).toHaveBeenCalledWith(dummyEvent);
@@ -119,7 +134,7 @@ describe('expandIntegrations', () => {
       },
     };
 
-    const listeners = expandIntegrations([integration]);
+    const listeners = getGlobalTelemetryIntegration([integration]);
 
     await expect(listeners.onStart!(dummyEvent)).resolves.toBeUndefined();
   });
@@ -134,7 +149,7 @@ describe('expandIntegrations', () => {
       onFinish: vi.fn(),
     };
 
-    const listeners = expandIntegrations([integration]);
+    const listeners = getGlobalTelemetryIntegration([integration]);
 
     await listeners.onStart!(dummyEvent);
     await listeners.onStepStart!(dummyEvent);
@@ -152,7 +167,7 @@ describe('expandIntegrations', () => {
   });
 
   it('handles an empty array of integrations', () => {
-    const listeners = expandIntegrations([]);
+    const listeners = getGlobalTelemetryIntegration([]);
 
     expect(listeners.onStart).toBeUndefined();
     expect(listeners.onFinish).toBeUndefined();
@@ -163,7 +178,7 @@ describe('expandIntegrations', () => {
       const onStart = vi.fn();
       registerTelemetryIntegration({ onStart });
 
-      const listeners = expandIntegrations(undefined);
+      const listeners = getGlobalTelemetryIntegration(undefined);
       await listeners.onStart!(dummyEvent);
 
       expect(onStart).toHaveBeenCalledWith(dummyEvent);
@@ -175,7 +190,9 @@ describe('expandIntegrations', () => {
 
       registerTelemetryIntegration({ onStart: globalOnStart });
 
-      const listeners = expandIntegrations({ onStart: localOnStart });
+      const listeners = getGlobalTelemetryIntegration({
+        onStart: localOnStart,
+      });
       await listeners.onStart!(dummyEvent);
 
       expect(globalOnStart).toHaveBeenCalledWith(dummyEvent);
@@ -191,7 +208,7 @@ describe('expandIntegrations', () => {
         },
       });
 
-      const listeners = expandIntegrations({
+      const listeners = getGlobalTelemetryIntegration({
         onFinish: async () => {
           callOrder.push('local');
         },
@@ -208,7 +225,7 @@ describe('expandIntegrations', () => {
 
       registerTelemetryIntegration({ onStart: globalOnStart });
 
-      const listeners = expandIntegrations([
+      const listeners = getGlobalTelemetryIntegration([
         { onStart: localOnStart1 },
         { onStart: localOnStart2 },
       ]);
@@ -227,7 +244,9 @@ describe('expandIntegrations', () => {
       });
 
       const localOnStart = vi.fn();
-      const listeners = expandIntegrations({ onStart: localOnStart });
+      const listeners = getGlobalTelemetryIntegration({
+        onStart: localOnStart,
+      });
       await listeners.onStart!(dummyEvent);
 
       expect(localOnStart).toHaveBeenCalledWith(dummyEvent);
@@ -265,7 +284,7 @@ describe('bindTelemetryIntegration', () => {
     expect(bound.onFinish).toBeUndefined();
   });
 
-  it('bound integration works correctly with expandIntegrations', async () => {
+  it('bound integration works correctly with getGlobalTelemetryIntegration', async () => {
     class DevToolsIntegration implements TelemetryIntegration {
       calls: string[] = [];
 
@@ -280,7 +299,7 @@ describe('bindTelemetryIntegration', () => {
 
     const instance = new DevToolsIntegration();
     const bound = bindTelemetryIntegration(instance);
-    const listeners = expandIntegrations([bound]);
+    const listeners = getGlobalTelemetryIntegration([bound]);
 
     await listeners.onStart!(dummyEvent);
     await listeners.onFinish!(dummyEvent);
