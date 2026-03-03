@@ -3103,4 +3103,90 @@ describe('citations', () => {
       `);
     });
   });
+
+  it('should reorder assistant content so server_tool_use+web_search_tool_result come before tool_use', async () => {
+    // When the model calls both a provider-executed tool (web_search) and a
+    // regular tool in the same turn, the resulting anthropicContent array may
+    // have server_tool_use / web_search_tool_result interspersed after tool_use.
+    // The Anthropic API requires tool_use to be last; this test verifies the
+    // reordering.
+    const warnings: SharedV3Warning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Search and save news.' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: "I'll search and call the schema tool." },
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_01Regular',
+              toolName: 'get_table_schema',
+              input: {},
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'srvtoolu_01Web',
+              toolName: 'web_search',
+              input: { query: 'news' },
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'srvtoolu_01Web',
+              toolName: 'web_search',
+              output: {
+                type: 'json',
+                value: [
+                  {
+                    type: 'web_search_result',
+                    url: 'https://example.com',
+                    title: 'News',
+                    pageAge: '1h',
+                    encryptedContent: 'enc123',
+                  },
+                ],
+              },
+              providerExecuted: true,
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_01Regular',
+              toolName: 'get_table_schema',
+              output: { type: 'json', value: { columns: [] } },
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    const assistantMsg = result.messages.find(m => m.role === 'assistant');
+    expect(assistantMsg).toBeDefined();
+
+    const types = (assistantMsg!.content as Array<{ type: string }>).map(
+      c => c.type,
+    );
+
+    // server_tool_use and web_search_tool_result must come BEFORE tool_use
+    const toolUseIdx = types.indexOf('tool_use');
+    const serverToolUseIdx = types.indexOf('server_tool_use');
+    const webSearchResultIdx = types.indexOf('web_search_tool_result');
+
+    expect(toolUseIdx).toBeGreaterThan(-1);
+    expect(serverToolUseIdx).toBeGreaterThan(-1);
+    expect(webSearchResultIdx).toBeGreaterThan(-1);
+    expect(serverToolUseIdx).toBeLessThan(toolUseIdx);
+    expect(webSearchResultIdx).toBeLessThan(toolUseIdx);
+  });
 });
