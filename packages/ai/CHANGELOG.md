@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.108
+
+### Patch Changes
+
+- 2a4f512: feat(ai): add telemetry interface and registry
+
 ## 6.0.107
 
 ### Patch Changes
