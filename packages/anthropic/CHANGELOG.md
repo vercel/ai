@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.54
+
+### Patch Changes
+
+- 56c67d5: feat(provider/anthropic): add support for Anthropic web tools `web_fetch_20260209` and `web_search_20260209`
+
 ## 3.0.53
 
 ### Patch Changes
