@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.111
+
+### Patch Changes
+
+- 2129c82: feat(ai): register global telemetry integrations
+
 ## 6.0.110
 
 ### Patch Changes
