@@ -1,6 +1,6 @@
 ---
 name: update-provider-models
-description: Add new or remove obsolete model IDs for AI SDK providers. Use when adding a model to a provider, removing an obsolete model, or processing a list of model changes from an issue. Triggers on "add model", "remove model", "new model ID", "obsolete model", "update model IDs".
+description: Add new or remove obsolete model IDs for existing AI SDK providers. Use when adding a model to a provider, removing an obsolete model, or processing a list of model changes from an issue. Triggers on "add model", "remove model", "new model ID", "obsolete model", "update model IDs".
 metadata:
   internal: true
 ---
