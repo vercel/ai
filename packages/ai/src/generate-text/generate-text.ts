@@ -442,9 +442,7 @@ export async function generateText<
     };
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
   const model = resolveLanguageModel(modelArg);
-  const globalTelemetry = getGlobalTelemetryIntegration<TOOLS, OUTPUT>(
-    telemetry?.integrations,
-  );
+  const createGlobalTelemetry = getGlobalTelemetryIntegration<TOOLS, OUTPUT>();
   const stopConditions = asArray(stopWhen);
 
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
@@ -483,6 +481,8 @@ export async function generateText<
     prompt,
     messages,
   } as Prompt);
+
+  const globalTelemetry = createGlobalTelemetry(telemetry?.integrations);
 
   await notify({
     event: {

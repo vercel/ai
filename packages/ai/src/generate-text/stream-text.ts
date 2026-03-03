@@ -808,9 +808,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     this.includeRawChunks = includeRawChunks;
     this.tools = tools;
 
-    const globalTelemetry = getGlobalTelemetryIntegration<TOOLS, OUTPUT>(
-      telemetry?.integrations,
-    );
+    const createGlobalTelemetry = getGlobalTelemetryIntegration<
+      TOOLS,
+      OUTPUT
+    >();
+    const globalTelemetry = createGlobalTelemetry(telemetry?.integrations);
 
     // promise to ensure that the step has been fully processed by the event processor
     // before a new step is started. This is required because the continuation condition

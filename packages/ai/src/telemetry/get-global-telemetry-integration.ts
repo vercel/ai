@@ -23,52 +23,63 @@ export function bindTelemetryIntegration(
 }
 
 /**
- * Merges globally registered integrations (via `registerTelemetryIntegration`)
- * with per-call integrations into a single composite integration.
- * Global integrations run first.
+ * Creates a factory that merges globally registered integrations
+ * (via `registerTelemetryIntegration`) with per-call integrations
+ * into a single composite integration.
+ *
+ * Returns a factory function that accepts local integrations and
+ * returns the merged TelemetryIntegration.
  */
 export function getGlobalTelemetryIntegration<
   TOOLS extends ToolSet = ToolSet,
   OUTPUT extends Output = Output,
->(
+>(): (
   integrations: TelemetryIntegration | Array<TelemetryIntegration> | undefined,
-): TelemetryIntegration {
+) => TelemetryIntegration {
   const globalIntegrations = getGlobalTelemetryIntegrations();
-  const localIntegrations = asArray(integrations);
-  const allIntegrations = [...globalIntegrations, ...localIntegrations];
 
-  function createTelemetryComposite<EVENT>(
-    getListenerFromIntegration: (
-      integration: TelemetryIntegration,
-    ) => ((event: EVENT) => PromiseLike<void> | void) | undefined,
-  ): ((event: EVENT) => Promise<void>) | undefined {
-    const listeners = allIntegrations
-      .map(getListenerFromIntegration)
-      .filter(Boolean) as Array<(event: EVENT) => PromiseLike<void> | void>;
+  return (
+    integrations:
+      | TelemetryIntegration
+      | Array<TelemetryIntegration>
+      | undefined,
+  ): TelemetryIntegration => {
+    const localIntegrations = asArray(integrations);
+    const allIntegrations = [...globalIntegrations, ...localIntegrations];
 
-    return async (event: EVENT) => {
-      for (const listener of listeners) {
-        try {
-          await listener(event);
-        } catch (_ignored) {}
-      }
+    function createTelemetryComposite<EVENT>(
+      getListenerFromIntegration: (
+        integration: TelemetryIntegration,
+      ) => ((event: EVENT) => PromiseLike<void> | void) | undefined,
+    ): ((event: EVENT) => Promise<void>) | undefined {
+      const listeners = allIntegrations
+        .map(getListenerFromIntegration)
+        .filter(Boolean) as Array<(event: EVENT) => PromiseLike<void> | void>;
+
+      return async (event: EVENT) => {
+        for (const listener of listeners) {
+          try {
+            await listener(event);
+          } catch (_ignored) {}
+        }
+      };
+    }
+
+    return {
+      onStart: createTelemetryComposite(integration => integration.onStart),
+      onStepStart: createTelemetryComposite(
+        integration => integration.onStepStart,
+      ),
+      onToolCallStart: createTelemetryComposite(
+        integration => integration.onToolCallStart,
+      ),
+      onToolCallFinish: createTelemetryComposite(
+        integration => integration.onToolCallFinish,
+      ),
+      onStepFinish: createTelemetryComposite(
+        integration => integration.onStepFinish,
+      ),
+      onFinish: createTelemetryComposite(integration => integration.onFinish),
     };
-  }
-
-  return {
-    onStart: createTelemetryComposite(integration => integration.onStart),
-    onStepStart: createTelemetryComposite(
-      integration => integration.onStepStart,
-    ),
-    onToolCallStart: createTelemetryComposite(
-      integration => integration.onToolCallStart,
-    ),
-    onToolCallFinish: createTelemetryComposite(
-      integration => integration.onToolCallFinish,
-    ),
-    onStepFinish: createTelemetryComposite(
-      integration => integration.onStepFinish,
-    ),
-    onFinish: createTelemetryComposite(integration => integration.onFinish),
   };
 }
