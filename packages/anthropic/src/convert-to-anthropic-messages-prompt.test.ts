@@ -3171,7 +3171,9 @@ describe('citations', () => {
       toolNameMapping: defaultToolNameMapping,
     });
 
-    const assistantMsg = result.messages.find(m => m.role === 'assistant');
+    const assistantMsg = result.prompt.messages.find(
+      m => m.role === 'assistant',
+    );
     expect(assistantMsg).toBeDefined();
 
     const types = (assistantMsg!.content as Array<{ type: string }>).map(
