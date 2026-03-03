@@ -25,3 +25,5 @@ graph LR
     class OPENAI provider
     class OPENAI_API external
 ```
+
+See the [provider abstraction architecture doc](../architecture/provider-abstraction.md) for a more in-depth guide.
