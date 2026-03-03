@@ -37,6 +37,7 @@ import {
   anthropicMessagesResponseSchema,
   AnthropicReasoningMetadata,
   AnthropicResponseContextManagement,
+  AnthropicTool,
   Citation,
 } from './anthropic-messages-api';
 import {
@@ -747,6 +748,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       ...this.extractCitationDocuments(options.prompt),
     ];
 
+    const markCodeExecutionDynamic = hasWebTool20260209WithoutCodeExecution(
+      args.tools,
+    );
+
     const {
       responseHeaders,
       value: response,
@@ -900,6 +905,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               toolName: toolNameMapping.toCustomToolName(part.name),
               input: JSON.stringify(inputToSerialize),
               providerExecuted: true,
+              // We want this 'code_execution' tool call to be allowed even if the tool is not explicitly provided.
+              // Since the validation generally bypasses dynamic tools, we mark this specific tool as dynamic.
+              ...(markCodeExecutionDynamic && part.name === 'code_execution'
+                ? { dynamic: true }
+                : {}),
             });
           } else if (
             part.name === 'tool_search_tool_regex' ||
@@ -1205,6 +1215,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     const citationDocuments = [
       ...this.extractCitationDocuments(options.prompt),
     ];
+
+    const markCodeExecutionDynamic = hasWebTool20260209WithoutCodeExecution(
+      body.tools,
+    );
 
     const url = this.buildRequestUrl(true);
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -1775,6 +1789,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         toolName: contentBlock.toolName,
                         input: finalInput,
                         providerExecuted: contentBlock.providerExecuted,
+                        ...(markCodeExecutionDynamic &&
+                        contentBlock.providerToolName === 'code_execution'
+                          ? { dynamic: true }
+                          : {}),
                         ...(contentBlock.caller && {
                           providerMetadata: {
                             anthropic: {
@@ -2238,6 +2256,31 @@ function getModelCapabilities(modelId: string): {
       isKnownModel: false,
     };
   }
+}
+
+function hasWebTool20260209WithoutCodeExecution(
+  tools: AnthropicTool[] | undefined,
+): boolean {
+  if (!tools) {
+    return false;
+  }
+  let hasWebTool20260209 = false;
+  let hasCodeExecutionTool = false;
+  for (const tool of tools) {
+    if (
+      'type' in tool &&
+      (tool.type === 'web_fetch_20260209' ||
+        tool.type === 'web_search_20260209')
+    ) {
+      hasWebTool20260209 = true;
+      continue;
+    }
+    if (tool.name === 'code_execution') {
+      hasCodeExecutionTool = true;
+      break;
+    }
+  }
+  return hasWebTool20260209 && !hasCodeExecutionTool;
 }
 
 function mapAnthropicResponseContextManagement(
