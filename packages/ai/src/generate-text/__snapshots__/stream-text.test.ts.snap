@@ -2,6 +2,73 @@
 
 exports[`streamText > errors > should swallow error to prevent server crash 1`] = `[]`;
 
+exports[`streamText > options.experimental_onStart > should send correct information with text prompt 1`] = `
+{
+  "abortSignal": undefined,
+  "activeTools": undefined,
+  "experimental_context": undefined,
+  "frequencyPenalty": undefined,
+  "functionId": "test-function",
+  "headers": undefined,
+  "include": undefined,
+  "maxOutputTokens": undefined,
+  "maxRetries": 2,
+  "messages": undefined,
+  "metadata": {
+    "customKey": "customValue",
+  },
+  "model": {
+    "modelId": "mock-model-id",
+    "provider": "mock-provider",
+  },
+  "output": undefined,
+  "presencePenalty": undefined,
+  "prompt": "test-input",
+  "providerOptions": undefined,
+  "seed": undefined,
+  "stopSequences": undefined,
+  "stopWhen": [Function],
+  "system": undefined,
+  "temperature": undefined,
+  "timeout": undefined,
+  "toolChoice": undefined,
+  "tools": undefined,
+  "topK": undefined,
+  "topP": undefined,
+}
+`;
+
+exports[`streamText > options.experimental_onToolCallStart > should be called with correct tool name, id, and input 1`] = `
+{
+  "abortSignal": undefined,
+  "experimental_context": undefined,
+  "functionId": undefined,
+  "messages": [
+    {
+      "content": "test-input",
+      "role": "user",
+    },
+  ],
+  "metadata": undefined,
+  "model": {
+    "modelId": "mock-model-id",
+    "provider": "mock-provider",
+  },
+  "stepNumber": 0,
+  "toolCall": {
+    "input": {
+      "value": "test-arg",
+    },
+    "providerExecuted": undefined,
+    "providerMetadata": undefined,
+    "title": undefined,
+    "toolCallId": "call-1",
+    "toolName": "tool1",
+    "type": "tool-call",
+  },
+}
+`;
+
 exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should record telemetry data for each step 1`] = `
 [
   {

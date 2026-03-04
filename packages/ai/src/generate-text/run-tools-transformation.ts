@@ -12,6 +12,10 @@ import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { asLanguageModelUsage } from '../types/usage';
 import { executeToolCall } from './execute-tool-call';
+import {
+  StreamTextOnToolCallFinishCallback,
+  StreamTextOnToolCallStartCallback,
+} from './stream-text';
 import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
 import { parseToolCall } from './parse-tool-call';
@@ -83,11 +87,10 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
 
   // Other types:
   | ({ type: 'source' } & Source)
-  | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
+  | { type: 'file'; file: GeneratedFile; providerMetadata?: ProviderMetadata } // different because of GeneratedFile object
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
   | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
   | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
-  | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
   | { type: 'stream-start'; warnings: SharedV3Warning[] }
   | {
       type: 'response-metadata';
@@ -116,6 +119,10 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   repairToolCall,
   experimental_context,
   generateId,
+  stepNumber,
+  model,
+  onToolCallStart,
+  onToolCallFinish,
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV3StreamPart>;
@@ -127,6 +134,14 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   experimental_context: unknown;
   generateId: IdGenerator;
+  stepNumber?: number;
+  model?: { provider: string; modelId: string };
+  onToolCallStart?:
+    | StreamTextOnToolCallStartCallback<TOOLS>
+    | Array<StreamTextOnToolCallStartCallback<TOOLS> | undefined | null>;
+  onToolCallFinish?:
+    | StreamTextOnToolCallFinishCallback<TOOLS>
+    | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
@@ -208,6 +223,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               data: chunk.data,
               mediaType: chunk.mediaType,
             }),
+            ...(chunk.providerMetadata != null
+              ? { providerMetadata: chunk.providerMetadata }
+              : {}),
           });
           break;
         }
@@ -323,6 +341,10 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 messages,
                 abortSignal,
                 experimental_context,
+                stepNumber,
+                model,
+                onToolCallStart,
+                onToolCallFinish,
                 onPreliminaryToolResult: result => {
                   toolResultsStreamController!.enqueue(result);
                 },

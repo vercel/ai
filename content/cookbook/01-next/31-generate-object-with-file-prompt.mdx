@@ -67,27 +67,25 @@ export default function Page() {
 
 ## Server
 
-On the server, create an API route that receives the PDF, sends it to the LLM, and returns the result. This example uses the [ `generateObject` ](/docs/reference/ai-sdk-core/generate-object) function to generate the summary as part of a structured output.
+On the server, create an API route that receives the PDF, sends it to the LLM, and returns the result. This example uses the [ `generateText` ](/docs/reference/ai-sdk-core/generate-text) function with `Output.object` to generate the summary as part of a structured output.
 
 ```typescript file="app/api/analyze/route.ts"
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
 export async function POST(request: Request) {
   const formData = await request.formData();
   const file = formData.get('pdf') as File;
 
-  // Convert the file's arrayBuffer to a Base64 data URL
   const arrayBuffer = await file.arrayBuffer();
   const uint8Array = new Uint8Array(arrayBuffer);
 
-  // Convert Uint8Array to an array of characters
   const charArray = Array.from(uint8Array, byte => String.fromCharCode(byte));
   const binaryString = charArray.join('');
   const base64Data = btoa(binaryString);
   const fileDataUrl = `data:application/pdf;base64,${base64Data}`;
 
-  const result = await generateObject({
+  const result = await generateText({
     model: 'openai/gpt-4o',
     messages: [
       {
@@ -105,17 +103,19 @@ export async function POST(request: Request) {
         ],
       },
     ],
-    schema: z.object({
-      people: z
-        .object({
-          name: z.string().describe('The name of the person.'),
-          age: z.number().min(0).describe('The age of the person.'),
-        })
-        .array()
-        .describe('An array of people.'),
+    output: Output.object({
+      schema: z.object({
+        people: z
+          .object({
+            name: z.string().describe('The name of the person.'),
+            age: z.number().min(0).describe('The age of the person.'),
+          })
+          .array()
+          .describe('An array of people.'),
+      }),
     }),
   });
 
-  return Response.json(result.object);
+  return Response.json(result.output);
 }
 ```

@@ -1,5 +1,153 @@
 # ai
 
+## 6.0.114
+
+### Patch Changes
+
+- 2291047: fix(ai): fix missing support for image thought signatures (e.g. for Gemini image models)
+
+## 6.0.113
+
+### Patch Changes
+
+- 70d3980: fix(ai): use errorMode 'text' in approval continuation to preserve tool error messages
+
+## 6.0.112
+
+### Patch Changes
+
+- Updated dependencies [db3d4ca]
+  - @ai-sdk/gateway@3.0.64
+
+## 6.0.111
+
+### Patch Changes
+
+- 2129c82: feat(ai): register global telemetry integrations
+
+## 6.0.110
+
+### Patch Changes
+
+- Updated dependencies [1b01ec1]
+- Updated dependencies [8df8e11]
+  - @ai-sdk/gateway@3.0.63
+
+## 6.0.109
+
+### Patch Changes
+
+- Updated dependencies [10bec50]
+  - @ai-sdk/gateway@3.0.62
+
+## 6.0.108
+
+### Patch Changes
+
+- 2a4f512: feat(ai): add telemetry interface and registry
+
+## 6.0.107
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+  - @ai-sdk/gateway@3.0.61
+
+## 6.0.106
+
+### Patch Changes
+
+- Updated dependencies [29e9f4d]
+  - @ai-sdk/gateway@3.0.60
+
+## 6.0.105
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+  - @ai-sdk/gateway@3.0.59
+
+## 6.0.104
+
+### Patch Changes
+
+- Updated dependencies [1330f2f]
+  - @ai-sdk/gateway@3.0.58
+
+## 6.0.103
+
+### Patch Changes
+
+- Updated dependencies [ba63bc2]
+  - @ai-sdk/gateway@3.0.57
+
+## 6.0.102
+
+### Patch Changes
+
+- Updated dependencies [45f0a7f]
+  - @ai-sdk/gateway@3.0.56
+
+## 6.0.101
+
+### Patch Changes
+
+- 5230482: fix(ai): Don't create duplicate tool parts when models call non-existent tools
+
+## 6.0.100
+
+### Patch Changes
+
+- b7fba77: feat(ai): add event notifiers to core functions
+
+## 6.0.99
+
+### Patch Changes
+
+- Updated dependencies [e8172b6]
+  - @ai-sdk/gateway@3.0.55
+
+## 6.0.98
+
+### Patch Changes
+
+- Updated dependencies [0c9395b]
+  - @ai-sdk/gateway@3.0.54
+
+## 6.0.97
+
+### Patch Changes
+
+- ebfdad1: feat(ai): experimental callbacks in ToolLoopAgent
+
+## 6.0.96
+
+### Patch Changes
+
+- 30c9de6: feat(ai): experimental callbacks for streamText
+
+## 6.0.95
+
+### Patch Changes
+
+- Updated dependencies [73b7e09]
+  - @ai-sdk/gateway@3.0.53
+
+## 6.0.94
+
+### Patch Changes
+
+- Updated dependencies [363fa44]
+  - @ai-sdk/gateway@3.0.52
+
+## 6.0.93
+
+### Patch Changes
+
+- d3769ec: feat(ai): add experimental callbacks in generateText
+
 ## 6.0.92
 
 ### Patch Changes

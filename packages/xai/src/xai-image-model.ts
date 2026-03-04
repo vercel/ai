@@ -123,6 +123,10 @@ export class XaiImageModel implements ImageModelV3 {
       body.aspect_ratio = xaiOptions.aspect_ratio;
     }
 
+    if (xaiOptions?.resolution != null) {
+      body.resolution = xaiOptions.resolution;
+    }
+
     if (imageUrl != null) {
       body.image = { url: imageUrl, type: 'image_url' };
     }

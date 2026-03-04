@@ -8,7 +8,7 @@ prompt: |
   every issue should get at least one area label and one type label.
 
   area labels:
-  ai/core — generateText, generateObject, streamText, streamObject, tool calling, structured output, steps, middleware.
+  ai/core — generateText, streamText, Output, tool calling, structured output, steps, middleware. also covers deprecated generateObject and streamObject.
   ai/ui — useChat, useCompletion, useAssistant, UIMessage, react hooks, frontend streaming.
   ai/ui-vue — vue.js ui bindings.
   ai/rsc — react server components, createStreamableUI, createStreamableValue.
@@ -35,12 +35,11 @@ prompt: |
   support — questions, help requests, "how do i", confusion, setup issues. this is the most common label for user-filed issues.
   deprecation — marking apis or patterns as deprecated.
   never assign wontfix.
+  never apply both bug and support to the same issue. bug is a confirmed defect in the sdk code. support is when the user is confused, stuck, etc.
 
   triage labels:
-  reproduction needed — bug report without repro steps or code.
-  reproduction provided — bug report with code, repo link, or clear steps.
-  good first issue — small well-scoped tasks for new contributors.
-  pull request welcome — tasks where community prs are appreciated.
+  reproduction needed — bug report without a code reproduction.
+  reproduction provided — ONLY when the issue contains an actual code snippet, repo link, or runnable example that demonstrates the bug. describing steps in prose like "do X then Y happens" is NOT a reproduction. there must be a code block with actual code (import statements, function calls, etc) that someone could copy and run.
   external — issue caused by something outside the ai sdk.
   resumability — resumable streams and recovery.
 
@@ -57,4 +56,4 @@ prompt: |
   dependency updates → maintenance.
 
   Important: do not apply these labels, they are for humans only.
-  major, minor, backport
+  major, minor, backport, pull request welcome, good first issue

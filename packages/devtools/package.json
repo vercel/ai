@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/devtools",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -26,7 +26,7 @@
   ],
   "scripts": {
     "dev": "concurrently -k \"pnpm dev:api\" \"pnpm dev:client\"",
-    "dev:api": "tsx src/viewer/server.ts",
+    "dev:api": "AI_SDK_DEVTOOLS_DEV=true tsx src/viewer/server.ts",
     "dev:client": "vite",
     "example": "tsx examples/basic/index.ts",
     "start": "node dist/viewer/server.js",

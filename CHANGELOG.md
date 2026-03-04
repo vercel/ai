@@ -6,6 +6,7 @@ You can find the changelogs for the individual packages in their respective `CHA
 
 ### Providers
 
+- [@ai-sdk/alibaba](./packages/alibaba/CHANGELOG.md)
 - [@ai-sdk/amazon-bedrock](./packages/amazon-bedrock/CHANGELOG.md)
 - [@ai-sdk/anthropic](./packages/anthropic/CHANGELOG.md)
 - [@ai-sdk/assemblyai](./packages/assemblyai/CHANGELOG.md)

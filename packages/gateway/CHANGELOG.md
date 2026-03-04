@@ -1,5 +1,86 @@
 # @ai-sdk/gateway
 
+## 3.0.64
+
+### Patch Changes
+
+- db3d4ca: chore(provider/gateway): update gateway model settings files
+
+## 3.0.63
+
+### Patch Changes
+
+- 1b01ec1: feat(gateway): add providerTimeouts to provider options
+- 8df8e11: chore(provider/gateway): update gateway model settings files
+
+## 3.0.62
+
+### Patch Changes
+
+- 10bec50: feat(provider/google): add `gemini-3.1-flash-lite-preview`
+
+## 3.0.61
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+
+## 3.0.60
+
+### Patch Changes
+
+- 29e9f4d: chore(provider/gateway): update gateway model settings files
+
+## 3.0.59
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+
+## 3.0.58
+
+### Patch Changes
+
+- 1330f2f: chore(provider/gateway): update gateway model settings files
+
+## 3.0.57
+
+### Patch Changes
+
+- ba63bc2: chore(provider/gateway): update gateway model settings files
+
+## 3.0.56
+
+### Patch Changes
+
+- 45f0a7f: feat(provider/google): add support for gemini-3.1-flash-image-preview
+
+## 3.0.55
+
+### Patch Changes
+
+- e8172b6: feat (provider/gateway): pass through project id when available for o11y
+
+## 3.0.54
+
+### Patch Changes
+
+- 0c9395b: feat(provider/openai): add `gpt-5.3-codex`
+
+## 3.0.53
+
+### Patch Changes
+
+- 73b7e09: feat (provider/gateway): add SSE support for video generation with heartbeat keep-alive
+
+## 3.0.52
+
+### Patch Changes
+
+- 363fa44: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.51
 
 ### Patch Changes

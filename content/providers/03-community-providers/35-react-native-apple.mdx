@@ -93,15 +93,17 @@ Generate structured data using Zod schemas:
 
 ```ts
 import { apple } from '@react-native-ai/apple';
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
-const result = await generateObject({
+const result = await generateText({
   model: apple(),
-  schema: z.object({
-    recipe: z.string(),
-    ingredients: z.array(z.string()),
-    cookingTime: z.string(),
+  output: Output.object({
+    schema: z.object({
+      recipe: z.string(),
+      ingredients: z.array(z.string()),
+      cookingTime: z.string(),
+    }),
   }),
   prompt: 'Create a recipe for chocolate chip cookies',
 });

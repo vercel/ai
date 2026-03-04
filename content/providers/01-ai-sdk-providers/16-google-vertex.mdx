@@ -251,10 +251,10 @@ const vertex = createVertex({
 ### Language Models
 
 You can create models that call the Vertex API using the provider instance.
-The first argument is the model id, e.g. `gemini-1.5-pro`.
+The first argument is the model id, e.g. `gemini-2.5-pro`.
 
 ```ts
-const model = vertex('gemini-1.5-pro');
+const model = vertex('gemini-2.5-pro');
 ```
 
 <Note>
@@ -271,7 +271,7 @@ an options argument:
 import { vertex } from '@ai-sdk/google-vertex';
 import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 
-const model = vertex('gemini-1.5-pro');
+const model = vertex('gemini-2.5-pro');
 
 await generateText({
   model,
@@ -351,7 +351,7 @@ import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vertex('gemini-1.5-pro'),
+  model: vertex('gemini-2.5-pro'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -525,7 +525,7 @@ import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vertex('gemini-1.5-pro'),
+  model: vertex('gemini-2.5-pro'),
   messages: [
     {
       role: 'user',
@@ -715,30 +715,33 @@ The errors that you get in this case look like this:
 By default, structured outputs are enabled (and for tool calling they are required).
 You can disable structured outputs for object generation as a workaround:
 
-```ts highlight="6,11"
+```ts highlight="7,12"
 import { vertex } from '@ai-sdk/google-vertex';
 import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
+import { generateText, Output } from 'ai';
 
-const result = await generateObject({
-  model: vertex('gemini-1.5-pro'),
+const result = await generateText({
+  model: vertex('gemini-2.5-pro'),
   providerOptions: {
     vertex: {
       structuredOutputs: false,
     } satisfies GoogleLanguageModelOptions,
   },
-  schema: z.object({
-    name: z.string(),
-    age: z.number(),
-    contact: z.union([
-      z.object({
-        type: z.literal('email'),
-        value: z.string(),
-      }),
-      z.object({
-        type: z.literal('phone'),
-        value: z.string(),
-      }),
-    ]),
+  output: Output.object({
+    schema: z.object({
+      name: z.string(),
+      age: z.number(),
+      contact: z.union([
+        z.object({
+          type: z.literal('email'),
+          value: z.string(),
+        }),
+        z.object({
+          type: z.literal('phone'),
+          value: z.string(),
+        }),
+      ]),
+    }),
   }),
   prompt: 'Generate an example person for testing.',
 });
@@ -757,8 +760,6 @@ The following Zod features are known to not work with Google Vertex:
 | `gemini-2.5-pro`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.5-flash`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.0-flash-001` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-1.5-flash`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-1.5-pro`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [Google Vertex AI
@@ -772,7 +773,7 @@ The following Zod features are known to not work with Google Vertex:
 You can create models that call the Google Vertex AI embeddings API using the `.embeddingModel()` factory method:
 
 ```ts
-const model = vertex.embeddingModel('text-embedding-004');
+const model = vertex.embeddingModel('text-embedding-005');
 ```
 
 Google Vertex AI embedding models support additional settings. You can pass them as an options argument:
@@ -784,7 +785,7 @@ import {
 } from '@ai-sdk/google-vertex';
 import { embed } from 'ai';
 
-const model = vertex.embeddingModel('text-embedding-004');
+const model = vertex.embeddingModel('text-embedding-005');
 
 const { embedding } = await embed({
   model,
@@ -830,7 +831,7 @@ The following optional provider options are available for Google Vertex AI embed
 
 | Model                | Max Values Per Call | Parallel Calls      |
 | -------------------- | ------------------- | ------------------- |
-| `text-embedding-004` | 2048                | <Check size={18} /> |
+| `text-embedding-005` | 2048                | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. You can also pass any available provider
@@ -1090,10 +1091,11 @@ const { image } = await generateImage({
 
 ##### Gemini Image Model Capabilities
 
-| Model                        | Image Generation    | Image Editing       | Aspect Ratios                                       |
-| ---------------------------- | ------------------- | ------------------- | --------------------------------------------------- |
-| `gemini-3-pro-image-preview` | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
-| `gemini-2.5-flash-image`     | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+| Model                            | Image Generation    | Image Editing       | Aspect Ratios                                       |
+| -------------------------------- | ------------------- | ------------------- | --------------------------------------------------- |
+| `gemini-3.1-flash-image-preview` | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+| `gemini-3-pro-image-preview`     | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+| `gemini-2.5-flash-image`         | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
 
 <Note>
   `gemini-3-pro-image-preview` supports additional features including up to 14
@@ -1403,13 +1405,14 @@ const { text } = await generateText({
 });
 ```
 
-Anthropic language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
+Anthropic language models can also be used in the `streamText` function
+and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
 <Note>
   The Anthropic API returns streaming tool calls all at once after a delay. This
-  causes the `streamObject` function to generate the object fully after a delay
-  instead of streaming it incrementally.
+  causes structured output generation to complete fully after a delay instead of
+  streaming incrementally.
 </Note>
 
 The following optional provider options are available for Anthropic models:
@@ -1466,8 +1469,8 @@ In the messages and message parts, you can use the `providerOptions` property to
 You need to set the `anthropic` property in the `providerOptions` object to `{ cacheControl: { type: 'ephemeral' } }` to set a cache control breakpoint.
 
 The cache creation input tokens are then returned in the `providerMetadata` object
-for `generateText` and `generateObject`, again under the `anthropic` property.
-When you use `streamText` or `streamObject`, the response contains a promise
+for `generateText`, again under the `anthropic` property.
+When you use `streamText`, the response contains a promise
 that resolves to the metadata. Alternatively you can receive it in the
 `onFinish` callback.
 

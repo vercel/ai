@@ -194,6 +194,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         'openai.mcp': 'mcp',
         'openai.apply_patch': 'apply_patch',
       },
+      resolveProviderToolName: tool =>
+        tool.id === 'openai.custom'
+          ? (tool.args as { name?: string }).name
+          : undefined,
+    });
+
+    const customProviderToolNames = new Set<string>();
+    const {
+      tools: openaiTools,
+      toolChoice: openaiToolChoice,
+      toolWarnings,
+    } = await prepareResponsesTools({
+      tools,
+      toolChoice,
+      toolNameMapping,
+      customProviderToolNames,
     });
 
     const { input, warnings: inputWarnings } =
@@ -212,6 +228,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
         hasShellTool: hasOpenAITool('openai.shell'),
         hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
+        customProviderToolNames:
+          customProviderToolNames.size > 0
+            ? customProviderToolNames
+            : undefined,
       });
 
     warnings.push(...inputWarnings);
@@ -408,15 +428,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       delete (baseArgs as any).service_tier;
     }
 
-    const {
-      tools: openaiTools,
-      toolChoice: openaiToolChoice,
-      toolWarnings,
-    } = await prepareResponsesTools({
-      tools,
-      toolChoice,
-    });
-
     const shellToolEnvType = (
       tools?.find(
         tool => tool.type === 'provider' && tool.id === 'openai.shell',
@@ -612,6 +623,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
             const providerMetadata: SharedV3ProviderMetadata[string] = {
               itemId: part.id,
+              ...(part.phase != null && { phase: part.phase }),
               ...(contentPart.annotations.length > 0 && {
                 annotations: contentPart.annotations,
               }),
@@ -706,6 +718,24 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             toolCallId: part.call_id,
             toolName: part.name,
             input: part.arguments,
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id,
+              },
+            },
+          });
+          break;
+        }
+
+        case 'custom_tool_call': {
+          hasFunctionCall = true;
+          const toolName = toolNameMapping.toCustomToolName(part.name);
+
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.call_id,
+            toolName,
+            input: JSON.stringify(part.input),
             providerMetadata: {
               [providerOptionsName]: {
                 itemId: part.id,
@@ -1008,6 +1038,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       >['annotation']
     > = [];
 
+    // track the phase of the current message being streamed
+    let activeMessagePhase: 'commentary' | 'final_answer' | undefined;
+
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
 
@@ -1057,6 +1090,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'tool-input-start',
                   id: value.item.call_id,
                   toolName: value.item.name,
+                });
+              } else if (value.item.type === 'custom_tool_call') {
+                const toolName = toolNameMapping.toCustomToolName(
+                  value.item.name,
+                );
+                ongoingToolCalls[value.output_index] = {
+                  toolName,
+                  toolCallId: value.item.call_id,
+                };
+
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: value.item.call_id,
+                  toolName,
                 });
               } else if (value.item.type === 'web_search_call') {
                 ongoingToolCalls[value.output_index] = {
@@ -1200,12 +1247,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 // shell_call_output is handled in output_item.done
               } else if (value.item.type === 'message') {
                 ongoingAnnotations.splice(0, ongoingAnnotations.length);
+                activeMessagePhase = value.item.phase ?? undefined;
                 controller.enqueue({
                   type: 'text-start',
                   id: value.item.id,
                   providerMetadata: {
                     [providerOptionsName]: {
                       itemId: value.item.id,
+                      ...(value.item.phase != null && {
+                        phase: value.item.phase,
+                      }),
                     },
                   },
                 });
@@ -1232,12 +1283,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               }
             } else if (isResponseOutputItemDoneChunk(value)) {
               if (value.item.type === 'message') {
+                const phase = value.item.phase ?? activeMessagePhase;
+                activeMessagePhase = undefined;
                 controller.enqueue({
                   type: 'text-end',
                   id: value.item.id,
                   providerMetadata: {
                     [providerOptionsName]: {
                       itemId: value.item.id,
+                      ...(phase != null && { phase }),
                       ...(ongoingAnnotations.length > 0 && {
                         annotations: ongoingAnnotations,
                       }),
@@ -1258,6 +1312,29 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolCallId: value.item.call_id,
                   toolName: value.item.name,
                   input: value.item.arguments,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      itemId: value.item.id,
+                    },
+                  },
+                });
+              } else if (value.item.type === 'custom_tool_call') {
+                ongoingToolCalls[value.output_index] = undefined;
+                hasFunctionCall = true;
+                const toolName = toolNameMapping.toCustomToolName(
+                  value.item.name,
+                );
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.call_id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.call_id,
+                  toolName,
+                  input: JSON.stringify(value.item.input),
                   providerMetadata: {
                     [providerOptionsName]: {
                       itemId: value.item.id,
@@ -1572,6 +1649,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 delete activeReasoning[value.item.id];
               }
             } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
+              const toolCall = ongoingToolCalls[value.output_index];
+
+              if (toolCall != null) {
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: toolCall.toolCallId,
+                  delta: value.delta,
+                });
+              }
+            } else if (isResponseCustomToolCallInputDeltaChunk(value)) {
               const toolCall = ongoingToolCalls[value.output_index];
 
               if (toolCall != null) {
@@ -1912,6 +1999,15 @@ function isResponseFunctionCallArgumentsDeltaChunk(
 } {
   return chunk.type === 'response.function_call_arguments.delta';
 }
+
+function isResponseCustomToolCallInputDeltaChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.custom_tool_call_input.delta';
+} {
+  return chunk.type === 'response.custom_tool_call_input.delta';
+}
+
 function isResponseImageGenerationCallPartialImageChunk(
   chunk: OpenAIResponsesChunk,
 ): chunk is OpenAIResponsesChunk & {
@@ -1969,8 +2065,12 @@ function isErrorChunk(
 }
 
 function mapWebSearchOutput(
-  action: OpenAIResponsesWebSearchAction,
+  action: OpenAIResponsesWebSearchAction | null | undefined,
 ): InferSchema<typeof webSearchOutputSchema> {
+  if (action == null) {
+    return {};
+  }
+
   switch (action.type) {
     case 'search':
       return {

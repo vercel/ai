@@ -1,5 +1,11 @@
 # @ai-sdk/devtools
 
+## 0.0.15
+
+### Patch Changes
+
+- 4c3a932: Use explicit AI_SDK_DEVTOOLS_DEV env flag for dev mode detection
+
 ## 0.0.14
 
 ### Patch Changes
