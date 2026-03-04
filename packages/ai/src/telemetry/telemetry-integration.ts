@@ -21,4 +21,5 @@ export interface TelemetryIntegration {
   onToolCallFinish?: Listener<OnToolCallFinishEvent<ToolSet>>;
   onStepFinish?: Listener<OnStepFinishEvent<ToolSet>>;
   onFinish?: Listener<OnFinishEvent<ToolSet>>;
+  recordError?: Listener<unknown>;
 }

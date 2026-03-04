@@ -19,6 +19,7 @@ export function bindTelemetryIntegration(
     onToolCallFinish: integration.onToolCallFinish?.bind(integration),
     onStepFinish: integration.onStepFinish?.bind(integration),
     onFinish: integration.onFinish?.bind(integration),
+    recordError: integration.recordError?.bind(integration),
   };
 }
 
@@ -80,6 +81,9 @@ export function getGlobalTelemetryIntegration<
         integration => integration.onStepFinish,
       ),
       onFinish: createTelemetryComposite(integration => integration.onFinish),
+      recordError: createTelemetryComposite(
+        integration => integration.recordError,
+      ),
     };
   };
 }
