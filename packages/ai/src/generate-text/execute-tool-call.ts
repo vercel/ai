@@ -1,5 +1,4 @@
 import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
 import { notify } from '../util/notify';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { now } from '../util/now';
@@ -40,7 +39,6 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 }: {
   toolCall: TypedToolCall<TOOLS>;
   tools: TOOLS | undefined;
-  tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
   callId: string;
   messages: ModelMessage[];

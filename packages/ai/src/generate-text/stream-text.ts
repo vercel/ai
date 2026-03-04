@@ -37,7 +37,6 @@ import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
 import '../telemetry/otel-event-handler';
-import { noopTracer } from '../telemetry/noop-tracer';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
@@ -1338,7 +1337,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               const result = await executeToolCall({
                 toolCall: toolApproval.toolCall,
                 tools,
-                tracer: noopTracer,
                 telemetry,
                 callId,
                 messages: initialMessages,
@@ -1580,7 +1578,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           const streamWithToolResults = runToolsTransformation({
             tools,
             generatorStream: stream,
-            tracer: noopTracer,
             telemetry,
             callId,
             system,

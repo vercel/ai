@@ -1,7 +1,6 @@
 import { tool } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as z from 'zod/v4';
-import { MockTracer } from '../test/mock-tracer';
 import { executeToolCall } from './execute-tool-call';
 import {
   GenerateTextOnToolCallFinishCallback,
@@ -19,10 +18,7 @@ import { now } from '../util/now';
 const mockNow = vi.mocked(now);
 
 describe('executeToolCall', () => {
-  let tracer: MockTracer;
-
   beforeEach(() => {
-    tracer = new MockTracer();
     vi.clearAllMocks();
     mockNow.mockReturnValue(0);
   });
@@ -48,7 +44,6 @@ describe('executeToolCall', () => {
             inputSchema: z.object({ value: z.string() }),
           }),
         },
-        tracer,
         telemetry: undefined,
         callId: 'test-call-id',
         messages: [],
@@ -70,7 +65,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        tracer,
         telemetry: undefined,
         callId: 'test-call-id',
         messages: [],
@@ -99,7 +93,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        tracer,
         telemetry: undefined,
         callId: 'test-call-id',
         messages: [],
@@ -128,7 +121,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        tracer,
         telemetry: undefined,
         callId: 'test-call-id',
         messages: [],
@@ -159,7 +151,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        tracer,
         telemetry: undefined,
         callId: 'test-call-id',
         messages: [],
@@ -192,7 +183,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        tracer,
         telemetry: {
           functionId: 'test-function',
           metadata: { userId: 'user-123' },
@@ -233,7 +223,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        tracer,
         telemetry: undefined,
         callId: 'test-call-id',
         messages: [],
@@ -267,7 +256,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        tracer,
         telemetry: {
           functionId: 'test-function',
           metadata: { userId: 'user-123' },
@@ -318,7 +306,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        tracer,
         telemetry: {
           functionId: 'test-function',
           metadata: { userId: 'user-123' },
@@ -360,7 +347,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        tracer,
         telemetry: undefined,
         callId: 'test-call-id',
         messages: [],
@@ -390,7 +376,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        tracer,
         telemetry: undefined,
         callId: 'test-call-id',
         messages: [],
@@ -424,7 +409,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        tracer,
         telemetry: undefined,
         callId: 'test-call-id',
         messages: [],
@@ -455,7 +439,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        tracer,
         telemetry: undefined,
         callId: 'test-call-id',
         messages: [],
@@ -486,7 +469,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        tracer,
         telemetry: undefined,
         callId: 'test-call-id',
         messages: [],
@@ -524,7 +506,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        tracer,
         telemetry: undefined,
         callId: 'test-call-id',
         messages: [],
@@ -558,7 +539,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        tracer,
         telemetry: {
           isEnabled: true,
           functionId: 'test-function',
@@ -619,7 +599,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        tracer,
         telemetry: { isEnabled: true },
         callId: 'test-call-id',
         messages: [],
@@ -652,7 +631,6 @@ describe('executeToolCall', () => {
             execute: async () => 'dynamic-result',
           }),
         },
-        tracer,
         telemetry: undefined,
         callId: 'test-call-id',
         messages: [],
@@ -679,7 +657,6 @@ describe('executeToolCall', () => {
             },
           }),
         },
-        tracer,
         telemetry: undefined,
         callId: 'test-call-id',
         messages: [],
@@ -699,7 +676,6 @@ describe('executeToolCall', () => {
       const result = await executeToolCall({
         toolCall: createToolCall(),
         tools: undefined,
-        tracer,
         telemetry: undefined,
         callId: 'test-call-id',
         messages: [],
@@ -721,7 +697,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        tracer,
         telemetry: undefined,
         callId: 'test-call-id',
         messages: [],
@@ -745,7 +720,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        tracer,
         telemetry: undefined,
         callId: 'test-call-id',
         messages: [],
@@ -775,7 +749,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        tracer,
         telemetry: undefined,
         callId: 'test-call-id',
         messages: [],
@@ -805,7 +778,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        tracer,
         telemetry: undefined,
         callId: 'test-call-id',
         messages: [],
@@ -841,7 +813,6 @@ describe('executeToolCall', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        tracer,
         telemetry: undefined,
         callId: 'test-call-id',
         messages: [],

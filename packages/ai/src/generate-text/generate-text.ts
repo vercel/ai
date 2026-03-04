@@ -13,7 +13,6 @@ import {
   ToolApprovalResponse,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
 import { NoOutputGeneratedError } from '../error';
 import { notify } from '../util/notify';
 import { logWarnings } from '../logger/log-warnings';
@@ -35,7 +34,6 @@ import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
 import '../telemetry/otel-event-handler';
-import { noopTracer } from '../telemetry/noop-tracer';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
   LanguageModel,
@@ -541,7 +539,6 @@ export async function generateText<
           toolApproval => toolApproval.toolCall,
         ),
         tools: tools as TOOLS,
-        tracer: noopTracer,
         telemetry,
         callId,
         messages: initialMessages,
@@ -863,7 +860,6 @@ export async function generateText<
                   toolApprovalRequests[toolCall.toolCallId] == null,
               ),
               tools,
-              tracer: noopTracer,
               telemetry,
               callId,
               messages: stepInputMessages,
@@ -1095,7 +1091,6 @@ export async function generateText<
 async function executeTools<TOOLS extends ToolSet>({
   toolCalls,
   tools,
-  tracer,
   telemetry,
   callId,
   messages,
@@ -1108,7 +1103,6 @@ async function executeTools<TOOLS extends ToolSet>({
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
-  tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
   callId: string;
   messages: ModelMessage[];
@@ -1124,7 +1118,6 @@ async function executeTools<TOOLS extends ToolSet>({
       executeToolCall({
         toolCall,
         tools,
-        tracer,
         telemetry,
         callId,
         messages,
