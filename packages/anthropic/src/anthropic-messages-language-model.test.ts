@@ -8700,6 +8700,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
           ],
         }),
+        expect.any(Set),
       );
 
       // Verify transformed body was sent
@@ -8746,6 +8747,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           ],
           stream: true,
         }),
+        expect.any(Set),
       );
 
       // Verify transformed body was sent
