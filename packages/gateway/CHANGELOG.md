@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.64
+
+### Patch Changes
+
+- db3d4ca: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.63
 
 ### Patch Changes
