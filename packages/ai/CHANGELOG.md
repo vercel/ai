@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.113
+
+### Patch Changes
+
+- 70d3980: fix(ai): use errorMode 'text' in approval continuation to preserve tool error messages
+
 ## 6.0.112
 
 ### Patch Changes
