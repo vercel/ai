@@ -61,18 +61,31 @@ vi.mock('../bedrock-sigv4-fetch', () => ({
   createApiKeyFetchFunction: vi.fn().mockReturnValue(vi.fn()),
 }));
 
+const TEST_STREAM_OPTIONS = {
+  prompt: [{ role: 'user' as const, content: [{ type: 'text' as const, text: '' }] }],
+};
+
+async function triggerModel(
+  provider: ReturnType<typeof createBedrockAnthropic>,
+  modelId: string,
+) {
+  await provider(modelId).doStream(TEST_STREAM_OPTIONS as any);
+  const calls = vi.mocked(AnthropicMessagesLanguageModel).mock.calls;
+  return calls[calls.length - 1][1];
+}
+
 describe('bedrock-anthropic-provider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should create a language model with default settings', () => {
+  it('should create a language model with default settings', async () => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
-    provider('anthropic.claude-3-5-sonnet-20241022-v2:0');
+    await triggerModel(provider, 'anthropic.claude-3-5-sonnet-20241022-v2:0');
 
     expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
       'anthropic.claude-3-5-sonnet-20241022-v2:0',
@@ -99,7 +112,7 @@ describe('bedrock-anthropic-provider', () => {
     );
   });
 
-  it('should pass custom baseURL to the model when created', () => {
+  it('should pass custom baseURL to the model when created', async () => {
     const customBaseURL = 'https://custom-bedrock.amazonaws.com';
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
@@ -107,7 +120,7 @@ describe('bedrock-anthropic-provider', () => {
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
-    provider('test-model-id');
+    await triggerModel(provider, 'test-model-id');
 
     expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
       expect.anything(),
@@ -159,7 +172,7 @@ describe('bedrock-anthropic-provider', () => {
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
-    provider('test-model-id');
+    const config = await triggerModel(provider, 'test-model-id');
 
     expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
       expect.anything(),
@@ -168,27 +181,19 @@ describe('bedrock-anthropic-provider', () => {
       }),
     );
 
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
-    const config = constructorCall[1];
-
     expect(config.headers).toEqual(expect.any(Function));
     const resolvedHeaders = await (config.headers as Function)();
     expect(resolvedHeaders).toMatchObject(customHeaders);
     expect(resolvedHeaders['user-agent']).toContain('ai-sdk/amazon-bedrock/');
   });
 
-  it('should build correct URL for non-streaming requests', () => {
+  it('should build correct URL for non-streaming requests', async () => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
-    provider('anthropic.claude-3-sonnet-20240229-v1:0');
-
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
-    const config = constructorCall[1];
+    const config = await triggerModel(provider, 'anthropic.claude-3-sonnet-20240229-v1:0');
 
     const url = config.buildRequestUrl?.(
       'https://bedrock-runtime.us-east-1.amazonaws.com',
@@ -199,17 +204,13 @@ describe('bedrock-anthropic-provider', () => {
     );
   });
 
-  it('should build correct URL for streaming requests', () => {
+  it('should build correct URL for streaming requests', async () => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
-    provider('anthropic.claude-3-sonnet-20240229-v1:0');
-
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
-    const config = constructorCall[1];
+    const config = await triggerModel(provider, 'anthropic.claude-3-sonnet-20240229-v1:0');
 
     const url = config.buildRequestUrl?.(
       'https://bedrock-runtime.us-east-1.amazonaws.com',
@@ -220,17 +221,13 @@ describe('bedrock-anthropic-provider', () => {
     );
   });
 
-  it('should transform request body to add anthropic_version and remove model', () => {
+  it('should transform request body to add anthropic_version and remove model', async () => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
-    provider('test-model-id');
-
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
-    const config = constructorCall[1];
+    const config = await triggerModel(provider, 'test-model-id');
 
     const transformedBody = config.transformRequestBody?.({
       model: 'test-model-id',
@@ -246,17 +243,13 @@ describe('bedrock-anthropic-provider', () => {
     expect(transformedBody).not.toHaveProperty('model');
   });
 
-  it('should strip stream parameter from request body', () => {
+  it('should strip stream parameter from request body', async () => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
-    provider('test-model-id');
-
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
-    const config = constructorCall[1];
+    const config = await triggerModel(provider, 'test-model-id');
 
     const transformedBody = config.transformRequestBody?.({
       model: 'test-model-id',
@@ -269,17 +262,13 @@ describe('bedrock-anthropic-provider', () => {
     expect(transformedBody).toHaveProperty('anthropic_version');
   });
 
-  it('should strip disable_parallel_tool_use from tool_choice', () => {
+  it('should strip disable_parallel_tool_use from tool_choice', async () => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
-    provider('test-model-id');
-
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
-    const config = constructorCall[1];
+    const config = await triggerModel(provider, 'test-model-id');
 
     const transformedBody = config.transformRequestBody?.({
       model: 'test-model-id',
@@ -297,17 +286,13 @@ describe('bedrock-anthropic-provider', () => {
     );
   });
 
-  it('should preserve tool_choice name when present', () => {
+  it('should preserve tool_choice name when present', async () => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
-    provider('test-model-id');
-
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
-    const config = constructorCall[1];
+    const config = await triggerModel(provider, 'test-model-id');
 
     const transformedBody = config.transformRequestBody?.({
       model: 'test-model-id',
@@ -326,17 +311,13 @@ describe('bedrock-anthropic-provider', () => {
     });
   });
 
-  it('should map old tool versions to Bedrock-supported versions', () => {
+  it('should map old tool versions to Bedrock-supported versions', async () => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
-    provider('test-model-id');
-
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
-    const config = constructorCall[1];
+    const config = await triggerModel(provider, 'test-model-id');
 
     const transformedBody = config.transformRequestBody?.({
       model: 'test-model-id',
@@ -356,17 +337,13 @@ describe('bedrock-anthropic-provider', () => {
     ]);
   });
 
-  it('should add anthropic_beta when computer use tools are detected', () => {
+  it('should add anthropic_beta when computer use tools are detected', async () => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
-    provider('test-model-id');
-
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
-    const config = constructorCall[1];
+    const config = await triggerModel(provider, 'test-model-id');
 
     const transformedBody = config.transformRequestBody?.({
       model: 'test-model-id',
@@ -380,17 +357,13 @@ describe('bedrock-anthropic-provider', () => {
     );
   });
 
-  it('should not add anthropic_beta when no computer use tools are present', () => {
+  it('should not add anthropic_beta when no computer use tools are present', async () => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
-    provider('test-model-id');
-
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
-    const config = constructorCall[1];
+    const config = await triggerModel(provider, 'test-model-id');
 
     const transformedBody = config.transformRequestBody?.({
       model: 'test-model-id',
@@ -408,17 +381,13 @@ describe('bedrock-anthropic-provider', () => {
     expect(transformedBody?.anthropic_beta).toBeUndefined();
   });
 
-  it('should not support URL sources to force base64 conversion', () => {
+  it('should not support URL sources to force base64 conversion', async () => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
-    provider('test-model-id');
-
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
-    const config = constructorCall[1];
+    const config = await triggerModel(provider, 'test-model-id');
 
     expect(config.supportedUrls?.()).toEqual({});
   });
@@ -474,17 +443,13 @@ describe('bedrock-anthropic-provider', () => {
     );
   });
 
-  it('should handle models with us. prefix for inference profiles', () => {
+  it('should handle models with us. prefix for inference profiles', async () => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
-    provider('us.anthropic.claude-3-5-sonnet-20240620-v1:0');
-
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
-    const config = constructorCall[1];
+    const config = await triggerModel(provider, 'us.anthropic.claude-3-5-sonnet-20240620-v1:0');
 
     const url = config.buildRequestUrl?.(
       'https://bedrock-runtime.us-east-1.amazonaws.com',
