@@ -328,42 +328,34 @@ export function createBedrockAnthropic(
 
   const createChatModelWithProviderOptions = (
     modelId: BedrockAnthropicModelId,
-  ): LanguageModelV2 => {
-    const baseModel = createChatModel(modelId);
+  ): LanguageModelV2 => ({
+    specificationVersion: 'v2' as const,
+    provider: 'bedrock.anthropic.messages',
+    modelId,
+    supportedUrls: {},
 
-    return {
-      specificationVersion: 'v2' as const,
-      provider: baseModel.provider,
-      modelId: baseModel.modelId,
-      supportedUrls: baseModel.supportedUrls,
+    async doGenerate(callOptions) {
+      const bedrockOpts =
+        (await parseProviderOptions({
+          provider: 'bedrock',
+          providerOptions: callOptions.providerOptions,
+          schema: bedrockProviderOptions,
+        })) ?? {};
+      const model = createChatModel(modelId, bedrockOpts.anthropicBeta ?? []);
+      return model.doGenerate(callOptions);
+    },
 
-      async doGenerate(callOptions) {
-        const bedrockOpts =
-          (await parseProviderOptions({
-            provider: 'bedrock',
-            providerOptions: callOptions.providerOptions,
-            schema: bedrockProviderOptions,
-          })) ?? {};
-        const betas = bedrockOpts.anthropicBeta ?? [];
-        return (
-          betas.length > 0 ? createChatModel(modelId, betas) : baseModel
-        ).doGenerate(callOptions);
-      },
-
-      async doStream(callOptions) {
-        const bedrockOpts =
-          (await parseProviderOptions({
-            provider: 'bedrock',
-            providerOptions: callOptions.providerOptions,
-            schema: bedrockProviderOptions,
-          })) ?? {};
-        const betas = bedrockOpts.anthropicBeta ?? [];
-        return (
-          betas.length > 0 ? createChatModel(modelId, betas) : baseModel
-        ).doStream(callOptions);
-      },
-    };
-  };
+    async doStream(callOptions) {
+      const bedrockOpts =
+        (await parseProviderOptions({
+          provider: 'bedrock',
+          providerOptions: callOptions.providerOptions,
+          schema: bedrockProviderOptions,
+        })) ?? {};
+      const model = createChatModel(modelId, bedrockOpts.anthropicBeta ?? []);
+      return model.doStream(callOptions);
+    },
+  });
 
   const provider = function (modelId: BedrockAnthropicModelId) {
     if (new.target) {
