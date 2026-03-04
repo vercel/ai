@@ -1617,13 +1617,8 @@ describe('doGenerate', () => {
       });
     });
 
-<<<<<<< HEAD
-    it('should use googleSearchRetrieval for non-gemini-2 models', async () => {
-      prepareJsonResponse({
-=======
     it('should warn for google search on non-gemini-2 models', async () => {
-      prepareJsonFixtureResponse('google-text', {
->>>>>>> 2565e7067 (feat(google): add support for image search, replace obsolete google_search_retrieval implementation (#12926))
+      prepareJsonResponse({
         url: TEST_URL_GEMINI_1_0_PRO,
       });
 
@@ -1644,51 +1639,18 @@ describe('doGenerate', () => {
         [
           {
             "details": "Google Search requires Gemini 2.0 or newer.",
-            "feature": "provider-defined tool google.google_search",
-            "type": "unsupported",
+            "tool": {
+              "args": {},
+              "id": "google.google_search",
+              "name": "google_search",
+              "type": "provider-defined",
+            },
+            "type": "unsupported-tool",
           },
         ]
       `);
     });
 
-<<<<<<< HEAD
-    it('should use dynamic retrieval for gemini-1-5', async () => {
-      prepareJsonResponse({
-        url: TEST_URL_GEMINI_1_5_FLASH,
-      });
-
-      const geminiPro = provider.languageModel('gemini-1.5-flash');
-
-      await geminiPro.doGenerate({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'provider-defined',
-            id: 'google.google_search',
-            name: 'google_search',
-            args: {
-              mode: 'MODE_DYNAMIC',
-              dynamicThreshold: 1,
-            },
-          },
-        ],
-      });
-
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [
-          {
-            googleSearchRetrieval: {
-              dynamicRetrievalConfig: {
-                mode: 'MODE_DYNAMIC',
-                dynamicThreshold: 1,
-              },
-            },
-          },
-        ],
-      });
-    });
-=======
->>>>>>> 2565e7067 (feat(google): add support for image search, replace obsolete google_search_retrieval implementation (#12926))
     it('should use urlContextTool for gemini-2.0-pro', async () => {
       prepareJsonResponse({
         url: TEST_URL_GEMINI_2_0_PRO,
@@ -2792,36 +2754,19 @@ describe('doStream', () => {
 
       const events = await convertReadableStreamToArray(stream);
 
-<<<<<<< HEAD
-    it('should use dynamic retrieval for gemini-1-5', async () => {
-      prepareStreamResponse({
-        content: [''],
-        url: TEST_URL_GEMINI_1_5_FLASH,
-      });
-
-      const geminiPro = provider.languageModel('gemini-1.5-flash');
-
-      await geminiPro.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-        tools: [
-          {
-            type: 'provider-defined',
-            id: 'google.google_search',
-            name: 'google_search',
-            args: {
-              mode: 'MODE_DYNAMIC',
-              dynamicThreshold: 1,
-=======
       expect(events[0]).toMatchInlineSnapshot(`
         {
           "type": "stream-start",
           "warnings": [
             {
               "details": "Google Search requires Gemini 2.0 or newer.",
-              "feature": "provider-defined tool google.google_search",
-              "type": "unsupported",
->>>>>>> 2565e7067 (feat(google): add support for image search, replace obsolete google_search_retrieval implementation (#12926))
+              "tool": {
+                "args": {},
+                "id": "google.google_search",
+                "name": "google_search",
+                "type": "provider-defined",
+              },
+              "type": "unsupported-tool",
             },
           ],
         }

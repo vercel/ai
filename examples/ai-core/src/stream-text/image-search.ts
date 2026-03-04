@@ -1,11 +1,11 @@
 import {
   google,
-  GoogleLanguageModelOptions,
+  GoogleGenerativeAIProviderOptions,
   GoogleGenerativeAIProviderMetadata,
 } from '@ai-sdk/google';
 import { streamText } from 'ai';
-import { presentImages } from '../../lib/present-image';
-import { run } from '../../lib/run';
+import { presentImages } from '../lib/present-image';
+import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
@@ -18,7 +18,7 @@ run(async () => {
     providerOptions: {
       google: {
         responseModalities: ['TEXT', 'IMAGE'],
-      } satisfies GoogleLanguageModelOptions,
+      } satisfies GoogleGenerativeAIProviderOptions,
     },
     prompt:
       'Search for live footage photos of the 2026 Super Bowl halftime show artist. I want an image with a close-up of them during the show, but in space.',

@@ -1,6 +1,6 @@
 import { google, GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
-import { run } from '../../lib/run';
+import { run } from '../lib/run';
 
 run(async () => {
   const { text, sources, providerMetadata } = await generateText({

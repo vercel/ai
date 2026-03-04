@@ -453,7 +453,7 @@ it('should pass searchTypes args through for google search', () => {
   const result = prepareTools({
     tools: [
       {
-        type: 'provider',
+        type: 'provider-defined',
         id: 'google.google_search',
         name: 'google_search',
         args: {
@@ -477,7 +477,7 @@ it('should pass timeRangeFilter args through for google search', () => {
   const result = prepareTools({
     tools: [
       {
-        type: 'provider',
+        type: 'provider-defined',
         id: 'google.google_search',
         name: 'google_search',
         args: {
@@ -507,7 +507,7 @@ it('should add warnings for google search on unsupported models', () => {
   const result = prepareTools({
     tools: [
       {
-        type: 'provider',
+        type: 'provider-defined',
         id: 'google.google_search',
         name: 'google_search',
         args: {},
@@ -520,8 +520,13 @@ it('should add warnings for google search on unsupported models', () => {
     [
       {
         "details": "Google Search requires Gemini 2.0 or newer.",
-        "feature": "provider-defined tool google.google_search",
-        "type": "unsupported",
+        "tool": {
+          "args": {},
+          "id": "google.google_search",
+          "name": "google_search",
+          "type": "provider-defined",
+        },
+        "type": "unsupported-tool",
       },
     ]
   `);
