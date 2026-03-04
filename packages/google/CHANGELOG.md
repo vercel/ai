@@ -1,5 +1,23 @@
 # @ai-sdk/google
 
+## 3.0.40
+
+### Patch Changes
+
+- 89d8b45: fix(google): make urlMetadata optional in urlContextMetadata schema
+
+## 3.0.39
+
+### Patch Changes
+
+- 2565e70: feat(google): add support for image search, replace obsolete google_search_retrieval implementation
+
+## 3.0.38
+
+### Patch Changes
+
+- 2291047: fix(ai): fix missing support for image thought signatures (e.g. for Gemini image models)
+
 ## 3.0.37
 
 ### Patch Changes

@@ -226,6 +226,34 @@ const modelWithFiles = new MockLanguageModelV3({
   }),
 });
 
+const modelWithFilesAndProviderMetadata = new MockLanguageModelV3({
+  doStream: async () => ({
+    stream: convertArrayToReadableStream([
+      {
+        type: 'file',
+        data: 'Hello World',
+        mediaType: 'text/plain',
+        providerMetadata: {
+          testProvider: { signature: 'sig-1' },
+        },
+      },
+      { type: 'text-start', id: '1' },
+      { type: 'text-delta', id: '1', delta: 'Hello!' },
+      { type: 'text-end', id: '1' },
+      {
+        type: 'file',
+        data: 'QkFVRw==',
+        mediaType: 'image/jpeg',
+      },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage: testUsage,
+      },
+    ]),
+  }),
+});
+
 const modelWithReasoning = new MockLanguageModelV3({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
@@ -1015,6 +1043,44 @@ describe('streamText', () => {
             },
           ]
         `);
+    });
+
+    it('should send files with providerMetadata', async () => {
+      const result = streamText({
+        model: modelWithFilesAndProviderMetadata,
+        ...defaultSettings(),
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+      const fileParts = parts.filter(p => p.type === 'file');
+
+      expect(fileParts).toMatchInlineSnapshot(`
+        [
+          {
+            "file": DefaultGeneratedFileWithType {
+              "base64Data": "Hello World",
+              "mediaType": "text/plain",
+              "type": "file",
+              "uint8ArrayData": undefined,
+            },
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "sig-1",
+              },
+            },
+            "type": "file",
+          },
+          {
+            "file": DefaultGeneratedFileWithType {
+              "base64Data": "QkFVRw==",
+              "mediaType": "image/jpeg",
+              "type": "file",
+              "uint8ArrayData": undefined,
+            },
+            "type": "file",
+          },
+        ]
+      `);
     });
 
     it('should use fallback response metadata when response metadata is not provided', async () => {
@@ -3221,6 +3287,39 @@ describe('streamText', () => {
             },
           ]
         `);
+    });
+
+    it('should send file content with providerMetadata', async () => {
+      const result = streamText({
+        model: modelWithFilesAndProviderMetadata,
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream();
+      const parts = await convertReadableStreamToArray(uiMessageStream);
+      const fileParts = parts.filter(
+        (p: Record<string, unknown>) => p.type === 'file',
+      );
+
+      expect(fileParts).toMatchInlineSnapshot(`
+        [
+          {
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "sig-1",
+              },
+            },
+            "type": "file",
+            "url": "data:text/plain;base64,Hello World",
+          },
+          {
+            "mediaType": "image/jpeg",
+            "type": "file",
+            "url": "data:image/jpeg;base64,QkFVRw==",
+          },
+        ]
+      `);
     });
 
     it('should not generate a new message id when onFinish is provided and generateMessageId is not provided', async () => {
@@ -20702,6 +20801,129 @@ describe('streamText', () => {
               },
             ]
           `);
+      });
+    });
+
+    describe('when a call from a single tool that needs approval is approved and the tool throws', () => {
+      let result: StreamTextResult<any, any>;
+      let prompts: LanguageModelV3Prompt[];
+
+      beforeEach(async () => {
+        prompts = [];
+        result = streamText({
+          model: new MockLanguageModelV3({
+            doStream: async ({ prompt }) => {
+              prompts.push(prompt);
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'stream-start', warnings: [] },
+                  { type: 'text-start', id: '1' },
+                  {
+                    type: 'text-delta',
+                    id: '1',
+                    delta: 'Hello, world!',
+                  },
+                  { type: 'text-end', id: '1' },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: testUsage,
+                  },
+                ]),
+              };
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async (): Promise<string> => {
+                throw new Error('No valid token for plugin');
+              },
+              needsApproval: true,
+            }),
+          },
+          stopWhen: stepCountIs(3),
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+          },
+          messages: [
+            { role: 'user', content: 'test-input' },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  input: {
+                    value: 'value',
+                  },
+                  providerExecuted: undefined,
+                  providerOptions: undefined,
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  type: 'tool-call',
+                },
+                {
+                  approvalId: 'id-1',
+                  toolCallId: 'call-1',
+                  type: 'tool-approval-request',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  approvalId: 'id-1',
+                  type: 'tool-approval-response',
+                  approved: true,
+                },
+              ],
+            },
+          ],
+        });
+
+        await result.consumeStream();
+      });
+
+      it('should serialize the tool error as error-text in the continuation prompt', async () => {
+        expect(prompts).toEqual([
+          [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerOptions: undefined,
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: { value: 'value' },
+                  providerExecuted: undefined,
+                  providerOptions: undefined,
+                },
+              ],
+              providerOptions: undefined,
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  output: {
+                    type: 'error-text',
+                    value: 'No valid token for plugin',
+                  },
+                  providerOptions: undefined,
+                },
+              ],
+              providerOptions: undefined,
+            },
+          ],
+        ]);
       });
     });
 

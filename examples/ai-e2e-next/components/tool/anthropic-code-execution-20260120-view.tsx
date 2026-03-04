@@ -87,6 +87,58 @@ export default function AnthropicCodeExecution20260120View({
                   )}
                 </>
               )}
+              {invocation.output.type === 'encrypted_code_execution_result' && (
+                <>
+                  <span className="font-semibold">Encrypted Stdout:</span>
+                  <br />
+                  {invocation.output.encrypted_stdout}
+                  <br />
+                  {invocation.output.stderr && (
+                    <>
+                      <span className="font-semibold">Stderr:</span>
+                      <br />
+                      {invocation.output.stderr}
+                      <br />
+                    </>
+                  )}
+                  {invocation.output.content.length > 0 && (
+                    <div className="bg-gray-200 py-2 px-2 rounded-lg flex flex-col gap-1">
+                      <div className="px-1">
+                        <p className="text-black">
+                          {invocation.output.content.length > 1
+                            ? 'downloads'
+                            : 'download'}
+                        </p>
+                      </div>
+                      {invocation.output.content.map(file => (
+                        <button
+                          className="bg-cyan-800 hover:bg-cyan-700 text-white rounded-lg py-1 px-2 border border-white cursor-pointer"
+                          key={file.file_id}
+                          onClick={() =>
+                            window.open(
+                              `/api/code-execution-files/anthropic/${file.file_id}`,
+                              '_blank',
+                            )
+                          }
+                        >
+                          <div className="flex gap-1 items-center justify-center">
+                            <Download />
+                            <p>{file.file_id}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {invocation.output.return_code != null && (
+                    <>
+                      <span className="font-semibold">Return Code:</span>
+                      <br />
+                      {invocation.output.return_code}
+                      <br />
+                    </>
+                  )}
+                </>
+              )}
               {invocation.output.type === 'bash_code_execution_result' && (
                 <>
                   <span className="font-semibold">Stdout:</span>

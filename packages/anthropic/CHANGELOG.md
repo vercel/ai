@@ -1,5 +1,18 @@
 # @ai-sdk/anthropic
 
+## 3.0.56
+
+### Patch Changes
+
+- e49c34d: feat(anthropic): expose anthropic.anthropicBeta to downstream providers
+- e49c34d: feat(anthropic): expose anthropic.anthropicBeta to downstream provider
+
+## 3.0.55
+
+### Patch Changes
+
+- 7531e72: fix(provider/anthropic): handle encrypted_code_execution_result for multi-turn with web_fetch/web_search 20260209
+
 ## 3.0.54
 
 ### Patch Changes

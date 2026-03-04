@@ -595,7 +595,7 @@ export async function generateText<
               tool: tools?.[output.toolName],
               output:
                 output.type === 'tool-result' ? output.output : output.error,
-              errorMode: output.type === 'tool-error' ? 'json' : 'none',
+              errorMode: output.type === 'tool-error' ? 'text' : 'none',
             });
 
             toolContent.push({

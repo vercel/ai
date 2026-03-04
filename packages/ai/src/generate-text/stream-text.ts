@@ -978,7 +978,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         }
 
         if (part.type === 'file') {
-          recordedContent.push({ type: 'file', file: part.file });
+          recordedContent.push({
+            type: 'file',
+            file: part.file,
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
+          });
         }
 
         if (part.type === 'source') {
@@ -1451,7 +1457,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                       output.type === 'tool-result'
                         ? output.output
                         : output.error,
-                    errorMode: output.type === 'tool-error' ? 'json' : 'none',
+                    errorMode: output.type === 'tool-error' ? 'text' : 'none',
                   }),
                 });
               }
@@ -2477,6 +2483,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 type: 'file',
                 mediaType: part.file.mediaType,
                 url: `data:${part.file.mediaType};base64,${part.file.base64}`,
+                ...(part.providerMetadata != null
+                  ? { providerMetadata: part.providerMetadata }
+                  : {}),
               });
               break;
             }
