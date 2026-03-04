@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.114
+
+### Patch Changes
+
+- 2291047: fix(ai): fix missing support for image thought signatures (e.g. for Gemini image models)
+
 ## 6.0.113
 
 ### Patch Changes
