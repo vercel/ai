@@ -8,25 +8,17 @@ import type {
 } from '../generate-text/callback-events';
 import type { Output } from '../generate-text/output';
 import type { ToolSet } from '../generate-text/tool-set';
+import { Listener } from '../util/notify';
 
 /**
  * Implement this interface to create custom telemetry integrations.
  * Methods can be sync or return a PromiseLike.
  */
-export interface TelemetryIntegration<
-  TOOLS extends ToolSet = ToolSet,
-  OUTPUT extends Output = Output,
-> {
-  onStart?(event: OnStartEvent<TOOLS, OUTPUT>): PromiseLike<void> | void;
-  onStepStart?(
-    event: OnStepStartEvent<TOOLS, OUTPUT>,
-  ): PromiseLike<void> | void;
-  onToolCallStart?(
-    event: OnToolCallStartEvent<TOOLS>,
-  ): PromiseLike<void> | void;
-  onToolCallFinish?(
-    event: OnToolCallFinishEvent<TOOLS>,
-  ): PromiseLike<void> | void;
-  onStepFinish?(event: OnStepFinishEvent<TOOLS>): PromiseLike<void> | void;
-  onFinish?(event: OnFinishEvent<TOOLS>): PromiseLike<void> | void;
+export interface TelemetryIntegration {
+  onStart?: Listener<OnStartEvent<ToolSet, Output>>;
+  onStepStart?: Listener<OnStepStartEvent<ToolSet, Output>>;
+  onToolCallStart?: Listener<OnToolCallStartEvent<ToolSet>>;
+  onToolCallFinish?: Listener<OnToolCallFinishEvent<ToolSet>>;
+  onStepFinish?: Listener<OnStepFinishEvent<ToolSet>>;
+  onFinish?: Listener<OnFinishEvent<ToolSet>>;
 }
