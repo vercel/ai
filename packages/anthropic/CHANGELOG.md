@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.68
+
+### Patch Changes
+
+- 63bf188: feat(anthropic): expose anthropic.anthropicBeta to downstream providers
+
 ## 2.0.67
 
 ### Patch Changes

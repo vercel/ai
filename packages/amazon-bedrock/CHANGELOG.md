@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.85
+
+### Patch Changes
+
+- 63bf188: feat(anthropic): expose anthropic.anthropicBeta to downstream providers
+- Updated dependencies [63bf188]
+  - @ai-sdk/anthropic@2.0.68
+
 ## 3.0.84
 
 ### Patch Changes
