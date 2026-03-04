@@ -25,7 +25,6 @@ export const openaiTools = {
    * Lark syntax). The model returns a `custom_tool_call` output item whose
    * `input` field is a string matching the specified grammar.
    *
-   * @param name - The name of the custom tool.
    * @param description - An optional description of the tool.
    * @param format - The output format constraint (grammar type, syntax, and definition).
    */
