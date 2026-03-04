@@ -13,6 +13,7 @@ import { webFetch_20250910ArgsSchema } from './tool/web-fetch-20250910';
 import { validateTypes } from '@ai-sdk/provider-utils';
 
 export interface AnthropicToolOptions {
+  eagerInputStreaming?: boolean;
   deferLoading?: boolean;
   allowedCallers?: Array<
     'direct' | 'code_execution_20250825' | 'code_execution_20260120'
@@ -66,6 +67,7 @@ export async function prepareTools({
         const anthropicOptions = tool.providerOptions?.anthropic as
           | AnthropicToolOptions
           | undefined;
+        const eagerInputStreaming = anthropicOptions?.eagerInputStreaming;
         const deferLoading = anthropicOptions?.deferLoading;
         const allowedCallers = anthropicOptions?.allowedCallers;
 
@@ -74,6 +76,9 @@ export async function prepareTools({
           description: tool.description,
           input_schema: tool.inputSchema,
           cache_control: cacheControl,
+          // eager_input_streaming is only supported on custom (function) tools,
+          // not on provider-defined tools (code_execution, computer, etc.)
+          ...(eagerInputStreaming ? { eager_input_streaming: true } : {}),
           ...(supportsStructuredOutput === true && tool.strict != null
             ? { strict: tool.strict }
             : {}),
