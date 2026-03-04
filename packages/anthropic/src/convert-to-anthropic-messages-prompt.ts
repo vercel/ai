@@ -767,9 +767,35 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
-                  // to distinguish between code execution 20250522 and 20250825,
-                  // we check if a type property is present in the output.value
-                  if (output.value.type === 'code_execution_result') {
+                  // to distinguish between code execution 20250522, 20250825,
+                  // and encrypted results (from web_fetch_20260209/web_search_20260209 injection),
+                  // we check the type property in output.value
+                  if (output.value.type === 'encrypted_code_execution_result') {
+                    // encrypted result injected by web_fetch_20260209/web_search_20260209 —
+                    // pass back as-is; Anthropic requires it for multi-turn continuity
+                    const encryptedOutput = output.value as {
+                      type: 'encrypted_code_execution_result';
+                      encrypted_stdout: string;
+                      stderr: string;
+                      return_code: number;
+                      content: Array<{
+                        type: 'code_execution_output';
+                        file_id: string;
+                      }>;
+                    };
+                    anthropicContent.push({
+                      type: 'code_execution_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: encryptedOutput.type,
+                        encrypted_stdout: encryptedOutput.encrypted_stdout,
+                        stderr: encryptedOutput.stderr,
+                        return_code: encryptedOutput.return_code,
+                        content: encryptedOutput.content ?? [],
+                      },
+                      cache_control: cacheControl,
+                    });
+                  } else if (output.value.type === 'code_execution_result') {
                     // code execution 20250522
                     const codeExecutionOutput = await validateTypes({
                       value: output.value,
