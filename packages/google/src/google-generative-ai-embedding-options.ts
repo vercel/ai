@@ -7,7 +7,6 @@ import { z } from 'zod/v4';
 
 export type GoogleGenerativeAIEmbeddingModelId =
   | 'gemini-embedding-001'
-  | 'text-embedding-004'
   | (string & {});
 
 export const googleEmbeddingModelOptions = lazySchema(() =>
