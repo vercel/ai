@@ -119,7 +119,7 @@ async function main() {
       return {
         ...msg,
         content: msg.content.map(part => {
-          if (part.providerOptions?.google) {
+          if ('providerOptions' in part && part.providerOptions?.google) {
             const { google: googleOpts, ...rest } = part.providerOptions;
             return {
               ...part,
@@ -181,7 +181,10 @@ async function main() {
       return {
         ...msg,
         content: msg.content.map(part => {
-          if (part.providerOptions?.google?.thoughtSignature) {
+          if (
+            'providerOptions' in part &&
+            part.providerOptions?.google?.thoughtSignature
+          ) {
             return {
               ...part,
               providerOptions: {
