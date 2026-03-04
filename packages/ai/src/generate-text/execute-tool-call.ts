@@ -51,8 +51,12 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   stepNumber?: number;
   model?: { provider: string; modelId: string };
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
-  onToolCallStart?: GenerateTextOnToolCallStartCallback<TOOLS>;
-  onToolCallFinish?: GenerateTextOnToolCallFinishCallback<TOOLS>;
+  onToolCallStart?:
+    | GenerateTextOnToolCallStartCallback<TOOLS>
+    | Array<GenerateTextOnToolCallStartCallback<TOOLS> | undefined | null>;
+  onToolCallFinish?:
+    | GenerateTextOnToolCallFinishCallback<TOOLS>
+    | Array<GenerateTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
 }): Promise<ToolOutput<TOOLS> | undefined> {
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];

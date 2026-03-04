@@ -68,7 +68,7 @@ async function initializeMaxim() {
 import { openai } from '@ai-sdk/openai';
 import { wrapMaximAISDKModel } from '@maximai/maxim-js/vercel-ai-sdk';
 
-const model = wrapMaximAISDKModel(openai('gpt-4'), logger);
+const model = wrapMaximAISDKModel(openai('gpt-5'), logger);
 ```
 
 ## Make LLM calls using wrapped models
@@ -78,7 +78,7 @@ import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { wrapMaximAISDKModel } from '@maximai/maxim-js/vercel-ai-sdk';
 
-const model = wrapMaximAISDKModel(openai('gpt-4'), logger);
+const model = wrapMaximAISDKModel(openai('gpt-5'), logger);
 
 // Generate text with automatic logging
 const response = await generateText({
@@ -186,7 +186,7 @@ import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { wrapMaximAISDKModel, MaximVercelProviderMetadata } from '@maximai/maxim-js/vercel-ai-sdk';
 
-const model = wrapMaximAISDKModel(openai('gpt-4'), logger);
+const model = wrapMaximAISDKModel(openai('gpt-5'), logger);
 
 const { textStream } = await streamText({
   model: model,
@@ -217,7 +217,7 @@ import { google } from '@ai-sdk/google';
 import { wrapMaximAISDKModel } from '@maximai/maxim-js/vercel-ai-sdk';
 
 // Wrap different provider models
-const openaiModel = wrapMaximAISDKModel(openai('gpt-4'), logger);
+const openaiModel = wrapMaximAISDKModel(openai('gpt-5'), logger);
 const anthropicModel = wrapMaximAISDKModel(
   anthropic('claude-3-5-sonnet-20241022'),
   logger,
@@ -245,7 +245,7 @@ import { Maxim } from "@maximai/maxim-js";
 
 const maxim = new Maxim({ apiKey });
 const logger = await maxim.logger({ id: process.env.MAXIM_LOG_REPO_ID });
-const model = wrapMaximAISDKModel(openai('gpt-4'), logger);
+const model = wrapMaximAISDKModel(openai('gpt-5'), logger);
 
 export async function POST(req) {
   const { messages } = await req.json();

@@ -1,5 +1,37 @@
 # @ai-sdk/gateway
 
+## 3.0.64
+
+### Patch Changes
+
+- db3d4ca: chore(provider/gateway): update gateway model settings files
+
+## 3.0.63
+
+### Patch Changes
+
+- 1b01ec1: feat(gateway): add providerTimeouts to provider options
+- 8df8e11: chore(provider/gateway): update gateway model settings files
+
+## 3.0.62
+
+### Patch Changes
+
+- 10bec50: feat(provider/google): add `gemini-3.1-flash-lite-preview`
+
+## 3.0.61
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+
+## 3.0.60
+
+### Patch Changes
+
+- 29e9f4d: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.59
 
 ### Patch Changes

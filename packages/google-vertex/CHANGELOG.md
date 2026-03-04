@@ -1,5 +1,62 @@
 # @ai-sdk/google-vertex
 
+## 4.0.75
+
+### Patch Changes
+
+- Updated dependencies [e49c34d]
+- Updated dependencies [e49c34d]
+- Updated dependencies [2291047]
+  - @ai-sdk/anthropic@3.0.56
+  - @ai-sdk/google@3.0.38
+
+## 4.0.74
+
+### Patch Changes
+
+- Updated dependencies [7531e72]
+  - @ai-sdk/anthropic@3.0.55
+
+## 4.0.73
+
+### Patch Changes
+
+- Updated dependencies [56c67d5]
+  - @ai-sdk/anthropic@3.0.54
+
+## 4.0.72
+
+### Patch Changes
+
+- 10bec50: feat(provider/google): add `gemini-3.1-flash-lite-preview`
+- Updated dependencies [10bec50]
+  - @ai-sdk/google@3.0.37
+
+## 4.0.71
+
+### Patch Changes
+
+- Updated dependencies [89caf28]
+  - @ai-sdk/anthropic@3.0.53
+
+## 4.0.70
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+  - @ai-sdk/anthropic@3.0.52
+  - @ai-sdk/google@3.0.36
+
+## 4.0.69
+
+### Patch Changes
+
+- 64a8fae: chore: remove obsolete model IDs for Anthropic, Google, OpenAI, xAI
+- Updated dependencies [64a8fae]
+  - @ai-sdk/anthropic@3.0.51
+  - @ai-sdk/google@3.0.35
+
 ## 4.0.68
 
 ### Patch Changes

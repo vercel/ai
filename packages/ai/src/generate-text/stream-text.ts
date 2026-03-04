@@ -19,7 +19,7 @@ import {
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
-import { notify } from '../util/notify';
+import { Listener, notify } from '../util/notify';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import {
@@ -42,6 +42,7 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
+import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
@@ -807,6 +808,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     this.includeRawChunks = includeRawChunks;
     this.tools = tools;
 
+    const createGlobalTelemetry = getGlobalTelemetryIntegration<
+      TOOLS,
+      OUTPUT
+    >();
+    const globalTelemetry = createGlobalTelemetry(telemetry?.integrations);
+
     // promise to ensure that the step has been fully processed by the event processor
     // before a new step is started. This is required because the continuation condition
     // needs the updated steps to determine if another step is needed.
@@ -971,7 +978,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         }
 
         if (part.type === 'file') {
-          recordedContent.push({ type: 'file', file: part.file });
+          recordedContent.push({
+            type: 'file',
+            file: part.file,
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
+          });
         }
 
         if (part.type === 'source') {
@@ -1029,7 +1042,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             providerMetadata: part.providerMetadata,
           });
 
-          await notify({ event: currentStepResult, callbacks: onStepFinish });
+          await notify({
+            event: currentStepResult,
+            callbacks: [onStepFinish, globalTelemetry.onStepFinish],
+          });
 
           logWarnings({
             warnings: recordedWarnings,
@@ -1115,7 +1131,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               providerMetadata: finalStep.providerMetadata,
               steps: recordedSteps,
             },
-            callbacks: onFinish,
+            callbacks: [
+              onFinish,
+              globalTelemetry.onFinish as
+                | undefined
+                | StreamTextOnFinishCallback<TOOLS>,
+            ],
           });
 
           // Add response information to the root span:
@@ -1304,7 +1325,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             ...callbackTelemetryProps,
             experimental_context,
           },
-          callbacks: onStart,
+          callbacks: [
+            onStart,
+            globalTelemetry.onStart as
+              | undefined
+              | StreamTextOnStartCallback<TOOLS, OUTPUT>,
+          ],
         });
 
         const initialMessages = initialPrompt.messages;
@@ -1374,8 +1400,16 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   experimental_context,
                   stepNumber: recordedSteps.length,
                   model: modelInfo,
-                  onToolCallStart,
-                  onToolCallFinish,
+                  onToolCallStart: [
+                    onToolCallStart,
+                    globalTelemetry.onToolCallStart as
+                      | undefined
+                      | StreamTextOnToolCallStartCallback<TOOLS>,
+                  ],
+                  onToolCallFinish: [
+                    onToolCallFinish,
+                    globalTelemetry.onToolCallFinish,
+                  ],
                   onPreliminaryToolResult: result => {
                     toolExecutionStepStreamController?.enqueue(result);
                   },
@@ -1423,7 +1457,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                       output.type === 'tool-result'
                         ? output.output
                         : output.error,
-                    errorMode: output.type === 'tool-error' ? 'json' : 'none',
+                    errorMode: output.type === 'tool-error' ? 'text' : 'none',
                   }),
                 });
               }
@@ -1573,7 +1607,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 ...callbackTelemetryProps,
                 experimental_context,
               },
-              callbacks: onStepStart,
+              callbacks: [
+                onStepStart,
+                globalTelemetry.onStepStart as
+                  | undefined
+                  | StreamTextOnStepStartCallback<TOOLS, OUTPUT>,
+              ],
             });
 
             const {
@@ -1656,8 +1695,16 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               generateId,
               stepNumber: recordedSteps.length,
               model: stepModelInfo,
-              onToolCallStart,
-              onToolCallFinish,
+              onToolCallStart: [
+                onToolCallStart,
+                globalTelemetry.onToolCallStart as
+                  | undefined
+                  | StreamTextOnToolCallStartCallback<TOOLS>,
+              ],
+              onToolCallFinish: [
+                onToolCallFinish,
+                globalTelemetry.onToolCallFinish,
+              ],
             });
 
             // Conditionally include request.body based on include settings.
@@ -2436,6 +2483,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 type: 'file',
                 mediaType: part.file.mediaType,
                 url: `data:${part.file.mediaType};base64,${part.file.base64}`,
+                ...(part.providerMetadata != null
+                  ? { providerMetadata: part.providerMetadata }
+                  : {}),
               });
               break;
             }
