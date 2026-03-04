@@ -1,23 +1,25 @@
-import { openai, type OpenAITranscriptionModelOptions } from '@ai-sdk/openai';
+import { openai } from '@ai-sdk/openai';
 import { experimental_transcribe as transcribe } from 'ai';
 import { readFile } from 'fs/promises';
-import { run } from '../../lib/run';
+import { run } from '../lib/run';
 
 run(async () => {
   const result = await transcribe({
-    model: openai.transcription('whisper-1'),
+    model: openai.transcription('gpt-4o-transcribe-diarize'),
     audio: await readFile('data/galileo.mp3'),
     providerOptions: {
       openai: {
-        timestampGranularities: ['word'],
-        //timestampGranularities: ['segment'],
-      } satisfies OpenAITranscriptionModelOptions,
+        chunkingStrategy: 'auto',
+      },
     },
   });
 
   console.log('Text:', result.text);
   console.log('Duration:', result.durationInSeconds);
   console.log('Language:', result.language);
-  console.log('Word-level segments:', result.segments);
+  console.log('Segments:', result.segments);
   console.log('Warnings:', result.warnings);
+  // The full response body
+  // console.log('Responses:', result.responses[0].body.segments);
+  console.log('Responses:', result.responses);
 });
