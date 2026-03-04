@@ -4985,7 +4985,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         const textEndParts = parts.filter(
           (
             part,
-          ): part is Extract<LanguageModelV3StreamPart, { type: 'text-end' }> =>
+          ): part is Extract<LanguageModelV2StreamPart, { type: 'text-end' }> =>
             part.type === 'text-end',
         );
 
