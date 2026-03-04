@@ -10,6 +10,10 @@ import {
   getUrlContextMetadataSchema,
 } from './google-generative-ai-language-model';
 
+import {
+  GoogleGenerativeAIGroundingMetadata,
+  GoogleGenerativeAIUrlContextMetadata,
+} from './google-generative-ai-prompt';
 import { createGoogleGenerativeAI } from './google-provider';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as fs from 'fs';
