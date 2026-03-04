@@ -43,6 +43,18 @@ describe('secureJsonParse', () => {
     expect(secureJsonParse('"X"')).toStrictEqual(JSON.parse('"X"'));
   });
 
+  it('allows constructor property with non-object value', () => {
+    expect(secureJsonParse('{ "constructor": "string value" }')).toStrictEqual({
+      constructor: 'string value',
+    });
+  });
+
+  it('allows constructor property with null value', () => {
+    expect(secureJsonParse('{ "constructor": null }')).toStrictEqual({
+      constructor: null,
+    });
+  });
+
   it('errors on constructor property', () => {
     const text =
       '{ "a": 5, "b": 6, "constructor": { "x": 7 }, "c": { "d": 0, "e": "text", "__proto__": { "y": 8 }, "f": { "g": 2 } } }';

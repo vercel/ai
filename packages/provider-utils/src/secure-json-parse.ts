@@ -60,6 +60,8 @@ function filter(obj: any) {
 
       if (
         Object.prototype.hasOwnProperty.call(node, 'constructor') &&
+        node.constructor !== null &&
+        typeof node.constructor === 'object' &&
         Object.prototype.hasOwnProperty.call(node.constructor, 'prototype')
       ) {
         throw new SyntaxError('Object contains forbidden prototype property');
