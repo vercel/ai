@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { google } from '@ai-sdk/google';
-import { streamText, tool } from 'ai';
+import { stepCountIs, streamText, tool } from 'ai';
 import { z } from 'zod';
 
 /**
@@ -44,7 +44,7 @@ async function main() {
     model: google('gemini-3.1-pro-preview'),
     tools: { weather: weatherTool },
     prompt: 'What is the weather in San Francisco?',
-    maxSteps: 2,
+    stopWhen: stepCountIs(2),
   });
 
   for await (const chunk of turn1.fullStream) {
@@ -92,7 +92,7 @@ async function main() {
         ...response1.messages,
         { role: 'user', content: 'What about New York?' },
       ],
-      maxSteps: 2,
+      stopWhen: stepCountIs(2),
     });
 
     for await (const chunk of scenarioA.fullStream) {
@@ -147,7 +147,7 @@ async function main() {
         ...(rewrittenMessages as any),
         { role: 'user', content: 'What about New York?' },
       ],
-      maxSteps: 2,
+      stopWhen: stepCountIs(2),
     });
 
     for await (const chunk of scenarioB.fullStream) {
@@ -213,7 +213,7 @@ async function main() {
       ...(invalidSigMessages as any),
       { role: 'user', content: 'What about New York?' },
     ],
-    maxSteps: 2,
+    stopWhen: stepCountIs(2),
     onError: ({ error }) => {
       scenarioCError = error;
     },
