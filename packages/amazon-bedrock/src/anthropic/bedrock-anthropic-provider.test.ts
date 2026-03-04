@@ -365,6 +365,29 @@ describe('bedrock-anthropic-provider', () => {
     );
   });
 
+  it('should include betas passed to transformRequestBody in anthropic_beta body field', async () => {
+    const provider = createBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    const config = await triggerModel(provider, 'test-model-id');
+
+    const betas = new Set(['fine-grained-tool-streaming-2025-05-14']);
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+      },
+      betas,
+    );
+
+    expect(transformedBody?.anthropic_beta).toContain(
+      'fine-grained-tool-streaming-2025-05-14',
+    );
+  });
+
   it('should not add anthropic_beta when no computer use tools are present', () => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',

@@ -206,6 +206,12 @@ export const anthropicProviderOptions = z.object({
       ),
     })
     .optional(),
+
+  /**
+   * A set of beta features to enable.
+   * Allow a provider to receive the full `betas` set if it needs it.
+   */
+  anthropicBeta: z.array(z.string()).optional(),
 });
 
 export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;
