@@ -9,6 +9,7 @@ import {
   SpanStatusCode,
 } from '@opentelemetry/api';
 import type {
+  OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
   OnStepFinishEvent,
@@ -100,17 +101,17 @@ interface CallState {
   settings: Record<string, unknown>;
 }
 
-const callStates = new Map<string, CallState>();
+class OtelTelemetryIntegration implements TelemetryIntegration {
+  private readonly callStates = new Map<string, CallState>();
 
-function getCallState(callId: string): CallState | undefined {
-  return callStates.get(callId);
-}
+  private getCallState(callId: string): CallState | undefined {
+    return this.callStates.get(callId);
+  }
 
-function cleanupCallState(callId: string): void {
-  callStates.delete(callId);
-}
+  private cleanupCallState(callId: string): void {
+    this.callStates.delete(callId);
+  }
 
-const otelIntegration: TelemetryIntegration = {
   onStart(event: OnStartEvent<ToolSet, Output>): void {
     const telemetry = event.telemetry;
     if (telemetry?.isEnabled === false) return;
@@ -157,7 +158,7 @@ const otelIntegration: TelemetryIntegration = {
     const rootSpan = tracer.startSpan(event.operationId, { attributes });
     const rootContext = trace.setSpan(context.active(), rootSpan);
 
-    callStates.set(event.callId, {
+    this.callStates.set(event.callId, {
       operationId: event.operationId,
       telemetry,
       rootSpan,
@@ -168,10 +169,10 @@ const otelIntegration: TelemetryIntegration = {
       baseTelemetryAttributes,
       settings,
     });
-  },
+  }
 
   onStepStart(event: OtelStepStartEvent<ToolSet, Output>): void {
-    const state = getCallState(event.callId);
+    const state = this.getCallState(event.callId);
     if (!state?.rootSpan || !state.rootContext) return;
 
     const { telemetry } = state;
@@ -233,10 +234,10 @@ const otelIntegration: TelemetryIntegration = {
       state.rootContext,
     );
     state.stepContext = trace.setSpan(state.rootContext, state.stepSpan);
-  },
+  }
 
   onToolCallStart(event: OnToolCallStartEvent<ToolSet>): void {
-    const state = getCallState(event.callId);
+    const state = this.getCallState(event.callId);
     if (!state?.stepContext) return;
 
     const { telemetry } = state;
@@ -266,10 +267,10 @@ const otelIntegration: TelemetryIntegration = {
       span: toolSpan,
       context: toolContext,
     });
-  },
+  }
 
   onToolCallFinish(event: OnToolCallFinishEvent<ToolSet>): void {
-    const state = getCallState(event.callId);
+    const state = this.getCallState(event.callId);
     if (!state) return;
 
     const toolSpanEntry = state.toolSpans.get(event.toolCall.toolCallId);
@@ -308,10 +309,10 @@ const otelIntegration: TelemetryIntegration = {
 
     span.end();
     state.toolSpans.delete(event.toolCall.toolCallId);
-  },
+  }
 
   onStepFinish(event: OnStepFinishEvent<ToolSet>): void {
-    const state = getCallState(event.callId);
+    const state = this.getCallState(event.callId);
     if (!state?.stepSpan) return;
 
     const { telemetry } = state;
@@ -357,10 +358,10 @@ const otelIntegration: TelemetryIntegration = {
     state.stepSpan.end();
     state.stepSpan = undefined;
     state.stepContext = undefined;
-  },
+  }
 
   onFinish(event: OnFinishEvent<ToolSet>): void {
-    const state = getCallState(event.callId);
+    const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
     const { telemetry } = state;
@@ -395,24 +396,41 @@ const otelIntegration: TelemetryIntegration = {
     );
 
     state.rootSpan.end();
-    cleanupCallState(event.callId);
-  },
+    this.cleanupCallState(event.callId);
+  }
 
-  onChunk(event): void {
-    const state = getCallState(event.callId);
+  onChunk(event: OnChunkEvent): void {
+    const chunk = event.chunk as {
+      type: string;
+      callId?: unknown;
+      attributes?: unknown;
+    };
+
+    if (typeof chunk.callId !== 'string') {
+      return;
+    }
+
+    if (
+      chunk.type !== 'ai.stream.firstChunk' &&
+      chunk.type !== 'ai.stream.finish'
+    ) {
+      return;
+    }
+
+    const state = this.getCallState(chunk.callId);
     if (!state?.stepSpan) return;
 
     const attributes = Object.fromEntries(
-      Object.entries(event.attributes ?? {}).filter(
-        ([, value]) => value != null,
-      ),
+      Object.entries(
+        (chunk.attributes as Record<string, unknown>) ?? {},
+      ).filter(([, value]) => value != null),
     ) as Attributes;
 
-    state.stepSpan.addEvent(event.eventName, attributes);
+    state.stepSpan.addEvent(chunk.type, attributes);
     if (Object.keys(attributes).length > 0) {
       state.stepSpan.setAttributes(attributes);
     }
-  },
+  }
 
   recordError(error: unknown): void {
     // recordError receives the raw error; we need callId to look up state.
@@ -423,7 +441,7 @@ const otelIntegration: TelemetryIntegration = {
     const event = error as { callId?: string; error?: unknown };
     if (!event?.callId) return;
 
-    const state = getCallState(event.callId);
+    const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
     const actualError = event.error ?? error;
@@ -460,8 +478,10 @@ const otelIntegration: TelemetryIntegration = {
     }
 
     state.rootSpan.end();
-    cleanupCallState(event.callId);
-  },
-};
+    this.cleanupCallState(event.callId);
+  }
+}
+
+const otelIntegration: TelemetryIntegration = new OtelTelemetryIntegration();
 
 registerTelemetryIntegration(otelIntegration);

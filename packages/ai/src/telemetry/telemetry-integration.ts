@@ -1,4 +1,5 @@
 import type {
+  OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
   OnStepFinishEvent,
@@ -10,13 +11,6 @@ import type { Output } from '../generate-text/output';
 import type { ToolSet } from '../generate-text/tool-set';
 import { Listener } from '../util/notify';
 
-export type TelemetryChunkEvent = {
-  callId: string;
-  stepNumber: number;
-  eventName: 'ai.stream.firstChunk' | 'ai.stream.finish';
-  attributes?: Record<string, number | string | boolean | undefined>;
-};
-
 /**
  * Implement this interface to create custom telemetry integrations.
  * Methods can be sync or return a PromiseLike.
@@ -26,7 +20,7 @@ export interface TelemetryIntegration {
   onStepStart?: Listener<OnStepStartEvent<ToolSet, Output>>;
   onToolCallStart?: Listener<OnToolCallStartEvent<ToolSet>>;
   onToolCallFinish?: Listener<OnToolCallFinishEvent<ToolSet>>;
-  onChunk?: Listener<TelemetryChunkEvent>;
+  onChunk?: Listener<OnChunkEvent>;
   onStepFinish?: Listener<OnStepFinishEvent<ToolSet>>;
   onFinish?: Listener<OnFinishEvent<ToolSet>>;
   recordError?: Listener<unknown>;

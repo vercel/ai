@@ -47,7 +47,9 @@ export function getGlobalTelemetryIntegration<
       | undefined,
   ): TelemetryIntegration => {
     const localIntegrations = asArray(integrations);
-    const allIntegrations = [...globalIntegrations, ...localIntegrations];
+    const allIntegrations = [...globalIntegrations, ...localIntegrations].map(
+      bindTelemetryIntegration,
+    );
 
     function createTelemetryComposite<EVENT>(
       getListenerFromIntegration: (

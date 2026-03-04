@@ -1653,11 +1653,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     });
 
                     void globalTelemetry.onChunk?.({
-                      callId,
-                      stepNumber: recordedSteps.length,
-                      eventName: 'ai.stream.firstChunk',
-                      attributes: {
-                        'ai.response.msToFirstChunk': msToFirstChunk,
+                      chunk: {
+                        type: 'ai.stream.firstChunk',
+                        callId,
+                        stepNumber: recordedSteps.length,
+                        attributes: {
+                          'ai.response.msToFirstChunk': msToFirstChunk,
+                        },
                       },
                     });
                   }
@@ -1740,13 +1742,16 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                       stepProviderMetadata = chunk.providerMetadata;
                       const msToFinish = now() - stepStartTimestampMs;
                       void globalTelemetry.onChunk?.({
-                        callId,
-                        stepNumber: recordedSteps.length,
-                        eventName: 'ai.stream.finish',
-                        attributes: {
-                          'ai.response.msToFinish': msToFinish,
-                          'ai.response.avgOutputTokensPerSecond':
-                            (1000 * (stepUsage.outputTokens ?? 0)) / msToFinish,
+                        chunk: {
+                          type: 'ai.stream.finish',
+                          callId,
+                          stepNumber: recordedSteps.length,
+                          attributes: {
+                            'ai.response.msToFinish': msToFinish,
+                            'ai.response.avgOutputTokensPerSecond':
+                              (1000 * (stepUsage.outputTokens ?? 0)) /
+                              msToFinish,
+                          },
                         },
                       });
 

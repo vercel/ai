@@ -260,6 +260,24 @@ describe('getGlobalTelemetryIntegration', () => {
 
       expect(localOnStart).toHaveBeenCalledWith(dummyEvent);
     });
+
+    it('auto-binds class-based global integrations', async () => {
+      class ClassGlobalIntegration implements TelemetryIntegration {
+        calls = 0;
+
+        onStart() {
+          this.calls += 1;
+        }
+      }
+
+      const integration = new ClassGlobalIntegration();
+      registerTelemetryIntegration(integration);
+
+      const listeners = getGlobalTelemetryIntegration()(undefined);
+      await listeners.onStart!(dummyEvent);
+
+      expect(integration.calls).toBe(1);
+    });
   });
 });
 

@@ -305,6 +305,10 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
     }
 );
 
+export interface OnChunkEvent {
+  readonly chunk: { readonly type: string; readonly [key: string]: unknown };
+}
+
 /**
  * Event passed to the `onStepFinish` callback.
  *
