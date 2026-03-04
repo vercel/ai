@@ -7564,6 +7564,120 @@ describe('generateText', () => {
       });
     });
 
+    describe('when a call from a single tool that needs approval is approved and the tool throws', () => {
+      let result: GenerateTextResult<any, any>;
+      let prompts: LanguageModelV3Prompt[];
+
+      beforeEach(async () => {
+        prompts = [];
+        result = await generateText({
+          model: new MockLanguageModelV3({
+            doGenerate: async ({ prompt }) => {
+              prompts.push(prompt);
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Hello, world!',
+                  },
+                ],
+                finishReason: { unified: 'stop', raw: 'stop' },
+              };
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async (): Promise<string> => {
+                throw new Error('No valid token for plugin');
+              },
+              needsApproval: true,
+            }),
+          },
+          stopWhen: stepCountIs(3),
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+          },
+          messages: [
+            { role: 'user', content: 'test-input' },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  input: {
+                    value: 'value',
+                  },
+                  providerExecuted: undefined,
+                  providerOptions: undefined,
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  type: 'tool-call',
+                },
+                {
+                  approvalId: 'id-1',
+                  toolCallId: 'call-1',
+                  type: 'tool-approval-request',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  approvalId: 'id-1',
+                  type: 'tool-approval-response',
+                  approved: true,
+                },
+              ],
+            },
+          ],
+        });
+      });
+
+      it('should serialize the tool error as error-text in the continuation prompt', async () => {
+        expect(prompts).toEqual([
+          [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerOptions: undefined,
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: { value: 'value' },
+                  providerExecuted: undefined,
+                  providerOptions: undefined,
+                },
+              ],
+              providerOptions: undefined,
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  output: {
+                    type: 'error-text',
+                    value: 'No valid token for plugin',
+                  },
+                  providerOptions: undefined,
+                },
+              ],
+              providerOptions: undefined,
+            },
+          ],
+        ]);
+      });
+    });
+
     describe('when a call from a single tool that needs approval is denied', () => {
       let result: GenerateTextResult<any, any>;
       let prompts: LanguageModelV3Prompt[];

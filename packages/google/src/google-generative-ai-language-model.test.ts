@@ -3963,6 +3963,7 @@ describe('doStream', () => {
         {
           "data": "test",
           "mediaType": "text/plain",
+          "providerMetadata": undefined,
           "type": "file",
         },
         {
@@ -4081,29 +4082,49 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
           "data": "image1",
           "mediaType": "image/png",
+          "providerMetadata": undefined,
           "type": "file",
         },
         {
+          "id": "1",
+          "providerMetadata": undefined,
+          "type": "text-start",
+        },
+        {
           "delta": " Step 2: ",
-          "id": "0",
+          "id": "1",
           "providerMetadata": undefined,
           "type": "text-delta",
+        },
+        {
+          "id": "1",
+          "type": "text-end",
         },
         {
           "data": "image2",
           "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
           "type": "file",
         },
         {
+          "id": "2",
+          "providerMetadata": undefined,
+          "type": "text-start",
+        },
+        {
           "delta": " Done",
-          "id": "0",
+          "id": "2",
           "providerMetadata": undefined,
           "type": "text-delta",
         },
         {
-          "id": "0",
+          "id": "2",
           "type": "text-end",
         },
       ]

@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.38
+
+### Patch Changes
+
+- 2291047: fix(ai): fix missing support for image thought signatures (e.g. for Gemini image models)
+
 ## 3.0.37
 
 ### Patch Changes
