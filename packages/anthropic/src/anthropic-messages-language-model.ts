@@ -93,7 +93,10 @@ type AnthropicMessagesConfig = {
   headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   buildRequestUrl?: (baseURL: string, isStreaming: boolean) => string;
-  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+  transformRequestBody?: (
+    args: Record<string, any>,
+    betas: Set<string>,
+  ) => Record<string, any>;
   supportedUrls?: () => LanguageModelV2['supportedUrls'];
   generateId?: () => string;
 };
@@ -498,7 +501,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         tool_choice: anthropicToolChoice,
       },
       warnings: [...warnings, ...toolWarnings, ...cacheWarnings],
-      betas: new Set([...betas, ...toolsBetas, ...userSuppliedBetas]),
+      betas: new Set([
+        ...betas,
+        ...toolsBetas,
+        ...userSuppliedBetas,
+        ...(anthropicOptions?.anthropicBeta ?? []),
+      ]),
       usesJsonResponseTool: jsonResponseTool != null,
     };
   }
@@ -542,8 +550,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     );
   }
 
-  private transformRequestBody(args: Record<string, any>): Record<string, any> {
-    return this.config.transformRequestBody?.(args) ?? args;
+  private transformRequestBody(
+    args: Record<string, any>,
+    betas: Set<string>,
+  ): Record<string, any> {
+    return this.config.transformRequestBody?.(args, betas) ?? args;
   }
 
   private extractCitationDocuments(prompt: LanguageModelV2Prompt): Array<{
@@ -607,7 +618,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     } = await postJsonToApi({
       url: this.buildRequestUrl(false),
       headers: await this.getHeaders({ betas, headers: options.headers }),
-      body: this.transformRequestBody(args),
+      body: this.transformRequestBody(args, betas),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         anthropicMessagesResponseSchema,
@@ -998,7 +1009,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     const { responseHeaders, value: response } = await postJsonToApi({
       url,
       headers: await this.getHeaders({ betas, headers: options.headers }),
-      body: this.transformRequestBody(body),
+      body: this.transformRequestBody(body, betas),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         anthropicMessagesChunkSchema,
