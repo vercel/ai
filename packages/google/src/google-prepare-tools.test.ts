@@ -449,6 +449,84 @@ it('should handle google maps tool', () => {
   expect(result.toolWarnings).toEqual([]);
 });
 
+it('should pass searchTypes args through for google search', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {
+          searchTypes: { webSearch: {}, imageSearch: {} },
+        },
+      },
+    ],
+    modelId: 'gemini-3.1-flash-image-preview',
+  });
+  expect(result.tools).toEqual([
+    {
+      googleSearch: {
+        searchTypes: { webSearch: {}, imageSearch: {} },
+      },
+    },
+  ]);
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should pass timeRangeFilter args through for google search', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {
+          timeRangeFilter: {
+            startTime: '2025-01-01T00:00:00Z',
+            endTime: '2025-12-31T23:59:59Z',
+          },
+        },
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.tools).toEqual([
+    {
+      googleSearch: {
+        timeRangeFilter: {
+          startTime: '2025-01-01T00:00:00Z',
+          endTime: '2025-12-31T23:59:59Z',
+        },
+      },
+    },
+  ]);
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should add warnings for google search on unsupported models', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-1.5-flash',
+  });
+  expect(result.tools).toBeUndefined();
+  expect(result.toolWarnings).toMatchInlineSnapshot(`
+    [
+      {
+        "details": "Google Search requires Gemini 2.0 or newer.",
+        "feature": "provider-defined tool google.google_search",
+        "type": "unsupported",
+      },
+    ]
+  `);
+});
+
 it('should add warnings for google maps on unsupported models', () => {
   const result = prepareTools({
     tools: [
