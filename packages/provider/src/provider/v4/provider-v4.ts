@@ -1,9 +1,9 @@
-import { EmbeddingModelV3 } from '../../embedding-model/v3/embedding-model-v3';
-import { ImageModelV3 } from '../../image-model/v3/image-model-v3';
+import { EmbeddingModelV4 } from '../../embedding-model/v4/embedding-model-v4';
+import { ImageModelV4 } from '../../image-model/v4/image-model-v4';
 import { LanguageModelV4 } from '../../language-model/v4/language-model-v4';
-import { RerankingModelV3 } from '../../reranking-model/v3/reranking-model-v3';
-import { SpeechModelV3 } from '../../speech-model/v3/speech-model-v3';
-import { TranscriptionModelV3 } from '../../transcription-model/v3/transcription-model-v3';
+import { RerankingModelV4 } from '../../reranking-model/v4/reranking-model-v4';
+import { SpeechModelV4 } from '../../speech-model/v4/speech-model-v4';
+import { TranscriptionModelV4 } from '../../transcription-model/v4/transcription-model-v4';
 
 /**
  * Provider for language, text embedding, and image generation models.
@@ -29,11 +29,11 @@ export interface ProviderV4 {
    *
    * @param {string} modelId - The id of the model to return.
    *
-   * @returns {EmbeddingModelV3} The embedding model associated with the id
+   * @returns {EmbeddingModelV4} The embedding model associated with the id
    *
    * @throws {NoSuchModelError} If no such model exists.
    */
-  embeddingModel(modelId: string): EmbeddingModelV3;
+  embeddingModel(modelId: string): EmbeddingModelV4;
 
   /**
    * Returns the image model with the given id.
@@ -41,9 +41,9 @@ export interface ProviderV4 {
    *
    * @param {string} modelId - The id of the model to return.
    *
-   * @returns {ImageModelV3} The image model associated with the id
+   * @returns {ImageModelV4} The image model associated with the id
    */
-  imageModel(modelId: string): ImageModelV3;
+  imageModel(modelId: string): ImageModelV4;
 
   /**
    * Returns the transcription model with the given id.
@@ -51,9 +51,9 @@ export interface ProviderV4 {
    *
    * @param {string} modelId - The id of the model to return.
    *
-   * @returns {TranscriptionModelV3} The transcription model associated with the id
+   * @returns {TranscriptionModelV4} The transcription model associated with the id
    */
-  transcriptionModel?(modelId: string): TranscriptionModelV3;
+  transcriptionModel?(modelId: string): TranscriptionModelV4;
 
   /**
    * Returns the speech model with the given id.
@@ -61,9 +61,9 @@ export interface ProviderV4 {
    *
    * @param {string} modelId - The id of the model to return.
    *
-   * @returns {SpeechModelV3} The speech model associated with the id
+   * @returns {SpeechModelV4} The speech model associated with the id
    */
-  speechModel?(modelId: string): SpeechModelV3;
+  speechModel?(modelId: string): SpeechModelV4;
 
   /**
    * Returns the reranking model with the given id.
@@ -71,9 +71,9 @@ export interface ProviderV4 {
    *
    * @param {string} modelId - The id of the model to return.
    *
-   * @returns {RerankingModelV3} The reranking model associated with the id
+   * @returns {RerankingModelV4} The reranking model associated with the id
    *
    * @throws {NoSuchModelError} If no such model exists.
    */
-  rerankingModel?(modelId: string): RerankingModelV3;
+  rerankingModel?(modelId: string): RerankingModelV4;
 }
