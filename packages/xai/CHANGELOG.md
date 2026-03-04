@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.65
+
+### Patch Changes
+
+- d5801fe: fix(xai): ensure strict mode for tools
+
 ## 3.0.64
 
 ### Patch Changes
