@@ -145,6 +145,11 @@ export async function convertToOpenAIResponsesInput({
               const id = part.providerOptions?.openai?.itemId as
                 | string
                 | undefined;
+              const phase = part.providerOptions?.openai?.phase as
+                | 'commentary'
+                | 'final_answer'
+                | null
+                | undefined;
 
               // item references reduce the payload size
               if (store && id != null) {
@@ -156,6 +161,7 @@ export async function convertToOpenAIResponsesInput({
                 role: 'assistant',
                 content: [{ type: 'output_text', text: part.text }],
                 id,
+                ...(phase != null && { phase }),
               });
 
               break;
