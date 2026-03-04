@@ -80,7 +80,7 @@ export type LanguageModelUsage = {
 /**
  * Represents the number of tokens used in an embedding.
  */
-// TODO replace with EmbeddingModelV3Usage
+// TODO replace with EmbeddingModelV4Usage once available in @ai-sdk/provider
 export type EmbeddingModelUsage = {
   /**
    * The number of tokens used in the embedding.
