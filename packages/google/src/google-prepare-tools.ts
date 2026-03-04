@@ -50,9 +50,10 @@ export function prepareTools({
     ] as const satisfies GoogleGenerativeAIModelId[]
   ).some(id => id === modelId);
   const isGemini2orNewer =
-    modelId.includes('gemini-2') || modelId.includes('gemini-3') || isLatest;
-  const supportsDynamicRetrieval =
-    modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
+    modelId.includes('gemini-2') ||
+    modelId.includes('gemini-3') ||
+    modelId.includes('nano-banana') ||
+    isLatest;
   const supportsFileSearch =
     modelId.includes('gemini-2.5') || modelId.includes('gemini-3');
 
@@ -79,24 +80,13 @@ export function prepareTools({
       switch (tool.id) {
         case 'google.google_search':
           if (isGemini2orNewer) {
-            googleTools.push({ googleSearch: {} });
-          } else if (supportsDynamicRetrieval) {
-            // For non-Gemini-2 models that don't support dynamic retrieval, use basic googleSearchRetrieval
-            googleTools.push({
-              googleSearchRetrieval: {
-                dynamicRetrievalConfig: {
-                  mode: tool.args.mode as
-                    | 'MODE_DYNAMIC'
-                    | 'MODE_UNSPECIFIED'
-                    | undefined,
-                  dynamicThreshold: tool.args.dynamicThreshold as
-                    | number
-                    | undefined,
-                },
-              },
-            });
+            googleTools.push({ googleSearch: { ...tool.args } });
           } else {
-            googleTools.push({ googleSearchRetrieval: {} });
+            toolWarnings.push({
+              type: 'unsupported',
+              feature: `provider-defined tool ${tool.id}`,
+              details: 'Google Search requires Gemini 2.0 or newer.',
+            });
           }
           break;
         case 'google.enterprise_web_search':
