@@ -624,9 +624,7 @@ describe('convertToOpenAIResponsesInput', () => {
             ],
           },
         ],
-        toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
-        providerOptionsName: 'openai',
         store: false,
       });
 
@@ -659,9 +657,7 @@ describe('convertToOpenAIResponsesInput', () => {
             ],
           },
         ],
-        toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
-        providerOptionsName: 'openai',
         store: false,
       });
 
@@ -695,9 +691,7 @@ describe('convertToOpenAIResponsesInput', () => {
             ],
           },
         ],
-        toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
-        providerOptionsName: 'openai',
         store: false,
       });
 

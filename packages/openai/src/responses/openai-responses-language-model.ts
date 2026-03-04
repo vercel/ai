@@ -476,23 +476,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               logprobs.push(contentPart.logprobs);
             }
 
-<<<<<<< HEAD
-=======
-            const providerMetadata: SharedV3ProviderMetadata[string] = {
-              itemId: part.id,
-              ...(part.phase != null && { phase: part.phase }),
-              ...(contentPart.annotations.length > 0 && {
-                annotations: contentPart.annotations,
-              }),
-            } satisfies ResponsesTextProviderMetadata;
-
->>>>>>> 66a374c23 (feat(openai): support phase parameter on Responses API message items (#12860))
             content.push({
               type: 'text',
               text: contentPart.text,
               providerMetadata: {
                 [providerKey]: {
                   itemId: part.id,
+                  ...(part.phase != null && { phase: part.phase }),
                 },
               },
             });

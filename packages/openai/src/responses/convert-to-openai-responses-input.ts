@@ -142,17 +142,13 @@ export async function convertToOpenAIResponsesInput({
         for (const part of content) {
           switch (part.type) {
             case 'text': {
-<<<<<<< HEAD
               const id = part.providerOptions?.openai?.itemId as
                 | string
-=======
-              const providerOpts = part.providerOptions?.[providerOptionsName];
-              const id = providerOpts?.itemId as string | undefined;
-              const phase = providerOpts?.phase as
+                | undefined;
+              const phase = part.providerOptions?.openai?.phase as
                 | 'commentary'
                 | 'final_answer'
                 | null
->>>>>>> 66a374c23 (feat(openai): support phase parameter on Responses API message items (#12860))
                 | undefined;
 
               // item references reduce the payload size

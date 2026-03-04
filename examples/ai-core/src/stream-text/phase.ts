@@ -1,4 +1,4 @@
-import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
+import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -10,7 +10,7 @@ run(async () => {
       openai: {
         instructions:
           'Before making any tool calls, send a short commentary message explaining what you are about to do.',
-      } satisfies OpenAILanguageModelResponsesOptions,
+      } satisfies OpenAIResponsesProviderOptions,
     },
     tools: {
       web_search: openai.tools.webSearch(),
