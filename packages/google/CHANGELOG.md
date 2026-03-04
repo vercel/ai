@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.39
+
+### Patch Changes
+
+- 2565e70: feat(google): add support for image search, replace obsolete google_search_retrieval implementation
+
 ## 3.0.38
 
 ### Patch Changes
