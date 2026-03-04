@@ -194,10 +194,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         'openai.mcp': 'mcp',
         'openai.apply_patch': 'apply_patch',
       },
-      resolveProviderToolName: tool =>
-        tool.id === 'openai.custom'
-          ? (tool.args as { name?: string }).name
-          : undefined,
     });
 
     const customProviderToolNames = new Set<string>();

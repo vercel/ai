@@ -241,11 +241,11 @@ export async function prepareResponsesTools({
 
             openaiTools.push({
               type: 'custom',
-              name: args.name,
+              name: tool.name,
               description: args.description,
               format: args.format,
             });
-            resolvedCustomProviderToolNames.add(args.name);
+            resolvedCustomProviderToolNames.add(tool.name);
             break;
           }
         }
