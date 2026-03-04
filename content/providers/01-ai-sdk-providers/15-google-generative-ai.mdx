@@ -505,9 +505,8 @@ The response will contain the tool calls and results from the code execution.
 
 ### Google Search
 
-With [search grounding](https://ai.google.dev/gemini-api/docs/google-search),
-the model has access to the latest information using Google search.
-Google search can be used to provide answers around current events:
+With [Google Search grounding](https://ai.google.dev/gemini-api/docs/google-search),
+the model has access to the latest information using Google Search.
 
 ```ts highlight="8,17-20"
 import { google } from '@ai-sdk/google';
@@ -535,18 +534,31 @@ const safetyRatings = metadata?.safetyRatings;
 
 The `googleSearch` tool accepts the following optional configuration options:
 
-- **mode** _'MODE_DYNAMIC' | 'MODE_UNSPECIFIED'_
+- **searchTypes** _object_
 
-  The mode of the predictor to be used in dynamic retrieval. Default is `'MODE_UNSPECIFIED'`.
+  Enables specific search types. Both can be combined.
 
-  - `MODE_DYNAMIC`: Run retrieval only when the system decides it is necessary
-  - `MODE_UNSPECIFIED`: Always trigger retrieval
+  - `webSearch`: Enable web search grounding (pass `{}` to enable). This is the default.
+  - `imageSearch`: Enable [image search grounding](https://ai.google.dev/gemini-api/docs/image-generation#image-search) (pass `{}` to enable).
 
-- **dynamicThreshold** _number_
+- **timeRangeFilter** _object_
 
-  The threshold to be used in dynamic retrieval. Default is `1`. If not set, a system default value is used.
+  Restricts search results to a specific time range. Both `startTime` and `endTime` are required.
 
-When Search Grounding is enabled, the model will include sources in the response.
+  - `startTime`: Start time in ISO 8601 format (e.g. `'2025-01-01T00:00:00Z'`).
+  - `endTime`: End time in ISO 8601 format (e.g. `'2025-12-31T23:59:59Z'`).
+
+```ts
+google.tools.googleSearch({
+  searchTypes: { webSearch: {} },
+  timeRangeFilter: {
+    startTime: '2025-01-01T00:00:00Z',
+    endTime: '2025-12-31T23:59:59Z',
+  },
+});
+```
+
+When Google Search grounding is enabled, the model will include sources in the response.
 
 Additionally, the grounding metadata includes detailed information about how search results were used to ground the model's response. Here are the available fields:
 
