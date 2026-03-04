@@ -1,3 +1,3 @@
-import { ImageModelV3Middleware } from '@ai-sdk/provider';
+import { ImageModelV4Middleware } from '@ai-sdk/provider';
 
-export type ImageModelMiddleware = ImageModelV3Middleware;
+export type ImageModelMiddleware = ImageModelV4Middleware;

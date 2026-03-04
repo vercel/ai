@@ -1,3 +1,3 @@
-import { EmbeddingModelV3Middleware } from '@ai-sdk/provider';
+import { EmbeddingModelV4Middleware } from '@ai-sdk/provider';
 
-export type EmbeddingModelMiddleware = EmbeddingModelV3Middleware;
+export type EmbeddingModelMiddleware = EmbeddingModelV4Middleware;

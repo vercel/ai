@@ -1,8 +1,8 @@
 import {
   getErrorMessage,
-  LanguageModelV3,
-  LanguageModelV3ToolChoice,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4ToolChoice,
+  SharedV4Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -758,7 +758,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     download,
     include,
   }: {
-    model: LanguageModelV3;
+    model: LanguageModelV4;
     telemetry: TelemetrySettings | undefined;
     headers: Record<string, string | undefined> | undefined;
     settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
@@ -1709,7 +1709,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 : { ...request, body: undefined };
             const stepToolCalls: TypedToolCall<TOOLS>[] = [];
             const stepToolOutputs: ToolOutput<TOOLS>[] = [];
-            let warnings: SharedV3Warning[] | undefined;
+            let warnings: SharedV4Warning[] | undefined;
 
             const activeToolCallToolNames: Record<string, string> = {};
 
