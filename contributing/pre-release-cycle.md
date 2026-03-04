@@ -35,7 +35,7 @@ git checkout main
 pnpm changeset pre enter beta
 ```
 
-This modifies `.changeset/pre.json`. Remove any `@example/*` packages from the `initialVersions` field — example packages are private and should not be tracked in pre-release mode. Commit and push the change (or open a PR).
+This modifies `.changeset/pre.json`. The `initialVersions` field should only contain packages from `packages/*/package.json` files — remove any other entries (e.g. `@example/*`, `tools/*`, or nested test packages). Commit and push the change (or open a PR).
 
 ### 3. Create a major changeset
 
@@ -45,7 +45,7 @@ Create a changeset that bumps every published package to the next major version:
 pnpm changeset
 ```
 
-Select all published packages (skip `@example/*` packages — they are private and not published) and choose `major` for each. Write a summary like:
+Select all packages from `packages/*/package.json` (skip `@example/*`, `tools/*`, and any other non-`packages/` entries — they are private and not published) and choose `major` for each. Write a summary like:
 
 > Start v7 pre-release
 
@@ -53,12 +53,23 @@ Commit the generated `.changeset/*.md` file.
 
 ### 4. Seed the new spec version
 
-Every major release introduces a new provider specification version (e.g. V3 to V4). Repeat the following for **every** versioned spec directory under `packages/provider/src/` (language-model, embedding-model, image-model, speech-model, transcription-model, video-model, reranking-model, provider, shared, and all middleware types):
+Every major release introduces a new provider specification version (e.g. V3 to V4). You must create a new version directory for **every** spec directory under `packages/provider/src/` that contains a versioned subdirectory. To find them, run:
+
+```bash
+ls -d packages/provider/src/*/v3
+```
+
+As of writing, the directories are: `embedding-model`, `embedding-model-middleware`, `image-model`, `image-model-middleware`, `language-model`, `language-model-middleware`, `provider`, `reranking-model`, `shared`, `speech-model`, `transcription-model`, `video-model`.
+
+For **each** directory:
 
 1. Copy the current spec directory (e.g. `v3/`) to a new version directory (e.g. `v4/`).
-2. Rename all types from the old version to the new version (e.g. `LanguageModelV3` to `LanguageModelV4`).
-3. Update the `specificationVersion` literal from `'v3'` to `'v4'`.
-4. Add the new version directory to the parent `index.ts` exports.
+2. Rename all files from the old version to the new (e.g. `language-model-v3.ts` → `language-model-v4.ts`).
+3. Inside each file, replace all occurrences of the old version with the new (e.g. `V3` → `V4`, `v3` → `v4` in type names, imports, and the `specificationVersion` literal).
+4. Add `export * from './v4/index';` to the parent `index.ts` (before the v3 export).
+5. Update cross-references: if the `provider` v4 spec imports other model types, ensure it imports from the new v4 paths (not v3).
+
+Verify by running `pnpm build` in `packages/provider` — all new types should appear in the built `.d.ts` output.
 
 ### 5. Create mock test utilities
 
