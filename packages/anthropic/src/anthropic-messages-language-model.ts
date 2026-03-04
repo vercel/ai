@@ -37,6 +37,7 @@ import {
   anthropicMessagesResponseSchema,
   AnthropicReasoningMetadata,
   AnthropicResponseContextManagement,
+  AnthropicTool,
   Citation,
 } from './anthropic-messages-api';
 import {
@@ -305,7 +306,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         'anthropic.bash_20250124': 'bash',
         'anthropic.memory_20250818': 'memory',
         'anthropic.web_search_20250305': 'web_search',
+        'anthropic.web_search_20260209': 'web_search',
         'anthropic.web_fetch_20250910': 'web_fetch',
+        'anthropic.web_fetch_20260209': 'web_fetch',
         'anthropic.tool_search_regex_20251119': 'tool_search_tool_regex',
         'anthropic.tool_search_bm25_20251119': 'tool_search_tool_bm25',
       },
@@ -745,6 +748,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       ...this.extractCitationDocuments(options.prompt),
     ];
 
+    const markCodeExecutionDynamic = hasWebTool20260209WithoutCodeExecution(
+      args.tools,
+    );
+
     const {
       responseHeaders,
       value: response,
@@ -898,6 +905,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               toolName: toolNameMapping.toCustomToolName(part.name),
               input: JSON.stringify(inputToSerialize),
               providerExecuted: true,
+              // We want this 'code_execution' tool call to be allowed even if the tool is not explicitly provided.
+              // Since the validation generally bypasses dynamic tools, we mark this specific tool as dynamic.
+              ...(markCodeExecutionDynamic && part.name === 'code_execution'
+                ? { dynamic: true }
+                : {}),
             });
           } else if (
             part.name === 'tool_search_tool_regex' ||
@@ -1204,6 +1216,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       ...this.extractCitationDocuments(options.prompt),
     ];
 
+    const markCodeExecutionDynamic = hasWebTool20260209WithoutCodeExecution(
+      body.tools,
+    );
+
     const url = this.buildRequestUrl(true);
     const { responseHeaders, value: response } = await postJsonToApi({
       url,
@@ -1438,12 +1454,26 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     const customToolName =
                       toolNameMapping.toCustomToolName(providerToolName);
 
+                    // Tools like 'web_fetch_20260209' provide input data here.
+                    // Other tools like 'code_execution_20260120' provide input data via deltas.
+                    // So we only use this if it's non-empty to avoid conflicts.
+                    const finalInput =
+                      part.input != null &&
+                      typeof part.input === 'object' &&
+                      Object.keys(part.input).length > 0
+                        ? JSON.stringify(part.input)
+                        : '';
+
                     contentBlocks[value.index] = {
                       type: 'tool-call',
                       toolCallId: part.id,
                       toolName: customToolName,
-                      input: '',
+                      input: finalInput,
                       providerExecuted: true,
+                      ...(markCodeExecutionDynamic &&
+                      providerToolName === 'code_execution'
+                        ? { dynamic: true }
+                        : {}),
                       firstDelta: true,
                       providerToolName: part.name,
                     };
@@ -1453,6 +1483,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       id: part.id,
                       toolName: customToolName,
                       providerExecuted: true,
+                      ...(markCodeExecutionDynamic &&
+                      providerToolName === 'code_execution'
+                        ? { dynamic: true }
+                        : {}),
                     });
                   } else if (
                     part.name === 'tool_search_tool_regex' ||
@@ -1773,6 +1807,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         toolName: contentBlock.toolName,
                         input: finalInput,
                         providerExecuted: contentBlock.providerExecuted,
+                        ...(markCodeExecutionDynamic &&
+                        contentBlock.providerToolName === 'code_execution'
+                          ? { dynamic: true }
+                          : {}),
                         ...(contentBlock.caller && {
                           providerMetadata: {
                             anthropic: {
@@ -2211,10 +2249,7 @@ function getModelCapabilities(modelId: string): {
       supportsStructuredOutput: true,
       isKnownModel: true,
     };
-  } else if (
-    modelId.includes('claude-sonnet-4-') ||
-    modelId.includes('claude-3-7-sonnet')
-  ) {
+  } else if (modelId.includes('claude-sonnet-4-')) {
     return {
       maxOutputTokens: 64000,
       supportsStructuredOutput: false,
@@ -2223,12 +2258,6 @@ function getModelCapabilities(modelId: string): {
   } else if (modelId.includes('claude-opus-4-')) {
     return {
       maxOutputTokens: 32000,
-      supportsStructuredOutput: false,
-      isKnownModel: true,
-    };
-  } else if (modelId.includes('claude-3-5-haiku')) {
-    return {
-      maxOutputTokens: 8192,
       supportsStructuredOutput: false,
       isKnownModel: true,
     };
@@ -2245,6 +2274,31 @@ function getModelCapabilities(modelId: string): {
       isKnownModel: false,
     };
   }
+}
+
+function hasWebTool20260209WithoutCodeExecution(
+  tools: AnthropicTool[] | undefined,
+): boolean {
+  if (!tools) {
+    return false;
+  }
+  let hasWebTool20260209 = false;
+  let hasCodeExecutionTool = false;
+  for (const tool of tools) {
+    if (
+      'type' in tool &&
+      (tool.type === 'web_fetch_20260209' ||
+        tool.type === 'web_search_20260209')
+    ) {
+      hasWebTool20260209 = true;
+      continue;
+    }
+    if (tool.name === 'code_execution') {
+      hasCodeExecutionTool = true;
+      break;
+    }
+  }
+  return hasWebTool20260209 && !hasCodeExecutionTool;
 }
 
 function mapAnthropicResponseContextManagement(
