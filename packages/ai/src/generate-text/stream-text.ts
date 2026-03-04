@@ -1889,6 +1889,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                           ...chunk,
                           dynamic: chunk.dynamic ?? tool?.type === 'dynamic',
                           title: tool?.title,
+                          _meta: (tool as any)?._meta,
                         });
                         break;
                       }
@@ -2533,6 +2534,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   : {}),
                 ...(dynamic != null ? { dynamic } : {}),
                 ...(part.title != null ? { title: part.title } : {}),
+                ...(part._meta != null ? { _meta: part._meta } : {}),
               });
               break;
             }
@@ -2548,6 +2550,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
             case 'tool-call': {
               const dynamic = isDynamic(part);
+              const toolMeta = (this.tools?.[part.toolName] as any)?._meta as
+                | Record<string, unknown>
+                | undefined;
 
               if (part.invalid) {
                 controller.enqueue({
@@ -2579,6 +2584,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     : {}),
                   ...(dynamic != null ? { dynamic } : {}),
                   ...(part.title != null ? { title: part.title } : {}),
+                  ...(toolMeta != null ? { _meta: toolMeta } : {}),
                 });
               }
 
