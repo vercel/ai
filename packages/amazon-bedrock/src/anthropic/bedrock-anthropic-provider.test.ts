@@ -365,7 +365,6 @@ describe('bedrock-anthropic-provider', () => {
     );
   });
 
-
   it('should include betas passed to transformRequestBody in anthropic_beta body field', () => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
@@ -384,10 +383,12 @@ describe('bedrock-anthropic-provider', () => {
       max_tokens: 1024,
     });
 
-    expect(transformedBody).toHaveProperty('anthropic_version', 'bedrock-2023-05-31');
+    expect(transformedBody).toHaveProperty(
+      'anthropic_version',
+      'bedrock-2023-05-31',
+    );
     expect(transformedBody).not.toHaveProperty('anthropic_beta');
   });
-
 
   it('should not add anthropic_beta when no computer use tools are present', () => {
     const provider = createBedrockAnthropic({
