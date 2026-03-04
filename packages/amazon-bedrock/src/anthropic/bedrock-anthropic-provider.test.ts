@@ -38,8 +38,17 @@ vi.mock('@ai-sdk/anthropic/internal', async () => {
   return {
     ...originalModule,
     AnthropicMessagesLanguageModel: vi.fn().mockImplementation(() => ({
-      doStream: vi.fn().mockResolvedValue({ stream: new ReadableStream(), rawCall: {} }),
-      doGenerate: vi.fn().mockResolvedValue({ content: [], finishReason: 'stop', rawCall: {}, usage: {} }),
+      doStream: vi
+        .fn()
+        .mockResolvedValue({ stream: new ReadableStream(), rawCall: {} }),
+      doGenerate: vi
+        .fn()
+        .mockResolvedValue({
+          content: [],
+          finishReason: 'stop',
+          rawCall: {},
+          usage: {},
+        }),
       provider: 'bedrock.anthropic.messages',
       modelId: 'test-model',
       supportedUrls: vi.fn().mockReturnValue({}),

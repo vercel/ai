@@ -288,10 +288,10 @@ export function createBedrockAnthropic(
               newType in BEDROCK_TOOL_NAME_MAP
                 ? BEDROCK_TOOL_NAME_MAP[newType]
                 : tool.name;
-            return { 
-              ...tool, 
-              type: newType, 
-              name: newName 
+            return {
+              ...tool,
+              type: newType,
+              name: newName,
             };
           }
 
@@ -300,9 +300,9 @@ export function createBedrockAnthropic(
           }
 
           if (toolType && toolType in BEDROCK_TOOL_NAME_MAP) {
-            return { 
-              ...tool, 
-              name: BEDROCK_TOOL_NAME_MAP[toolType] 
+            return {
+              ...tool,
+              name: BEDROCK_TOOL_NAME_MAP[toolType],
             };
           }
 

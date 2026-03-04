@@ -29,8 +29,7 @@ async function main() {
     messages: [
       {
         role: 'user',
-        content:
-          'Write a bubble sort implementation in JavaScript to sort.js',
+        content: 'Write a bubble sort implementation in JavaScript to sort.js',
       },
     ],
 
@@ -51,7 +50,9 @@ async function main() {
   // ts() prints a compact timestamp to stderr so we can see real-time ordering
   const T0 = Date.now();
   const ts = (label: string) =>
-    process.stderr.write(`+${((Date.now() - T0) / 1000).toFixed(2)}s ${label}\n`);
+    process.stderr.write(
+      `+${((Date.now() - T0) / 1000).toFixed(2)}s ${label}\n`,
+    );
 
   ts('stream started');
 

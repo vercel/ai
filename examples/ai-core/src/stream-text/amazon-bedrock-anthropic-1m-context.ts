@@ -60,7 +60,11 @@ async function main() {
 
   const endstamp = performance.now();
   console.log();
-  console.log('Time taken:', ((endstamp - startstamp) / 1000).toFixed(2), 'seconds');
+  console.log(
+    'Time taken:',
+    ((endstamp - startstamp) / 1000).toFixed(2),
+    'seconds',
+  );
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
 }
