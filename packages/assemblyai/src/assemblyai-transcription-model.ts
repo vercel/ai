@@ -583,6 +583,16 @@ const assemblyaiWordSchema = z.object({
   speaker: z.string().nullish(),
 });
 
+const assemblyaiUtteranceSchema = z.object({
+  confidence: z.number(),
+  start: z.number(),
+  end: z.number(),
+  text: z.string(),
+  words: z.array(assemblyaiWordSchema).nullish(),
+  channel: z.string().nullish(),
+  speaker: z.string().nullish(),
+});
+
 const assemblyaiTranscriptionResponseSchema = z.object({
   // Core
   id: z.string(),
@@ -624,19 +634,7 @@ const assemblyaiTranscriptionResponseSchema = z.object({
 
   // Words & Utterances
   words: z.array(assemblyaiWordSchema).nullish(),
-  utterances: z
-    .array(
-      z.object({
-        confidence: z.number(),
-        start: z.number(),
-        end: z.number(),
-        text: z.string(),
-        words: z.array(assemblyaiWordSchema).nullish(),
-        channel: z.string().nullish(),
-        speaker: z.string().nullish(),
-      }),
-    )
-    .nullish(),
+  utterances: z.array(assemblyaiUtteranceSchema).nullish(),
 
   // Auto chapters
   auto_chapters: z.boolean().nullish(),
@@ -862,7 +860,7 @@ const assemblyaiTranscriptionResponseSchema = z.object({
               mapping: z.record(z.string(), z.string()).nullish(),
               formatted_text: z.string().nullish(),
               formatted_utterances: z
-                .array(z.record(z.string(), z.unknown()))
+                .array(assemblyaiUtteranceSchema)
                 .nullish(),
             })
             .nullish(),
