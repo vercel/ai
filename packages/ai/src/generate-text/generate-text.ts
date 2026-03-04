@@ -827,6 +827,8 @@ export async function generateText<
                     body: result.response?.body,
                   };
 
+                  const usage = asLanguageModelUsage(result.usage);
+
                   // Add response information to the span:
                   span.setAttributes(
                     await selectTelemetryAttributes({
@@ -855,10 +857,16 @@ export async function generateText<
                           result.providerMetadata,
                         ),
 
-                        // TODO rename telemetry attributes to inputTokens and outputTokens
-                        'ai.usage.promptTokens': result.usage.inputTokens.total,
-                        'ai.usage.completionTokens':
-                          result.usage.outputTokens.total,
+                        // TODO deprecate old telemetry attributes to inputTokens and outputTokens
+                        'ai.usage.promptTokens': usage.inputTokens,
+                        'ai.usage.completionTokens': usage.outputTokens,
+                        'ai.usage.inputTokens': usage.inputTokens,
+                        'ai.usage.outputTokens': usage.outputTokens,
+                        'ai.usage.totalTokens': usage.totalTokens,
+                        'ai.usage.reasoningTokens':
+                          usage.outputTokenDetails.reasoningTokens,
+                        'ai.usage.cachedInputTokens':
+                          usage.inputTokenDetails.cacheReadTokens,
 
                         // standardized gen-ai llm span attributes:
                         'gen_ai.response.finish_reasons': [
@@ -1108,6 +1116,8 @@ export async function generateText<
           !(await isStopConditionMet({ stopConditions, steps }))
         );
 
+        const usage = asLanguageModelUsage(currentModelResponse.usage);
+
         // Add response information to the span:
         span.setAttributes(
           await selectTelemetryAttributes({
@@ -1134,11 +1144,17 @@ export async function generateText<
                 currentModelResponse.providerMetadata,
               ),
 
-              // TODO rename telemetry attributes to inputTokens and outputTokens
-              'ai.usage.promptTokens':
-                currentModelResponse.usage.inputTokens.total,
-              'ai.usage.completionTokens':
-                currentModelResponse.usage.outputTokens.total,
+              // TODO deprecate old telemetry attributes to inputTokens and outputTokens
+              'ai.usage.promptTokens': usage.inputTokens,
+              'ai.usage.completionTokens': usage.outputTokens,
+
+              'ai.usage.inputTokens': usage.inputTokens,
+              'ai.usage.outputTokens': usage.outputTokens,
+              'ai.usage.totalTokens': usage.totalTokens,
+              'ai.usage.reasoningTokens':
+                usage.outputTokenDetails.reasoningTokens,
+              'ai.usage.cachedInputTokens':
+                usage.inputTokenDetails.cacheReadTokens,
             },
           }),
         );
