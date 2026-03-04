@@ -1,5 +1,12 @@
 # ai
 
+## 6.0.112
+
+### Patch Changes
+
+- Updated dependencies [db3d4ca]
+  - @ai-sdk/gateway@3.0.64
+
 ## 6.0.111
 
 ### Patch Changes
