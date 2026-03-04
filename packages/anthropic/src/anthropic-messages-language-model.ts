@@ -1056,6 +1056,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 content: part.content.content ?? [],
               },
             });
+          } else if (part.content.type === 'encrypted_code_execution_result') {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: toolNameMapping.toCustomToolName('code_execution'),
+              result: {
+                type: part.content.type,
+                encrypted_stdout: part.content.encrypted_stdout,
+                stderr: part.content.stderr,
+                return_code: part.content.return_code,
+                content: part.content.content ?? [],
+              },
+            });
           } else if (part.content.type === 'code_execution_tool_result_error') {
             content.push({
               type: 'tool-result',
@@ -1617,6 +1630,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       result: {
                         type: part.content.type,
                         stdout: part.content.stdout,
+                        stderr: part.content.stderr,
+                        return_code: part.content.return_code,
+                        content: part.content.content ?? [],
+                      },
+                    });
+                  } else if (
+                    part.content.type === 'encrypted_code_execution_result'
+                  ) {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName:
+                        toolNameMapping.toCustomToolName('code_execution'),
+                      result: {
+                        type: part.content.type,
+                        encrypted_stdout: part.content.encrypted_stdout,
                         stderr: part.content.stderr,
                         return_code: part.content.return_code,
                         content: part.content.content ?? [],

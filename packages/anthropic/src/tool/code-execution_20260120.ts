@@ -24,6 +24,21 @@ export const codeExecution_20260120OutputSchema = lazySchema(() =>
           .default([]),
       }),
       z.object({
+        type: z.literal('encrypted_code_execution_result'),
+        encrypted_stdout: z.string(),
+        stderr: z.string(),
+        return_code: z.number(),
+        content: z
+          .array(
+            z.object({
+              type: z.literal('code_execution_output'),
+              file_id: z.string(),
+            }),
+          )
+          .optional()
+          .default([]),
+      }),
+      z.object({
         type: z.literal('bash_code_execution_result'),
         content: z.array(
           z.object({
@@ -172,6 +187,29 @@ const factory = createProviderToolFactoryWithOutputSchema<
        * Output from successful execution
        */
       stdout: string;
+
+      /**
+       * Error messages if execution fails
+       */
+      stderr: string;
+
+      /**
+       * 0 for success, non-zero for failure
+       */
+      return_code: number;
+
+      /**
+       * Output file Id list
+       */
+      content: Array<{ type: 'code_execution_output'; file_id: string }>;
+    }
+  | {
+      type: 'encrypted_code_execution_result';
+
+      /**
+       * Encrypted output from successful execution
+       */
+      encrypted_stdout: string;
 
       /**
        * Error messages if execution fails
