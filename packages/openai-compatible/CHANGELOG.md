@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.33
+
+### Patch Changes
+
+- 89caf28: fix(openai-compat): decode base64 string data
+
 ## 2.0.32
 
 ### Patch Changes

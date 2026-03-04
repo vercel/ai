@@ -1,5 +1,27 @@
 # @ai-sdk/google-vertex
 
+## 4.0.73
+
+### Patch Changes
+
+- Updated dependencies [56c67d5]
+  - @ai-sdk/anthropic@3.0.54
+
+## 4.0.72
+
+### Patch Changes
+
+- 10bec50: feat(provider/google): add `gemini-3.1-flash-lite-preview`
+- Updated dependencies [10bec50]
+  - @ai-sdk/google@3.0.37
+
+## 4.0.71
+
+### Patch Changes
+
+- Updated dependencies [89caf28]
+  - @ai-sdk/anthropic@3.0.53
+
 ## 4.0.70
 
 ### Patch Changes
