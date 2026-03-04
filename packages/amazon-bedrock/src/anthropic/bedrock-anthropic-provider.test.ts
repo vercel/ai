@@ -217,11 +217,14 @@ describe('bedrock-anthropic-provider', () => {
       .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
     const config = constructorCall[1];
 
-    const transformedBody = config.transformRequestBody?.({
-      model: 'test-model-id',
-      messages: [{ role: 'user', content: 'Hello' }],
-      max_tokens: 1024,
-    });
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+      },
+      new Set(),
+    );
 
     expect(transformedBody).toEqual({
       messages: [{ role: 'user', content: 'Hello' }],
@@ -243,12 +246,15 @@ describe('bedrock-anthropic-provider', () => {
       .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
     const config = constructorCall[1];
 
-    const transformedBody = config.transformRequestBody?.({
-      model: 'test-model-id',
-      messages: [{ role: 'user', content: 'Hello' }],
-      max_tokens: 1024,
-      stream: true,
-    });
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+        stream: true,
+      },
+      new Set(),
+    );
 
     expect(transformedBody).not.toHaveProperty('stream');
     expect(transformedBody).toHaveProperty('anthropic_version');
@@ -266,15 +272,18 @@ describe('bedrock-anthropic-provider', () => {
       .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
     const config = constructorCall[1];
 
-    const transformedBody = config.transformRequestBody?.({
-      model: 'test-model-id',
-      messages: [{ role: 'user', content: 'Hello' }],
-      max_tokens: 1024,
-      tool_choice: {
-        type: 'auto',
-        disable_parallel_tool_use: true,
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+        tool_choice: {
+          type: 'auto',
+          disable_parallel_tool_use: true,
+        },
       },
-    });
+      new Set(),
+    );
 
     expect(transformedBody?.tool_choice).toEqual({ type: 'auto' });
     expect(transformedBody?.tool_choice).not.toHaveProperty(
@@ -294,16 +303,19 @@ describe('bedrock-anthropic-provider', () => {
       .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
     const config = constructorCall[1];
 
-    const transformedBody = config.transformRequestBody?.({
-      model: 'test-model-id',
-      messages: [{ role: 'user', content: 'Hello' }],
-      max_tokens: 1024,
-      tool_choice: {
-        type: 'tool',
-        name: 'my_tool',
-        disable_parallel_tool_use: true,
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+        tool_choice: {
+          type: 'tool',
+          name: 'my_tool',
+          disable_parallel_tool_use: true,
+        },
       },
-    });
+      new Set(),
+    );
 
     expect(transformedBody?.tool_choice).toEqual({
       type: 'tool',
@@ -323,16 +335,19 @@ describe('bedrock-anthropic-provider', () => {
       .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
     const config = constructorCall[1];
 
-    const transformedBody = config.transformRequestBody?.({
-      model: 'test-model-id',
-      messages: [{ role: 'user', content: 'Hello' }],
-      max_tokens: 1024,
-      tools: [
-        { type: 'bash_20241022', name: 'bash' },
-        { type: 'text_editor_20241022', name: 'str_replace_editor' },
-        { type: 'computer_20241022', name: 'computer' },
-      ],
-    });
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+        tools: [
+          { type: 'bash_20241022', name: 'bash' },
+          { type: 'text_editor_20241022', name: 'str_replace_editor' },
+          { type: 'computer_20241022', name: 'computer' },
+        ],
+      },
+      new Set(),
+    );
 
     expect(transformedBody?.tools).toEqual([
       { type: 'bash_20250124', name: 'bash' },
@@ -353,12 +368,15 @@ describe('bedrock-anthropic-provider', () => {
       .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
     const config = constructorCall[1];
 
-    const transformedBody = config.transformRequestBody?.({
-      model: 'test-model-id',
-      messages: [{ role: 'user', content: 'Hello' }],
-      max_tokens: 1024,
-      tools: [{ type: 'bash_20250124', name: 'bash' }],
-    });
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+        tools: [{ type: 'bash_20250124', name: 'bash' }],
+      },
+      new Set(),
+    );
 
     expect(transformedBody?.anthropic_beta).toContain(
       'computer-use-2025-01-24',
@@ -377,11 +395,14 @@ describe('bedrock-anthropic-provider', () => {
       .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
     const config = constructorCall[1];
 
-    const transformedBody = config.transformRequestBody?.({
-      model: 'test-model-id',
-      messages: [{ role: 'user', content: 'Hello' }],
-      max_tokens: 1024,
-    });
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+      },
+      new Set(),
+    );
 
     expect(transformedBody).toHaveProperty(
       'anthropic_version',
@@ -402,18 +423,21 @@ describe('bedrock-anthropic-provider', () => {
       .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
     const config = constructorCall[1];
 
-    const transformedBody = config.transformRequestBody?.({
-      model: 'test-model-id',
-      messages: [{ role: 'user', content: 'Hello' }],
-      max_tokens: 1024,
-      tools: [
-        {
-          type: 'function',
-          name: 'get_weather',
-          input_schema: { type: 'object', properties: {} },
-        },
-      ],
-    });
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            input_schema: { type: 'object', properties: {} },
+          },
+        ],
+      },
+      new Set(),
+    );
 
     expect(transformedBody?.anthropic_beta).toBeUndefined();
   });
