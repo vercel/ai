@@ -564,11 +564,36 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                     });
                   }
                 } else if ('inlineData' in part) {
+                  // End any active text or reasoning block before starting file output.
+                  // Relevant for multimodal output models.
+                  if (currentTextBlockId !== null) {
+                    controller.enqueue({
+                      type: 'text-end',
+                      id: currentTextBlockId,
+                    });
+                    currentTextBlockId = null;
+                  }
+                  if (currentReasoningBlockId !== null) {
+                    controller.enqueue({
+                      type: 'reasoning-end',
+                      id: currentReasoningBlockId,
+                    });
+                    currentReasoningBlockId = null;
+                  }
+
                   // Process file parts inline to preserve order with text
+                  const thoughtSignatureMetadata = part.thoughtSignature
+                    ? {
+                        [providerOptionsName]: {
+                          thoughtSignature: part.thoughtSignature,
+                        },
+                      }
+                    : undefined;
                   controller.enqueue({
                     type: 'file',
                     mediaType: part.inlineData.mimeType,
                     data: part.inlineData.data,
+                    providerMetadata: thoughtSignatureMetadata,
                   });
                 }
               }

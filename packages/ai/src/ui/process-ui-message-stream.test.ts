@@ -4463,6 +4463,75 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('file parts with providerMetadata', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'file',
+          url: 'data:text/plain;base64,SGVsbG8gV29ybGQ=',
+          mediaType: 'text/plain',
+          providerMetadata: {
+            testProvider: { signature: 'sig-1' },
+          },
+        },
+        {
+          type: 'file',
+          url: 'data:image/jpeg;base64,QkFVRw==',
+          mediaType: 'image/jpeg',
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should have the correct final message state', async () => {
+      expect(state!.message).toMatchInlineSnapshot(`
+        {
+          "id": "msg-123",
+          "metadata": undefined,
+          "parts": [
+            {
+              "type": "step-start",
+            },
+            {
+              "mediaType": "text/plain",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "sig-1",
+                },
+              },
+              "type": "file",
+              "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
+            },
+            {
+              "mediaType": "image/jpeg",
+              "type": "file",
+              "url": "data:image/jpeg;base64,QkFVRw==",
+            },
+          ],
+          "role": "assistant",
+        }
+      `);
+    });
+  });
+
   describe('data ui parts (single part)', () => {
     let dataCalls: InferUIMessageData<UIMessage>[] = [];
 

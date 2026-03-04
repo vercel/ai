@@ -442,6 +442,40 @@ describe('convertToModelMessages', () => {
       ] as unknown as ModelMessage[]);
     });
 
+    it('should handle assistant message file parts with provider metadata', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              url: 'data:image/png;base64,dGVzdA==',
+              providerMetadata: {
+                testProvider: { signature: 'test-signature' },
+              },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: 'data:image/png;base64,dGVzdA==',
+              providerOptions: {
+                testProvider: { signature: 'test-signature' },
+              },
+            },
+          ],
+        },
+      ] as unknown as ModelMessage[]);
+    });
+
     it('should handle assistant message with tool output available', async () => {
       const result = await convertToModelMessages([
         {
