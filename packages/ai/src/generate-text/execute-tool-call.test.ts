@@ -545,8 +545,11 @@ describe('executeToolCall', () => {
     });
   });
 
-  describe('telemetry span', () => {
-    it('should create a span with correct attributes', async () => {
+  describe('tool call callbacks', () => {
+    it('should notify start and finish callbacks with success payload', async () => {
+      const startEvents: any[] = [];
+      const finishEvents: any[] = [];
+
       await executeToolCall({
         toolCall: createToolCall({ toolCallId: 'my-call-id' }),
         tools: {
@@ -556,23 +559,55 @@ describe('executeToolCall', () => {
           }),
         },
         tracer,
-        telemetry: { isEnabled: true },
+        telemetry: {
+          isEnabled: true,
+          functionId: 'test-function',
+          metadata: { userId: 'user-1' },
+        },
         callId: 'test-call-id',
-        messages: [],
+        messages: [{ role: 'user', content: 'hello' }],
         abortSignal: undefined,
-        experimental_context: undefined,
+        experimental_context: { traceId: 'trace-1' },
+        stepNumber: 2,
+        model: { provider: 'test-provider', modelId: 'test-model' },
+        onToolCallStart: async event => {
+          startEvents.push(event);
+        },
+        onToolCallFinish: async event => {
+          finishEvents.push(event);
+        },
       });
 
-      expect(tracer.spans).toHaveLength(1);
-      expect(tracer.spans[0].name).toBe('ai.toolCall');
-      expect(tracer.spans[0].attributes).toMatchObject({
-        'ai.toolCall.name': 'testTool',
-        'ai.toolCall.id': 'my-call-id',
+      expect(startEvents).toHaveLength(1);
+      expect(startEvents[0]).toMatchObject({
+        callId: 'test-call-id',
+        stepNumber: 2,
+        model: { provider: 'test-provider', modelId: 'test-model' },
+        toolCall: expect.objectContaining({
+          toolCallId: 'my-call-id',
+          toolName: 'testTool',
+          input: { value: 'test' },
+        }),
+        functionId: 'test-function',
+        metadata: { userId: 'user-1' },
+        experimental_context: { traceId: 'trace-1' },
       });
+
+      expect(finishEvents).toHaveLength(1);
+      expect(finishEvents[0]).toMatchObject({
+        callId: 'test-call-id',
+        stepNumber: 2,
+        success: true,
+        output: 'test-result',
+        functionId: 'test-function',
+        metadata: { userId: 'user-1' },
+      });
+      expect(finishEvents[0].durationMs).toEqual(expect.any(Number));
     });
 
-    it('should record error on span when tool fails', async () => {
+    it('should notify finish callback with error payload', async () => {
       const toolError = new Error('test error');
+      const finishEvents: any[] = [];
 
       await executeToolCall({
         toolCall: createToolCall(),
@@ -590,18 +625,18 @@ describe('executeToolCall', () => {
         messages: [],
         abortSignal: undefined,
         experimental_context: undefined,
+        onToolCallFinish: async event => {
+          finishEvents.push(event);
+        },
       });
 
-      expect(tracer.spans).toHaveLength(1);
-      const span = tracer.spans[0];
-      expect(span.events).toContainEqual(
-        expect.objectContaining({
-          name: 'exception',
-          attributes: expect.objectContaining({
-            'exception.message': 'test error',
-          }),
-        }),
-      );
+      expect(finishEvents).toHaveLength(1);
+      expect(finishEvents[0]).toMatchObject({
+        callId: 'test-call-id',
+        success: false,
+        error: toolError,
+      });
+      expect(finishEvents[0].durationMs).toEqual(expect.any(Number));
     });
   });
 

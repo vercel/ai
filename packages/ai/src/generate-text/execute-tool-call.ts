@@ -1,9 +1,6 @@
 import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { notify } from '../util/notify';
-import { assembleOperationName } from '../telemetry/assemble-operation-name';
-import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
-import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { now } from '../util/now';
 import {
@@ -30,7 +27,6 @@ import { TypedToolError } from './tool-error';
 export async function executeToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
-  tracer,
   telemetry,
   callId,
   messages,
@@ -67,11 +63,18 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     return undefined;
   }
 
+  // Keep callback/telemetry tool-call input stable even if downstream stream
+  // transforms mutate emitted tool-call chunks.
+  const callbackToolCall = {
+    ...toolCall,
+    input: structuredClone(toolCall.input),
+  } as TypedToolCall<TOOLS>;
+
   const baseCallbackEvent = {
     callId,
     stepNumber,
     model,
-    toolCall,
+    toolCall: callbackToolCall,
     messages,
     abortSignal,
     functionId: telemetry?.functionId,
@@ -79,122 +82,83 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     experimental_context,
   };
 
-  return recordSpan({
-    name: 'ai.toolCall',
-    attributes: selectTelemetryAttributes({
-      telemetry,
-      attributes: {
-        ...assembleOperationName({
-          operationId: 'ai.toolCall',
-          telemetry,
-        }),
-        'ai.toolCall.name': toolName,
-        'ai.toolCall.id': toolCallId,
-        'ai.toolCall.args': {
-          output: () => JSON.stringify(input),
-        },
-      },
-    }),
-    tracer,
-    fn: async span => {
-      let output: unknown;
+  let output: unknown;
 
-      await notify({ event: baseCallbackEvent, callbacks: onToolCallStart });
+  await notify({ event: baseCallbackEvent, callbacks: onToolCallStart });
 
-      const startTime = now();
+  const startTime = now();
 
-      try {
-        const stream = executeTool({
-          execute: tool.execute!.bind(tool),
-          input,
-          options: {
-            toolCallId,
-            messages,
-            abortSignal,
-            experimental_context,
-          },
-        });
-
-        for await (const part of stream) {
-          if (part.type === 'preliminary') {
-            onPreliminaryToolResult?.({
-              ...toolCall,
-              type: 'tool-result',
-              output: part.output,
-              preliminary: true,
-            });
-          } else {
-            output = part.output;
-          }
-        }
-      } catch (error) {
-        const durationMs = now() - startTime;
-
-        await notify({
-          event: {
-            ...baseCallbackEvent,
-            success: false as const,
-            error,
-            durationMs,
-          },
-          callbacks: onToolCallFinish,
-        });
-
-        recordErrorOnSpan(span, error);
-        return {
-          type: 'tool-error',
-          toolCallId,
-          toolName,
-          input,
-          error,
-          dynamic: tool.type === 'dynamic',
-          ...(toolCall.providerMetadata != null
-            ? { providerMetadata: toolCall.providerMetadata }
-            : {}),
-        } as TypedToolError<TOOLS>;
-      }
-
-      const durationMs = now() - startTime;
-
-      await notify({
-        event: {
-          ...baseCallbackEvent,
-          success: true as const,
-          output,
-          durationMs,
-        },
-        callbacks: onToolCallFinish,
-      });
-
-      try {
-        span.setAttributes(
-          await selectTelemetryAttributes({
-            telemetry,
-            attributes: {
-              'ai.toolCall.result': {
-                output: () => JSON.stringify(output),
-              },
-            },
-          }),
-        );
-      } catch (ignored) {
-        // JSON stringify might fail if the result is not serializable,
-        // in which case we just ignore it. In the future we might want to
-        // add an optional serialize method to the tool interface and warn
-        // if the result is not serializable.
-      }
-
-      return {
-        type: 'tool-result',
+  try {
+    const stream = executeTool({
+      execute: tool.execute!.bind(tool),
+      input,
+      options: {
         toolCallId,
-        toolName,
-        input,
-        output,
-        dynamic: tool.type === 'dynamic',
-        ...(toolCall.providerMetadata != null
-          ? { providerMetadata: toolCall.providerMetadata }
-          : {}),
-      } as TypedToolResult<TOOLS>;
+        messages,
+        abortSignal,
+        experimental_context,
+      },
+    });
+
+    for await (const part of stream) {
+      if (part.type === 'preliminary') {
+        onPreliminaryToolResult?.({
+          ...toolCall,
+          type: 'tool-result',
+          output: part.output,
+          preliminary: true,
+        });
+      } else {
+        output = part.output;
+      }
+    }
+  } catch (error) {
+    const durationMs = now() - startTime;
+
+    await notify({
+      event: {
+        ...baseCallbackEvent,
+        success: false as const,
+        error,
+        durationMs,
+      },
+      callbacks: onToolCallFinish,
+    });
+
+    return {
+      type: 'tool-error',
+      toolCallId,
+      toolName,
+      input,
+      error,
+      dynamic: tool.type === 'dynamic',
+      ...(toolCall.providerMetadata != null
+        ? { providerMetadata: toolCall.providerMetadata }
+        : {}),
+    } as TypedToolError<TOOLS>;
+  }
+
+  const durationMs = now() - startTime;
+
+  await notify({
+    event: {
+      ...baseCallbackEvent,
+      success: true as const,
+      output,
+      durationMs,
     },
+    callbacks: onToolCallFinish,
   });
+
+  return {
+    type: 'tool-result',
+    toolCallId,
+    toolName,
+    input,
+    output,
+    dynamic: tool.type === 'dynamic',
+    ...(toolCall.providerMetadata != null
+      ? { providerMetadata: toolCall.providerMetadata }
+      : {}),
+  } as TypedToolResult<TOOLS>;
 }

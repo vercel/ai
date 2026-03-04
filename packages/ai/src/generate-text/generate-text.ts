@@ -484,6 +484,7 @@ export async function generateText<
   await notify({
     event: {
       callId,
+      operationId: 'ai.generateText',
       model: modelInfo,
       system,
       prompt,

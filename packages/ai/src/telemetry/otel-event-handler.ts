@@ -89,6 +89,7 @@ interface OtelStepStartEvent<
 }
 
 interface CallState {
+  operationId: string;
   telemetry: TelemetrySettings | undefined;
   rootSpan: Span | undefined;
   rootContext: Context | undefined;
@@ -137,7 +138,7 @@ const otelIntegration: TelemetryIntegration = {
 
     const attributes = selectAttributes(telemetry, {
       ...assembleOperationName({
-        operationId: 'ai.generateText',
+        operationId: event.operationId,
         telemetry,
       }),
       ...baseTelemetryAttributes,
@@ -153,10 +154,11 @@ const otelIntegration: TelemetryIntegration = {
       },
     });
 
-    const rootSpan = tracer.startSpan('ai.generateText', { attributes });
+    const rootSpan = tracer.startSpan(event.operationId, { attributes });
     const rootContext = trace.setSpan(context.active(), rootSpan);
 
     callStates.set(event.callId, {
+      operationId: event.operationId,
       telemetry,
       rootSpan,
       rootContext,
@@ -174,9 +176,14 @@ const otelIntegration: TelemetryIntegration = {
 
     const { telemetry } = state;
 
+    const stepOperationId =
+      state.operationId === 'ai.streamText'
+        ? 'ai.streamText.doStream'
+        : 'ai.generateText.doGenerate';
+
     const attributes = selectAttributes(telemetry, {
       ...assembleOperationName({
-        operationId: 'ai.generateText.doGenerate',
+        operationId: stepOperationId,
         telemetry,
       }),
       ...state.baseTelemetryAttributes,
@@ -221,7 +228,7 @@ const otelIntegration: TelemetryIntegration = {
 
     const tracer = getTracer(telemetry);
     state.stepSpan = tracer.startSpan(
-      'ai.generateText.doGenerate',
+      stepOperationId,
       { attributes },
       state.rootContext,
     );
@@ -313,28 +320,16 @@ const otelIntegration: TelemetryIntegration = {
       selectAttributes(telemetry, {
         'ai.response.finishReason': event.finishReason,
         'ai.response.text': {
-          output: () => event.text || undefined,
+          output: () => event.text ?? undefined,
         },
         'ai.response.reasoning': {
-          output: () => event.reasoningText || undefined,
+          output: () => event.reasoningText ?? undefined,
         },
         'ai.response.toolCalls': {
-          output: () => {
-            const toolCalls = event.toolCalls;
-            return toolCalls.length > 0
-              ? JSON.stringify(
-                  toolCalls.map(tc => ({
-                    toolCallType: 'function',
-                    toolCallId: tc.toolCallId,
-                    toolName: tc.toolName,
-                    args:
-                      typeof tc.input === 'string'
-                        ? tc.input
-                        : JSON.stringify(tc.input),
-                  })),
-                )
-              : undefined;
-          },
+          output: () =>
+            event.toolCalls.length > 0
+              ? JSON.stringify(event.toolCalls)
+              : undefined,
         },
         'ai.response.id': event.response.id,
         'ai.response.model': event.response.modelId,
@@ -345,6 +340,11 @@ const otelIntegration: TelemetryIntegration = {
 
         'ai.usage.promptTokens': event.usage.inputTokens,
         'ai.usage.completionTokens': event.usage.outputTokens,
+        'ai.usage.inputTokens': event.usage.inputTokens,
+        'ai.usage.outputTokens': event.usage.outputTokens,
+        'ai.usage.totalTokens': event.usage.totalTokens,
+        'ai.usage.reasoningTokens': event.usage.reasoningTokens,
+        'ai.usage.cachedInputTokens': event.usage.cachedInputTokens,
 
         'gen_ai.response.finish_reasons': [event.finishReason],
         'gen_ai.response.id': event.response.id,
@@ -369,28 +369,16 @@ const otelIntegration: TelemetryIntegration = {
       selectAttributes(telemetry, {
         'ai.response.finishReason': event.finishReason,
         'ai.response.text': {
-          output: () => event.text || undefined,
+          output: () => event.text ?? undefined,
         },
         'ai.response.reasoning': {
-          output: () => event.reasoningText || undefined,
+          output: () => event.reasoningText ?? undefined,
         },
         'ai.response.toolCalls': {
-          output: () => {
-            const toolCalls = event.toolCalls;
-            return toolCalls.length > 0
-              ? JSON.stringify(
-                  toolCalls.map(tc => ({
-                    toolCallType: 'function',
-                    toolCallId: tc.toolCallId,
-                    toolName: tc.toolName,
-                    args:
-                      typeof tc.input === 'string'
-                        ? tc.input
-                        : JSON.stringify(tc.input),
-                  })),
-                )
-              : undefined;
-          },
+          output: () =>
+            event.toolCalls.length > 0
+              ? JSON.stringify(event.toolCalls)
+              : undefined,
         },
         'ai.response.providerMetadata': event.providerMetadata
           ? JSON.stringify(event.providerMetadata)
@@ -398,11 +386,32 @@ const otelIntegration: TelemetryIntegration = {
 
         'ai.usage.promptTokens': event.totalUsage.inputTokens,
         'ai.usage.completionTokens': event.totalUsage.outputTokens,
+        'ai.usage.inputTokens': event.totalUsage.inputTokens,
+        'ai.usage.outputTokens': event.totalUsage.outputTokens,
+        'ai.usage.totalTokens': event.totalUsage.totalTokens,
+        'ai.usage.reasoningTokens': event.totalUsage.reasoningTokens,
+        'ai.usage.cachedInputTokens': event.totalUsage.cachedInputTokens,
       }),
     );
 
     state.rootSpan.end();
     cleanupCallState(event.callId);
+  },
+
+  onChunk(event): void {
+    const state = getCallState(event.callId);
+    if (!state?.stepSpan) return;
+
+    const attributes = Object.fromEntries(
+      Object.entries(event.attributes ?? {}).filter(
+        ([, value]) => value != null,
+      ),
+    ) as Attributes;
+
+    state.stepSpan.addEvent(event.eventName, attributes);
+    if (Object.keys(attributes).length > 0) {
+      state.stepSpan.setAttributes(attributes);
+    }
   },
 
   recordError(error: unknown): void {

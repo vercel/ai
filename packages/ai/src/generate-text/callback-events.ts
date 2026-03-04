@@ -37,6 +37,9 @@ export interface OnStartEvent<
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
+  /** Identifies the operation type (e.g. 'ai.generateText' or 'ai.streamText'). */
+  readonly operationId: string;
+
   /** The model being used for generation. */
   readonly model: CallbackModelInfo;
 

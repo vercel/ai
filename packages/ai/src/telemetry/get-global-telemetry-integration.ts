@@ -17,6 +17,7 @@ export function bindTelemetryIntegration(
     onStepStart: integration.onStepStart?.bind(integration),
     onToolCallStart: integration.onToolCallStart?.bind(integration),
     onToolCallFinish: integration.onToolCallFinish?.bind(integration),
+    onChunk: integration.onChunk?.bind(integration),
     onStepFinish: integration.onStepFinish?.bind(integration),
     onFinish: integration.onFinish?.bind(integration),
     recordError: integration.recordError?.bind(integration),
@@ -77,6 +78,7 @@ export function getGlobalTelemetryIntegration<
       onToolCallFinish: createTelemetryComposite(
         integration => integration.onToolCallFinish,
       ),
+      onChunk: createTelemetryComposite(integration => integration.onChunk),
       onStepFinish: createTelemetryComposite(
         integration => integration.onStepFinish,
       ),
