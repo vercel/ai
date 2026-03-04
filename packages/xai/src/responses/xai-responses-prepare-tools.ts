@@ -143,6 +143,7 @@ export async function prepareResponsesTools({
         name: tool.name,
         description: tool.description,
         parameters: tool.inputSchema,
+        ...(tool.strict != null ? { strict: tool.strict } : {}),
       });
     }
   }

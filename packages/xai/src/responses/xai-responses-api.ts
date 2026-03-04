@@ -110,6 +110,7 @@ export type XaiResponsesTool =
       name: string;
       description?: string;
       parameters: unknown;
+      strict?: boolean;
     };
 
 const annotationSchema = z.union([
