@@ -56,4 +56,27 @@ describe('secureJsonParse', () => {
 
     expect(() => secureJsonParse(text)).toThrow(SyntaxError);
   });
+
+  it('errors on unicode-escaped __proto__ property', () => {
+    const text = '{ "\\u005f\\u005fproto__": { "isAdmin": true } }';
+    expect(() => secureJsonParse(text)).toThrow(SyntaxError);
+  });
+
+  it('errors on fully unicode-escaped __proto__ property', () => {
+    const text =
+      '{ "\\u005f\\u005f\\u0070\\u0072\\u006f\\u0074\\u006f\\u005f\\u005f": { "isAdmin": true } }';
+    expect(() => secureJsonParse(text)).toThrow(SyntaxError);
+  });
+
+  it('errors on unicode-escaped constructor property', () => {
+    const text =
+      '{ "\\u0063\\u006fnstructor": { "prototype": { "isAdmin": true } } }';
+    expect(() => secureJsonParse(text)).toThrow(SyntaxError);
+  });
+
+  it('errors on fully unicode-escaped constructor property', () => {
+    const text =
+      '{ "\\u0063\\u006f\\u006e\\u0073\\u0074\\u0072\\u0075\\u0063\\u0074\\u006f\\u0072": { "prototype": { "isAdmin": true } } }';
+    expect(() => secureJsonParse(text)).toThrow(SyntaxError);
+  });
 });
