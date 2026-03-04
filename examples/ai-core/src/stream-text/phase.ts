@@ -1,6 +1,6 @@
 import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import { run } from '../../lib/run';
+import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
