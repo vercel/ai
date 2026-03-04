@@ -1301,7 +1301,6 @@ describe('prepareResponsesTools', () => {
             id: 'openai.custom',
             name: 'write_sql',
             args: {
-              name: 'write_sql',
               description: 'Write a SQL SELECT query.',
               format: {
                 type: 'grammar',
@@ -1342,7 +1341,6 @@ describe('prepareResponsesTools', () => {
             id: 'openai.custom',
             name: 'generate_json',
             args: {
-              name: 'generate_json',
               format: {
                 type: 'grammar',
                 syntax: 'lark',
@@ -1393,7 +1391,6 @@ describe('prepareResponsesTools', () => {
             id: 'openai.custom',
             name: 'write_sql',
             args: {
-              name: 'write_sql',
               description: 'Write SQL.',
               format: {
                 type: 'grammar',
@@ -1439,52 +1436,17 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should map custom tool choice from sdk key to provider name', async () => {
+    it('should resolve custom tool choice using tool name', async () => {
       const result = await prepareResponsesTools({
         tools: [
           {
             type: 'provider',
             id: 'openai.custom',
-            name: 'alias_name',
-            args: {
-              name: 'write_sql',
-            },
-          },
-        ],
-        toolChoice: { type: 'tool', toolName: 'alias_name' },
-        toolNameMapping: {
-          toProviderToolName: name =>
-            name === 'alias_name' ? 'write_sql' : name,
-          toCustomToolName: name =>
-            name === 'write_sql' ? 'alias_name' : name,
-        },
-      });
-
-      expect(result.toolChoice).toStrictEqual({
-        type: 'custom',
-        name: 'write_sql',
-      });
-    });
-
-    it('should keep custom tool choice when provider name is given directly', async () => {
-      const result = await prepareResponsesTools({
-        tools: [
-          {
-            type: 'provider',
-            id: 'openai.custom',
-            name: 'alias_name',
-            args: {
-              name: 'write_sql',
-            },
+            name: 'write_sql',
+            args: {},
           },
         ],
         toolChoice: { type: 'tool', toolName: 'write_sql' },
-        toolNameMapping: {
-          toProviderToolName: name =>
-            name === 'alias_name' ? 'write_sql' : name,
-          toCustomToolName: name =>
-            name === 'write_sql' ? 'alias_name' : name,
-        },
       });
 
       expect(result.toolChoice).toStrictEqual({

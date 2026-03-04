@@ -3586,46 +3586,6 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
-    it('should convert aliased tool name to provider custom tool name', async () => {
-      const result = await convertToOpenAIResponsesInput({
-        toolNameMapping: {
-          toProviderToolName: name =>
-            name === 'alias_name' ? 'write_sql' : name,
-          toCustomToolName: name =>
-            name === 'write_sql' ? 'alias_name' : name,
-        },
-        prompt: [
-          {
-            role: 'assistant',
-            content: [
-              {
-                type: 'tool-call',
-                toolCallId: 'call_custom_004',
-                toolName: 'alias_name',
-                input: 'SELECT 1',
-              },
-            ],
-          },
-        ],
-        systemMessageMode: 'system',
-        providerOptionsName: 'openai',
-        store: true,
-        customProviderToolNames,
-      });
-
-      expect(result.input).toMatchInlineSnapshot(`
-        [
-          {
-            "call_id": "call_custom_004",
-            "id": undefined,
-            "input": "SELECT 1",
-            "name": "write_sql",
-            "type": "custom_tool_call",
-          },
-        ]
-      `);
-    });
-
     it('should convert custom tool result content output', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
