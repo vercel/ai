@@ -7,11 +7,13 @@ import {
   FetchFunction,
   loadOptionalSetting,
   loadSetting,
+  parseProviderOptions,
   Resolvable,
   resolve,
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
+import { bedrockProviderOptions } from '../bedrock-chat-options';
 import {
   anthropicTools,
   AnthropicMessagesLanguageModel,
@@ -244,7 +246,10 @@ export function createBedrockAnthropic(
     return withUserAgentSuffix(baseHeaders, `ai-sdk/amazon-bedrock/${VERSION}`);
   };
 
-  const createChatModel = (modelId: BedrockAnthropicModelId) =>
+  const createChatModel = (
+    modelId: BedrockAnthropicModelId,
+    betas: string[] = [],
+  ) =>
     new AnthropicMessagesLanguageModel(modelId, {
       provider: 'bedrock.anthropic.messages',
       baseURL: getBaseURL(),
@@ -267,7 +272,7 @@ export function createBedrockAnthropic(
               }
             : undefined;
 
-        const requiredBetas = new Set<string>();
+        const requiredBetas = new Set<string>(betas);
         const transformedTools = tools?.map((tool: Record<string, unknown>) => {
           const toolType = tool.type as string | undefined;
 
@@ -283,11 +288,7 @@ export function createBedrockAnthropic(
               newType in BEDROCK_TOOL_NAME_MAP
                 ? BEDROCK_TOOL_NAME_MAP[newType]
                 : tool.name;
-            return {
-              ...tool,
-              type: newType,
-              name: newName,
-            };
+            return { ...tool, type: newType, name: newName };
           }
 
           if (toolType && toolType in BEDROCK_TOOL_BETA_MAP) {
@@ -295,10 +296,7 @@ export function createBedrockAnthropic(
           }
 
           if (toolType && toolType in BEDROCK_TOOL_NAME_MAP) {
-            return {
-              ...tool,
-              name: BEDROCK_TOOL_NAME_MAP[toolType],
-            };
+            return { ...tool, name: BEDROCK_TOOL_NAME_MAP[toolType] };
           }
 
           return tool;
@@ -321,6 +319,45 @@ export function createBedrockAnthropic(
       supportedUrls: () => ({}),
     });
 
+  const createChatModelWithProviderOptions = (
+    modelId: BedrockAnthropicModelId,
+  ): LanguageModelV2 => {
+    const baseModel = createChatModel(modelId);
+
+    return {
+      specificationVersion: 'v2' as const,
+      provider: baseModel.provider,
+      modelId: baseModel.modelId,
+      supportedUrls: () => ({}),
+
+      async doGenerate(callOptions) {
+        const bedrockOpts =
+          (await parseProviderOptions({
+            provider: 'bedrock',
+            providerOptions: callOptions.providerOptions,
+            schema: bedrockProviderOptions,
+          })) ?? {};
+        const betas = bedrockOpts.anthropicBeta ?? [];
+        return (
+          betas.length > 0 ? createChatModel(modelId, betas) : baseModel
+        ).doGenerate(callOptions);
+      },
+
+      async doStream(callOptions) {
+        const bedrockOpts =
+          (await parseProviderOptions({
+            provider: 'bedrock',
+            providerOptions: callOptions.providerOptions,
+            schema: bedrockProviderOptions,
+          })) ?? {};
+        const betas = bedrockOpts.anthropicBeta ?? [];
+        return (
+          betas.length > 0 ? createChatModel(modelId, betas) : baseModel
+        ).doStream(callOptions);
+      },
+    };
+  };
+
   const provider = function (modelId: BedrockAnthropicModelId) {
     if (new.target) {
       throw new Error(
@@ -328,13 +365,13 @@ export function createBedrockAnthropic(
       );
     }
 
-    return createChatModel(modelId);
+    return createChatModelWithProviderOptions(modelId);
   };
 
   provider.specificationVersion = 'v2' as const;
-  provider.languageModel = createChatModel;
-  provider.chat = createChatModel;
-  provider.messages = createChatModel;
+  provider.languageModel = createChatModelWithProviderOptions;
+  provider.chat = createChatModelWithProviderOptions;
+  provider.messages = createChatModelWithProviderOptions;
 
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
