@@ -7564,7 +7564,7 @@ describe('generateText', () => {
       });
     });
 
-    describe('when a call from a single tool that needs approval is approved but execute throws', () => {
+    describe('when a call from a single tool that needs approval is approved and the tool throws', () => {
       let result: GenerateTextResult<any, any>;
       let prompts: LanguageModelV3Prompt[];
 
@@ -7579,7 +7579,7 @@ describe('generateText', () => {
                 content: [
                   {
                     type: 'text',
-                    text: 'I got an error.',
+                    text: 'Hello, world!',
                   },
                 ],
                 finishReason: { unified: 'stop', raw: 'stop' },
@@ -7590,7 +7590,7 @@ describe('generateText', () => {
             tool1: tool({
               inputSchema: z.object({ value: z.string() }),
               execute: async (): Promise<string> => {
-                throw new Error('tool execution failed');
+                throw new Error('No valid token for plugin');
               },
               needsApproval: true,
             }),
@@ -7605,7 +7605,9 @@ describe('generateText', () => {
               role: 'assistant',
               content: [
                 {
-                  input: { value: 'value' },
+                  input: {
+                    value: 'value',
+                  },
                   providerExecuted: undefined,
                   providerOptions: undefined,
                   toolCallId: 'call-1',
@@ -7633,14 +7635,46 @@ describe('generateText', () => {
         });
       });
 
-      it('should send error message text (not "{}") to the model', async () => {
-        const toolMsg = prompts[0]?.find(m => m.role === 'tool');
-        const toolResult = toolMsg?.content?.[0];
-        expect(toolResult?.type).toBe('tool-result');
-        expect((toolResult as any)?.output).toMatchObject({
-          type: 'error-text',
-          value: 'tool execution failed',
-        });
+      it('should serialize the tool error as error-text in the continuation prompt', async () => {
+        expect(prompts).toEqual([
+          [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerOptions: undefined,
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: { value: 'value' },
+                  providerExecuted: undefined,
+                  providerOptions: undefined,
+                },
+              ],
+              providerOptions: undefined,
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  output: {
+                    type: 'error-text',
+                    value: 'No valid token for plugin',
+                  },
+                  providerOptions: undefined,
+                },
+              ],
+              providerOptions: undefined,
+            },
+          ],
+        ]);
       });
     });
 
