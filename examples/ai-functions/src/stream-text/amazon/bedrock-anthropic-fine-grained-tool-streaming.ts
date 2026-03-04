@@ -130,7 +130,8 @@ run(async () => {
   // A buffered dump replays all deltas synchronously (<1ms each); real streaming
   // has most intervals >= 5ms as each token takes time to generate.
   // Threshold is heuristic — the desired behavior is smooth continuous streaming
-  // instead of a long hang followed by a dump of all chunks at once.  let liveIntervals = 0;
+  // instead of a long hang followed by a dump of all chunks at once.
+  let liveIntervals = 0;
   for (let i = 1; i < toolInputDeltaTimestamps.length; i++) {
     if (toolInputDeltaTimestamps[i] - toolInputDeltaTimestamps[i - 1] >= 5)
       liveIntervals++;
