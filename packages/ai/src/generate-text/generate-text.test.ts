@@ -7564,6 +7564,86 @@ describe('generateText', () => {
       });
     });
 
+    describe('when a call from a single tool that needs approval is approved but execute throws', () => {
+      let result: GenerateTextResult<any, any>;
+      let prompts: LanguageModelV3Prompt[];
+
+      beforeEach(async () => {
+        prompts = [];
+        result = await generateText({
+          model: new MockLanguageModelV3({
+            doGenerate: async ({ prompt }) => {
+              prompts.push(prompt);
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'text',
+                    text: 'I got an error.',
+                  },
+                ],
+                finishReason: { unified: 'stop', raw: 'stop' },
+              };
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async (): Promise<string> => {
+                throw new Error('tool execution failed');
+              },
+              needsApproval: true,
+            }),
+          },
+          stopWhen: stepCountIs(3),
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+          },
+          messages: [
+            { role: 'user', content: 'test-input' },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  input: { value: 'value' },
+                  providerExecuted: undefined,
+                  providerOptions: undefined,
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  type: 'tool-call',
+                },
+                {
+                  approvalId: 'id-1',
+                  toolCallId: 'call-1',
+                  type: 'tool-approval-request',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  approvalId: 'id-1',
+                  type: 'tool-approval-response',
+                  approved: true,
+                },
+              ],
+            },
+          ],
+        });
+      });
+
+      it('should send error message text (not "{}") to the model', async () => {
+        const toolMsg = prompts[0]?.find(m => m.role === 'tool');
+        const toolResult = toolMsg?.content?.[0];
+        expect(toolResult?.type).toBe('tool-result');
+        expect((toolResult as any)?.output).toMatchObject({
+          type: 'error-text',
+          value: 'tool execution failed',
+        });
+      });
+    });
+
     describe('when a call from a single tool that needs approval is denied', () => {
       let result: GenerateTextResult<any, any>;
       let prompts: LanguageModelV3Prompt[];
