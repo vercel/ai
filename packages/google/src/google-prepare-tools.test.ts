@@ -449,6 +449,143 @@ it('should handle google maps tool', () => {
   expect(result.toolWarnings).toEqual([]);
 });
 
+it('should use VALIDATED mode when any function tool has strict: true and no toolChoice', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'strictTool',
+        description: 'A strict tool',
+        inputSchema: { type: 'object', properties: {} },
+        strict: true,
+      },
+      {
+        type: 'function',
+        name: 'normalTool',
+        description: 'A normal tool',
+        inputSchema: { type: 'object', properties: {} },
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'VALIDATED' },
+  });
+});
+
+it('should use VALIDATED mode with toolChoice auto when strict: true', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'strictTool',
+        description: 'A strict tool',
+        inputSchema: { type: 'object', properties: {} },
+        strict: true,
+      },
+    ],
+    toolChoice: { type: 'auto' },
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'VALIDATED' },
+  });
+});
+
+it('should keep ANY mode with toolChoice required when strict: true (and add warning)', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'strictTool',
+        description: 'A strict tool',
+        inputSchema: { type: 'object', properties: {} },
+        strict: true,
+      },
+    ],
+    toolChoice: { type: 'required' },
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'ANY' },
+  });
+  expect(result.toolWarnings).toEqual([
+    {
+      type: 'unsupported',
+      feature: 'strict tools with toolChoice required',
+      details:
+        "Gemini's VALIDATED mode does not guarantee forced function calling; keeping ANY mode to preserve toolChoice required semantics.",
+    },
+  ]);
+});
+
+it('should keep ANY mode with toolChoice tool when strict: true (and add warning)', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'strictTool',
+        description: 'A strict tool',
+        inputSchema: { type: 'object', properties: {} },
+        strict: true,
+      },
+    ],
+    toolChoice: { type: 'tool', toolName: 'strictTool' },
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: {
+      mode: 'ANY',
+      allowedFunctionNames: ['strictTool'],
+    },
+  });
+  expect(result.toolWarnings).toEqual([
+    {
+      type: 'unsupported',
+      feature: 'strict tools with toolChoice tool',
+      details:
+        "Gemini's VALIDATED mode does not guarantee forced function calling; keeping ANY mode to preserve toolChoice tool semantics.",
+    },
+  ]);
+});
+
+it('should not use VALIDATED mode when no tool has strict: true', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'normalTool',
+        description: 'A normal tool',
+        inputSchema: { type: 'object', properties: {} },
+      },
+    ],
+    toolChoice: { type: 'auto' },
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'AUTO' },
+  });
+});
+
+it('should keep NONE mode even when strict: true is present', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'strictTool',
+        description: 'A strict tool',
+        inputSchema: { type: 'object', properties: {} },
+        strict: true,
+      },
+    ],
+    toolChoice: { type: 'none' },
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'NONE' },
+  });
+});
+
 it('should add warnings for google maps on unsupported models', () => {
   const result = prepareTools({
     tools: [
