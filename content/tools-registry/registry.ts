@@ -487,9 +487,9 @@ console.log(text);`,
     slug: 'you-search',
     name: 'You.com',
     description:
-      "Real-time web search, AI-generated answers with web context, and webpage content extraction powered by You.com. Search current information with advanced filtering (dates, sites, file types), extract full page content in markdown or HTML, and get AI answers enhanced with live web data. Built on You.com's enterprise search API with zero server setup.",
+      "Real-time web search, deep research with cited sources, and webpage content extraction powered by You.com. Search current information with advanced filtering (dates, sites, file types), research topics with configurable effort (lite to exhaustive), and extract full page content in markdown or HTML. Built on You.com's enterprise search API with zero server setup.",
     packageName: '@youdotcom-oss/ai-sdk-plugin',
-    tags: ['search', 'web', 'extraction', 'ai-answers'],
+    tags: ['search', 'web', 'extraction', 'research'],
     apiKeyEnvName: 'YDC_API_KEY',
     installCommand: {
       pnpm: 'pnpm add @youdotcom-oss/ai-sdk-plugin',
@@ -498,13 +498,14 @@ console.log(text);`,
       bun: 'bun add @youdotcom-oss/ai-sdk-plugin',
     },
     codeExample: `import { generateText, stepCountIs } from 'ai';
-import { youSearch, youContents } from '@youdotcom-oss/ai-sdk-plugin';
+import { youSearch, youResearch, youContents } from '@youdotcom-oss/ai-sdk-plugin';
 
 const { text } = await generateText({
   model: 'anthropic/claude-sonnet-4-5-20250929',
-  prompt: 'Search for the latest developments in quantum computing',
+  prompt: 'Research the latest developments in quantum computing',
   tools: {
     search: youSearch(),
+    research: youResearch(),
     extract: youContents(),
   },
   stopWhen: stepCountIs(5),
