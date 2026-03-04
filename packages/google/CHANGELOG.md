@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.40
+
+### Patch Changes
+
+- 89d8b45: fix(google): make urlMetadata optional in urlContextMetadata schema
+
 ## 3.0.39
 
 ### Patch Changes
