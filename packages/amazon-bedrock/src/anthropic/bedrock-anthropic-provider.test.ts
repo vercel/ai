@@ -41,14 +41,12 @@ vi.mock('@ai-sdk/anthropic/internal', async () => {
       doStream: vi
         .fn()
         .mockResolvedValue({ stream: new ReadableStream(), rawCall: {} }),
-      doGenerate: vi
-        .fn()
-        .mockResolvedValue({
-          content: [],
-          finishReason: 'stop',
-          rawCall: {},
-          usage: {},
-        }),
+      doGenerate: vi.fn().mockResolvedValue({
+        content: [],
+        finishReason: 'stop',
+        rawCall: {},
+        usage: {},
+      }),
       provider: 'bedrock.anthropic.messages',
       modelId: 'test-model',
       supportedUrls: vi.fn().mockReturnValue({}),
@@ -62,7 +60,9 @@ vi.mock('../bedrock-sigv4-fetch', () => ({
 }));
 
 const TEST_STREAM_OPTIONS = {
-  prompt: [{ role: 'user' as const, content: [{ type: 'text' as const, text: '' }] }],
+  prompt: [
+    { role: 'user' as const, content: [{ type: 'text' as const, text: '' }] },
+  ],
 };
 
 async function triggerModel(
@@ -193,7 +193,10 @@ describe('bedrock-anthropic-provider', () => {
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
-    const config = await triggerModel(provider, 'anthropic.claude-3-sonnet-20240229-v1:0');
+    const config = await triggerModel(
+      provider,
+      'anthropic.claude-3-sonnet-20240229-v1:0',
+    );
 
     const url = config.buildRequestUrl?.(
       'https://bedrock-runtime.us-east-1.amazonaws.com',
@@ -210,7 +213,10 @@ describe('bedrock-anthropic-provider', () => {
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
-    const config = await triggerModel(provider, 'anthropic.claude-3-sonnet-20240229-v1:0');
+    const config = await triggerModel(
+      provider,
+      'anthropic.claude-3-sonnet-20240229-v1:0',
+    );
 
     const url = config.buildRequestUrl?.(
       'https://bedrock-runtime.us-east-1.amazonaws.com',
@@ -449,7 +455,10 @@ describe('bedrock-anthropic-provider', () => {
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
-    const config = await triggerModel(provider, 'us.anthropic.claude-3-5-sonnet-20240620-v1:0');
+    const config = await triggerModel(
+      provider,
+      'us.anthropic.claude-3-5-sonnet-20240620-v1:0',
+    );
 
     const url = config.buildRequestUrl?.(
       'https://bedrock-runtime.us-east-1.amazonaws.com',
