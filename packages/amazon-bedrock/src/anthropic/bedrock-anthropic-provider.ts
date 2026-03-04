@@ -256,7 +256,7 @@ export function createBedrockAnthropic(
           isStreaming ? 'invoke-with-response-stream' : 'invoke'
         }`,
 
-      transformRequestBody: args => {
+      transformRequestBody: (args, betas) => {
         const { model, stream, tool_choice, tools, ...rest } = args;
 
         const transformedToolChoice =
@@ -267,7 +267,7 @@ export function createBedrockAnthropic(
               }
             : undefined;
 
-        const requiredBetas = new Set<string>();
+        const requiredBetas = new Set<string>(betas);
         const transformedTools = tools?.map((tool: Record<string, unknown>) => {
           const toolType = tool.type as string | undefined;
 

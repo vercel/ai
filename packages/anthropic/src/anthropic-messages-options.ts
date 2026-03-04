@@ -173,6 +173,12 @@ export const anthropicLanguageModelOptions = z.object({
    */
   speed: z.enum(['fast', 'standard']).optional(),
 
+  /**
+   * A set of beta features to enable.
+   * Allow a provider to receive the full `betas` set if it needs it.
+   */
+  anthropicBeta: z.array(z.string()).optional(),
+
   contextManagement: z
     .object({
       edits: z.array(
