@@ -288,7 +288,11 @@ export function createBedrockAnthropic(
               newType in BEDROCK_TOOL_NAME_MAP
                 ? BEDROCK_TOOL_NAME_MAP[newType]
                 : tool.name;
-            return { ...tool, type: newType, name: newName };
+            return { 
+              ...tool, 
+              type: newType, 
+              name: newName 
+            };
           }
 
           if (toolType && toolType in BEDROCK_TOOL_BETA_MAP) {
@@ -296,7 +300,10 @@ export function createBedrockAnthropic(
           }
 
           if (toolType && toolType in BEDROCK_TOOL_NAME_MAP) {
-            return { ...tool, name: BEDROCK_TOOL_NAME_MAP[toolType] };
+            return { 
+              ...tool, 
+              name: BEDROCK_TOOL_NAME_MAP[toolType] 
+            };
           }
 
           return tool;
@@ -328,7 +335,7 @@ export function createBedrockAnthropic(
       specificationVersion: 'v2' as const,
       provider: baseModel.provider,
       modelId: baseModel.modelId,
-      supportedUrls: () => ({}),
+      supportedUrls: baseModel.supportedUrls,
 
       async doGenerate(callOptions) {
         const bedrockOpts =

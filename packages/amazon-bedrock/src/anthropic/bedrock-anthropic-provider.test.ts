@@ -37,7 +37,13 @@ vi.mock('@ai-sdk/anthropic/internal', async () => {
   const originalModule = await vi.importActual('@ai-sdk/anthropic/internal');
   return {
     ...originalModule,
-    AnthropicMessagesLanguageModel: vi.fn(),
+    AnthropicMessagesLanguageModel: vi.fn().mockImplementation(() => ({
+      doStream: vi.fn().mockResolvedValue({ stream: new ReadableStream(), rawCall: {} }),
+      doGenerate: vi.fn().mockResolvedValue({ content: [], finishReason: 'stop', rawCall: {}, usage: {} }),
+      provider: 'bedrock.anthropic.messages',
+      modelId: 'test-model',
+      supportedUrls: vi.fn().mockReturnValue({}),
+    })),
   };
 });
 
@@ -427,6 +433,36 @@ describe('bedrock-anthropic-provider', () => {
 
     expect(provider.languageModel).toBeDefined();
     expect(typeof provider.languageModel).toBe('function');
+  });
+
+  it('should include providerOptions.bedrock.anthropicBeta in anthropic_beta in the request body', async () => {
+    const provider = createBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    const model = provider('test-model-id');
+
+    await model.doStream({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      providerOptions: {
+        bedrock: { anthropicBeta: ['fine-grained-tool-streaming-2025-05-14'] },
+      },
+    } as any);
+
+    const calls = vi.mocked(AnthropicMessagesLanguageModel).mock.calls;
+    const lastCall = calls[calls.length - 1];
+    const config = lastCall[1];
+
+    const transformedBody = config.transformRequestBody?.({
+      model: 'test-model-id',
+      messages: [{ role: 'user', content: 'Hello' }],
+      max_tokens: 1024,
+    });
+
+    expect(transformedBody?.anthropic_beta).toContain(
+      'fine-grained-tool-streaming-2025-05-14',
+    );
   });
 
   it('should handle models with us. prefix for inference profiles', () => {
