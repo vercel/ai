@@ -3,7 +3,7 @@
 import { AnthropicProgrammaticToolCallingMessage } from '@/agent/anthropic/programmatic-tool-calling-agent';
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
-import AnthropicCodeExecutionView from '@/components/tool/anthropic-code-execution-view';
+import AnthropicCodeExecution20260120View from '@/components/tool/anthropic-code-execution-20260120-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 
@@ -41,7 +41,10 @@ export default function ChatAnthropicProgrammaticToolCalling() {
               }
               case 'tool-code_execution': {
                 return (
-                  <AnthropicCodeExecutionView invocation={part} key={index} />
+                  <AnthropicCodeExecution20260120View
+                    invocation={part}
+                    key={index}
+                  />
                 );
               }
               case 'tool-rollDie': {
