@@ -66,6 +66,7 @@ const defaultSettings = () =>
     experimental_generateMessageId: mockId({ prefix: 'msg' }),
     _internal: {
       generateId: mockId({ prefix: 'id' }),
+      generateCallId: () => 'test-call-id',
     },
     onError: () => {},
   }) as const;
@@ -1048,6 +1049,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockValues('id-2000'),
+          generateCallId: () => 'test-call-id',
         },
       });
 
@@ -1865,6 +1867,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-call-id',
         },
       });
 
@@ -1926,6 +1929,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-call-id',
         },
       });
 
@@ -2001,6 +2005,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-call-id',
         },
         onError: () => {},
       });
@@ -2024,6 +2029,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-call-id',
         },
         onError: () => {},
       });
@@ -3654,6 +3660,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-call-id',
         },
       });
 
@@ -3714,6 +3721,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-call-id',
         },
       });
 
@@ -3785,6 +3793,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-call-id',
         },
         onError: () => {},
       });
@@ -3804,6 +3813,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-call-id',
         },
         onError: () => {},
       });
@@ -3969,6 +3979,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-call-id',
         },
       });
 
@@ -4467,6 +4478,7 @@ describe('streamText', () => {
       expect(await result.steps).toMatchInlineSnapshot(`
         [
           DefaultStepResult {
+            "callId": "test-call-id",
             "content": [
               {
                 "providerMetadata": {
@@ -4634,6 +4646,7 @@ describe('streamText', () => {
       expect(await result.steps).toMatchInlineSnapshot(`
         [
           DefaultStepResult {
+            "callId": "test-call-id",
             "content": [
               {
                 "id": "123",
@@ -4727,6 +4740,7 @@ describe('streamText', () => {
       expect(await result.steps).toMatchInlineSnapshot(`
         [
           DefaultStepResult {
+            "callId": "test-call-id",
             "content": [
               {
                 "file": DefaultGeneratedFileWithType {
@@ -4921,6 +4935,10 @@ describe('streamText', () => {
           startEvent = event;
         },
         onError: () => {},
+        _internal: {
+          generateId: () => 'test-call-id',
+          generateCallId: () => 'test-call-id',
+        },
       });
 
       await result.consumeStream();
@@ -5477,6 +5495,10 @@ describe('streamText', () => {
           toolCallStartEvents.push(event);
         },
         onError: () => {},
+        _internal: {
+          generateId: () => 'test-call-id',
+          generateCallId: () => 'test-call-id',
+        },
       });
 
       await result.consumeStream();
@@ -6493,6 +6515,7 @@ describe('streamText', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
+          "callId": "test-call-id",
           "content": [
             {
               "providerMetadata": undefined,
@@ -6614,6 +6637,7 @@ describe('streamText', () => {
           "stepNumber": 0,
           "steps": [
             DefaultStepResult {
+              "callId": "test-call-id",
               "content": [
                 {
                   "providerMetadata": undefined,
@@ -6803,6 +6827,7 @@ describe('streamText', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
+          "callId": "test-call-id",
           "content": [
             {
               "id": "123",
@@ -6899,6 +6924,7 @@ describe('streamText', () => {
           "stepNumber": 0,
           "steps": [
             DefaultStepResult {
+              "callId": "test-call-id",
               "content": [
                 {
                   "id": "123",
@@ -7038,6 +7064,7 @@ describe('streamText', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
+          "callId": "test-call-id",
           "content": [
             {
               "file": DefaultGeneratedFileWithType {
@@ -7128,6 +7155,7 @@ describe('streamText', () => {
           "stepNumber": 0,
           "steps": [
             DefaultStepResult {
+              "callId": "test-call-id",
               "content": [
                 {
                   "file": DefaultGeneratedFileWithType {
@@ -7487,6 +7515,7 @@ describe('streamText', () => {
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-call-id',
           },
         });
       });
@@ -7780,6 +7809,7 @@ describe('streamText', () => {
         it('onFinish should send correct information', async () => {
           expect(onFinishResult).toMatchInlineSnapshot(`
             {
+              "callId": "test-call-id",
               "content": [
                 {
                   "providerMetadata": undefined,
@@ -7863,6 +7893,7 @@ describe('streamText', () => {
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -7967,6 +7998,7 @@ describe('streamText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -8105,6 +8137,7 @@ describe('streamText', () => {
           expect(onStepFinishResults).toMatchInlineSnapshot(`
             [
               DefaultStepResult {
+                "callId": "test-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -8209,6 +8242,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
               DefaultStepResult {
+                "callId": "test-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -8365,6 +8399,7 @@ describe('streamText', () => {
           expect(await result.steps).toMatchInlineSnapshot(`
             [
               DefaultStepResult {
+                "callId": "test-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -8469,6 +8504,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
               DefaultStepResult {
+                "callId": "test-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -8773,6 +8809,10 @@ describe('streamText', () => {
           experimental_context: { context: 'state1' },
           prompt: 'test-input',
           stopWhen: stepCountIs(3),
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-call-id',
+          },
           prepareStep: async ({
             model,
             stepNumber,
@@ -8965,6 +9005,7 @@ describe('streamText', () => {
               "stepNumber": 0,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "input": {
@@ -9061,6 +9102,7 @@ describe('streamText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -9195,6 +9237,7 @@ describe('streamText', () => {
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "input": {
@@ -9291,6 +9334,7 @@ describe('streamText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -9492,6 +9536,7 @@ describe('streamText', () => {
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-call-id',
           },
         });
       });
@@ -9663,6 +9708,7 @@ describe('streamText', () => {
         it('onFinish should send correct information', async () => {
           expect(onFinishResult).toMatchInlineSnapshot(`
             {
+              "callId": "test-call-id",
               "content": [
                 {
                   "providerMetadata": undefined,
@@ -9746,6 +9792,7 @@ describe('streamText', () => {
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -9850,6 +9897,7 @@ describe('streamText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -9988,6 +10036,7 @@ describe('streamText', () => {
           expect(onStepFinishResults).toMatchInlineSnapshot(`
             [
               DefaultStepResult {
+                "callId": "test-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -10092,6 +10141,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
               DefaultStepResult {
+                "callId": "test-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -10244,6 +10294,7 @@ describe('streamText', () => {
           expect(await result.steps).toMatchInlineSnapshot(`
             [
               DefaultStepResult {
+                "callId": "test-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -10348,6 +10399,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
               DefaultStepResult {
+                "callId": "test-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -10510,8 +10562,10 @@ describe('streamText', () => {
                 "ai.response.text": "Hello, world!",
                 "ai.settings.maxRetries": 2,
                 "ai.usage.cachedInputTokens": 0,
+                "ai.usage.completionTokens": 20,
                 "ai.usage.inputTokens": 6,
                 "ai.usage.outputTokens": 20,
+                "ai.usage.promptTokens": 6,
                 "ai.usage.reasoningTokens": 10,
                 "ai.usage.totalTokens": 26,
                 "operation.name": "ai.streamText",
@@ -10540,8 +10594,10 @@ describe('streamText', () => {
                 "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
                 "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
                 "ai.settings.maxRetries": 2,
+                "ai.usage.completionTokens": 10,
                 "ai.usage.inputTokens": 3,
                 "ai.usage.outputTokens": 10,
+                "ai.usage.promptTokens": 3,
                 "ai.usage.totalTokens": 13,
                 "gen_ai.request.model": "mock-model-id",
                 "gen_ai.response.finish_reasons": [
@@ -10562,7 +10618,10 @@ describe('streamText', () => {
                   "name": "ai.stream.firstChunk",
                 },
                 {
-                  "attributes": undefined,
+                  "attributes": {
+                    "ai.response.avgOutputTokensPerSecond": 20,
+                    "ai.response.msToFinish": 500,
+                  },
                   "name": "ai.stream.finish",
                 },
               ],
@@ -10600,8 +10659,10 @@ describe('streamText', () => {
                 "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
                 "ai.settings.maxRetries": 2,
                 "ai.usage.cachedInputTokens": 0,
+                "ai.usage.completionTokens": 10,
                 "ai.usage.inputTokens": 3,
                 "ai.usage.outputTokens": 10,
+                "ai.usage.promptTokens": 3,
                 "ai.usage.reasoningTokens": 10,
                 "ai.usage.totalTokens": 13,
                 "gen_ai.request.model": "mock-model-id",
@@ -10623,7 +10684,10 @@ describe('streamText', () => {
                   "name": "ai.stream.firstChunk",
                 },
                 {
-                  "attributes": undefined,
+                  "attributes": {
+                    "ai.response.avgOutputTokensPerSecond": 25,
+                    "ai.response.msToFinish": 400,
+                  },
                   "name": "ai.stream.finish",
                 },
               ],
@@ -10784,6 +10848,8 @@ describe('streamText', () => {
           ],
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-call-id',
           },
         });
       });
@@ -10800,6 +10866,7 @@ describe('streamText', () => {
               "number": 0,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -10909,6 +10976,7 @@ describe('streamText', () => {
               "number": 1,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -12967,6 +13035,7 @@ describe('streamText', () => {
       expect(await result.steps).toMatchInlineSnapshot(`
         [
           DefaultStepResult {
+            "callId": "test-call-id",
             "content": [
               {
                 "input": {
@@ -13457,11 +13526,16 @@ describe('streamText', () => {
           },
           experimental_transform: upperCaseTransform,
           prompt: 'test-input',
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-call-id',
+          },
         });
 
         expect(await result.steps).toMatchInlineSnapshot(`
           [
             DefaultStepResult {
+              "callId": "test-call-id",
               "content": [
                 {
                   "providerMetadata": undefined,
@@ -13683,12 +13757,17 @@ describe('streamText', () => {
             result = event as unknown as typeof result;
           },
           experimental_transform: upperCaseTransform,
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-call-id',
+          },
         });
 
         await resultObject.consumeStream();
 
         expect(result).toMatchInlineSnapshot(`
           {
+            "callId": "test-call-id",
             "content": [
               {
                 "providerMetadata": undefined,
@@ -13810,6 +13889,7 @@ describe('streamText', () => {
             "stepNumber": 0,
             "steps": [
               DefaultStepResult {
+                "callId": "test-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -14029,12 +14109,17 @@ describe('streamText', () => {
             result = event as unknown as typeof result;
           },
           experimental_transform: upperCaseTransform,
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-call-id',
+          },
         });
 
         await resultObject.consumeStream();
 
         expect(result).toMatchInlineSnapshot(`
           DefaultStepResult {
+            "callId": "test-call-id",
             "content": [
               {
                 "providerMetadata": undefined,
@@ -14548,12 +14633,17 @@ describe('streamText', () => {
             result = event as unknown as typeof result;
           },
           experimental_transform: stopWordTransform(),
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-call-id',
+          },
         });
 
         await resultObject.consumeStream();
 
         expect(result).toMatchInlineSnapshot(`
           DefaultStepResult {
+            "callId": "test-call-id",
             "content": [
               {
                 "providerMetadata": undefined,
@@ -14983,6 +15073,7 @@ describe('streamText', () => {
           },
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-call-id',
           },
         });
 
@@ -14992,6 +15083,7 @@ describe('streamText', () => {
 
         expect(result).toMatchInlineSnapshot(`
           {
+            "callId": "test-call-id",
             "content": [
               {
                 "providerMetadata": undefined,
@@ -15039,6 +15131,7 @@ describe('streamText', () => {
             "stepNumber": 0,
             "steps": [
               DefaultStepResult {
+                "callId": "test-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -15925,6 +16018,7 @@ describe('streamText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId(),
+            generateCallId: () => 'test-call-id',
           },
         });
       });
@@ -16118,6 +16212,7 @@ describe('streamText', () => {
         expect(await result.steps).toMatchInlineSnapshot(`
           [
             DefaultStepResult {
+              "callId": "test-call-id",
               "content": [
                 {
                   "providerMetadata": undefined,
@@ -16507,6 +16602,7 @@ describe('streamText', () => {
             {
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "input": {
@@ -17033,6 +17129,7 @@ describe('streamText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId(),
+            generateCallId: () => 'test-call-id',
           },
           tools: {
             cityAttractions: tool({
@@ -17314,6 +17411,7 @@ describe('streamText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId(),
+            generateCallId: () => 'test-call-id',
           },
           tools: {
             cityAttractions: tool({
@@ -17552,6 +17650,7 @@ describe('streamText', () => {
         expect(await result.steps).toMatchInlineSnapshot(`
           [
             DefaultStepResult {
+              "callId": "test-call-id",
               "content": [
                 {
                   "input": {
@@ -17727,6 +17826,7 @@ describe('streamText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId(),
+            generateCallId: () => 'test-call-id',
           },
         });
       });
@@ -19877,6 +19977,7 @@ describe('streamText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-call-id',
           },
           tools: {
             tool1: tool({
@@ -20120,6 +20221,7 @@ describe('streamText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-call-id',
           },
         });
       });
@@ -20443,6 +20545,7 @@ describe('streamText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -20747,6 +20850,7 @@ describe('streamText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -21075,6 +21179,7 @@ describe('streamText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -21363,6 +21468,7 @@ describe('streamText', () => {
             prompt: 'test-input',
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-call-id',
             },
           });
         });
@@ -21619,6 +21725,7 @@ describe('streamText', () => {
             },
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-call-id',
             },
             messages: [
               {
@@ -21793,6 +21900,7 @@ describe('streamText', () => {
             },
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-call-id',
             },
             messages: [
               {

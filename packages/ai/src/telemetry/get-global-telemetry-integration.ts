@@ -17,8 +17,10 @@ export function bindTelemetryIntegration(
     onStepStart: integration.onStepStart?.bind(integration),
     onToolCallStart: integration.onToolCallStart?.bind(integration),
     onToolCallFinish: integration.onToolCallFinish?.bind(integration),
+    onChunk: integration.onChunk?.bind(integration),
     onStepFinish: integration.onStepFinish?.bind(integration),
     onFinish: integration.onFinish?.bind(integration),
+    recordError: integration.recordError?.bind(integration),
   };
 }
 
@@ -45,7 +47,9 @@ export function getGlobalTelemetryIntegration<
       | undefined,
   ): TelemetryIntegration => {
     const localIntegrations = asArray(integrations);
-    const allIntegrations = [...globalIntegrations, ...localIntegrations];
+    const allIntegrations = [...globalIntegrations, ...localIntegrations].map(
+      bindTelemetryIntegration,
+    );
 
     function createTelemetryComposite<EVENT>(
       getListenerFromIntegration: (
@@ -76,10 +80,14 @@ export function getGlobalTelemetryIntegration<
       onToolCallFinish: createTelemetryComposite(
         integration => integration.onToolCallFinish,
       ),
+      onChunk: createTelemetryComposite(integration => integration.onChunk),
       onStepFinish: createTelemetryComposite(
         integration => integration.onStepFinish,
       ),
       onFinish: createTelemetryComposite(integration => integration.onFinish),
+      recordError: createTelemetryComposite(
+        integration => integration.recordError,
+      ),
     };
   };
 }

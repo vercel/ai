@@ -5,7 +5,6 @@ import {
   ModelMessage,
   SystemModelMessage,
 } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
@@ -112,8 +111,8 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
 export function runToolsTransformation<TOOLS extends ToolSet>({
   tools,
   generatorStream,
-  tracer,
   telemetry,
+  callId,
   system,
   messages,
   abortSignal,
@@ -127,8 +126,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV3StreamPart>;
-  tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
+  callId: string;
   system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
@@ -334,8 +333,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               executeToolCall({
                 toolCall,
                 tools,
-                tracer,
                 telemetry,
+                callId,
                 messages,
                 abortSignal,
                 experimental_context,

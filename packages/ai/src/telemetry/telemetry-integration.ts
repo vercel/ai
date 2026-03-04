@@ -1,4 +1,5 @@
 import type {
+  OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
   OnStepFinishEvent,
@@ -19,6 +20,8 @@ export interface TelemetryIntegration {
   onStepStart?: Listener<OnStepStartEvent<ToolSet, Output>>;
   onToolCallStart?: Listener<OnToolCallStartEvent<ToolSet>>;
   onToolCallFinish?: Listener<OnToolCallFinishEvent<ToolSet>>;
+  onChunk?: Listener<OnChunkEvent>;
   onStepFinish?: Listener<OnStepFinishEvent<ToolSet>>;
   onFinish?: Listener<OnFinishEvent<ToolSet>>;
+  recordError?: Listener<unknown>;
 }

@@ -326,6 +326,7 @@ describe('generateText', () => {
         prompt: 'prompt',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-call-id',
         },
       });
 
@@ -338,6 +339,7 @@ describe('generateText', () => {
         prompt: 'prompt',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-call-id',
         },
       });
 
@@ -350,6 +352,7 @@ describe('generateText', () => {
         prompt: 'prompt',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-call-id',
         },
       });
 
@@ -705,6 +708,10 @@ describe('generateText', () => {
         experimental_telemetry: {
           functionId: 'test-function',
           metadata: { customKey: 'customValue' },
+        },
+        _internal: {
+          generateId: () => 'test-call-id',
+          generateCallId: () => 'test-call-id',
         },
         experimental_onStart: async event => {
           startEvent = event;
@@ -1410,6 +1417,10 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
+        _internal: {
+          generateId: () => 'test-call-id',
+          generateCallId: () => 'test-call-id',
+        },
         experimental_onToolCallStart: async event => {
           toolCallStartEvents.push(event);
         },
@@ -2092,6 +2103,10 @@ describe('generateText', () => {
             execute: async ({ value }) => `${value}-result`,
           },
         },
+        _internal: {
+          generateId: () => 'test-call-id',
+          generateCallId: () => 'test-call-id',
+        },
         onFinish: async event => {
           result = event as unknown as typeof result;
         },
@@ -2100,6 +2115,7 @@ describe('generateText', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
+          "callId": "test-call-id",
           "content": [
             {
               "text": "Hello, World!",
@@ -2217,6 +2233,7 @@ describe('generateText', () => {
           "stepNumber": 0,
           "steps": [
             DefaultStepResult {
+              "callId": "test-call-id",
               "content": [
                 {
                   "text": "Hello, World!",
@@ -2496,6 +2513,10 @@ describe('generateText', () => {
             }),
           },
           prompt: 'test-input',
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-call-id',
+          },
           onFinish: async event => {
             onFinishResult = event as unknown as typeof onFinishResult;
           },
@@ -2671,6 +2692,10 @@ describe('generateText', () => {
           },
           experimental_context: { context: 'state1' },
           prompt: 'test-input',
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-call-id',
+          },
           stopWhen: stepCountIs(3),
           onStepFinish: async event => {
             onStepFinishResults.push(event);
@@ -2740,6 +2765,7 @@ describe('generateText', () => {
               "stepNumber": 0,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "input": {
@@ -2835,6 +2861,7 @@ describe('generateText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "text": "Hello, world!",
@@ -2969,6 +2996,7 @@ describe('generateText', () => {
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "input": {
@@ -3064,6 +3092,7 @@ describe('generateText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "text": "Hello, world!",
@@ -3409,6 +3438,10 @@ describe('generateText', () => {
             }),
           },
           prompt: 'test-input',
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-call-id',
+          },
           stopWhen: [
             ({ steps }) => {
               stopConditionCalls.push({ number: 0, steps });
@@ -3433,6 +3466,7 @@ describe('generateText', () => {
               "number": 0,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "input": {
@@ -3531,6 +3565,7 @@ describe('generateText', () => {
               "number": 1,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-call-id",
                   "content": [
                     {
                       "input": {
@@ -4167,6 +4202,7 @@ describe('generateText', () => {
         },
         _internal: {
           generateId: () => 'test-id',
+          generateCallId: () => 'test-call-id',
         },
       });
 
@@ -4180,10 +4216,14 @@ describe('generateText', () => {
               "ai.prompt": "{"prompt":"test-input"}",
               "ai.request.headers.user-agent": "ai/0.0.0-test",
               "ai.response.finishReason": "stop",
-              "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
+              "ai.response.text": "",
+              "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
               "ai.settings.maxRetries": 2,
               "ai.usage.completionTokens": 10,
+              "ai.usage.inputTokens": 3,
+              "ai.usage.outputTokens": 10,
               "ai.usage.promptTokens": 3,
+              "ai.usage.totalTokens": 13,
               "operation.name": "ai.generateText",
             },
             "events": [],
@@ -4203,11 +4243,15 @@ describe('generateText', () => {
               "ai.response.finishReason": "stop",
               "ai.response.id": "test-id",
               "ai.response.model": "mock-model-id",
+              "ai.response.text": "",
               "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-              "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
+              "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
               "ai.settings.maxRetries": 2,
               "ai.usage.completionTokens": 10,
+              "ai.usage.inputTokens": 3,
+              "ai.usage.outputTokens": 10,
               "ai.usage.promptTokens": 3,
+              "ai.usage.totalTokens": 13,
               "gen_ai.request.model": "mock-model-id",
               "gen_ai.response.finish_reasons": [
                 "stop",
@@ -4269,6 +4313,7 @@ describe('generateText', () => {
         },
         _internal: {
           generateId: () => 'test-id',
+          generateCallId: () => 'test-call-id',
         },
       });
 
@@ -4330,6 +4375,7 @@ describe('generateText', () => {
         },
         _internal: {
           generateId: () => 'test-id',
+          generateCallId: () => 'test-call-id',
         },
       });
 
@@ -4355,10 +4401,10 @@ describe('generateText', () => {
       );
 
       expect(rootSpan?.attributes['ai.response.reasoning']).toBe(
-        'I will open the conversation with witty banter.\n',
+        'I will open the conversation with witty banter.',
       );
       expect(doGenerateSpan?.attributes['ai.response.reasoning']).toBe(
-        'I will open the conversation with witty banter.\n',
+        'I will open the conversation with witty banter.',
       );
     });
   });
@@ -4510,6 +4556,7 @@ describe('generateText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: () => 'test-id',
+          generateCallId: () => 'test-call-id',
         },
       });
 
@@ -6814,6 +6861,7 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: () => 'test-id',
+            generateCallId: () => 'test-call-id',
           },
           tools: {
             cityAttractions: tool({
@@ -6871,6 +6919,7 @@ describe('generateText', () => {
         expect(result.steps).toMatchInlineSnapshot(`
           [
             DefaultStepResult {
+              "callId": "test-call-id",
               "content": [
                 {
                   "input": {
@@ -7128,6 +7177,7 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-call-id',
           },
         });
       });
@@ -7244,6 +7294,7 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-call-id',
           },
         });
       });
@@ -7433,6 +7484,7 @@ describe('generateText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -7598,6 +7650,7 @@ describe('generateText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -7756,6 +7809,7 @@ describe('generateText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -7963,6 +8017,7 @@ describe('generateText', () => {
             prompt: 'test-input',
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-call-id',
             },
           });
         });
@@ -8095,6 +8150,7 @@ describe('generateText', () => {
             stopWhen: stepCountIs(3),
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-call-id',
             },
             messages: [
               {
@@ -8254,6 +8310,7 @@ describe('generateText', () => {
             stopWhen: stepCountIs(3),
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-call-id',
             },
             messages: [
               {
