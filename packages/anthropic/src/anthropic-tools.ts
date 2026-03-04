@@ -2,6 +2,7 @@ import { bash_20241022 } from './tool/bash_20241022';
 import { bash_20250124 } from './tool/bash_20250124';
 import { codeExecution_20250522 } from './tool/code-execution_20250522';
 import { codeExecution_20250825 } from './tool/code-execution_20250825';
+import { codeExecution_20260120 } from './tool/code-execution_20260120';
 import { computer_20241022 } from './tool/computer_20241022';
 import { computer_20250124 } from './tool/computer_20250124';
 import { memory_20250818 } from './tool/memory_20250818';
@@ -9,7 +10,9 @@ import { textEditor_20241022 } from './tool/text-editor_20241022';
 import { textEditor_20250124 } from './tool/text-editor_20250124';
 import { textEditor_20250429 } from './tool/text-editor_20250429';
 import { textEditor_20250728 } from './tool/text-editor_20250728';
+import { webFetch_20260209 } from './tool/web-fetch-20260209';
 import { webFetch_20250910 } from './tool/web-fetch-20250910';
+import { webSearch_20260209 } from './tool/web-search_20260209';
 import { webSearch_20250305 } from './tool/web-search_20250305';
 
 export const anthropicTools = {
@@ -58,6 +61,18 @@ export const anthropicTools = {
    * Tool name must be `code_execution`.
    */
   codeExecution_20250825,
+
+  /**
+   * Claude can analyze data, create visualizations, perform complex calculations,
+   * run system commands, create and edit files, and process uploaded files directly within
+   * the API conversation.
+   *
+   * This version adds support for encrypted code execution results used by 20260209 web tools
+   * and includes enhanced Bash support and file operations.
+   *
+   * Tool name must be `code_execution`.
+   */
+  codeExecution_20260120,
 
   /**
    * Claude can interact with computer environments through the computer use tool, which
@@ -163,6 +178,19 @@ export const anthropicTools = {
   webFetch_20250910,
 
   /**
+   * Creates a web fetch tool that gives Claude direct access to real-time web content.
+   *
+   * Tool name must be `web_fetch`.
+   *
+   * @param maxUses - The max_uses parameter limits the number of web fetches performed
+   * @param allowedDomains - Only fetch from these domains
+   * @param blockedDomains - Never fetch from these domains
+   * @param citations - Unlike web search where citations are always enabled, citations are optional for web fetch. Set "citations": {"enabled": true} to enable Claude to cite specific passages from fetched documents.
+   * @param maxContentTokens - The max_content_tokens parameter limits the amount of content that will be included in the context.
+   */
+  webFetch_20260209,
+
+  /**
    * Creates a web search tool that gives Claude direct access to real-time web content.
    *
    * Tool name must be `web_search`.
@@ -173,4 +201,16 @@ export const anthropicTools = {
    * @param userLocation - Optional user location information to provide geographically relevant search results.
    */
   webSearch_20250305,
+
+  /**
+   * Creates a web search tool that gives Claude direct access to real-time web content.
+   *
+   * Tool name must be `web_search`.
+   *
+   * @param maxUses - Maximum number of web searches Claude can perform during the conversation.
+   * @param allowedDomains - Optional list of domains that Claude is allowed to search.
+   * @param blockedDomains - Optional list of domains that Claude should avoid when searching.
+   * @param userLocation - Optional user location information to provide geographically relevant search results.
+   */
+  webSearch_20260209,
 };
