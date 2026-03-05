@@ -277,6 +277,33 @@ describe('groundingMetadataSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('validates groundingSupports without segment (image search)', () => {
+    const metadata = {
+      imageSearchQueries: [
+        'Aurora Borealis Iceland landscape',
+        'Northern Lights over Iceland',
+      ],
+      groundingChunks: [
+        {
+          image: {
+            sourceUri: 'https://example.com/source',
+            imageUri: 'https://example.com/image.jpg',
+            title: 'Northern Lights in Iceland',
+            domain: 'example.com',
+          },
+        },
+      ],
+      groundingSupports: [
+        {
+          groundingChunkIndices: [0],
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
   it('rejects invalid data types', () => {
     const metadata = {
       webSearchQueries: 'not an array', // Should be an array
