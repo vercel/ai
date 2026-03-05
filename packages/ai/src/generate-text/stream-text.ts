@@ -939,38 +939,32 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         }
 
         if (part.type === 'reasoning-delta') {
-          const activeReasoning = activeReasoningContent[part.id];
-
-          if (activeReasoning == null) {
-            controller.enqueue({
-              part: {
-                type: 'error',
-                error: `reasoning part ${part.id} not found`,
-              },
-              partialOutput: undefined,
-            });
-            return;
+          if (activeReasoningContent[part.id] == null) {
+            activeReasoningContent[part.id] = {
+              type: 'reasoning',
+              text: '',
+              providerMetadata: part.providerMetadata,
+            };
+            recordedContent.push(activeReasoningContent[part.id]);
           }
 
+          const activeReasoning = activeReasoningContent[part.id];
           activeReasoning.text += part.text;
           activeReasoning.providerMetadata =
             part.providerMetadata ?? activeReasoning.providerMetadata;
         }
 
         if (part.type === 'reasoning-end') {
-          const activeReasoning = activeReasoningContent[part.id];
-
-          if (activeReasoning == null) {
-            controller.enqueue({
-              part: {
-                type: 'error',
-                error: `reasoning part ${part.id} not found`,
-              },
-              partialOutput: undefined,
-            });
-            return;
+          if (activeReasoningContent[part.id] == null) {
+            activeReasoningContent[part.id] = {
+              type: 'reasoning',
+              text: '',
+              providerMetadata: part.providerMetadata,
+            };
+            recordedContent.push(activeReasoningContent[part.id]);
           }
 
+          const activeReasoning = activeReasoningContent[part.id];
           activeReasoning.providerMetadata =
             part.providerMetadata ?? activeReasoning.providerMetadata;
 
