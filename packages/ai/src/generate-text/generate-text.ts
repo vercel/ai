@@ -5,7 +5,6 @@ import {
 } from '@ai-sdk/provider';
 import {
   Context,
-  ContextRegistry,
   createIdGenerator,
   getErrorMessage,
   IdGenerator,
@@ -131,11 +130,10 @@ export type GenerateTextOnStartCallback<
  * @param event - The event object containing step configuration.
  */
 export type GenerateTextOnStepStartCallback<
-  CONTEXT extends Partial<ContextRegistry>,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+  TOOLS extends ToolSet = ToolSet,
   OUTPUT extends Output = Output,
 > = (
-  event: OnStepStartEvent<CONTEXT, TOOLS, OUTPUT, GenerateTextIncludeSettings>,
+  event: OnStepStartEvent<TOOLS, OUTPUT, GenerateTextIncludeSettings>,
 ) => PromiseLike<void> | void;
 
 /**
@@ -147,9 +145,8 @@ export type GenerateTextOnStepStartCallback<
  * @param event - The event object containing tool call information.
  */
 export type GenerateTextOnToolCallStartCallback<
-  CONTEXT extends Partial<ContextRegistry>,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
-> = (event: OnToolCallStartEvent<CONTEXT, TOOLS>) => PromiseLike<void> | void;
+  TOOLS extends ToolSet = ToolSet,
+> = (event: OnToolCallStartEvent<TOOLS>) => PromiseLike<void> | void;
 
 /**
  * Callback that is set using the `experimental_onToolCallFinish` option.
@@ -188,10 +185,9 @@ export type GenerateTextOnStepFinishCallback<TOOLS extends ToolSet> = (
  *
  * @param event - The final result along with aggregated step data.
  */
-export type GenerateTextOnFinishCallback<
-  CONTEXT extends Partial<ContextRegistry>,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
-> = (event: OnFinishEvent<CONTEXT, TOOLS>) => PromiseLike<void> | void;
+export type GenerateTextOnFinishCallback<TOOLS extends ToolSet = ToolSet> = (
+  event: OnFinishEvent<TOOLS>,
+) => PromiseLike<void> | void;
 
 /**
  * Generate a text and call tools for a given prompt using a language model.
@@ -248,8 +244,8 @@ export type GenerateTextOnFinishCallback<
  * A result object that contains the generated text, the results of the tool calls, and additional information.
  */
 export async function generateText<
-  CONTEXT extends Partial<ContextRegistry>,
-  TOOLS extends ToolSet<CONTEXT>,
+  CONTEXT extends Context,
+  TOOLS extends ToolSet = ToolSet,
   OUTPUT extends Output = Output<string, string>,
 >({
   model: modelArg,
@@ -273,7 +269,7 @@ export async function generateText<
   prepareStep = experimental_prepareStep,
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
-  experimental_context = {} as Context<CONTEXT>,
+  experimental_context = {} as CONTEXT,
   experimental_include: include,
   _internal: { generateId = originalGenerateId } = {},
   experimental_onStart: onStart,
@@ -413,7 +409,7 @@ export async function generateText<
      *
      * @default undefined
      */
-    experimental_context?: Context<CONTEXT>;
+    experimental_context?: CONTEXT;
 
     /**
      * Settings for controlling what data is included in step results.
@@ -1194,7 +1190,7 @@ export async function generateText<
             onFinish,
             globalTelemetry.onFinish as
               | undefined
-              | GenerateTextOnFinishCallback<CONTEXT, TOOLS>,
+              | GenerateTextOnFinishCallback<TOOLS>,
           ],
         });
 
@@ -1224,7 +1220,7 @@ export async function generateText<
   }
 }
 
-async function executeTools<TOOLS extends ToolSet>({
+async function executeTools<CONTEXT extends Context, TOOLS extends ToolSet>({
   toolCalls,
   tools,
   tracer,
@@ -1243,7 +1239,7 @@ async function executeTools<TOOLS extends ToolSet>({
   telemetry: TelemetrySettings | undefined;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
-  experimental_context: unknown;
+  experimental_context: CONTEXT;
   stepNumber: number;
   model: { provider: string; modelId: string };
   onToolCallStart:

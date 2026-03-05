@@ -1,8 +1,6 @@
-import { ContextRegistry, Tool } from '@ai-sdk/provider-utils';
+import { Context, Tool } from '@ai-sdk/provider-utils';
 
-export type ToolSet<
-  CONTEXT extends Partial<ContextRegistry> = ContextRegistry,
-> = Record<
+export type ToolSet<CONTEXT extends Context> = Record<
   string,
   (
     | Tool<CONTEXT, never, never>

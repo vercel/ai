@@ -8,7 +8,7 @@ import { Context } from './context';
 /**
  * Additional options that are sent into each tool call.
  */
-export interface ToolExecutionOptions<CONTEXT extends Context = Context> {
+export interface ToolExecutionOptions<CONTEXT extends Context> {
   /**
    * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
    */
@@ -43,10 +43,7 @@ export interface ToolExecutionOptions<CONTEXT extends Context = Context> {
 /**
  * Function that is called to determine if the tool needs approval before it can be executed.
  */
-export type ToolNeedsApprovalFunction<
-  INPUT,
-  CONTEXT extends Context = Context,
-> = (
+export type ToolNeedsApprovalFunction<INPUT, CONTEXT extends Context> = (
   input: INPUT,
   options: {
     /**
@@ -114,7 +111,7 @@ type ToolOutputProperties<
  * The tool can also contain an optional execute function for the actual execution function of the tool.
  */
 export type Tool<
-  CONTEXT extends Context,
+  CONTEXT extends Context = any,
   INPUT extends JSONValue | unknown | never = any,
   OUTPUT extends JSONValue | unknown | never = any,
 > = {
@@ -159,7 +156,10 @@ export type Tool<
    */
   needsApproval?:
     | boolean
-    | ToolNeedsApprovalFunction<[INPUT] extends [never] ? unknown : INPUT>;
+    | ToolNeedsApprovalFunction<
+        [INPUT] extends [never] ? unknown : INPUT,
+        CONTEXT
+      >;
 
   /**
    * Strict mode setting for the tool.
@@ -174,14 +174,16 @@ export type Tool<
    * Optional function that is called when the argument streaming starts.
    * Only called when the tool is used in a streaming context.
    */
-  onInputStart?: (options: ToolExecutionOptions) => void | PromiseLike<void>;
+  onInputStart?: (
+    options: ToolExecutionOptions<CONTEXT>,
+  ) => void | PromiseLike<void>;
 
   /**
    * Optional function that is called when an argument streaming delta is available.
    * Only called when the tool is used in a streaming context.
    */
   onInputDelta?: (
-    options: { inputTextDelta: string } & ToolExecutionOptions,
+    options: { inputTextDelta: string } & ToolExecutionOptions<CONTEXT>,
   ) => void | PromiseLike<void>;
 
   /**
@@ -191,7 +193,7 @@ export type Tool<
   onInputAvailable?: (
     options: {
       input: [INPUT] extends [never] ? unknown : INPUT;
-    } & ToolExecutionOptions,
+    } & ToolExecutionOptions<CONTEXT>,
   ) => void | PromiseLike<void>;
 } & ToolOutputProperties<CONTEXT, INPUT, OUTPUT> & {
     /**
@@ -269,18 +271,14 @@ export type Tool<
 /**
  * Infer the input type of a tool.
  */
-export type InferToolInput<
-  CONTEXT extends Context,
-  TOOL extends Tool<CONTEXT>,
-> = TOOL extends Tool<CONTEXT, infer INPUT, any> ? INPUT : never;
+export type InferToolInput<TOOL extends Tool<any>> =
+  TOOL extends Tool<any, infer INPUT, any> ? INPUT : never;
 
 /**
  * Infer the output type of a tool.
  */
-export type InferToolOutput<
-  CONTEXT extends Context,
-  TOOL extends Tool<CONTEXT>,
-> = TOOL extends Tool<CONTEXT, any, infer OUTPUT> ? OUTPUT : never;
+export type InferToolOutput<TOOL extends Tool<any>> =
+  TOOL extends Tool<any, any, infer OUTPUT> ? OUTPUT : never;
 
 /**
  * Helper function for inferring the execute args of a tool.
@@ -337,7 +335,7 @@ export function dynamicTool(tool: {
   /**
    * Whether the tool needs approval before it can be executed.
    */
-  needsApproval?: boolean | ToolNeedsApprovalFunction<unknown>;
+  needsApproval?: boolean | ToolNeedsApprovalFunction<unknown, Context>;
 }): Tool<Context, unknown, unknown> & {
   type: 'dynamic';
 } {

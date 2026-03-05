@@ -1,4 +1,4 @@
-import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
+import { Context, executeTool, ModelMessage } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { notify } from '../util/notify';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -27,7 +27,10 @@ import { TypedToolError } from './tool-error';
  *
  * @returns The tool output (result or error), or undefined if the tool has no execute function.
  */
-export async function executeToolCall<TOOLS extends ToolSet>({
+export async function executeToolCall<
+  CONTEXT extends Context,
+  TOOLS extends ToolSet<CONTEXT>,
+>({
   toolCall,
   tools,
   tracer,
@@ -47,7 +50,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   telemetry: TelemetrySettings | undefined;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
-  experimental_context: unknown;
+  experimental_context: CONTEXT;
   stepNumber?: number;
   model?: { provider: string; modelId: string };
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
