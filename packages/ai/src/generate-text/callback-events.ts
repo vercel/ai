@@ -131,7 +131,7 @@ export interface OnStartEvent<
  */
 export interface OnStepStartEvent<
   CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT>,
+  TOOLS extends ToolSet,
   OUTPUT extends Output = Output,
   INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
@@ -302,7 +302,7 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet> = {
  */
 export type OnStepFinishEvent<
   CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT>,
+  TOOLS extends ToolSet,
 > = StepResult<CONTEXT, TOOLS>;
 
 /**
@@ -313,7 +313,7 @@ export type OnStepFinishEvent<
  */
 export type OnFinishEvent<
   CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT>,
+  TOOLS extends ToolSet,
 > = StepResult<CONTEXT, TOOLS> & {
   /** Array containing results from all steps in the generation. */
   readonly steps: StepResult<CONTEXT, TOOLS>[];

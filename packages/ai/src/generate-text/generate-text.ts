@@ -131,10 +131,15 @@ export type GenerateTextOnStartCallback<
  */
 export type GenerateTextOnStepStartCallback<
   CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+  TOOLS extends ToolSet = ToolSet,
   OUTPUT extends Output = Output,
 > = (
-  event: OnStepStartEvent<CONTEXT, TOOLS, OUTPUT, GenerateTextIncludeSettings>,
+  event: OnStepStartEvent<
+    NoInfer<CONTEXT>,
+    TOOLS,
+    OUTPUT,
+    GenerateTextIncludeSettings
+  >,
 ) => PromiseLike<void> | void;
 
 /**
@@ -146,8 +151,7 @@ export type GenerateTextOnStepStartCallback<
  * @param event - The event object containing tool call information.
  */
 export type GenerateTextOnToolCallStartCallback<
-  CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+  TOOLS extends ToolSet = ToolSet,
 > = (event: OnToolCallStartEvent<TOOLS>) => PromiseLike<void> | void;
 
 /**
@@ -163,8 +167,7 @@ export type GenerateTextOnToolCallStartCallback<
  * @param event - The event object containing tool call result information.
  */
 export type GenerateTextOnToolCallFinishCallback<
-  CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+  TOOLS extends ToolSet = ToolSet,
 > = (event: OnToolCallFinishEvent<TOOLS>) => PromiseLike<void> | void;
 
 /**
@@ -177,7 +180,7 @@ export type GenerateTextOnToolCallFinishCallback<
  */
 export type GenerateTextOnStepFinishCallback<
   CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+  TOOLS extends ToolSet,
 > = (event: OnStepFinishEvent<CONTEXT, TOOLS>) => Promise<void> | void;
 
 /**
@@ -191,7 +194,7 @@ export type GenerateTextOnStepFinishCallback<
  */
 export type GenerateTextOnFinishCallback<
   CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+  TOOLS extends ToolSet = ToolSet,
 > = (event: OnFinishEvent<CONTEXT, TOOLS>) => PromiseLike<void> | void;
 
 /**
@@ -250,7 +253,7 @@ export type GenerateTextOnFinishCallback<
  */
 export async function generateText<
   CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT>,
+  TOOLS extends ToolSet,
   OUTPUT extends Output = Output<string, string>,
 >({
   model: modelArg,
@@ -274,7 +277,7 @@ export async function generateText<
   prepareStep = experimental_prepareStep,
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
-  experimental_context = {} as CONTEXT,
+  experimental_context = {} as NoInfer<CONTEXT>,
   experimental_include: include,
   _internal: { generateId = originalGenerateId } = {},
   experimental_onStart: onStart,
@@ -356,12 +359,15 @@ export async function generateText<
     /**
      * @deprecated Use `prepareStep` instead.
      */
-    experimental_prepareStep?: PrepareStepFunction<CONTEXT, NoInfer<TOOLS>>;
+    experimental_prepareStep?: PrepareStepFunction<
+      NoInfer<CONTEXT>,
+      NoInfer<TOOLS>
+    >;
 
     /**
      * Optional function that you can use to provide different settings for a step.
      */
-    prepareStep?: PrepareStepFunction<CONTEXT, NoInfer<TOOLS>>;
+    prepareStep?: PrepareStepFunction<NoInfer<CONTEXT>, NoInfer<TOOLS>>;
 
     /**
      * A function that attempts to repair a tool call that failed to parse.
@@ -379,7 +385,7 @@ export async function generateText<
      * before the provider is called.
      */
     experimental_onStepStart?: GenerateTextOnStepStartCallback<
-      CONTEXT,
+      NoInfer<CONTEXT>,
       NoInfer<TOOLS>,
       OUTPUT
     >;
@@ -401,12 +407,15 @@ export async function generateText<
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
      */
-    onStepFinish?: GenerateTextOnStepFinishCallback<CONTEXT, NoInfer<TOOLS>>;
+    onStepFinish?: GenerateTextOnStepFinishCallback<
+      NoInfer<CONTEXT>,
+      NoInfer<TOOLS>
+    >;
 
     /**
      * Callback that is called when all steps are finished and the response is complete.
      */
-    onFinish?: GenerateTextOnFinishCallback<CONTEXT, NoInfer<TOOLS>>;
+    onFinish?: GenerateTextOnFinishCallback<NoInfer<CONTEXT>, NoInfer<TOOLS>>;
 
     /**
      * Context that is passed into tool execution.
@@ -1227,10 +1236,7 @@ export async function generateText<
   }
 }
 
-async function executeTools<
-  CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
->({
+async function executeTools<CONTEXT extends Context, TOOLS extends ToolSet>({
   toolCalls,
   tools,
   tracer,
@@ -1286,7 +1292,7 @@ async function executeTools<
 
 class DefaultGenerateTextResult<
   CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT>,
+  TOOLS extends ToolSet,
   OUTPUT extends Output,
 > implements GenerateTextResult<TOOLS, OUTPUT>
 {
@@ -1413,7 +1419,7 @@ function asToolCalls(content: Array<LanguageModelV4Content>) {
   }));
 }
 
-function asContent<TOOLS extends ToolSet<any>>({
+function asContent<TOOLS extends ToolSet>({
   content,
   toolCalls,
   toolOutputs,
