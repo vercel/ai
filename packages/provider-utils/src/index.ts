@@ -44,6 +44,7 @@ export {
   type Schema,
 } from './schema';
 export * from './uint8-utils';
+export { validateDownloadUrl } from './validate-download-url';
 export * from './validate-types';
 export {
   asValidator,
