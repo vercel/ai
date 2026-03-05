@@ -1,18 +1,6 @@
-<<<<<<< HEAD
-import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { download } from './download';
 import { DownloadError } from './download-error';
-import { describe, it, expect, vi } from 'vitest';
-
-const server = createTestServer({
-  'http://example.com/file': {},
-  'http://example.com/large': {},
-});
-=======
-import { DownloadError } from '@ai-sdk/provider-utils';
 import { download } from './download';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
->>>>>>> 64ac0fdd8 (Backport: fix(security): validate redirect targets in download functions to prevent SSRF bypass (#13127))
 
 describe('download SSRF protection', () => {
   it('should reject private IPv4 addresses', async () => {
@@ -58,9 +46,12 @@ describe('download SSRF redirect protection', () => {
       }),
     } as unknown as Response);
 
-    await expect(
-      download({ url: new URL('https://evil.com/redirect') }),
-    ).rejects.toThrow(DownloadError);
+    try {
+      await download({ url: new URL('https://evil.com/redirect') });
+      expect.fail('Expected download to throw');
+    } catch (error) {
+      expect(DownloadError.isInstance(error)).toBe(true);
+    }
   });
 
   it('should reject redirects to localhost', async () => {
@@ -78,9 +69,12 @@ describe('download SSRF redirect protection', () => {
       }),
     } as unknown as Response);
 
-    await expect(
-      download({ url: new URL('https://evil.com/redirect') }),
-    ).rejects.toThrow(DownloadError);
+    try {
+      await download({ url: new URL('https://evil.com/redirect') });
+      expect.fail('Expected download to throw');
+    } catch (error) {
+      expect(DownloadError.isInstance(error)).toBe(true);
+    }
   });
 
   it('should allow redirects to safe URLs', async () => {
