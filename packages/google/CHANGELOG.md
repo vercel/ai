@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.44
+
+### Patch Changes
+
+- 45d71c3: fix(google): use VALIDATED function calling mode when any tool has strict:true
+
 ## 3.0.43
 
 ### Patch Changes
