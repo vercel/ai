@@ -69,6 +69,7 @@ export type ChatAddToolApproveResponseFunction = ({
   id,
   approved,
   reason,
+  options,
 }: {
   id: string;
 
@@ -87,6 +88,33 @@ export type ChatAddToolApproveResponseFunction = ({
    */
   options?: ChatRequestOptions;
 }) => void | PromiseLike<void>;
+
+/**
+ * Function that can be called to add a tool output to the chat.
+ */
+export type ChatAddToolOutputFunction<UI_MESSAGE extends UIMessage> = <
+  TOOL extends keyof InferUIMessageTools<UI_MESSAGE>,
+>({
+  state,
+  tool,
+  toolCallId,
+  output,
+  errorText,
+}:
+  | {
+      state?: 'output-available';
+      tool: TOOL;
+      toolCallId: string;
+      output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
+      errorText?: never;
+    }
+  | {
+      state: 'output-error';
+      tool: TOOL;
+      toolCallId: string;
+      output?: never;
+      errorText: string;
+    }) => void | PromiseLike<void>;
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
