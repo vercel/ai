@@ -4209,12 +4209,10 @@ describe('generateText', () => {
               "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
               "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
               "ai.settings.maxRetries": 2,
-              "ai.usage.completionTokens": 10,
               "ai.usage.inputTokenDetails.noCacheTokens": 3,
               "ai.usage.inputTokens": 3,
               "ai.usage.outputTokenDetails.textTokens": 10,
               "ai.usage.outputTokens": 10,
-              "ai.usage.promptTokens": 3,
               "ai.usage.totalTokens": 13,
               "gen_ai.request.model": "mock-model-id",
               "gen_ai.response.finish_reasons": [

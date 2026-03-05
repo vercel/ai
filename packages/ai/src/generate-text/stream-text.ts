@@ -1989,8 +1989,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                               stepResponse.timestamp.toISOString(),
                             'ai.response.providerMetadata':
                               JSON.stringify(stepProviderMetadata),
-                            'ai.usage.promptTokens': stepUsage.inputTokens,
-                            'ai.usage.completionTokens': stepUsage.outputTokens,
                             'ai.usage.inputTokens': stepUsage.inputTokens,
                             'ai.usage.inputTokenDetails.noCacheTokens':
                               stepUsage.inputTokenDetails?.noCacheTokens,

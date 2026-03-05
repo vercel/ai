@@ -826,6 +826,7 @@ export async function generateText<
                     headers: result.response?.headers,
                     body: result.response?.body,
                   };
+                  const usage = asLanguageModelUsage(result.usage);
 
                   // Add response information to the span:
                   span.setAttributes(
@@ -855,10 +856,6 @@ export async function generateText<
                           result.providerMetadata,
                         ),
 
-                        'ai.usage.promptTokens': result.usage.inputTokens.total,
-                        'ai.usage.completionTokens':
-                          result.usage.outputTokens.total,
-
                         'ai.usage.inputTokens': result.usage.inputTokens.total,
                         'ai.usage.inputTokenDetails.noCacheTokens':
                           result.usage.inputTokens.noCache,
@@ -872,9 +869,7 @@ export async function generateText<
                           result.usage.outputTokens.text,
                         'ai.usage.outputTokenDetails.reasoningTokens':
                           result.usage.outputTokens.reasoning,
-                        'ai.usage.totalTokens':
-                          (result.usage.inputTokens.total ?? 0) +
-                          (result.usage.outputTokens.total ?? 0),
+                        'ai.usage.totalTokens': usage.totalTokens,
                         'ai.usage.reasoningTokens':
                           result.usage.outputTokens.reasoning,
                         'ai.usage.cachedInputTokens':
