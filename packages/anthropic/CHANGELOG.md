@@ -1,5 +1,25 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 3.0.58
+
+### Patch Changes
+
+- 3fb4e70: feat(anthropic): support eagerInputStreaming option for fine-grained tool streaming
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+
 ## 3.0.57
 
 ### Patch Changes
