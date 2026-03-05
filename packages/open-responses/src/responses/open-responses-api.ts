@@ -608,7 +608,7 @@ export type Reasoning = {
  */
 export type OpenResponsesRequestBody = {
   /**
-   * The model to use for this request, e.g. 'gpt-5.2'.
+   * The model to use for this request, e.g. 'gpt-5.4'.
    */
   model: string;
 
