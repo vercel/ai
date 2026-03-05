@@ -132,6 +132,8 @@ export type GatewayModelId =
   | 'openai/gpt-5.2-pro'
   | 'openai/gpt-5.3-chat'
   | 'openai/gpt-5.3-codex'
+  | 'openai/gpt-5.4'
+  | 'openai/gpt-5.4-pro'
   | 'openai/gpt-oss-120b'
   | 'openai/gpt-oss-20b'
   | 'openai/gpt-oss-safeguard-20b'
