@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.1
+
+### Patch Changes
+
+- 6a3793e: chore(ai): add optional ChatRequestOptions to `addToolApprovalResponse` and `addToolOutput`
+
 ## 7.0.0-beta.0
 
 ### Major Changes

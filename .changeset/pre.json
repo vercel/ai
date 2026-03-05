@@ -82,5 +82,9 @@
     "generate-llms-txt": "0.0.0",
     "@vercel/ai-tsconfig": "0.0.0"
   },
-  "changesets": ["google-validated-strict-tools", "start-v7-prerelease"]
+  "changesets": [
+    "curvy-doors-shake",
+    "google-validated-strict-tools",
+    "start-v7-prerelease"
+  ]
 }
