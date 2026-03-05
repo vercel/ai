@@ -1,5 +1,17 @@
 # ai
 
+## 7.0.0-beta.3
+
+### Patch Changes
+
+- 531251e: fix(security): validate redirect targets in download functions to prevent SSRF bypass
+
+  Both `downloadBlob` and `download` now validate the final URL after following HTTP redirects, preventing attackers from bypassing SSRF protections via open redirects to internal/private addresses.
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+  - @ai-sdk/gateway@4.0.0-beta.2
+
 ## 7.0.0-beta.2
 
 ### Patch Changes

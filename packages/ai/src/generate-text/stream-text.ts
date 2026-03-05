@@ -1957,29 +1957,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                         ? JSON.stringify(stepToolCalls)
                         : undefined;
 
-                    // record telemetry information first to ensure best effort timing
+                    // record telemetry attributes that don't depend on transforms:
                     try {
                       doStreamSpan.setAttributes(
                         await selectTelemetryAttributes({
                           telemetry,
                           attributes: {
                             'ai.response.finishReason': stepFinishReason,
-                            'ai.response.text': {
-                              output: () => activeText,
-                            },
-                            'ai.response.reasoning': {
-                              output: () => {
-                                const reasoningParts = recordedContent.filter(
-                                  (
-                                    c,
-                                  ): c is { type: 'reasoning'; text: string } =>
-                                    c.type === 'reasoning',
-                                );
-                                return reasoningParts.length > 0
-                                  ? reasoningParts.map(r => r.text).join('\n')
-                                  : undefined;
-                              },
-                            },
                             'ai.response.toolCalls': {
                               output: () => stepToolCallsJson,
                             },
@@ -2021,9 +2005,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                       );
                     } catch (error) {
                       // ignore error setting telemetry attributes
-                    } finally {
-                      // finish doStreamSpan before other operations for correct timing:
-                      doStreamSpan.end();
                     }
 
                     controller.enqueue({
@@ -2046,6 +2027,33 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     // wait for the step to be fully processed by the event processor
                     // to ensure that the recorded steps are complete:
                     await stepFinish.promise;
+
+                    // set transform-dependent attributes after the step has been
+                    // fully processed (post-transform) by the event processor:
+                    const processedStep =
+                      recordedSteps[recordedSteps.length - 1];
+                    try {
+                      doStreamSpan.setAttributes(
+                        await selectTelemetryAttributes({
+                          telemetry,
+                          attributes: {
+                            'ai.response.text': {
+                              output: () => processedStep.text,
+                            },
+                            'ai.response.reasoning': {
+                              output: () => processedStep.reasoningText,
+                            },
+                            'ai.response.providerMetadata': JSON.stringify(
+                              processedStep.providerMetadata,
+                            ),
+                          },
+                        }),
+                      );
+                    } catch (error) {
+                      // ignore error setting telemetry attributes
+                    } finally {
+                      doStreamSpan.end();
+                    }
 
                     const clientToolCalls = stepToolCalls.filter(
                       toolCall => toolCall.providerExecuted !== true,

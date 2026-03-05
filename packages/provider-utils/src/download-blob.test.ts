@@ -204,6 +204,82 @@ describe('downloadBlob() SSRF protection', () => {
       DownloadError,
     );
   });
+
+  it('should reject redirects to private IP addresses', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      redirected: true,
+      url: 'http://169.254.169.254/latest/meta-data/',
+      headers: new Headers({ 'content-type': 'text/plain' }),
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('secret'));
+          controller.close();
+        },
+      }),
+    } as unknown as Response);
+
+    try {
+      await expect(downloadBlob('https://evil.com/redirect')).rejects.toThrow(
+        DownloadError,
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('should reject redirects to localhost', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      redirected: true,
+      url: 'http://localhost:8080/admin',
+      headers: new Headers({ 'content-type': 'text/plain' }),
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('secret'));
+          controller.close();
+        },
+      }),
+    } as unknown as Response);
+
+    try {
+      await expect(downloadBlob('https://evil.com/redirect')).rejects.toThrow(
+        DownloadError,
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('should allow redirects to safe URLs', async () => {
+    const originalFetch = globalThis.fetch;
+    const content = new TextEncoder().encode('safe content');
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      redirected: true,
+      url: 'https://cdn.example.com/image.png',
+      headers: new Headers({ 'content-type': 'image/png' }),
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(content);
+          controller.close();
+        },
+      }),
+    } as unknown as Response);
+
+    try {
+      const result = await downloadBlob('https://example.com/image.png');
+      expect(result).toBeInstanceOf(Blob);
+      expect(result.type).toBe('image/png');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });
 
 describe('DownloadError', () => {
