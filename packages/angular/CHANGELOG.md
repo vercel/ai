@@ -1,5 +1,17 @@
 # @ai-sdk/angular
 
+## 3.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - ai@7.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
 ## 2.0.117
 
 ### Patch Changes
