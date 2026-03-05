@@ -220,8 +220,9 @@ describe('XaiChatLanguageModel', () => {
 
     it('should pass frequencyPenalty, presencePenalty, and stopSequences', async () => {
       prepareJsonFixtureResponse('xai-text');
+      const grokTwoModel = new XaiChatLanguageModel('grok-2', testConfig);
 
-      const { warnings } = await model.doGenerate({
+      const { warnings } = await grokTwoModel.doGenerate({
         prompt: TEST_PROMPT,
         frequencyPenalty: 0.5,
         presencePenalty: 1,
@@ -230,7 +231,7 @@ describe('XaiChatLanguageModel', () => {
 
       expect(warnings).toEqual([]);
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        model: 'grok-beta',
+        model: 'grok-2',
         messages: [{ role: 'user', content: 'Hello' }],
         frequency_penalty: 0.5,
         presence_penalty: 1,

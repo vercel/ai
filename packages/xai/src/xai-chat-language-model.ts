@@ -97,7 +97,10 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
     let xaiPresencePenalty = presencePenalty;
     let xaiStopSequences = stopSequences;
 
-    if (xaiFrequencyPenalty != null && modelCapabilities.isReasoningModel) {
+    if (
+      xaiFrequencyPenalty != null &&
+      !modelCapabilities.supportsFrequencyPenalty
+    ) {
       xaiFrequencyPenalty = undefined;
       warnings.push({
         type: 'unsupported',
@@ -109,7 +112,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
 
     if (
       xaiPresencePenalty != null &&
-      (modelCapabilities.isReasoningModel || modelCapabilities.isGrokThreeModel)
+      !modelCapabilities.supportsPresencePenalty
     ) {
       xaiPresencePenalty = undefined;
       warnings.push({
@@ -120,7 +123,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
       });
     }
 
-    if (xaiStopSequences != null && modelCapabilities.isReasoningModel) {
+    if (xaiStopSequences != null && !modelCapabilities.supportsStopSequences) {
       xaiStopSequences = undefined;
       warnings.push({
         type: 'unsupported',
