@@ -1,5 +1,19 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/anthropic@4.0.0-beta.0
+  - @ai-sdk/google@4.0.0-beta.0
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
 ## 4.0.80
 
 ### Patch Changes
