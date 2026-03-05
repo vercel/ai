@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.45
+
+### Patch Changes
+
+- e2a59ef: fix(provider/google): preserve groundingMetadata and urlContextMetadata when they arrive in a stream chunk before the finishReason chunk
+
 ## 3.0.44
 
 ### Patch Changes
