@@ -29,7 +29,7 @@ import { TypedToolError } from './tool-error';
  */
 export async function executeToolCall<
   CONTEXT extends Context,
-  TOOLS extends ToolSet,
+  TOOLS extends ToolSet<CONTEXT>,
 >({
   toolCall,
   tools,

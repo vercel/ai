@@ -1,15 +1,15 @@
 import { Context, Tool } from '@ai-sdk/provider-utils';
 
-export type ToolSet = Record<
+export type ToolSet<CONTEXT extends Context = any> = Record<
   string,
   (
-    | Tool<never, never, any>
-    | Tool<any, any, any>
-    | Tool<any, never, any>
-    | Tool<never, any, any>
+    | Tool<never, never, CONTEXT>
+    | Tool<any, any, CONTEXT>
+    | Tool<any, never, CONTEXT>
+    | Tool<never, any, CONTEXT>
   ) &
     Pick<
-      Tool<any, any, any>,
+      Tool<any, any, CONTEXT>,
       | 'execute'
       | 'onInputAvailable'
       | 'onInputStart'
@@ -18,8 +18,5 @@ export type ToolSet = Record<
     >
 >;
 
-export type InferContextFromTool<TOOL extends Tool> =
-  TOOL extends Tool<any, any, infer CONTEXT> ? CONTEXT : never;
-
 export type InferContextFromToolSet<TOOLS extends ToolSet> =
-  TOOLS extends ToolSet ? InferContextFromTool<TOOLS[keyof TOOLS]> : never;
+  TOOLS extends ToolSet<infer CONTEXT> ? CONTEXT : never;
