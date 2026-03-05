@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.18
+
+### Patch Changes
+
+- 824b295: fix(provider-utils): prevent unicode escape bypass in secureJsonParse
+
 ## 4.0.17
 
 ### Patch Changes
