@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.57
+
+### Patch Changes
+
+- 4dda2a3: feat(google): add support for image search, replace obsolete google_search_retrieval implementation
+
 ## 2.0.56
 
 ### Patch Changes
