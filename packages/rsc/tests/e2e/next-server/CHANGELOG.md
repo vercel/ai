@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [ad4cfc2]
+  - ai@6.0.116
+
+## 0.0.1
+
+### Patch Changes
+
 - ai@6.0.115
 
 ## 0.0.1

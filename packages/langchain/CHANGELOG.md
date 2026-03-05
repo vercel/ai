@@ -1,5 +1,12 @@
 # @ai-sdk/langchain
 
+## 2.0.122
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - ai@6.0.116
+
 ## 2.0.121
 
 ### Patch Changes
