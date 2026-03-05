@@ -20,6 +20,7 @@ export * from './remove-undefined-entries';
 export * from './resolve';
 export * from './response-handler';
 export * from './uint8-utils';
+export { validateDownloadUrl } from './validate-download-url';
 export * from './validate-types';
 export * from './validator';
 export * from './without-trailing-slash';
