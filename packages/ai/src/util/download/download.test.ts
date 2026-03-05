@@ -8,6 +8,28 @@ const server = createTestServer({
   'http://example.com/large': {},
 });
 
+describe('download SSRF protection', () => {
+  it('should reject private IPv4 addresses', async () => {
+    for (const ip of ['127.0.0.1', '10.0.0.1', '169.254.169.254']) {
+      try {
+        await download({ url: new URL(`http://${ip}/file`) });
+        expect.fail(`Expected download to throw for ${ip}`);
+      } catch (error) {
+        expect(DownloadError.isInstance(error)).toBe(true);
+      }
+    }
+  });
+
+  it('should reject localhost', async () => {
+    try {
+      await download({ url: new URL('http://localhost/file') });
+      expect.fail('Expected download to throw for localhost');
+    } catch (error) {
+      expect(DownloadError.isInstance(error)).toBe(true);
+    }
+  });
+});
+
 describe('download', () => {
   it('should download data successfully and match expected bytes', async () => {
     const expectedBytes = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
