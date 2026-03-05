@@ -362,6 +362,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       totalTokens: undefined,
     };
     let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
+    let lastGroundingMetadata: GroundingMetadataSchema | null = null;
+    let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -419,6 +421,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             }
 
             const content = candidate.content;
+
+            if (candidate.groundingMetadata != null) {
+              lastGroundingMetadata = candidate.groundingMetadata;
+            }
+            if (candidate.urlContextMetadata != null) {
+              lastUrlContextMetadata = candidate.urlContextMetadata;
+            }
 
             const sources = extractSources({
               groundingMetadata: candidate.groundingMetadata,
@@ -608,8 +617,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
               providerMetadata = {
                 google: {
                   promptFeedback: value.promptFeedback ?? null,
-                  groundingMetadata: candidate.groundingMetadata ?? null,
-                  urlContextMetadata: candidate.urlContextMetadata ?? null,
+                  groundingMetadata: lastGroundingMetadata,
+                  urlContextMetadata: lastUrlContextMetadata,
                   safetyRatings: candidate.safetyRatings ?? null,
                 },
               };
