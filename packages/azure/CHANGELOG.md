@@ -1,5 +1,12 @@
 # @ai-sdk/azure
 
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [7afaece]
+  - @ai-sdk/openai@4.0.0-beta.1
+
 ## 4.0.0-beta.0
 
 ### Major Changes
