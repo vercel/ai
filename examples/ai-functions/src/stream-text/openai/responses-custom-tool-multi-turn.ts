@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai.responses('gpt-5.4'),
+    model: openai.responses('gpt-5.2-codex'),
     tools: {
       write_sql: openai.tools.customTool({
         name: 'write_sql',

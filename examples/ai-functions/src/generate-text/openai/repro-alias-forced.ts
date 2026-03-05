@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai.responses('gpt-5.4'),
+    model: openai.responses('gpt-5.2-codex'),
     tools: {
       alias_name: openai.tools.customTool({
         name: 'write_sql',
