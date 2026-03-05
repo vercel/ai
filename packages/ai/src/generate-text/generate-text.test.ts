@@ -4182,8 +4182,11 @@ describe('generateText', () => {
               "ai.response.finishReason": "stop",
               "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
               "ai.settings.maxRetries": 2,
-              "ai.usage.completionTokens": 10,
-              "ai.usage.promptTokens": 3,
+              "ai.usage.inputTokenDetails.noCacheTokens": 3,
+              "ai.usage.inputTokens": 3,
+              "ai.usage.outputTokenDetails.textTokens": 10,
+              "ai.usage.outputTokens": 10,
+              "ai.usage.totalTokens": 13,
               "operation.name": "ai.generateText",
             },
             "events": [],
@@ -4207,7 +4210,12 @@ describe('generateText', () => {
               "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
               "ai.settings.maxRetries": 2,
               "ai.usage.completionTokens": 10,
+              "ai.usage.inputTokenDetails.noCacheTokens": 3,
+              "ai.usage.inputTokens": 3,
+              "ai.usage.outputTokenDetails.textTokens": 10,
+              "ai.usage.outputTokens": 10,
               "ai.usage.promptTokens": 3,
+              "ai.usage.totalTokens": 13,
               "gen_ai.request.model": "mock-model-id",
               "gen_ai.response.finish_reasons": [
                 "stop",
@@ -4360,6 +4368,91 @@ describe('generateText', () => {
       expect(doGenerateSpan?.attributes['ai.response.reasoning']).toBe(
         'I will open the conversation with witty banter.\n',
       );
+    });
+
+    it('should record total usage across steps in root span', async () => {
+      let responseCount = 0;
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  finishReason: {
+                    unified: 'tool-calls' as const,
+                    raw: undefined,
+                  },
+                  usage: {
+                    inputTokens: {
+                      total: 5,
+                      noCache: 5,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 20,
+                      text: 20,
+                      reasoning: undefined,
+                    },
+                  },
+                  warnings: [],
+                  content: [
+                    {
+                      type: 'tool-call' as const,
+                      toolCallType: 'function' as const,
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "value" }',
+                    },
+                  ],
+                };
+              case 1:
+              default:
+                return {
+                  finishReason: {
+                    unified: 'stop' as const,
+                    raw: 'stop',
+                  },
+                  usage: {
+                    inputTokens: {
+                      total: 10,
+                      noCache: 10,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 15,
+                      text: 15,
+                      reasoning: undefined,
+                    },
+                  },
+                  warnings: [],
+                  content: [{ type: 'text' as const, text: 'Final answer.' }],
+                };
+            }
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+        },
+        stopWhen: stepCountIs(2),
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          tracer,
+        },
+      });
+
+      const rootSpan = tracer.jsonSpans.find(
+        span => span.name === 'ai.generateText',
+      );
+
+      expect(rootSpan?.attributes['ai.usage.inputTokens']).toBe(15);
+      expect(rootSpan?.attributes['ai.usage.outputTokens']).toBe(35);
+      expect(rootSpan?.attributes['ai.usage.totalTokens']).toBe(50);
     });
   });
 
