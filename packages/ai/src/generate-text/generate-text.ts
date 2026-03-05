@@ -250,7 +250,7 @@ export type GenerateTextOnFinishCallback<
  */
 export async function generateText<
   CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+  TOOLS extends ToolSet<CONTEXT>,
   OUTPUT extends Output = Output<string, string>,
 >({
   model: modelArg,

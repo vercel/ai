@@ -3,13 +3,13 @@ import { Context, Tool } from '@ai-sdk/provider-utils';
 export type ToolSet<CONTEXT extends Context = any> = Record<
   string,
   (
-    | Tool<CONTEXT, never, never>
-    | Tool<CONTEXT, any, any>
-    | Tool<CONTEXT, any, never>
-    | Tool<CONTEXT, never, any>
+    | Tool<never, never, CONTEXT>
+    | Tool<any, any, CONTEXT>
+    | Tool<any, never, CONTEXT>
+    | Tool<never, any, CONTEXT>
   ) &
     Pick<
-      Tool<CONTEXT, any, any>,
+      Tool<any, any, CONTEXT>,
       | 'execute'
       | 'onInputAvailable'
       | 'onInputStart'

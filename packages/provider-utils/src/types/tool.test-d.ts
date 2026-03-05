@@ -14,7 +14,7 @@ describe('tool type', () => {
       });
 
       expectTypeOf(aTool).toEqualTypeOf<
-        Tool<Context, { number: number }, never>
+        Tool<{ number: number }, never, Context>
       >();
       expectTypeOf(aTool.execute).toEqualTypeOf<undefined>();
       expectTypeOf(aTool.execute).not.toEqualTypeOf<Function>();
@@ -28,7 +28,7 @@ describe('tool type', () => {
         inputSchema: null as unknown as FlexibleSchema<T>,
       });
 
-      expectTypeOf(aTool).toEqualTypeOf<Tool<Context, T, never>>();
+      expectTypeOf(aTool).toEqualTypeOf<Tool<T, never, Context>>();
       expectTypeOf(aTool.execute).toEqualTypeOf<undefined>();
       expectTypeOf(aTool.execute).not.toEqualTypeOf<Function>();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<FlexibleSchema<T>>();
@@ -81,10 +81,10 @@ describe('tool type', () => {
       });
 
       expectTypeOf(aTool).toEqualTypeOf<
-        Tool<Context, { number: number }, 'test'>
+        Tool<{ number: number }, 'test', Context>
       >();
       expectTypeOf(aTool.execute).toMatchTypeOf<
-        ToolExecuteFunction<Context, { number: number }, 'test'> | undefined
+        ToolExecuteFunction<{ number: number }, 'test', Context> | undefined
       >();
       expectTypeOf(aTool.execute).not.toEqualTypeOf<undefined>();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<
@@ -101,10 +101,10 @@ describe('tool type', () => {
       });
 
       expectTypeOf(aTool).toEqualTypeOf<
-        Tool<Context, { number: number }, 'test'>
+        Tool<{ number: number }, 'test', Context>
       >();
       expectTypeOf(aTool.execute).toEqualTypeOf<
-        ToolExecuteFunction<Context, { number: number }, 'test'> | undefined
+        ToolExecuteFunction<{ number: number }, 'test', Context> | undefined
       >();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<
         FlexibleSchema<{ number: number }>
@@ -182,7 +182,7 @@ describe('tool type', () => {
           expectTypeOf(options).toEqualTypeOf<{
             toolCallId: string;
             messages: ModelMessage[];
-            experimental_context?: Context | undefined;
+            experimental_context: Context;
           }>();
           return true;
         },
@@ -195,7 +195,7 @@ describe('tool type', () => {
             options: {
               toolCallId: string;
               messages: ModelMessage[];
-              experimental_context?: Context | undefined;
+              experimental_context: Context;
             },
           ) => boolean | PromiseLike<boolean>)
         | undefined
@@ -211,7 +211,7 @@ describe('tool type', () => {
           expectTypeOf(options).toEqualTypeOf<{
             toolCallId: string;
             messages: ModelMessage[];
-            experimental_context?: Context | undefined;
+            experimental_context: Context;
           }>();
           return true;
         },
@@ -224,7 +224,7 @@ describe('tool type', () => {
             options: {
               toolCallId: string;
               messages: ModelMessage[];
-              experimental_context?: Context | undefined;
+              experimental_context: Context;
             },
           ) => boolean | PromiseLike<boolean>)
         | undefined

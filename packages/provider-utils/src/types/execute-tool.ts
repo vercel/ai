@@ -2,12 +2,12 @@ import { isAsyncIterable } from '../is-async-iterable';
 import { Context } from './context';
 import { ToolExecuteFunction, ToolExecutionOptions } from './tool';
 
-export async function* executeTool<CONTEXT extends Context, INPUT, OUTPUT>({
+export async function* executeTool<INPUT, OUTPUT, CONTEXT extends Context>({
   execute,
   input,
   options,
 }: {
-  execute: ToolExecuteFunction<CONTEXT, INPUT, OUTPUT>;
+  execute: ToolExecuteFunction<INPUT, OUTPUT, CONTEXT>;
   input: INPUT;
   options: ToolExecutionOptions<CONTEXT>;
 }): AsyncGenerator<
