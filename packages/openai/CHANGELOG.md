@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.42
+
+### Patch Changes
+
+- 2589004: feat(provider/openai): add GPT-5.4 model support
+
 ## 3.0.41
 
 ### Patch Changes
