@@ -17,6 +17,7 @@ export interface AnthropicToolOptions {
   allowedCallers?: Array<
     'direct' | 'code_execution_20250825' | 'code_execution_20260120'
   >;
+  eagerInputStreaming?: boolean;
 }
 
 export async function prepareTools({
@@ -66,6 +67,8 @@ export async function prepareTools({
         const anthropicOptions = tool.providerOptions?.anthropic as
           | AnthropicToolOptions
           | undefined;
+        // eager_input_streaming is only supported on custom (function) tools
+        const eagerInputStreaming = anthropicOptions?.eagerInputStreaming;
         const deferLoading = anthropicOptions?.deferLoading;
         const allowedCallers = anthropicOptions?.allowedCallers;
 
@@ -74,6 +77,7 @@ export async function prepareTools({
           description: tool.description,
           input_schema: tool.inputSchema,
           cache_control: cacheControl,
+          ...(eagerInputStreaming ? { eager_input_streaming: true } : {}),
           ...(supportsStructuredOutput === true && tool.strict != null
             ? { strict: tool.strict }
             : {}),
