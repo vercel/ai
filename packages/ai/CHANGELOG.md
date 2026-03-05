@@ -1,5 +1,13 @@
 # ai
 
+## 5.0.149
+
+### Patch Changes
+
+- c66afc5: fix(security): validate redirect targets in download functions to prevent SSRF bypass
+
+  `download` now validates the final URL after following HTTP redirects, preventing attackers from bypassing SSRF protections via open redirects to internal/private addresses.
+
 ## 5.0.148
 
 ### Patch Changes
