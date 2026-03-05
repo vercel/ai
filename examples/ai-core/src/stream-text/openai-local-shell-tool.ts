@@ -4,11 +4,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
-<<<<<<< HEAD:examples/ai-core/src/stream-text/openai-local-shell-tool.ts
     model: openai.responses('gpt-5-codex'),
-=======
-    model: openai.responses('gpt-5.4'),
->>>>>>> 258900473 (Backport: feat(openai): add GPT-5.4 model support (#13117)):examples/ai-functions/src/stream-text/openai/responses-shell-local-skills.ts
     tools: {
       local_shell: openai.tools.localShell({
         execute: async ({ action }) => {

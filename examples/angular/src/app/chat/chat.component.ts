@@ -41,11 +41,7 @@ export class ChatComponent {
       },
       {
         body: {
-<<<<<<< HEAD
           selectedModel: 'gpt-4.1',
-=======
-          selectedModel: 'openai/gpt-5.4',
->>>>>>> 258900473 (Backport: feat(openai): add GPT-5.4 model support (#13117))
         },
       },
     );

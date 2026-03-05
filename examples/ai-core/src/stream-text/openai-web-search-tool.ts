@@ -4,13 +4,9 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
-<<<<<<< HEAD:examples/ai-core/src/stream-text/openai-web-search-tool.ts
     model: openai('gpt-5-mini'),
     prompt:
       'What happened in tech news today? Open a few pages and search for a key word pattern vercel on those pages.',
-=======
-    model: openai.responses('gpt-5.4'),
->>>>>>> 258900473 (Backport: feat(openai): add GPT-5.4 model support (#13117)):examples/ai-functions/src/stream-text/openai/responses-shell-container.ts
     tools: {
       web_search: openai.tools.webSearch({
         searchContextSize: 'medium',
