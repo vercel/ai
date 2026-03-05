@@ -24,6 +24,38 @@ import { ToolSet } from './tool-set';
  */
 export type StepResult<TOOLS extends ToolSet> = {
   /**
+   * Zero-based index of this step.
+   */
+  readonly stepNumber: number;
+
+  /**
+   * Information about the model that produced this step.
+   */
+  readonly model: {
+    /** The provider of the model. */
+    readonly provider: string;
+    /** The ID of the model. */
+    readonly modelId: string;
+  };
+
+  /**
+   * Identifier from telemetry settings for grouping related operations.
+   */
+  readonly functionId: string | undefined;
+
+  /**
+   * Additional metadata from telemetry settings.
+   */
+  readonly metadata: Record<string, unknown> | undefined;
+
+  /**
+   * User-defined context object flowing through the generation.
+   *
+   * Experimental (can break in patch releases).
+   */
+  readonly experimental_context: unknown;
+
+  /**
    * The content that was generated in the last step.
    */
   readonly content: Array<ContentPart<TOOLS>>;
@@ -136,6 +168,11 @@ export type StepResult<TOOLS extends ToolSet> = {
 export class DefaultStepResult<TOOLS extends ToolSet>
   implements StepResult<TOOLS>
 {
+  readonly stepNumber: StepResult<TOOLS>['stepNumber'];
+  readonly model: StepResult<TOOLS>['model'];
+  readonly functionId: StepResult<TOOLS>['functionId'];
+  readonly metadata: StepResult<TOOLS>['metadata'];
+  readonly experimental_context: StepResult<TOOLS>['experimental_context'];
   readonly content: StepResult<TOOLS>['content'];
   readonly finishReason: StepResult<TOOLS>['finishReason'];
   readonly rawFinishReason: StepResult<TOOLS>['rawFinishReason'];
@@ -146,6 +183,11 @@ export class DefaultStepResult<TOOLS extends ToolSet>
   readonly providerMetadata: StepResult<TOOLS>['providerMetadata'];
 
   constructor({
+    stepNumber,
+    model,
+    functionId,
+    metadata,
+    experimental_context,
     content,
     finishReason,
     rawFinishReason,
@@ -155,6 +197,11 @@ export class DefaultStepResult<TOOLS extends ToolSet>
     response,
     providerMetadata,
   }: {
+    stepNumber: StepResult<TOOLS>['stepNumber'];
+    model: StepResult<TOOLS>['model'];
+    functionId: StepResult<TOOLS>['functionId'];
+    metadata: StepResult<TOOLS>['metadata'];
+    experimental_context: StepResult<TOOLS>['experimental_context'];
     content: StepResult<TOOLS>['content'];
     finishReason: StepResult<TOOLS>['finishReason'];
     rawFinishReason: StepResult<TOOLS>['rawFinishReason'];
@@ -164,6 +211,11 @@ export class DefaultStepResult<TOOLS extends ToolSet>
     response: StepResult<TOOLS>['response'];
     providerMetadata: StepResult<TOOLS>['providerMetadata'];
   }) {
+    this.stepNumber = stepNumber;
+    this.model = model;
+    this.functionId = functionId;
+    this.metadata = metadata;
+    this.experimental_context = experimental_context;
     this.content = content;
     this.finishReason = finishReason;
     this.rawFinishReason = rawFinishReason;

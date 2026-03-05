@@ -1,4 +1,9 @@
-import { DownloadError } from '@ai-sdk/provider-utils';
+import {
+  DownloadError,
+  readResponseWithSizeLimit,
+  DEFAULT_MAX_DOWNLOAD_SIZE,
+  validateDownloadUrl,
+} from '@ai-sdk/provider-utils';
 import {
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
@@ -9,12 +14,23 @@ import { VERSION } from '../../version';
  * Download a file from a URL.
  *
  * @param url - The URL to download from.
+ * @param maxBytes - Maximum allowed download size in bytes. Defaults to 100 MiB.
+ * @param abortSignal - An optional abort signal to cancel the download.
  * @returns The downloaded data and media type.
  *
- * @throws DownloadError if the download fails.
+ * @throws DownloadError if the download fails or exceeds maxBytes.
  */
-export const download = async ({ url }: { url: URL }) => {
+export const download = async ({
+  url,
+  maxBytes,
+  abortSignal,
+}: {
+  url: URL;
+  maxBytes?: number;
+  abortSignal?: AbortSignal;
+}) => {
   const urlText = url.toString();
+  validateDownloadUrl(urlText);
   try {
     const response = await fetch(urlText, {
       headers: withUserAgentSuffix(
@@ -22,6 +38,7 @@ export const download = async ({ url }: { url: URL }) => {
         `ai-sdk/${VERSION}`,
         getRuntimeEnvironmentUserAgent(),
       ),
+      signal: abortSignal,
     });
 
     if (!response.ok) {
@@ -32,8 +49,14 @@ export const download = async ({ url }: { url: URL }) => {
       });
     }
 
+    const data = await readResponseWithSizeLimit({
+      response,
+      url: urlText,
+      maxBytes: maxBytes ?? DEFAULT_MAX_DOWNLOAD_SIZE,
+    });
+
     return {
-      data: new Uint8Array(await response.arrayBuffer()),
+      data,
       mediaType: response.headers.get('content-type') ?? undefined,
     };
   } catch (error) {

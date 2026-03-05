@@ -902,8 +902,8 @@ Check out the [stream protocol guide](/docs/ai-sdk-ui/stream-protocol) for more 
 
 ## Reasoning
 
-Some models such as as DeepSeek `deepseek-r1`
-and Anthropic `claude-3-7-sonnet-20250219` support reasoning tokens.
+Some models such as DeepSeek `deepseek-r1`
+and Anthropic `claude-sonnet-4-5-20250929` support reasoning tokens.
 These tokens are typically sent before the message content.
 You can forward them to the client with the `sendReasoning` option:
 
@@ -1008,7 +1008,7 @@ messages.map(message => (
 
 ## Image Generation
 
-Some models such as Google `gemini-2.5-flash-image-preview` support image generation.
+Some models such as Google `gemini-2.5-flash-image` support image generation.
 When images are generated, they are exposed as files to the client.
 On the client side, you can access file parts of the message object
 and render them as images.

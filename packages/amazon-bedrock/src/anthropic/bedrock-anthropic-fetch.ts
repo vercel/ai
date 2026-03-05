@@ -1,4 +1,8 @@
-import { FetchFunction, safeParseJSON } from '@ai-sdk/provider-utils';
+import {
+  convertBase64ToUint8Array,
+  FetchFunction,
+  safeParseJSON,
+} from '@ai-sdk/provider-utils';
 import { createBedrockEventStreamDecoder } from '../bedrock-event-stream-decoder';
 
 export function createBedrockAnthropicFetch(
@@ -43,7 +47,9 @@ function transformBedrockEventStreamToSSE(
         }
         const bytes = (parsed.value as { bytes?: string }).bytes;
         if (bytes) {
-          const anthropicEvent = atob(bytes);
+          const anthropicEvent = new TextDecoder().decode(
+            convertBase64ToUint8Array(bytes),
+          );
           controller.enqueue(textEncoder.encode(`data: ${anthropicEvent}\n\n`));
         } else {
           controller.enqueue(textEncoder.encode(`data: ${event.data}\n\n`));

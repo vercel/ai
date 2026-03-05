@@ -3,30 +3,36 @@ import { createVertex } from './google-vertex-provider';
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
+import { GoogleVertexVideoModel } from './google-vertex-video-model';
 
 // Mock the imported modules
-vi.mock('@ai-sdk/provider-utils', () => ({
-  loadSetting: vi.fn().mockImplementation(({ settingValue }) => settingValue),
-  loadOptionalSetting: vi
-    .fn()
-    .mockImplementation(({ settingValue, environmentVariableName }) => {
-      if (settingValue) return settingValue;
-      if (
-        environmentVariableName === 'GOOGLE_VERTEX_API_KEY' &&
-        process.env.GOOGLE_VERTEX_API_KEY
-      ) {
-        return process.env.GOOGLE_VERTEX_API_KEY;
-      }
-      return undefined;
+vi.mock('@ai-sdk/provider-utils', async importOriginal => {
+  const actual =
+    await importOriginal<typeof import('@ai-sdk/provider-utils')>();
+  return {
+    ...actual,
+    loadSetting: vi.fn().mockImplementation(({ settingValue }) => settingValue),
+    loadOptionalSetting: vi
+      .fn()
+      .mockImplementation(({ settingValue, environmentVariableName }) => {
+        if (settingValue) return settingValue;
+        if (
+          environmentVariableName === 'GOOGLE_VERTEX_API_KEY' &&
+          process.env.GOOGLE_VERTEX_API_KEY
+        ) {
+          return process.env.GOOGLE_VERTEX_API_KEY;
+        }
+        return undefined;
+      }),
+    generateId: vi.fn().mockReturnValue('mock-id'),
+    withoutTrailingSlash: vi.fn().mockImplementation(url => url),
+    resolve: vi.fn().mockImplementation(async value => {
+      if (typeof value === 'function') return value();
+      return value;
     }),
-  generateId: vi.fn().mockReturnValue('mock-id'),
-  withoutTrailingSlash: vi.fn().mockImplementation(url => url),
-  resolve: vi.fn().mockImplementation(async value => {
-    if (typeof value === 'function') return value();
-    return value;
-  }),
-  withUserAgentSuffix: vi.fn().mockImplementation(headers => headers),
-}));
+    withUserAgentSuffix: vi.fn().mockImplementation(headers => headers),
+  };
+});
 
 vi.mock('@ai-sdk/google/internal', () => ({
   GoogleGenerativeAILanguageModel: vi.fn(),
@@ -44,6 +50,10 @@ vi.mock('./google-vertex-embedding-model', () => ({
 
 vi.mock('./google-vertex-image-model', () => ({
   GoogleVertexImageModel: vi.fn(),
+}));
+
+vi.mock('./google-vertex-video-model', () => ({
+  GoogleVertexVideoModel: vi.fn(),
 }));
 
 describe('google-vertex-provider', () => {
@@ -314,5 +324,59 @@ describe('google-vertex-provider', () => {
     );
 
     vi.unstubAllGlobals();
+  });
+
+  it('should create a video model with default settings', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+    provider.video('veo-2.0-generate-001');
+
+    expect(GoogleVertexVideoModel).toHaveBeenCalledWith(
+      'veo-2.0-generate-001',
+      expect.objectContaining({
+        provider: 'google.vertex.video',
+        baseURL:
+          'https://test-location-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/test-location/publishers/google',
+        headers: expect.any(Function),
+        generateId: expect.any(Function),
+      }),
+    );
+  });
+
+  it('should use correct URL for global region with video model', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'global',
+    });
+    provider.video('veo-3.0-generate-001');
+
+    expect(GoogleVertexVideoModel).toHaveBeenCalledWith(
+      'veo-3.0-generate-001',
+      expect.objectContaining({
+        provider: 'google.vertex.video',
+        baseURL:
+          'https://aiplatform.googleapis.com/v1beta1/projects/test-project/locations/global/publishers/google',
+        headers: expect.any(Function),
+      }),
+    );
+  });
+
+  it('should use custom baseURL for video model when provided', () => {
+    const customBaseURL = 'https://custom-endpoint.example.com';
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+      baseURL: customBaseURL,
+    });
+    provider.video('veo-2.0-generate-001');
+
+    expect(GoogleVertexVideoModel).toHaveBeenCalledWith(
+      'veo-2.0-generate-001',
+      expect.objectContaining({
+        baseURL: customBaseURL,
+      }),
+    );
   });
 });

@@ -1,5 +1,23 @@
 # @ai-sdk/provider
 
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+## 3.0.8
+
+### Patch Changes
+
+- 7168375: feat (ai, provider): default global provider video model resolution
+
+## 3.0.7
+
+### Patch Changes
+
+- 53f6731: feat (ai, provider): experimental generate video support
+
 ## 3.0.6
 
 ### Patch Changes

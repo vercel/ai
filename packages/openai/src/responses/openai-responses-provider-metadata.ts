@@ -32,6 +32,7 @@ export type OpenaiResponsesProviderMetadata = {
 
 export type ResponsesTextProviderMetadata = {
   itemId: string;
+  phase?: 'commentary' | 'final_answer' | null;
   annotations?: Array<ResponsesOutputTextAnnotationProviderMetadata>;
 };
 
