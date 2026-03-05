@@ -9,7 +9,7 @@ export async function* executeTool<INPUT, OUTPUT, CONTEXT extends Context>({
 }: {
   execute: ToolExecuteFunction<INPUT, OUTPUT, CONTEXT>;
   input: INPUT;
-  options: ToolExecutionOptions<CONTEXT>;
+  options: ToolExecutionOptions<NoInfer<CONTEXT>>;
 }): AsyncGenerator<
   { type: 'preliminary'; output: OUTPUT } | { type: 'final'; output: OUTPUT }
 > {

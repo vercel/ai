@@ -273,14 +273,14 @@ export type Tool<
 /**
  * Infer the input type of a tool.
  */
-export type InferToolInput<TOOL extends Tool<any>> =
-  TOOL extends Tool<any, infer INPUT, any> ? INPUT : never;
+export type InferToolInput<TOOL extends Tool> =
+  TOOL extends Tool<infer INPUT, any, any> ? INPUT : never;
 
 /**
  * Infer the output type of a tool.
  */
-export type InferToolOutput<TOOL extends Tool<any>> =
-  TOOL extends Tool<any, any, infer OUTPUT> ? OUTPUT : never;
+export type InferToolOutput<TOOL extends Tool> =
+  TOOL extends Tool<any, infer OUTPUT, any> ? OUTPUT : never;
 
 /**
  * Helper function for inferring the execute args of a tool.
