@@ -5,7 +5,7 @@ import { print } from '../../lib/print';
 
 run(async () => {
   const result = await generateText({
-    model: openai.responses('gpt-5.2-codex'),
+    model: openai.responses('gpt-5.4'),
     tools: {
       write_sql: openai.tools.customTool({
         name: 'write_sql',
