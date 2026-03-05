@@ -1,7 +1,7 @@
 import { LanguageModelV3CallOptions } from '@ai-sdk/provider';
 import { tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { ToolLoopAgent } from './tool-loop-agent';
@@ -2573,6 +2573,491 @@ describe('ToolLoopAgent', () => {
             "text": "Hello, world!",
           }
         `);
+      });
+    });
+  });
+
+  describe('telemetry integrations', () => {
+    afterEach(() => {
+      globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = undefined;
+    });
+
+    describe('generate', () => {
+      const dummyResponseValues = {
+        usage: {
+          cachedInputTokens: undefined,
+          inputTokens: {
+            total: 3,
+            noCache: 3,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: 10,
+            text: 10,
+            reasoning: undefined,
+          },
+        },
+        warnings: [],
+      };
+
+      function createToolCallMockModel() {
+        let callCount = 0;
+        return new MockLanguageModelV3({
+          doGenerate: async () => {
+            if (callCount++ === 0) {
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'tool-call' as const,
+                    toolCallType: 'function' as const,
+                    toolCallId: 'call-1',
+                    toolName: 'testTool',
+                    input: '{ "value": "test" }',
+                  },
+                ],
+                finishReason: {
+                  unified: 'tool-calls' as const,
+                  raw: undefined,
+                },
+              };
+            }
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text' as const, text: 'done' }],
+              finishReason: { unified: 'stop' as const, raw: 'stop' },
+            };
+          },
+        });
+      }
+
+      it('should call per-call integration listeners for all lifecycle events', async () => {
+        const events: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+          experimental_telemetry: {
+            integrations: {
+              onStart: async () => {
+                events.push('onStart');
+              },
+              onStepStart: async () => {
+                events.push('onStepStart');
+              },
+              onToolCallStart: async () => {
+                events.push('onToolCallStart');
+              },
+              onToolCallFinish: async () => {
+                events.push('onToolCallFinish');
+              },
+              onStepFinish: async () => {
+                events.push('onStepFinish');
+              },
+              onFinish: async () => {
+                events.push('onFinish');
+              },
+            },
+          },
+        });
+
+        await agent.generate({ prompt: 'test' });
+
+        expect(events).toEqual([
+          'onStart',
+          'onStepStart',
+          'onToolCallStart',
+          'onToolCallFinish',
+          'onStepFinish',
+          'onStepStart',
+          'onStepFinish',
+          'onFinish',
+        ]);
+      });
+
+      it('should call globally registered integration listeners', async () => {
+        const events: string[] = [];
+
+        globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = [
+          {
+            onStart: async () => {
+              events.push('global-onStart');
+            },
+            onStepFinish: async () => {
+              events.push('global-onStepFinish');
+            },
+            onFinish: async () => {
+              events.push('global-onFinish');
+            },
+          },
+        ];
+
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV3({
+            doGenerate: async () => ({
+              content: [{ type: 'text' as const, text: 'Hello!' }],
+              ...dummyResponseValues,
+              finishReason: { unified: 'stop' as const, raw: 'stop' },
+            }),
+          }),
+        });
+
+        await agent.generate({ prompt: 'test' });
+
+        expect(events).toEqual([
+          'global-onStart',
+          'global-onStepFinish',
+          'global-onFinish',
+        ]);
+      });
+
+      it('should call integration listeners alongside agent callbacks', async () => {
+        const events: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV3({
+            doGenerate: async () => ({
+              content: [{ type: 'text' as const, text: 'Hello!' }],
+              ...dummyResponseValues,
+              finishReason: { unified: 'stop' as const, raw: 'stop' },
+            }),
+          }),
+          experimental_onStart: async () => {
+            events.push('agent-onStart');
+          },
+          onStepFinish: async () => {
+            events.push('agent-onStepFinish');
+          },
+          onFinish: async () => {
+            events.push('agent-onFinish');
+          },
+          experimental_telemetry: {
+            integrations: {
+              onStart: async () => {
+                events.push('integration-onStart');
+              },
+              onStepFinish: async () => {
+                events.push('integration-onStepFinish');
+              },
+              onFinish: async () => {
+                events.push('integration-onFinish');
+              },
+            },
+          },
+        });
+
+        await agent.generate({ prompt: 'test' });
+
+        expect(events).toEqual([
+          'agent-onStart',
+          'integration-onStart',
+          'agent-onStepFinish',
+          'integration-onStepFinish',
+          'agent-onFinish',
+          'integration-onFinish',
+        ]);
+      });
+
+      it('should not break generation when an integration listener throws', async () => {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV3({
+            doGenerate: async () => ({
+              content: [{ type: 'text' as const, text: 'Hello!' }],
+              ...dummyResponseValues,
+              finishReason: { unified: 'stop' as const, raw: 'stop' },
+            }),
+          }),
+          experimental_telemetry: {
+            integrations: {
+              onStart: async () => {
+                throw new Error('integration error');
+              },
+              onStepFinish: async () => {
+                throw new Error('integration error');
+              },
+              onFinish: async () => {
+                throw new Error('integration error');
+              },
+            },
+          },
+        });
+
+        const result = await agent.generate({ prompt: 'test' });
+
+        expect(result.text).toBe('Hello!');
+      });
+    });
+
+    describe('stream', () => {
+      const dummyStreamFinish = {
+        type: 'finish' as const,
+        finishReason: { unified: 'stop' as const, raw: 'stop' },
+        usage: {
+          inputTokens: {
+            total: 3,
+            noCache: 3,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: 10,
+            text: 10,
+            reasoning: undefined,
+          },
+        },
+        providerMetadata: {},
+      };
+
+      function createToolCallStreamMockModel() {
+        let callCount = 0;
+        return new MockLanguageModelV3({
+          doStream: async () => {
+            if (callCount++ === 0) {
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'stream-start', warnings: [] },
+                  {
+                    type: 'response-metadata',
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-1',
+                    toolName: 'testTool',
+                    input: '{ "value": "test" }',
+                  },
+                  {
+                    ...dummyStreamFinish,
+                    finishReason: {
+                      unified: 'tool-calls' as const,
+                      raw: undefined,
+                    },
+                  },
+                ]),
+              };
+            }
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'id-1',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'done' },
+                { type: 'text-end', id: '1' },
+                dummyStreamFinish,
+              ]),
+            };
+          },
+        });
+      }
+
+      it('should call per-call integration listeners for all lifecycle events', async () => {
+        const events: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createToolCallStreamMockModel(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+          experimental_telemetry: {
+            integrations: {
+              onStart: async () => {
+                events.push('onStart');
+              },
+              onStepStart: async () => {
+                events.push('onStepStart');
+              },
+              onToolCallStart: async () => {
+                events.push('onToolCallStart');
+              },
+              onToolCallFinish: async () => {
+                events.push('onToolCallFinish');
+              },
+              onStepFinish: async () => {
+                events.push('onStepFinish');
+              },
+              onFinish: async () => {
+                events.push('onFinish');
+              },
+            },
+          },
+        });
+
+        const result = await agent.stream({ prompt: 'test' });
+        await result.consumeStream();
+
+        expect(events).toEqual([
+          'onStart',
+          'onStepStart',
+          'onToolCallStart',
+          'onToolCallFinish',
+          'onStepFinish',
+          'onStepStart',
+          'onStepFinish',
+          'onFinish',
+        ]);
+      });
+
+      it('should call globally registered integration listeners', async () => {
+        const events: string[] = [];
+
+        globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = [
+          {
+            onStart: async () => {
+              events.push('global-onStart');
+            },
+            onStepFinish: async () => {
+              events.push('global-onStepFinish');
+            },
+            onFinish: async () => {
+              events.push('global-onFinish');
+            },
+          },
+        ];
+
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV3({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello!' },
+                { type: 'text-end', id: '1' },
+                dummyStreamFinish,
+              ]),
+            }),
+          }),
+        });
+
+        const result = await agent.stream({ prompt: 'test' });
+        await result.consumeStream();
+
+        expect(events).toEqual([
+          'global-onStart',
+          'global-onStepFinish',
+          'global-onFinish',
+        ]);
+      });
+
+      it('should call integration listeners alongside agent callbacks', async () => {
+        const events: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV3({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello!' },
+                { type: 'text-end', id: '1' },
+                dummyStreamFinish,
+              ]),
+            }),
+          }),
+          experimental_onStart: async () => {
+            events.push('agent-onStart');
+          },
+          onStepFinish: async () => {
+            events.push('agent-onStepFinish');
+          },
+          onFinish: async () => {
+            events.push('agent-onFinish');
+          },
+          experimental_telemetry: {
+            integrations: {
+              onStart: async () => {
+                events.push('integration-onStart');
+              },
+              onStepFinish: async () => {
+                events.push('integration-onStepFinish');
+              },
+              onFinish: async () => {
+                events.push('integration-onFinish');
+              },
+            },
+          },
+        });
+
+        const result = await agent.stream({ prompt: 'test' });
+        await result.consumeStream();
+
+        expect(events).toEqual([
+          'agent-onStart',
+          'integration-onStart',
+          'agent-onStepFinish',
+          'integration-onStepFinish',
+          'agent-onFinish',
+          'integration-onFinish',
+        ]);
+      });
+
+      it('should not break streaming when an integration listener throws', async () => {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV3({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello!' },
+                { type: 'text-end', id: '1' },
+                dummyStreamFinish,
+              ]),
+            }),
+          }),
+          experimental_telemetry: {
+            integrations: {
+              onStart: async () => {
+                throw new Error('integration error');
+              },
+              onStepFinish: async () => {
+                throw new Error('integration error');
+              },
+              onFinish: async () => {
+                throw new Error('integration error');
+              },
+            },
+          },
+        });
+
+        const result = await agent.stream({ prompt: 'test' });
+        await result.consumeStream();
+
+        expect(await result.text).toBe('Hello!');
       });
     });
   });

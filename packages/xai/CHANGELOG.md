@@ -1,5 +1,67 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/openai-compatible@3.0.0-beta.0
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 3.0.67
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+  - @ai-sdk/openai-compatible@2.0.35
+
+## 3.0.66
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+  - @ai-sdk/openai-compatible@2.0.34
+
+## 3.0.65
+
+### Patch Changes
+
+- d5801fe: fix(xai): ensure strict mode for tools
+
+## 3.0.64
+
+### Patch Changes
+
+- Updated dependencies [89caf28]
+  - @ai-sdk/openai-compatible@2.0.33
+
+## 3.0.63
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+  - @ai-sdk/openai-compatible@2.0.32
+
+## 3.0.62
+
+### Patch Changes
+
+- 64a8fae: chore: remove obsolete model IDs for Anthropic, Google, OpenAI, xAI
+
+## 3.0.61
+
+### Patch Changes
+
+- 2e00e03: add support for `logprobs` and `topLogprobs` in xai chat and responses provider options
+
 ## 3.0.60
 
 ### Patch Changes

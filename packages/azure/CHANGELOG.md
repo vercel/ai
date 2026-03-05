@@ -1,5 +1,49 @@
 # @ai-sdk/azure
 
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/openai@4.0.0-beta.0
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 3.0.42
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+  - @ai-sdk/openai@3.0.41
+
+## 3.0.41
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+  - @ai-sdk/openai@3.0.40
+
+## 3.0.40
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+  - @ai-sdk/openai@3.0.39
+
+## 3.0.39
+
+### Patch Changes
+
+- Updated dependencies [64a8fae]
+  - @ai-sdk/openai@3.0.38
+
 ## 3.0.38
 
 ### Patch Changes
