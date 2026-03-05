@@ -85,6 +85,7 @@
   "changesets": [
     "clean-peaches-fly",
     "curvy-doors-shake",
+    "fix-ssrf-redirect-bypass",
     "google-stream-grounding-metadata",
     "google-validated-strict-tools",
     "shyiw-vvoqc-mivmr",
