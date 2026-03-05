@@ -1,4 +1,6 @@
 import {
+  Context,
+  ContextRegistry,
   ModelMessage,
   ProviderOptions,
   SystemModelMessage,
@@ -22,6 +24,7 @@ import { StepResult } from './step-result';
  */
 export type PrepareStepFunction<
   TOOLS extends Record<string, Tool> = Record<string, Tool>,
+  CONTEXT extends Partial<ContextRegistry> = ContextRegistry,
 > = (options: {
   /**
    * The steps that have been executed so far.
@@ -46,8 +49,10 @@ export type PrepareStepFunction<
   /**
    * The context passed via the experimental_context setting (experimental).
    */
-  experimental_context: unknown;
-}) => PromiseLike<PrepareStepResult<TOOLS>> | PrepareStepResult<TOOLS>;
+  experimental_context: Context<CONTEXT>;
+}) =>
+  | PromiseLike<PrepareStepResult<TOOLS, CONTEXT>>
+  | PrepareStepResult<TOOLS, CONTEXT>;
 
 /**
  * The result type returned by a {@link PrepareStepFunction},
@@ -55,6 +60,7 @@ export type PrepareStepFunction<
  */
 export type PrepareStepResult<
   TOOLS extends Record<string, Tool> = Record<string, Tool>,
+  CONTEXT extends Partial<ContextRegistry> = ContextRegistry,
 > =
   | {
       /**
@@ -90,7 +96,7 @@ export type PrepareStepResult<
        * Changing the context will affect the context in this step
        * and all subsequent steps.
        */
-      experimental_context?: unknown;
+      experimental_context?: Context<CONTEXT>;
 
       /**
        * Additional provider-specific options for this step.

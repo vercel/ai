@@ -3,11 +3,14 @@ import { FlexibleSchema } from '../schema';
 import { ToolResultOutput } from './content-part';
 import { ModelMessage } from './model-message';
 import { ProviderOptions } from './provider-options';
+import { Context, ContextRegistry } from './context';
 
 /**
  * Additional options that are sent into each tool call.
  */
-export interface ToolExecutionOptions {
+export interface ToolExecutionOptions<
+  CONTEXT extends Partial<ContextRegistry> = ContextRegistry,
+> {
   /**
    * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
    */
@@ -36,13 +39,16 @@ export interface ToolExecutionOptions {
    *
    * Experimental (can break in patch releases).
    */
-  experimental_context?: unknown;
+  experimental_context?: Context<CONTEXT>;
 }
 
 /**
  * Function that is called to determine if the tool needs approval before it can be executed.
  */
-export type ToolNeedsApprovalFunction<INPUT> = (
+export type ToolNeedsApprovalFunction<
+  INPUT,
+  CONTEXT extends Partial<ContextRegistry> = ContextRegistry,
+> = (
   input: INPUT,
   options: {
     /**
@@ -61,13 +67,17 @@ export type ToolNeedsApprovalFunction<INPUT> = (
      *
      * Experimental (can break in patch releases).
      */
-    experimental_context?: unknown;
+    experimental_context?: Context<CONTEXT>;
   },
 ) => boolean | PromiseLike<boolean>;
 
-export type ToolExecuteFunction<INPUT, OUTPUT> = (
+export type ToolExecuteFunction<
+  INPUT,
+  OUTPUT,
+  CONTEXT extends Partial<ContextRegistry> = ContextRegistry,
+> = (
   input: INPUT,
-  options: ToolExecutionOptions,
+  options: ToolExecutionOptions<CONTEXT>,
 ) => AsyncIterable<OUTPUT> | PromiseLike<OUTPUT> | OUTPUT;
 
 // 0 extends 1 & N checks for any

@@ -1,10 +1,10 @@
-import { LanguageModelV3ToolResultPart } from '@ai-sdk/provider';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
 import { FlexibleSchema } from '../schema';
+import { ToolResultOutput } from './content-part';
+import { Context, ContextRegistry } from './context';
 import { ModelMessage } from './model-message';
 import { Tool, tool, ToolExecuteFunction } from './tool';
-import { ToolResultOutput } from './content-part';
 
 describe('tool type', () => {
   describe('input type', () => {
@@ -176,7 +176,7 @@ describe('tool type', () => {
           expectTypeOf(options).toEqualTypeOf<{
             toolCallId: string;
             messages: ModelMessage[];
-            experimental_context?: unknown;
+            experimental_context?: Context<ContextRegistry> | undefined;
           }>();
           return true;
         },
@@ -189,7 +189,7 @@ describe('tool type', () => {
             options: {
               toolCallId: string;
               messages: ModelMessage[];
-              experimental_context: unknown;
+              experimental_context?: Context<ContextRegistry> | undefined;
             },
           ) => boolean | PromiseLike<boolean>)
         | undefined
@@ -205,7 +205,7 @@ describe('tool type', () => {
           expectTypeOf(options).toEqualTypeOf<{
             toolCallId: string;
             messages: ModelMessage[];
-            experimental_context?: unknown;
+            experimental_context?: Context<ContextRegistry> | undefined;
           }>();
           return true;
         },
@@ -218,7 +218,7 @@ describe('tool type', () => {
             options: {
               toolCallId: string;
               messages: ModelMessage[];
-              experimental_context: unknown;
+              experimental_context?: Context<ContextRegistry> | undefined;
             },
           ) => boolean | PromiseLike<boolean>)
         | undefined

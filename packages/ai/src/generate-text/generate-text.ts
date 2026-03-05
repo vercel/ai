@@ -2,20 +2,20 @@ import {
   LanguageModelV4,
   LanguageModelV4Content,
   LanguageModelV4ToolCall,
-  LanguageModelV4ToolChoice,
 } from '@ai-sdk/provider';
 import {
+  Context,
+  ContextRegistry,
   createIdGenerator,
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
-  SystemModelMessage,
   ToolApprovalResponse,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { NoOutputGeneratedError } from '../error';
-import { notify } from '../util/notify';
+import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
@@ -23,7 +23,6 @@ import {
   CallSettings,
   getStepTimeoutMs,
   getTotalTimeoutMs,
-  TimeoutConfiguration,
 } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
@@ -32,14 +31,13 @@ import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choi
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
+import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
-import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
   LanguageModel,
@@ -53,7 +51,9 @@ import {
 } from '../types/usage';
 import { asArray } from '../util/as-array';
 import { DownloadFunction } from '../util/download/download-function';
+import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
+import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import type {
@@ -91,7 +91,6 @@ import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
-import { mergeAbortSignals } from '../util/merge-abort-signals';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -247,6 +246,7 @@ export type GenerateTextOnFinishCallback<TOOLS extends ToolSet> = (
  */
 export async function generateText<
   TOOLS extends ToolSet,
+  CONTEXT extends Partial<ContextRegistry> = ContextRegistry,
   OUTPUT extends Output = Output<string, string>,
 >({
   model: modelArg,
@@ -270,7 +270,7 @@ export async function generateText<
   prepareStep = experimental_prepareStep,
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
-  experimental_context,
+  experimental_context = {} as Context<CONTEXT>,
   experimental_include: include,
   _internal: { generateId = originalGenerateId } = {},
   experimental_onStart: onStart,
@@ -352,12 +352,12 @@ export async function generateText<
     /**
      * @deprecated Use `prepareStep` instead.
      */
-    experimental_prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
+    experimental_prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, CONTEXT>;
 
     /**
      * Optional function that you can use to provide different settings for a step.
      */
-    prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
+    prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, CONTEXT>;
 
     /**
      * A function that attempts to repair a tool call that failed to parse.
@@ -410,7 +410,7 @@ export async function generateText<
      *
      * @default undefined
      */
-    experimental_context?: unknown;
+    experimental_context?: Context<CONTEXT>;
 
     /**
      * Settings for controlling what data is included in step results.
