@@ -3,6 +3,15 @@ import { mock, test } from 'node:test';
 
 import { verifyChangesets } from './index.js';
 
+function mockReadFile(handler) {
+  return mock.fn(async (path, encoding) => {
+    if (path.endsWith('pre.json')) {
+      throw new Error('ENOENT');
+    }
+    return handler(path, encoding);
+  });
+}
+
 test('happy path', async () => {
   const event = {
     pull_request: {
@@ -13,14 +22,15 @@ test('happy path', async () => {
     CHANGED_FILES: '.changeset/some-happy-path.md',
   };
 
-  const readFile = mock.fn(async path => {
-    return `---\nai: patch\n@ai-sdk/provider: patch\n---\n## Test changeset`;
-  });
+  const readFile = mockReadFile(
+    async () =>
+      `---\nai: patch\n@ai-sdk/provider: patch\n---\n## Test changeset`,
+  );
 
   await verifyChangesets(event, env, readFile);
 
-  assert.strictEqual(readFile.mock.callCount(), 1);
-  assert.deepStrictEqual(readFile.mock.calls[0].arguments, [
+  assert.strictEqual(readFile.mock.callCount(), 2);
+  assert.deepStrictEqual(readFile.mock.calls[1].arguments, [
     '../../../../.changeset/some-happy-path.md',
     'utf-8',
   ]);
@@ -36,11 +46,11 @@ test('ignores .changeset/README.md', async () => {
     CHANGED_FILES: '.changeset/README.md',
   };
 
-  const readFile = mock.fn(() => {});
+  const readFile = mockReadFile(() => {});
 
   await verifyChangesets(event, env, readFile);
 
-  assert.strictEqual(readFile.mock.callCount(), 0);
+  assert.strictEqual(readFile.mock.callCount(), 1);
 });
 
 test('invalid file - not a .changeset file', async () => {
@@ -53,7 +63,7 @@ test('invalid file - not a .changeset file', async () => {
     CHANGED_FILES: '.changeset/not-a-changeset-file.txt',
   };
 
-  const readFile = mock.fn(() => {});
+  const readFile = mockReadFile(() => {});
 
   await assert.rejects(
     () => verifyChangesets(event, env, readFile),
@@ -62,7 +72,7 @@ test('invalid file - not a .changeset file', async () => {
     }),
   );
 
-  assert.strictEqual(readFile.mock.callCount(), 0);
+  assert.strictEqual(readFile.mock.callCount(), 1);
 });
 
 test('invalid .changeset file - no frontmatter', async () => {
@@ -75,9 +85,8 @@ test('invalid .changeset file - no frontmatter', async () => {
     CHANGED_FILES: '.changeset/invalid-changeset-file.md',
   };
 
-  const readFile = mock.fn(async path => {
-    return 'frontmatter missing';
-  });
+  const readFile = mockReadFile(async () => 'frontmatter missing');
+
   await assert.rejects(
     () => verifyChangesets(event, env, readFile),
     Object.assign(new Error('Invalid .changeset file - no frontmatter found'), {
@@ -85,8 +94,8 @@ test('invalid .changeset file - no frontmatter', async () => {
       content: 'frontmatter missing',
     }),
   );
-  assert.strictEqual(readFile.mock.callCount(), 1);
-  assert.deepStrictEqual(readFile.mock.calls[0].arguments, [
+  assert.strictEqual(readFile.mock.callCount(), 2);
+  assert.deepStrictEqual(readFile.mock.calls[1].arguments, [
     '../../../../.changeset/invalid-changeset-file.md',
     'utf-8',
   ]);
@@ -102,7 +111,7 @@ test('minor update', async () => {
     CHANGED_FILES: '.changeset/patch-update.md .changeset/minor-update.md',
   };
 
-  const readFile = mock.fn(async path => {
+  const readFile = mockReadFile(async path => {
     if (path.endsWith('patch-update.md')) {
       return `---\nai: patch\n---\n## Test changeset`;
     }
@@ -123,12 +132,12 @@ test('minor update', async () => {
     ),
   );
 
-  assert.strictEqual(readFile.mock.callCount(), 2);
-  assert.deepStrictEqual(readFile.mock.calls[0].arguments, [
+  assert.strictEqual(readFile.mock.callCount(), 3);
+  assert.deepStrictEqual(readFile.mock.calls[1].arguments, [
     '../../../../.changeset/patch-update.md',
     'utf-8',
   ]);
-  assert.deepStrictEqual(readFile.mock.calls[1].arguments, [
+  assert.deepStrictEqual(readFile.mock.calls[2].arguments, [
     '../../../../.changeset/minor-update.md',
     'utf-8',
   ]);
@@ -189,5 +198,76 @@ test('major update - with "major" label', async () => {
   assert.strictEqual(
     message,
     'Skipping changeset verification - "major" label found',
+  );
+});
+
+test('major update - allowed when pre-release mode is active', async () => {
+  const event = {
+    pull_request: {
+      labels: [],
+    },
+  };
+  const env = {
+    CHANGED_FILES: '.changeset/major-update.md',
+  };
+
+  const readFile = mock.fn(async path => {
+    if (path.endsWith('pre.json')) {
+      return '{"mode":"pre","tag":"beta"}';
+    }
+
+    return `---\n@ai-sdk/provider: major\n---\n## Test changeset`;
+  });
+
+  await verifyChangesets(event, env, readFile);
+
+  assert.strictEqual(readFile.mock.callCount(), 2);
+  assert.deepStrictEqual(readFile.mock.calls[1].arguments, [
+    '../../../../.changeset/major-update.md',
+    'utf-8',
+  ]);
+});
+
+test('invalid changeset - still rejected in pre-release mode', async () => {
+  const event = {
+    pull_request: {
+      labels: [],
+    },
+  };
+  const env = {
+    CHANGED_FILES: '.changeset/bad-changeset.md',
+  };
+
+  const readFile = mock.fn(async path => {
+    if (path.endsWith('pre.json')) {
+      return '{"mode":"pre","tag":"beta"}';
+    }
+
+    return 'frontmatter missing';
+  });
+
+  await assert.rejects(
+    () => verifyChangesets(event, env, readFile),
+    error => error.message.includes('no frontmatter found'),
+  );
+});
+
+test('major update - rejected when not in pre-release mode', async () => {
+  const event = {
+    pull_request: {
+      labels: [],
+    },
+  };
+  const env = {
+    CHANGED_FILES: '.changeset/minor-update.md',
+  };
+
+  const readFile = mockReadFile(async () => {
+    return `---\n@ai-sdk/provider: minor\n---\n## Test changeset`;
+  });
+
+  await assert.rejects(
+    () => verifyChangesets(event, env, readFile),
+    error => error.message.includes('invalid version bump'),
   );
 });
