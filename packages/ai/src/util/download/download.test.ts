@@ -10,21 +10,23 @@ const server = createTestServer({
 
 describe('download SSRF protection', () => {
   it('should reject private IPv4 addresses', async () => {
-    await expect(
-      download({ url: new URL('http://127.0.0.1/file') }),
-    ).rejects.toThrow(DownloadError);
-    await expect(
-      download({ url: new URL('http://10.0.0.1/file') }),
-    ).rejects.toThrow(DownloadError);
-    await expect(
-      download({ url: new URL('http://169.254.169.254/latest/meta-data/') }),
-    ).rejects.toThrow(DownloadError);
+    for (const ip of ['127.0.0.1', '10.0.0.1', '169.254.169.254']) {
+      try {
+        await download({ url: new URL(`http://${ip}/file`) });
+        expect.fail(`Expected download to throw for ${ip}`);
+      } catch (error) {
+        expect(DownloadError.isInstance(error)).toBe(true);
+      }
+    }
   });
 
   it('should reject localhost', async () => {
-    await expect(
-      download({ url: new URL('http://localhost/file') }),
-    ).rejects.toThrow(DownloadError);
+    try {
+      await download({ url: new URL('http://localhost/file') });
+      expect.fail('Expected download to throw for localhost');
+    } catch (error) {
+      expect(DownloadError.isInstance(error)).toBe(true);
+    }
   });
 });
 
