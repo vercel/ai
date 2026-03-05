@@ -26,6 +26,11 @@ export async function downloadBlob(
       signal: options?.abortSignal,
     });
 
+    // Validate final URL after redirects to prevent SSRF via open redirect
+    if (response.redirected) {
+      validateDownloadUrl(response.url);
+    }
+
     if (!response.ok) {
       throw new DownloadError({
         url,
