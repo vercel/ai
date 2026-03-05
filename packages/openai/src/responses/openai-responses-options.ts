@@ -33,10 +33,10 @@ export const openaiResponsesReasoningModelIds = [
   'gpt-5.1-codex-mini',
   'gpt-5.1-codex',
   'gpt-5.1-codex-max',
-  'gpt-5.2',
-  'gpt-5.2-chat-latest',
-  'gpt-5.2-pro',
-  'gpt-5.2-codex',
+  'gpt-5.4',
+  'gpt-5.4-2026-03-05',
+  'gpt-5.4-pro',
+  'gpt-5.4-pro-2026-03-05',
   'gpt-5.3-codex',
 ] as const;
 
@@ -88,12 +88,10 @@ export type OpenAIResponsesModelId =
   | 'gpt-5.1-codex-mini'
   | 'gpt-5.1-codex'
   | 'gpt-5.1-codex-max'
-  | 'gpt-5.2'
-  | 'gpt-5.2-2025-12-11'
-  | 'gpt-5.2-chat-latest'
-  | 'gpt-5.2-pro'
-  | 'gpt-5.2-pro-2025-12-11'
-  | 'gpt-5.2-codex'
+  | 'gpt-5.4'
+  | 'gpt-5.4-2026-03-05'
+  | 'gpt-5.4-pro'
+  | 'gpt-5.4-pro-2026-03-05'
   | 'gpt-5.3-codex'
   | 'gpt-5-2025-08-07'
   | 'gpt-5-chat-latest'
