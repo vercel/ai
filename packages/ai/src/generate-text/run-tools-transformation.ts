@@ -1,4 +1,4 @@
-import { LanguageModelV3StreamPart, SharedV3Warning } from '@ai-sdk/provider';
+import { LanguageModelV4StreamPart, SharedV4Warning } from '@ai-sdk/provider';
 import {
   getErrorMessage,
   IdGenerator,
@@ -87,12 +87,11 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
 
   // Other types:
   | ({ type: 'source' } & Source)
-  | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
+  | { type: 'file'; file: GeneratedFile; providerMetadata?: ProviderMetadata } // different because of GeneratedFile object
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
   | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
   | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
-  | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
-  | { type: 'stream-start'; warnings: SharedV3Warning[] }
+  | { type: 'stream-start'; warnings: SharedV4Warning[] }
   | {
       type: 'response-metadata';
       id?: string;
@@ -126,7 +125,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   onToolCallFinish,
 }: {
   tools: TOOLS | undefined;
-  generatorStream: ReadableStream<LanguageModelV3StreamPart>;
+  generatorStream: ReadableStream<LanguageModelV4StreamPart>;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
   system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
@@ -137,8 +136,12 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   generateId: IdGenerator;
   stepNumber?: number;
   model?: { provider: string; modelId: string };
-  onToolCallStart?: StreamTextOnToolCallStartCallback<TOOLS>;
-  onToolCallFinish?: StreamTextOnToolCallFinishCallback<TOOLS>;
+  onToolCallStart?:
+    | StreamTextOnToolCallStartCallback<TOOLS>
+    | Array<StreamTextOnToolCallStartCallback<TOOLS> | undefined | null>;
+  onToolCallFinish?:
+    | StreamTextOnToolCallFinishCallback<TOOLS>
+    | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
@@ -182,11 +185,11 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
   // forward stream
   const forwardStream = new TransformStream<
-    LanguageModelV3StreamPart,
+    LanguageModelV4StreamPart,
     SingleRequestTextStreamPart<TOOLS>
   >({
     async transform(
-      chunk: LanguageModelV3StreamPart,
+      chunk: LanguageModelV4StreamPart,
       controller: TransformStreamDefaultController<
         SingleRequestTextStreamPart<TOOLS>
       >,
@@ -220,6 +223,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               data: chunk.data,
               mediaType: chunk.mediaType,
             }),
+            ...(chunk.providerMetadata != null
+              ? { providerMetadata: chunk.providerMetadata }
+              : {}),
           });
           break;
         }

@@ -1,5 +1,133 @@
 # ai-core-e2e-next-server
 
+## 0.0.1-beta.0
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - ai@7.0.0-beta.0
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - ai@6.0.116
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@6.0.115
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [2291047]
+  - ai@6.0.114
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [70d3980]
+  - ai@6.0.113
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@6.0.112
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [2129c82]
+  - ai@6.0.111
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@6.0.110
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@6.0.109
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [2a4f512]
+  - ai@6.0.108
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@6.0.107
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@6.0.106
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@6.0.105
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@6.0.104
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@6.0.103
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@6.0.102
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [5230482]
+  - ai@6.0.101
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [b7fba77]
+  - ai@6.0.100
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@6.0.99
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@6.0.98
+
 ## 0.0.1
 
 ### Patch Changes

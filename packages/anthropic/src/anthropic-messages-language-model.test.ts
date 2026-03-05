@@ -546,7 +546,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
       });
 
-      it('should pass json schema response format as output format', async () => {
+      it('should pass json schema response format as output_config.format', async () => {
         expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
           {
             "max_tokens": 64000,
@@ -562,21 +562,23 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ],
             "model": "claude-sonnet-4-5",
-            "output_format": {
-              "schema": {
-                "$schema": "http://json-schema.org/draft-07/schema#",
-                "additionalProperties": false,
-                "properties": {
-                  "name": {
-                    "type": "string",
+            "output_config": {
+              "format": {
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
                   },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
                 },
-                "required": [
-                  "name",
-                ],
-                "type": "object",
+                "type": "json_schema",
               },
-              "type": "json_schema",
             },
           }
         `);
@@ -631,7 +633,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
       });
 
-      it('should pass json schema response format as output format', async () => {
+      it('should pass json schema response format as output_config.format', async () => {
         expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
           {
             "max_tokens": 4096,
@@ -647,21 +649,23 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ],
             "model": "claude-unknown",
-            "output_format": {
-              "schema": {
-                "$schema": "http://json-schema.org/draft-07/schema#",
-                "additionalProperties": false,
-                "properties": {
-                  "name": {
-                    "type": "string",
+            "output_config": {
+              "format": {
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
                   },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
                 },
-                "required": [
-                  "name",
-                ],
-                "type": "object",
+                "type": "json_schema",
               },
-              "type": "json_schema",
             },
           }
         `);
@@ -705,7 +709,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         `);
       });
 
-      it('should include beta header when using json schema response format with supported model', async () => {
+      it('should NOT include beta header when using json schema response format (structured outputs are GA)', async () => {
         prepareJsonFixtureResponse('anthropic-json-output-format.1');
 
         await provider('claude-sonnet-4-5').doGenerate({
@@ -722,7 +726,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
           {
-            "anthropic-beta": "structured-outputs-2025-11-13",
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
             "x-api-key": "test-api-key",
@@ -2394,6 +2397,52 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
       });
 
+      it('should enable server-side web search when using anthropic.tools.webSearch_20260209', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_test',
+            content: [
+              {
+                type: 'text',
+                text: 'Here are the latest quantum computing breakthroughs.',
+              },
+            ],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 10, output_tokens: 20 },
+          },
+        };
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.web_search_20260209',
+              name: 'web_search',
+              args: {
+                maxUses: 3,
+                allowedDomains: ['arxiv.org', 'nature.com', 'mit.edu'],
+              },
+            },
+          ],
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.tools).toHaveLength(1);
+
+        expect(requestBody.tools[0]).toEqual({
+          type: 'web_search_20260209',
+          name: 'web_search',
+          max_uses: 3,
+          allowed_domains: ['arxiv.org', 'nature.com', 'mit.edu'],
+        });
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+          'code-execution-web-tools-2026-02-09',
+        );
+      });
+
       it('should pass web search configuration with blocked domains', async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
           type: 'json-value',
@@ -2758,6 +2807,9 @@ describe('AnthropicMessagesLanguageModel', () => {
               name: 'calculator',
               description: 'Calculate math',
               inputSchema: { type: 'object', properties: {} },
+              providerOptions: {
+                anthropic: { eagerInputStreaming: true },
+              },
             },
             {
               type: 'provider',
@@ -2777,6 +2829,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           name: 'calculator',
           description: 'Calculate math',
           input_schema: { type: 'object', properties: {} },
+          eager_input_streaming: true,
         });
 
         expect(requestBody.tools[1]).toEqual({
@@ -2835,6 +2888,86 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
 
         it('should include web fetch tool call and result in content', async () => {
+          expect(result.content).toMatchSnapshot();
+        });
+      });
+
+      it('should use web_fetch_20260209 for anthropic.tools.webFetch_20260209', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_test',
+            content: [{ type: 'text', text: 'Fetched result.' }],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 10, output_tokens: 20 },
+          },
+        };
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.web_fetch_20260209',
+              name: 'web_fetch',
+              args: { maxUses: 1 },
+            },
+          ],
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.tools).toHaveLength(1);
+        expect(requestBody.tools[0]).toEqual({
+          type: 'web_fetch_20260209',
+          name: 'web_fetch',
+          max_uses: 1,
+        });
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+          'code-execution-web-tools-2026-02-09',
+        );
+      });
+
+      describe('20260209 text response', () => {
+        let result: LanguageModelV3GenerateResult;
+
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('anthropic-web-fetch-tool-20260209.1');
+
+          result = await model.doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.web_fetch_20260209',
+                name: 'web_fetch',
+                args: {},
+              },
+              {
+                type: 'provider',
+                id: 'anthropic.code_execution_20260120',
+                name: 'code_execution',
+                args: {},
+              },
+            ],
+          });
+        });
+
+        it('should include web fetch tool call with input in content', async () => {
+          const webFetchToolCall = result.content.find(
+            (part: any) =>
+              part.type === 'tool-call' && part.toolName === 'web_fetch',
+          );
+          expect(webFetchToolCall).toBeDefined();
+          expect(webFetchToolCall).toMatchObject({
+            type: 'tool-call',
+            toolName: 'web_fetch',
+            input: '{"url":"https://example.com"}',
+            providerExecuted: true,
+          });
+        });
+
+        it('should include web fetch 20260209 tool call and result in content', async () => {
           expect(result.content).toMatchSnapshot();
         });
       });
@@ -3671,6 +3804,74 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    describe('code execution 20260120', () => {
+      it('should send request body with tool and no beta header', async () => {
+        prepareJsonFixtureResponse('anthropic-code-execution-20250825.1');
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20260120',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tools": [
+              {
+                "name": "code_execution",
+                "type": "code_execution_20260120",
+              },
+            ],
+          }
+        `);
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
+      });
+
+      it('should include code execution tool call and result in content', async () => {
+        prepareJsonFixtureResponse('anthropic-code-execution-20250825.1');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20260120',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
     describe('code execution 20250522', () => {
       const TEST_PROMPT = [
         {
@@ -4162,6 +4363,79 @@ describe('AnthropicMessagesLanguageModel', () => {
           "anthropic-version": "2023-06-01",
           "content-type": "application/json",
           "x-api-key": "test-api-key",
+        }
+      `);
+
+      expect(result.warnings).toStrictEqual([]);
+    });
+
+    it('should pass cache_control to request body', async () => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            cacheControl: { type: 'ephemeral' },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "cache_control": {
+            "type": "ephemeral",
+          },
+          "max_tokens": 4096,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "claude-3-haiku-20240307",
+        }
+      `);
+
+      expect(result.warnings).toStrictEqual([]);
+    });
+
+    it('should pass cache_control with ttl to request body', async () => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            cacheControl: { type: 'ephemeral', ttl: '1h' },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "cache_control": {
+            "ttl": "1h",
+            "type": "ephemeral",
+          },
+          "max_tokens": 4096,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "claude-3-haiku-20240307",
         }
       `);
 
@@ -5313,7 +5587,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
       });
 
-      it('should pass json schema response format as output format', async () => {
+      it('should pass json schema response format as output_config.format', async () => {
         expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
           {
             "max_tokens": 64000,
@@ -5329,41 +5603,43 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ],
             "model": "claude-sonnet-4-5",
-            "output_format": {
-              "schema": {
-                "$schema": "http://json-schema.org/draft-07/schema#",
-                "additionalProperties": false,
-                "properties": {
-                  "characters": {
-                    "items": {
-                      "additionalProperties": false,
-                      "properties": {
-                        "class": {
-                          "type": "string",
+            "output_config": {
+              "format": {
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "characters": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "class": {
+                            "type": "string",
+                          },
+                          "description": {
+                            "type": "string",
+                          },
+                          "name": {
+                            "type": "string",
+                          },
                         },
-                        "description": {
-                          "type": "string",
-                        },
-                        "name": {
-                          "type": "string",
-                        },
+                        "required": [
+                          "name",
+                          "class",
+                          "description",
+                        ],
+                        "type": "object",
                       },
-                      "required": [
-                        "name",
-                        "class",
-                        "description",
-                      ],
-                      "type": "object",
+                      "type": "array",
                     },
-                    "type": "array",
                   },
+                  "required": [
+                    "characters",
+                  ],
+                  "type": "object",
                 },
-                "required": [
-                  "characters",
-                ],
-                "type": "object",
+                "type": "json_schema",
               },
-              "type": "json_schema",
             },
             "stream": true,
           }
@@ -6452,6 +6728,38 @@ describe('AnthropicMessagesLanguageModel', () => {
         server.calls[0].requestHeaders['anthropic-beta'],
       ).toMatchInlineSnapshot(
         `"fine-grained-tool-streaming-2025-05-14,config-beta1,config-beta2,request-beta1,request-beta2"`,
+      );
+    });
+
+    it('should include providerOptions.anthropic.anthropicBeta in anthropic-beta header', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":5}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const provider = createAnthropic({ apiKey: 'test-api-key' });
+
+      await provider('claude-3-haiku-20240307').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            anthropicBeta: ['my-beta-2025-01-01', 'another-beta-2025-06-01'],
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+        'my-beta-2025-01-01',
+      );
+      expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+        'another-beta-2025-06-01',
       );
     });
 
@@ -7825,6 +8133,27 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    describe('code execution 20260120 tool', () => {
+      it('should stream code execution tool results without beta header', async () => {
+        prepareChunksFixtureResponse('anthropic-code-execution-20250825.1');
+
+        const result = await model.doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20260120',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
     describe('web fetch tool', () => {
       describe('txt response', () => {
         let result: LanguageModelV3StreamResult;
@@ -7846,6 +8175,55 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
 
         it('should stream web search tool results', async () => {
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        });
+      });
+    });
+
+    describe('web fetch 20260209 tool', () => {
+      describe('input provided in content_block_start', () => {
+        let result: LanguageModelV3StreamResult;
+
+        beforeEach(async () => {
+          prepareChunksFixtureResponse('anthropic-web-fetch-tool-20260209.1');
+
+          result = await model.doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.web_fetch_20260209',
+                name: 'web_fetch',
+                args: {},
+              },
+              {
+                type: 'provider',
+                id: 'anthropic.code_execution_20260120',
+                name: 'code_execution',
+                args: {},
+              },
+            ],
+          });
+        });
+
+        it('should include input from content_block_start in web_fetch tool call', async () => {
+          const streamArray = await convertReadableStreamToArray(result.stream);
+
+          const toolCallEnd = streamArray.find(
+            (part: any) =>
+              part.type === 'tool-call' && part.toolName === 'web_fetch',
+          );
+          expect(toolCallEnd).toBeDefined();
+          expect(toolCallEnd).toMatchObject({
+            type: 'tool-call',
+            toolName: 'web_fetch',
+            input: '{"url":"https://example.com"}',
+          });
+        });
+
+        it('should stream web fetch 20260209 tool results', async () => {
           expect(
             await convertReadableStreamToArray(result.stream),
           ).toMatchSnapshot();
@@ -8326,6 +8704,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
           ],
         }),
+        expect.any(Set),
       );
 
       // Verify transformed body was sent
@@ -8372,6 +8751,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           ],
           stream: true,
         }),
+        expect.any(Set),
       );
 
       // Verify transformed body was sent

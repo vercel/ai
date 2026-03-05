@@ -1,5 +1,6 @@
 import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
+import { notify } from '../util/notify';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
@@ -50,8 +51,12 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   stepNumber?: number;
   model?: { provider: string; modelId: string };
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
-  onToolCallStart?: GenerateTextOnToolCallStartCallback<TOOLS>;
-  onToolCallFinish?: GenerateTextOnToolCallFinishCallback<TOOLS>;
+  onToolCallStart?:
+    | GenerateTextOnToolCallStartCallback<TOOLS>
+    | Array<GenerateTextOnToolCallStartCallback<TOOLS> | undefined | null>;
+  onToolCallFinish?:
+    | GenerateTextOnToolCallFinishCallback<TOOLS>
+    | Array<GenerateTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
 }): Promise<ToolOutput<TOOLS> | undefined> {
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
@@ -91,11 +96,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     fn: async span => {
       let output: unknown;
 
-      try {
-        await onToolCallStart?.(baseCallbackEvent);
-      } catch (_ignored) {
-        // Errors in callbacks should not break the generation flow.
-      }
+      await notify({ event: baseCallbackEvent, callbacks: onToolCallStart });
 
       const startTime = now();
 
@@ -126,16 +127,15 @@ export async function executeToolCall<TOOLS extends ToolSet>({
       } catch (error) {
         const durationMs = now() - startTime;
 
-        try {
-          await onToolCallFinish?.({
+        await notify({
+          event: {
             ...baseCallbackEvent,
-            success: false,
+            success: false as const,
             error,
             durationMs,
-          });
-        } catch (_ignored) {
-          // Errors in callbacks should not break the generation flow.
-        }
+          },
+          callbacks: onToolCallFinish,
+        });
 
         recordErrorOnSpan(span, error);
         return {
@@ -153,16 +153,15 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 
       const durationMs = now() - startTime;
 
-      try {
-        await onToolCallFinish?.({
+      await notify({
+        event: {
           ...baseCallbackEvent,
-          success: true,
+          success: true as const,
           output,
           durationMs,
-        });
-      } catch (_ignored) {
-        // Errors in callbacks should not break the generation flow.
-      }
+        },
+        callbacks: onToolCallFinish,
+      });
 
       try {
         span.setAttributes(
