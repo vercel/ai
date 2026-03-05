@@ -3,13 +3,8 @@ import { mock, test } from 'node:test';
 
 import { verifyChangesets } from './index.js';
 
-<<<<<<< HEAD
-=======
 function mockReadFile(handler) {
   return mock.fn(async (path, encoding) => {
-    if (path.endsWith('pre.json')) {
-      throw new Error('ENOENT');
-    }
     return handler(path, encoding);
   });
 }
@@ -20,7 +15,6 @@ function mockLstat({ isSymlink = false } = {}) {
   }));
 }
 
->>>>>>> ca94d8140 (fix(security): prevent verify-changesets from leaking runner file contents via symlinks (#13143))
 test('happy path', async () => {
   const event = {
     pull_request: {
@@ -31,17 +25,11 @@ test('happy path', async () => {
     CHANGED_FILES: '.changeset/some-happy-path.md',
   };
 
-<<<<<<< HEAD
-  const readFile = mock.fn(async path => {
-    return `---\nai: patch\n@ai-sdk/provider: patch\n---\n## Test changeset`;
-  });
-=======
   const readFile = mockReadFile(
     async () =>
       `---\nai: patch\n@ai-sdk/provider: patch\n---\n## Test changeset`,
   );
   const lstat = mockLstat();
->>>>>>> ca94d8140 (fix(security): prevent verify-changesets from leaking runner file contents via symlinks (#13143))
 
   await verifyChangesets(event, env, readFile, lstat);
 
@@ -63,21 +51,13 @@ test('ignores .changeset/README.md', async () => {
     CHANGED_FILES: '.changeset/README.md',
   };
 
-<<<<<<< HEAD
-  const readFile = mock.fn(() => {});
-=======
   const readFile = mockReadFile(() => {});
   const lstat = mockLstat();
->>>>>>> ca94d8140 (fix(security): prevent verify-changesets from leaking runner file contents via symlinks (#13143))
 
   await verifyChangesets(event, env, readFile, lstat);
 
-<<<<<<< HEAD
   assert.strictEqual(readFile.mock.callCount(), 0);
-=======
-  assert.strictEqual(readFile.mock.callCount(), 1);
   assert.strictEqual(lstat.mock.callCount(), 0);
->>>>>>> ca94d8140 (fix(security): prevent verify-changesets from leaking runner file contents via symlinks (#13143))
 });
 
 test('invalid file - not a .changeset file', async () => {
@@ -90,12 +70,8 @@ test('invalid file - not a .changeset file', async () => {
     CHANGED_FILES: '.changeset/not-a-changeset-file.txt',
   };
 
-<<<<<<< HEAD
-  const readFile = mock.fn(() => {});
-=======
   const readFile = mockReadFile(() => {});
   const lstat = mockLstat();
->>>>>>> ca94d8140 (fix(security): prevent verify-changesets from leaking runner file contents via symlinks (#13143))
 
   await assert.rejects(
     () => verifyChangesets(event, env, readFile, lstat),
@@ -117,15 +93,9 @@ test('invalid .changeset file - no frontmatter', async () => {
     CHANGED_FILES: '.changeset/invalid-changeset-file.md',
   };
 
-<<<<<<< HEAD
-  const readFile = mock.fn(async path => {
-    return 'frontmatter missing';
-  });
-=======
   const readFile = mockReadFile(async () => 'frontmatter missing');
   const lstat = mockLstat();
 
->>>>>>> ca94d8140 (fix(security): prevent verify-changesets from leaking runner file contents via symlinks (#13143))
   await assert.rejects(
     () => verifyChangesets(event, env, readFile, lstat),
     Object.assign(new Error('Invalid .changeset file - no frontmatter found'), {
@@ -149,7 +119,7 @@ test('minor update', async () => {
     CHANGED_FILES: '.changeset/patch-update.md .changeset/minor-update.md',
   };
 
-  const readFile = mock.fn(async path => {
+  const readFile = mockReadFile(async path => {
     if (path.endsWith('patch-update.md')) {
       return `---\nai: patch\n---\n## Test changeset`;
     }
@@ -239,82 +209,6 @@ test('major update - with "major" label', async () => {
     'Skipping changeset verification - "major" label found',
   );
 });
-<<<<<<< HEAD
-=======
-
-test('major update - allowed when pre-release mode is active', async () => {
-  const event = {
-    pull_request: {
-      labels: [],
-    },
-  };
-  const env = {
-    CHANGED_FILES: '.changeset/major-update.md',
-  };
-
-  const readFile = mock.fn(async path => {
-    if (path.endsWith('pre.json')) {
-      return '{"mode":"pre","tag":"beta"}';
-    }
-
-    return `---\n@ai-sdk/provider: major\n---\n## Test changeset`;
-  });
-  const lstat = mockLstat();
-
-  await verifyChangesets(event, env, readFile, lstat);
-
-  assert.strictEqual(readFile.mock.callCount(), 2);
-  assert.deepStrictEqual(readFile.mock.calls[1].arguments, [
-    '../../../../.changeset/major-update.md',
-    'utf-8',
-  ]);
-});
-
-test('invalid changeset - still rejected in pre-release mode', async () => {
-  const event = {
-    pull_request: {
-      labels: [],
-    },
-  };
-  const env = {
-    CHANGED_FILES: '.changeset/bad-changeset.md',
-  };
-
-  const readFile = mock.fn(async path => {
-    if (path.endsWith('pre.json')) {
-      return '{"mode":"pre","tag":"beta"}';
-    }
-
-    return 'frontmatter missing';
-  });
-  const lstat = mockLstat();
-
-  await assert.rejects(
-    () => verifyChangesets(event, env, readFile, lstat),
-    error => error.message.includes('no frontmatter found'),
-  );
-});
-
-test('major update - rejected when not in pre-release mode', async () => {
-  const event = {
-    pull_request: {
-      labels: [],
-    },
-  };
-  const env = {
-    CHANGED_FILES: '.changeset/minor-update.md',
-  };
-
-  const readFile = mockReadFile(async () => {
-    return `---\n@ai-sdk/provider: minor\n---\n## Test changeset`;
-  });
-  const lstat = mockLstat();
-
-  await assert.rejects(
-    () => verifyChangesets(event, env, readFile, lstat),
-    error => error.message.includes('invalid version bump'),
-  );
-});
 
 test('rejects symlinked changeset files', async () => {
   const event = {
@@ -337,8 +231,7 @@ test('rejects symlinked changeset files', async () => {
     ),
   );
 
-  // readFile should only be called once (for pre.json check), not for the symlinked file
-  assert.strictEqual(readFile.mock.callCount(), 1);
+  assert.strictEqual(readFile.mock.callCount(), 0);
   assert.strictEqual(lstat.mock.callCount(), 1);
 });
 
@@ -361,9 +254,7 @@ test('error does not include raw file content', async () => {
     await verifyChangesets(event, env, readFile, lstat);
     assert.fail('Expected error to be thrown');
   } catch (error) {
-    // Should have frontmatter (safe to display), not full content
     assert.strictEqual(error.frontmatter, '---\n@ai-sdk/provider: minor\n---');
     assert.strictEqual(error.content, undefined);
   }
 });
->>>>>>> ca94d8140 (fix(security): prevent verify-changesets from leaking runner file contents via symlinks (#13143))
