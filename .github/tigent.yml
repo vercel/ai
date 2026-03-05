@@ -55,5 +55,9 @@ prompt: |
   docs-only prs → documentation.
   dependency updates → maintenance.
 
-  Important: do not apply these labels, they are for humans only.
-  major, minor, backport, pull request welcome, good first issue
+  IMPORTANT: NEVER apply these labels
+  - major
+  - minor
+  - backport
+  - pull request welcome
+  - good first issue
