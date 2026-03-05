@@ -1,5 +1,43 @@
 # @ai-sdk/llamaindex
 
+## 3.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - ai@7.0.0-beta.0
+
+## 2.0.116
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - ai@6.0.116
+
+## 2.0.115
+
+### Patch Changes
+
+- ai@6.0.115
+
+## 2.0.114
+
+### Patch Changes
+
+- Updated dependencies [2291047]
+  - ai@6.0.114
+
+## 2.0.113
+
+### Patch Changes
+
+- Updated dependencies [70d3980]
+  - ai@6.0.113
+
 ## 2.0.112
 
 ### Patch Changes

@@ -1,5 +1,76 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [19b95f9]
+  - @ai-sdk/google@4.0.0-beta.1
+
+## 5.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/anthropic@4.0.0-beta.0
+  - @ai-sdk/google@4.0.0-beta.0
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 4.0.80
+
+### Patch Changes
+
+- Updated dependencies [7ba09a4]
+  - @ai-sdk/google@3.0.43
+
+## 4.0.79
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+- Updated dependencies [3fb4e70]
+  - @ai-sdk/provider-utils@4.0.19
+  - @ai-sdk/anthropic@3.0.58
+  - @ai-sdk/google@3.0.42
+
+## 4.0.78
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+  - @ai-sdk/anthropic@3.0.57
+  - @ai-sdk/google@3.0.41
+
+## 4.0.77
+
+### Patch Changes
+
+- Updated dependencies [89d8b45]
+  - @ai-sdk/google@3.0.40
+
+## 4.0.76
+
+### Patch Changes
+
+- Updated dependencies [2565e70]
+  - @ai-sdk/google@3.0.39
+
+## 4.0.75
+
+### Patch Changes
+
+- Updated dependencies [e49c34d]
+- Updated dependencies [e49c34d]
+- Updated dependencies [2291047]
+  - @ai-sdk/anthropic@3.0.56
+  - @ai-sdk/google@3.0.38
+
 ## 4.0.74
 
 ### Patch Changes

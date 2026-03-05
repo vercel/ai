@@ -1,5 +1,47 @@
 # @ai-sdk/react
 
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - ai@7.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 3.0.118
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+  - ai@6.0.116
+
+## 3.0.117
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+  - ai@6.0.115
+
+## 3.0.116
+
+### Patch Changes
+
+- Updated dependencies [2291047]
+  - ai@6.0.114
+
+## 3.0.115
+
+### Patch Changes
+
+- Updated dependencies [70d3980]
+  - ai@6.0.113
+
 ## 3.0.114
 
 ### Patch Changes

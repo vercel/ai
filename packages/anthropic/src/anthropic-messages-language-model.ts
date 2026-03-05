@@ -118,7 +118,10 @@ type AnthropicMessagesConfig = {
   headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   buildRequestUrl?: (baseURL: string, isStreaming: boolean) => string;
-  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+  transformRequestBody?: (
+    args: Record<string, any>,
+    betas: Set<string>,
+  ) => Record<string, any>;
   supportedUrls?: () => LanguageModelV3['supportedUrls'];
   generateId?: () => string;
 
@@ -632,7 +635,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         stream: stream === true ? true : undefined, // do not send when not streaming
       },
       warnings: [...warnings, ...toolWarnings, ...cacheWarnings],
-      betas: new Set([...betas, ...toolsBetas, ...userSuppliedBetas]),
+      betas: new Set([
+        ...betas,
+        ...toolsBetas,
+        ...userSuppliedBetas,
+        ...(anthropicOptions?.anthropicBeta ?? []),
+      ]),
       usesJsonResponseTool: jsonResponseTool != null,
       toolNameMapping,
       providerOptionsName,
@@ -679,8 +687,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     );
   }
 
-  private transformRequestBody(args: Record<string, any>): Record<string, any> {
-    return this.config.transformRequestBody?.(args) ?? args;
+  private transformRequestBody(
+    args: Record<string, any>,
+    betas: Set<string>,
+  ): Record<string, any> {
+    return this.config.transformRequestBody?.(args, betas) ?? args;
   }
 
   private extractCitationDocuments(prompt: LanguageModelV3Prompt): Array<{
@@ -759,7 +770,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     } = await postJsonToApi({
       url: this.buildRequestUrl(false),
       headers: await this.getHeaders({ betas, headers: options.headers }),
-      body: this.transformRequestBody(args),
+      body: this.transformRequestBody(args, betas),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         anthropicMessagesResponseSchema,
@@ -1237,7 +1248,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     const { responseHeaders, value: response } = await postJsonToApi({
       url,
       headers: await this.getHeaders({ betas, headers: options.headers }),
-      body: this.transformRequestBody(body),
+      body: this.transformRequestBody(body, betas),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         anthropicMessagesChunkSchema,

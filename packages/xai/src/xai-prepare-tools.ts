@@ -19,6 +19,7 @@ export function prepareTools({
           name: string;
           description: string | undefined;
           parameters: unknown;
+          strict?: boolean;
         };
       }>
     | undefined;
@@ -41,6 +42,7 @@ export function prepareTools({
       name: string;
       description: string | undefined;
       parameters: unknown;
+      strict?: boolean;
     };
   }> = [];
 
@@ -57,6 +59,7 @@ export function prepareTools({
           name: tool.name,
           description: tool.description,
           parameters: tool.inputSchema,
+          ...(tool.strict != null ? { strict: tool.strict } : {}),
         },
       });
     }
