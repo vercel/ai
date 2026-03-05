@@ -1,4 +1,4 @@
-import { AISDKError, LanguageModelV3DataContent } from '@ai-sdk/provider';
+import { AISDKError, LanguageModelV4DataContent } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
@@ -23,10 +23,10 @@ export const dataContentSchema: z.ZodType<DataContent> = z.union([
   ),
 ]);
 
-export function convertToLanguageModelV3DataContent(
+export function convertToLanguageModelV4DataContent(
   content: DataContent | URL,
 ): {
-  data: LanguageModelV3DataContent;
+  data: LanguageModelV4DataContent;
   mediaType: string | undefined;
 } {
   // Buffer & Uint8Array:

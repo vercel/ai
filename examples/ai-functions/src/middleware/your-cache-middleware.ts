@@ -1,9 +1,8 @@
-import { LanguageModelV3Middleware } from '@ai-sdk/provider';
+import { LanguageModelMiddleware } from 'ai';
 
 const cache = new Map<string, any>();
 
-export const yourCacheMiddleware: LanguageModelV3Middleware = {
-  specificationVersion: 'v3',
+export const yourCacheMiddleware: LanguageModelMiddleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
     const cacheKey = JSON.stringify(params);
 

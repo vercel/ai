@@ -27,7 +27,7 @@ describe('wrapProvider', () => {
     const wrappedProvider = wrapProvider({
       provider,
       languageModelMiddleware: {
-        specificationVersion: 'v3',
+        specificationVersion: 'v4',
         overrideModelId,
       },
     });
@@ -43,9 +43,9 @@ describe('wrapProvider', () => {
     );
 
     expect(overrideModelId).toHaveBeenCalledTimes(3);
-    expect(overrideModelId).toHaveBeenCalledWith({ model: model1 });
-    expect(overrideModelId).toHaveBeenCalledWith({ model: model2 });
-    expect(overrideModelId).toHaveBeenCalledWith({ model: model3 });
+    expect(overrideModelId.mock.calls[0][0].model.modelId).toBe('model-1');
+    expect(overrideModelId.mock.calls[1][0].model.modelId).toBe('model-2');
+    expect(overrideModelId.mock.calls[2][0].model.modelId).toBe('model-3');
   });
 
   it('should work when the provider is a ProviderV2', () => {
@@ -62,7 +62,7 @@ describe('wrapProvider', () => {
     const wrapped = wrapProvider({
       provider: providerV2,
       languageModelMiddleware: {
-        specificationVersion: 'v3',
+        specificationVersion: 'v4',
         overrideModelId: ({ model }) => `override-${model.modelId}`,
       },
     });
@@ -95,9 +95,9 @@ describe('wrapProvider', () => {
 
     const wrappedProvider = wrapProvider({
       provider,
-      languageModelMiddleware: { specificationVersion: 'v3' },
+      languageModelMiddleware: { specificationVersion: 'v4' },
       imageModelMiddleware: {
-        specificationVersion: 'v3',
+        specificationVersion: 'v4',
         overrideModelId,
       },
     });
@@ -113,8 +113,8 @@ describe('wrapProvider', () => {
     );
 
     expect(overrideModelId).toHaveBeenCalledTimes(3);
-    expect(overrideModelId).toHaveBeenCalledWith({ model: model1 });
-    expect(overrideModelId).toHaveBeenCalledWith({ model: model2 });
-    expect(overrideModelId).toHaveBeenCalledWith({ model: model3 });
+    expect(overrideModelId.mock.calls[0][0].model.modelId).toBe('model-1');
+    expect(overrideModelId.mock.calls[1][0].model.modelId).toBe('model-2');
+    expect(overrideModelId.mock.calls[2][0].model.modelId).toBe('model-3');
   });
 });

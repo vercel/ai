@@ -1,5 +1,9 @@
 import { GoogleErrorData, google as provider } from '@ai-sdk/google';
-import { APICallError, ImageModelV3, LanguageModelV3 } from '@ai-sdk/provider';
+import {
+  APICallError,
+  LanguageModelV3,
+  LanguageModelV4,
+} from '@ai-sdk/provider';
 import 'dotenv/config';
 import { expect } from 'vitest';
 import {
@@ -13,19 +17,15 @@ import {
 import { wrapLanguageModel } from 'ai';
 import { defaultSettingsMiddleware } from 'ai';
 
-const createChatModel = (
-  modelId: string,
-): ModelWithCapabilities<LanguageModelV3> =>
+const createChatModel = (modelId: string) =>
   createLanguageModelWithCapabilities(provider.chat(modelId));
 
-const createImageModel = (
-  modelId: string,
-): ModelWithCapabilities<ImageModelV3> =>
+const createImageModel = (modelId: string) =>
   createImageModelWithCapabilities(provider.image(modelId));
 
 const createSearchGroundedModel = (
   modelId: string,
-): ModelWithCapabilities<LanguageModelV3> => {
+): ModelWithCapabilities<LanguageModelV3 | LanguageModelV4> => {
   const model = provider.chat(modelId);
   return {
     model: wrapLanguageModel({

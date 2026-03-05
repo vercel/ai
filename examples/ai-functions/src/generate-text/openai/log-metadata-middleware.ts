@@ -1,10 +1,8 @@
 import { openai } from '@ai-sdk/openai';
-import { LanguageModelV3Middleware } from '@ai-sdk/provider';
-import { generateText, wrapLanguageModel } from 'ai';
+import { generateText, LanguageModelMiddleware, wrapLanguageModel } from 'ai';
 import { run } from '../../lib/run';
 
-const logProviderMetadataMiddleware: LanguageModelV3Middleware = {
-  specificationVersion: 'v3',
+const logProviderMetadataMiddleware: LanguageModelMiddleware = {
   transformParams: async ({ params }) => {
     console.log(
       'providerOptions: ' + JSON.stringify(params.providerOptions, null, 2),

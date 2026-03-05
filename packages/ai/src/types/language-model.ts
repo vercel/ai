@@ -2,8 +2,9 @@ import { GatewayModelId } from '@ai-sdk/gateway';
 import {
   LanguageModelV2,
   LanguageModelV3,
-  SharedV3Warning,
-  LanguageModelV3Source,
+  LanguageModelV4,
+  SharedV4Warning,
+  LanguageModelV4Source,
 } from '@ai-sdk/provider';
 
 declare global {
@@ -56,6 +57,7 @@ export type GlobalProviderModelId = [keyof RegisteredProviderModels] extends [
  */
 export type LanguageModel =
   | GlobalProviderModelId
+  | LanguageModelV4
   | LanguageModelV3
   | LanguageModelV2;
 
@@ -82,12 +84,12 @@ export type FinishReason =
  * Warning from the model provider for this call. The call will proceed, but e.g.
  * some settings might not be supported, which can lead to suboptimal results.
  */
-export type CallWarning = SharedV3Warning;
+export type CallWarning = SharedV4Warning;
 
 /**
  * A source that has been used as input to generate the response.
  */
-export type Source = LanguageModelV3Source;
+export type Source = LanguageModelV4Source;
 
 /**
  * Tool choice for the generation. It supports the following settings:

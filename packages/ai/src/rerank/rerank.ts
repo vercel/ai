@@ -1,4 +1,4 @@
-import { JSONObject, RerankingModelV3CallOptions } from '@ai-sdk/provider';
+import { JSONObject, RerankingModelV4CallOptions } from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -106,7 +106,7 @@ export async function rerank<VALUE extends JSONObject | string>({
   });
 
   // detect the type of the documents:
-  const documentsToSend: RerankingModelV3CallOptions['documents'] =
+  const documentsToSend: RerankingModelV4CallOptions['documents'] =
     typeof documents[0] === 'string'
       ? { type: 'text', values: documents as string[] }
       : { type: 'object', values: documents as JSONObject[] };

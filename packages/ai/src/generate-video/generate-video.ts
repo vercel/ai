@@ -1,8 +1,8 @@
 import type {
-  Experimental_VideoModelV3,
-  Experimental_VideoModelV3CallOptions,
-  Experimental_VideoModelV3File,
-  SharedV3ProviderMetadata,
+  Experimental_VideoModelV4,
+  Experimental_VideoModelV4CallOptions,
+  Experimental_VideoModelV4File,
+  SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
@@ -194,7 +194,7 @@ export async function experimental_generateVideo({
           providerOptions: providerOptions ?? {},
           headers: headersWithUserAgent,
           abortSignal,
-        } satisfies Experimental_VideoModelV3CallOptions),
+        } satisfies Experimental_VideoModelV4CallOptions),
       ),
     ),
   );
@@ -203,7 +203,7 @@ export async function experimental_generateVideo({
   const videos: Array<GeneratedFile> = [];
   const warnings: Array<Warning> = [];
   const responses: Array<VideoModelResponseMetadata> = [];
-  const providerMetadata: SharedV3ProviderMetadata = {};
+  const providerMetadata: SharedV4ProviderMetadata = {};
 
   for (const result of results) {
     for (const videoData of result.videos) {
@@ -328,7 +328,7 @@ export async function experimental_generateVideo({
 
 function normalizePrompt(promptArg: GenerateVideoPrompt): {
   prompt: string | undefined;
-  image: Experimental_VideoModelV3File | undefined;
+  image: Experimental_VideoModelV4File | undefined;
 } {
   if (typeof promptArg === 'string') {
     return {
@@ -337,7 +337,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
     };
   }
 
-  let image: Experimental_VideoModelV3File | undefined;
+  let image: Experimental_VideoModelV4File | undefined;
 
   if (promptArg.image != null) {
     const dataContent = promptArg.image;
@@ -393,7 +393,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
   };
 }
 
-async function invokeModelMaxVideosPerCall(model: Experimental_VideoModelV3) {
+async function invokeModelMaxVideosPerCall(model: Experimental_VideoModelV4) {
   if (typeof model.maxVideosPerCall === 'function') {
     return await model.maxVideosPerCall({ modelId: model.modelId });
   }

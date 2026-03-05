@@ -3,8 +3,11 @@ import { EmbeddingModelV2, LanguageModelV2 } from '@ai-sdk/provider';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
+import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockVideoModelV3 } from '../test/mock-video-model-v3';
+import { MockVideoModelV4 } from '../test/mock-video-model-v4';
 import { customProvider } from '../registry/custom-provider';
 import { MockImageModelV2 } from '../test/mock-image-model-v2';
 import {
@@ -15,8 +18,22 @@ import {
 } from './resolve-model';
 
 describe('resolveLanguageModel', () => {
+  describe('when a language model v4 is provided', () => {
+    it('should return it as-is', () => {
+      const originalModel = new MockLanguageModelV4({
+        provider: 'test-provider',
+        modelId: 'test-model-id',
+      });
+
+      const resolvedModel = resolveLanguageModel(originalModel);
+
+      expect(resolvedModel).toBe(originalModel);
+      expect(resolvedModel.specificationVersion).toBe('v4');
+    });
+  });
+
   describe('when a language model v3 is provided', () => {
-    it('should return the language model v3', () => {
+    it('should convert v3 to v4', () => {
       const resolvedModel = resolveLanguageModel(
         new MockLanguageModelV3({
           provider: 'test-provider',
@@ -26,12 +43,12 @@ describe('resolveLanguageModel', () => {
 
       expect(resolvedModel.provider).toBe('test-provider');
       expect(resolvedModel.modelId).toBe('test-model-id');
-      expect(resolvedModel.specificationVersion).toBe('v3');
+      expect(resolvedModel.specificationVersion).toBe('v4');
     });
   });
 
   describe('when a language model v2 is provided', () => {
-    it('should adapt to v3 and preserve prototype methods', async () => {
+    it('should adapt to v4 and preserve prototype methods', async () => {
       class TestLanguageModelV2 implements LanguageModelV2 {
         readonly specificationVersion = 'v2' as const;
         readonly provider = 'test-provider';
@@ -57,7 +74,7 @@ describe('resolveLanguageModel', () => {
 
       expect(resolvedModel.provider).toBe('test-provider');
       expect(resolvedModel.modelId).toBe('test-model-id');
-      expect(resolvedModel.specificationVersion).toBe('v3');
+      expect(resolvedModel.specificationVersion).toBe('v4');
 
       await resolvedModel.doGenerate({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
@@ -83,7 +100,7 @@ describe('resolveLanguageModel', () => {
     beforeEach(() => {
       globalThis.AI_SDK_DEFAULT_PROVIDER = customProvider({
         languageModels: {
-          'test-model-id': new MockLanguageModelV3({
+          'test-model-id': new MockLanguageModelV4({
             provider: 'global-test-provider',
             modelId: 'actual-test-model-id',
           }),
@@ -106,7 +123,7 @@ describe('resolveLanguageModel', () => {
 
 describe('resolveEmbeddingModel', () => {
   describe('when an embedding model v2 is provided', () => {
-    it('should adapt to v3 and preserve prototype methods', async () => {
+    it('should adapt to v4 and preserve prototype methods', async () => {
       class TestEmbeddingModelV2 implements EmbeddingModelV2<string> {
         readonly specificationVersion = 'v2' as const;
         readonly provider = 'test-provider';
@@ -124,15 +141,29 @@ describe('resolveEmbeddingModel', () => {
 
       expect(resolvedModel.provider).toBe('test-provider');
       expect(resolvedModel.modelId).toBe('test-model-id');
-      expect(resolvedModel.specificationVersion).toBe('v3');
+      expect(resolvedModel.specificationVersion).toBe('v4');
 
       const result = await resolvedModel.doEmbed({ values: ['hello'] });
       expect(result.embeddings).toHaveLength(1);
     });
   });
 
-  describe('when a embedding model v3 is provided', () => {
-    it('should return the embedding model v3', () => {
+  describe('when an embedding model v4 is provided', () => {
+    it('should return it as-is', () => {
+      const originalModel = new MockEmbeddingModelV4({
+        provider: 'test-provider',
+        modelId: 'test-model-id',
+      });
+
+      const resolvedModel = resolveEmbeddingModel(originalModel);
+
+      expect(resolvedModel).toBe(originalModel);
+      expect(resolvedModel.specificationVersion).toBe('v4');
+    });
+  });
+
+  describe('when an embedding model v3 is provided', () => {
+    it('should convert v3 to v4', () => {
       const resolvedModel = resolveEmbeddingModel(
         new MockEmbeddingModelV3({
           provider: 'test-provider',
@@ -142,7 +173,7 @@ describe('resolveEmbeddingModel', () => {
 
       expect(resolvedModel.provider).toBe('test-provider');
       expect(resolvedModel.modelId).toBe('test-model-id');
-      expect(resolvedModel.specificationVersion).toBe('v3');
+      expect(resolvedModel.specificationVersion).toBe('v4');
     });
   });
 
@@ -159,7 +190,7 @@ describe('resolveEmbeddingModel', () => {
     beforeEach(() => {
       globalThis.AI_SDK_DEFAULT_PROVIDER = customProvider({
         embeddingModels: {
-          'test-model-id': new MockEmbeddingModelV3({
+          'test-model-id': new MockEmbeddingModelV4({
             provider: 'global-test-provider',
             modelId: 'actual-test-model-id',
           }),
@@ -204,9 +235,10 @@ describe('resolveImageModel', () => {
         }),
       );
 
+      // gateway.imageModel returns V3 types; cast needed until gateway is updated to V4
       const imageModelSpy = vi
         .spyOn(gateway, 'imageModel')
-        .mockReturnValue(resolvedModel);
+        .mockReturnValue(resolvedModel as any);
 
       try {
         const resolvedModel = resolveImageModel('test-model-id');
@@ -246,8 +278,22 @@ describe('resolveImageModel', () => {
 });
 
 describe('resolveVideoModel', () => {
+  describe('when a video model v4 is provided', () => {
+    it('should return it as-is', () => {
+      const originalModel = new MockVideoModelV4({
+        provider: 'test-provider',
+        modelId: 'test-model-id',
+      });
+
+      const resolvedModel = resolveVideoModel(originalModel);
+
+      expect(resolvedModel).toBe(originalModel);
+      expect(resolvedModel.specificationVersion).toBe('v4');
+    });
+  });
+
   describe('when a video model v3 is provided', () => {
-    it('should return the video model v3', () => {
+    it('should convert v3 to v4', () => {
       const resolvedModel = resolveVideoModel(
         new MockVideoModelV3({
           provider: 'test-provider',
@@ -257,20 +303,21 @@ describe('resolveVideoModel', () => {
 
       expect(resolvedModel.provider).toBe('test-provider');
       expect(resolvedModel.modelId).toBe('test-model-id');
-      expect(resolvedModel.specificationVersion).toBe('v3');
+      expect(resolvedModel.specificationVersion).toBe('v4');
     });
   });
 
   describe('when a string is provided and the global default provider is not set', () => {
-    it('should return a gateway video model', () => {
-      const mockModel = new MockVideoModelV3({
+    it('should return a gateway video model converted to v4', () => {
+      const mockModel = new MockVideoModelV4({
         provider: 'gateway',
         modelId: 'test-model-id',
       });
 
+      // gateway.videoModel returns V3 types; cast needed until gateway is updated to V4
       const videoModelSpy = vi
         .spyOn(gateway, 'videoModel')
-        .mockReturnValue(mockModel);
+        .mockReturnValue(mockModel as any);
 
       try {
         const resolvedModel = resolveVideoModel('test-model-id');
@@ -287,7 +334,7 @@ describe('resolveVideoModel', () => {
     beforeEach(() => {
       globalThis.AI_SDK_DEFAULT_PROVIDER = customProvider({
         videoModels: {
-          'test-model-id': new MockVideoModelV3({
+          'test-model-id': new MockVideoModelV4({
             provider: 'global-test-provider',
             modelId: 'actual-test-model-id',
           }),
@@ -310,7 +357,7 @@ describe('resolveVideoModel', () => {
   describe('when a string is provided and the provider does not support video models', () => {
     beforeEach(() => {
       globalThis.AI_SDK_DEFAULT_PROVIDER = {
-        specificationVersion: 'v3' as const,
+        specificationVersion: 'v4' as const,
         languageModel: () => {
           throw new Error('not implemented');
         },

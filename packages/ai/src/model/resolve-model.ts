@@ -1,29 +1,32 @@
 import { gateway } from '@ai-sdk/gateway';
 import {
-  EmbeddingModelV3,
-  Experimental_VideoModelV3,
-  ImageModelV3,
-  LanguageModelV3,
-  ProviderV3,
-  SpeechModelV3,
-  TranscriptionModelV3,
+  EmbeddingModelV4,
+  Experimental_VideoModelV4,
+  ImageModelV4,
+  LanguageModelV4,
+  ProviderV4,
+  SpeechModelV4,
+  TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import { UnsupportedModelVersionError } from '../error';
 import { EmbeddingModel } from '../types/embedding-model';
 import { LanguageModel } from '../types/language-model';
 import { SpeechModel } from '../types/speech-model';
 import { TranscriptionModel } from '../types/transcription-model';
-import { asEmbeddingModelV3 } from './as-embedding-model-v3';
-import { asImageModelV3 } from './as-image-model-v3';
-import { asLanguageModelV3 } from './as-language-model-v3';
-import { asSpeechModelV3 } from './as-speech-model-v3';
-import { asTranscriptionModelV3 } from './as-transcription-model-v3';
+import { asEmbeddingModelV4 } from './as-embedding-model-v4';
+import { asImageModelV4 } from './as-image-model-v4';
+import { asLanguageModelV4 } from './as-language-model-v4';
+import { asSpeechModelV4 } from './as-speech-model-v4';
+import { asTranscriptionModelV4 } from './as-transcription-model-v4';
+import { asVideoModelV4 } from './as-video-model-v4';
+import { asProviderV4 } from './as-provider-v4';
 import { ImageModel } from '../types/image-model';
 import { VideoModel } from '../types/video-model';
 
-export function resolveLanguageModel(model: LanguageModel): LanguageModelV3 {
+export function resolveLanguageModel(model: LanguageModel): LanguageModelV4 {
   if (typeof model !== 'string') {
     if (
+      model.specificationVersion !== 'v4' &&
       model.specificationVersion !== 'v3' &&
       model.specificationVersion !== 'v2'
     ) {
@@ -35,15 +38,16 @@ export function resolveLanguageModel(model: LanguageModel): LanguageModelV3 {
       });
     }
 
-    return asLanguageModelV3(model);
+    return asLanguageModelV4(model);
   }
 
   return getGlobalProvider().languageModel(model);
 }
 
-export function resolveEmbeddingModel(model: EmbeddingModel): EmbeddingModelV3 {
+export function resolveEmbeddingModel(model: EmbeddingModel): EmbeddingModelV4 {
   if (typeof model !== 'string') {
     if (
+      model.specificationVersion !== 'v4' &&
       model.specificationVersion !== 'v3' &&
       model.specificationVersion !== 'v2'
     ) {
@@ -55,7 +59,7 @@ export function resolveEmbeddingModel(model: EmbeddingModel): EmbeddingModelV3 {
       });
     }
 
-    return asEmbeddingModelV3(model);
+    return asEmbeddingModelV4(model);
   }
 
   return getGlobalProvider().embeddingModel(model);
@@ -63,9 +67,10 @@ export function resolveEmbeddingModel(model: EmbeddingModel): EmbeddingModelV3 {
 
 export function resolveTranscriptionModel(
   model: TranscriptionModel,
-): TranscriptionModelV3 | undefined {
+): TranscriptionModelV4 | undefined {
   if (typeof model !== 'string') {
     if (
+      model.specificationVersion !== 'v4' &&
       model.specificationVersion !== 'v3' &&
       model.specificationVersion !== 'v2'
     ) {
@@ -76,7 +81,7 @@ export function resolveTranscriptionModel(
         modelId: unsupportedModel.modelId,
       });
     }
-    return asTranscriptionModelV3(model);
+    return asTranscriptionModelV4(model);
   }
 
   return getGlobalProvider().transcriptionModel?.(model);
@@ -84,9 +89,10 @@ export function resolveTranscriptionModel(
 
 export function resolveSpeechModel(
   model: SpeechModel,
-): SpeechModelV3 | undefined {
+): SpeechModelV4 | undefined {
   if (typeof model !== 'string') {
     if (
+      model.specificationVersion !== 'v4' &&
       model.specificationVersion !== 'v3' &&
       model.specificationVersion !== 'v2'
     ) {
@@ -97,15 +103,16 @@ export function resolveSpeechModel(
         modelId: unsupportedModel.modelId,
       });
     }
-    return asSpeechModelV3(model);
+    return asSpeechModelV4(model);
   }
 
   return getGlobalProvider().speechModel?.(model);
 }
 
-export function resolveImageModel(model: ImageModel): ImageModelV3 {
+export function resolveImageModel(model: ImageModel): ImageModelV4 {
   if (typeof model !== 'string') {
     if (
+      model.specificationVersion !== 'v4' &&
       model.specificationVersion !== 'v3' &&
       model.specificationVersion !== 'v2'
     ) {
@@ -117,7 +124,7 @@ export function resolveImageModel(model: ImageModel): ImageModelV3 {
       });
     }
 
-    return asImageModelV3(model);
+    return asImageModelV4(model);
   }
 
   return getGlobalProvider().imageModel(model);
@@ -125,9 +132,11 @@ export function resolveImageModel(model: ImageModel): ImageModelV3 {
 
 export function resolveVideoModel(
   model: VideoModel,
-): Experimental_VideoModelV3 {
+): Experimental_VideoModelV4 {
   if (typeof model === 'string') {
-    const provider = getGlobalProvider();
+    // Use raw global provider because videoModel is experimental
+    // and not part of the ProviderV4 interface
+    const provider = globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
     // TODO AI SDK v7
     // @ts-expect-error - videoModel support is experimental
     const videoModel = provider.videoModel;
@@ -135,14 +144,17 @@ export function resolveVideoModel(
     if (!videoModel) {
       throw new Error(
         'The default provider does not support video models. ' +
-          'Please use a Experimental_VideoModelV3 object from a provider (e.g., vertex.video("model-id")).',
+          'Please use a Experimental_VideoModelV4 object from a provider (e.g., vertex.video("model-id")).',
       );
     }
 
     return videoModel(model);
   }
 
-  if (model.specificationVersion !== 'v3') {
+  if (
+    model.specificationVersion !== 'v4' &&
+    model.specificationVersion !== 'v3'
+  ) {
     const unsupportedModel: any = model;
     throw new UnsupportedModelVersionError({
       version: unsupportedModel.specificationVersion,
@@ -151,9 +163,10 @@ export function resolveVideoModel(
     });
   }
 
-  return model;
+  return asVideoModelV4(model);
 }
 
-function getGlobalProvider(): ProviderV3 {
-  return globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
+function getGlobalProvider(): ProviderV4 {
+  const provider = globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
+  return asProviderV4(provider);
 }
