@@ -129,7 +129,7 @@ async function main() {
       case 'finish':
         ts(`[finish] reason=${part.finishReason}`);
         console.log(
-          `\n[finish] finishReason=${part.finishReason} usage=${JSON.stringify(part.usage)}`,
+          `\n[finish] finishReason=${part.finishReason} usage=${JSON.stringify(part.totalUsage)}`,
         );
         break;
       case 'error':
