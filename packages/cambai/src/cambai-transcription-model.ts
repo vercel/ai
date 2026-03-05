@@ -3,6 +3,7 @@ import {
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
+  FetchFunction,
   mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
@@ -28,6 +29,7 @@ export type CambaiTranscriptionModelOptions = z.infer<
 interface CambaiTranscriptionModelConfig extends CambaiConfig {
   _internal?: {
     currentDate?: () => Date;
+    pollIntervalMs?: number;
   };
 }
 
@@ -47,6 +49,8 @@ export class CambaiTranscriptionModel implements TranscriptionModelV3 {
     options: Parameters<TranscriptionModelV3['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const pollIntervalMs =
+      this.config._internal?.pollIntervalMs ?? POLL_INTERVAL_MS;
     const { audio, mediaType, providerOptions, abortSignal, headers } = options;
     const warnings: SharedV3Warning[] = [];
 
@@ -59,6 +63,8 @@ export class CambaiTranscriptionModel implements TranscriptionModelV3 {
     const languageCode = cambaiOptions?.language ?? 1;
     const wordLevelTimestamps = cambaiOptions?.wordLevelTimestamps ?? false;
     const timeoutMs = cambaiOptions?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+
+    const fetchFn: FetchFunction = this.config.fetch ?? globalThis.fetch;
 
     // Step 1: Create transcription task
     const formData = new FormData();
@@ -105,7 +111,7 @@ export class CambaiTranscriptionModel implements TranscriptionModelV3 {
         throw new DOMException('Transcription aborted', 'AbortError');
       }
 
-      const statusResponse = await fetch(
+      const statusResponse = await fetchFn(
         this.config.url({
           path: `/transcribe/${encodeURIComponent(taskId)}`,
           modelId: this.modelId,
@@ -148,7 +154,7 @@ export class CambaiTranscriptionModel implements TranscriptionModelV3 {
           modelId: this.modelId,
         })}?${queryParams.toString()}`;
 
-        const resultResponse = await fetch(resultUrl, {
+        const resultResponse = await fetchFn(resultUrl, {
           method: 'GET',
           headers: combinedHeaders as Record<string, string>,
           signal: abortSignal,
@@ -213,7 +219,7 @@ export class CambaiTranscriptionModel implements TranscriptionModelV3 {
         const timer = setTimeout(() => {
           abortSignal?.removeEventListener('abort', onAbort);
           resolve();
-        }, POLL_INTERVAL_MS);
+        }, pollIntervalMs);
         abortSignal?.addEventListener('abort', onAbort, { once: true });
       });
     }
