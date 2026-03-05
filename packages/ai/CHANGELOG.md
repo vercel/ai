@@ -1,5 +1,13 @@
 # ai
 
+## 6.0.117
+
+### Patch Changes
+
+- d23121f: chore(ai): add optional ChatRequestOptions to `addToolApprovalResponse` and `addToolOutput`
+- Updated dependencies [2589004]
+  - @ai-sdk/gateway@3.0.67
+
 ## 6.0.116
 
 ### Patch Changes
