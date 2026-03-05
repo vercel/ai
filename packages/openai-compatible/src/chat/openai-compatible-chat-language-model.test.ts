@@ -2423,6 +2423,11 @@ describe('doStream', () => {
           "type": "tool-input-delta",
         },
         {
+          "delta": "",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
+        },
+        {
           "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "type": "tool-input-end",
         },
