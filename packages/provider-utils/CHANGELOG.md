@@ -1,5 +1,12 @@
 # @ai-sdk/provider-utils
 
+## 3.0.22
+
+### Patch Changes
+
+- 6a2f01b: Add URL validation to `download` to prevent blind SSRF attacks. Private/internal IP addresses, localhost, and non-HTTP protocols are now rejected before fetching.
+- 17d64e3: fix(provider-utils): prevent unicode escape bypass in secureJsonParse
+
 ## 3.0.21
 
 ### Patch Changes
