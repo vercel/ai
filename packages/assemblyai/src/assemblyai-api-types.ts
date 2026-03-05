@@ -309,14 +309,44 @@ export type AssemblyAITranscriptionAPITypes = {
   speakers_expected?: number;
 
   /**
-   * The speech model to use for the transcription.
+   * Advanced options for controlling speaker diarization parameters.
    */
-  speech_model?: 'best' | 'nano';
+  speaker_options?: {
+    min_speakers_expected?: number | null;
+    max_speakers_expected?: number | null;
+  } | null;
+
+  /**
+   * The speech models to use for the transcription in priority order.
+   */
+  speech_models?: string[];
 
   /**
    * Reject audio files that contain less than this fraction of speech. Valid values are in the range [0, 1] inclusive.
    */
   speech_threshold?: number;
+
+  /**
+   * Speech understanding configuration for LLM Gateway features.
+   */
+  speech_understanding?: {
+    request?: {
+      speaker_identification?: {
+        speaker_type: 'role' | 'name';
+        known_values?: string[];
+      };
+      translation?: {
+        target_languages: string[];
+        formal?: boolean;
+        match_original_utterance?: boolean;
+      };
+      custom_formatting?: {
+        date?: string;
+        phone_number?: string;
+        email?: string;
+      };
+    };
+  };
 
   /**
    * Enable Summarization, can be true or false
@@ -354,6 +384,44 @@ export type AssemblyAITranscriptionAPITypes = {
    * One request when a transcript is completed or failed, and one request when the redacted audio is ready if redact_pii_audio is enabled.
    */
   webhook_url?: string;
+
+  /**
+   * Change how deterministic the response is, with 0 being the most deterministic and 1 being the least deterministic.
+   */
+  temperature?: number;
+
+  /**
+   * Enable custom topics, either true or false.
+   * @default false
+   */
+  custom_topics?: boolean;
+
+  /**
+   * The list of custom topics.
+   */
+  topics?: string[];
+
+  /**
+   * The prompt used to generate the transcript. Can't be used together with keyterms_prompt.
+   */
+  prompt?: string;
+
+  /**
+   * The list of key terms used to generate the transcript. Can't be used together with prompt.
+   */
+  keyterms_prompt?: string[];
+
+  /**
+   * Options for controlling the behavior of Automatic Language Detection.
+   */
+  language_detection_options?: {
+    expected_languages?: string[] | null;
+    fallback_language?: string | null;
+    code_switching?: boolean | null;
+    code_switching_confidence_threshold?: number | null;
+    on_low_language_confidence?: string | null;
+    swiss_german?: boolean | null;
+  } | null;
 
   /**
    * The list of custom vocabulary to boost transcription probability for
