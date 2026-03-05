@@ -1,0 +1,215 @@
+---
+title: Camb.ai
+description: Learn how to use the Camb.ai provider for the AI SDK.
+---
+
+# Camb.ai Provider
+
+The [Camb.ai](https://www.camb.ai/) provider contains support for the Camb.ai text-to-speech and transcription APIs.
+
+## Setup
+
+The Camb.ai provider is available in the `@ai-sdk/cambai` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/cambai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/cambai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/cambai" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/cambai" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `cambai` from `@ai-sdk/cambai`:
+
+```ts
+import { cambai } from '@ai-sdk/cambai';
+```
+
+If you need a customized setup, you can import `createCambai` from `@ai-sdk/cambai` and create a provider instance with your settings:
+
+```ts
+import { createCambai } from '@ai-sdk/cambai';
+
+const cambai = createCambai({
+  // custom settings, e.g.
+  apiKey: 'your-api-key',
+});
+```
+
+You can use the following optional settings to customize the Camb.ai provider instance:
+
+- **apiKey** _string_
+
+  API key for authenticating requests.
+  It defaults to the `CAMB_API_KEY` environment variable.
+
+- **baseURL** _string_
+
+  Base URL for the Camb.ai API.
+  Defaults to `https://client.camb.ai/apis`.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+## Speech Models
+
+You can create models that call the [Camb.ai TTS API](https://docs.camb.ai/api-reference/endpoint/create-tts-stream)
+using the `.speech()` factory method.
+
+The first argument is the model id e.g. `mars-pro`.
+
+```ts
+const model = cambai.speech('mars-pro');
+```
+
+The `voice` argument should be set to a numeric voice ID from the Camb.ai voice library.
+
+```ts highlight="6"
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { cambai } from '@ai-sdk/cambai';
+
+const result = await generateSpeech({
+  model: cambai.speech('mars-pro'),
+  text: 'Hello, world!',
+  voice: '147320',
+});
+```
+
+### Instructions (mars-instruct)
+
+The `mars-instruct` model supports natural language instructions for controlling speaking style:
+
+```ts highlight="5,8"
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { cambai } from '@ai-sdk/cambai';
+
+const result = await generateSpeech({
+  model: cambai.speech('mars-instruct'),
+  text: 'Hello, world!',
+  voice: '147320',
+  instructions: 'Speak in a cheerful and energetic tone',
+});
+```
+
+### Provider Options
+
+You can pass additional provider-specific options using the `providerOptions` argument:
+
+```ts highlight="7-13"
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { cambai, type CambaiSpeechModelOptions } from '@ai-sdk/cambai';
+
+const result = await generateSpeech({
+  model: cambai.speech('mars-pro'),
+  text: 'Hello, world!',
+  voice: '147320',
+  providerOptions: {
+    cambai: {
+      inferenceOptions: {
+        stability: 0.7,
+        temperature: 1.2,
+      },
+    } satisfies CambaiSpeechModelOptions,
+  },
+});
+```
+
+- **voiceSettings** _object_
+  Optional. Voice settings for the generation.
+
+  - **enhanceReferenceAudioQuality** _boolean_ - Enhance the reference audio quality.
+  - **maintainSourceAccent** _boolean_ - Maintain the source accent.
+  - **applyRefLoudnessNorm** _boolean_ - Apply reference loudness normalization.
+
+- **inferenceOptions** _object_
+  Optional. Inference options for controlling generation quality.
+
+  - **stability** _number_ (0-1) - Controls voice stability.
+  - **temperature** _number_ (0.01-4.0) - Controls generation randomness.
+  - **inferenceSteps** _number_ (1-1000) - Number of inference steps.
+  - **speakerSimilarity** _number_ (0-1) - Controls similarity to original speaker.
+  - **localizeSpeakerWeight** _number_ - Localization speaker weight.
+  - **acousticQualityBoost** _boolean_ - Boost acoustic quality.
+
+- **outputConfiguration** _object_
+  Optional. Output configuration options.
+
+  - **duration** _number_ - Target duration in seconds.
+  - **applyEnhancement** _boolean_ - Apply audio enhancement.
+
+- **enhanceNamedEntitiesPronunciation** _boolean_
+  Optional. Improves pronunciation of proper nouns and named entities.
+
+### Model Capabilities
+
+| Model           | Instructions        |
+| --------------- | ------------------- |
+| `mars-pro`      | <Cross size={18} /> |
+| `mars-flash`    | <Cross size={18} /> |
+| `mars-instruct` | <Check size={18} /> |
+
+## Transcription Models
+
+You can create models that call the Camb.ai transcription API
+using the `.transcription()` factory method.
+
+```ts
+const model = cambai.transcription('default');
+```
+
+```ts highlight="6-12"
+import { experimental_transcribe as transcribe } from 'ai';
+import { cambai, type CambaiTranscriptionModelOptions } from '@ai-sdk/cambai';
+
+const result = await transcribe({
+  model: cambai.transcription('default'),
+  audio: new Uint8Array([1, 2, 3, 4]),
+  providerOptions: {
+    cambai: {
+      language: 1,
+      wordLevelTimestamps: true,
+    } satisfies CambaiTranscriptionModelOptions,
+  },
+});
+```
+
+The following provider options are available:
+
+- **language** _number_
+
+  Numeric language code for the audio content.
+  Defaults to `1` (English).
+
+- **wordLevelTimestamps** _boolean_
+
+  Whether to include word-level timing information.
+  Defaults to `false`.
+
+- **timeoutMs** _number_
+
+  Maximum time to wait for transcription to complete, in milliseconds.
+  Defaults to 5 minutes (300000ms).
+
+### Model Capabilities
+
+| Model     | Transcription       | Duration            | Segments            |
+| --------- | ------------------- | ------------------- | ------------------- |
+| `default` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
