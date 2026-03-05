@@ -975,7 +975,6 @@ const result = await generateText({
   model: openai.responses('gpt-5.2-codex'),
   tools: {
     write_sql: openai.tools.customTool({
-      name: 'write_sql',
       description: 'Write a SQL SELECT query to answer the user question.',
       format: {
         type: 'grammar',
@@ -1005,7 +1004,6 @@ const result = streamText({
   model: openai.responses('gpt-5.2-codex'),
   tools: {
     write_sql: openai.tools.customTool({
-      name: 'write_sql',
       description: 'Write a SQL SELECT query to answer the user question.',
       format: {
         type: 'grammar',
@@ -1028,7 +1026,6 @@ for await (const chunk of result.fullStream) {
 
 The custom tool can be configured with:
 
-- **name** _string_ (required) - The name of the custom tool. Used to identify the tool in tool calls.
 - **description** _string_ (optional) - A description of what the tool does, to help the model understand when to use it.
 - **format** _object_ (optional) - The output format constraint. Omit for unconstrained text output.
   - **type** _'grammar' | 'text'_ - The format type. Use `'grammar'` for constrained output or `'text'` for explicit unconstrained text.
