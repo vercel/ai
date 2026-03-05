@@ -855,10 +855,30 @@ export async function generateText<
                           result.providerMetadata,
                         ),
 
-                        // TODO rename telemetry attributes to inputTokens and outputTokens
                         'ai.usage.promptTokens': result.usage.inputTokens.total,
                         'ai.usage.completionTokens':
                           result.usage.outputTokens.total,
+
+                        'ai.usage.inputTokens': result.usage.inputTokens.total,
+                        'ai.usage.inputTokenDetails.noCacheTokens':
+                          result.usage.inputTokens.noCache,
+                        'ai.usage.inputTokenDetails.cacheReadTokens':
+                          result.usage.inputTokens.cacheRead,
+                        'ai.usage.inputTokenDetails.cacheWriteTokens':
+                          result.usage.inputTokens.cacheWrite,
+                        'ai.usage.outputTokens':
+                          result.usage.outputTokens.total,
+                        'ai.usage.outputTokenDetails.textTokens':
+                          result.usage.outputTokens.text,
+                        'ai.usage.outputTokenDetails.reasoningTokens':
+                          result.usage.outputTokens.reasoning,
+                        'ai.usage.totalTokens':
+                          (result.usage.inputTokens.total ?? 0) +
+                          (result.usage.outputTokens.total ?? 0),
+                        'ai.usage.reasoningTokens':
+                          result.usage.outputTokens.reasoning,
+                        'ai.usage.cachedInputTokens':
+                          result.usage.inputTokens.cacheRead,
 
                         // standardized gen-ai llm span attributes:
                         'gen_ai.response.finish_reasons': [
@@ -1133,12 +1153,6 @@ export async function generateText<
               'ai.response.providerMetadata': JSON.stringify(
                 currentModelResponse.providerMetadata,
               ),
-
-              // TODO rename telemetry attributes to inputTokens and outputTokens
-              'ai.usage.promptTokens':
-                currentModelResponse.usage.inputTokens.total,
-              'ai.usage.completionTokens':
-                currentModelResponse.usage.outputTokens.total,
             },
           }),
         );
@@ -1156,6 +1170,31 @@ export async function generateText<
             reasoningTokens: undefined,
             cachedInputTokens: undefined,
           } as LanguageModelUsage,
+        );
+
+        span.setAttributes(
+          await selectTelemetryAttributes({
+            telemetry,
+            attributes: {
+              'ai.usage.inputTokens': totalUsage.inputTokens,
+              'ai.usage.inputTokenDetails.noCacheTokens':
+                totalUsage.inputTokenDetails?.noCacheTokens,
+              'ai.usage.inputTokenDetails.cacheReadTokens':
+                totalUsage.inputTokenDetails?.cacheReadTokens,
+              'ai.usage.inputTokenDetails.cacheWriteTokens':
+                totalUsage.inputTokenDetails?.cacheWriteTokens,
+              'ai.usage.outputTokens': totalUsage.outputTokens,
+              'ai.usage.outputTokenDetails.textTokens':
+                totalUsage.outputTokenDetails?.textTokens,
+              'ai.usage.outputTokenDetails.reasoningTokens':
+                totalUsage.outputTokenDetails?.reasoningTokens,
+              'ai.usage.totalTokens': totalUsage.totalTokens,
+              'ai.usage.reasoningTokens':
+                totalUsage.outputTokenDetails?.reasoningTokens,
+              'ai.usage.cachedInputTokens':
+                totalUsage.inputTokenDetails?.cacheReadTokens,
+            },
+          }),
         );
 
         await notify({

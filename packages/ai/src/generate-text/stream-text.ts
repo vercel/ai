@@ -1158,12 +1158,23 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 'ai.response.providerMetadata': JSON.stringify(
                   finalStep.providerMetadata,
                 ),
-
                 'ai.usage.inputTokens': totalUsage.inputTokens,
+                'ai.usage.inputTokenDetails.noCacheTokens':
+                  totalUsage.inputTokenDetails?.noCacheTokens,
+                'ai.usage.inputTokenDetails.cacheReadTokens':
+                  totalUsage.inputTokenDetails?.cacheReadTokens,
+                'ai.usage.inputTokenDetails.cacheWriteTokens':
+                  totalUsage.inputTokenDetails?.cacheWriteTokens,
                 'ai.usage.outputTokens': totalUsage.outputTokens,
+                'ai.usage.outputTokenDetails.textTokens':
+                  totalUsage.outputTokenDetails?.textTokens,
+                'ai.usage.outputTokenDetails.reasoningTokens':
+                  totalUsage.outputTokenDetails?.reasoningTokens,
                 'ai.usage.totalTokens': totalUsage.totalTokens,
-                'ai.usage.reasoningTokens': totalUsage.reasoningTokens,
-                'ai.usage.cachedInputTokens': totalUsage.cachedInputTokens,
+                'ai.usage.reasoningTokens':
+                  totalUsage.outputTokenDetails?.reasoningTokens,
+                'ai.usage.cachedInputTokens':
+                  totalUsage.inputTokenDetails?.cacheReadTokens,
               },
             }),
           );
@@ -1978,14 +1989,25 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                               stepResponse.timestamp.toISOString(),
                             'ai.response.providerMetadata':
                               JSON.stringify(stepProviderMetadata),
-
+                            'ai.usage.promptTokens': stepUsage.inputTokens,
+                            'ai.usage.completionTokens': stepUsage.outputTokens,
                             'ai.usage.inputTokens': stepUsage.inputTokens,
+                            'ai.usage.inputTokenDetails.noCacheTokens':
+                              stepUsage.inputTokenDetails?.noCacheTokens,
+                            'ai.usage.inputTokenDetails.cacheReadTokens':
+                              stepUsage.inputTokenDetails?.cacheReadTokens,
+                            'ai.usage.inputTokenDetails.cacheWriteTokens':
+                              stepUsage.inputTokenDetails?.cacheWriteTokens,
                             'ai.usage.outputTokens': stepUsage.outputTokens,
+                            'ai.usage.outputTokenDetails.textTokens':
+                              stepUsage.outputTokenDetails?.textTokens,
+                            'ai.usage.outputTokenDetails.reasoningTokens':
+                              stepUsage.outputTokenDetails?.reasoningTokens,
                             'ai.usage.totalTokens': stepUsage.totalTokens,
                             'ai.usage.reasoningTokens':
-                              stepUsage.reasoningTokens,
+                              stepUsage.outputTokenDetails?.reasoningTokens,
                             'ai.usage.cachedInputTokens':
-                              stepUsage.cachedInputTokens,
+                              stepUsage.inputTokenDetails?.cacheReadTokens,
 
                             // standardized gen-ai llm span attributes:
                             'gen_ai.response.finish_reasons': [
