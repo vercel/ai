@@ -82,5 +82,5 @@
     "generate-llms-txt": "0.0.0",
     "@vercel/ai-tsconfig": "0.0.0"
   },
-  "changesets": ["start-v7-prerelease"]
+  "changesets": ["google-validated-strict-tools", "start-v7-prerelease"]
 }
