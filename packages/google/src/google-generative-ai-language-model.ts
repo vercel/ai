@@ -361,7 +361,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       outputTokens: undefined,
       totalTokens: undefined,
     };
+<<<<<<< HEAD
     let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
+=======
+    let usage: GoogleGenerativeAIUsageMetadata | undefined = undefined;
+    let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
+    let lastGroundingMetadata: GroundingMetadataSchema | null = null;
+    let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
+>>>>>>> e2a59ef92 (Backport: fix(provider/google): preserve groundingMetadata when streamed before finishReason (#13124))
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -419,6 +426,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             }
 
             const content = candidate.content;
+
+            if (candidate.groundingMetadata != null) {
+              lastGroundingMetadata = candidate.groundingMetadata;
+            }
+            if (candidate.urlContextMetadata != null) {
+              lastUrlContextMetadata = candidate.urlContextMetadata;
+            }
 
             const sources = extractSources({
               groundingMetadata: candidate.groundingMetadata,
@@ -608,8 +622,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
               providerMetadata = {
                 google: {
                   promptFeedback: value.promptFeedback ?? null,
-                  groundingMetadata: candidate.groundingMetadata ?? null,
-                  urlContextMetadata: candidate.urlContextMetadata ?? null,
+                  groundingMetadata: lastGroundingMetadata,
+                  urlContextMetadata: lastUrlContextMetadata,
                   safetyRatings: candidate.safetyRatings ?? null,
                 },
               };

@@ -2416,6 +2416,130 @@ describe('doStream', () => {
     });
   });
 
+  it('should preserve grounding metadata when it arrives before the finishReason chunk', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'hello' }], role: 'model' },
+              index: 0,
+              groundingMetadata: {
+                webSearchQueries: ['super bowl 2026 halftime show'],
+                groundingChunks: [
+                  {
+                    web: {
+                      uri: 'https://example.com/superbowl',
+                      title: 'Super Bowl 2026',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: ' world' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 38,
+            candidatesTokenCount: 1335,
+            totalTokenCount: 1890,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.groundingMetadata,
+    ).toEqual({
+      webSearchQueries: ['super bowl 2026 halftime show'],
+      groundingChunks: [
+        {
+          web: {
+            uri: 'https://example.com/superbowl',
+            title: 'Super Bowl 2026',
+          },
+        },
+      ],
+    });
+
+    expect(events.filter(e => e.type === 'source')).toHaveLength(1);
+  });
+
+  it('should preserve url context metadata when it arrives before the finishReason chunk', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'hello' }], role: 'model' },
+              index: 0,
+              urlContextMetadata: {
+                urlMetadata: [
+                  {
+                    retrievedUrl: 'https://example.com/page',
+                    urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
+                  },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: ' world' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 5,
+            totalTokenCount: 15,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.urlContextMetadata,
+    ).toEqual({
+      urlMetadata: [
+        {
+          retrievedUrl: 'https://example.com/page',
+          urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
+        },
+      ],
+    });
+  });
+
   it('should expose url context metadata in provider metadata on finish', async () => {
     prepareStreamResponse({
       content: ['test'],
