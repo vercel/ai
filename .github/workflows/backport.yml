@@ -163,9 +163,35 @@ jobs:
         run: |
           git push origin backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }}
 
+      - name: Determine PR assignee
+        id: assignee
+        run: |
+          if [ "$MERGED_BY_TYPE" = "User" ]; then
+            echo "login=$MERGED_BY_LOGIN" >> "$GITHUB_OUTPUT"
+          elif [ "$PR_AUTHOR_TYPE" = "User" ]; then
+            echo "login=$PR_AUTHOR_LOGIN" >> "$GITHUB_OUTPUT"
+          else
+            REVIEWER=$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews" \
+              --jq '[.[] | select(.user.type == "User")] | last | .user.login // empty')
+            if [ -n "$REVIEWER" ]; then
+              echo "login=$REVIEWER" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          MERGED_BY_TYPE: ${{ github.event.pull_request.merged_by.type }}
+          MERGED_BY_LOGIN: ${{ github.event.pull_request.merged_by.login }}
+          PR_AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
+          PR_AUTHOR_LOGIN: ${{ github.event.pull_request.user.login }}
+
       - name: Create backport pull request
         id: create-pr
         run: |
+          ASSIGNEE_FLAG=""
+          if [ -n "$ASSIGNEE_LOGIN" ]; then
+            ASSIGNEE_FLAG="--assignee $ASSIGNEE_LOGIN"
+          fi
+
           # Create the backport PR
           if [ "${{ steps.cherry-pick.outputs.has-conflicts }}" = "true" ]; then
             PR_URL=$(gh pr create \
@@ -173,7 +199,7 @@ jobs:
               --body "$PR_BODY_CONFLICTS" \
               --base ${{ needs.find-branch.outputs.release-branch }} \
               --head backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }} \
-              --assignee ${{ github.event.pull_request.merged_by.login }} \
+              $ASSIGNEE_FLAG \
               --draft)
           else
             PR_URL=$(gh pr create \
@@ -181,13 +207,14 @@ jobs:
               --body "$PR_BODY_NO_CONFLICTS" \
               --base ${{ needs.find-branch.outputs.release-branch }} \
               --head backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }} \
-              --assignee ${{ github.event.pull_request.merged_by.login }})
+              $ASSIGNEE_FLAG)
           fi
           echo "backport-pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
           gh pr merge "$PR_URL" --auto --squash || echo "Auto-merge could not be enabled"
           echo "Created backport PR $PR_URL"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          ASSIGNEE_LOGIN: ${{ steps.assignee.outputs.login }}
           PR_TITLE: 'Backport: ${{ github.event.pull_request.title }}'
           PR_BODY_NO_CONFLICTS: 'This is an automated backport of #${{ github.event.pull_request.number }} to the ${{ needs.find-branch.outputs.release-branch }} branch. FYI @${{ github.event.pull_request.user.login }}'
           PR_BODY_CONFLICTS: |
