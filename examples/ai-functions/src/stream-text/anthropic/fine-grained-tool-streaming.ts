@@ -154,7 +154,7 @@ async function main() {
   console.log('tool-input-end received   :', sawToolInputEnd);
   console.log('reasoning-delta count     :', reasoningDeltaCount);
   console.log(
-    `Eager input streaming: ${isEager ? '✅' : '❌'} (${toolInputDeltaCount} deltas, avg ${avgChunkBytes} bytes/chunk)`,
+    `\nEager input streaming: ${isEager ? 'detected' : 'not detected'} (${toolInputDeltaCount} deltas, avg ${avgChunkBytes} bytes/chunk)`,
   );
 }
 
