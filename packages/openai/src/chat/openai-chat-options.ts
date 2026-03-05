@@ -85,6 +85,15 @@ export const openaiLanguageModelChatOptions = lazySchema(() =>
       parallelToolCalls: z.boolean().optional(),
 
       /**
+       * Enable OpenAI tool_search to let the model dynamically discover
+       * and select from a large set of tools. When enabled, a
+       * `{ type: "tool_search" }` entry is appended to the tools array.
+       *
+       * @see https://platform.openai.com/docs/guides/tools-tool-search
+       */
+      toolSearch: z.boolean().optional(),
+
+      /**
        * A unique identifier representing your end-user, which can help OpenAI to
        * monitor and detect abuse.
        */

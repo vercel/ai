@@ -3,6 +3,7 @@ export type OpenAILanguageModelCapabilities = {
   systemMessageMode: 'remove' | 'system' | 'developer';
   supportsFlexProcessing: boolean;
   supportsPriorityProcessing: boolean;
+  supportsToolSearch: boolean;
 
   /**
    * Allow temperature, topP, logProbs when reasoningEffort is none.
@@ -42,11 +43,14 @@ export function getOpenAILanguageModelCapabilities(
     modelId.startsWith('gpt-5.2') ||
     modelId.startsWith('gpt-5.4');
 
+  const supportsToolSearch = modelId.startsWith('gpt-5.4');
+
   const systemMessageMode = isReasoningModel ? 'developer' : 'system';
 
   return {
     supportsFlexProcessing,
     supportsPriorityProcessing,
+    supportsToolSearch,
     isReasoningModel,
     systemMessageMode,
     supportsNonReasoningParameters,

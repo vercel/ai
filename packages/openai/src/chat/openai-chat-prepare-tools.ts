@@ -6,16 +6,19 @@ import {
 import {
   OpenAIChatToolChoice,
   OpenAIChatFunctionTool,
+  OpenAIChatToolSearchTool,
 } from './openai-chat-api';
 
 export function prepareChatTools({
   tools,
   toolChoice,
+  toolSearch,
 }: {
   tools: LanguageModelV3CallOptions['tools'];
   toolChoice?: LanguageModelV3CallOptions['toolChoice'];
+  toolSearch?: boolean;
 }): {
-  tools?: OpenAIChatFunctionTool[];
+  tools?: Array<OpenAIChatFunctionTool | OpenAIChatToolSearchTool>;
   toolChoice?: OpenAIChatToolChoice;
   toolWarnings: Array<SharedV3Warning>;
 } {
@@ -28,11 +31,16 @@ export function prepareChatTools({
     return { tools: undefined, toolChoice: undefined, toolWarnings };
   }
 
-  const openaiTools: OpenAIChatFunctionTool[] = [];
+  const openaiTools: Array<OpenAIChatFunctionTool | OpenAIChatToolSearchTool> =
+    [];
 
   for (const tool of tools) {
     switch (tool.type) {
-      case 'function':
+      case 'function': {
+        const openaiOptions = tool.providerOptions?.openai as
+          | { deferLoading?: boolean }
+          | undefined;
+
         openaiTools.push({
           type: 'function',
           function: {
@@ -41,8 +49,12 @@ export function prepareChatTools({
             parameters: tool.inputSchema,
             ...(tool.strict != null ? { strict: tool.strict } : {}),
           },
+          ...(openaiOptions?.deferLoading != null
+            ? { defer_loading: openaiOptions.deferLoading }
+            : {}),
         });
         break;
+      }
       default:
         toolWarnings.push({
           type: 'unsupported',
@@ -50,6 +62,10 @@ export function prepareChatTools({
         });
         break;
     }
+  }
+
+  if (toolSearch) {
+    openaiTools.push({ type: 'tool_search' });
   }
 
   if (toolChoice == null) {
