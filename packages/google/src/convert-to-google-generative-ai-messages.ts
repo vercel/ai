@@ -86,7 +86,7 @@ export function convertToGoogleGenerativeAIMessages(
                 part.providerOptions?.[providerOptionsName] ??
                 (providerOptionsName !== 'google'
                   ? part.providerOptions?.google
-                  : undefined);
+                  : part.providerOptions?.vertex);
               const thoughtSignature =
                 providerOpts?.thoughtSignature != null
                   ? String(providerOpts.thoughtSignature)
