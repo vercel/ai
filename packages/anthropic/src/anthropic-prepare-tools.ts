@@ -10,17 +10,10 @@ import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
 import { webFetch_20250910ArgsSchema } from './tool/web-fetch-20250910';
 import { validateTypes } from '@ai-sdk/provider-utils';
 
-<<<<<<< HEAD
-=======
 export interface AnthropicToolOptions {
-  deferLoading?: boolean;
-  allowedCallers?: Array<
-    'direct' | 'code_execution_20250825' | 'code_execution_20260120'
-  >;
   eagerInputStreaming?: boolean;
 }
 
->>>>>>> 3fb4e7073 (feat(provider/anthropic): support fine-grained tool streaming with eagerInputStreaming (#13078))
 export async function prepareTools({
   tools,
   toolChoice,
@@ -58,41 +51,19 @@ export async function prepareTools({
           canCache: true,
         });
 
-<<<<<<< HEAD
-=======
         // Read Anthropic-specific provider options
         const anthropicOptions = tool.providerOptions?.anthropic as
           | AnthropicToolOptions
           | undefined;
         // eager_input_streaming is only supported on custom (function) tools
         const eagerInputStreaming = anthropicOptions?.eagerInputStreaming;
-        const deferLoading = anthropicOptions?.deferLoading;
-        const allowedCallers = anthropicOptions?.allowedCallers;
 
->>>>>>> 3fb4e7073 (feat(provider/anthropic): support fine-grained tool streaming with eagerInputStreaming (#13078))
         anthropicTools.push({
           name: tool.name,
           description: tool.description,
           input_schema: tool.inputSchema,
           cache_control: cacheControl,
-<<<<<<< HEAD
-=======
           ...(eagerInputStreaming ? { eager_input_streaming: true } : {}),
-          ...(supportsStructuredOutput === true && tool.strict != null
-            ? { strict: tool.strict }
-            : {}),
-          ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
-          ...(allowedCallers != null
-            ? { allowed_callers: allowedCallers }
-            : {}),
-          ...(tool.inputExamples != null
-            ? {
-                input_examples: tool.inputExamples.map(
-                  example => example.input,
-                ),
-              }
-            : {}),
->>>>>>> 3fb4e7073 (feat(provider/anthropic): support fine-grained tool streaming with eagerInputStreaming (#13078))
         });
         break;
       }
