@@ -31,3 +31,7 @@ This runs both the Angular frontend (localhost:4200) and Express backend (localh
 - Proxy configuration for API requests
 
 Set your preferred model in `chat.component.ts` by changing the `selectedModel` parameter.
+<<<<<<< HEAD
+=======
+Use AI Gateway model IDs like `openai/gpt-5.4`.
+>>>>>>> 258900473 (Backport: feat(openai): add GPT-5.4 model support (#13117))

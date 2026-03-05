@@ -103,7 +103,11 @@ export class ChatComponent {
       { text: userInput },
       {
         body: {
+<<<<<<< HEAD
           selectedModel: 'gpt-4o',
+=======
+          selectedModel: 'openai/gpt-5.4',
+>>>>>>> 258900473 (Backport: feat(openai): add GPT-5.4 model support (#13117))
         },
       },
     );
@@ -111,6 +115,11 @@ export class ChatComponent {
 }
 ```
 
+<<<<<<< HEAD
+=======
+`selectedModel` should be an AI Gateway model ID like `openai/gpt-5.4`.
+
+>>>>>>> 258900473 (Backport: feat(openai): add GPT-5.4 model support (#13117))
 ### Constructor Options
 
 ```typescript
@@ -460,6 +469,12 @@ structuredObject.stop();
 
 ## Server Implementation
 
+<<<<<<< HEAD
+=======
+When you pass a string model ID (for example `openai/gpt-5.4`), the AI SDK uses
+AI Gateway as the default provider, so no provider import is required.
+
+>>>>>>> 258900473 (Backport: feat(openai): add GPT-5.4 model support (#13117))
 ### Express.js Chat Endpoint
 
 ```typescript
@@ -474,7 +489,11 @@ app.post('/api/chat', async (req, res) => {
   const { messages, selectedModel } = req.body;
 
   const result = streamText({
+<<<<<<< HEAD
     model: openai(selectedModel || 'gpt-4o'),
+=======
+    model: selectedModel || 'openai/gpt-5.4',
+>>>>>>> 258900473 (Backport: feat(openai): add GPT-5.4 model support (#13117))
     messages: convertToModelMessages(messages),
   });
 
@@ -489,7 +508,11 @@ app.post('/api/completion', async (req, res) => {
   const { prompt } = req.body;
 
   const result = streamText({
+<<<<<<< HEAD
     model: openai('gpt-4o'),
+=======
+    model: 'openai/gpt-5.4',
+>>>>>>> 258900473 (Backport: feat(openai): add GPT-5.4 model support (#13117))
     prompt,
   });
 
@@ -507,7 +530,11 @@ app.post('/api/analyze', async (req, res) => {
   const input = req.body;
 
   const result = streamObject({
+<<<<<<< HEAD
     model: openai('gpt-4o'),
+=======
+    model: 'openai/gpt-5.4',
+>>>>>>> 258900473 (Backport: feat(openai): add GPT-5.4 model support (#13117))
     schema: z.object({
       title: z.string(),
       summary: z.string(),

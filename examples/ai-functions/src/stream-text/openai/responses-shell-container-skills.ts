@@ -1,21 +1,37 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import { run } from '../lib/run';
+import { readFileSync } from 'fs';
+import { run } from '../../lib/run';
+import { saveRawChunks } from '../../lib/save-raw-chunks';
+
+const skillZip = readFileSync('data/island-rescue-skill.zip').toString(
+  'base64',
+);
 
 run(async () => {
   const result = streamText({
-<<<<<<< HEAD:examples/ai-core/src/stream-text/openai-web-search-tool.ts
-    model: openai('gpt-5-mini'),
-    prompt:
-      'What happened in tech news today? Open a few pages and search for a key word pattern vercel on those pages.',
-=======
     model: openai.responses('gpt-5.4'),
->>>>>>> 258900473 (Backport: feat(openai): add GPT-5.4 model support (#13117)):examples/ai-functions/src/stream-text/openai/responses-shell-container.ts
     tools: {
-      web_search: openai.tools.webSearch({
-        searchContextSize: 'medium',
+      shell: openai.tools.shell({
+        environment: {
+          type: 'containerAuto',
+          skills: [
+            {
+              type: 'inline',
+              name: 'island-rescue',
+              description: 'How to be rescued from a lonely island',
+              source: {
+                type: 'base64',
+                mediaType: 'application/zip',
+                data: skillZip,
+              },
+            },
+          ],
+        },
       }),
     },
+    prompt:
+      'You are trapped and lost on a lonely island in 1895. Find a way to get rescued!',
   });
 
   for await (const chunk of result.fullStream) {
@@ -36,15 +52,6 @@ run(async () => {
         console.log(
           `\x1b[32m\x1b[1mTool result:\x1b[22m ${JSON.stringify(chunk, null, 2)}\x1b[0m`,
         );
-        break;
-      }
-
-      case 'source': {
-        if (chunk.sourceType === 'url') {
-          process.stdout.write(
-            `\n\n\x1b[36mSource: ${chunk.title} (${chunk.url})\x1b[0m\n\n`,
-          );
-        }
         break;
       }
 
