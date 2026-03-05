@@ -1,4 +1,4 @@
-import { ContextRegistry, ReasoningPart } from '@ai-sdk/provider-utils';
+import { Context, ReasoningPart } from '@ai-sdk/provider-utils';
 import {
   CallWarning,
   FinishReason,
@@ -22,10 +22,7 @@ import { ToolSet } from './tool-set';
 /**
  * The result of a single step in the generation process.
  */
-export type StepResult<
-  CONTEXT extends Partial<ContextRegistry>,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
-> = {
+export type StepResult<TOOLS extends ToolSet = ToolSet> = {
   /**
    * Zero-based index of this step.
    */
@@ -91,7 +88,7 @@ export type StepResult<
   /**
    * The tool calls that were made during the generation.
    */
-  readonly toolCalls: Array<TypedToolCall<CONTEXT, TOOLS>>;
+  readonly toolCalls: Array<TypedToolCall<TOOLS>>;
 
   /**
    * The static tool calls that were made in the last step.
@@ -106,7 +103,7 @@ export type StepResult<
   /**
    * The results of the tool calls.
    */
-  readonly toolResults: Array<TypedToolResult<CONTEXT, TOOLS>>;
+  readonly toolResults: Array<TypedToolResult<TOOLS>>;
 
   /**
    * The static tool results that were made in the last step.
@@ -168,8 +165,10 @@ export type StepResult<
   readonly providerMetadata: ProviderMetadata | undefined;
 };
 
-export class DefaultStepResult<TOOLS extends ToolSet>
-  implements StepResult<TOOLS>
+export class DefaultStepResult<
+  CONTEXT extends Context,
+  TOOLS extends ToolSet<CONTEXT>,
+> implements StepResult<CONTEXT, TOOLS>
 {
   readonly stepNumber: StepResult<TOOLS>['stepNumber'];
   readonly model: StepResult<TOOLS>['model'];

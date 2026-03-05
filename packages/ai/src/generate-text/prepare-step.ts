@@ -1,6 +1,5 @@
 import {
   Context,
-  ContextRegistry,
   ModelMessage,
   ProviderOptions,
   SystemModelMessage,
@@ -23,7 +22,7 @@ import { ToolSet } from './tool-set';
  * If you return undefined (or for undefined settings), the settings from the outer level will be used.
  */
 export type PrepareStepFunction<
-  CONTEXT extends Partial<ContextRegistry> = ContextRegistry,
+  CONTEXT extends Context,
   TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
 > = (options: {
   /**
@@ -49,7 +48,7 @@ export type PrepareStepFunction<
   /**
    * The context passed via the experimental_context setting (experimental).
    */
-  experimental_context: Context<CONTEXT>;
+  experimental_context: CONTEXT;
 }) =>
   | PromiseLike<PrepareStepResult<CONTEXT, TOOLS>>
   | PrepareStepResult<CONTEXT, TOOLS>;
@@ -59,7 +58,7 @@ export type PrepareStepFunction<
  * allowing per-step overrides of model, tools, or messages.
  */
 export type PrepareStepResult<
-  CONTEXT extends Partial<ContextRegistry> = ContextRegistry,
+  CONTEXT extends Context,
   TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
 > =
   | {
@@ -96,7 +95,7 @@ export type PrepareStepResult<
        * Changing the context will affect the context in this step
        * and all subsequent steps.
        */
-      experimental_context?: Context<CONTEXT>;
+      experimental_context?: CONTEXT;
 
       /**
        * Additional provider-specific options for this step.
