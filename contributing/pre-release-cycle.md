@@ -26,7 +26,18 @@ git push origin release-v<current-major>.0
 
 The [release workflow](../.github/workflows/release.yml) already runs on `release-v*` branches, so no workflow changes are needed.
 
-### 2. Enter pre-release mode on `main`
+### 2. Set the npm dist-tag on the maintenance branch
+
+On the new maintenance branch, update the `ci:release` script in the root `package.json` to publish with a version-specific npm dist-tag. This prevents maintenance releases from taking over the `latest` tag on npm:
+
+```diff
+-    "ci:release": "turbo clean && turbo build && changeset publish",
++    "ci:release": "turbo clean && turbo build && changeset publish --tag ai-v<current-major>",
+```
+
+For example, for `release-v6.0` use `--tag ai-v6`. Commit and push the change directly to the maintenance branch.
+
+### 3. Enter pre-release mode on `main`
 
 Switch back to `main` and enter changeset pre-release mode:
 
@@ -37,7 +48,7 @@ pnpm changeset pre enter beta
 
 This modifies `.changeset/pre.json`. The `initialVersions` field should only contain packages from `packages/*/package.json` files — remove any other entries (e.g. `@example/*`, `tools/*`, or nested test packages). Commit and push the change (or open a PR).
 
-### 3. Create a major changeset
+### 4. Create a major changeset
 
 Create a changeset that bumps every published package to the next major version:
 
@@ -51,7 +62,7 @@ Select all packages from `packages/*/package.json` (skip `@example/*`, `tools/*`
 
 Commit the generated `.changeset/*.md` file.
 
-### 4. Seed the new spec version
+### 5. Seed the new spec version
 
 Every major release introduces a new provider specification version (e.g. V3 to V4). You must create a new version directory for **every** spec directory under `packages/provider/src/` that contains a versioned subdirectory. To find them, run:
 
@@ -71,11 +82,11 @@ For **each** directory:
 
 Verify by running `pnpm build` in `packages/provider` — all new types should appear in the built `.d.ts` output.
 
-### 5. Create mock test utilities
+### 6. Create mock test utilities
 
 Create V4 counterparts for every mock file in `packages/ai/src/test/` (e.g. `mock-language-model-v3.ts` → `mock-language-model-v4.ts`). Update `packages/ai/test/index.ts` to export the new V4 mocks.
 
-### 6. Update `packages/ai` for the new spec version
+### 7. Update `packages/ai` for the new spec version
 
 The core `packages/ai` package needs adapter functions, updated public APIs, and test updates to support the new spec version alongside older ones.
 
@@ -120,7 +131,7 @@ Update the following files to accept `V2 | V3 | V4` models at their public bound
 
 Run `pnpm test` in `packages/ai` and `pnpm type-check:full` from the workspace root to verify.
 
-### 7. Set up the documentation site (ai-sdk.dev)
+### 8. Set up the documentation site (ai-sdk.dev)
 
 The documentation site lives in the `ai-studio` repository and uses a Git submodule pointing at this repository. During the pre-release cycle the site needs versioned branches and Vercel deployments for both stable and beta docs.
 
@@ -134,9 +145,9 @@ In the `ai-studio` repository:
 3. Create a `sdk/v7` branch (the default branch stays `sdk/v6` for now so the production site continues serving stable docs).
 4. In Vercel, create a v7 preview deployment connected to the `sdk/v7` branch (e.g. `v7.ai-sdk.dev`).
 
-### 8. Merge to `main`
+### 9. Merge to `main`
 
-Open a PR with all the changes from steps 2-6. Once merged, the first beta release (e.g. `ai@7.0.0-beta.1`) will be published automatically.
+Open a PR with all the changes from steps 3-7. Once merged, the first beta release (e.g. `ai@7.0.0-beta.1`) will be published automatically.
 
 ## During the Pre-Release Cycle
 
