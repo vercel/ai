@@ -1,9 +1,15 @@
 import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
+import { notify } from '../util/notify';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { now } from '../util/now';
+import {
+  GenerateTextOnToolCallFinishCallback,
+  GenerateTextOnToolCallStartCallback,
+} from './generate-text';
 import { TypedToolCall } from './tool-call';
 import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
@@ -11,6 +17,17 @@ import { TypedToolResult } from './tool-result';
 import { TypedToolError } from './tool-error';
 import { LanguageModelV3 } from '@ai-sdk/provider';
 
+/**
+ * Executes a single tool call and manages its lifecycle callbacks.
+ *
+ * This function handles the complete tool execution flow:
+ * 1. Invokes `onToolCallStart` callback before execution
+ * 2. Executes the tool's `execute` function with proper context
+ * 3. Handles streaming outputs via `onPreliminaryToolResult`
+ * 4. Invokes `onToolCallFinish` callback with success or error result
+ *
+ * @returns The tool output (result or error), or undefined if the tool has no execute function.
+ */
 export async function executeToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
@@ -19,8 +36,12 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   experimental_context,
+  stepNumber,
+  model,
   onPreliminaryToolResult,
   currentModelResponse,
+  onToolCallStart,
+  onToolCallFinish,
 }: {
   toolCall: TypedToolCall<TOOLS>;
   tools: TOOLS | undefined;
@@ -29,8 +50,16 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
+  stepNumber?: number;
+  model?: { provider: string; modelId: string };
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
   currentModelResponse?: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+  onToolCallStart?:
+    | GenerateTextOnToolCallStartCallback<TOOLS>
+    | Array<GenerateTextOnToolCallStartCallback<TOOLS> | undefined | null>;
+  onToolCallFinish?:
+    | GenerateTextOnToolCallFinishCallback<TOOLS>
+    | Array<GenerateTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
 }): Promise<ToolOutput<TOOLS> | undefined> {
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
@@ -38,6 +67,17 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   if (tool?.execute == null) {
     return undefined;
   }
+
+  const baseCallbackEvent = {
+    stepNumber,
+    model,
+    toolCall,
+    messages,
+    abortSignal,
+    functionId: telemetry?.functionId,
+    metadata: telemetry?.metadata as Record<string, unknown> | undefined,
+    experimental_context,
+  };
 
   return recordSpan({
     name: 'ai.toolCall',
@@ -58,6 +98,10 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     tracer,
     fn: async span => {
       let output: unknown;
+
+      await notify({ event: baseCallbackEvent, callbacks: onToolCallStart });
+
+      const startTime = now();
 
       try {
         const stream = executeTool({
@@ -85,6 +129,18 @@ export async function executeToolCall<TOOLS extends ToolSet>({
           }
         }
       } catch (error) {
+        const durationMs = now() - startTime;
+
+        await notify({
+          event: {
+            ...baseCallbackEvent,
+            success: false as const,
+            error,
+            durationMs,
+          },
+          callbacks: onToolCallFinish,
+        });
+
         recordErrorOnSpan(span, error);
         return {
           type: 'tool-error',
@@ -98,6 +154,18 @@ export async function executeToolCall<TOOLS extends ToolSet>({
             : {}),
         } as TypedToolError<TOOLS>;
       }
+
+      const durationMs = now() - startTime;
+
+      await notify({
+        event: {
+          ...baseCallbackEvent,
+          success: true as const,
+          output,
+          durationMs,
+        },
+        callbacks: onToolCallFinish,
+      });
 
       try {
         span.setAttributes(

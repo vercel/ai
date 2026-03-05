@@ -1743,6 +1743,413 @@ To see `streamText` in action, check out [these examples](#examples).
         },
       ],
     },
+    {
+      name: 'experimental_onStart',
+      type: '(event: OnStartEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Callback that is called when the streamText operation begins, before any LLM calls are made. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+      properties: [
+        {
+          type: 'OnStartEvent',
+          parameters: [
+            {
+              name: 'model',
+              type: '{ provider: string; modelId: string }',
+              description: 'The model being used for the generation.',
+            },
+            {
+              name: 'system',
+              type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
+              description: 'The system message(s) provided to the model.',
+            },
+            {
+              name: 'prompt',
+              type: 'string | Array<ModelMessage> | undefined',
+              description:
+                'The prompt string or array of messages if using the prompt option.',
+            },
+            {
+              name: 'messages',
+              type: 'Array<ModelMessage> | undefined',
+              description: 'The messages array if using the messages option.',
+            },
+            {
+              name: 'tools',
+              type: 'TOOLS | undefined',
+              description: 'The tools available for this generation.',
+            },
+            {
+              name: 'toolChoice',
+              type: 'ToolChoice<TOOLS> | undefined',
+              description: 'The tool choice strategy for this generation.',
+            },
+            {
+              name: 'activeTools',
+              type: 'Array<keyof TOOLS> | undefined',
+              description:
+                'Limits which tools are available for the model to call.',
+            },
+            {
+              name: 'maxOutputTokens',
+              type: 'number | undefined',
+              description: 'Maximum number of tokens to generate.',
+            },
+            {
+              name: 'temperature',
+              type: 'number | undefined',
+              description: 'Sampling temperature for generation.',
+            },
+            {
+              name: 'topP',
+              type: 'number | undefined',
+              description: 'Top-p (nucleus) sampling parameter.',
+            },
+            {
+              name: 'topK',
+              type: 'number | undefined',
+              description: 'Top-k sampling parameter.',
+            },
+            {
+              name: 'presencePenalty',
+              type: 'number | undefined',
+              description: 'Presence penalty for generation.',
+            },
+            {
+              name: 'frequencyPenalty',
+              type: 'number | undefined',
+              description: 'Frequency penalty for generation.',
+            },
+            {
+              name: 'stopSequences',
+              type: 'string[] | undefined',
+              description: 'Sequences that will stop generation.',
+            },
+            {
+              name: 'seed',
+              type: 'number | undefined',
+              description: 'Random seed for reproducible generation.',
+            },
+            {
+              name: 'maxRetries',
+              type: 'number',
+              description: 'Maximum number of retries for failed requests.',
+            },
+            {
+              name: 'timeout',
+              type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number } | undefined',
+              description:
+                'Timeout configuration for the generation. Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string | undefined> | undefined',
+              description: 'Additional HTTP headers sent with the request.',
+            },
+            {
+              name: 'providerOptions',
+              type: 'ProviderOptions | undefined',
+              description: 'Additional provider-specific options.',
+            },
+            {
+              name: 'stopWhen',
+              type: 'StopCondition<TOOLS> | Array<StopCondition<TOOLS>> | undefined',
+              description:
+                'Condition(s) for stopping the generation. When the condition is an array, any of the conditions can be met to stop.',
+            },
+            {
+              name: 'output',
+              type: 'OUTPUT | undefined',
+              description:
+                'The output specification for structured outputs, if configured.',
+            },
+            {
+              name: 'abortSignal',
+              type: 'AbortSignal | undefined',
+              description: 'Abort signal for cancelling the operation.',
+            },
+            {
+              name: 'include',
+              type: '{ requestBody?: boolean } | undefined',
+              description:
+                'Settings for controlling what data is included in step results.',
+            },
+            {
+              name: 'functionId',
+              type: 'string | undefined',
+              description:
+                'Identifier from telemetry settings for grouping related operations.',
+            },
+            {
+              name: 'metadata',
+              type: 'Record<string, unknown> | undefined',
+              description: 'Additional metadata passed to the generation.',
+            },
+            {
+              name: 'experimental_context',
+              type: 'unknown',
+              description:
+                'User-defined context object that flows through the entire generation lifecycle.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'experimental_onStepStart',
+      type: '(event: OnStepStartEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Callback that is called when a step (LLM call) begins, before the provider is called. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+      properties: [
+        {
+          type: 'OnStepStartEvent',
+          parameters: [
+            {
+              name: 'stepNumber',
+              type: 'number',
+              description: 'Zero-based index of the current step.',
+            },
+            {
+              name: 'model',
+              type: '{ provider: string; modelId: string }',
+              description: 'The model being used for this step.',
+            },
+            {
+              name: 'system',
+              type: 'string | SystemModelMessage | Array<SystemModelMessage> | undefined',
+              description: 'The system message for this step.',
+            },
+            {
+              name: 'messages',
+              type: 'Array<ModelMessage>',
+              description:
+                'The messages that will be sent to the model for this step. Uses the user-facing ModelMessage format. May be overridden by prepareStep.',
+            },
+            {
+              name: 'tools',
+              type: 'TOOLS | undefined',
+              description: 'The tools available for this generation.',
+            },
+            {
+              name: 'toolChoice',
+              type: 'LanguageModelV3ToolChoice | undefined',
+              description: 'The tool choice configuration for this step.',
+            },
+            {
+              name: 'activeTools',
+              type: 'Array<keyof TOOLS> | undefined',
+              description: 'Limits which tools are available for this step.',
+            },
+            {
+              name: 'steps',
+              type: 'ReadonlyArray<StepResult<TOOLS>>',
+              description:
+                'Array of results from previous steps (empty for the first step).',
+            },
+            {
+              name: 'providerOptions',
+              type: 'ProviderOptions | undefined',
+              description:
+                'Additional provider-specific options for this step.',
+            },
+            {
+              name: 'timeout',
+              type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number } | undefined',
+              description: 'Timeout configuration for the generation.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string | undefined> | undefined',
+              description: 'Additional HTTP headers sent with the request.',
+            },
+            {
+              name: 'stopWhen',
+              type: 'StopCondition<TOOLS> | Array<StopCondition<TOOLS>> | undefined',
+              description: 'Condition(s) for stopping the generation.',
+            },
+            {
+              name: 'output',
+              type: 'OUTPUT | undefined',
+              description:
+                'The output specification for structured outputs, if configured.',
+            },
+            {
+              name: 'abortSignal',
+              type: 'AbortSignal | undefined',
+              description: 'Abort signal for cancelling the operation.',
+            },
+            {
+              name: 'include',
+              type: '{ requestBody?: boolean } | undefined',
+              description:
+                'Settings for controlling what data is included in step results.',
+            },
+            {
+              name: 'functionId',
+              type: 'string | undefined',
+              description:
+                'Identifier from telemetry settings for grouping related operations.',
+            },
+            {
+              name: 'metadata',
+              type: 'Record<string, unknown> | undefined',
+              description: 'Additional metadata from telemetry settings.',
+            },
+            {
+              name: 'experimental_context',
+              type: 'unknown',
+              description:
+                'User-defined context object. May be updated from prepareStep between steps.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'experimental_onToolCallStart',
+      type: '(event: OnToolCallStartEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        "Callback that is called right before a tool's execute function runs. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
+      properties: [
+        {
+          type: 'OnToolCallStartEvent',
+          parameters: [
+            {
+              name: 'stepNumber',
+              type: 'number | undefined',
+              description:
+                'The zero-based index of the current step where this tool call occurs. May be undefined in streaming contexts.',
+            },
+            {
+              name: 'model',
+              type: '{ provider: string; modelId: string } | undefined',
+              description:
+                'Information about the model being used. May be undefined in streaming contexts.',
+            },
+            {
+              name: 'toolCall',
+              type: 'TypedToolCall<TOOLS>',
+              description:
+                'The full tool call object containing toolName, toolCallId, input, and metadata.',
+            },
+            {
+              name: 'messages',
+              type: 'Array<ModelMessage>',
+              description:
+                'The conversation messages available at tool execution time.',
+            },
+            {
+              name: 'abortSignal',
+              type: 'AbortSignal | undefined',
+              description: 'Signal for cancelling the operation.',
+            },
+            {
+              name: 'functionId',
+              type: 'string | undefined',
+              description:
+                'Identifier from telemetry settings for grouping related operations.',
+            },
+            {
+              name: 'metadata',
+              type: 'Record<string, unknown> | undefined',
+              description: 'Additional metadata from telemetry settings.',
+            },
+            {
+              name: 'experimental_context',
+              type: 'unknown',
+              description:
+                'User-defined context object flowing through the generation.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'experimental_onToolCallFinish',
+      type: '(event: OnToolCallFinishEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        "Callback that is called right after a tool's execute function completes (or errors). Uses a discriminated union on the `success` field: when `success: true`, `output` contains the tool result; when `success: false`, `error` contains the error. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
+      properties: [
+        {
+          type: 'OnToolCallFinishEvent',
+          parameters: [
+            {
+              name: 'stepNumber',
+              type: 'number | undefined',
+              description:
+                'The zero-based index of the current step where this tool call occurred. May be undefined in streaming contexts.',
+            },
+            {
+              name: 'model',
+              type: '{ provider: string; modelId: string } | undefined',
+              description:
+                'Information about the model being used. May be undefined in streaming contexts.',
+            },
+            {
+              name: 'toolCall',
+              type: 'TypedToolCall<TOOLS>',
+              description:
+                'The full tool call object containing toolName, toolCallId, input, and metadata.',
+            },
+            {
+              name: 'messages',
+              type: 'Array<ModelMessage>',
+              description:
+                'The conversation messages available at tool execution time.',
+            },
+            {
+              name: 'abortSignal',
+              type: 'AbortSignal | undefined',
+              description: 'Signal for cancelling the operation.',
+            },
+            {
+              name: 'durationMs',
+              type: 'number',
+              description:
+                'The wall-clock duration of the tool execution in milliseconds.',
+            },
+            {
+              name: 'functionId',
+              type: 'string | undefined',
+              description:
+                'Identifier from telemetry settings for grouping related operations.',
+            },
+            {
+              name: 'metadata',
+              type: 'Record<string, unknown> | undefined',
+              description: 'Additional metadata from telemetry settings.',
+            },
+            {
+              name: 'experimental_context',
+              type: 'unknown',
+              description:
+                'User-defined context object flowing through the generation.',
+            },
+            {
+              name: 'success',
+              type: 'boolean',
+              description:
+                'Discriminator indicating whether the tool call succeeded. When true, output is available. When false, error is available.',
+            },
+            {
+              name: 'output',
+              type: 'unknown',
+              description:
+                "The tool's return value (only present when `success: true`).",
+            },
+            {
+              name: 'error',
+              type: 'unknown',
+              description:
+                'The error that occurred during tool execution (only present when `success: false`).',
+            },
+          ],
+        },
+      ],
+    },
   ]}
 />
 

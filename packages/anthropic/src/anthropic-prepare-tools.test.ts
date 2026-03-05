@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { prepareTools } from './anthropic-prepare-tools';
 import { CacheControlValidator } from './get-cache-control';
+import { webFetch_20260209OutputSchema } from './tool/web-fetch-20260209';
 import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
+import { webSearch_20260209OutputSchema } from './tool/web-search_20260209';
 import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 import {
   anthropicMessagesChunkSchema,
@@ -45,6 +47,9 @@ describe('prepareTools', () => {
           name: 'testFunction',
           description: 'A test function',
           inputSchema: { type: 'object', properties: {} },
+          providerOptions: {
+            anthropic: { eagerInputStreaming: true },
+          },
         },
       ],
       toolChoice: undefined,
@@ -56,6 +61,7 @@ describe('prepareTools', () => {
         name: 'testFunction',
         description: 'A test function',
         input_schema: { type: 'object', properties: {} },
+        eager_input_streaming: true,
       },
     ]);
     expect(result.toolChoice).toBeUndefined();
@@ -638,6 +644,50 @@ describe('prepareTools', () => {
       `);
     });
 
+    it('should correctly prepare web_search_20260209', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.web_search_20260209',
+            name: 'web_search',
+            args: {
+              maxUses: 10,
+              allowedDomains: ['https://www.google.com'],
+              userLocation: { type: 'approximate', city: 'New York' },
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {
+            "code-execution-web-tools-2026-02-09",
+          },
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "allowed_domains": [
+                "https://www.google.com",
+              ],
+              "blocked_domains": undefined,
+              "cache_control": undefined,
+              "max_uses": 10,
+              "name": "web_search",
+              "type": "web_search_20260209",
+              "user_location": {
+                "city": "New York",
+                "type": "approximate",
+              },
+            },
+          ],
+        }
+      `);
+    });
+
     it('should correctly prepare web_fetch_20250910', async () => {
       const result = await prepareTools({
         tools: [
@@ -684,6 +734,52 @@ describe('prepareTools', () => {
       `);
     });
 
+    it('should correctly prepare web_fetch_20260209', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.web_fetch_20260209',
+            name: 'web_fetch',
+            args: {
+              maxUses: 10,
+              allowedDomains: ['https://www.google.com'],
+              citations: { enabled: true },
+              maxContentTokens: 1000,
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {
+            "code-execution-web-tools-2026-02-09",
+          },
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "allowed_domains": [
+                "https://www.google.com",
+              ],
+              "blocked_domains": undefined,
+              "cache_control": undefined,
+              "citations": {
+                "enabled": true,
+              },
+              "max_content_tokens": 1000,
+              "max_uses": 10,
+              "name": "web_fetch",
+              "type": "web_fetch_20260209",
+            },
+          ],
+        }
+      `);
+    });
+
     it('should correctly prepare tool_search_regex_20251119', async () => {
       const result = await prepareTools({
         tools: [
@@ -709,6 +805,35 @@ describe('prepareTools', () => {
             {
               "name": "tool_search_tool_regex",
               "type": "tool_search_tool_regex_20251119",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should correctly prepare code_execution_20260120 without beta header', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.code_execution_20260120',
+            name: 'code_execution',
+            args: {},
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "name": "code_execution",
+              "type": "code_execution_20260120",
             },
           ],
         }
@@ -944,6 +1069,58 @@ describe('prepareTools', () => {
         'code_execution_20250825',
       ]);
       expect(result.betas).toContain('advanced-tool-use-2025-11-20');
+    });
+
+    it('should include allowed_callers with code_execution_20260120', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'query_database',
+            description: 'Query a database',
+            inputSchema: {
+              type: 'object',
+              properties: { sql: { type: 'string' } },
+            },
+            providerOptions: {
+              anthropic: {
+                allowedCallers: ['code_execution_20260120'],
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {
+            "structured-outputs-2025-11-13",
+            "advanced-tool-use-2025-11-20",
+          },
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "allowed_callers": [
+                "code_execution_20260120",
+              ],
+              "cache_control": undefined,
+              "description": "Query a database",
+              "input_schema": {
+                "properties": {
+                  "sql": {
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+              "name": "query_database",
+            },
+          ],
+        }
+      `);
     });
   });
 
@@ -1204,6 +1381,31 @@ describe('webFetch_20250910OutputSchema', () => {
   });
 });
 
+describe('webFetch_20260209OutputSchema', () => {
+  it('should not fail validation when title is null', async () => {
+    const problematicResponse = {
+      type: 'web_fetch_result',
+      url: 'https://test.com',
+      retrievedAt: '2025-12-08T20:46:31.114158',
+      content: {
+        type: 'document',
+        title: null,
+        source: {
+          type: 'text',
+          mediaType: 'text/plain',
+          data: '',
+        },
+      },
+    };
+
+    const schema = webFetch_20260209OutputSchema();
+
+    const result = await schema.validate!(problematicResponse);
+
+    expect(result.success).toBe(true);
+  });
+});
+
 describe('webSearch_20250305OutputSchema', () => {
   it('should not fail validation when title is null', async () => {
     const problematicResponse = [
@@ -1238,6 +1440,27 @@ describe('webSearch_20250305OutputSchema', () => {
 
     const schema = webSearch_20250305OutputSchema();
     const result = await schema.validate!(validResponse);
+
+    expect(result.success).toBe(true);
+  });
+});
+
+describe('webSearch_20260209OutputSchema', () => {
+  it('should not fail validation when title is null', async () => {
+    const problematicResponse = [
+      {
+        url: 'https://test.com',
+        title: null,
+        pageAge: 'April 30, 2025',
+        encryptedContent:
+          'EqgfCioIARgBIiQ3YTAwMjY1Mi1mZjM5LTQ1NGUtODgxNC1kNjNjNTk1ZWI3Y...',
+        type: 'web_search_result',
+      },
+    ];
+
+    const schema = webSearch_20260209OutputSchema();
+
+    const result = await schema.validate!(problematicResponse);
 
     expect(result.success).toBe(true);
   });

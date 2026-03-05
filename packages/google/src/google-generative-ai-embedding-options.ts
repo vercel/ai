@@ -7,10 +7,9 @@ import { z } from 'zod/v4';
 
 export type GoogleGenerativeAIEmbeddingModelId =
   | 'gemini-embedding-001'
-  | 'text-embedding-004'
   | (string & {});
 
-export const googleGenerativeAIEmbeddingProviderOptions = lazySchema(() =>
+export const googleEmbeddingModelOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -47,6 +46,6 @@ export const googleGenerativeAIEmbeddingProviderOptions = lazySchema(() =>
   ),
 );
 
-export type GoogleGenerativeAIEmbeddingProviderOptions = InferSchema<
-  typeof googleGenerativeAIEmbeddingProviderOptions
+export type GoogleEmbeddingModelOptions = InferSchema<
+  typeof googleEmbeddingModelOptions
 >;

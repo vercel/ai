@@ -2,9 +2,8 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Completion } from './completion.ng';
-import { beforeAll } from 'vitest';
-import { describe, it, expect, vi } from 'vitest';
 
 function formatStreamPart(part: object) {
   return `data: ${JSON.stringify(part)}\n\n`;
@@ -15,10 +14,6 @@ const server = createTestServer({
 });
 
 describe('Completion', () => {
-  beforeAll(() => {
-    createTestServer({});
-  });
-
   it('initialises', () => {
     const completion = new Completion();
     expect(completion.api).toBe('/api/completion');

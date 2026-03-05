@@ -48,14 +48,19 @@ export interface ReplicateProvider extends ProviderV3 {
   imageModel(modelId: ReplicateImageModelId): ReplicateImageModel;
 
   /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
+
+  /**
    * Creates a Replicate video generation model.
    */
   video(modelId: ReplicateVideoModelId): Experimental_VideoModelV3;
 
   /**
-   * @deprecated Use `embeddingModel` instead.
+   * Creates a Replicate video generation model.
    */
-  textEmbeddingModel(modelId: string): never;
+  videoModel(modelId: ReplicateVideoModelId): Experimental_VideoModelV3;
 }
 
 /**
@@ -104,7 +109,6 @@ export function createReplicate(
     specificationVersion: 'v3' as const,
     image: createImageModel,
     imageModel: createImageModel,
-    video: createVideoModel,
     languageModel: (modelId: string) => {
       throw new NoSuchModelError({
         modelId,
@@ -113,6 +117,8 @@ export function createReplicate(
     },
     embeddingModel,
     textEmbeddingModel: embeddingModel,
+    video: createVideoModel,
+    videoModel: createVideoModel,
   };
 }
 

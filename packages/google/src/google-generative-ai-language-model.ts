@@ -36,7 +36,7 @@ import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
 import {
   GoogleGenerativeAIModelId,
-  googleGenerativeAIProviderOptions,
+  googleLanguageModelOptions,
 } from './google-generative-ai-options';
 import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
 import { prepareTools } from './google-prepare-tools';
@@ -103,14 +103,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     let googleOptions = await parseProviderOptions({
       provider: providerOptionsName,
       providerOptions,
-      schema: googleGenerativeAIProviderOptions,
+      schema: googleLanguageModelOptions,
     });
 
     if (googleOptions == null && providerOptionsName !== 'google') {
       googleOptions = await parseProviderOptions({
         provider: 'google',
         providerOptions,
-        schema: googleGenerativeAIProviderOptions,
+        schema: googleLanguageModelOptions,
       });
     }
 
@@ -263,23 +263,32 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           toolName: 'code_execution',
           result: {
             outcome: part.codeExecutionResult.outcome,
-            output: part.codeExecutionResult.output,
+            output: part.codeExecutionResult.output ?? '',
           },
         });
         // Clear the ID after use to avoid accidental reuse.
         lastCodeExecutionToolCallId = undefined;
-      } else if ('text' in part && part.text != null && part.text.length > 0) {
-        content.push({
-          type: part.thought === true ? 'reasoning' : 'text',
-          text: part.text,
-          providerMetadata: part.thoughtSignature
-            ? {
-                [providerOptionsName]: {
-                  thoughtSignature: part.thoughtSignature,
-                },
-              }
-            : undefined,
-        });
+      } else if ('text' in part && part.text != null) {
+        const thoughtSignatureMetadata = part.thoughtSignature
+          ? {
+              [providerOptionsName]: {
+                thoughtSignature: part.thoughtSignature,
+              },
+            }
+          : undefined;
+
+        if (part.text.length === 0) {
+          if (thoughtSignatureMetadata != null && content.length > 0) {
+            const lastContent = content[content.length - 1];
+            lastContent.providerMetadata = thoughtSignatureMetadata;
+          }
+        } else {
+          content.push({
+            type: part.thought === true ? 'reasoning' : 'text',
+            text: part.text,
+            providerMetadata: thoughtSignatureMetadata,
+          });
+        }
       } else if ('functionCall' in part) {
         content.push({
           type: 'tool-call' as const,
@@ -476,18 +485,34 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       toolName: 'code_execution',
                       result: {
                         outcome: part.codeExecutionResult.outcome,
-                        output: part.codeExecutionResult.output,
+                        output: part.codeExecutionResult.output ?? '',
                       },
                     });
                     // Clear the ID after use.
                     lastCodeExecutionToolCallId = undefined;
                   }
-                } else if (
-                  'text' in part &&
-                  part.text != null &&
-                  part.text.length > 0
-                ) {
-                  if (part.thought === true) {
+                } else if ('text' in part && part.text != null) {
+                  const thoughtSignatureMetadata = part.thoughtSignature
+                    ? {
+                        [providerOptionsName]: {
+                          thoughtSignature: part.thoughtSignature,
+                        },
+                      }
+                    : undefined;
+
+                  if (part.text.length === 0) {
+                    if (
+                      thoughtSignatureMetadata != null &&
+                      currentTextBlockId !== null
+                    ) {
+                      controller.enqueue({
+                        type: 'text-delta',
+                        id: currentTextBlockId,
+                        delta: '',
+                        providerMetadata: thoughtSignatureMetadata,
+                      });
+                    }
+                  } else if (part.thought === true) {
                     // End any active text block before starting reasoning
                     if (currentTextBlockId !== null) {
                       controller.enqueue({
@@ -503,13 +528,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       controller.enqueue({
                         type: 'reasoning-start',
                         id: currentReasoningBlockId,
-                        providerMetadata: part.thoughtSignature
-                          ? {
-                              [providerOptionsName]: {
-                                thoughtSignature: part.thoughtSignature,
-                              },
-                            }
-                          : undefined,
+                        providerMetadata: thoughtSignatureMetadata,
                       });
                     }
 
@@ -517,16 +536,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       type: 'reasoning-delta',
                       id: currentReasoningBlockId,
                       delta: part.text,
-                      providerMetadata: part.thoughtSignature
-                        ? {
-                            [providerOptionsName]: {
-                              thoughtSignature: part.thoughtSignature,
-                            },
-                          }
-                        : undefined,
+                      providerMetadata: thoughtSignatureMetadata,
                     });
                   } else {
-                    // End any active reasoning block before starting text
                     if (currentReasoningBlockId !== null) {
                       controller.enqueue({
                         type: 'reasoning-end',
@@ -535,19 +547,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       currentReasoningBlockId = null;
                     }
 
-                    // Start new text block if not already active
                     if (currentTextBlockId === null) {
                       currentTextBlockId = String(blockCounter++);
                       controller.enqueue({
                         type: 'text-start',
                         id: currentTextBlockId,
-                        providerMetadata: part.thoughtSignature
-                          ? {
-                              [providerOptionsName]: {
-                                thoughtSignature: part.thoughtSignature,
-                              },
-                            }
-                          : undefined,
+                        providerMetadata: thoughtSignatureMetadata,
                       });
                     }
 
@@ -555,21 +560,40 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       type: 'text-delta',
                       id: currentTextBlockId,
                       delta: part.text,
-                      providerMetadata: part.thoughtSignature
-                        ? {
-                            [providerOptionsName]: {
-                              thoughtSignature: part.thoughtSignature,
-                            },
-                          }
-                        : undefined,
+                      providerMetadata: thoughtSignatureMetadata,
                     });
                   }
                 } else if ('inlineData' in part) {
+                  // End any active text or reasoning block before starting file output.
+                  // Relevant for multimodal output models.
+                  if (currentTextBlockId !== null) {
+                    controller.enqueue({
+                      type: 'text-end',
+                      id: currentTextBlockId,
+                    });
+                    currentTextBlockId = null;
+                  }
+                  if (currentReasoningBlockId !== null) {
+                    controller.enqueue({
+                      type: 'reasoning-end',
+                      id: currentReasoningBlockId,
+                    });
+                    currentReasoningBlockId = null;
+                  }
+
                   // Process file parts inline to preserve order with text
+                  const thoughtSignatureMetadata = part.thoughtSignature
+                    ? {
+                        [providerOptionsName]: {
+                          thoughtSignature: part.thoughtSignature,
+                        },
+                      }
+                    : undefined;
                   controller.enqueue({
                     type: 'file',
                     mediaType: part.inlineData.mimeType,
                     data: part.inlineData.data,
+                    providerMetadata: thoughtSignatureMetadata,
                   });
                 }
               }
@@ -644,7 +668,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           },
 
           flush(controller) {
-            // Close any open blocks before finishing
             if (currentTextBlockId !== null) {
               controller.enqueue({
                 type: 'text-end',
@@ -731,6 +754,17 @@ function extractSources({
         url: chunk.web.uri,
         title: chunk.web.title ?? undefined,
       });
+    } else if (chunk.image != null) {
+      // Handle image chunks as image sources
+      sources.push({
+        type: 'source',
+        sourceType: 'url',
+        id: generateId(),
+        // Google requires attribution to the source URI, not the actual image URI.
+        // TODO: add another type in v7 to allow both the image and source URL to be included separately
+        url: chunk.image.sourceUri,
+        title: chunk.image.title ?? undefined,
+      });
     } else if (chunk.retrievedContext != null) {
       // Handle retrievedContext chunks from RAG operations
       const uri = chunk.retrievedContext.uri;
@@ -810,6 +844,7 @@ function extractSources({
 export const getGroundingMetadataSchema = () =>
   z.object({
     webSearchQueries: z.array(z.string()).nullish(),
+    imageSearchQueries: z.array(z.string()).nullish(),
     retrievalQueries: z.array(z.string()).nullish(),
     searchEntryPoint: z.object({ renderedContent: z.string() }).nullish(),
     groundingChunks: z
@@ -817,6 +852,14 @@ export const getGroundingMetadataSchema = () =>
         z.object({
           web: z
             .object({ uri: z.string(), title: z.string().nullish() })
+            .nullish(),
+          image: z
+            .object({
+              sourceUri: z.string(),
+              imageUri: z.string(),
+              title: z.string().nullish(),
+              domain: z.string().nullish(),
+            })
             .nullish(),
           retrievedContext: z
             .object({
@@ -895,7 +938,7 @@ const getContentSchema = () =>
             codeExecutionResult: z
               .object({
                 outcome: z.string(),
-                output: z.string(),
+                output: z.string().nullish(),
               })
               .nullish(),
             text: z.string().nullish(),
@@ -931,12 +974,14 @@ const usageSchema = z.object({
 // https://ai.google.dev/api/generate-content#UrlRetrievalMetadata
 export const getUrlContextMetadataSchema = () =>
   z.object({
-    urlMetadata: z.array(
-      z.object({
-        retrievedUrl: z.string(),
-        urlRetrievalStatus: z.string(),
-      }),
-    ),
+    urlMetadata: z
+      .array(
+        z.object({
+          retrievedUrl: z.string(),
+          urlRetrievalStatus: z.string(),
+        }),
+      )
+      .nullish(),
   });
 
 const responseSchema = lazySchema(() =>

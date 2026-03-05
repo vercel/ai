@@ -65,11 +65,6 @@ export interface GoogleVertexProvider extends ProviderV3 {
    */
   imageModel(modelId: GoogleVertexImageModelId): ImageModelV3;
 
-  /**
-   * Creates a model for video generation.
-   */
-  video(modelId: GoogleVertexVideoModelId): Experimental_VideoModelV3;
-
   tools: typeof googleVertexTools;
 
   /**
@@ -78,6 +73,16 @@ export interface GoogleVertexProvider extends ProviderV3 {
   textEmbeddingModel(
     modelId: GoogleVertexEmbeddingModelId,
   ): GoogleVertexEmbeddingModel;
+
+  /**
+   * Creates a model for video generation.
+   */
+  video(modelId: GoogleVertexVideoModelId): Experimental_VideoModelV3;
+
+  /**
+   * Creates a model for video generation.
+   */
+  videoModel(modelId: GoogleVertexVideoModelId): Experimental_VideoModelV3;
 }
 
 export interface GoogleVertexProviderSettings {
@@ -205,7 +210,10 @@ export function createVertex(
     new GoogleVertexEmbeddingModel(modelId, createConfig('embedding'));
 
   const createImageModel = (modelId: GoogleVertexImageModelId) =>
-    new GoogleVertexImageModel(modelId, createConfig('image'));
+    new GoogleVertexImageModel(modelId, {
+      ...createConfig('image'),
+      generateId: options.generateId ?? generateId,
+    });
 
   const createVideoModel = (modelId: GoogleVertexVideoModelId) =>
     new GoogleVertexVideoModel(modelId, {
@@ -230,6 +238,7 @@ export function createVertex(
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
   provider.video = createVideoModel;
+  provider.videoModel = createVideoModel;
   provider.tools = googleVertexTools;
 
   return provider;

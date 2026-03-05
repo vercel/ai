@@ -1,6 +1,6 @@
 # AI SDK Angular
 
-Angular UI components for the [AI SDK v5](https://ai-sdk.dev/docs).
+Angular UI components for the [AI SDK v6](https://ai-sdk.dev/docs).
 
 ## Overview
 
@@ -103,7 +103,7 @@ export class ChatComponent {
       { text: userInput },
       {
         body: {
-          selectedModel: 'gpt-4o',
+          selectedModel: 'openai/gpt-5.2',
         },
       },
     );
@@ -111,37 +111,57 @@ export class ChatComponent {
 }
 ```
 
+`selectedModel` should be an AI Gateway model ID like `openai/gpt-5.2`.
+
 ### Constructor Options
 
 ```typescript
 interface ChatInit<UI_MESSAGE extends UIMessage = UIMessage> {
+  /** A unique identifier for the chat */
+  id?: string;
+
+  /** Optional metadata schema for UI messages */
+  messageMetadataSchema?:
+    | Validator<InferUIMessageMetadata<UI_MESSAGE>>
+    | StandardSchemaV1<InferUIMessageMetadata<UI_MESSAGE>>;
+
+  /** Optional data part schemas for UI messages */
+  dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
+
   /** Initial messages */
   messages?: UI_MESSAGE[];
 
   /** Custom ID generator */
-  generateId?: () => string;
+  generateId?: IdGenerator;
+
+  /** Custom transport */
+  transport?: ChatTransport<UI_MESSAGE>;
 
   /** Maximum conversation steps */
   maxSteps?: number;
 
   /** Tool call handler */
-  onToolCall?: (params: { toolCall: ToolCall }) => Promise<string>;
+  onToolCall?: (params: {
+    toolCall: ToolCall<string, unknown>;
+  }) => void | Promise<unknown> | unknown;
 
   /** Completion callback */
   onFinish?: (params: { message: UI_MESSAGE }) => void;
 
+  /** Data part callback */
+  onData?: (dataPart: DataUIPart<InferUIMessageData<UI_MESSAGE>>) => void;
+
   /** Error handler */
   onError?: (error: Error) => void;
-
-  /** Custom transport */
-  transport?: ChatTransport;
 }
 ```
 
 ### Properties (Reactive)
 
+These are values backed by Angular signals and update reactively.
+
 - `messages: UIMessage[]` - Array of conversation messages
-- `status: 'ready' | 'submitted' | 'streaming' | 'error'` - Current status
+- `status: ChatStatus` - Current status
 - `error: Error | undefined` - Current error state
 
 ### Methods
@@ -151,21 +171,27 @@ interface ChatInit<UI_MESSAGE extends UIMessage = UIMessage> {
 await chat.sendMessage(
   message: UIMessageInput,
   options?: {
-    body?: Record<string, any>;
-    headers?: Record<string, string>;
+    body?: object;
+    headers?: Record<string, string> | Headers;
   }
 );
 
 // Regenerate last assistant message
 await chat.regenerate(options?: {
-  body?: Record<string, any>;
-  headers?: Record<string, string>;
+  body?: object;
+  headers?: Record<string, string> | Headers;
+});
+
+// Resume an interrupted stream
+await chat.resumeStream(options?: {
+  body?: object;
+  headers?: Record<string, string> | Headers;
 });
 
 // Add tool execution result
-chat.addToolOutput({
+chat.addToolResult({
   toolCallId: string;
-  output: string;
+  output: unknown;
 });
 
 // Stop current generation
@@ -253,6 +279,7 @@ import { Completion } from '@ai-sdk/angular';
 export class CompletionComponent {
   completion = new Completion({
     api: '/api/completion',
+    streamProtocol: 'text',
     onFinish: (prompt, completion) => {
       console.log('Completed:', { prompt, completion });
     },
@@ -289,10 +316,10 @@ interface CompletionOptions {
   fetch?: FetchFunction;
 
   /** Request headers */
-  headers?: Record<string, string>;
+  headers?: Record<string, string> | Headers;
 
   /** Request body */
-  body?: Record<string, any>;
+  body?: object;
 
   /** Request credentials */
   credentials?: RequestCredentials;
@@ -316,8 +343,8 @@ interface CompletionOptions {
 await completion.complete(
   prompt: string,
   options?: {
-    headers?: Record<string, string>;
-    body?: Record<string, any>;
+    headers?: Record<string, string> | Headers;
+    body?: object;
   }
 );
 
@@ -435,7 +462,7 @@ interface StructuredObjectOptions<SCHEMA, RESULT> {
   fetch?: FetchFunction;
 
   /** Request headers */
-  headers?: Record<string, string>;
+  headers?: Record<string, string> | Headers;
 
   /** Request credentials */
   credentials?: RequestCredentials;
@@ -460,21 +487,23 @@ structuredObject.stop();
 
 ## Server Implementation
 
+When you pass a string model ID (for example `openai/gpt-5.2`), the AI SDK uses
+AI Gateway as the default provider, so no provider import is required.
+
 ### Express.js Chat Endpoint
 
 ```typescript
-import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText } from 'ai';
 import express from 'express';
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ strict: false }));
 
 app.post('/api/chat', async (req, res) => {
   const { messages, selectedModel } = req.body;
 
   const result = streamText({
-    model: openai(selectedModel || 'gpt-4o'),
+    model: selectedModel || 'openai/gpt-5.2',
     messages: convertToModelMessages(messages),
   });
 
@@ -489,7 +518,7 @@ app.post('/api/completion', async (req, res) => {
   const { prompt } = req.body;
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-5.2',
     prompt,
   });
 
@@ -507,7 +536,7 @@ app.post('/api/analyze', async (req, res) => {
   const input = req.body;
 
   const result = streamObject({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-5.2',
     schema: z.object({
       title: z.string(),
       summary: z.string(),
@@ -546,10 +575,13 @@ pnpm test:watch
 
 ```bash
 # Navigate to example
-cd examples/angular-chat
+cd examples/angular
 
 # Set up environment
-echo "OPENAI_API_KEY=your_key_here" > .env
+echo "AI_GATEWAY_API_KEY=your_key_here" > .env
+
+# Alternatively, use OIDC authentication
+# echo "VERCEL_OIDC_TOKEN=your_token_here" > .env
 
 # Start development (Angular + Express)
 pnpm start
@@ -633,9 +665,9 @@ Uses Angular signals for efficient reactivity:
 
 ```typescript
 // These trigger minimal change detection
-chat.messages; // Signal<UIMessage[]>
-chat.status; // Signal<ChatStatus>
-chat.error; // Signal<Error | undefined>
+chat.messages; // UIMessage[]
+chat.status; // ChatStatus
+chat.error; // Error | undefined
 ```
 
 ## License

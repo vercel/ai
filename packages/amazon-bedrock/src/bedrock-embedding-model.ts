@@ -14,7 +14,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   BedrockEmbeddingModelId,
-  bedrockEmbeddingProviderOptions,
+  amazonBedrockEmbeddingModelOptionsSchema,
 } from './bedrock-embedding-options';
 import { BedrockErrorSchema } from './bedrock-error';
 import { z } from 'zod/v4';
@@ -63,7 +63,7 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
       (await parseProviderOptions({
         provider: 'bedrock',
         providerOptions,
-        schema: bedrockEmbeddingProviderOptions,
+        schema: amazonBedrockEmbeddingModelOptionsSchema,
       })) ?? {};
 
     // https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InvokeModel.html

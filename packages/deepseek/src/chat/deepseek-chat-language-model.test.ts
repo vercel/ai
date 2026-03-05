@@ -4,7 +4,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDeepSeek } from '../deepseek-provider';
-import { DeepSeekChatOptions } from './deepseek-chat-options';
+import { DeepSeekLanguageModelOptions } from './deepseek-chat-options';
 
 const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -94,7 +94,7 @@ describe('DeepSeekChatLanguageModel', () => {
           providerOptions: {
             deepseek: {
               thinking: { type: 'enabled' },
-            } satisfies DeepSeekChatOptions,
+            } satisfies DeepSeekLanguageModelOptions,
           },
         });
 
@@ -147,7 +147,7 @@ describe('DeepSeekChatLanguageModel', () => {
           providerOptions: {
             deepseek: {
               thinking: { type: 'enabled' },
-            } satisfies DeepSeekChatOptions,
+            } satisfies DeepSeekLanguageModelOptions,
           },
         });
 
@@ -213,7 +213,7 @@ describe('DeepSeekChatLanguageModel', () => {
             providerOptions: {
               deepseek: {
                 thinking: { type: 'enabled' },
-              } satisfies DeepSeekChatOptions,
+              } satisfies DeepSeekLanguageModelOptions,
             },
           });
 
@@ -304,7 +304,7 @@ describe('DeepSeekChatLanguageModel', () => {
             providerOptions: {
               deepseek: {
                 thinking: { type: 'enabled' },
-              } satisfies DeepSeekChatOptions,
+              } satisfies DeepSeekLanguageModelOptions,
             },
           });
 
@@ -372,7 +372,7 @@ describe('DeepSeekChatLanguageModel', () => {
             providerOptions: {
               deepseek: {
                 thinking: { type: 'enabled' },
-              } satisfies DeepSeekChatOptions,
+              } satisfies DeepSeekLanguageModelOptions,
             },
           });
 
@@ -399,7 +399,7 @@ describe('DeepSeekChatLanguageModel', () => {
           providerOptions: {
             deepseek: {
               thinking: { type: 'enabled' },
-            } satisfies DeepSeekChatOptions,
+            } satisfies DeepSeekLanguageModelOptions,
           },
         });
 
@@ -511,7 +511,7 @@ describe('DeepSeekChatLanguageModel', () => {
           providerOptions: {
             deepseek: {
               thinking: { type: 'enabled' },
-            } satisfies DeepSeekChatOptions,
+            } satisfies DeepSeekLanguageModelOptions,
           },
         });
 

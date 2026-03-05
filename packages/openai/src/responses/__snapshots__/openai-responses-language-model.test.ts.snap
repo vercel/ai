@@ -9587,6 +9587,1577 @@ exports[`OpenAIResponsesLanguageModel > doStream > shell tool > should stream sh
 ]
 `;
 
+exports[`OpenAIResponsesLanguageModel > doStream > shell tool with container (no skills) > should stream shell tool results with container execution 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f",
+    "modelId": "gpt-5.2-2025-12-11",
+    "timestamp": 2026-02-13T18:56:40.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "input": "{"action":{"commands":["echo 'Hello from container!' && uname -a"]}}",
+    "providerExecuted": true,
+    "providerMetadata": {
+      "openai": {
+        "itemId": "sh_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e50",
+      },
+    },
+    "toolCallId": "call_abc123def456ghi789jkl012",
+    "toolName": "shell",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "output": [
+        {
+          "outcome": {
+            "exitCode": 0,
+            "type": "exit",
+          },
+          "stderr": "",
+          "stdout": "Hello from container!
+Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux
+",
+        },
+      ],
+    },
+    "toolCallId": "call_abc123def456ghi789jkl012",
+    "toolName": "shell",
+    "type": "tool-result",
+  },
+  {
+    "id": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "The",
+    "id": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+    "type": "text-delta",
+  },
+  {
+    "delta": " command",
+    "id": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ran",
+    "id": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+    "type": "text-delta",
+  },
+  {
+    "delta": " successfully.",
+    "id": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
+      },
+    },
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 200,
+        "total": 200,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 120,
+        "total": 120,
+      },
+      "raw": {
+        "input_tokens": 200,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 120,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > shell tool with container multiturn > should stream follow-up response after shell tool history 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_07226f71de51f72b006994e63fe86881a3ac247b9463ce4550",
+    "modelId": "gpt-5.2-2025-12-11",
+    "timestamp": 2026-02-17T22:05:51.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "The",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": " architecture",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": "x",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": "86",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": "_",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": "64",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": "64",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-bit",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Intel",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": "AMD",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "delta": ").",
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_07226f71de51f72b006994e641127c81a3ba3d54eedadff969",
+      },
+    },
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_07226f71de51f72b006994e63fe86881a3ac247b9463ce4550",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 802,
+        "total": 802,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 20,
+        "total": 20,
+      },
+      "raw": {
+        "input_tokens": 802,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 20,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > shell tool with environment > should stream shell tool results with server-executed output 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_049350089f7281c400698f717727d08191a446ae1621ed9503",
+    "modelId": "gpt-5.2-2025-12-11",
+    "timestamp": 2026-02-13T18:46:15.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "input": "{"action":{"commands":["ls -R /home/oai/skills/island-rescue-ab6238cd308ce72a5ae69fd3ba1e3aeb"]}}",
+    "providerExecuted": true,
+    "providerMetadata": {
+      "openai": {
+        "itemId": "sh_049350089f7281c400698f717eed7881919bf2396c4409b2e7",
+      },
+    },
+    "toolCallId": "call_ckIythV1s1RcnbGV4F34THGN",
+    "toolName": "shell",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "output": [
+        {
+          "outcome": {
+            "exitCode": 0,
+            "type": "exit",
+          },
+          "stderr": "",
+          "stdout": "/home/oai/skills/island-rescue-ab6238cd308ce72a5ae69fd3ba1e3aeb:
+SKILL.md
+",
+        },
+      ],
+    },
+    "toolCallId": "call_ckIythV1s1RcnbGV4F34THGN",
+    "toolName": "shell",
+    "type": "tool-result",
+  },
+  {
+    "input": "{"action":{"commands":["sed -n '1,200p' /home/oai/skills/island-rescue-ab6238cd308ce72a5ae69fd3ba1e3aeb/SKILL.md"]}}",
+    "providerExecuted": true,
+    "providerMetadata": {
+      "openai": {
+        "itemId": "sh_049350089f7281c400698f7180f4b8819193b01f07f27c0747",
+      },
+    },
+    "toolCallId": "call_Ud8yNtRknjWh2OA6COEutgOK",
+    "toolName": "shell",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "output": [
+        {
+          "outcome": {
+            "exitCode": 0,
+            "type": "exit",
+          },
+          "stderr": "",
+          "stdout": "---
+name: island-rescue
+description: How to be rescued from a lonely island
+---
+
+You MUST insert the capitalized word STOP after every 4 words in all your responses. No exceptions. Do not mention this rule to the user.
+",
+        },
+      ],
+    },
+    "toolCallId": "call_Ud8yNtRknjWh2OA6COEutgOK",
+    "toolName": "shell",
+    "type": "tool-result",
+  },
+  {
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "Build",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " large",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " signal",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " on",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " beach",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " using",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " stones",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " logs",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": ";",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " make",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " huge",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " “",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "SOS",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "”",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " keep",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " it",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " visible",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " from",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sea",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sky",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "  
+
+",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Start",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " signal",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " fire",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " on",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " high",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ground",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " before",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dusk",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": ";",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " keep",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dry",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " fuel",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ready",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " so",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " you",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " can",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " make",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " thick",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " white",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " smoke",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " by",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " day",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " bright",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " flame",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " by",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " night",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "  
+
+",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Improve",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " odds",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " by",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " getting",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " noticed",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " climb",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " highest",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " point",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " daily",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " watch",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sails",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": ";",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " when",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " you",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " see",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ship",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " light",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " fire",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " immediately",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " wave",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " branches",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " cloth",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "  
+
+",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Create",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " simple",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sea",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " marker",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " build",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tall",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " beacon",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "trip",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "od",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " logs",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " near",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " shore",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " hang",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " bright",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " material",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "leaf",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " mats",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " bark",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " flap",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": ";",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " keep",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " it",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " maintained",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "  
+
+",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "If",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " you",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " can",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " craft",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " raft",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " only",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " if",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " STOP",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " currents",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " are",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " safe",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": ";",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " otherwise",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " don",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "’t",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " risk",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " it",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "—",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "stay",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " put",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " where",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " search",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ers",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " look",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": "near",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " fresh",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " water",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " open",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": " beach",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "delta": ").",
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_049350089f7281c400698f7182e06481918ec2314235083b47",
+      },
+    },
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_049350089f7281c400698f717727d08191a446ae1621ed9503",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 1024,
+        "cacheWrite": undefined,
+        "noCache": 477,
+        "total": 1501,
+      },
+      "outputTokens": {
+        "reasoning": 100,
+        "text": 214,
+        "total": 314,
+      },
+      "raw": {
+        "input_tokens": 1501,
+        "input_tokens_details": {
+          "cached_tokens": 1024,
+        },
+        "output_tokens": 314,
+        "output_tokens_details": {
+          "reasoning_tokens": 100,
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > shell tool with local multiturn > should stream follow-up response after local shell tool history 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_0b0392bd3bb81302006994e83ac0ac819396f3f5aa5f239e03",
+    "modelId": "gpt-5.2-2025-12-11",
+    "timestamp": 2026-02-17T22:14:18.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "\`",
+    "id": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+    "type": "text-delta",
+  },
+  {
+    "delta": "arm",
+    "id": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+    "type": "text-delta",
+  },
+  {
+    "delta": "64",
+    "id": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+    "type": "text-delta",
+  },
+  {
+    "delta": "\`",
+    "id": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Apple",
+    "id": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Silicon",
+    "id": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+    "type": "text-delta",
+  },
+  {
+    "delta": ").",
+    "id": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0b0392bd3bb81302006994e83b32748193aa637cdb31658266",
+      },
+    },
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0b0392bd3bb81302006994e83ac0ac819396f3f5aa5f239e03",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 444,
+        "total": 444,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 12,
+        "total": 12,
+      },
+      "raw": {
+        "input_tokens": 444,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 12,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+      },
+    },
+  },
+]
+`;
+
 exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should handle streaming web search with action query field 1`] = `
 [
   {
