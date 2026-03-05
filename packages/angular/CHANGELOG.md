@@ -1,5 +1,21 @@
 # @ai-sdk/angular
 
+## 2.0.117
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+  - ai@6.0.116
+
+## 2.0.116
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+  - ai@6.0.115
+
 ## 2.0.115
 
 ### Patch Changes

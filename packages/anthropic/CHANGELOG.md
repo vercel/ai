@@ -1,5 +1,20 @@
 # @ai-sdk/anthropic
 
+## 3.0.58
+
+### Patch Changes
+
+- 3fb4e70: feat(anthropic): support eagerInputStreaming option for fine-grained tool streaming
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+
+## 3.0.57
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+
 ## 3.0.56
 
 ### Patch Changes

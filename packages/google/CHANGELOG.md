@@ -1,5 +1,25 @@
 # @ai-sdk/google
 
+## 3.0.43
+
+### Patch Changes
+
+- 7ba09a4: Fix gateway failover losing thoughtSignature when failing over from Vertex to Google AI Studio. The Google provider now falls back to checking the vertex namespace for thoughtSignature, matching the existing Vertex-to-Google fallback behavior.
+
+## 3.0.42
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+
+## 3.0.41
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+
 ## 3.0.40
 
 ### Patch Changes
