@@ -182,6 +182,41 @@ describe('groundingMetadataSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('validates groundingChunks[].image', () => {
+    const metadata = {
+      imageSearchQueries: ['Super Bowl halftime show in space'],
+      groundingChunks: [
+        {
+          image: {
+            sourceUri: 'https://example.com/article',
+            imageUri: 'https://example.com/image.jpg',
+            title: 'Image Title',
+            domain: 'example.com',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates groundingChunks[].image with missing optional fields', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          image: {
+            sourceUri: 'https://example.com/article',
+            imageUri: 'https://example.com/image.jpg',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
   it('validates partial grounding metadata', () => {
     const metadata = {
       webSearchQueries: ['sample query'],
@@ -1086,6 +1121,58 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should extract sources from image grounding metadata', async () => {
+    prepareJsonResponse({
+      content: 'test response with image search',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            image: {
+              sourceUri: 'https://example.com/article',
+              imageUri: 'https://example.com/image.jpg',
+              title: 'Image Result',
+              domain: 'example.com',
+            },
+          },
+          {
+            image: {
+              sourceUri: 'https://other.example.com/page',
+              imageUri: 'https://other.example.com/photo.png',
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": undefined,
+          "text": "test response with image search",
+          "type": "text",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "Image Result",
+          "type": "source",
+          "url": "https://example.com/article",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": undefined,
+          "type": "source",
+          "url": "https://other.example.com/page",
+        },
+      ]
+    `);
+  });
+
   it('should handle mixed source types with correct title defaults', async () => {
     prepareJsonResponse({
       content: 'test response with mixed sources',
@@ -1530,13 +1617,13 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should use googleSearchRetrieval for non-gemini-2 models', async () => {
+    it('should warn for google search on non-gemini-2 models', async () => {
       prepareJsonResponse({
         url: TEST_URL_GEMINI_1_0_PRO,
       });
 
       const geminiPro = provider.languageModel('gemini-1.0-pro');
-      await geminiPro.doGenerate({
+      const result = await geminiPro.doGenerate({
         prompt: TEST_PROMPT,
         tools: [
           {
@@ -1548,46 +1635,22 @@ describe('doGenerate', () => {
         ],
       });
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [{ googleSearchRetrieval: {} }],
-      });
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "Google Search requires Gemini 2.0 or newer.",
+            "tool": {
+              "args": {},
+              "id": "google.google_search",
+              "name": "google_search",
+              "type": "provider-defined",
+            },
+            "type": "unsupported-tool",
+          },
+        ]
+      `);
     });
 
-    it('should use dynamic retrieval for gemini-1-5', async () => {
-      prepareJsonResponse({
-        url: TEST_URL_GEMINI_1_5_FLASH,
-      });
-
-      const geminiPro = provider.languageModel('gemini-1.5-flash');
-
-      await geminiPro.doGenerate({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'provider-defined',
-            id: 'google.google_search',
-            name: 'google_search',
-            args: {
-              mode: 'MODE_DYNAMIC',
-              dynamicThreshold: 1,
-            },
-          },
-        ],
-      });
-
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [
-          {
-            googleSearchRetrieval: {
-              dynamicRetrievalConfig: {
-                mode: 'MODE_DYNAMIC',
-                dynamicThreshold: 1,
-              },
-            },
-          },
-        ],
-      });
-    });
     it('should use urlContextTool for gemini-2.0-pro', async () => {
       prepareJsonResponse({
         url: TEST_URL_GEMINI_2_0_PRO,
@@ -2669,14 +2732,14 @@ describe('doStream', () => {
       });
     });
 
-    it('should use googleSearchRetrieval for non-gemini-2 models', async () => {
+    it('should warn for google search on non-gemini-2 models', async () => {
       prepareStreamResponse({
         content: [''],
         url: TEST_URL_GEMINI_1_0_PRO,
       });
 
       const geminiPro = provider.languageModel('gemini-1.0-pro');
-      await geminiPro.doStream({
+      const { stream } = await geminiPro.doStream({
         prompt: TEST_PROMPT,
         includeRawChunks: false,
         tools: [
@@ -2689,47 +2752,25 @@ describe('doStream', () => {
         ],
       });
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [{ googleSearchRetrieval: {} }],
-      });
-    });
+      const events = await convertReadableStreamToArray(stream);
 
-    it('should use dynamic retrieval for gemini-1-5', async () => {
-      prepareStreamResponse({
-        content: [''],
-        url: TEST_URL_GEMINI_1_5_FLASH,
-      });
-
-      const geminiPro = provider.languageModel('gemini-1.5-flash');
-
-      await geminiPro.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-        tools: [
-          {
-            type: 'provider-defined',
-            id: 'google.google_search',
-            name: 'google_search',
-            args: {
-              mode: 'MODE_DYNAMIC',
-              dynamicThreshold: 1,
-            },
-          },
-        ],
-      });
-
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [
-          {
-            googleSearchRetrieval: {
-              dynamicRetrievalConfig: {
-                mode: 'MODE_DYNAMIC',
-                dynamicThreshold: 1,
+      expect(events[0]).toMatchInlineSnapshot(`
+        {
+          "type": "stream-start",
+          "warnings": [
+            {
+              "details": "Google Search requires Gemini 2.0 or newer.",
+              "tool": {
+                "args": {},
+                "id": "google.google_search",
+                "name": "google_search",
+                "type": "provider-defined",
               },
+              "type": "unsupported-tool",
             },
-          },
-        ],
-      });
+          ],
+        }
+      `);
     });
   });
 
@@ -2764,6 +2805,44 @@ describe('doStream', () => {
           "title": "Source Title",
           "type": "source",
           "url": "https://source.example.com",
+        },
+      ]
+    `);
+  });
+
+  it('should stream source events from image grounding metadata', async () => {
+    prepareStreamResponse({
+      content: ['image search response'],
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            image: {
+              sourceUri: 'https://example.com/article',
+              imageUri: 'https://example.com/image.jpg',
+              title: 'Image Source',
+              domain: 'example.com',
+            },
+          },
+        ],
+      },
+    });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const sourceEvents = events.filter(event => event.type === 'source');
+
+    expect(sourceEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "Image Source",
+          "type": "source",
+          "url": "https://example.com/article",
         },
       ]
     `);
