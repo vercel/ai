@@ -1,7 +1,7 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { DownloadError } from '@ai-sdk/provider-utils';
 import { download } from './download';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 
 const server = createTestServer({
   'http://example.com/file': {},
@@ -25,6 +25,77 @@ describe('download SSRF protection', () => {
     await expect(
       download({ url: new URL('http://localhost/file') }),
     ).rejects.toThrow(DownloadError);
+  });
+});
+
+describe('download SSRF redirect protection', () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('should reject redirects to private IP addresses', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      redirected: true,
+      url: 'http://169.254.169.254/latest/meta-data/',
+      headers: new Headers({ 'content-type': 'text/plain' }),
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('secret'));
+          controller.close();
+        },
+      }),
+    } as unknown as Response);
+
+    await expect(
+      download({ url: new URL('https://evil.com/redirect') }),
+    ).rejects.toThrow(DownloadError);
+  });
+
+  it('should reject redirects to localhost', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      redirected: true,
+      url: 'http://localhost:8080/admin',
+      headers: new Headers({ 'content-type': 'text/plain' }),
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('secret'));
+          controller.close();
+        },
+      }),
+    } as unknown as Response);
+
+    await expect(
+      download({ url: new URL('https://evil.com/redirect') }),
+    ).rejects.toThrow(DownloadError);
+  });
+
+  it('should allow redirects to safe URLs', async () => {
+    const content = new Uint8Array([1, 2, 3]);
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      redirected: true,
+      url: 'https://cdn.example.com/image.png',
+      headers: new Headers({ 'content-type': 'image/png' }),
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(content);
+          controller.close();
+        },
+      }),
+    } as unknown as Response);
+
+    const result = await download({
+      url: new URL('https://example.com/image.png'),
+    });
+    expect(result.data).toEqual(content);
+    expect(result.mediaType).toBe('image/png');
   });
 });
 
