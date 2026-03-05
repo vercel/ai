@@ -1971,8 +1971,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                             'ai.response.model': stepResponse.modelId,
                             'ai.response.timestamp':
                               stepResponse.timestamp.toISOString(),
-                            'ai.response.providerMetadata':
-                              JSON.stringify(stepProviderMetadata),
                             'ai.usage.inputTokens': stepUsage.inputTokens,
                             'ai.usage.inputTokenDetails.noCacheTokens':
                               stepUsage.inputTokenDetails?.noCacheTokens,
