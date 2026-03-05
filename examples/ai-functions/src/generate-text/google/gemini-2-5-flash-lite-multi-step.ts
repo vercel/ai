@@ -10,9 +10,11 @@ run(async () => {
     prompt: 'What are the available exams?',
     tools: {
       getExams: tool({
-        description: 'Get exams',
+        description: 'Get list of available exams',
         inputSchema: z.object({}),
-        execute: async () => ({ exams: ['Math', 'Science'] }),
+        execute: async () => {
+          return { exams: ['Math', 'Science'] };
+        },
       }),
     },
     stopWhen: stepCountIs(5),
