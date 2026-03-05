@@ -3,4 +3,4 @@
 '@ai-sdk/openai': patch
 ---
 
-Add support for GPT-5.4 model
+feat(provider/openai): add GPT-5.4 model support
