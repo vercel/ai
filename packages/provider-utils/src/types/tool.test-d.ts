@@ -2,7 +2,7 @@ import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
 import { FlexibleSchema } from '../schema';
 import { ToolResultOutput } from './content-part';
-import { Context, ContextRegistry } from './context';
+import { Context } from './context';
 import { ModelMessage } from './model-message';
 import { Tool, tool, ToolExecuteFunction } from './tool';
 
@@ -14,7 +14,7 @@ describe('tool type', () => {
       });
 
       expectTypeOf(aTool).toEqualTypeOf<
-        Tool<ContextRegistry, { number: number }, never>
+        Tool<Context, { number: number }, never>
       >();
       expectTypeOf(aTool.execute).toEqualTypeOf<undefined>();
       expectTypeOf(aTool.execute).not.toEqualTypeOf<Function>();
@@ -28,7 +28,7 @@ describe('tool type', () => {
         inputSchema: null as unknown as FlexibleSchema<T>,
       });
 
-      expectTypeOf(aTool).toEqualTypeOf<Tool<ContextRegistry, T, never>>();
+      expectTypeOf(aTool).toEqualTypeOf<Tool<Context, T, never>>();
       expectTypeOf(aTool.execute).toEqualTypeOf<undefined>();
       expectTypeOf(aTool.execute).not.toEqualTypeOf<Function>();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<FlexibleSchema<T>>();
@@ -81,11 +81,10 @@ describe('tool type', () => {
       });
 
       expectTypeOf(aTool).toEqualTypeOf<
-        Tool<ContextRegistry, { number: number }, 'test'>
+        Tool<Context, { number: number }, 'test'>
       >();
       expectTypeOf(aTool.execute).toMatchTypeOf<
-        | ToolExecuteFunction<ContextRegistry, { number: number }, 'test'>
-        | undefined
+        ToolExecuteFunction<Context, { number: number }, 'test'> | undefined
       >();
       expectTypeOf(aTool.execute).not.toEqualTypeOf<undefined>();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<
@@ -102,11 +101,10 @@ describe('tool type', () => {
       });
 
       expectTypeOf(aTool).toEqualTypeOf<
-        Tool<ContextRegistry, { number: number }, 'test'>
+        Tool<Context, { number: number }, 'test'>
       >();
       expectTypeOf(aTool.execute).toEqualTypeOf<
-        | ToolExecuteFunction<ContextRegistry, { number: number }, 'test'>
-        | undefined
+        ToolExecuteFunction<Context, { number: number }, 'test'> | undefined
       >();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<
         FlexibleSchema<{ number: number }>
@@ -184,7 +182,7 @@ describe('tool type', () => {
           expectTypeOf(options).toEqualTypeOf<{
             toolCallId: string;
             messages: ModelMessage[];
-            experimental_context?: Context<ContextRegistry> | undefined;
+            experimental_context?: Context | undefined;
           }>();
           return true;
         },
@@ -197,7 +195,7 @@ describe('tool type', () => {
             options: {
               toolCallId: string;
               messages: ModelMessage[];
-              experimental_context?: Context<ContextRegistry> | undefined;
+              experimental_context?: Context | undefined;
             },
           ) => boolean | PromiseLike<boolean>)
         | undefined
@@ -213,7 +211,7 @@ describe('tool type', () => {
           expectTypeOf(options).toEqualTypeOf<{
             toolCallId: string;
             messages: ModelMessage[];
-            experimental_context?: Context<ContextRegistry> | undefined;
+            experimental_context?: Context | undefined;
           }>();
           return true;
         },
@@ -226,7 +224,7 @@ describe('tool type', () => {
             options: {
               toolCallId: string;
               messages: ModelMessage[];
-              experimental_context?: Context<ContextRegistry> | undefined;
+              experimental_context?: Context | undefined;
             },
           ) => boolean | PromiseLike<boolean>)
         | undefined

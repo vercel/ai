@@ -3,14 +3,12 @@ import { FlexibleSchema } from '../schema';
 import { ToolResultOutput } from './content-part';
 import { ModelMessage } from './model-message';
 import { ProviderOptions } from './provider-options';
-import { Context, ContextRegistry } from './context';
+import { Context } from './context';
 
 /**
  * Additional options that are sent into each tool call.
  */
-export interface ToolExecutionOptions<
-  CONTEXT extends Partial<ContextRegistry> = ContextRegistry,
-> {
+export interface ToolExecutionOptions<CONTEXT extends Context = Context> {
   /**
    * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
    */
@@ -39,7 +37,7 @@ export interface ToolExecutionOptions<
    *
    * Experimental (can break in patch releases).
    */
-  experimental_context: Context<CONTEXT>;
+  experimental_context: CONTEXT;
 }
 
 /**
@@ -47,7 +45,7 @@ export interface ToolExecutionOptions<
  */
 export type ToolNeedsApprovalFunction<
   INPUT,
-  CONTEXT extends Partial<ContextRegistry> = ContextRegistry,
+  CONTEXT extends Context = Context,
 > = (
   input: INPUT,
   options: {
@@ -67,15 +65,11 @@ export type ToolNeedsApprovalFunction<
      *
      * Experimental (can break in patch releases).
      */
-    experimental_context?: Context<CONTEXT>;
+    experimental_context?: CONTEXT;
   },
 ) => boolean | PromiseLike<boolean>;
 
-export type ToolExecuteFunction<
-  CONTEXT extends Partial<ContextRegistry>,
-  INPUT,
-  OUTPUT,
-> = (
+export type ToolExecuteFunction<CONTEXT extends Context, INPUT, OUTPUT> = (
   input: INPUT,
   options: ToolExecutionOptions<CONTEXT>,
 ) => AsyncIterable<OUTPUT> | PromiseLike<OUTPUT> | OUTPUT;
@@ -89,7 +83,7 @@ type NeverOptional<N, T> = 0 extends 1 & N
     : T;
 
 type ToolOutputProperties<
-  CONTEXT extends Partial<ContextRegistry>,
+  CONTEXT extends Context,
   INPUT,
   OUTPUT,
 > = NeverOptional<
@@ -120,7 +114,7 @@ type ToolOutputProperties<
  * The tool can also contain an optional execute function for the actual execution function of the tool.
  */
 export type Tool<
-  CONTEXT extends Partial<ContextRegistry> = ContextRegistry,
+  CONTEXT extends Context,
   INPUT extends JSONValue | unknown | never = any,
   OUTPUT extends JSONValue | unknown | never = any,
 > = {
@@ -276,7 +270,7 @@ export type Tool<
  * Infer the input type of a tool.
  */
 export type InferToolInput<
-  CONTEXT extends Partial<ContextRegistry>,
+  CONTEXT extends Context,
   TOOL extends Tool<CONTEXT>,
 > = TOOL extends Tool<CONTEXT, infer INPUT, any> ? INPUT : never;
 
@@ -284,7 +278,7 @@ export type InferToolInput<
  * Infer the output type of a tool.
  */
 export type InferToolOutput<
-  CONTEXT extends Partial<ContextRegistry>,
+  CONTEXT extends Context,
   TOOL extends Tool<CONTEXT>,
 > = TOOL extends Tool<CONTEXT, any, infer OUTPUT> ? OUTPUT : never;
 
@@ -292,16 +286,16 @@ export type InferToolOutput<
  * Helper function for inferring the execute args of a tool.
  */
 // Note: overload order is important for auto-completion
-export function tool<CONTEXT extends Partial<ContextRegistry>, INPUT, OUTPUT>(
+export function tool<CONTEXT extends Context, INPUT, OUTPUT>(
   tool: Tool<CONTEXT, INPUT, OUTPUT>,
 ): Tool<CONTEXT, INPUT, OUTPUT>;
-export function tool<CONTEXT extends Partial<ContextRegistry>, INPUT>(
+export function tool<CONTEXT extends Context, INPUT>(
   tool: Tool<CONTEXT, INPUT, never>,
 ): Tool<CONTEXT, INPUT, never>;
-export function tool<CONTEXT extends Partial<ContextRegistry>, OUTPUT>(
+export function tool<CONTEXT extends Context, OUTPUT>(
   tool: Tool<CONTEXT, never, OUTPUT>,
 ): Tool<CONTEXT, never, OUTPUT>;
-export function tool<CONTEXT extends Partial<ContextRegistry>>(
+export function tool<CONTEXT extends Context>(
   tool: Tool<CONTEXT, never, never>,
 ): Tool<CONTEXT, never, never>;
 export function tool(tool: any): any {
@@ -316,7 +310,7 @@ export function dynamicTool(tool: {
   title?: string;
   providerOptions?: ProviderOptions;
   inputSchema: FlexibleSchema<unknown>;
-  execute: ToolExecuteFunction<ContextRegistry, unknown, unknown>;
+  execute: ToolExecuteFunction<Context, unknown, unknown>;
 
   /**
    * Optional conversion function that maps the tool result to an output that can be used by the language model.
@@ -344,7 +338,7 @@ export function dynamicTool(tool: {
    * Whether the tool needs approval before it can be executed.
    */
   needsApproval?: boolean | ToolNeedsApprovalFunction<unknown>;
-}): Tool<ContextRegistry, unknown, unknown> & {
+}): Tool<Context, unknown, unknown> & {
   type: 'dynamic';
 } {
   return { ...tool, type: 'dynamic' };

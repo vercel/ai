@@ -11,7 +11,7 @@ export type {
   ToolResultOutput,
   ToolResultPart,
 } from './content-part';
-export type { Context, ContextRegistry } from './context';
+export type { Context } from './context';
 export type { DataContent } from './data-content';
 export { executeTool } from './execute-tool';
 export type { ModelMessage } from './model-message';

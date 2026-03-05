@@ -1,9 +1,9 @@
 import { tool, Tool, ToolExecuteFunction } from './types/tool';
 import { FlexibleSchema } from './schema';
-import { ContextRegistry } from './types/context';
+import { Context } from './types/context';
 
 export type ProviderToolFactory<
-  CONTEXT extends Partial<ContextRegistry>,
+  CONTEXT extends Context,
   INPUT,
   ARGS extends object,
 > = <OUTPUT>(
@@ -18,7 +18,7 @@ export type ProviderToolFactory<
 ) => Tool<CONTEXT, INPUT, OUTPUT>;
 
 export function createProviderToolFactory<
-  CONTEXT extends Partial<ContextRegistry>,
+  CONTEXT extends Context,
   INPUT,
   ARGS extends object,
 >({
@@ -62,7 +62,7 @@ export function createProviderToolFactory<
 }
 
 export type ProviderToolFactoryWithOutputSchema<
-  CONTEXT extends Partial<ContextRegistry>,
+  CONTEXT extends Context,
   INPUT,
   OUTPUT,
   ARGS extends object,
@@ -78,7 +78,7 @@ export type ProviderToolFactoryWithOutputSchema<
 ) => Tool<CONTEXT, INPUT, OUTPUT>;
 
 export function createProviderToolFactoryWithOutputSchema<
-  CONTEXT extends Partial<ContextRegistry>,
+  CONTEXT extends Context,
   INPUT,
   OUTPUT,
   ARGS extends object,

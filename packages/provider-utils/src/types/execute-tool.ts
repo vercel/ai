@@ -1,12 +1,8 @@
 import { isAsyncIterable } from '../is-async-iterable';
-import { ContextRegistry } from './context';
-import { ToolExecutionOptions, ToolExecuteFunction } from './tool';
+import { Context } from './context';
+import { ToolExecuteFunction, ToolExecutionOptions } from './tool';
 
-export async function* executeTool<
-  CONTEXT extends Partial<ContextRegistry>,
-  INPUT,
-  OUTPUT,
->({
+export async function* executeTool<CONTEXT extends Context, INPUT, OUTPUT>({
   execute,
   input,
   options,
