@@ -361,14 +361,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       outputTokens: undefined,
       totalTokens: undefined,
     };
-<<<<<<< HEAD
     let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
-=======
-    let usage: GoogleGenerativeAIUsageMetadata | undefined = undefined;
-    let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
->>>>>>> e2a59ef92 (Backport: fix(provider/google): preserve groundingMetadata when streamed before finishReason (#13124))
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
