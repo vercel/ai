@@ -1,3 +1,4 @@
+import { ContextRegistry } from '@ai-sdk/provider-utils';
 import { ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { GeneratedFile } from './generated-file';
@@ -8,18 +9,21 @@ import { TypedToolError } from './tool-error';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
 
-export type ContentPart<TOOLS extends ToolSet> =
+export type ContentPart<
+  CONTEXT extends Partial<ContextRegistry>,
+  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+> =
   | { type: 'text'; text: string; providerMetadata?: ProviderMetadata }
   | ReasoningOutput
   | ({ type: 'source' } & Source)
   | { type: 'file'; file: GeneratedFile; providerMetadata?: ProviderMetadata } // different because of GeneratedFile object
-  | ({ type: 'tool-call' } & TypedToolCall<TOOLS> & {
+  | ({ type: 'tool-call' } & TypedToolCall<CONTEXT, TOOLS> & {
         providerMetadata?: ProviderMetadata;
       })
-  | ({ type: 'tool-result' } & TypedToolResult<TOOLS> & {
+  | ({ type: 'tool-result' } & TypedToolResult<CONTEXT, TOOLS> & {
         providerMetadata?: ProviderMetadata;
       })
-  | ({ type: 'tool-error' } & TypedToolError<TOOLS> & {
+  | ({ type: 'tool-error' } & TypedToolError<CONTEXT, TOOLS> & {
         providerMetadata?: ProviderMetadata;
       })
-  | ToolApprovalRequestOutput<TOOLS>;
+  | ToolApprovalRequestOutput<CONTEXT, TOOLS>;

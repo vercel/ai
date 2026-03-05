@@ -1,4 +1,4 @@
-import { ReasoningPart } from '@ai-sdk/provider-utils';
+import { ContextRegistry, ReasoningPart } from '@ai-sdk/provider-utils';
 import {
   CallWarning,
   FinishReason,
@@ -22,7 +22,10 @@ import { ToolSet } from './tool-set';
 /**
  * The result of a single step in the generation process.
  */
-export type StepResult<TOOLS extends ToolSet> = {
+export type StepResult<
+  CONTEXT extends Partial<ContextRegistry>,
+  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+> = {
   /**
    * Zero-based index of this step.
    */
@@ -58,7 +61,7 @@ export type StepResult<TOOLS extends ToolSet> = {
   /**
    * The content that was generated in the last step.
    */
-  readonly content: Array<ContentPart<TOOLS>>;
+  readonly content: Array<ContentPart<CONTEXT, TOOLS>>;
 
   /**
    * The generated text.
@@ -88,7 +91,7 @@ export type StepResult<TOOLS extends ToolSet> = {
   /**
    * The tool calls that were made during the generation.
    */
-  readonly toolCalls: Array<TypedToolCall<TOOLS>>;
+  readonly toolCalls: Array<TypedToolCall<CONTEXT, TOOLS>>;
 
   /**
    * The static tool calls that were made in the last step.
@@ -103,7 +106,7 @@ export type StepResult<TOOLS extends ToolSet> = {
   /**
    * The results of the tool calls.
    */
-  readonly toolResults: Array<TypedToolResult<TOOLS>>;
+  readonly toolResults: Array<TypedToolResult<CONTEXT, TOOLS>>;
 
   /**
    * The static tool results that were made in the last step.

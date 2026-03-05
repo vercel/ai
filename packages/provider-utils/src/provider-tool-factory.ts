@@ -1,24 +1,33 @@
 import { tool, Tool, ToolExecuteFunction } from './types/tool';
 import { FlexibleSchema } from './schema';
+import { ContextRegistry } from './types/context';
 
-export type ProviderToolFactory<INPUT, ARGS extends object> = <OUTPUT>(
+export type ProviderToolFactory<
+  CONTEXT extends Partial<ContextRegistry>,
+  INPUT,
+  ARGS extends object,
+> = <OUTPUT>(
   options: ARGS & {
-    execute?: ToolExecuteFunction<INPUT, OUTPUT>;
-    needsApproval?: Tool<INPUT, OUTPUT>['needsApproval'];
-    toModelOutput?: Tool<INPUT, OUTPUT>['toModelOutput'];
-    onInputStart?: Tool<INPUT, OUTPUT>['onInputStart'];
-    onInputDelta?: Tool<INPUT, OUTPUT>['onInputDelta'];
-    onInputAvailable?: Tool<INPUT, OUTPUT>['onInputAvailable'];
+    execute?: ToolExecuteFunction<CONTEXT, INPUT, OUTPUT>;
+    needsApproval?: Tool<CONTEXT, INPUT, OUTPUT>['needsApproval'];
+    toModelOutput?: Tool<CONTEXT, INPUT, OUTPUT>['toModelOutput'];
+    onInputStart?: Tool<CONTEXT, INPUT, OUTPUT>['onInputStart'];
+    onInputDelta?: Tool<CONTEXT, INPUT, OUTPUT>['onInputDelta'];
+    onInputAvailable?: Tool<CONTEXT, INPUT, OUTPUT>['onInputAvailable'];
   },
-) => Tool<INPUT, OUTPUT>;
+) => Tool<CONTEXT, INPUT, OUTPUT>;
 
-export function createProviderToolFactory<INPUT, ARGS extends object>({
+export function createProviderToolFactory<
+  CONTEXT extends Partial<ContextRegistry>,
+  INPUT,
+  ARGS extends object,
+>({
   id,
   inputSchema,
 }: {
   id: `${string}.${string}`;
   inputSchema: FlexibleSchema<INPUT>;
-}): ProviderToolFactory<INPUT, ARGS> {
+}): ProviderToolFactory<CONTEXT, INPUT, ARGS> {
   return <OUTPUT>({
     execute,
     outputSchema,
@@ -29,14 +38,14 @@ export function createProviderToolFactory<INPUT, ARGS extends object>({
     onInputAvailable,
     ...args
   }: ARGS & {
-    execute?: ToolExecuteFunction<INPUT, OUTPUT>;
+    execute?: ToolExecuteFunction<CONTEXT, INPUT, OUTPUT>;
     outputSchema?: FlexibleSchema<OUTPUT>;
-    needsApproval?: Tool<INPUT, OUTPUT>['needsApproval'];
-    toModelOutput?: Tool<INPUT, OUTPUT>['toModelOutput'];
-    onInputStart?: Tool<INPUT, OUTPUT>['onInputStart'];
-    onInputDelta?: Tool<INPUT, OUTPUT>['onInputDelta'];
-    onInputAvailable?: Tool<INPUT, OUTPUT>['onInputAvailable'];
-  }): Tool<INPUT, OUTPUT> =>
+    needsApproval?: Tool<CONTEXT, INPUT, OUTPUT>['needsApproval'];
+    toModelOutput?: Tool<CONTEXT, INPUT, OUTPUT>['toModelOutput'];
+    onInputStart?: Tool<CONTEXT, INPUT, OUTPUT>['onInputStart'];
+    onInputDelta?: Tool<CONTEXT, INPUT, OUTPUT>['onInputDelta'];
+    onInputAvailable?: Tool<CONTEXT, INPUT, OUTPUT>['onInputAvailable'];
+  }): Tool<CONTEXT, INPUT, OUTPUT> =>
     tool({
       type: 'provider',
       id,
@@ -53,21 +62,23 @@ export function createProviderToolFactory<INPUT, ARGS extends object>({
 }
 
 export type ProviderToolFactoryWithOutputSchema<
+  CONTEXT extends Partial<ContextRegistry>,
   INPUT,
   OUTPUT,
   ARGS extends object,
 > = (
   options: ARGS & {
-    execute?: ToolExecuteFunction<INPUT, OUTPUT>;
-    needsApproval?: Tool<INPUT, OUTPUT>['needsApproval'];
-    toModelOutput?: Tool<INPUT, OUTPUT>['toModelOutput'];
-    onInputStart?: Tool<INPUT, OUTPUT>['onInputStart'];
-    onInputDelta?: Tool<INPUT, OUTPUT>['onInputDelta'];
-    onInputAvailable?: Tool<INPUT, OUTPUT>['onInputAvailable'];
+    execute?: ToolExecuteFunction<CONTEXT, INPUT, OUTPUT>;
+    needsApproval?: Tool<CONTEXT, INPUT, OUTPUT>['needsApproval'];
+    toModelOutput?: Tool<CONTEXT, INPUT, OUTPUT>['toModelOutput'];
+    onInputStart?: Tool<CONTEXT, INPUT, OUTPUT>['onInputStart'];
+    onInputDelta?: Tool<CONTEXT, INPUT, OUTPUT>['onInputDelta'];
+    onInputAvailable?: Tool<CONTEXT, INPUT, OUTPUT>['onInputAvailable'];
   },
-) => Tool<INPUT, OUTPUT>;
+) => Tool<CONTEXT, INPUT, OUTPUT>;
 
 export function createProviderToolFactoryWithOutputSchema<
+  CONTEXT extends Partial<ContextRegistry>,
   INPUT,
   OUTPUT,
   ARGS extends object,
@@ -91,7 +102,7 @@ export function createProviderToolFactoryWithOutputSchema<
    * @default false
    */
   supportsDeferredResults?: boolean;
-}): ProviderToolFactoryWithOutputSchema<INPUT, OUTPUT, ARGS> {
+}): ProviderToolFactoryWithOutputSchema<CONTEXT, INPUT, OUTPUT, ARGS> {
   return ({
     execute,
     needsApproval,
@@ -101,13 +112,13 @@ export function createProviderToolFactoryWithOutputSchema<
     onInputAvailable,
     ...args
   }: ARGS & {
-    execute?: ToolExecuteFunction<INPUT, OUTPUT>;
-    needsApproval?: Tool<INPUT, OUTPUT>['needsApproval'];
-    toModelOutput?: Tool<INPUT, OUTPUT>['toModelOutput'];
-    onInputStart?: Tool<INPUT, OUTPUT>['onInputStart'];
-    onInputDelta?: Tool<INPUT, OUTPUT>['onInputDelta'];
-    onInputAvailable?: Tool<INPUT, OUTPUT>['onInputAvailable'];
-  }): Tool<INPUT, OUTPUT> =>
+    execute?: ToolExecuteFunction<CONTEXT, INPUT, OUTPUT>;
+    needsApproval?: Tool<CONTEXT, INPUT, OUTPUT>['needsApproval'];
+    toModelOutput?: Tool<CONTEXT, INPUT, OUTPUT>['toModelOutput'];
+    onInputStart?: Tool<CONTEXT, INPUT, OUTPUT>['onInputStart'];
+    onInputDelta?: Tool<CONTEXT, INPUT, OUTPUT>['onInputDelta'];
+    onInputAvailable?: Tool<CONTEXT, INPUT, OUTPUT>['onInputAvailable'];
+  }): Tool<CONTEXT, INPUT, OUTPUT> =>
     tool({
       type: 'provider',
       id,

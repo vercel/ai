@@ -1,5 +1,6 @@
 import type { LanguageModelV4ToolChoice } from '@ai-sdk/provider';
 import type {
+  ContextRegistry,
   ModelMessage,
   ProviderOptions,
   SystemModelMessage,
@@ -129,7 +130,8 @@ export interface OnStartEvent<
  * Each step represents a single LLM invocation.
  */
 export interface OnStepStartEvent<
-  TOOLS extends ToolSet = ToolSet,
+  CONTEXT extends Partial<ContextRegistry>,
+  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
   OUTPUT extends Output = Output,
   INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
@@ -184,8 +186,8 @@ export interface OnStepStartEvent<
    * When the condition is an array, any of the conditions can be met to stop.
    */
   readonly stopWhen:
-    | StopCondition<TOOLS>
-    | Array<StopCondition<TOOLS>>
+    | StopCondition<CONTEXT, TOOLS>
+    | Array<StopCondition<CONTEXT, TOOLS>>
     | undefined;
 
   /** The output specification for structured outputs, if configured. */
@@ -216,7 +218,10 @@ export interface OnStepStartEvent<
  *
  * Called when a tool execution begins, before the tool's `execute` function is invoked.
  */
-export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
+export interface OnToolCallStartEvent<
+  CONTEXT extends Partial<ContextRegistry>,
+  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+> {
   /** Zero-based index of the current step where this tool call occurs. */
   readonly stepNumber: number | undefined;
 
@@ -224,7 +229,7 @@ export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
   readonly model: CallbackModelInfo | undefined;
 
   /** The full tool call object. */
-  readonly toolCall: TypedToolCall<TOOLS>;
+  readonly toolCall: TypedToolCall<CONTEXT, TOOLS>;
 
   /** The conversation messages available at tool execution time. */
   readonly messages: Array<ModelMessage>;
@@ -307,26 +312,28 @@ export type OnStepFinishEvent<TOOLS extends ToolSet = ToolSet> =
  * Called when the entire generation completes (all steps finished).
  * Includes the final step's result along with aggregated data from all steps.
  */
-export type OnFinishEvent<TOOLS extends ToolSet = ToolSet> =
-  StepResult<TOOLS> & {
-    /** Array containing results from all steps in the generation. */
-    readonly steps: StepResult<TOOLS>[];
+export type OnFinishEvent<
+  CONTEXT extends Partial<ContextRegistry>,
+  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+> = StepResult<CONTEXT, TOOLS> & {
+  /** Array containing results from all steps in the generation. */
+  readonly steps: StepResult<CONTEXT, TOOLS>[];
 
-    /** Aggregated token usage across all steps. */
-    readonly totalUsage: LanguageModelUsage;
+  /** Aggregated token usage across all steps. */
+  readonly totalUsage: LanguageModelUsage;
 
-    /**
-     * The final state of the user-defined context object.
-     *
-     * Experimental (can break in patch releases).
-     *
-     * @default undefined
-     */
-    experimental_context: unknown;
+  /**
+   * The final state of the user-defined context object.
+   *
+   * Experimental (can break in patch releases).
+   *
+   * @default undefined
+   */
+  experimental_context: unknown;
 
-    /** Identifier from telemetry settings for grouping related operations. */
-    readonly functionId: string | undefined;
+  /** Identifier from telemetry settings for grouping related operations. */
+  readonly functionId: string | undefined;
 
-    /** Additional metadata from telemetry settings. */
-    readonly metadata: Record<string, unknown> | undefined;
-  };
+  /** Additional metadata from telemetry settings. */
+  readonly metadata: Record<string, unknown> | undefined;
+};

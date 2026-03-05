@@ -1,4 +1,4 @@
-import { Tool } from '@ai-sdk/provider-utils';
+import { ContextRegistry, Tool } from '@ai-sdk/provider-utils';
 import { ProviderMetadata } from '../types';
 import { ValueOf } from '../util/value-of';
 import { ToolSet } from './tool-set';
@@ -10,10 +10,15 @@ type BaseToolCall = {
   providerMetadata?: ProviderMetadata;
 };
 
-export type StaticToolCall<TOOLS extends ToolSet> = ValueOf<{
+export type StaticToolCall<
+  CONTEXT extends Partial<ContextRegistry>,
+  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+> = ValueOf<{
   [NAME in keyof TOOLS]: BaseToolCall & {
     toolName: NAME & string;
-    input: TOOLS[NAME] extends Tool<infer PARAMETERS> ? PARAMETERS : never;
+    input: TOOLS[NAME] extends Tool<CONTEXT, infer PARAMETERS>
+      ? PARAMETERS
+      : never;
     dynamic?: false | undefined;
     invalid?: false | undefined;
     error?: never;
@@ -42,6 +47,7 @@ export type DynamicToolCall = BaseToolCall & {
   error?: unknown;
 };
 
-export type TypedToolCall<TOOLS extends ToolSet> =
-  | StaticToolCall<TOOLS>
-  | DynamicToolCall;
+export type TypedToolCall<
+  CONTEXT extends Partial<ContextRegistry>,
+  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+> = StaticToolCall<CONTEXT, TOOLS> | DynamicToolCall;

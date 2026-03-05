@@ -1,15 +1,22 @@
-import { InferToolInput, InferToolOutput } from '@ai-sdk/provider-utils';
+import {
+  ContextRegistry,
+  InferToolInput,
+  InferToolOutput,
+} from '@ai-sdk/provider-utils';
 import { ProviderMetadata } from '../types';
 import { ValueOf } from '../../src/util/value-of';
 import { ToolSet } from './tool-set';
 
-export type StaticToolResult<TOOLS extends ToolSet> = ValueOf<{
+export type StaticToolResult<
+  CONTEXT extends Partial<ContextRegistry>,
+  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+> = ValueOf<{
   [NAME in keyof TOOLS]: {
     type: 'tool-result';
     toolCallId: string;
     toolName: NAME & string;
-    input: InferToolInput<TOOLS[NAME]>;
-    output: InferToolOutput<TOOLS[NAME]>;
+    input: InferToolInput<CONTEXT, TOOLS[NAME]>;
+    output: InferToolOutput<CONTEXT, TOOLS[NAME]>;
     providerExecuted?: boolean;
     providerMetadata?: ProviderMetadata;
     dynamic?: false | undefined;
@@ -31,6 +38,7 @@ export type DynamicToolResult = {
   title?: string;
 };
 
-export type TypedToolResult<TOOLS extends ToolSet> =
-  | StaticToolResult<TOOLS>
-  | DynamicToolResult;
+export type TypedToolResult<
+  CONTEXT extends Partial<ContextRegistry>,
+  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+> = StaticToolResult<CONTEXT, TOOLS> | DynamicToolResult;

@@ -1,10 +1,17 @@
-import { Tool } from '@ai-sdk/provider-utils';
+import { ContextRegistry, Tool } from '@ai-sdk/provider-utils';
 
-export type ToolSet = Record<
+export type ToolSet<
+  CONTEXT extends Partial<ContextRegistry> = ContextRegistry,
+> = Record<
   string,
-  (Tool<never, never> | Tool<any, any> | Tool<any, never> | Tool<never, any>) &
+  (
+    | Tool<CONTEXT, never, never>
+    | Tool<CONTEXT, any, any>
+    | Tool<CONTEXT, any, never>
+    | Tool<CONTEXT, never, any>
+  ) &
     Pick<
-      Tool<any, any>,
+      Tool<CONTEXT, any, any>,
       | 'execute'
       | 'onInputAvailable'
       | 'onInputStart'

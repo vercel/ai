@@ -13,7 +13,9 @@ describe('tool type', () => {
         inputSchema: z.object({ number: z.number() }),
       });
 
-      expectTypeOf(aTool).toEqualTypeOf<Tool<{ number: number }, never>>();
+      expectTypeOf(aTool).toEqualTypeOf<
+        Tool<ContextRegistry, { number: number }, never>
+      >();
       expectTypeOf(aTool.execute).toEqualTypeOf<undefined>();
       expectTypeOf(aTool.execute).not.toEqualTypeOf<Function>();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<
@@ -26,7 +28,7 @@ describe('tool type', () => {
         inputSchema: null as unknown as FlexibleSchema<T>,
       });
 
-      expectTypeOf(aTool).toEqualTypeOf<Tool<T, never>>();
+      expectTypeOf(aTool).toEqualTypeOf<Tool<ContextRegistry, T, never>>();
       expectTypeOf(aTool.execute).toEqualTypeOf<undefined>();
       expectTypeOf(aTool.execute).not.toEqualTypeOf<Function>();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<FlexibleSchema<T>>();
@@ -78,9 +80,12 @@ describe('tool type', () => {
         },
       });
 
-      expectTypeOf(aTool).toEqualTypeOf<Tool<{ number: number }, 'test'>>();
+      expectTypeOf(aTool).toEqualTypeOf<
+        Tool<ContextRegistry, { number: number }, 'test'>
+      >();
       expectTypeOf(aTool.execute).toMatchTypeOf<
-        ToolExecuteFunction<{ number: number }, 'test'> | undefined
+        | ToolExecuteFunction<ContextRegistry, { number: number }, 'test'>
+        | undefined
       >();
       expectTypeOf(aTool.execute).not.toEqualTypeOf<undefined>();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<
@@ -96,9 +101,12 @@ describe('tool type', () => {
         },
       });
 
-      expectTypeOf(aTool).toEqualTypeOf<Tool<{ number: number }, 'test'>>();
+      expectTypeOf(aTool).toEqualTypeOf<
+        Tool<ContextRegistry, { number: number }, 'test'>
+      >();
       expectTypeOf(aTool.execute).toEqualTypeOf<
-        ToolExecuteFunction<{ number: number }, 'test'> | undefined
+        | ToolExecuteFunction<ContextRegistry, { number: number }, 'test'>
+        | undefined
       >();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<
         FlexibleSchema<{ number: number }>

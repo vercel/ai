@@ -1,8 +1,12 @@
+import { ContextRegistry } from '@ai-sdk/provider-utils';
 import { StepResult } from './step-result';
 import { ToolSet } from './tool-set';
 
-export type StopCondition<TOOLS extends ToolSet> = (options: {
-  steps: Array<StepResult<TOOLS>>;
+export type StopCondition<
+  CONTEXT extends Partial<ContextRegistry>,
+  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+> = (options: {
+  steps: Array<StepResult<CONTEXT, TOOLS>>;
 }) => PromiseLike<boolean> | boolean;
 
 export function stepCountIs(stepCount: number): StopCondition<any> {

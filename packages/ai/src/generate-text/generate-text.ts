@@ -131,10 +131,11 @@ export type GenerateTextOnStartCallback<
  * @param event - The event object containing step configuration.
  */
 export type GenerateTextOnStepStartCallback<
-  TOOLS extends ToolSet = ToolSet,
+  CONTEXT extends Partial<ContextRegistry>,
+  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
   OUTPUT extends Output = Output,
 > = (
-  event: OnStepStartEvent<TOOLS, OUTPUT, GenerateTextIncludeSettings>,
+  event: OnStepStartEvent<CONTEXT, TOOLS, OUTPUT, GenerateTextIncludeSettings>,
 ) => PromiseLike<void> | void;
 
 /**
@@ -146,8 +147,9 @@ export type GenerateTextOnStepStartCallback<
  * @param event - The event object containing tool call information.
  */
 export type GenerateTextOnToolCallStartCallback<
-  TOOLS extends ToolSet = ToolSet,
-> = (event: OnToolCallStartEvent<TOOLS>) => PromiseLike<void> | void;
+  CONTEXT extends Partial<ContextRegistry>,
+  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+> = (event: OnToolCallStartEvent<CONTEXT, TOOLS>) => PromiseLike<void> | void;
 
 /**
  * Callback that is set using the `experimental_onToolCallFinish` option.
@@ -186,9 +188,10 @@ export type GenerateTextOnStepFinishCallback<TOOLS extends ToolSet> = (
  *
  * @param event - The final result along with aggregated step data.
  */
-export type GenerateTextOnFinishCallback<TOOLS extends ToolSet> = (
-  event: OnFinishEvent<TOOLS>,
-) => PromiseLike<void> | void;
+export type GenerateTextOnFinishCallback<
+  CONTEXT extends Partial<ContextRegistry>,
+  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+> = (event: OnFinishEvent<CONTEXT, TOOLS>) => PromiseLike<void> | void;
 
 /**
  * Generate a text and call tools for a given prompt using a language model.
@@ -245,8 +248,8 @@ export type GenerateTextOnFinishCallback<TOOLS extends ToolSet> = (
  * A result object that contains the generated text, the results of the tool calls, and additional information.
  */
 export async function generateText<
-  TOOLS extends ToolSet,
-  CONTEXT extends Partial<ContextRegistry> = ContextRegistry,
+  CONTEXT extends Partial<ContextRegistry>,
+  TOOLS extends ToolSet<CONTEXT>,
   OUTPUT extends Output = Output<string, string>,
 >({
   model: modelArg,
@@ -352,12 +355,12 @@ export async function generateText<
     /**
      * @deprecated Use `prepareStep` instead.
      */
-    experimental_prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, CONTEXT>;
+    experimental_prepareStep?: PrepareStepFunction<CONTEXT, NoInfer<TOOLS>>;
 
     /**
      * Optional function that you can use to provide different settings for a step.
      */
-    prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, CONTEXT>;
+    prepareStep?: PrepareStepFunction<CONTEXT, NoInfer<TOOLS>>;
 
     /**
      * A function that attempts to repair a tool call that failed to parse.
@@ -1191,7 +1194,7 @@ export async function generateText<
             onFinish,
             globalTelemetry.onFinish as
               | undefined
-              | GenerateTextOnFinishCallback<TOOLS>,
+              | GenerateTextOnFinishCallback<CONTEXT, TOOLS>,
           ],
         });
 

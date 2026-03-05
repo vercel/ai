@@ -1,14 +1,19 @@
 import { isAsyncIterable } from '../is-async-iterable';
+import { ContextRegistry } from './context';
 import { ToolExecutionOptions, ToolExecuteFunction } from './tool';
 
-export async function* executeTool<INPUT, OUTPUT>({
+export async function* executeTool<
+  CONTEXT extends Partial<ContextRegistry>,
+  INPUT,
+  OUTPUT,
+>({
   execute,
   input,
   options,
 }: {
-  execute: ToolExecuteFunction<INPUT, OUTPUT>;
+  execute: ToolExecuteFunction<CONTEXT, INPUT, OUTPUT>;
   input: INPUT;
-  options: ToolExecutionOptions;
+  options: ToolExecutionOptions<CONTEXT>;
 }): AsyncGenerator<
   { type: 'preliminary'; output: OUTPUT } | { type: 'final'; output: OUTPUT }
 > {
