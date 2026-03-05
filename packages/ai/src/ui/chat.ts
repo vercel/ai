@@ -83,7 +83,7 @@ export type ChatAddToolApproveResponseFunction = ({
   reason?: string;
 
   /**
-   * Optional request options to be used when sending the message
+   * Optional request options to be used if `sendAutomaticallyWhen` callback returns true.
    */
   options?: ChatRequestOptions;
 }) => void | PromiseLike<void>;
@@ -481,7 +481,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             this.makeRequest({
               trigger: 'submit-message',
               messageId: this.lastMessage?.id,
-              ...options
+              ...options,
             });
           }
         });
