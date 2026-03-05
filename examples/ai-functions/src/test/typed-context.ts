@@ -6,13 +6,13 @@ interface Tool<CONTEXT> {
 
 export type ToolSet<CONTEXT> = Record<string, Tool<CONTEXT>>;
 
-function executeTool<CONTEXT>({
+function executeTool<CONTEXT, TOOLS extends ToolSet<CONTEXT>>({
   tools,
   toolName,
   context,
 }: {
-  tools: ToolSet<CONTEXT>;
-  toolName: keyof ToolSet<CONTEXT>;
+  tools: TOOLS;
+  toolName: keyof TOOLS;
   context: CONTEXT;
 }) {
   return tools[toolName].execute(context);

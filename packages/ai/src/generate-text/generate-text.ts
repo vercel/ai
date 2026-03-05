@@ -114,11 +114,10 @@ type GenerateTextIncludeSettings = {
  * @param event - The event object containing generation configuration.
  */
 export type GenerateTextOnStartCallback<
-  CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+  TOOLS extends ToolSet,
   OUTPUT extends Output = Output,
 > = (
-  event: OnStartEvent<CONTEXT, TOOLS, OUTPUT, GenerateTextIncludeSettings>,
+  event: OnStartEvent<TOOLS, OUTPUT, GenerateTextIncludeSettings>,
 ) => PromiseLike<void> | void;
 
 /**
@@ -179,7 +178,7 @@ export type GenerateTextOnToolCallFinishCallback<
 export type GenerateTextOnStepFinishCallback<
   CONTEXT extends Context,
   TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
-> = (event: OnStepFinishEvent<TOOLS>) => Promise<void> | void;
+> = (event: OnStepFinishEvent<CONTEXT, TOOLS>) => Promise<void> | void;
 
 /**
  * Callback that is set using the `onFinish` option.
@@ -193,7 +192,7 @@ export type GenerateTextOnStepFinishCallback<
 export type GenerateTextOnFinishCallback<
   CONTEXT extends Context,
   TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
-> = (event: OnFinishEvent<TOOLS>) => PromiseLike<void> | void;
+> = (event: OnFinishEvent<CONTEXT, TOOLS>) => PromiseLike<void> | void;
 
 /**
  * Generate a text and call tools for a given prompt using a language model.
@@ -373,11 +372,7 @@ export async function generateText<
      * Callback that is called when the generateText operation begins,
      * before any LLM calls are made.
      */
-    experimental_onStart?: GenerateTextOnStartCallback<
-      CONTEXT,
-      NoInfer<TOOLS>,
-      OUTPUT
-    >;
+    experimental_onStart?: GenerateTextOnStartCallback<NoInfer<TOOLS>, OUTPUT>;
 
     /**
      * Callback that is called when a step (LLM call) begins,
@@ -406,12 +401,12 @@ export async function generateText<
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
      */
-    onStepFinish?: GenerateTextOnStepFinishCallback<NoInfer<TOOLS>>;
+    onStepFinish?: GenerateTextOnStepFinishCallback<CONTEXT, NoInfer<TOOLS>>;
 
     /**
      * Callback that is called when all steps are finished and the response is complete.
      */
-    onFinish?: GenerateTextOnFinishCallback<NoInfer<TOOLS>>;
+    onFinish?: GenerateTextOnFinishCallback<CONTEXT, NoInfer<TOOLS>>;
 
     /**
      * Context that is passed into tool execution.
@@ -450,9 +445,9 @@ export async function generateText<
     _internal?: {
       generateId?: IdGenerator;
     };
-  }): Promise<GenerateTextResult<CONTEXT, TOOLS, OUTPUT>> {
+  }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
   const model = resolveLanguageModel(modelArg);
-  const createGlobalTelemetry = getGlobalTelemetryIntegration<TOOLS, OUTPUT>();
+  const createGlobalTelemetry = getGlobalTelemetryIntegration<any, OUTPUT>();
   const stopConditions = asArray(stopWhen);
 
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
@@ -527,7 +522,7 @@ export async function generateText<
       onStart,
       globalTelemetry.onStart as
         | undefined
-        | GenerateTextOnStartCallback<CONTEXT, TOOLS, OUTPUT>,
+        | GenerateTextOnStartCallback<TOOLS, OUTPUT>,
     ],
   });
 
@@ -1072,23 +1067,24 @@ export async function generateText<
 
             const stepNumber = steps.length;
 
-            const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
-              stepNumber,
-              model: stepModelInfo,
-              functionId: telemetry?.functionId,
-              metadata: telemetry?.metadata as
-                | Record<string, unknown>
-                | undefined,
-              experimental_context,
-              content: stepContent,
-              finishReason: currentModelResponse.finishReason.unified,
-              rawFinishReason: currentModelResponse.finishReason.raw,
-              usage: asLanguageModelUsage(currentModelResponse.usage),
-              warnings: currentModelResponse.warnings,
-              providerMetadata: currentModelResponse.providerMetadata,
-              request: stepRequest,
-              response: stepResponse,
-            });
+            const currentStepResult: StepResult<CONTEXT, TOOLS> =
+              new DefaultStepResult({
+                stepNumber,
+                model: stepModelInfo,
+                functionId: telemetry?.functionId,
+                metadata: telemetry?.metadata as
+                  | Record<string, unknown>
+                  | undefined,
+                experimental_context,
+                content: stepContent,
+                finishReason: currentModelResponse.finishReason.unified,
+                rawFinishReason: currentModelResponse.finishReason.raw,
+                usage: asLanguageModelUsage(currentModelResponse.usage),
+                warnings: currentModelResponse.warnings,
+                providerMetadata: currentModelResponse.providerMetadata,
+                request: stepRequest,
+                response: stepResponse,
+              });
 
             logWarnings({
               warnings: currentModelResponse.warnings ?? [],
@@ -1201,7 +1197,7 @@ export async function generateText<
             onFinish,
             globalTelemetry.onFinish as
               | undefined
-              | GenerateTextOnFinishCallback<TOOLS>,
+              | GenerateTextOnFinishCallback<CONTEXT, TOOLS>,
           ],
         });
 
@@ -1292,14 +1288,14 @@ class DefaultGenerateTextResult<
   CONTEXT extends Context,
   TOOLS extends ToolSet<CONTEXT>,
   OUTPUT extends Output,
-> implements GenerateTextResult<CONTEXT, TOOLS, OUTPUT>
+> implements GenerateTextResult<TOOLS, OUTPUT>
 {
-  readonly steps: GenerateTextResult<CONTEXT, TOOLS, OUTPUT>['steps'];
+  readonly steps: StepResult<CONTEXT, TOOLS>[];
   readonly totalUsage: LanguageModelUsage;
   private readonly _output: InferCompleteOutput<OUTPUT> | undefined;
 
   constructor(options: {
-    steps: GenerateTextResult<CONTEXT, TOOLS, OUTPUT>['steps'];
+    steps: StepResult<CONTEXT, TOOLS>[];
     output: InferCompleteOutput<OUTPUT> | undefined;
     totalUsage: LanguageModelUsage;
   }) {

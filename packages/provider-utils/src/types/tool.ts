@@ -62,7 +62,7 @@ export type ToolNeedsApprovalFunction<INPUT, CONTEXT extends Context> = (
      *
      * Experimental (can break in patch releases).
      */
-    experimental_context?: CONTEXT;
+    experimental_context: CONTEXT;
   },
 ) => boolean | PromiseLike<boolean>;
 

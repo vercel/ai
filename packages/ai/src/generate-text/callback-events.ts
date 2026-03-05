@@ -30,8 +30,7 @@ export interface CallbackModelInfo {
  * Called when the generation operation begins, before any LLM calls.
  */
 export interface OnStartEvent<
-  CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+  TOOLS extends ToolSet,
   OUTPUT extends Output = Output,
   INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
@@ -132,7 +131,7 @@ export interface OnStartEvent<
  */
 export interface OnStepStartEvent<
   CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+  TOOLS extends ToolSet<CONTEXT>,
   OUTPUT extends Output = Output,
   INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
@@ -168,7 +167,7 @@ export interface OnStepStartEvent<
   readonly activeTools: Array<keyof TOOLS> | undefined;
 
   /** Array of results from previous steps (empty for first step). */
-  readonly steps: ReadonlyArray<StepResult<TOOLS>>;
+  readonly steps: ReadonlyArray<StepResult<CONTEXT, TOOLS>>;
 
   /** Additional provider-specific options for this step. */
   readonly providerOptions: ProviderOptions | undefined;
@@ -219,10 +218,7 @@ export interface OnStepStartEvent<
  *
  * Called when a tool execution begins, before the tool's `execute` function is invoked.
  */
-export interface OnToolCallStartEvent<
-  CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
-> {
+export interface OnToolCallStartEvent<TOOLS extends ToolSet> {
   /** Zero-based index of the current step where this tool call occurs. */
   readonly stepNumber: number | undefined;
 
@@ -254,10 +250,7 @@ export interface OnToolCallStartEvent<
  * Called when a tool execution completes, either successfully or with an error.
  * Uses a discriminated union on the `success` field.
  */
-export type OnToolCallFinishEvent<
-  CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
-> = {
+export type OnToolCallFinishEvent<TOOLS extends ToolSet> = {
   /** Zero-based index of the current step where this tool call occurred. */
   readonly stepNumber: number | undefined;
 
@@ -309,8 +302,8 @@ export type OnToolCallFinishEvent<
  */
 export type OnStepFinishEvent<
   CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
-> = StepResult<TOOLS>;
+  TOOLS extends ToolSet<CONTEXT>,
+> = StepResult<CONTEXT, TOOLS>;
 
 /**
  * Event passed to the `onFinish` callback.
@@ -320,10 +313,10 @@ export type OnStepFinishEvent<
  */
 export type OnFinishEvent<
   CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
-> = StepResult<TOOLS> & {
+  TOOLS extends ToolSet<CONTEXT>,
+> = StepResult<CONTEXT, TOOLS> & {
   /** Array containing results from all steps in the generation. */
-  readonly steps: StepResult<TOOLS>[];
+  readonly steps: StepResult<CONTEXT, TOOLS>[];
 
   /** Aggregated token usage across all steps. */
   readonly totalUsage: LanguageModelUsage;
@@ -335,7 +328,7 @@ export type OnFinishEvent<
    *
    * @default undefined
    */
-  experimental_context: unknown;
+  experimental_context: CONTEXT;
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;

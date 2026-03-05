@@ -1,4 +1,3 @@
-import { Context } from '@ai-sdk/provider-utils';
 import { CallWarning, FinishReason, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
@@ -24,8 +23,7 @@ import { ToolSet } from './tool-set';
  * It contains the generated text, the tool calls that were made during the generation, and the results of the tool calls.
  */
 export interface GenerateTextResult<
-  CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT>,
+  TOOLS extends ToolSet,
   OUTPUT extends Output,
 > {
   /**

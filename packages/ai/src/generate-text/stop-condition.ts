@@ -2,10 +2,7 @@ import { Context } from '@ai-sdk/provider-utils';
 import { StepResult } from './step-result';
 import { ToolSet } from './tool-set';
 
-export type StopCondition<
-  CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
-> = (options: {
+export type StopCondition<TOOLS extends ToolSet> = (options: {
   steps: Array<StepResult<TOOLS>>;
 }) => PromiseLike<boolean> | boolean;
 
@@ -20,14 +17,11 @@ export function hasToolCall(toolName: string): StopCondition<any> {
     ) ?? false;
 }
 
-export async function isStopConditionMet<
-  CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT>,
->({
+export async function isStopConditionMet<TOOLS extends ToolSet>({
   stopConditions,
   steps,
 }: {
-  stopConditions: Array<StopCondition<CONTEXT, TOOLS>>;
+  stopConditions: Array<StopCondition<TOOLS>>;
   steps: Array<StepResult<TOOLS>>;
 }): Promise<boolean> {
   return (

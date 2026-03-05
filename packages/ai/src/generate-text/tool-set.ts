@@ -1,6 +1,6 @@
 import { Context, Tool } from '@ai-sdk/provider-utils';
 
-export type ToolSet<CONTEXT extends Context> = Record<
+export type ToolSet<CONTEXT extends Context = any> = Record<
   string,
   (
     | Tool<CONTEXT, never, never>
@@ -17,3 +17,6 @@ export type ToolSet<CONTEXT extends Context> = Record<
       | 'needsApproval'
     >
 >;
+
+export type InferContextFromToolSet<TOOLS extends ToolSet> =
+  TOOLS extends ToolSet<infer CONTEXT> ? CONTEXT : never;
