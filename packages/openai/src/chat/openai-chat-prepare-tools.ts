@@ -27,14 +27,14 @@ export function prepareChatTools({
 
   const toolWarnings: SharedV3Warning[] = [];
 
-  if (tools == null) {
+  if (tools == null && !toolSearch) {
     return { tools: undefined, toolChoice: undefined, toolWarnings };
   }
 
   const openaiTools: Array<OpenAIChatFunctionTool | OpenAIChatToolSearchTool> =
     [];
 
-  for (const tool of tools) {
+  for (const tool of tools ?? []) {
     switch (tool.type) {
       case 'function': {
         const openaiOptions = tool.providerOptions?.openai as

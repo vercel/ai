@@ -276,6 +276,26 @@ describe('prepareChatTools', () => {
     expect(result.toolWarnings).toEqual([]);
   });
 
+  it('should send tool_search even when no regular tools are provided', () => {
+    const result = prepareChatTools({
+      tools: undefined,
+      toolSearch: true,
+    });
+
+    expect(result.tools).toEqual([{ type: 'tool_search' }]);
+    expect(result.toolWarnings).toEqual([]);
+  });
+
+  it('should send tool_search even when tools array is empty', () => {
+    const result = prepareChatTools({
+      tools: [],
+      toolSearch: true,
+    });
+
+    expect(result.tools).toEqual([{ type: 'tool_search' }]);
+    expect(result.toolWarnings).toEqual([]);
+  });
+
   it('should not append tool_search when toolSearch is false', () => {
     const result = prepareChatTools({
       tools: [
