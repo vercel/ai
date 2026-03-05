@@ -2,12 +2,48 @@ import {
   LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { convertToBase64 } from '@ai-sdk/provider-utils';
 import {
   GoogleGenerativeAIContent,
   GoogleGenerativeAIContentPart,
+  GoogleGenerativeAIFunctionResponsePart,
   GoogleGenerativeAIPrompt,
 } from './google-generative-ai-prompt';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+
+const dataUrlRegex = /^data:([^;,]+);base64,(.+)$/s;
+
+function parseBase64DataUrl(
+  value: string,
+): { mediaType: string; data: string } | undefined {
+  const match = dataUrlRegex.exec(value);
+  if (match == null) {
+    return undefined;
+  }
+
+  return {
+    mediaType: match[1],
+    data: match[2],
+  };
+}
+
+function convertUrlToolResultPart(
+  type: 'image-url' | 'file-url',
+  url: string,
+): GoogleGenerativeAIFunctionResponsePart {
+  const parsedDataUrl = parseBase64DataUrl(url);
+  if (parsedDataUrl == null) {
+    throw new UnsupportedFunctionalityError({
+      functionality: `URL-based ${type} tool result parts are not supported. Use image-data/file-data or base64 data URLs.`,
+    });
+  }
+
+  return {
+    inlineData: {
+      mimeType: parsedDataUrl.mediaType,
+      data: parsedDataUrl.data,
+    },
+  };
+}
 
 export function convertToGoogleGenerativeAIMessages(
   prompt: LanguageModelV3Prompt,
@@ -157,37 +193,55 @@ export function convertToGoogleGenerativeAIMessages(
           const output = part.output;
 
           if (output.type === 'content') {
+            const functionResponseParts: GoogleGenerativeAIFunctionResponsePart[] =
+              [];
+            const responseTextParts: string[] = [];
+
             for (const contentPart of output.value) {
               switch (contentPart.type) {
-                case 'text':
-                  parts.push({
-                    functionResponse: {
-                      name: part.toolName,
-                      response: {
-                        name: part.toolName,
-                        content: contentPart.text,
-                      },
+                case 'text': {
+                  responseTextParts.push(contentPart.text);
+                  break;
+                }
+                case 'image-data':
+                case 'file-data': {
+                  functionResponseParts.push({
+                    inlineData: {
+                      mimeType: contentPart.mediaType,
+                      data: contentPart.data,
                     },
                   });
                   break;
-                case 'image-data':
-                  parts.push(
-                    {
-                      inlineData: {
-                        mimeType: contentPart.mediaType,
-                        data: contentPart.data,
-                      },
-                    },
-                    {
-                      text: 'Tool executed successfully and returned this image as a response',
-                    },
+                }
+                case 'image-url':
+                case 'file-url': {
+                  functionResponseParts.push(
+                    convertUrlToolResultPart(contentPart.type, contentPart.url),
                   );
                   break;
-                default:
-                  parts.push({ text: JSON.stringify(contentPart) });
+                }
+                default: {
+                  responseTextParts.push(JSON.stringify(contentPart));
                   break;
+                }
               }
             }
+
+            parts.push({
+              functionResponse: {
+                name: part.toolName,
+                response: {
+                  name: part.toolName,
+                  content:
+                    responseTextParts.length > 0
+                      ? responseTextParts.join('\n')
+                      : 'Tool executed successfully.',
+                },
+                ...(functionResponseParts.length > 0
+                  ? { parts: functionResponseParts }
+                  : {}),
+              },
+            });
           } else {
             parts.push({
               functionResponse: {

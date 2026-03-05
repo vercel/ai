@@ -1027,9 +1027,13 @@ const { text } = await generateText({
 ## Multi-modal Tool Results
 
 <Note type="warning">
-  Multi-modal tool results are experimental and only supported by Anthropic and
-  OpenAI.
+  Multi-modal tool results are experimental and supported by Anthropic, OpenAI,
+  and Google (Gemini 3 models).
 </Note>
+
+For Google, use base64 media parts (`image-data` / `file-data`) or base64
+`data:` URLs in URL-style parts. Remote HTTP(S) URLs in tool-result URL parts
+are not supported.
 
 In order to send multi-modal tool results, e.g. screenshots, back to the model,
 they need to be converted into a specific format.
