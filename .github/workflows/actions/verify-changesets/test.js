@@ -12,6 +12,12 @@ function mockReadFile(handler) {
   });
 }
 
+function mockLstat({ isSymlink = false } = {}) {
+  return mock.fn(async () => ({
+    isSymbolicLink: () => isSymlink,
+  }));
+}
+
 test('happy path', async () => {
   const event = {
     pull_request: {
@@ -26,14 +32,16 @@ test('happy path', async () => {
     async () =>
       `---\nai: patch\n@ai-sdk/provider: patch\n---\n## Test changeset`,
   );
+  const lstat = mockLstat();
 
-  await verifyChangesets(event, env, readFile);
+  await verifyChangesets(event, env, readFile, lstat);
 
   assert.strictEqual(readFile.mock.callCount(), 2);
   assert.deepStrictEqual(readFile.mock.calls[1].arguments, [
     '../../../../.changeset/some-happy-path.md',
     'utf-8',
   ]);
+  assert.strictEqual(lstat.mock.callCount(), 1);
 });
 
 test('ignores .changeset/README.md', async () => {
@@ -47,10 +55,12 @@ test('ignores .changeset/README.md', async () => {
   };
 
   const readFile = mockReadFile(() => {});
+  const lstat = mockLstat();
 
-  await verifyChangesets(event, env, readFile);
+  await verifyChangesets(event, env, readFile, lstat);
 
   assert.strictEqual(readFile.mock.callCount(), 1);
+  assert.strictEqual(lstat.mock.callCount(), 0);
 });
 
 test('invalid file - not a .changeset file', async () => {
@@ -64,9 +74,10 @@ test('invalid file - not a .changeset file', async () => {
   };
 
   const readFile = mockReadFile(() => {});
+  const lstat = mockLstat();
 
   await assert.rejects(
-    () => verifyChangesets(event, env, readFile),
+    () => verifyChangesets(event, env, readFile, lstat),
     Object.assign(new Error('Invalid file - not a .changeset file'), {
       path: '.changeset/not-a-changeset-file.txt',
     }),
@@ -86,12 +97,12 @@ test('invalid .changeset file - no frontmatter', async () => {
   };
 
   const readFile = mockReadFile(async () => 'frontmatter missing');
+  const lstat = mockLstat();
 
   await assert.rejects(
-    () => verifyChangesets(event, env, readFile),
+    () => verifyChangesets(event, env, readFile, lstat),
     Object.assign(new Error('Invalid .changeset file - no frontmatter found'), {
       path: '.changeset/invalid-changeset-file.md',
-      content: 'frontmatter missing',
     }),
   );
   assert.strictEqual(readFile.mock.callCount(), 2);
@@ -118,16 +129,17 @@ test('minor update', async () => {
 
     return `---\n@ai-sdk/provider: minor\n---\n## Test changeset`;
   });
+  const lstat = mockLstat();
 
   await assert.rejects(
-    () => verifyChangesets(event, env, readFile),
+    () => verifyChangesets(event, env, readFile, lstat),
     Object.assign(
       new Error(
         `Invalid .changeset file - invalid version bump (only "patch" is allowed, see https://ai-sdk.dev/docs/migration-guides/versioning). To bypass, add one of the following labels: minor, major`,
       ),
       {
         path: '.changeset/minor-update.md',
-        content: '---\n@ai-sdk/provider: minor\n---\n## Test changeset',
+        frontmatter: '---\n@ai-sdk/provider: minor\n---',
       },
     ),
   );
@@ -218,8 +230,9 @@ test('major update - allowed when pre-release mode is active', async () => {
 
     return `---\n@ai-sdk/provider: major\n---\n## Test changeset`;
   });
+  const lstat = mockLstat();
 
-  await verifyChangesets(event, env, readFile);
+  await verifyChangesets(event, env, readFile, lstat);
 
   assert.strictEqual(readFile.mock.callCount(), 2);
   assert.deepStrictEqual(readFile.mock.calls[1].arguments, [
@@ -245,9 +258,10 @@ test('invalid changeset - still rejected in pre-release mode', async () => {
 
     return 'frontmatter missing';
   });
+  const lstat = mockLstat();
 
   await assert.rejects(
-    () => verifyChangesets(event, env, readFile),
+    () => verifyChangesets(event, env, readFile, lstat),
     error => error.message.includes('no frontmatter found'),
   );
 });
@@ -265,9 +279,61 @@ test('major update - rejected when not in pre-release mode', async () => {
   const readFile = mockReadFile(async () => {
     return `---\n@ai-sdk/provider: minor\n---\n## Test changeset`;
   });
+  const lstat = mockLstat();
 
   await assert.rejects(
-    () => verifyChangesets(event, env, readFile),
+    () => verifyChangesets(event, env, readFile, lstat),
     error => error.message.includes('invalid version bump'),
   );
+});
+
+test('rejects symlinked changeset files', async () => {
+  const event = {
+    pull_request: {
+      labels: [],
+    },
+  };
+  const env = {
+    CHANGED_FILES: '.changeset/evil-symlink.md',
+  };
+
+  const readFile = mockReadFile(async () => 'should not be read');
+  const lstat = mockLstat({ isSymlink: true });
+
+  await assert.rejects(
+    () => verifyChangesets(event, env, readFile, lstat),
+    Object.assign(
+      new Error('Invalid .changeset file - symlinks are not allowed'),
+      { path: '.changeset/evil-symlink.md' },
+    ),
+  );
+
+  // readFile should only be called once (for pre.json check), not for the symlinked file
+  assert.strictEqual(readFile.mock.callCount(), 1);
+  assert.strictEqual(lstat.mock.callCount(), 1);
+});
+
+test('error does not include raw file content', async () => {
+  const event = {
+    pull_request: {
+      labels: [],
+    },
+  };
+  const env = {
+    CHANGED_FILES: '.changeset/bad-frontmatter.md',
+  };
+
+  const readFile = mockReadFile(
+    async () => '---\n@ai-sdk/provider: minor\n---\nSensitive content here',
+  );
+  const lstat = mockLstat();
+
+  try {
+    await verifyChangesets(event, env, readFile, lstat);
+    assert.fail('Expected error to be thrown');
+  } catch (error) {
+    // Should have frontmatter (safe to display), not full content
+    assert.strictEqual(error.frontmatter, '---\n@ai-sdk/provider: minor\n---');
+    assert.strictEqual(error.content, undefined);
+  }
 });
