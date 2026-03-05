@@ -1,5 +1,12 @@
 # ai-core-e2e-next-server
 
+## 0.0.1-beta.0
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - ai@7.0.0-beta.0
+
 ## 0.0.1
 
 ### Patch Changes
