@@ -126,6 +126,94 @@ describe('groundingMetadataSchema', () => {
     expect(result.success).toBe(true);
   });
 
+<<<<<<< HEAD
+=======
+  it('validates groundingChunks[].retrievedContext with missing title', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          retrievedContext: {
+            // Missing `title`
+            uri: 'https://vertexaisearch.cloud.google.com/grounding-api-redirect/AXiHM.....QTN92V5ePQ==',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates groundingChunks[].retrievedContext with fileSearchStore (new format)', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          retrievedContext: {
+            text: 'Sample content for testing...',
+            fileSearchStore: 'fileSearchStores/test-store-xyz',
+            title: 'Test Document',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates groundingChunks[].retrievedContext with fileSearchStore and missing uri', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          retrievedContext: {
+            text: 'Content without uri field',
+            fileSearchStore: 'fileSearchStores/store-abc',
+            // Missing `uri` - should still be valid
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates groundingChunks[].image', () => {
+    const metadata = {
+      imageSearchQueries: ['Super Bowl halftime show in space'],
+      groundingChunks: [
+        {
+          image: {
+            sourceUri: 'https://example.com/article',
+            imageUri: 'https://example.com/image.jpg',
+            title: 'Image Title',
+            domain: 'example.com',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates groundingChunks[].image with missing optional fields', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          image: {
+            sourceUri: 'https://example.com/article',
+            imageUri: 'https://example.com/image.jpg',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+>>>>>>> 4dda2a363 (Backport: feat(google): add support for image search, replace obsolete google_search_retrieval implementation (#13070))
   it('validates partial grounding metadata', () => {
     const metadata = {
       webSearchQueries: ['sample query'],
@@ -833,7 +921,265 @@ describe('doGenerate', () => {
         title: 'Source Title',
         url: 'https://source.example.com',
       },
+<<<<<<< HEAD
     ]);
+=======
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": undefined,
+              "text": "test response with File Search",
+              "type": "text",
+            },
+            {
+              "filename": "test-store-xyz",
+              "id": "test-id",
+              "mediaType": "application/octet-stream",
+              "sourceType": "document",
+              "title": "Test Document",
+              "type": "source",
+            },
+            {
+              "filename": "another-store-abc",
+              "id": "test-id",
+              "mediaType": "application/octet-stream",
+              "sourceType": "document",
+              "title": "Unknown Document",
+              "type": "source",
+            },
+          ]
+        `);
+  });
+
+  it('should handle URL sources with undefined title correctly', async () => {
+    prepareJsonResponse({
+      content: 'test response with URLs',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            web: {
+              uri: 'https://example.com/page1',
+              // No title provided
+            },
+          },
+          {
+            retrievedContext: {
+              uri: 'https://example.com/page2',
+              // No title provided
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": undefined,
+              "text": "test response with URLs",
+              "type": "text",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": undefined,
+              "type": "source",
+              "url": "https://example.com/page1",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": undefined,
+              "type": "source",
+              "url": "https://example.com/page2",
+            },
+          ]
+        `);
+  });
+
+  it('should extract sources from maps grounding metadata', async () => {
+    prepareJsonResponse({
+      content: 'test response with Maps',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            maps: {
+              uri: 'https://maps.google.com/maps?cid=12345',
+              title: 'Best Italian Restaurant',
+              placeId: 'ChIJ12345',
+            },
+          },
+          {
+            maps: {
+              uri: 'https://maps.google.com/maps?cid=67890',
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": undefined,
+          "text": "test response with Maps",
+          "type": "text",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "Best Italian Restaurant",
+          "type": "source",
+          "url": "https://maps.google.com/maps?cid=12345",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": undefined,
+          "type": "source",
+          "url": "https://maps.google.com/maps?cid=67890",
+        },
+      ]
+    `);
+  });
+
+  it('should extract sources from image grounding metadata', async () => {
+    prepareJsonResponse({
+      content: 'test response with image search',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            image: {
+              sourceUri: 'https://example.com/article',
+              imageUri: 'https://example.com/image.jpg',
+              title: 'Image Result',
+              domain: 'example.com',
+            },
+          },
+          {
+            image: {
+              sourceUri: 'https://other.example.com/page',
+              imageUri: 'https://other.example.com/photo.png',
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": undefined,
+          "text": "test response with image search",
+          "type": "text",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "Image Result",
+          "type": "source",
+          "url": "https://example.com/article",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": undefined,
+          "type": "source",
+          "url": "https://other.example.com/page",
+        },
+      ]
+    `);
+  });
+
+  it('should handle mixed source types with correct title defaults', async () => {
+    prepareJsonResponse({
+      content: 'test response with mixed sources',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            web: { uri: 'https://web.example.com' },
+          },
+          {
+            retrievedContext: {
+              uri: 'https://external.example.com',
+            },
+          },
+          {
+            retrievedContext: {
+              uri: 'gs://bucket/document.pdf',
+            },
+          },
+          {
+            retrievedContext: {
+              fileSearchStore: 'fileSearchStores/store-123',
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": undefined,
+              "text": "test response with mixed sources",
+              "type": "text",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": undefined,
+              "type": "source",
+              "url": "https://web.example.com",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": undefined,
+              "type": "source",
+              "url": "https://external.example.com",
+            },
+            {
+              "filename": "document.pdf",
+              "id": "test-id",
+              "mediaType": "application/pdf",
+              "sourceType": "document",
+              "title": "Unknown Document",
+              "type": "source",
+            },
+            {
+              "filename": "store-123",
+              "id": "test-id",
+              "mediaType": "application/octet-stream",
+              "sourceType": "document",
+              "title": "Unknown Document",
+              "type": "source",
+            },
+          ]
+        `);
+>>>>>>> 4dda2a363 (Backport: feat(google): add support for image search, replace obsolete google_search_retrieval implementation (#13070))
   });
 
   describe('async headers handling', () => {
@@ -1132,20 +1478,26 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should use googleSearchRetrieval for non-gemini-2 models', async () => {
+    it('should warn for google search on non-gemini-2 models', async () => {
       prepareJsonResponse({
         url: TEST_URL_GEMINI_1_0_PRO,
       });
 
+<<<<<<< HEAD
       const geminiPro = provider.languageModel('gemini-1.0-pro', {
         useSearchGrounding: true,
       });
       await geminiPro.doGenerate({
         inputFormat: 'prompt',
         mode: { type: 'regular' },
+=======
+      const geminiPro = provider.languageModel('gemini-1.0-pro');
+      const result = await geminiPro.doGenerate({
+>>>>>>> 4dda2a363 (Backport: feat(google): add support for image search, replace obsolete google_search_retrieval implementation (#13070))
         prompt: TEST_PROMPT,
       });
 
+<<<<<<< HEAD
       expect(await server.calls[0].requestBody).toMatchObject({
         tools: { googleSearchRetrieval: {} },
       });
@@ -1179,6 +1531,82 @@ describe('doGenerate', () => {
             },
           },
         },
+=======
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "Google Search requires Gemini 2.0 or newer.",
+            "tool": {
+              "args": {},
+              "id": "google.google_search",
+              "name": "google_search",
+              "type": "provider-defined",
+            },
+            "type": "unsupported-tool",
+          },
+        ]
+      `);
+    });
+
+    it('should use urlContextTool for gemini-2.0-pro', async () => {
+      prepareJsonResponse({
+        url: TEST_URL_GEMINI_2_0_PRO,
+      });
+
+      const gemini2Pro = provider.languageModel('gemini-2.0-pro');
+      await gemini2Pro.doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.url_context',
+            name: 'url_context',
+            args: {},
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        tools: [{ urlContext: {} }],
+      });
+    });
+    it('should use vertexRagStore for gemini-2.0-pro', async () => {
+      prepareJsonResponse({
+        url: TEST_URL_GEMINI_2_0_PRO,
+      });
+
+      const gemini2Pro = provider.languageModel('gemini-2.0-pro');
+      await gemini2Pro.doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'google.vertex_rag_store',
+            name: 'vertex_rag_store',
+            args: {
+              ragCorpus:
+                'projects/my-project/locations/us-central1/ragCorpora/my-rag-corpus',
+              topK: 5,
+            },
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        tools: [
+          {
+            retrieval: {
+              vertex_rag_store: {
+                rag_resources: {
+                  rag_corpus:
+                    'projects/my-project/locations/us-central1/ragCorpora/my-rag-corpus',
+                },
+                similarity_top_k: 5,
+              },
+            },
+          },
+        ],
+>>>>>>> 4dda2a363 (Backport: feat(google): add support for image search, replace obsolete google_search_retrieval implementation (#13070))
       });
     });
   });
@@ -1983,21 +2411,27 @@ describe('doStream', () => {
       });
     });
 
-    it('should use googleSearchRetrieval for non-gemini-2 models', async () => {
+    it('should warn for google search on non-gemini-2 models', async () => {
       prepareStreamResponse({
         content: [''],
         url: TEST_URL_GEMINI_1_0_PRO,
       });
 
+<<<<<<< HEAD
       const geminiPro = provider.languageModel('gemini-1.0-pro', {
         useSearchGrounding: true,
       });
       await geminiPro.doStream({
         inputFormat: 'prompt',
         mode: { type: 'regular' },
+=======
+      const geminiPro = provider.languageModel('gemini-1.0-pro');
+      const { stream } = await geminiPro.doStream({
+>>>>>>> 4dda2a363 (Backport: feat(google): add support for image search, replace obsolete google_search_retrieval implementation (#13070))
         prompt: TEST_PROMPT,
       });
 
+<<<<<<< HEAD
       expect(await server.calls[0].requestBody).toMatchObject({
         tools: { googleSearchRetrieval: {} },
       });
@@ -2033,6 +2467,27 @@ describe('doStream', () => {
           },
         },
       });
+=======
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(events[0]).toMatchInlineSnapshot(`
+        {
+          "type": "stream-start",
+          "warnings": [
+            {
+              "details": "Google Search requires Gemini 2.0 or newer.",
+              "tool": {
+                "args": {},
+                "id": "google.google_search",
+                "name": "google_search",
+                "type": "provider-defined",
+              },
+              "type": "unsupported-tool",
+            },
+          ],
+        }
+      `);
+>>>>>>> 4dda2a363 (Backport: feat(google): add support for image search, replace obsolete google_search_retrieval implementation (#13070))
     });
   });
 
@@ -2069,8 +2524,198 @@ describe('doStream', () => {
           title: 'Source Title',
           url: 'https://source.example.com',
         },
+<<<<<<< HEAD
       },
     ]);
+=======
+      ]
+    `);
+  });
+
+  it('should stream source events from image grounding metadata', async () => {
+    prepareStreamResponse({
+      content: ['image search response'],
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            image: {
+              sourceUri: 'https://example.com/article',
+              imageUri: 'https://example.com/image.jpg',
+              title: 'Image Source',
+              domain: 'example.com',
+            },
+          },
+        ],
+      },
+    });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const sourceEvents = events.filter(event => event.type === 'source');
+
+    expect(sourceEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "Image Source",
+          "type": "source",
+          "url": "https://example.com/article",
+        },
+      ]
+    `);
+  });
+
+  it('should stream sources during intermediate chunks', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'text' }], role: 'model' },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+              groundingMetadata: {
+                groundingChunks: [
+                  { web: { uri: 'https://a.com', title: 'A' } },
+                  { web: { uri: 'https://b.com', title: 'B' } },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'more' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const sourceEvents = events.filter(event => event.type === 'source');
+
+    expect(sourceEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "A",
+          "type": "source",
+          "url": "https://a.com",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "B",
+          "type": "source",
+          "url": "https://b.com",
+        },
+      ]
+    `);
+  });
+
+  it('should deduplicate sources across chunks', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'first chunk' }], role: 'model' },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+              groundingMetadata: {
+                groundingChunks: [
+                  { web: { uri: 'https://example.com', title: 'Example' } },
+                  { web: { uri: 'https://unique.com', title: 'Unique' } },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'second chunk' }], role: 'model' },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+              groundingMetadata: {
+                groundingChunks: [
+                  {
+                    web: {
+                      uri: 'https://example.com',
+                      title: 'Example Duplicate',
+                    },
+                  },
+                  { web: { uri: 'https://another.com', title: 'Another' } },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'final chunk' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const sourceEvents = events.filter(event => event.type === 'source');
+
+    expect(sourceEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "Example",
+          "type": "source",
+          "url": "https://example.com",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "Unique",
+          "type": "source",
+          "url": "https://unique.com",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "Another",
+          "type": "source",
+          "url": "https://another.com",
+        },
+      ]
+    `);
+>>>>>>> 4dda2a363 (Backport: feat(google): add support for image search, replace obsolete google_search_retrieval implementation (#13070))
   });
 
   it('should stream files', async () => {
