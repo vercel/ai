@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-Adding optional ChatRequestOptions to addToolApprovalResponse
+chore(ai): add optional ChatRequestOptions to `addToolApprovalResponse` and `addToolOutput`
