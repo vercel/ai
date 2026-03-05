@@ -54,6 +54,10 @@ export {
   type Schema,
   type ValidationResult,
 } from './schema';
+export {
+  StreamingToolCallTracker,
+  type ToolCallDelta,
+} from './streaming-tool-call-tracker';
 export { stripFileExtension } from './strip-file-extension';
 export * from './uint8-utils';
 export { validateDownloadUrl } from './validate-download-url';

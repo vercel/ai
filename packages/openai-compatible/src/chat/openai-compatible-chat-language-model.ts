@@ -1,6 +1,5 @@
 import {
   APICallError,
-  InvalidResponseDataError,
   LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3Content,
@@ -22,6 +21,7 @@ import {
   ParseResult,
   postJsonToApi,
   ResponseHandler,
+  StreamingToolCallTracker,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -376,16 +376,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const toolCalls: Array<{
-      id: string;
-      type: 'function';
-      function: {
-        name: string;
-        arguments: string;
-      };
-      hasFinished: boolean;
-      thoughtSignature?: string;
-    }> = [];
+    const toolCallTracker = new StreamingToolCallTracker<string>({
+      generateId,
+    });
 
     let finishReason: LanguageModelV3FinishReason = {
       unified: 'other',
@@ -516,78 +509,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index ?? toolCalls.length;
-
-                if (toolCalls[index] == null) {
-                  if (toolCallDelta.id == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'id' to be a string.`,
-                    });
-                  }
-
-                  if (toolCallDelta.function?.name == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function.name' to be a string.`,
-                    });
-                  }
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallDelta.id,
-                    toolName: toolCallDelta.function.name,
-                  });
-
-                  toolCalls[index] = {
-                    id: toolCallDelta.id,
-                    type: 'function',
-                    function: {
-                      name: toolCallDelta.function.name,
-                      arguments: toolCallDelta.function.arguments ?? '',
-                    },
-                    hasFinished: false,
-                    thoughtSignature:
-                      toolCallDelta.extra_content?.google?.thought_signature ??
-                      undefined,
-                  };
-
-                  const toolCall = toolCalls[index];
-
-                  if (
-                    toolCall.function?.name != null &&
-                    toolCall.function?.arguments != null
-                  ) {
-                    // send delta if the argument text has already started:
-                    if (toolCall.function.arguments.length > 0) {
-                      controller.enqueue({
-                        type: 'tool-input-delta',
-                        id: toolCall.id,
-                        delta: toolCall.function.arguments,
-                      });
-                    }
-                  }
-
-                  continue;
-                }
-
-                // existing tool call, merge if not finished
-                const toolCall = toolCalls[index];
-
-                if (toolCall.hasFinished) {
-                  continue;
-                }
-
-                if (toolCallDelta.function?.arguments != null) {
-                  toolCall.function!.arguments +=
-                    toolCallDelta.function?.arguments ?? '';
-                }
-
-                // send delta
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCall.id,
-                  delta: toolCallDelta.function.arguments ?? '',
+                toolCallTracker.handleDelta(toolCallDelta, controller, {
+                  extractMetadata: delta =>
+                    delta.extra_content?.google?.thought_signature ?? undefined,
                 });
               }
             }
@@ -602,31 +526,14 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               controller.enqueue({ type: 'text-end', id: 'txt-0' });
             }
 
-            // go through all tool calls and send the ones that are not finished
-            for (const toolCall of toolCalls.filter(
-              toolCall => !toolCall.hasFinished,
-            )) {
-              controller.enqueue({
-                type: 'tool-input-end',
-                id: toolCall.id,
-              });
-
-              controller.enqueue({
-                type: 'tool-call',
-                toolCallId: toolCall.id ?? generateId(),
-                toolName: toolCall.function.name,
-                input: toolCall.function.arguments,
-                ...(toolCall.thoughtSignature
+            toolCallTracker.flush(controller, {
+              buildToolCallProviderMetadata: thoughtSignature =>
+                thoughtSignature
                   ? {
-                      providerMetadata: {
-                        [providerOptionsName]: {
-                          thoughtSignature: toolCall.thoughtSignature,
-                        },
-                      },
+                      [providerOptionsName]: { thoughtSignature },
                     }
-                  : {}),
-              });
-            }
+                  : undefined,
+            });
 
             const providerMetadata: SharedV3ProviderMetadata = {
               [providerOptionsName]: {},
