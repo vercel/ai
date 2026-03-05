@@ -180,6 +180,32 @@ describe('downloadBlob()', () => {
   });
 });
 
+describe('downloadBlob() SSRF protection', () => {
+  it('should reject private IPv4 addresses', async () => {
+    await expect(downloadBlob('http://127.0.0.1/file')).rejects.toThrow(
+      DownloadError,
+    );
+    await expect(downloadBlob('http://10.0.0.1/file')).rejects.toThrow(
+      DownloadError,
+    );
+    await expect(
+      downloadBlob('http://169.254.169.254/latest/meta-data/'),
+    ).rejects.toThrow(DownloadError);
+  });
+
+  it('should reject localhost', async () => {
+    await expect(downloadBlob('http://localhost/file')).rejects.toThrow(
+      DownloadError,
+    );
+  });
+
+  it('should reject non-http protocols', async () => {
+    await expect(downloadBlob('file:///etc/passwd')).rejects.toThrow(
+      DownloadError,
+    );
+  });
+});
+
 describe('DownloadError', () => {
   it('should create error with status code and text', () => {
     const error = new DownloadError({
