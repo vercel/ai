@@ -266,6 +266,26 @@ export type AnthropicTool =
       description: string | undefined;
       input_schema: JSONSchema7;
       cache_control: AnthropicCacheControl | undefined;
+<<<<<<< HEAD
+=======
+      eager_input_streaming?: boolean;
+      strict?: boolean;
+      /**
+       * When true, this tool is deferred and will only be loaded when
+       * discovered via the tool search tool.
+       */
+      defer_loading?: boolean;
+      /**
+       * Programmatic tool calling: specifies which server-executed tools
+       * are allowed to call this tool. When set, only the specified callers
+       * can invoke this tool programmatically.
+       *
+       * @example ['code_execution_20250825']
+       */
+      allowed_callers?: Array<
+        'direct' | 'code_execution_20250825' | 'code_execution_20260120'
+      >;
+>>>>>>> 3fb4e7073 (feat(provider/anthropic): support fine-grained tool streaming with eagerInputStreaming (#13078))
     }
   | {
       type: 'code_execution_20250522';
