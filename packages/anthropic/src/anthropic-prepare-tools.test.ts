@@ -37,6 +37,9 @@ describe('prepareTools', () => {
           name: 'testFunction',
           description: 'A test function',
           inputSchema: { type: 'object', properties: {} },
+          providerOptions: {
+            anthropic: { eagerInputStreaming: true },
+          },
         },
       ],
     });
@@ -45,6 +48,7 @@ describe('prepareTools', () => {
         name: 'testFunction',
         description: 'A test function',
         input_schema: { type: 'object', properties: {} },
+        eager_input_streaming: true,
       },
     ]);
     expect(result.toolChoice).toBeUndefined();

@@ -2030,6 +2030,9 @@ describe('AnthropicMessagesLanguageModel', () => {
               name: 'calculator',
               description: 'Calculate math',
               inputSchema: { type: 'object', properties: {} },
+              providerOptions: {
+                anthropic: { eagerInputStreaming: true },
+              },
             },
             {
               type: 'provider-defined',
@@ -2049,6 +2052,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           name: 'calculator',
           description: 'Calculate math',
           input_schema: { type: 'object', properties: {} },
+          eager_input_streaming: true,
         });
 
         expect(requestBody.tools[1]).toEqual({

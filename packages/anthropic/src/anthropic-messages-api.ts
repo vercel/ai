@@ -266,6 +266,7 @@ export type AnthropicTool =
       description: string | undefined;
       input_schema: JSONSchema7;
       cache_control: AnthropicCacheControl | undefined;
+      eager_input_streaming?: boolean;
     }
   | {
       type: 'code_execution_20250522';
