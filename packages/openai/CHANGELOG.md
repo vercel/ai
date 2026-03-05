@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- 7afaece: feat(provider/openai): add GPT-5.4 model support
+
 ## 4.0.0-beta.0
 
 ### Major Changes
