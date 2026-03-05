@@ -3,6 +3,7 @@ import {
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
 } from './read-response-with-size-limit';
+import { validateDownloadUrl } from './validate-download-url';
 
 /**
  * Download a file from a URL and return it as a Blob.
@@ -19,6 +20,7 @@ export async function downloadBlob(
   url: string,
   options?: { maxBytes?: number; abortSignal?: AbortSignal },
 ): Promise<Blob> {
+  validateDownloadUrl(url);
   try {
     const response = await fetch(url, {
       signal: options?.abortSignal,
