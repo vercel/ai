@@ -17,7 +17,6 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
-  isParsableJson,
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -605,23 +604,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
                         delta: toolCall.function.arguments,
                       });
                     }
-
-                    // check if tool call is complete
-                    // (some providers send the full tool call in one chunk):
-                    if (isParsableJson(toolCall.function.arguments)) {
-                      controller.enqueue({
-                        type: 'tool-input-end',
-                        id: toolCall.id,
-                      });
-
-                      controller.enqueue({
-                        type: 'tool-call',
-                        toolCallId: toolCall.id ?? generateId(),
-                        toolName: toolCall.function.name,
-                        input: toolCall.function.arguments,
-                      });
-                      toolCall.hasFinished = true;
-                    }
                   }
 
                   continue;
@@ -645,26 +627,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
                   id: toolCall.id,
                   delta: toolCallDelta.function.arguments ?? '',
                 });
-
-                // check if tool call is complete
-                if (
-                  toolCall.function?.name != null &&
-                  toolCall.function?.arguments != null &&
-                  isParsableJson(toolCall.function.arguments)
-                ) {
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCall.id,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: toolCall.id ?? generateId(),
-                    toolName: toolCall.function.name,
-                    input: toolCall.function.arguments,
-                  });
-                  toolCall.hasFinished = true;
-                }
               }
             }
 
@@ -685,6 +647,26 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
           flush(controller) {
             if (isActiveText) {
               controller.enqueue({ type: 'text-end', id: '0' });
+            }
+
+            // Finalize any unfinished tool calls. Tool calls are only
+            // finalized here (on stream end) to prevent premature
+            // execution when partial JSON is coincidentally parsable.
+            for (const toolCall of toolCalls) {
+              if (!toolCall.hasFinished) {
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: toolCall.id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: toolCall.id ?? generateId(),
+                  toolName: toolCall.function.name,
+                  input: toolCall.function.arguments,
+                });
+                toolCall.hasFinished = true;
+              }
             }
 
             controller.enqueue({
