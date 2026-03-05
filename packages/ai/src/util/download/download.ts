@@ -2,6 +2,7 @@ import { DownloadError } from './download-error';
 import {
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
+  validateDownloadUrl,
 } from '@ai-sdk/provider-utils';
 import {
   withUserAgentSuffix,
@@ -29,6 +30,7 @@ export const download = async ({
   abortSignal?: AbortSignal;
 }) => {
   const urlText = url.toString();
+  validateDownloadUrl(urlText);
   try {
     const response = await fetch(urlText, {
       headers: withUserAgentSuffix(

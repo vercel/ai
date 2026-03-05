@@ -1,5 +1,15 @@
 # ai
 
+## 5.0.146
+
+### Patch Changes
+
+- 6a2f01b: Add URL validation to `download` to prevent blind SSRF attacks. Private/internal IP addresses, localhost, and non-HTTP protocols are now rejected before fetching.
+- Updated dependencies [6a2f01b]
+- Updated dependencies [17d64e3]
+  - @ai-sdk/provider-utils@3.0.22
+  - @ai-sdk/gateway@2.0.52
+
 ## 5.0.145
 
 ### Patch Changes
