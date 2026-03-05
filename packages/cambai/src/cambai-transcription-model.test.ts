@@ -7,10 +7,12 @@ vi.mock('./version', () => ({
 
 const BASE_URL = 'https://client.camb.ai/apis';
 
-const transcriptFixture = [
-  { text: 'Hello from', start: 0.0, end: 0.5, speaker: 'speaker_0' },
-  { text: 'the Camb AI SDK.', start: 0.5, end: 1.2, speaker: 'speaker_0' },
-];
+const transcriptFixture = {
+  transcript: [
+    { text: 'Hello from', start: 0.0, end: 0.5, speaker: 'speaker_0' },
+    { text: 'the Camb AI SDK.', start: 0.5, end: 1.2, speaker: 'speaker_0' },
+  ],
+};
 
 function createMockFetch(options?: {
   pollCount?: number;

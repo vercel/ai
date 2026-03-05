@@ -166,12 +166,15 @@ export class CambaiTranscriptionModel implements TranscriptionModelV3 {
           );
         }
 
-        const transcript = (await resultResponse.json()) as Array<{
-          text: string;
-          start: number;
-          end: number;
-          speaker: string;
-        }>;
+        const resultBody = (await resultResponse.json()) as {
+          transcript: Array<{
+            text: string;
+            start: number;
+            end: number;
+            speaker: string;
+          }>;
+        };
+        const transcript = resultBody.transcript ?? [];
 
         const text = transcript.map(s => s.text).join(' ');
         const segments = transcript.map(s => ({

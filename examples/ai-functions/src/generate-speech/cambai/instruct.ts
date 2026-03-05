@@ -8,6 +8,7 @@ run(async () => {
     model: cambai.speech('mars-instruct'),
     text: 'Hello from the AI SDK with Camb.ai!',
     voice: '147320',
+    outputFormat: 'wav',
     instructions: 'Speak in a cheerful and energetic tone',
   });
 
