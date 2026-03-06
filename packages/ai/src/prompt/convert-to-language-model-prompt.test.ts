@@ -314,6 +314,43 @@ describe('convertToLanguageModelPrompt', () => {
         ]);
       });
 
+      it('should not attempt to download data: URLs (SSRF false positive)', async () => {
+        const dataUrl = 'data:text/plain;base64,SGVsbG8sIFdvcmxkIQ==';
+        const downloadFn = vi.fn();
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    data: dataUrl,
+                    mediaType: 'text/plain',
+                  },
+                ],
+              },
+            ],
+          },
+          supportedUrls: {},
+          download: createDefaultDownloadFunction(downloadFn),
+        });
+
+        expect(downloadFn).not.toHaveBeenCalled();
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'SGVsbG8sIFdvcmxkIQ==',
+                mediaType: 'text/plain',
+              },
+            ],
+          },
+        ]);
+      });
+
       it('should handle file parts with Uint8Array data', async () => {
         const uint8Data = new Uint8Array([72, 101, 108, 108, 111]); // "Hello" in ASCII
         const result = await convertToLanguageModelPrompt({
