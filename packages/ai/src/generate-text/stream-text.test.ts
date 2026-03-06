@@ -226,6 +226,34 @@ const modelWithFiles = new MockLanguageModelV3({
   }),
 });
 
+const modelWithFilesAndProviderMetadata = new MockLanguageModelV3({
+  doStream: async () => ({
+    stream: convertArrayToReadableStream([
+      {
+        type: 'file',
+        data: 'Hello World',
+        mediaType: 'text/plain',
+        providerMetadata: {
+          testProvider: { signature: 'sig-1' },
+        },
+      },
+      { type: 'text-start', id: '1' },
+      { type: 'text-delta', id: '1', delta: 'Hello!' },
+      { type: 'text-end', id: '1' },
+      {
+        type: 'file',
+        data: 'QkFVRw==',
+        mediaType: 'image/jpeg',
+      },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage: testUsage,
+      },
+    ]),
+  }),
+});
+
 const modelWithReasoning = new MockLanguageModelV3({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
@@ -1015,6 +1043,44 @@ describe('streamText', () => {
             },
           ]
         `);
+    });
+
+    it('should send files with providerMetadata', async () => {
+      const result = streamText({
+        model: modelWithFilesAndProviderMetadata,
+        ...defaultSettings(),
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+      const fileParts = parts.filter(p => p.type === 'file');
+
+      expect(fileParts).toMatchInlineSnapshot(`
+        [
+          {
+            "file": DefaultGeneratedFileWithType {
+              "base64Data": "Hello World",
+              "mediaType": "text/plain",
+              "type": "file",
+              "uint8ArrayData": undefined,
+            },
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "sig-1",
+              },
+            },
+            "type": "file",
+          },
+          {
+            "file": DefaultGeneratedFileWithType {
+              "base64Data": "QkFVRw==",
+              "mediaType": "image/jpeg",
+              "type": "file",
+              "uint8ArrayData": undefined,
+            },
+            "type": "file",
+          },
+        ]
+      `);
     });
 
     it('should use fallback response metadata when response metadata is not provided', async () => {
@@ -3221,6 +3287,39 @@ describe('streamText', () => {
             },
           ]
         `);
+    });
+
+    it('should send file content with providerMetadata', async () => {
+      const result = streamText({
+        model: modelWithFilesAndProviderMetadata,
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream();
+      const parts = await convertReadableStreamToArray(uiMessageStream);
+      const fileParts = parts.filter(
+        (p: Record<string, unknown>) => p.type === 'file',
+      );
+
+      expect(fileParts).toMatchInlineSnapshot(`
+        [
+          {
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "sig-1",
+              },
+            },
+            "type": "file",
+            "url": "data:text/plain;base64,Hello World",
+          },
+          {
+            "mediaType": "image/jpeg",
+            "type": "file",
+            "url": "data:image/jpeg;base64,QkFVRw==",
+          },
+        ]
+      `);
     });
 
     it('should not generate a new message id when onFinish is provided and generateMessageId is not provided', async () => {
@@ -10510,7 +10609,12 @@ describe('streamText', () => {
                 "ai.response.text": "Hello, world!",
                 "ai.settings.maxRetries": 2,
                 "ai.usage.cachedInputTokens": 0,
+                "ai.usage.inputTokenDetails.cacheReadTokens": 0,
+                "ai.usage.inputTokenDetails.cacheWriteTokens": 0,
+                "ai.usage.inputTokenDetails.noCacheTokens": 6,
                 "ai.usage.inputTokens": 6,
+                "ai.usage.outputTokenDetails.reasoningTokens": 10,
+                "ai.usage.outputTokenDetails.textTokens": 20,
                 "ai.usage.outputTokens": 20,
                 "ai.usage.reasoningTokens": 10,
                 "ai.usage.totalTokens": 26,
@@ -10540,7 +10644,9 @@ describe('streamText', () => {
                 "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
                 "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
                 "ai.settings.maxRetries": 2,
+                "ai.usage.inputTokenDetails.noCacheTokens": 3,
                 "ai.usage.inputTokens": 3,
+                "ai.usage.outputTokenDetails.textTokens": 10,
                 "ai.usage.outputTokens": 10,
                 "ai.usage.totalTokens": 13,
                 "gen_ai.request.model": "mock-model-id",
@@ -10600,7 +10706,12 @@ describe('streamText', () => {
                 "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
                 "ai.settings.maxRetries": 2,
                 "ai.usage.cachedInputTokens": 0,
+                "ai.usage.inputTokenDetails.cacheReadTokens": 0,
+                "ai.usage.inputTokenDetails.cacheWriteTokens": 0,
+                "ai.usage.inputTokenDetails.noCacheTokens": 3,
                 "ai.usage.inputTokens": 3,
+                "ai.usage.outputTokenDetails.reasoningTokens": 10,
+                "ai.usage.outputTokenDetails.textTokens": 10,
                 "ai.usage.outputTokens": 10,
                 "ai.usage.reasoningTokens": 10,
                 "ai.usage.totalTokens": 13,
@@ -20705,6 +20816,129 @@ describe('streamText', () => {
       });
     });
 
+    describe('when a call from a single tool that needs approval is approved and the tool throws', () => {
+      let result: StreamTextResult<any, any>;
+      let prompts: LanguageModelV3Prompt[];
+
+      beforeEach(async () => {
+        prompts = [];
+        result = streamText({
+          model: new MockLanguageModelV3({
+            doStream: async ({ prompt }) => {
+              prompts.push(prompt);
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'stream-start', warnings: [] },
+                  { type: 'text-start', id: '1' },
+                  {
+                    type: 'text-delta',
+                    id: '1',
+                    delta: 'Hello, world!',
+                  },
+                  { type: 'text-end', id: '1' },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: testUsage,
+                  },
+                ]),
+              };
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async (): Promise<string> => {
+                throw new Error('No valid token for plugin');
+              },
+              needsApproval: true,
+            }),
+          },
+          stopWhen: stepCountIs(3),
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+          },
+          messages: [
+            { role: 'user', content: 'test-input' },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  input: {
+                    value: 'value',
+                  },
+                  providerExecuted: undefined,
+                  providerOptions: undefined,
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  type: 'tool-call',
+                },
+                {
+                  approvalId: 'id-1',
+                  toolCallId: 'call-1',
+                  type: 'tool-approval-request',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  approvalId: 'id-1',
+                  type: 'tool-approval-response',
+                  approved: true,
+                },
+              ],
+            },
+          ],
+        });
+
+        await result.consumeStream();
+      });
+
+      it('should serialize the tool error as error-text in the continuation prompt', async () => {
+        expect(prompts).toEqual([
+          [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerOptions: undefined,
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: { value: 'value' },
+                  providerExecuted: undefined,
+                  providerOptions: undefined,
+                },
+              ],
+              providerOptions: undefined,
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  output: {
+                    type: 'error-text',
+                    value: 'No valid token for plugin',
+                  },
+                  providerOptions: undefined,
+                },
+              ],
+              providerOptions: undefined,
+            },
+          ],
+        ]);
+      });
+    });
+
     describe('when a call from a single tool with preliminary results that needs approval is approved', () => {
       let result: StreamTextResult<any, any>;
       let prompts: LanguageModelV3Prompt[];
@@ -22044,6 +22278,240 @@ describe('streamText', () => {
       `);
 
       expect(await result.text).toBe('response from without-image-url-support');
+    });
+  });
+
+  describe('telemetry integrations', () => {
+    afterEach(() => {
+      globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = undefined;
+    });
+
+    it('should call per-call integration listeners for all lifecycle events', async () => {
+      const events: string[] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'testTool',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        onError: () => {},
+        experimental_telemetry: {
+          integrations: {
+            onStart: async () => {
+              events.push('onStart');
+            },
+            onStepStart: async () => {
+              events.push('onStepStart');
+            },
+            onToolCallStart: async () => {
+              events.push('onToolCallStart');
+            },
+            onToolCallFinish: async () => {
+              events.push('onToolCallFinish');
+            },
+            onStepFinish: async () => {
+              events.push('onStepFinish');
+            },
+            onFinish: async () => {
+              events.push('onFinish');
+            },
+          },
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(events).toEqual([
+        'onStart',
+        'onStepStart',
+        'onToolCallStart',
+        'onToolCallFinish',
+        'onStepFinish',
+        'onFinish',
+      ]);
+    });
+
+    it('should call globally registered integration listeners', async () => {
+      const events: string[] = [];
+
+      globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = [
+        {
+          onStart: async () => {
+            events.push('global-onStart');
+          },
+          onStepFinish: async () => {
+            events.push('global-onStepFinish');
+          },
+          onFinish: async () => {
+            events.push('global-onFinish');
+          },
+        },
+      ];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(events).toEqual([
+        'global-onStart',
+        'global-onStepFinish',
+        'global-onFinish',
+      ]);
+    });
+
+    it('should call global integrations before per-call integrations', async () => {
+      const events: string[] = [];
+
+      globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = [
+        {
+          onStart: async () => {
+            events.push('global');
+          },
+        },
+      ];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        onError: () => {},
+        experimental_telemetry: {
+          integrations: {
+            onStart: async () => {
+              events.push('per-call');
+            },
+          },
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(events).toEqual(['global', 'per-call']);
+    });
+
+    it('should call integration listeners alongside user callbacks', async () => {
+      const events: string[] = [];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        onError: () => {},
+        experimental_onStart: async () => {
+          events.push('user-onStart');
+        },
+        onStepFinish: async () => {
+          events.push('user-onStepFinish');
+        },
+        onFinish: async () => {
+          events.push('user-onFinish');
+        },
+        experimental_telemetry: {
+          integrations: {
+            onStart: async () => {
+              events.push('integration-onStart');
+            },
+            onStepFinish: async () => {
+              events.push('integration-onStepFinish');
+            },
+            onFinish: async () => {
+              events.push('integration-onFinish');
+            },
+          },
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(events).toEqual([
+        'user-onStart',
+        'integration-onStart',
+        'user-onStepFinish',
+        'integration-onStepFinish',
+        'user-onFinish',
+        'integration-onFinish',
+      ]);
+    });
+
+    it('should not break streaming when an integration listener throws', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        onError: () => {},
+        experimental_telemetry: {
+          integrations: {
+            onStart: async () => {
+              throw new Error('integration error');
+            },
+            onStepFinish: async () => {
+              throw new Error('integration error');
+            },
+            onFinish: async () => {
+              throw new Error('integration error');
+            },
+          },
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(await result.text).toBe('Hello, world!');
+    });
+
+    it('should support multiple per-call integrations as an array', async () => {
+      const events: string[] = [];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        onError: () => {},
+        experimental_telemetry: {
+          integrations: [
+            {
+              onStart: async () => {
+                events.push('first');
+              },
+            },
+            {
+              onStart: async () => {
+                events.push('second');
+              },
+            },
+          ],
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(events).toEqual(['first', 'second']);
     });
   });
 });

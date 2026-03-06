@@ -83,7 +83,7 @@ You can then use the `experimental_telemetry` option to enable telemetry on sp
 
 ```jsx
 const result = await generateText({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-5-mini'),
   prompt: 'Write a short story about a cat.',
   experimental_telemetry: { isEnabled: true },
 });
@@ -103,7 +103,7 @@ You can provide a `functionId` to identify the function that the telemetry dat
 
 ```jsx
 const result = await generateText({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-5-mini'),
   prompt: 'Write a short story about a cat.',
   experimental_telemetry: {
     isEnabled: true,
@@ -123,7 +123,7 @@ You may provide a `tracer` which must return an OpenTelemetry `Tracer`. This 
 ```jsx
 const tracerProvider = new NodeTracerProvider();
 const result = await generateText({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-5-mini'),
   prompt: 'Write a short story about a cat.',
   experimental_telemetry: {
     isEnabled: true,
