@@ -2839,6 +2839,61 @@ describe('doStream', () => {
     });
   });
 
+  it('should stream tool call with empty string type field (Azure)', async () => {
+    // Azure sometimes sends type: "" (empty string) instead of "function"
+    // in streaming tool call deltas. The parser should accept this.
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-azure-002","object":"chat.completion.chunk","created":1711357598,"model":"aws_sdk_claude37_sonnet",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
+          `"tool_calls":[{"index":0,"id":"call_xyz789","type":"","function":{"name":"test-tool","arguments":""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-azure-002","object":"chat.completion.chunk","created":1711357598,"model":"aws_sdk_claude37_sonnet",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"type":"","function":{"arguments":"{\\"value\\""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-azure-002","object":"chat.completion.chunk","created":1711357598,"model":"aws_sdk_claude37_sonnet",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"type":"","function":{"arguments":":\\"world\\"}"}}]},` +
+          `"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15}}\n\n`,
+        `data: [DONE]\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+    const toolInputStart = chunks.find(c => c.type === 'tool-input-start');
+    const toolCall = chunks.find(c => c.type === 'tool-call');
+
+    expect(toolInputStart).toMatchObject({
+      type: 'tool-input-start',
+      id: 'call_xyz789',
+      toolName: 'test-tool',
+    });
+    expect(toolCall).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'call_xyz789',
+      toolName: 'test-tool',
+      input: '{"value":"world"}',
+    });
+  });
+
   it('should stream tool call that is sent in one chunk', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
