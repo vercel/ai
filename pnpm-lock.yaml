@@ -2051,6 +2051,9 @@ importers:
       vite:
         specifier: ^6.0.3
         version: 6.2.7(@types/node@20.17.24)(jiti@2.6.1)(less@4.4.0)(lightningcss@1.30.2)(sass@1.90.0)(terser@5.43.1)(tsx@4.19.2)(yaml@2.7.0)
+      vitest:
+        specifier: 2.1.4
+        version: 2.1.4(@edge-runtime/vm@5.0.0)(@types/node@20.17.24)(jsdom@26.0.0)(less@4.4.0)(lightningcss@1.30.2)(msw@2.7.0(@types/node@20.17.24)(typescript@5.8.3))(sass@1.90.0)(terser@5.43.1)
       zod:
         specifier: 3.25.76
         version: 3.25.76

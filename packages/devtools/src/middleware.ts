@@ -82,12 +82,46 @@ const generateRunId = (): string => {
 };
 
 /**
+ * Options for configuring the devtools middleware.
+ */
+export interface DevToolsMiddlewareOptions {
+  /**
+   * Provide a custom run ID to group multiple steps together across different calls.
+   * If not provided, a unique run ID will be generated automatically for each middleware instance.
+   *
+   * Use this to group related operations:
+   * ```ts
+   * const sharedRunId = 'my-workflow-' + Date.now();
+   *
+   * // Both calls will be grouped under the same run
+   * await streamText({
+   *   model: wrapLanguageModel({
+   *     middleware: devToolsMiddleware({ runId: sharedRunId }),
+   *     model: yourModel,
+   *   }),
+   *   prompt: "First step...",
+   * });
+   *
+   * await generateText({
+   *   model: wrapLanguageModel({
+   *     middleware: devToolsMiddleware({ runId: sharedRunId }),
+   *     model: yourModel,
+   *   }),
+   *   prompt: "Second step...",
+   * });
+   * ```
+   */
+  runId?: string | null;
+}
+
+/**
  * Factory function that creates a devtools middleware instance.
- * Each call generates a unique run ID, so all steps within a single
+ * Each call generates a unique run ID by default, so all steps within a single
  * streamText/generateText call share the same run.
  *
  * Usage:
  * ```ts
+ * // Basic usage - auto-generated run ID
  * const result = streamText({
  *   model: wrapLanguageModel({
  *     middleware: devToolsMiddleware(),
@@ -95,9 +129,16 @@ const generateRunId = (): string => {
  *   }),
  *   prompt: "...",
  * });
+ *
+ * // Group multiple calls under the same run
+ * const runId = 'workflow-' + Date.now();
+ * const middleware1 = devToolsMiddleware({ runId });
+ * const middleware2 = devToolsMiddleware({ runId });
  * ```
  */
-export const devToolsMiddleware = (): LanguageModelV3Middleware => {
+export const devToolsMiddleware = (
+  options?: DevToolsMiddlewareOptions,
+): LanguageModelV3Middleware => {
   if (process.env.NODE_ENV === 'production') {
     throw new Error(
       '@ai-sdk/devtools should not be used in production. ' +
@@ -108,7 +149,7 @@ export const devToolsMiddleware = (): LanguageModelV3Middleware => {
   // Register signal handlers once for cleanup on process exit
   registerSignalHandlers();
 
-  const runId = generateRunId();
+  const runId = options?.runId ?? generateRunId();
   let runCreated = false;
   let stepCounter = 0;
 
