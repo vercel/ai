@@ -15,6 +15,7 @@ import {
   type AssistantContent,
   type UserContent,
 } from 'ai';
+import { secureJsonParse } from '@ai-sdk/provider-utils';
 
 import {
   type LangGraphEventState,
@@ -303,7 +304,7 @@ export function convertUserContent(content: UserContent): HumanMessage {
               filename,
             });
           } else if (filePart.data.startsWith('data:')) {
-            const matches = filePart.data.match(/^data:([^;]+);base64,(.+)$/);
+            const matches = filePart.data.match(/^data:([^;,]+);base64,(.+)$/s);
             if (matches) {
               contentBlocks.push({
                 type: 'file',
@@ -1410,7 +1411,7 @@ export function processLangGraphEvent(
                       let args: unknown;
                       try {
                         args = functionData?.arguments
-                          ? JSON.parse(functionData.arguments)
+                          ? secureJsonParse(functionData.arguments)
                           : {};
                       } catch {
                         args = {};

@@ -26,7 +26,7 @@ import {
   checkResourceAllowed,
 } from '../util/oauth-util';
 import { LATEST_PROTOCOL_VERSION } from './types';
-import { FetchFunction } from '@ai-sdk/provider-utils';
+import { FetchFunction, secureJsonParse } from '@ai-sdk/provider-utils';
 
 export type AuthResult = 'AUTHORIZED' | 'REDIRECT';
 
@@ -256,7 +256,9 @@ export async function discoverOAuthProtectedResourceMetadata(
       `HTTP ${response.status} trying to load well-known OAuth protected resource metadata.`,
     );
   }
-  return OAuthProtectedResourceMetadataSchema.parse(await response.json());
+  return OAuthProtectedResourceMetadataSchema.parse(
+    secureJsonParse(await response.text()),
+  );
 }
 
 /**
@@ -357,10 +359,10 @@ export async function discoverAuthorizationServerMetadata(
     }
 
     if (type === 'oauth') {
-      return OAuthMetadataSchema.parse(await response.json());
+      return OAuthMetadataSchema.parse(secureJsonParse(await response.text()));
     } else {
       const metadata = OpenIdProviderDiscoveryMetadataSchema.parse(
-        await response.json(),
+        secureJsonParse(await response.text()),
       );
 
       // MCP spec requires OIDC providers to support S256 PKCE
@@ -585,7 +587,7 @@ export async function parseErrorResponse(
   const body = input instanceof Response ? await input.text() : input;
 
   try {
-    const result = OAuthErrorResponseSchema.parse(JSON.parse(body));
+    const result = OAuthErrorResponseSchema.parse(secureJsonParse(body));
     const { error, error_description, error_uri } = result;
     const errorClass = OAUTH_ERRORS[error] || ServerError;
     return new errorClass({
@@ -593,8 +595,10 @@ export async function parseErrorResponse(
       cause: error_uri,
     });
   } catch (error) {
-    // Not a valid OAuth error response, but try to inform the user of the raw data anyway
-    const errorMessage = `${statusCode ? `HTTP ${statusCode}: ` : ''}Invalid OAuth error response: ${error}. Raw body: ${body}`;
+    // Do not leak raw response body in error messages as it may contain sensitive data
+    const truncatedBody =
+      body.length > 200 ? body.slice(0, 200) + '...[truncated]' : body;
+    const errorMessage = `${statusCode ? `HTTP ${statusCode}: ` : ''}Invalid OAuth error response. Raw body: ${truncatedBody}`;
     return new ServerError({ message: errorMessage });
   }
 }
@@ -686,7 +690,7 @@ export async function exchangeAuthorization(
     throw await parseErrorResponse(response);
   }
 
-  return OAuthTokensSchema.parse(await response.json());
+  return OAuthTokensSchema.parse(secureJsonParse(await response.text()));
 }
 
 /**
@@ -772,9 +776,10 @@ export async function refreshAuthorization(
     throw await parseErrorResponse(response);
   }
 
+  const tokenData = secureJsonParse(await response.text());
   return OAuthTokensSchema.parse({
     refresh_token: refreshToken,
-    ...(await response.json()),
+    ...(typeof tokenData === 'object' && tokenData !== null ? tokenData : {}),
   });
 }
 
@@ -819,7 +824,9 @@ export async function registerClient(
     throw await parseErrorResponse(response);
   }
 
-  return OAuthClientInformationFullSchema.parse(await response.json());
+  return OAuthClientInformationFullSchema.parse(
+    secureJsonParse(await response.text()),
+  );
 }
 
 export async function auth(

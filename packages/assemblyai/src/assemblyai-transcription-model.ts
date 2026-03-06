@@ -6,6 +6,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   postToApi,
+  secureJsonParse,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { AssemblyAIConfig } from './assemblyai-config';
@@ -308,7 +309,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
       }
 
       const transcript = assemblyaiTranscriptionResponseSchema.parse(
-        await response.json(),
+        secureJsonParse(await response.text()),
       );
 
       if (transcript.status === 'completed') {

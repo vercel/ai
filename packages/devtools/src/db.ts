@@ -1,11 +1,15 @@
 import path from 'node:path';
 import fs from 'node:fs';
+import { secureJsonParse } from '@ai-sdk/provider-utils';
 
 const DB_DIR = path.join(process.cwd(), '.devtools');
 const DB_PATH = path.join(DB_DIR, 'generations.json');
-const DEVTOOLS_PORT = process.env.AI_SDK_DEVTOOLS_PORT
-  ? parseInt(process.env.AI_SDK_DEVTOOLS_PORT)
-  : 4983;
+const DEVTOOLS_PORT = (() => {
+  if (!process.env.AI_SDK_DEVTOOLS_PORT) return 4983;
+  const port = parseInt(process.env.AI_SDK_DEVTOOLS_PORT, 10);
+  if (isNaN(port) || port < 1 || port > 65535) return 4983;
+  return port;
+})();
 
 /**
  * Notify the devtools server that data has changed.
@@ -103,7 +107,7 @@ const readDb = (): Database => {
   try {
     if (fs.existsSync(DB_PATH)) {
       const content = fs.readFileSync(DB_PATH, 'utf-8');
-      return JSON.parse(content);
+      return secureJsonParse(content);
     }
   } catch {
     // If file is corrupted, start fresh

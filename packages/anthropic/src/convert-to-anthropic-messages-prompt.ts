@@ -13,6 +13,7 @@ import {
   validateTypes,
   isNonNullable,
   ToolNameMapping,
+  secureJsonParse,
 } from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
@@ -713,7 +714,7 @@ export async function convertToAnthropicMessagesPrompt({
                     let errorInfo: { type?: string; errorCode?: string } = {};
                     try {
                       if (typeof output.value === 'string') {
-                        errorInfo = JSON.parse(output.value);
+                        errorInfo = secureJsonParse(output.value);
                       } else if (
                         typeof output.value === 'object' &&
                         output.value !== null
@@ -868,7 +869,7 @@ export async function convertToAnthropicMessagesPrompt({
                     let errorValue: { errorCode?: string } = {};
                     try {
                       if (typeof output.value === 'string') {
-                        errorValue = JSON.parse(output.value);
+                        errorValue = secureJsonParse(output.value);
                       } else if (
                         typeof output.value === 'object' &&
                         output.value !== null

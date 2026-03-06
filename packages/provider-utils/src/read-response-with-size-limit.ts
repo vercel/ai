@@ -35,11 +35,19 @@ export async function readResponseWithSizeLimit({
   url: string;
   maxBytes?: number;
 }): Promise<Uint8Array> {
+  // Validate maxBytes to prevent bypass with negative or zero values
+  if (maxBytes < 0 || !Number.isFinite(maxBytes)) {
+    throw new DownloadError({
+      url,
+      message: `Invalid maxBytes value: ${maxBytes}`,
+    });
+  }
+
   // Early rejection based on Content-Length header
   const contentLength = response.headers.get('content-length');
   if (contentLength != null) {
     const length = parseInt(contentLength, 10);
-    if (!isNaN(length) && length > maxBytes) {
+    if (!isNaN(length) && length > 0 && length > maxBytes) {
       throw new DownloadError({
         url,
         message: `Download of ${url} exceeded maximum size of ${maxBytes} bytes (Content-Length: ${length}).`,

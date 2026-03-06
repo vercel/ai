@@ -13,6 +13,10 @@ import {
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
+
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
 import { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embedding-options';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
@@ -155,7 +159,7 @@ export function createGoogleGenerativeAI(
         '*': [
           // Google Generative Language "files" endpoint
           // e.g. https://generativelanguage.googleapis.com/v1beta/files/...
-          new RegExp(`^${baseURL}/files/.*$`),
+          new RegExp(`^${escapeRegExp(baseURL)}/files/.*$`),
           // YouTube URLs (public or unlisted videos)
           new RegExp(
             `^https://(?:www\\.)?youtube\\.com/watch\\?v=[\\w-]+(?:&[\\w=&.-]*)?$`,

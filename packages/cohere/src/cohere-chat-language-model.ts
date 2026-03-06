@@ -15,6 +15,7 @@ import {
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
+  secureJsonParse,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -385,7 +386,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
                     toolCallId: pendingToolCall.id,
                     toolName: pendingToolCall.name,
                     input: JSON.stringify(
-                      JSON.parse(pendingToolCall.arguments?.trim() || '{}'),
+                      secureJsonParse(pendingToolCall.arguments?.trim() || '{}'),
                     ),
                   });
 

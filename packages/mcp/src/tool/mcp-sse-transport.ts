@@ -2,6 +2,7 @@ import {
   EventSourceParserStream,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
+  secureJsonParse,
 } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
 import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
@@ -158,7 +159,7 @@ export class SseMCPTransport implements MCPTransport {
                 } else if (event === 'message') {
                   try {
                     const message = JSONRPCMessageSchema.parse(
-                      JSON.parse(data),
+                      secureJsonParse(data),
                     );
                     this.onmessage?.(message);
                   } catch (error) {
@@ -268,5 +269,5 @@ export class SseMCPTransport implements MCPTransport {
 }
 
 export function deserializeMessage(line: string): JSONRPCMessage {
-  return JSONRPCMessageSchema.parse(JSON.parse(line));
+  return JSONRPCMessageSchema.parse(secureJsonParse(line));
 }

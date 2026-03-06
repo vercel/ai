@@ -5,6 +5,10 @@ import type {
 import { LanguageModelMiddleware } from '../types/language-model-middleware';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
 
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
  * Extracts an XML-tagged reasoning section from the generated text and exposes it
  * as a `reasoning` property on the result.
@@ -23,7 +27,7 @@ export function extractReasoningMiddleware({
   startWithReasoning?: boolean;
 }): LanguageModelMiddleware {
   const openingTag = `<${tagName}>`;
-  const closingTag = `<\/${tagName}>`;
+  const closingTag = `</${tagName}>`;
 
   return {
     specificationVersion: 'v4',
@@ -39,7 +43,9 @@ export function extractReasoningMiddleware({
 
         const text = startWithReasoning ? openingTag + part.text : part.text;
 
-        const regexp = new RegExp(`${openingTag}(.*?)${closingTag}`, 'gs');
+        const escapedOpen = `<${escapeRegExp(tagName)}>`;
+        const escapedClose = `</${escapeRegExp(tagName)}>`;
+        const regexp = new RegExp(`${escapedOpen}(.*?)${escapedClose}`, 'gs');
         const matches = Array.from(text.matchAll(regexp));
 
         if (!matches.length) {

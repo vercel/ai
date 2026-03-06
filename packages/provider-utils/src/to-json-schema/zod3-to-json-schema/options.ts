@@ -1,4 +1,5 @@
 import { ZodSchema, ZodTypeDef } from 'zod/v3';
+import { secureJsonParse } from '../../secure-json-parse';
 import { Refs, Seen } from './refs';
 import { JsonSchema7Type } from './parse-types';
 
@@ -28,9 +29,13 @@ export type PostProcessCallback = (
 export const jsonDescription: PostProcessCallback = (jsonSchema, def) => {
   if (def.description) {
     try {
+      const parsed = secureJsonParse(def.description);
+      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return jsonSchema;
+      }
       return {
         ...jsonSchema,
-        ...JSON.parse(def.description),
+        ...parsed,
       };
     } catch {}
   }

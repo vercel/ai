@@ -24,7 +24,19 @@ export function getEnvironment(
         ]
       : ['HOME', 'LOGNAME', 'PATH', 'SHELL', 'TERM', 'USER'];
 
-  const env: Record<string, string> = customEnv ? { ...customEnv } : {};
+  const env: Record<string, string> = {};
+  if (customEnv) {
+    for (const [key, value] of Object.entries(customEnv)) {
+      // Skip prototype pollution keys and bash function injection
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+        continue;
+      }
+      if (value.startsWith('()')) {
+        continue;
+      }
+      env[key] = value;
+    }
+  }
 
   for (const key of DEFAULT_INHERITED_ENV_VARS) {
     const value = globalThis.process.env[key];

@@ -26,6 +26,14 @@ export function validateDownloadUrl(url: string): void {
     });
   }
 
+  // Block URLs with credentials (user:pass@host) to prevent credential leakage
+  if (parsed.username || parsed.password) {
+    throw new DownloadError({
+      url,
+      message: `URL must not contain credentials`,
+    });
+  }
+
   const hostname = parsed.hostname;
 
   // Block empty hostname
@@ -93,12 +101,23 @@ function isPrivateIPv4(ip: string): boolean {
   if (a === 10) return true;
   // 127.0.0.0/8
   if (a === 127) return true;
+  // 100.64.0.0/10 (Carrier-grade NAT / shared address space - RFC 6598)
+  if (a === 100 && b >= 64 && b <= 127) return true;
   // 169.254.0.0/16
   if (a === 169 && b === 254) return true;
   // 172.16.0.0/12
   if (a === 172 && b >= 16 && b <= 31) return true;
+  // 192.0.0.0/24 (IETF protocol assignments)
+  if (a === 192 && b === 0 && parts[2] === 0) return true;
   // 192.168.0.0/16
   if (a === 192 && b === 168) return true;
+  // 198.18.0.0/15 (benchmarking)
+  if (a === 198 && (b === 18 || b === 19)) return true;
+  // 240.0.0.0/4 (reserved for future use)
+  if (a >= 240) return true;
+  // 255.255.255.255 (broadcast)
+  if (a === 255 && b === 255 && parts[2] === 255 && parts[3] === 255)
+    return true;
 
   return false;
 }
