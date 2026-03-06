@@ -24,6 +24,16 @@ export interface CallbackModelInfo {
 }
 
 /**
+ * Event passed to the `onAbort` callback.
+ *
+ * Called when the agent is aborted, either through the `abortSignal` or due to a timeout.
+ */
+export interface OnAbortEvent<TOOLS extends ToolSet = ToolSet> {
+  /** Array of results from previous steps (empty for first step). */
+  readonly steps: ReadonlyArray<StepResult<TOOLS>>;
+}
+
+/**
  * Event passed to the `onStart` callback.
  *
  * Called when the generation operation begins, before any LLM calls.

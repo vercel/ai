@@ -61,6 +61,7 @@ export class ToolLoopAgent<
       | 'experimental_onStepStart'
       | 'experimental_onToolCallStart'
       | 'experimental_onToolCallFinish'
+      | 'onAbort'
       | 'onStepFinish'
       | 'onFinish'
     > &
@@ -71,6 +72,7 @@ export class ToolLoopAgent<
       experimental_onStepStart: _settingsOnStepStart,
       experimental_onToolCallStart: _settingsOnToolCallStart,
       experimental_onToolCallFinish: _settingsOnToolCallFinish,
+      onAbort: _settingsOnAbort,
       onStepFinish: _settingsOnStepFinish,
       onFinish: _settingsOnFinish,
       ...settingsWithoutCallbacks
@@ -169,6 +171,7 @@ export class ToolLoopAgent<
     experimental_onStepStart,
     experimental_onToolCallStart,
     experimental_onToolCallFinish,
+    onAbort,
     onStepFinish,
     onFinish,
     ...options
@@ -196,6 +199,7 @@ export class ToolLoopAgent<
         this.settings.experimental_onToolCallFinish,
         experimental_onToolCallFinish,
       ),
+      onAbort: this.mergeCallbacks(this.settings.onAbort, onAbort),
       onStepFinish: this.mergeCallbacks(
         this.settings.onStepFinish,
         onStepFinish,

@@ -4,6 +4,7 @@ export {
   type AgentStreamParameters,
 } from './agent';
 export {
+  type ToolLoopAgentOnAbortCallback,
   type ToolLoopAgentOnFinishCallback,
   type ToolLoopAgentOnStartCallback,
   type ToolLoopAgentOnStepFinishCallback,
