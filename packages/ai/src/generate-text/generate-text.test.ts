@@ -3685,7 +3685,7 @@ describe('generateText', () => {
       const abortController = new AbortController();
       const toolExecuteMock = vi.fn().mockResolvedValue('tool result');
 
-      const generateTextPromise = generateText({
+      await generateText({
         model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
@@ -3710,11 +3710,6 @@ describe('generateText', () => {
         abortSignal: abortController.signal,
       });
 
-      // Abort the operation
-      abortController.abort();
-
-      await generateTextPromise;
-
       expect(toolExecuteMock).toHaveBeenCalledWith(
         { value: 'value' },
         {
@@ -3723,6 +3718,134 @@ describe('generateText', () => {
           messages: expect.any(Array),
         },
       );
+    });
+
+    it('should throw when already-aborted signal is provided', async () => {
+      const abortController = new AbortController();
+      abortController.abort();
+
+      await expect(
+        generateText({
+          model: new MockLanguageModelV3({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: `{ "value": "value" }`,
+                },
+              ],
+            }),
+          }),
+          tools: {
+            tool1: {
+              inputSchema: z.object({ value: z.string() }),
+              execute: vi.fn().mockResolvedValue('tool result'),
+            },
+          },
+          prompt: 'test-input',
+          abortSignal: abortController.signal,
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('should throw when abort signal fires during tool execution in multi-step loop', async () => {
+      const abortController = new AbortController();
+      let doGenerateCallCount = 0;
+
+      const result = generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            doGenerateCallCount++;
+            if (doGenerateCallCount === 1) {
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'slowTool',
+                    input: '{ "query": "test" }',
+                  },
+                ],
+              };
+            }
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'done' }],
+            };
+          },
+        }),
+        tools: {
+          slowTool: {
+            inputSchema: z.object({ query: z.string() }),
+            execute: async () => {
+              // Abort during tool execution
+              abortController.abort();
+              throw new DOMException(
+                'The operation was aborted',
+                'AbortError',
+              );
+            },
+          },
+        },
+        prompt: 'test',
+        stopWhen: stepCountIs(5),
+        abortSignal: abortController.signal,
+      });
+
+      await expect(result).rejects.toThrow();
+    });
+
+    it('should throw when abort signal is already aborted before next step', async () => {
+      const abortController = new AbortController();
+      let doGenerateCallCount = 0;
+
+      const result = generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            doGenerateCallCount++;
+            if (doGenerateCallCount === 1) {
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'myTool',
+                    input: '{ "value": "a" }',
+                  },
+                ],
+              };
+            }
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'done' }],
+            };
+          },
+        }),
+        tools: {
+          myTool: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => {
+              // Abort during tool execution; the tool still returns a result
+              abortController.abort();
+              return 'tool result';
+            },
+          },
+        },
+        prompt: 'test',
+        stopWhen: stepCountIs(5),
+        abortSignal: abortController.signal,
+      });
+
+      // The abort should cause generateText to throw before starting step 2
+      await expect(result).rejects.toThrow();
     });
   });
 
