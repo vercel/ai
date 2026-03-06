@@ -13,6 +13,7 @@ import {
 import { z } from 'zod/v4';
 import { MoonshotAIChatLanguageModel } from './moonshotai-chat-language-model';
 import { MoonshotAIChatModelId } from './moonshotai-chat-options';
+import { getMoonshotAILanguageModelCapabilities } from './moonshotai-language-model-capabilities';
 import { VERSION } from './version';
 
 export type MoonshotAIErrorData = z.infer<typeof moonshotaiErrorSchema>;
@@ -101,9 +102,12 @@ export function createMoonshotAI(
   });
 
   const createChatModel = (modelId: MoonshotAIChatModelId) => {
+    const modelCapabilities = getMoonshotAILanguageModelCapabilities(modelId);
+
     return new MoonshotAIChatLanguageModel(modelId, {
       ...getCommonModelConfig('chat'),
       includeUsage: true,
+      supportsStructuredOutputs: modelCapabilities.supportsStructuredOutputs,
       errorStructure: moonshotaiErrorStructure,
       transformRequestBody: (args: Record<string, any>) => {
         const thinking = args.thinking as
