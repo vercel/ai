@@ -23,10 +23,18 @@ type InferToolContext<TOOL extends Tool> =
 
 export type ToolSet = Record<string, Tool<any, any>>;
 
+type UnionToIntersection<U> = (
+  U extends unknown ? (arg: U) => void : never
+) extends (arg: infer I) => void
+  ? I
+  : never;
+
 // should be a union of all the context types of the tools
-type InferToolSetContext<TOOLS extends ToolSet> = {
-  [K in keyof TOOLS]: InferToolContext<TOOLS[K]>;
-}[keyof TOOLS];
+type InferToolSetContext<TOOLS extends ToolSet> = UnionToIntersection<
+  {
+    [K in keyof TOOLS]: InferToolContext<TOOLS[K]>;
+  }[keyof TOOLS]
+>;
 
 function executeTool<CONTEXT, TOOLS extends ToolSet>({
   tools,
@@ -37,7 +45,7 @@ function executeTool<CONTEXT, TOOLS extends ToolSet>({
   tools: TOOLS;
   toolName: keyof TOOLS;
   input: InferToolInput<TOOLS[typeof toolName]>;
-  context: InferToolSetContext<TOOLS>;
+  context: InferToolSetContext<TOOLS> & Record<string, unknown>;
 }) {
   const tool = tools[toolName];
   return tool.execute(input, context);
@@ -67,6 +75,6 @@ run(async () => {
     },
     toolName: 'tool1',
     input: { input1: 'Hello' },
-    context: { context1: 1, context2: 'Hello' },
+    context: { context1: 1, context2: 'world', somethingElse: 'context' },
   });
 });
