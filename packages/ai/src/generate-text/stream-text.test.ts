@@ -3322,6 +3322,39 @@ describe('streamText', () => {
       `);
     });
 
+    it('should pass through providerMetadata on file parts and omit it when absent', async () => {
+      const result = streamText({
+        model: modelWithFilesAndProviderMetadata,
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream();
+      const parts = await convertReadableStreamToArray(uiMessageStream);
+      const fileParts = parts.filter(
+        (p: Record<string, unknown>) => p.type === 'file',
+      );
+
+      expect(fileParts).toHaveLength(2);
+
+      // file part with providerMetadata should include it
+      expect(fileParts[0]).toStrictEqual({
+        type: 'file',
+        mediaType: 'text/plain',
+        url: 'data:text/plain;base64,Hello World',
+        providerMetadata: {
+          testProvider: { signature: 'sig-1' },
+        },
+      });
+
+      // file part without providerMetadata should not include it
+      expect(fileParts[1]).toStrictEqual({
+        type: 'file',
+        mediaType: 'image/jpeg',
+        url: 'data:image/jpeg;base64,QkFVRw==',
+      });
+      expect(fileParts[1]).not.toHaveProperty('providerMetadata');
+    });
+
     it('should not generate a new message id when onFinish is provided and generateMessageId is not provided', async () => {
       const result = streamText({
         model: createTestModel(),
