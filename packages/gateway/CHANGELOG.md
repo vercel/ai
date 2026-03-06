@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.55
+
+### Patch Changes
+
+- ee7582f: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 2.0.54
 
 ### Patch Changes
