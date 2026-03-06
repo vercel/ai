@@ -382,13 +382,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               providerExecuted: true,
               error: chunk.result,
               dynamic: chunk.dynamic,
-<<<<<<< aayush/openai-tool-search
-              providerMetadata: chunk.providerMetadata,
-=======
               ...(chunk.providerMetadata != null
                 ? { providerMetadata: chunk.providerMetadata }
                 : {}),
->>>>>>> main
             } as TypedToolError<TOOLS>);
           } else {
             controller.enqueue({
@@ -399,13 +395,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               output: chunk.result,
               providerExecuted: true,
               dynamic: chunk.dynamic,
-<<<<<<< aayush/openai-tool-search
-              providerMetadata: chunk.providerMetadata,
-=======
               ...(chunk.providerMetadata != null
                 ? { providerMetadata: chunk.providerMetadata }
                 : {}),
->>>>>>> main
             } as TypedToolResult<TOOLS>);
           }
           break;

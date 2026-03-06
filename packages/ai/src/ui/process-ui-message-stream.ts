@@ -180,22 +180,13 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.providerExecuted =
                 anyOptions.providerExecuted ?? part.providerExecuted;
 
-<<<<<<< aayush/openai-tool-search
-              if (anyOptions.providerMetadata != null) {
-=======
               const providerMetadata = anyOptions.providerMetadata;
 
               if (providerMetadata != null) {
->>>>>>> main
                 if (
                   options.state === 'output-available' ||
                   options.state === 'output-error'
                 ) {
-<<<<<<< aayush/openai-tool-search
-                  anyPart.resultProviderMetadata = anyOptions.providerMetadata;
-                } else {
-                  part.callProviderMetadata = anyOptions.providerMetadata;
-=======
                   const resultPart = part as Extract<
                     ToolUIPart<InferUIMessageTools<UI_MESSAGE>>,
                     { state: 'output-available' | 'output-error' }
@@ -204,7 +195,6 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   resultPart.resultProviderMetadata = providerMetadata;
                 } else {
                   part.callProviderMetadata = providerMetadata;
->>>>>>> main
                 }
               }
             } else {
@@ -291,22 +281,13 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.providerExecuted =
                 anyOptions.providerExecuted ?? part.providerExecuted;
 
-<<<<<<< aayush/openai-tool-search
-              if (anyOptions.providerMetadata != null) {
-=======
               const providerMetadata = anyOptions.providerMetadata;
 
               if (providerMetadata != null) {
->>>>>>> main
                 if (
                   options.state === 'output-available' ||
                   options.state === 'output-error'
                 ) {
-<<<<<<< aayush/openai-tool-search
-                  anyPart.resultProviderMetadata = anyOptions.providerMetadata;
-                } else {
-                  part.callProviderMetadata = anyOptions.providerMetadata;
-=======
                   const resultPart = part as Extract<
                     DynamicToolUIPart,
                     { state: 'output-available' | 'output-error' }
@@ -315,7 +296,6 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   resultPart.resultProviderMetadata = providerMetadata;
                 } else {
                   part.callProviderMetadata = providerMetadata;
->>>>>>> main
                 }
               }
             } else {
