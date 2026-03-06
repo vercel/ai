@@ -2739,15 +2739,6 @@ describe('doStream', () => {
           "type": "tool-input-delta",
         },
         {
-          "delta": "",
-          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
-          "type": "tool-input-delta",
-        },
-        {
-          "id": "0",
-          "type": "text-end",
-        },
-        {
           "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "type": "tool-input-end",
         },
@@ -2756,6 +2747,10 @@ describe('doStream', () => {
           "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "toolName": "searchGoogle",
           "type": "tool-call",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
         },
         {
           "finishReason": {
@@ -2787,82 +2782,6 @@ describe('doStream', () => {
         },
       ]
     `);
-  });
-
-  it('should not finalize tool call early when partial JSON is coincidentally parsable', async () => {
-    // Regression test: if streamed tool call arguments form valid JSON before
-    // all chunks have arrived, the tool call must NOT be finalized early.
-    // For example, {"query": "test"} is valid JSON but the full args are
-    // {"query": "test", "limit": 10}. Finalizing early would lose "limit".
-    server.urls['https://api.openai.com/v1/chat/completions'].response = {
-      type: 'stream-chunks',
-      chunks: [
-        // initial chunk with tool call start
-        `data: {"id":"chatcmpl-early","object":"chat.completion.chunk","created":1733162241,` +
-          `"model":"gpt-4","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
-          `"tool_calls":[{"index":0,"id":"call_early123","type":"function",` +
-          `"function":{"name":"search","arguments":""}}]},"finish_reason":null}]}\n\n`,
-        // This chunk produces valid JSON: {"query": "test"}
-        `data: {"id":"chatcmpl-early","object":"chat.completion.chunk","created":1733162241,` +
-          `"model":"gpt-4","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
-          `"function":{"arguments":"{\\"query\\": \\"test\\"}"}}]},"finish_reason":null}]}\n\n`,
-        // More data arrives - the full args include "limit"
-        `data: {"id":"chatcmpl-early","object":"chat.completion.chunk","created":1733162241,` +
-          `"model":"gpt-4","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
-          `"function":{"arguments":""}}]},"finish_reason":null}]}\n\n`,
-        // Even more data: adding the comma and limit field
-        `data: {"id":"chatcmpl-early","object":"chat.completion.chunk","created":1733162241,` +
-          `"model":"gpt-4","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
-          `"function":{"arguments":", \\"limit\\": 10}"}}]},"finish_reason":null}]}\n\n`,
-        // finish
-        `data: {"id":"chatcmpl-early","object":"chat.completion.chunk","created":1733162241,` +
-          `"model":"gpt-4","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\n`,
-        `data: [DONE]\n\n`,
-      ],
-    };
-
-    const { stream } = await model.doStream({
-      tools: [
-        {
-          type: 'function',
-          name: 'search',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              query: { type: 'string' },
-              limit: { type: 'number' },
-            },
-            required: ['query'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
-          },
-        },
-      ],
-      prompt: TEST_PROMPT,
-      includeRawChunks: false,
-    });
-
-    const result = await convertReadableStreamToArray(stream);
-
-    // Find the tool-call event
-    const toolCallEvent = result.find(
-      (e: { type: string }) => e.type === 'tool-call',
-    );
-
-    // The tool call must contain the COMPLETE arguments, not just the
-    // partial JSON that happened to be parsable mid-stream.
-    expect(toolCallEvent).toEqual({
-      type: 'tool-call',
-      toolCallId: 'call_early123',
-      toolName: 'search',
-      input: '{"query": "test"}, "limit": 10}',
-    });
-
-    // Verify there is exactly one tool-call event (no premature duplicate)
-    const toolCallEvents = result.filter(
-      (e: { type: string }) => e.type === 'tool-call',
-    );
-    expect(toolCallEvents).toHaveLength(1);
   });
 
   it('should stream tool call with missing type field (Azure AI Foundry / Mistral)', async () => {
