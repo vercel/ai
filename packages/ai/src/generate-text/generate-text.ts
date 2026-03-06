@@ -1504,6 +1504,9 @@ function asContent<TOOLS extends ToolSet>({
               error: part.result,
               providerExecuted: true,
               dynamic: part.dynamic,
+              ...(part.providerMetadata != null
+                ? { providerMetadata: part.providerMetadata }
+                : {}),
             } as TypedToolError<TOOLS>);
           } else {
             contentParts.push({
@@ -1514,6 +1517,9 @@ function asContent<TOOLS extends ToolSet>({
               output: part.result,
               providerExecuted: true,
               dynamic: part.dynamic,
+              ...(part.providerMetadata != null
+                ? { providerMetadata: part.providerMetadata }
+                : {}),
             } as TypedToolResult<TOOLS>);
           }
           break;
@@ -1528,6 +1534,9 @@ function asContent<TOOLS extends ToolSet>({
             error: part.result,
             providerExecuted: true,
             dynamic: toolCall.dynamic,
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
           } as TypedToolError<TOOLS>);
         } else {
           contentParts.push({
@@ -1538,6 +1547,9 @@ function asContent<TOOLS extends ToolSet>({
             output: part.result,
             providerExecuted: true,
             dynamic: toolCall.dynamic,
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
           } as TypedToolResult<TOOLS>);
         }
         break;

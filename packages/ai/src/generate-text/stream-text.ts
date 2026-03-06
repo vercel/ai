@@ -2630,6 +2630,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 ...(part.providerExecuted != null
                   ? { providerExecuted: part.providerExecuted }
                   : {}),
+                ...(part.providerMetadata != null
+                  ? { providerMetadata: part.providerMetadata }
+                  : {}),
                 ...(part.preliminary != null
                   ? { preliminary: part.preliminary }
                   : {}),
@@ -2647,6 +2650,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 errorText: onError(part.error),
                 ...(part.providerExecuted != null
                   ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(part.providerMetadata != null
+                  ? { providerMetadata: part.providerMetadata }
                   : {}),
                 ...(dynamic != null ? { dynamic } : {}),
               });
