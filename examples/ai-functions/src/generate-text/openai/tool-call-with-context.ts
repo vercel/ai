@@ -12,10 +12,13 @@ run(async () => {
         inputSchema: z.object({
           location: z.string().describe('The location to get the weather for'),
         }),
+        contextSchema: z.object({
+          weatherApiKey: z.string().describe('The API key for the weather API'),
+        }),
         execute: async ({ location }, { experimental_context: context }) => {
-          const typedContext = context as { weatherApiKey: string }; // or use type validation library
+          console.log(context);
 
-          console.log(typedContext);
+          context satisfies { weatherApiKey: string };
 
           return {
             location,
@@ -23,8 +26,28 @@ run(async () => {
           };
         },
       }),
+      calculator: tool({
+        description: 'Calculate mathematical expressions',
+        inputSchema: z.object({
+          expression: z
+            .string()
+            .describe('The mathematical expression to calculate'),
+        }),
+        contextSchema: z.object({
+          calculatorApiKey: z
+            .string()
+            .describe('The API key for the calculator API'),
+        }),
+        execute: async ({ expression }, { experimental_context: context }) => {
+          console.log(context);
+          return {
+            expression,
+            result: eval(expression),
+          };
+        },
+      }),
     },
-    experimental_context: { weatherApiKey: '123' },
+    experimental_context: { weatherApiKey: '123', calculatorApiKey: '456' },
     prompt: 'What is the weather in San Francisco?',
   });
 

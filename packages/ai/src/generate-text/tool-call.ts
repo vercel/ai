@@ -10,10 +10,10 @@ type BaseToolCall = {
   providerMetadata?: ProviderMetadata;
 };
 
-export type StaticToolCall<TOOLS extends ToolSet> = ValueOf<{
+export type StaticToolCall<TOOLS extends ToolSet = ToolSet> = ValueOf<{
   [NAME in keyof TOOLS]: BaseToolCall & {
     toolName: NAME & string;
-    input: TOOLS[NAME] extends Tool<infer PARAMETERS> ? PARAMETERS : never;
+    input: TOOLS[NAME] extends Tool<any, infer PARAMETERS> ? PARAMETERS : never;
     dynamic?: false | undefined;
     invalid?: false | undefined;
     error?: never;
@@ -42,6 +42,6 @@ export type DynamicToolCall = BaseToolCall & {
   error?: unknown;
 };
 
-export type TypedToolCall<TOOLS extends ToolSet> =
+export type TypedToolCall<TOOLS extends ToolSet = ToolSet> =
   | StaticToolCall<TOOLS>
   | DynamicToolCall;

@@ -1,11 +1,12 @@
 import {
+  Context,
   ModelMessage,
   ProviderOptions,
   SystemModelMessage,
-  Tool,
 } from '@ai-sdk/provider-utils';
 import { LanguageModel, ToolChoice } from '../types/language-model';
 import { StepResult } from './step-result';
+import { ToolSet } from './tool-set';
 
 /**
  * Function that you can use to provide different settings for a step.
@@ -21,7 +22,8 @@ import { StepResult } from './step-result';
  * If you return undefined (or for undefined settings), the settings from the outer level will be used.
  */
 export type PrepareStepFunction<
-  TOOLS extends Record<string, Tool> = Record<string, Tool>,
+  CONTEXT extends Context,
+  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
 > = (options: {
   /**
    * The steps that have been executed so far.
@@ -46,15 +48,18 @@ export type PrepareStepFunction<
   /**
    * The context passed via the experimental_context setting (experimental).
    */
-  experimental_context: unknown;
-}) => PromiseLike<PrepareStepResult<TOOLS>> | PrepareStepResult<TOOLS>;
+  experimental_context: CONTEXT;
+}) =>
+  | PromiseLike<PrepareStepResult<CONTEXT, TOOLS>>
+  | PrepareStepResult<CONTEXT, TOOLS>;
 
 /**
  * The result type returned by a {@link PrepareStepFunction},
  * allowing per-step overrides of model, tools, or messages.
  */
 export type PrepareStepResult<
-  TOOLS extends Record<string, Tool> = Record<string, Tool>,
+  CONTEXT extends Context,
+  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
 > =
   | {
       /**
@@ -90,7 +95,7 @@ export type PrepareStepResult<
        * Changing the context will affect the context in this step
        * and all subsequent steps.
        */
-      experimental_context?: unknown;
+      experimental_context?: CONTEXT;
 
       /**
        * Additional provider-specific options for this step.

@@ -1,3 +1,4 @@
+import { Context } from '@ai-sdk/provider-utils';
 import { StepResult } from './step-result';
 import { ToolSet } from './tool-set';
 

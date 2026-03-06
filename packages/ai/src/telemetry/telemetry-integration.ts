@@ -1,3 +1,4 @@
+import { Context } from '@ai-sdk/provider-utils';
 import type {
   OnFinishEvent,
   OnStartEvent,
@@ -16,9 +17,9 @@ import { Listener } from '../util/notify';
  */
 export interface TelemetryIntegration {
   onStart?: Listener<OnStartEvent<ToolSet, Output>>;
-  onStepStart?: Listener<OnStepStartEvent<ToolSet, Output>>;
+  onStepStart?: Listener<OnStepStartEvent<Context, ToolSet, Output>>;
   onToolCallStart?: Listener<OnToolCallStartEvent<ToolSet>>;
   onToolCallFinish?: Listener<OnToolCallFinishEvent<ToolSet>>;
-  onStepFinish?: Listener<OnStepFinishEvent<ToolSet>>;
-  onFinish?: Listener<OnFinishEvent<ToolSet>>;
+  onStepFinish?: Listener<OnStepFinishEvent<Context, ToolSet>>;
+  onFinish?: Listener<OnFinishEvent<Context, ToolSet>>;
 }
