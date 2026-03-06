@@ -249,6 +249,150 @@ describe('prepareChatTools', () => {
   `);
   });
 
+  it('should append tool_search when toolSearch is true', () => {
+    const result = prepareChatTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'testFunction',
+          description: 'A test function',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ],
+      toolSearch: true,
+    });
+
+    expect(result.tools).toEqual([
+      {
+        type: 'function',
+        function: {
+          name: 'testFunction',
+          description: 'A test function',
+          parameters: { type: 'object', properties: {} },
+        },
+      },
+      { type: 'tool_search' },
+    ]);
+    expect(result.toolWarnings).toEqual([]);
+  });
+
+  it('should send tool_search even when no regular tools are provided', () => {
+    const result = prepareChatTools({
+      tools: undefined,
+      toolSearch: true,
+    });
+
+    expect(result.tools).toEqual([{ type: 'tool_search' }]);
+    expect(result.toolWarnings).toEqual([]);
+  });
+
+  it('should send tool_search even when tools array is empty', () => {
+    const result = prepareChatTools({
+      tools: [],
+      toolSearch: true,
+    });
+
+    expect(result.tools).toEqual([{ type: 'tool_search' }]);
+    expect(result.toolWarnings).toEqual([]);
+  });
+
+  it('should not append tool_search when toolSearch is false', () => {
+    const result = prepareChatTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'testFunction',
+          description: 'A test function',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ],
+      toolSearch: false,
+    });
+
+    expect(result.tools).toEqual([
+      {
+        type: 'function',
+        function: {
+          name: 'testFunction',
+          description: 'A test function',
+          parameters: { type: 'object', properties: {} },
+        },
+      },
+    ]);
+  });
+
+  it('should set defer_loading on function tools with providerOptions', () => {
+    const result = prepareChatTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'deferredTool',
+          description: 'A deferred tool',
+          inputSchema: { type: 'object', properties: {} },
+          providerOptions: {
+            openai: { deferLoading: true },
+          },
+        },
+        {
+          type: 'function',
+          name: 'normalTool',
+          description: 'A normal tool',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ],
+    });
+
+    expect(result.tools).toEqual([
+      {
+        type: 'function',
+        function: {
+          name: 'deferredTool',
+          description: 'A deferred tool',
+          parameters: { type: 'object', properties: {} },
+        },
+        defer_loading: true,
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'normalTool',
+          description: 'A normal tool',
+          parameters: { type: 'object', properties: {} },
+        },
+      },
+    ]);
+  });
+
+  it('should combine toolSearch and deferLoading', () => {
+    const result = prepareChatTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'deferredTool',
+          description: 'A deferred tool',
+          inputSchema: { type: 'object', properties: {} },
+          providerOptions: {
+            openai: { deferLoading: true },
+          },
+        },
+      ],
+      toolSearch: true,
+    });
+
+    expect(result.tools).toEqual([
+      {
+        type: 'function',
+        function: {
+          name: 'deferredTool',
+          description: 'A deferred tool',
+          parameters: { type: 'object', properties: {} },
+        },
+        defer_loading: true,
+      },
+      { type: 'tool_search' },
+    ]);
+  });
+
   it('should pass through strict mode for multiple tools with different strict settings', () => {
     const result = prepareChatTools({
       tools: [

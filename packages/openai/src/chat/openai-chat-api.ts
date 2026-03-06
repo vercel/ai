@@ -11,6 +11,11 @@ export interface OpenAIChatFunctionTool {
     parameters: JSONSchema7;
     strict?: boolean;
   };
+  defer_loading?: boolean;
+}
+
+export interface OpenAIChatToolSearchTool {
+  type: 'tool_search';
 }
 
 export type OpenAIChatToolChoice =

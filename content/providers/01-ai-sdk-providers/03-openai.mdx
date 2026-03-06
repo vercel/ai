@@ -1439,6 +1439,10 @@ The following optional provider options are available for OpenAI chat models:
 
   Whether to enable parallel function calling during tool use. Defaults to `true`.
 
+- **toolSearch** _boolean_
+
+  Enable OpenAI [tool search](https://platform.openai.com/docs/guides/tools-tool-search) to let the model dynamically discover and select from a large set of tools. When enabled, a `tool_search` entry is appended to the tools array. Use together with `deferLoading` on individual tool provider options. Currently only available for `gpt-5.4` models.
+
 - **user** _string_
 
   A unique identifier representing your end-user, which can help OpenAI to
@@ -1627,6 +1631,47 @@ For example, optional schema properties are not supported.
 You need to change Zod `.nullish()` and `.optional()` to `.nullable()`.
 
 </Note>
+
+#### Tool Search
+
+OpenAI's [tool search](https://platform.openai.com/docs/guides/tools-tool-search) enables models to dynamically discover and select from a large set of tools. Instead of loading all tool definitions into the context window upfront, the model searches your tool catalog and loads only the tools it needs.
+
+<Note>Tool search is currently only available for `gpt-5.4` models.</Note>
+
+You can enable tool search by setting the `toolSearch` provider option to `true`. Tools that should be deferred (not loaded upfront) can be marked with `deferLoading: true` in their provider options.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: openai.chat('gpt-5.4'),
+  prompt: 'What is the weather in San Francisco?',
+  providerOptions: {
+    openai: { toolSearch: true },
+  },
+  tools: {
+    get_weather: tool({
+      description: 'Get the current weather at a specific location',
+      parameters: z.object({
+        location: z.string().describe('The city and state'),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72,
+        condition: 'Sunny',
+      }),
+      // Mark as deferred - model discovers this via tool_search
+      providerOptions: {
+        openai: { deferLoading: true },
+      },
+    }),
+  },
+});
+```
+
+When `toolSearch` is enabled, a `{ type: "tool_search" }` entry is appended to the tools array sent to OpenAI. Tools with `deferLoading: true` are sent with `defer_loading: true`, meaning their definitions are not loaded into the context upfront and are instead discovered on-demand by the model.
 
 #### Logprobs
 

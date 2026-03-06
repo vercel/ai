@@ -80,4 +80,24 @@ describe('getOpenAILanguageModelCapabilities', () => {
       },
     );
   });
+
+  describe('supportsToolSearch', () => {
+    it.each([
+      ['gpt-5.4', true],
+      ['gpt-5.4-pro', true],
+      ['gpt-5.4-2026-03-05', true],
+      ['gpt-5.4-pro-2026-03-05', true],
+      ['gpt-5', false],
+      ['gpt-5.1', false],
+      ['gpt-5.2', false],
+      ['gpt-5.2-pro', false],
+      ['gpt-4o', false],
+      ['o3', false],
+      ['o4-mini', false],
+    ])('%s supports tool search: %s', (modelId, expected) => {
+      expect(
+        getOpenAILanguageModelCapabilities(modelId).supportsToolSearch,
+      ).toEqual(expected);
+    });
+  });
 });

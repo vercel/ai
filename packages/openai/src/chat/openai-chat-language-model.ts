@@ -294,6 +294,17 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       baseArgs.service_tier = undefined;
     }
 
+    // Validate tool search support
+    let toolSearch = openaiOptions.toolSearch;
+    if (toolSearch && !modelCapabilities.supportsToolSearch) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'toolSearch',
+        details: 'tool search is currently only available for gpt-5.4 models',
+      });
+      toolSearch = undefined;
+    }
+
     const {
       tools: openaiTools,
       toolChoice: openaiToolChoice,
@@ -301,6 +312,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     } = prepareChatTools({
       tools,
       toolChoice,
+      toolSearch,
     });
 
     return {
