@@ -51,6 +51,7 @@ import {
 } from './convert-anthropic-messages-usage';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
+import { convertOneOfToAnyOf } from './convert-oneOf-to-anyOf';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
 function createCitationSource(
@@ -284,7 +285,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             type: 'function',
             name: 'json',
             description: 'Respond with a JSON object.',
-            inputSchema: responseFormat.schema,
+            inputSchema: convertOneOfToAnyOf(responseFormat.schema),
           }
         : undefined;
 
@@ -367,7 +368,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             responseFormat.schema != null && {
               format: {
                 type: 'json_schema',
-                schema: responseFormat.schema,
+                schema: convertOneOfToAnyOf(responseFormat.schema),
               },
             }),
         },
