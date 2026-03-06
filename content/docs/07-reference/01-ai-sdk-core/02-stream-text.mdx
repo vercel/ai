@@ -3445,6 +3445,12 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'The original messages.',
             },
             {
+              name: 'onStepFinish',
+              type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; }) => PromiseLike<void> | void',
+              isOptional: true,
+              description: 'Callback function called after each step completes during streaming. Useful for persisting intermediate UI messages during multi-step agent runs.',
+            },
+            {
               name: 'onFinish',
               type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; isAborted: boolean; }) => void',
               isOptional: true,
