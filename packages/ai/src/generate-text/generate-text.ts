@@ -856,6 +856,11 @@ export async function generateText<
                           result.providerMetadata,
                         ),
 
+                        // deprecated telemetry attributes:
+                        'ai.usage.promptTokens': result.usage.inputTokens.total,
+                        'ai.usage.completionTokens':
+                          result.usage.outputTokens.total,
+
                         'ai.usage.inputTokens': result.usage.inputTokens.total,
                         'ai.usage.inputTokenDetails.noCacheTokens':
                           result.usage.inputTokens.noCache,
@@ -1123,6 +1128,21 @@ export async function generateText<
           !(await isStopConditionMet({ stopConditions, steps }))
         );
 
+        const lastStep = steps[steps.length - 1];
+
+        const totalUsage = steps.reduce(
+          (totalUsage, step) => {
+            return addLanguageModelUsage(totalUsage, step.usage);
+          },
+          {
+            inputTokens: undefined,
+            outputTokens: undefined,
+            totalTokens: undefined,
+            reasoningTokens: undefined,
+            cachedInputTokens: undefined,
+          } as LanguageModelUsage,
+        );
+
         // Add response information to the span:
         span.setAttributes(
           await selectTelemetryAttributes({
@@ -1152,25 +1172,14 @@ export async function generateText<
           }),
         );
 
-        const lastStep = steps[steps.length - 1];
-
-        const totalUsage = steps.reduce(
-          (totalUsage, step) => {
-            return addLanguageModelUsage(totalUsage, step.usage);
-          },
-          {
-            inputTokens: undefined,
-            outputTokens: undefined,
-            totalTokens: undefined,
-            reasoningTokens: undefined,
-            cachedInputTokens: undefined,
-          } as LanguageModelUsage,
-        );
-
         span.setAttributes(
           await selectTelemetryAttributes({
             telemetry,
             attributes: {
+              // deprecated telemetry attributes:
+              'ai.usage.promptTokens': totalUsage.inputTokens,
+              'ai.usage.completionTokens': totalUsage.outputTokens,
+
               'ai.usage.inputTokens': totalUsage.inputTokens,
               'ai.usage.inputTokenDetails.noCacheTokens':
                 totalUsage.inputTokenDetails?.noCacheTokens,
