@@ -11,7 +11,7 @@ import {
   ProviderOptions,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
+import { Tracer, SpanKind } from '@opentelemetry/api';
 import { NoOutputSpecifiedError } from '../error/no-output-specified-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
@@ -30,6 +30,12 @@ import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import {
+  convertToOTelGenAIInputMessages,
+  convertToOTelGenAIOutputMessages,
+  convertToOTelGenAIToolDefinitions,
+  getGenAIOperationName,
+} from '../telemetry/convert-to-otel-genai-messages';
 import { LanguageModel, ToolChoice } from '../types';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { asArray } from '../util/as-array';
@@ -342,9 +348,14 @@ A function that attempts to repair a tool call that failed to parse.
               activeTools: prepareStepResult?.activeTools ?? activeTools,
             });
 
+          const genAIOperationName = getGenAIOperationName(
+            'ai.generateText.doGenerate',
+          );
+
           currentModelResponse = await retry(() =>
             recordSpan({
-              name: 'ai.generateText.doGenerate',
+              name: `${genAIOperationName} ${stepModel.modelId}`,
+              kind: SpanKind.CLIENT,
               attributes: selectTelemetryAttributes({
                 telemetry,
                 attributes: {
@@ -372,6 +383,8 @@ A function that attempts to repair a tool call that failed to parse.
                   },
 
                   // standardized gen-ai llm span attributes:
+                  'gen_ai.operation.name': genAIOperationName,
+                  'gen_ai.provider.name': stepModel.provider,
                   'gen_ai.system': stepModel.provider,
                   'gen_ai.request.model': stepModel.modelId,
                   'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
@@ -382,6 +395,20 @@ A function that attempts to repair a tool call that failed to parse.
                     settings.temperature ?? undefined,
                   'gen_ai.request.top_k': settings.topK,
                   'gen_ai.request.top_p': settings.topP,
+                  'gen_ai.input.messages': {
+                    input: () =>
+                      JSON.stringify(
+                        convertToOTelGenAIInputMessages(promptMessages),
+                      ),
+                  },
+                  'gen_ai.tool.definitions': {
+                    input: () =>
+                      stepTools
+                        ? JSON.stringify(
+                            convertToOTelGenAIToolDefinitions(stepTools),
+                          )
+                        : undefined,
+                  },
                 },
               }),
               tracer,
@@ -441,6 +468,22 @@ A function that attempts to repair a tool call that failed to parse.
                       'gen_ai.response.model': responseData.modelId,
                       'gen_ai.usage.input_tokens': result.usage.inputTokens,
                       'gen_ai.usage.output_tokens': result.usage.outputTokens,
+                      'gen_ai.output.messages': {
+                        output: () => {
+                          const toolCalls = asToolCalls(result.content);
+                          return JSON.stringify(
+                            convertToOTelGenAIOutputMessages({
+                              text: extractTextContent(result.content) || undefined,
+                              toolCalls: toolCalls?.map(tc => ({
+                                toolCallId: tc.toolCallId,
+                                toolName: tc.toolName,
+                                input: tc.input,
+                              })),
+                              finishReason: result.finishReason,
+                            }),
+                          );
+                        },
+                      },
                     },
                   }),
                 );
