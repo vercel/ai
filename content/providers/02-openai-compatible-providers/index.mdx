@@ -423,26 +423,12 @@ const { text } = await generateText({
 
 ## Chat Model Options
 
-The following provider options are available for chat models via `providerOptions`:
+The following provider option is available for chat models via `providerOptions`:
 
 - **user** _string_
 
   A unique identifier representing your end-user, which can help the provider to
   monitor and detect abuse.
-
-- **reasoningEffort** _string_
-
-  Reasoning effort for reasoning models. The exact values depend on the provider.
-
-- **textVerbosity** _string_
-
-  Controls the verbosity of the generated text. The exact values depend on the provider.
-
-- **strictJsonSchema** _boolean_
-
-  Whether to use strict JSON schema validation. When true, the model uses constrained
-  decoding to guarantee schema compliance. Only used when the provider supports
-  structured outputs and a schema is provided. Defaults to `true`.
 
 ```ts
 const { text } = await generateText({
@@ -456,6 +442,16 @@ const { text } = await generateText({
   },
 });
 ```
+
+### Legacy normalized options (deprecated)
+
+The following normalized chat options are still supported for compatibility, but are deprecated:
+
+- `reasoningEffort`
+- `textVerbosity`
+- `strictJsonSchema`
+
+Prefer provider-native fields directly in `providerOptions.providerName` for long-term compatibility.
 
 ## Provider-specific options
 
