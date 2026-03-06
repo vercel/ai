@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.5
+
+### Patch Changes
+
+- ebd4da2: feat(ai): add missing usage attributes
+
 ## 7.0.0-beta.4
 
 ### Patch Changes

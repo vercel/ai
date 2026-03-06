@@ -1,5 +1,18 @@
 # @ai-sdk/alibaba
 
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- 45b3d76: fix(security): prevent streaming tool calls from finalizing on parsable partial JSON
+
+  Streaming tool call arguments were finalized using `isParsableJson()` as a heuristic for completion. If partial accumulated JSON happened to be valid JSON before all chunks arrived, the tool call would be executed with incomplete arguments. Tool call finalization now only occurs in `flush()` after the stream is fully consumed.
+
+- f7295cb: revert incorrect fix https://github.com/vercel/ai/pull/13172
+- Updated dependencies [45b3d76]
+- Updated dependencies [f7295cb]
+  - @ai-sdk/openai-compatible@3.0.0-beta.2
+
 ## 2.0.0-beta.1
 
 ### Patch Changes
