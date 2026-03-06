@@ -1,0 +1,32 @@
+{
+  "id": "fe87621011b544829fe9f966488f3d84",
+  "object": "list",
+  "data": [
+    {
+      "object": "embedding",
+      "embedding": [
+        -0.0389404296875, 0.048065185546875, 0.07159423828125,
+        0.00139617919921875, 0.028350830078125
+      ],
+      "index": 0
+    },
+    {
+      "object": "embedding",
+      "embedding": [
+        -0.0535888671875, 0.019500732421875, 0.057464599609375,
+        0.0029582977294921875, 0.0467529296875
+      ],
+      "index": 1
+    }
+  ],
+  "model": "mistral-embed",
+  "usage": {
+    "prompt_audio_seconds": null,
+    "prompt_tokens": 16,
+    "total_tokens": 16,
+    "completion_tokens": 0,
+    "request_count": null,
+    "prompt_tokens_details": null,
+    "prompt_token_details": null
+  }
+}
