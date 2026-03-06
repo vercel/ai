@@ -1,5 +1,48 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-beta.1
+
+### Patch Changes
+
+- 531251e: fix(security): validate redirect targets in download functions to prevent SSRF bypass
+
+  Both `downloadBlob` and `download` now validate the final URL after following HTTP redirects, preventing attackers from bypassing SSRF protections via open redirects to internal/private addresses.
+
+## 5.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/provider@4.0.0-beta.0
+
+## 4.0.19
+
+### Patch Changes
+
+- ad4cfc2: Add URL validation to `downloadBlob` and `download` to prevent blind SSRF attacks. Private/internal IP addresses, localhost, and non-HTTP protocols are now rejected before fetching.
+
+## 4.0.18
+
+### Patch Changes
+
+- 824b295: fix(provider-utils): prevent unicode escape bypass in secureJsonParse
+
+## 4.0.17
+
+### Patch Changes
+
+- 08336f1: fix(bedrock): strip file extensions from filename
+
+## 4.0.16
+
+### Patch Changes
+
+- 58bc42d: feat(provider/openai): support custom tools with alias mapping
+
 ## 4.0.15
 
 ### Patch Changes

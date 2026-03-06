@@ -7,7 +7,7 @@ import {
   createVertexAnthropic as createVertexAnthropicEdge,
   vertexAnthropic as vertexAnthropicEdge,
 } from '@ai-sdk/google-vertex/anthropic/edge';
-import { LanguageModelV3 } from '@ai-sdk/provider';
+import { LanguageModelV3, LanguageModelV4 } from '@ai-sdk/provider';
 import { APICallError, generateText, stepCountIs } from 'ai';
 import 'dotenv/config';
 import fs from 'fs';
@@ -44,7 +44,7 @@ const createLanguageModel = (
     | typeof createVertexAnthropicEdge,
   modelId: string,
   additionalTests: ((model: LanguageModelV3) => void)[] = [],
-): ModelWithCapabilities<LanguageModelV3> => {
+): ModelWithCapabilities<LanguageModelV3 | LanguageModelV4> => {
   const model = createVertexAnthropic({
     project: process.env.GOOGLE_VERTEX_PROJECT!,
     // Anthropic models are typically only available in us-east5 region.
@@ -68,7 +68,7 @@ const createModelVariants = (
     | typeof createVertexAnthropicNode
     | typeof createVertexAnthropicEdge,
   modelId: string,
-): ModelWithCapabilities<LanguageModelV3>[] => [
+): ModelWithCapabilities<LanguageModelV3 | LanguageModelV4>[] => [
   createLanguageModel(createVertexAnthropic, modelId, [toolTests]),
 ];
 

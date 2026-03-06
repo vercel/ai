@@ -30,7 +30,7 @@ By default, the AI SDK uses the [Vercel AI Gateway](https://vercel.com/docs/ai-g
 
 ```ts
 const result = await generateText({
-  model: 'anthropic/claude-opus-4.5', // or 'openai/gpt-5.2', 'google/gemini-3-flash', etc.
+  model: 'anthropic/claude-opus-4.5', // or 'openai/gpt-5.4', 'google/gemini-3-flash', etc.
   prompt: 'Hello!',
 });
 ```
@@ -45,7 +45,7 @@ npm install @ai-sdk/openai @ai-sdk/anthropic @ai-sdk/google
 import { anthropic } from '@ai-sdk/anthropic';
 
 const result = await generateText({
-  model: anthropic('claude-opus-4-5-20250414'), // or openai('gpt-5.2'), google('gemini-3-flash'), etc.
+  model: anthropic('claude-opus-4-5-20250414'), // or openai('gpt-5.4'), google('gemini-3-flash'), etc.
   prompt: 'Hello!',
 });
 ```
