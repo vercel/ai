@@ -7,7 +7,6 @@ import {
 import {
   convertToBase64,
   isNonNullable,
-  parseJSON,
   parseProviderOptions,
   ToolNameMapping,
   validateTypes,
@@ -22,10 +21,6 @@ import {
   localShellOutputSchema,
 } from '../tool/local-shell';
 import { shellInputSchema, shellOutputSchema } from '../tool/shell';
-import {
-  toolSearchInputSchema,
-  toolSearchOutputSchema,
-} from '../tool/tool-search';
 import {
   OpenAIResponsesCustomToolCallOutput,
   OpenAIResponsesFunctionCallOutput,
@@ -53,7 +48,6 @@ export async function convertToOpenAIResponsesInput({
   hasLocalShellTool = false,
   hasShellTool = false,
   hasApplyPatchTool = false,
-  hasToolSearchTool = false,
   customProviderToolNames,
 }: {
   prompt: LanguageModelV3Prompt;
@@ -66,7 +60,6 @@ export async function convertToOpenAIResponsesInput({
   hasLocalShellTool?: boolean;
   hasShellTool?: boolean;
   hasApplyPatchTool?: boolean;
-  hasToolSearchTool?: boolean;
   customProviderToolNames?: Set<string>;
 }): Promise<{
   input: OpenAIResponsesInput;
@@ -213,69 +206,6 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
-              const resolvedToolName = toolNameMapping.toProviderToolName(
-                part.toolName,
-              );
-
-              // tool_search_call is implicitly included via the tool_search_output item_reference,
-              // so skip it when store is enabled to avoid duplicate item errors
-              if (
-                part.providerExecuted &&
-                hasToolSearchTool &&
-                resolvedToolName === 'tool_search'
-              ) {
-                if (store && id != null) {
-                  break;
-                }
-                // Reconstruct hosted tool_search_call for multi-turn conversations
-                const inputValue =
-                  typeof part.input === 'string'
-                    ? await parseJSON({ text: part.input })
-                    : part.input;
-                const parsedInput = await validateTypes({
-                  value: inputValue,
-                  schema: toolSearchInputSchema,
-                });
-                input.push({
-                  type: 'tool_search_call',
-                  id: id ?? part.toolCallId,
-                  execution: 'server',
-                  call_id: null,
-                  status: 'completed',
-                  arguments: parsedInput.arguments,
-                });
-                break;
-              }
-
-              // Client-executed tool_search_call reconstruction
-              if (
-                !part.providerExecuted &&
-                hasToolSearchTool &&
-                resolvedToolName === 'tool_search'
-              ) {
-                if (store && id != null) {
-                  input.push({ type: 'item_reference', id });
-                  break;
-                }
-                const inputValue =
-                  typeof part.input === 'string'
-                    ? await parseJSON({ text: part.input })
-                    : part.input;
-                const parsedInput = await validateTypes({
-                  value: inputValue,
-                  schema: toolSearchInputSchema,
-                });
-                input.push({
-                  type: 'tool_search_call',
-                  id: id ?? part.toolCallId,
-                  execution: 'client',
-                  call_id: parsedInput.call_id ?? part.toolCallId,
-                  status: 'completed',
-                  arguments: parsedInput.arguments,
-                });
-                break;
-              }
-
               if (part.providerExecuted) {
                 if (store && id != null) {
                   input.push({ type: 'item_reference', id });
@@ -287,6 +217,10 @@ export async function convertToOpenAIResponsesInput({
                 input.push({ type: 'item_reference', id });
                 break;
               }
+
+              const resolvedToolName = toolNameMapping.toProviderToolName(
+                part.toolName,
+              );
 
               if (hasLocalShellTool && resolvedToolName === 'local_shell') {
                 const parsedInput = await validateTypes({
@@ -421,53 +355,6 @@ export async function convertToOpenAIResponsesInput({
                               exit_code: item.outcome.exitCode,
                             },
                     })),
-                  });
-                }
-                break;
-              }
-
-              /*
-               * Tool search results in assistant content are from hosted (server-executed)
-               * tool search. Client-executed tool search results go through tool role.
-               */
-              if (
-                hasToolSearchTool &&
-                resolvedResultToolName === 'tool_search'
-              ) {
-                const itemId = (
-                  part.providerOptions?.[providerOptionsName] as
-                    | { itemId?: string }
-                    | undefined
-                )?.itemId;
-
-                if (store && itemId != null) {
-                  input.push({
-                    type: 'item_reference',
-                    id: itemId,
-                  });
-                } else if (part.output.type === 'json') {
-                  const parsedOutput = await validateTypes({
-                    value: part.output.value,
-                    schema: toolSearchOutputSchema,
-                  });
-                  input.push({
-                    type: 'tool_search_output',
-                    id: itemId ?? part.toolCallId,
-                    execution: 'server',
-                    call_id: null,
-                    status: 'completed',
-                    tools: parsedOutput.tools.map(tool => {
-                      const result: Record<string, unknown> = {};
-                      for (const [key, value] of Object.entries(tool)) {
-                        if (value === undefined) continue;
-                        if (key === 'deferLoading') {
-                          result['defer_loading'] = value;
-                        } else {
-                          result[key] = value;
-                        }
-                      }
-                      return result;
-                    }),
                   });
                 }
                 break;
@@ -702,39 +589,6 @@ export async function convertToOpenAIResponsesInput({
               status: parsedOutput.status,
               output: parsedOutput.output,
             });
-            continue;
-          }
-
-          /*
-           * Tool search results in tool role are from client-executed tool search.
-           * Client results are not stored server-side, so always reconstruct inline.
-           * Note: client tool_search_output does not include 'id' field - OpenAI generates it.
-           */
-          if (hasToolSearchTool && resolvedToolName === 'tool_search') {
-            if (output.type === 'json') {
-              const parsedOutput = await validateTypes({
-                value: output.value,
-                schema: toolSearchOutputSchema,
-              });
-              input.push({
-                type: 'tool_search_output',
-                execution: 'client',
-                call_id: part.toolCallId,
-                status: 'completed',
-                tools: parsedOutput.tools.map(tool => {
-                  const result: Record<string, unknown> = {};
-                  for (const [key, value] of Object.entries(tool)) {
-                    if (value === undefined) continue;
-                    if (key === 'deferLoading') {
-                      result['defer_loading'] = value;
-                    } else {
-                      result[key] = value;
-                    }
-                  }
-                  return result;
-                }),
-              });
-            }
             continue;
           }
 
