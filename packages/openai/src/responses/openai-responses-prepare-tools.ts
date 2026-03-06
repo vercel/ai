@@ -56,15 +56,22 @@ export async function prepareResponsesTools({
 
   for (const tool of tools) {
     switch (tool.type) {
-      case 'function':
+      case 'function': {
+        const openaiOptions = tool.providerOptions?.openai as
+          | { deferLoading?: boolean }
+          | undefined;
+        const deferLoading = openaiOptions?.deferLoading;
+
         openaiTools.push({
           type: 'function',
           name: tool.name,
           description: tool.description,
           parameters: tool.inputSchema,
           ...(tool.strict != null ? { strict: tool.strict } : {}),
+          ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
         });
         break;
+      }
       case 'provider': {
         switch (tool.id) {
           case 'openai.file_search': {
@@ -246,6 +253,12 @@ export async function prepareResponsesTools({
               format: args.format,
             });
             resolvedCustomProviderToolNames.add(args.name);
+            break;
+          }
+          case 'openai.tool_search': {
+            openaiTools.push({
+              type: 'tool_search',
+            });
             break;
           }
         }

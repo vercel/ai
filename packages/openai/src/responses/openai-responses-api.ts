@@ -20,6 +20,8 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesShellCallOutput
   | OpenAIResponsesApplyPatchCall
   | OpenAIResponsesApplyPatchCallOutput
+  | OpenAIResponsesToolSearchCall
+  | OpenAIResponsesToolSearchOutput
   | OpenAIResponsesReasoning
   | OpenAIResponsesItemReference;
 
@@ -199,6 +201,24 @@ export type OpenAIResponsesApplyPatchCallOutput = {
   output?: string;
 };
 
+export type OpenAIResponsesToolSearchCall = {
+  type: 'tool_search_call';
+  id: string;
+  execution: 'server' | 'client';
+  call_id: string | null;
+  status: 'in_progress' | 'completed' | 'incomplete';
+  arguments: unknown;
+};
+
+export type OpenAIResponsesToolSearchOutput = {
+  type: 'tool_search_output';
+  id: string;
+  execution: 'server' | 'client';
+  call_id: string | null;
+  status: 'in_progress' | 'completed' | 'incomplete';
+  tools: Array<Record<string, unknown>>;
+};
+
 export type OpenAIResponsesItemReference = {
   type: 'item_reference';
   id: string;
@@ -249,6 +269,7 @@ export type OpenAIResponsesTool =
       description: string | undefined;
       parameters: JSONSchema7;
       strict?: boolean;
+      defer_loading?: boolean;
     }
   | {
       type: 'apply_patch';
@@ -407,6 +428,9 @@ export type OpenAIResponsesTool =
               path: string;
             }>;
           };
+    }
+  | {
+      type: 'tool_search';
     };
 
 export type OpenAIResponsesReasoning = {
@@ -590,6 +614,33 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
                   }),
                 ]),
               }),
+            ),
+          }),
+          z.object({
+            type: z.literal('tool_search_call'),
+            id: z.string(),
+            execution: z.enum(['server', 'client']),
+            call_id: z.string().nullable(),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
+            arguments: z.unknown(),
+          }),
+          z.object({
+            type: z.literal('tool_search_output'),
+            id: z.string(),
+            execution: z.enum(['server', 'client']),
+            call_id: z.string().nullable(),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
+            tools: z.array(
+              z
+                .object({
+                  type: z.string(),
+                  name: z.string().optional(),
+                  description: z.string().nullish(),
+                  defer_loading: z.boolean().nullish(),
+                  parameters: z.record(z.string(), z.unknown()).nullish(),
+                  strict: z.boolean().nullish(),
+                })
+                .passthrough(),
             ),
           }),
         ]),
@@ -813,6 +864,33 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
                   }),
                 ]),
               }),
+            ),
+          }),
+          z.object({
+            type: z.literal('tool_search_call'),
+            id: z.string(),
+            execution: z.enum(['server', 'client']),
+            call_id: z.string().nullable(),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
+            arguments: z.unknown(),
+          }),
+          z.object({
+            type: z.literal('tool_search_output'),
+            id: z.string(),
+            execution: z.enum(['server', 'client']),
+            call_id: z.string().nullable(),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
+            tools: z.array(
+              z
+                .object({
+                  type: z.string(),
+                  name: z.string().optional(),
+                  description: z.string().nullish(),
+                  defer_loading: z.boolean().nullish(),
+                  parameters: z.record(z.string(), z.unknown()).nullish(),
+                  strict: z.boolean().nullish(),
+                })
+                .passthrough(),
             ),
           }),
         ]),
@@ -1236,6 +1314,33 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
                     }),
                   ]),
                 }),
+              ),
+            }),
+            z.object({
+              type: z.literal('tool_search_call'),
+              id: z.string(),
+              execution: z.enum(['server', 'client']),
+              call_id: z.string().nullable(),
+              status: z.enum(['in_progress', 'completed', 'incomplete']),
+              arguments: z.unknown(),
+            }),
+            z.object({
+              type: z.literal('tool_search_output'),
+              id: z.string(),
+              execution: z.enum(['server', 'client']),
+              call_id: z.string().nullable(),
+              status: z.enum(['in_progress', 'completed', 'incomplete']),
+              tools: z.array(
+                z
+                  .object({
+                    type: z.string(),
+                    name: z.string().optional(),
+                    description: z.string().nullish(),
+                    defer_loading: z.boolean().nullish(),
+                    parameters: z.record(z.string(), z.unknown()).nullish(),
+                    strict: z.boolean().nullish(),
+                  })
+                  .passthrough(),
               ),
             }),
           ]),

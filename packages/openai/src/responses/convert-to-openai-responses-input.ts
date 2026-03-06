@@ -22,6 +22,10 @@ import {
 } from '../tool/local-shell';
 import { shellInputSchema, shellOutputSchema } from '../tool/shell';
 import {
+  toolSearchInputSchema,
+  toolSearchOutputSchema,
+} from '../tool/tool-search';
+import {
   OpenAIResponsesCustomToolCallOutput,
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
@@ -48,6 +52,7 @@ export async function convertToOpenAIResponsesInput({
   hasLocalShellTool = false,
   hasShellTool = false,
   hasApplyPatchTool = false,
+  hasToolSearchTool = false,
   customProviderToolNames,
 }: {
   prompt: LanguageModelV3Prompt;
@@ -60,6 +65,7 @@ export async function convertToOpenAIResponsesInput({
   hasLocalShellTool?: boolean;
   hasShellTool?: boolean;
   hasApplyPatchTool?: boolean;
+  hasToolSearchTool?: boolean;
   customProviderToolNames?: Set<string>;
 }): Promise<{
   input: OpenAIResponsesInput;
@@ -206,6 +212,36 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
+              const resolvedToolName = toolNameMapping.toProviderToolName(
+                part.toolName,
+              );
+
+              // Handle tool_search specially - need to reconstruct tool_search_call for multi-turn
+              if (
+                part.providerExecuted &&
+                hasToolSearchTool &&
+                resolvedToolName === 'tool_search'
+              ) {
+                if (store && id != null) {
+                  input.push({ type: 'item_reference', id });
+                } else {
+                  // Reconstruct tool_search_call for multi-turn conversations
+                  const parsedInput = await validateTypes({
+                    value: part.input,
+                    schema: toolSearchInputSchema,
+                  });
+                  input.push({
+                    type: 'tool_search_call',
+                    id: id ?? part.toolCallId,
+                    execution: 'server',
+                    call_id: null,
+                    status: 'completed',
+                    arguments: parsedInput.arguments,
+                  });
+                }
+                break;
+              }
+
               if (part.providerExecuted) {
                 if (store && id != null) {
                   input.push({ type: 'item_reference', id });
@@ -217,10 +253,6 @@ export async function convertToOpenAIResponsesInput({
                 input.push({ type: 'item_reference', id });
                 break;
               }
-
-              const resolvedToolName = toolNameMapping.toProviderToolName(
-                part.toolName,
-              );
 
               if (hasLocalShellTool && resolvedToolName === 'local_shell') {
                 const parsedInput = await validateTypes({
@@ -355,6 +387,51 @@ export async function convertToOpenAIResponsesInput({
                               exit_code: item.outcome.exitCode,
                             },
                     })),
+                  });
+                }
+                break;
+              }
+
+              /*
+               * Tool search results are separate output items (tool_search_output)
+               * that need to be reconstructed for multi-turn conversations.
+               */
+              if (
+                hasToolSearchTool &&
+                resolvedResultToolName === 'tool_search'
+              ) {
+                if (store) {
+                  const itemId =
+                    (
+                      part.providerOptions?.[providerOptionsName] as
+                        | { itemId?: string }
+                        | undefined
+                    )?.itemId ?? part.toolCallId;
+                  input.push({ type: 'item_reference', id: itemId });
+                } else if (part.output.type === 'json') {
+                  const parsedOutput = await validateTypes({
+                    value: part.output.value,
+                    schema: toolSearchOutputSchema,
+                  });
+                  input.push({
+                    type: 'tool_search_output',
+                    id: part.toolCallId,
+                    execution: 'server',
+                    call_id: null,
+                    status: 'completed',
+                    tools: parsedOutput.tools.map(tool => {
+                      const result: Record<string, unknown> = {};
+                      for (const [key, value] of Object.entries(tool)) {
+                        if (value === undefined) continue;
+                        // Convert camelCase back to snake_case for known properties
+                        if (key === 'deferLoading') {
+                          result['defer_loading'] = value;
+                        } else {
+                          result[key] = value;
+                        }
+                      }
+                      return result;
+                    }),
                   });
                 }
                 break;

@@ -1,5 +1,6 @@
 import {
   APICallError,
+  JSONObject,
   JSONValue,
   LanguageModelV3,
   LanguageModelV3Prompt,
@@ -38,6 +39,7 @@ import { imageGenerationOutputSchema } from '../tool/image-generation';
 import { localShellInputSchema } from '../tool/local-shell';
 import { mcpOutputSchema } from '../tool/mcp';
 import { shellInputSchema, shellOutputSchema } from '../tool/shell';
+import { toolSearchOutputSchema, ToolSearchOutput } from '../tool/tool-search';
 import { webSearchOutputSchema } from '../tool/web-search';
 import {
   convertOpenAIResponsesUsage,
@@ -189,6 +191,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         'openai.image_generation': 'image_generation',
         'openai.local_shell': 'local_shell',
         'openai.shell': 'shell',
+        'openai.tool_search': 'tool_search',
         'openai.web_search': 'web_search',
         'openai.web_search_preview': 'web_search_preview',
         'openai.mcp': 'mcp',
@@ -228,6 +231,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
         hasShellTool: hasOpenAITool('openai.shell'),
         hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
+        hasToolSearchTool: hasOpenAITool('openai.tool_search'),
         customProviderToolNames:
           customProviderToolNames.size > 0
             ? customProviderToolNames
@@ -505,6 +509,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
+
+    // track tool_search_call data for pairing with tool_search_output
+    let lastToolSearchCallId: string | undefined = undefined;
+    let lastToolSearchCallArguments: unknown = undefined;
 
     // map response content to content array (defined when there is no error)
     for (const part of response.output!) {
@@ -927,6 +935,48 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
           break;
         }
+
+        case 'tool_search_call': {
+          // Store the ID and arguments for pairing with the subsequent tool_search_output
+          lastToolSearchCallId = part.id;
+          lastToolSearchCallArguments = part.arguments;
+          break;
+        }
+
+        case 'tool_search_output': {
+          // Use tool_search_call ID for tool-call, tool_search_output ID for tool-result
+          // This ensures different item references are generated for each
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.id,
+            toolName: toolNameMapping.toCustomToolName('tool_search'),
+            input: JSON.stringify({ arguments: lastToolSearchCallArguments }),
+            providerExecuted: true,
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: lastToolSearchCallId ?? part.id,
+              },
+            },
+          });
+
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName: toolNameMapping.toCustomToolName('tool_search'),
+            result: mapToolSearchOutput(part.tools),
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id,
+              },
+            },
+          });
+
+          // Reset for next potential tool_search pair
+          lastToolSearchCallId = undefined;
+          lastToolSearchCallArguments = undefined;
+
+          break;
+        }
       }
     }
 
@@ -1054,6 +1104,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     > = {};
 
     let serviceTier: string | undefined;
+
+    // track tool_search_call data for pairing with tool_search_output
+    let lastToolSearchCallId: string | undefined = undefined;
+    let lastToolSearchCallArguments: unknown = undefined;
 
     return {
       stream: response.pipeThrough(
@@ -1245,6 +1299,62 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 };
               } else if (value.item.type === 'shell_call_output') {
                 // shell_call_output is handled in output_item.done
+              } else if (value.item.type === 'tool_search_call') {
+                // Store ID and arguments for pairing with subsequent tool_search_output
+                lastToolSearchCallId = value.item.id;
+                lastToolSearchCallArguments = value.item.arguments;
+              } else if (value.item.type === 'tool_search_output') {
+                const inputJson = JSON.stringify({
+                  arguments: lastToolSearchCallArguments,
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: value.item.id,
+                  toolName: toolNameMapping.toCustomToolName('tool_search'),
+                  providerExecuted: true,
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: value.item.id,
+                  delta: inputJson,
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.id,
+                });
+
+                // Use tool_search_call ID for tool-call, tool_search_output ID for tool-result
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: toolNameMapping.toCustomToolName('tool_search'),
+                  input: inputJson,
+                  providerExecuted: true,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      itemId: lastToolSearchCallId ?? value.item.id,
+                    },
+                  },
+                });
+
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: toolNameMapping.toCustomToolName('tool_search'),
+                  result: mapToolSearchOutput(value.item.tools),
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      itemId: value.item.id,
+                    },
+                  },
+                });
+
+                // Reset for next potential tool_search pair
+                lastToolSearchCallId = undefined;
+                lastToolSearchCallArguments = undefined;
               } else if (value.item.type === 'message') {
                 ongoingAnnotations.splice(0, ongoingAnnotations.length);
                 activeMessagePhase = value.item.phase ?? undefined;
@@ -1617,6 +1727,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       }),
                     ),
                   } satisfies InferSchema<typeof shellOutputSchema>,
+                });
+              } else if (value.item.type === 'tool_search_call') {
+                // Store ID and arguments for pairing with subsequent tool_search_output (if not already stored in added)
+                lastToolSearchCallId = value.item.id;
+                lastToolSearchCallArguments = value.item.arguments;
+              } else if (value.item.type === 'tool_search_output') {
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: value.item.id,
+                  toolName: toolNameMapping.toCustomToolName('tool_search'),
+                  result: mapToolSearchOutput(value.item.tools),
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      itemId: value.item.id,
+                    },
+                  },
                 });
               } else if (value.item.type === 'reasoning') {
                 const activeReasoningPart = activeReasoning[value.item.id];
@@ -2089,6 +2215,28 @@ function mapWebSearchOutput(
         },
       };
   }
+}
+
+function mapToolSearchOutput(
+  tools: Array<Record<string, unknown>>,
+): ToolSearchOutput {
+  return {
+    tools: tools.map(tool => {
+      const result: JSONObject = {};
+      for (const [key, value] of Object.entries(tool)) {
+        if (value === null || value === undefined) {
+          continue;
+        }
+        // Convert snake_case to camelCase for known properties
+        if (key === 'defer_loading') {
+          result['deferLoading'] = value as boolean;
+        } else {
+          result[key] = value as JSONValue;
+        }
+      }
+      return result;
+    }),
+  };
 }
 
 // The delta is embedded in a JSON string.
