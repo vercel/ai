@@ -3701,4 +3701,161 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
   });
+
+  describe('tool search', () => {
+    it('should skip tool_search_call item_reference and emit tool_search_output item_reference with store: true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'tso_abc123',
+                toolName: 'tool_search',
+                input: '{"arguments":{"paths":["get_weather"]}}',
+                providerExecuted: true,
+                providerOptions: {
+                  openai: {
+                    itemId: 'tsc_abc123',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'tso_abc123',
+                toolName: 'tool_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    tools: [
+                      {
+                        type: 'function',
+                        name: 'get_weather',
+                        description: 'Get weather',
+                        deferLoading: true,
+                      },
+                    ],
+                  },
+                },
+                providerOptions: {
+                  openai: {
+                    itemId: 'tso_abc123',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasToolSearchTool: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "tso_abc123",
+            "type": "item_reference",
+          },
+        ]
+      `);
+    });
+
+    it('should reconstruct tool_search_call and tool_search_output with store: false', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'tso_abc123',
+                toolName: 'tool_search',
+                input: '{"arguments":{"paths":["get_weather"]}}',
+                providerExecuted: true,
+                providerOptions: {
+                  openai: {
+                    itemId: 'tsc_abc123',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'tso_abc123',
+                toolName: 'tool_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    tools: [
+                      {
+                        type: 'function',
+                        name: 'get_weather',
+                        description: 'Get weather',
+                        deferLoading: true,
+                      },
+                    ],
+                  },
+                },
+                providerOptions: {
+                  openai: {
+                    itemId: 'tso_abc123',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+        hasToolSearchTool: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "arguments": {
+              "paths": [
+                "get_weather",
+              ],
+            },
+            "call_id": null,
+            "execution": "server",
+            "id": "tsc_abc123",
+            "status": "completed",
+            "type": "tool_search_call",
+          },
+          {
+            "call_id": null,
+            "execution": "server",
+            "id": "tso_abc123",
+            "status": "completed",
+            "tools": [
+              {
+                "defer_loading": true,
+                "description": "Get weather",
+                "name": "get_weather",
+                "type": "function",
+              },
+            ],
+            "type": "tool_search_output",
+          },
+        ]
+      `);
+    });
+  });
 });

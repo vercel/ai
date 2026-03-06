@@ -3282,6 +3282,50 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe('tool search', () => {
+      let result: LanguageModelV3GenerateResult;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-tool-search.1');
+
+        result = await createModel('gpt-5.4').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.tool_search',
+              name: 'toolSearch',
+              args: {},
+            },
+            {
+              type: 'function',
+              name: 'get_weather',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  location: { type: 'string' },
+                  unit: { type: 'string', enum: ['celsius', 'fahrenheit'] },
+                },
+                required: ['location'],
+                additionalProperties: false,
+              },
+              providerOptions: {
+                openai: { deferLoading: true },
+              },
+            },
+          ],
+        });
+      });
+
+      it('should send request body with tool_search and defer_loading tools', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
+      });
+
+      it('should include tool_search call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
     describe('mcp tool', () => {
       let result: LanguageModelV3GenerateResult;
 
@@ -6045,6 +6089,47 @@ describe('OpenAIResponsesLanguageModel', () => {
                 environment: {
                   type: 'containerAuto',
                 },
+              },
+            },
+          ],
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('tool search', () => {
+      it('should stream tool search call and output', async () => {
+        prepareChunksFixtureResponse('openai-tool-search.1');
+
+        const result = await createModel('gpt-5.4').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.tool_search',
+              name: 'toolSearch',
+              args: {},
+            },
+            {
+              type: 'function',
+              name: 'get_weather',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  location: { type: 'string' },
+                  unit: {
+                    type: 'string',
+                    enum: ['celsius', 'fahrenheit'],
+                  },
+                },
+                required: ['location'],
+                additionalProperties: false,
+              },
+              providerOptions: {
+                openai: { deferLoading: true },
               },
             },
           ],

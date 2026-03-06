@@ -7,6 +7,7 @@ import {
 import {
   convertToBase64,
   isNonNullable,
+  parseJSON,
   parseProviderOptions,
   ToolNameMapping,
   validateTypes,
@@ -227,8 +228,12 @@ export async function convertToOpenAIResponsesInput({
                   break;
                 }
                 // Reconstruct tool_search_call for multi-turn conversations
+                const inputValue =
+                  typeof part.input === 'string'
+                    ? await parseJSON({ text: part.input })
+                    : part.input;
                 const parsedInput = await validateTypes({
-                  value: part.input,
+                  value: inputValue,
                   schema: toolSearchInputSchema,
                 });
                 input.push({
@@ -666,6 +671,43 @@ export async function convertToOpenAIResponsesInput({
               status: parsedOutput.status,
               output: parsedOutput.output,
             });
+            continue;
+          }
+
+          if (hasToolSearchTool && resolvedToolName === 'tool_search') {
+            if (store) {
+              const itemId =
+                (
+                  part.providerOptions?.[providerOptionsName] as
+                    | { itemId?: string }
+                    | undefined
+                )?.itemId ?? part.toolCallId;
+              input.push({ type: 'item_reference', id: itemId });
+            } else if (output.type === 'json') {
+              const parsedOutput = await validateTypes({
+                value: output.value,
+                schema: toolSearchOutputSchema,
+              });
+              input.push({
+                type: 'tool_search_output',
+                id: part.toolCallId,
+                execution: 'server',
+                call_id: null,
+                status: 'completed',
+                tools: parsedOutput.tools.map(tool => {
+                  const result: Record<string, unknown> = {};
+                  for (const [key, value] of Object.entries(tool)) {
+                    if (value === undefined) continue;
+                    if (key === 'deferLoading') {
+                      result['defer_loading'] = value;
+                    } else {
+                      result[key] = value;
+                    }
+                  }
+                  return result;
+                }),
+              });
+            }
             continue;
           }
 
