@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.4
+
+### Patch Changes
+
+- 5ceed7d: fix(ai): doStream should reflect transformed values
+
 ## 7.0.0-beta.3
 
 ### Patch Changes
