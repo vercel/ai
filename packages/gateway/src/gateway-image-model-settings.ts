@@ -1,0 +1,17 @@
+export type GatewayImageModelId =
+  | 'google/imagen-4.0-generate'
+  | 'bfl/flux-kontext-max'
+  | 'bfl/flux-kontext-pro'
+  | 'bfl/flux-pro-1.0-fill'
+  | 'bfl/flux-pro-1.1'
+  | 'bfl/flux-pro-1.1-ultra'
+  | 'google/imagen-4.0-fast-generate-001'
+  | 'google/imagen-4.0-generate-001'
+  | 'google/imagen-4.0-ultra-generate-001'
+  | 'recraft/recraft-v2'
+  | 'recraft/recraft-v3'
+  | 'recraft/recraft-v4'
+  | 'recraft/recraft-v4-pro'
+  | 'xai/grok-imagine-image'
+  | 'xai/grok-imagine-image-pro'
+  | (string & {});
