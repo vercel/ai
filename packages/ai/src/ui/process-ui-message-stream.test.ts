@@ -301,6 +301,77 @@ describe('processUIMessageStream', () => {
         'Received text-delta for missing text part with ID "text-missing".',
       );
     });
+
+    it('should apply reasoning-delta to existing streaming reasoning part when reasoning-start was sent before reconnect', async () => {
+      const lastMessage: UIMessage = {
+        id: 'msg-123',
+        role: 'assistant',
+        parts: [
+          { type: 'step-start' },
+          { type: 'reasoning', text: 'Thinking...', state: 'streaming' },
+        ],
+      };
+
+      const stream = createUIMessageStream([
+        { type: 'reasoning-delta', id: 'reasoning-1', delta: ' more thoughts' },
+        { type: 'reasoning-end', id: 'reasoning-1' },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state!.message.parts).toContainEqual(
+        expect.objectContaining({
+          type: 'reasoning',
+          text: 'Thinking... more thoughts',
+          state: 'done',
+        }),
+      );
+    });
+
+    it('should still throw when reasoning-delta arrives with no streaming reasoning part in message state', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-456' },
+        { type: 'start-step' },
+        { type: 'reasoning-delta', id: 'reasoning-missing', delta: 'oops' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-456',
+        lastMessage: undefined,
+      });
+
+      await expect(
+        consumeStream({
+          stream: processUIMessageStream({
+            stream,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+          onError: error => {
+            throw error;
+          },
+        }),
+      ).rejects.toThrow(
+        'Received reasoning-delta for missing reasoning part with ID "reasoning-missing".',
+      );
+    });
   });
 
   describe('malformed stream errors', () => {
