@@ -1,6 +1,17 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
+import { JSONObject, JSONSchema7, JSONValue } from '@ai-sdk/provider';
 import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+
+const jsonValueSchema: z.ZodType<JSONValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(jsonValueSchema),
+    z.record(z.string(), jsonValueSchema.optional()),
+  ]),
+);
 
 export type OpenAIResponsesInput = Array<OpenAIResponsesInputItem>;
 
@@ -216,7 +227,7 @@ export type OpenAIResponsesToolSearchOutput = {
   execution: 'server' | 'client';
   call_id: string | null;
   status: 'in_progress' | 'completed' | 'incomplete';
-  tools: Array<Record<string, unknown>>;
+  tools: Array<JSONObject>;
 };
 
 export type OpenAIResponsesItemReference = {
@@ -633,18 +644,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             execution: z.enum(['server', 'client']),
             call_id: z.string().nullable(),
             status: z.enum(['in_progress', 'completed', 'incomplete']),
-            tools: z.array(
-              z
-                .object({
-                  type: z.string(),
-                  name: z.string().optional(),
-                  description: z.string().nullish(),
-                  defer_loading: z.boolean().nullish(),
-                  parameters: z.record(z.string(), z.unknown()).nullish(),
-                  strict: z.boolean().nullish(),
-                })
-                .passthrough(),
-            ),
+            tools: z.array(z.record(z.string(), jsonValueSchema.optional())),
           }),
         ]),
       }),
@@ -883,18 +883,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             execution: z.enum(['server', 'client']),
             call_id: z.string().nullable(),
             status: z.enum(['in_progress', 'completed', 'incomplete']),
-            tools: z.array(
-              z
-                .object({
-                  type: z.string(),
-                  name: z.string().optional(),
-                  description: z.string().nullish(),
-                  defer_loading: z.boolean().nullish(),
-                  parameters: z.record(z.string(), z.unknown()).nullish(),
-                  strict: z.boolean().nullish(),
-                })
-                .passthrough(),
-            ),
+            tools: z.array(z.record(z.string(), jsonValueSchema.optional())),
           }),
         ]),
       }),
@@ -1333,18 +1322,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               execution: z.enum(['server', 'client']),
               call_id: z.string().nullable(),
               status: z.enum(['in_progress', 'completed', 'incomplete']),
-              tools: z.array(
-                z
-                  .object({
-                    type: z.string(),
-                    name: z.string().optional(),
-                    description: z.string().nullish(),
-                    defer_loading: z.boolean().nullish(),
-                    parameters: z.record(z.string(), z.unknown()).nullish(),
-                    strict: z.boolean().nullish(),
-                  })
-                  .passthrough(),
-              ),
+              tools: z.array(z.record(z.string(), jsonValueSchema.optional())),
             }),
           ]),
         )

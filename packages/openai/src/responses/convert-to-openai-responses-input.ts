@@ -7,6 +7,7 @@ import {
 import {
   convertToBase64,
   isNonNullable,
+  parseJSON,
   parseProviderOptions,
   ToolNameMapping,
   validateTypes,
@@ -21,6 +22,10 @@ import {
   localShellOutputSchema,
 } from '../tool/local-shell';
 import { shellInputSchema, shellOutputSchema } from '../tool/shell';
+import {
+  toolSearchInputSchema,
+  toolSearchOutputSchema,
+} from '../tool/tool-search';
 import {
   OpenAIResponsesCustomToolCallOutput,
   OpenAIResponsesFunctionCallOutput,
@@ -206,6 +211,38 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
+              const resolvedToolName = toolNameMapping.toProviderToolName(
+                part.toolName,
+              );
+
+              if (part.providerExecuted && resolvedToolName === 'tool_search') {
+                if (store && id != null) {
+                  input.push({ type: 'item_reference', id });
+                  break;
+                }
+
+                const parsedInput =
+                  typeof part.input === 'string'
+                    ? await parseJSON({
+                        text: part.input,
+                        schema: toolSearchInputSchema,
+                      })
+                    : await validateTypes({
+                        value: part.input,
+                        schema: toolSearchInputSchema,
+                      });
+
+                input.push({
+                  type: 'tool_search_call',
+                  id: id ?? part.toolCallId,
+                  execution: 'server',
+                  call_id: parsedInput.call_id ?? null,
+                  status: 'completed',
+                  arguments: parsedInput.arguments,
+                });
+                break;
+              }
+
               if (part.providerExecuted) {
                 if (store && id != null) {
                   input.push({ type: 'item_reference', id });
@@ -217,10 +254,6 @@ export async function convertToOpenAIResponsesInput({
                 input.push({ type: 'item_reference', id });
                 break;
               }
-
-              const resolvedToolName = toolNameMapping.toProviderToolName(
-                part.toolName,
-              );
 
               if (hasLocalShellTool && resolvedToolName === 'local_shell') {
                 const parsedInput = await validateTypes({
@@ -327,6 +360,35 @@ export async function convertToOpenAIResponsesInput({
               const resolvedResultToolName = toolNameMapping.toProviderToolName(
                 part.toolName,
               );
+
+              if (resolvedResultToolName === 'tool_search') {
+                const itemId =
+                  (
+                    part.providerOptions?.[providerOptionsName] as
+                      | { itemId?: string }
+                      | undefined
+                  )?.itemId ?? part.toolCallId;
+
+                if (store) {
+                  input.push({ type: 'item_reference', id: itemId });
+                } else if (part.output.type === 'json') {
+                  const parsedOutput = await validateTypes({
+                    value: part.output.value,
+                    schema: toolSearchOutputSchema,
+                  });
+
+                  input.push({
+                    type: 'tool_search_output',
+                    id: itemId,
+                    execution: 'server',
+                    call_id: null,
+                    status: 'completed',
+                    tools: parsedOutput.tools,
+                  });
+                }
+
+                break;
+              }
 
               /*
                * Shell tool results are separate output items (shell_call_output)
