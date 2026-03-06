@@ -14,6 +14,7 @@ if (import.meta.url.endsWith(process.argv[1])) {
       pullRequestEvent,
       process.env,
       fs.readFile,
+      fs.lstat,
     );
     await fs.writeFile(
       process.env.GITHUB_STEP_SUMMARY,
@@ -36,10 +37,10 @@ ${error.message}`,
       );
     }
 
-    if (error.content) {
+    if (error.frontmatter) {
       await fs.appendFile(
         process.env.GITHUB_STEP_SUMMARY,
-        `\n\n\`\`\`yaml\n${error.content}\n\`\`\``,
+        `\n\n\`\`\`yaml\n${error.frontmatter}\n\`\`\``,
       );
     }
 
@@ -51,6 +52,7 @@ export async function verifyChangesets(
   event,
   env = process.env,
   readFile = fs.readFile,
+  lstat = fs.lstat,
 ) {
   // Skip check if pull request has "minor-release" label
   const byPassLabel = event.pull_request.labels.find(label =>
@@ -72,16 +74,23 @@ export async function verifyChangesets(
       });
     }
 
+    // Reject symlinks to prevent arbitrary file reads (CWE-59)
+    const filePath = `../../../../${path}`;
+    const stat = await lstat(filePath);
+    if (stat.isSymbolicLink()) {
+      throw Object.assign(
+        new Error(`Invalid .changeset file - symlinks are not allowed`),
+        { path },
+      );
+    }
+
     // find frontmatter
-    const content = await readFile(`../../../../${path}`, 'utf-8');
+    const content = await readFile(filePath, 'utf-8');
     const result = content.match(/---\n([\s\S]+?)\n---/);
     if (!result) {
       throw Object.assign(
         new Error(`Invalid .changeset file - no frontmatter found`),
-        {
-          path,
-          content,
-        },
+        { path },
       );
     }
 
@@ -99,10 +108,8 @@ export async function verifyChangesets(
       const [packageName, versionBump] = line.split(':').map(s => s.trim());
       if (!packageName || !versionBump) {
         throw Object.assign(
-          new Error(`Invalid .changeset file - invalid frontmatter`, {
-            path,
-            content,
-          }),
+          new Error(`Invalid .changeset file - invalid frontmatter`),
+          { path, frontmatter },
         );
       }
 
@@ -112,7 +119,7 @@ export async function verifyChangesets(
           new Error(
             `Invalid .changeset file - duplicate package name "${packageName}"`,
           ),
-          { path, content },
+          { path, frontmatter },
         );
       }
 
@@ -130,7 +137,7 @@ export async function verifyChangesets(
           `Invalid .changeset file - invalid version bump (only "patch" is allowed, see https://ai-sdk.dev/docs/migration-guides/versioning). To bypass, add one of the following labels: ${BYPASS_LABELS.join(', ')}`,
         ),
 
-        { path, content },
+        { path, frontmatter },
       );
     }
   }
