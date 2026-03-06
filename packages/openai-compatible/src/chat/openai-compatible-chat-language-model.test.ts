@@ -1512,6 +1512,21 @@ describe('doStream', () => {
     });
   });
 
+  describe('Azure text (fixture)', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('azure-text');
+    });
+
+    it('should stream text content with Azure SSE format', async () => {
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+  });
+
   describe('tool call (fixture)', () => {
     beforeEach(() => {
       prepareChunksFixtureResponse('xai-tool-call');
