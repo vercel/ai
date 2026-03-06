@@ -274,6 +274,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       output: asUITool<TOOL>['output'];
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
+      resultProviderMetadata?: ProviderMetadata;
       preliminary?: boolean;
       approval?: {
         id: string;
@@ -288,6 +289,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       output?: never;
       errorText: string;
       callProviderMetadata?: ProviderMetadata;
+      resultProviderMetadata?: ProviderMetadata;
       approval?: {
         id: string;
         approved: true;
@@ -379,6 +381,7 @@ export type DynamicToolUIPart = {
       output: unknown;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
+      resultProviderMetadata?: ProviderMetadata;
       preliminary?: boolean;
       approval?: {
         id: string;
@@ -392,6 +395,7 @@ export type DynamicToolUIPart = {
       output?: never;
       errorText: string;
       callProviderMetadata?: ProviderMetadata;
+      resultProviderMetadata?: ProviderMetadata;
       approval?: {
         id: string;
         approved: true;

@@ -205,6 +205,9 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     (part.state === 'output-available' ||
                       part.state === 'output-error')
                   ) {
+                    const resultProviderMetadata =
+                      part.resultProviderMetadata ?? part.callProviderMetadata;
+
                     content.push({
                       type: 'tool-result',
                       toolCallId: part.toolCallId,
@@ -220,8 +223,8 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                         errorMode:
                           part.state === 'output-error' ? 'json' : 'none',
                       }),
-                      ...(part.callProviderMetadata != null
-                        ? { providerOptions: part.callProviderMetadata }
+                      ...(resultProviderMetadata != null
+                        ? { providerOptions: resultProviderMetadata }
                         : {}),
                     });
                   }

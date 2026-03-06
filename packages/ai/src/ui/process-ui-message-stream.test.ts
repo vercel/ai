@@ -5250,6 +5250,56 @@ describe('processUIMessageStream', () => {
         ]
       `);
     });
+
+    it('should preserve separate call and result provider metadata for static tools', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-1',
+          toolName: 'tool-name',
+          input: { query: 'test' },
+          providerExecuted: true,
+          providerMetadata: { testProvider: { itemId: 'call-item' } },
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'tool-call-1',
+          output: { result: 'provider-result' },
+          providerExecuted: true,
+          providerMetadata: { testProvider: { itemId: 'result-item' } },
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const toolPart = state!.message.parts.find(
+        (part: any) => part.toolCallId === 'tool-call-1',
+      ) as any;
+
+      expect(toolPart.callProviderMetadata).toEqual({
+        testProvider: { itemId: 'call-item' },
+      });
+      expect(toolPart.resultProviderMetadata).toEqual({
+        testProvider: { itemId: 'result-item' },
+      });
+    });
   });
 
   describe('provider-executed dynamic tools', () => {
@@ -5579,6 +5629,58 @@ describe('processUIMessageStream', () => {
           },
         ]
       `);
+    });
+
+    it('should preserve separate call and result provider metadata for dynamic tools', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-1',
+          toolName: 'tool-name',
+          input: { query: 'test' },
+          providerExecuted: true,
+          dynamic: true,
+          providerMetadata: { testProvider: { itemId: 'call-item' } },
+        },
+        {
+          type: 'tool-output-error',
+          toolCallId: 'tool-call-1',
+          errorText: 'error-text',
+          providerExecuted: true,
+          dynamic: true,
+          providerMetadata: { testProvider: { itemId: 'result-item' } },
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const toolPart = state!.message.parts.find(
+        (part: any) => part.toolCallId === 'tool-call-1',
+      ) as any;
+
+      expect(toolPart.callProviderMetadata).toEqual({
+        testProvider: { itemId: 'call-item' },
+      });
+      expect(toolPart.resultProviderMetadata).toEqual({
+        testProvider: { itemId: 'result-item' },
+      });
     });
   });
 

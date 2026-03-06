@@ -4652,6 +4652,9 @@ describe('generateText', () => {
                   toolCallId: 'call-1',
                   toolName: 'web_search',
                   result: `{ "value": "result1" }`,
+                  providerMetadata: {
+                    openai: { itemId: 'tool-result-1' },
+                  },
                 },
                 {
                   type: 'tool-call',
@@ -4667,6 +4670,9 @@ describe('generateText', () => {
                   result: 'ERROR',
                   isError: true,
                   providerExecuted: true,
+                  providerMetadata: {
+                    openai: { itemId: 'tool-result-2' },
+                  },
                 },
               ],
             }),
@@ -4706,6 +4712,11 @@ describe('generateText', () => {
               },
               "output": "{ "value": "result1" }",
               "providerExecuted": true,
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "tool-result-1",
+                },
+              },
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-result",
@@ -4728,6 +4739,11 @@ describe('generateText', () => {
                 "value": "value",
               },
               "providerExecuted": true,
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "tool-result-2",
+                },
+              },
               "toolCallId": "call-2",
               "toolName": "web_search",
               "type": "tool-error",
@@ -4775,6 +4791,11 @@ describe('generateText', () => {
               },
               "output": "{ "value": "result1" }",
               "providerExecuted": true,
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "tool-result-1",
+                },
+              },
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-result",

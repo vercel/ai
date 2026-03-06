@@ -137,6 +137,7 @@ const uiMessagesSchema = lazySchema(() =>
                   output: z.unknown(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
+                  resultProviderMetadata: providerMetadataSchema.optional(),
                   preliminary: z.boolean().optional(),
                   approval: z
                     .object({
@@ -157,6 +158,7 @@ const uiMessagesSchema = lazySchema(() =>
                   output: z.never().optional(),
                   errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
+                  resultProviderMetadata: providerMetadataSchema.optional(),
                   approval: z
                     .object({
                       id: z.string(),
@@ -242,6 +244,7 @@ const uiMessagesSchema = lazySchema(() =>
                   output: z.unknown(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
+                  resultProviderMetadata: providerMetadataSchema.optional(),
                   preliminary: z.boolean().optional(),
                   approval: z
                     .object({
@@ -261,6 +264,7 @@ const uiMessagesSchema = lazySchema(() =>
                   output: z.never().optional(),
                   errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
+                  resultProviderMetadata: providerMetadataSchema.optional(),
                   approval: z
                     .object({
                       id: z.string(),
