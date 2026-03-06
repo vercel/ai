@@ -63,11 +63,22 @@ export class HttpMCPTransport implements MCPTransport {
   private async commonHeaders(
     base: Record<string, string>,
   ): Promise<Record<string, string>> {
-    const headers: Record<string, string> = {
-      ...this.headers,
-      ...base,
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
-    };
+    const FORBIDDEN_KEYS = new Set([
+      '__proto__',
+      'constructor',
+      'prototype',
+    ]);
+    const headers: Record<string, string> = Object.create(null);
+    for (const source of [this.headers, base]) {
+      if (source) {
+        for (const [key, value] of Object.entries(source)) {
+          if (!FORBIDDEN_KEYS.has(key)) {
+            headers[key] = value;
+          }
+        }
+      }
+    }
+    headers['mcp-protocol-version'] = LATEST_PROTOCOL_VERSION;
 
     if (this.sessionId) {
       headers['mcp-session-id'] = this.sessionId;
