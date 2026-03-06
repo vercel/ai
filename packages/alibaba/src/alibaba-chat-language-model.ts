@@ -19,6 +19,7 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  isParsableJson,
   parseProviderOptions,
   postJsonToApi,
   type ParseResult,
@@ -425,6 +426,23 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
                     });
                   }
 
+                  // Check if already complete (some providers send full tool call at once)
+                  if (isParsableJson(toolCall.function.arguments)) {
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: toolCall.id,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallId: toolCall.id,
+                      toolName: toolCall.function.name,
+                      input: toolCall.function.arguments,
+                    });
+
+                    toolCall.hasFinished = true;
+                  }
+
                   continue;
                 }
 
@@ -445,6 +463,23 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
                     id: toolCall.id,
                     delta: toolCallDelta.function.arguments,
                   });
+                }
+
+                // Check if tool call is now complete
+                if (isParsableJson(toolCall.function.arguments)) {
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: toolCall.id,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: toolCall.id,
+                    toolName: toolCall.function.name,
+                    input: toolCall.function.arguments,
+                  });
+
+                  toolCall.hasFinished = true;
                 }
               }
             }
@@ -468,25 +503,6 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
 
             if (activeText) {
               controller.enqueue({ type: 'text-end', id: '0' });
-            }
-
-            // Finalize any unfinished tool calls on stream end to
-            // prevent premature execution from parsable partial JSON.
-            for (const toolCall of toolCalls) {
-              if (!toolCall.hasFinished) {
-                controller.enqueue({
-                  type: 'tool-input-end',
-                  id: toolCall.id,
-                });
-
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: toolCall.id,
-                  toolName: toolCall.function.name,
-                  input: toolCall.function.arguments,
-                });
-                toolCall.hasFinished = true;
-              }
             }
 
             controller.enqueue({

@@ -17,6 +17,7 @@ import {
   FetchFunction,
   generateId,
   InferSchema,
+  isParsableJson,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
@@ -420,6 +421,23 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
                         delta: toolCall.function.arguments,
                       });
                     }
+
+                    // check if tool call is complete
+                    // (some providers send the full tool call in one chunk):
+                    if (isParsableJson(toolCall.function.arguments)) {
+                      controller.enqueue({
+                        type: 'tool-input-end',
+                        id: toolCall.id,
+                      });
+
+                      controller.enqueue({
+                        type: 'tool-call',
+                        toolCallId: toolCall.id ?? generateId(),
+                        toolName: toolCall.function.name,
+                        input: toolCall.function.arguments,
+                      });
+                      toolCall.hasFinished = true;
+                    }
                   }
 
                   continue;
@@ -443,6 +461,26 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
                   id: toolCall.id,
                   delta: toolCallDelta.function.arguments ?? '',
                 });
+
+                // check if tool call is complete
+                if (
+                  toolCall.function?.name != null &&
+                  toolCall.function?.arguments != null &&
+                  isParsableJson(toolCall.function.arguments)
+                ) {
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: toolCall.id,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: toolCall.id ?? generateId(),
+                    toolName: toolCall.function.name,
+                    input: toolCall.function.arguments,
+                  });
+                  toolCall.hasFinished = true;
+                }
               }
             }
           },
