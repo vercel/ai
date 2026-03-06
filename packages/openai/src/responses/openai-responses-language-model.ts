@@ -559,8 +559,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
         case 'tool_search_call': {
           const toolCallId = part.call_id ?? part.id;
+          const isHosted = part.execution === 'server';
 
-          if (part.execution === 'server') {
+          if (isHosted) {
             hostedToolSearchCallIds.push(toolCallId);
           }
 
@@ -572,7 +573,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               arguments: part.arguments,
               call_id: part.call_id,
             } satisfies InferSchema<typeof toolSearchInputSchema>),
-            providerExecuted: true,
+            ...(isHosted ? { providerExecuted: true } : {}),
             providerMetadata: {
               [providerOptionsName]: {
                 itemId: part.id,
@@ -1079,6 +1080,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             hasDiff: boolean;
             endEmitted: boolean;
           };
+          toolSearchExecution?: 'server' | 'client';
         }
       | undefined
     > = {};
@@ -1243,21 +1245,25 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'tool_search_call') {
-                const toolCallId = value.item.call_id ?? value.item.id;
+                const toolCallId = value.item.id;
                 const toolName =
                   toolNameMapping.toCustomToolName('tool_search');
+                const isHosted = value.item.execution === 'server';
 
                 ongoingToolCalls[value.output_index] = {
                   toolName,
                   toolCallId,
+                  toolSearchExecution: value.item.execution ?? 'server',
                 };
 
-                controller.enqueue({
-                  type: 'tool-input-start',
-                  id: toolCallId,
-                  toolName,
-                  providerExecuted: true,
-                });
+                if (isHosted) {
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id: toolCallId,
+                    toolName,
+                    providerExecuted: true,
+                  });
+                }
               } else if (value.item.type === 'tool_search_output') {
                 // handled on output_item.done so we can pair it with the call
               } else if (
@@ -1492,26 +1498,37 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 });
               } else if (value.item.type === 'tool_search_call') {
                 const toolCall = ongoingToolCalls[value.output_index];
+                const isHosted = value.item.execution === 'server';
 
                 if (toolCall != null) {
-                  if (value.item.execution === 'server') {
-                    hostedToolSearchCallIds.push(toolCall.toolCallId);
+                  const toolCallId = isHosted
+                    ? toolCall.toolCallId
+                    : (value.item.call_id ?? value.item.id);
+
+                  if (isHosted) {
+                    hostedToolSearchCallIds.push(toolCallId);
+                  } else {
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: toolCallId,
+                      toolName: toolCall.toolName,
+                    });
                   }
 
                   controller.enqueue({
                     type: 'tool-input-end',
-                    id: toolCall.toolCallId,
+                    id: toolCallId,
                   });
 
                   controller.enqueue({
                     type: 'tool-call',
-                    toolCallId: toolCall.toolCallId,
+                    toolCallId,
                     toolName: toolCall.toolName,
                     input: JSON.stringify({
                       arguments: value.item.arguments,
-                      call_id: value.item.call_id,
+                      call_id: isHosted ? null : toolCallId,
                     } satisfies InferSchema<typeof toolSearchInputSchema>),
-                    providerExecuted: true,
+                    ...(isHosted ? { providerExecuted: true } : {}),
                     providerMetadata: {
                       [providerOptionsName]: {
                         itemId: value.item.id,

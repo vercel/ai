@@ -5943,6 +5943,131 @@ describe('OpenAIResponsesLanguageModel', () => {
           ]
         `);
       });
+
+      it('should use the final tool search call_id when the streamed provisional id changes', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","response":{"id":"resp_tool_search_client","object":"response","created_at":1741362087,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-5.4","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":false,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"tool_search","execution":"client","description":"Search for tools","parameters":{"type":"object","properties":{"goal":{"type":"string"}},"required":["goal"],"additionalProperties":false}},{"type":"function","name":"get_weather","description":"Get the current weather at a specific location","parameters":{"type":"object","properties":{"location":{"type":"string"}},"required":["location"],"additionalProperties":false},"strict":true,"defer_loading":true}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+            `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"tool_search_call","id":"tsc_client_1","execution":"client","call_id":"call_provisional","status":"completed","arguments":{"goal":"Find the weather tool"}}}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"tool_search_call","id":"tsc_client_1","execution":"client","call_id":"call_final","status":"completed","arguments":{"goal":"Find the weather tool"}}}\n\n`,
+            `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"tool_search_output","id":"tso_client_1","execution":"client","call_id":"call_final","status":"completed","tools":[{"type":"function","name":"get_weather","description":"Get the current weather at a specific location","parameters":{"type":"object","properties":{"location":{"type":"string"}},"required":["location"],"additionalProperties":false},"strict":true,"defer_loading":true}]}}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"tool_search_output","id":"tso_client_1","execution":"client","call_id":"call_final","status":"completed","tools":[{"type":"function","name":"get_weather","description":"Get the current weather at a specific location","parameters":{"type":"object","properties":{"location":{"type":"string"}},"required":["location"],"additionalProperties":false},"strict":true,"defer_loading":true}]}}\n\n`,
+            `data:{"type":"response.completed","response":{"id":"resp_tool_search_client","object":"response","created_at":1741362087,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-5.4","output":[{"type":"tool_search_call","id":"tsc_client_1","execution":"client","call_id":"call_final","status":"completed","arguments":{"goal":"Find the weather tool"}},{"type":"tool_search_output","id":"tso_client_1","execution":"client","call_id":"call_final","status":"completed","tools":[{"type":"function","name":"get_weather","description":"Get the current weather at a specific location","parameters":{"type":"object","properties":{"location":{"type":"string"}},"required":["location"],"additionalProperties":false},"strict":true,"defer_loading":true}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":false,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"tool_search","execution":"client","description":"Search for tools","parameters":{"type":"object","properties":{"goal":{"type":"string"}},"required":["goal"],"additionalProperties":false}},{"type":"function","name":"get_weather","description":"Get the current weather at a specific location","parameters":{"type":"object","properties":{"location":{"type":"string"}},"required":["location"],"additionalProperties":false},"strict":true,"defer_loading":true}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":0,"input_tokens_details":{"cached_tokens":0},"output_tokens":0,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":0},"user":null,"metadata":{}}}\n\n`,
+          ],
+        };
+
+        const { stream } = await createModel('gpt-5.4').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.tool_search',
+              name: 'toolSearch',
+              args: {
+                execution: 'client',
+                description: 'Search for tools',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    goal: { type: 'string' },
+                  },
+                  required: ['goal'],
+                  additionalProperties: false,
+                },
+              },
+            },
+            {
+              type: 'function',
+              name: 'get_weather',
+              description: 'Get the current weather at a specific location',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  location: { type: 'string' },
+                },
+                required: ['location'],
+                additionalProperties: false,
+              },
+              strict: true,
+              providerOptions: {
+                openai: {
+                  deferLoading: true,
+                },
+              },
+            },
+          ],
+        });
+
+        const toolSearchParts = (
+          await convertReadableStreamToArray(stream)
+        ).filter(
+          part =>
+            (part.type === 'tool-input-start' &&
+              part.toolName === 'toolSearch') ||
+            (part.type === 'tool-input-end' && part.id === 'call_final') ||
+            (part.type === 'tool-call' && part.toolName === 'toolSearch') ||
+            (part.type === 'tool-result' && part.toolName === 'toolSearch'),
+        );
+
+        expect(toolSearchParts).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "call_final",
+              "toolName": "toolSearch",
+              "type": "tool-input-start",
+            },
+            {
+              "id": "call_final",
+              "type": "tool-input-end",
+            },
+            {
+              "input": "{"arguments":{"goal":"Find the weather tool"},"call_id":"call_final"}",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "tsc_client_1",
+                },
+              },
+              "toolCallId": "call_final",
+              "toolName": "toolSearch",
+              "type": "tool-call",
+            },
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "tso_client_1",
+                },
+              },
+              "result": {
+                "tools": [
+                  {
+                    "defer_loading": true,
+                    "description": "Get the current weather at a specific location",
+                    "name": "get_weather",
+                    "parameters": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "location": {
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "location",
+                      ],
+                      "type": "object",
+                    },
+                    "strict": true,
+                    "type": "function",
+                  },
+                ],
+              },
+              "toolCallId": "call_final",
+              "toolName": "toolSearch",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
     });
 
     describe('file search tool', () => {

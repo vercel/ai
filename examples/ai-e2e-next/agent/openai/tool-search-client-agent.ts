@@ -82,28 +82,28 @@ export const openaiToolSearchClientAgent = new ToolLoopAgent({
 
         return {
           tools: [
-            // {
-            //   type: 'function',
-            //   name: 'get_weather',
-            //   description: 'Get the current weather at a specific location',
-            //   deferLoading: true,
-            //   parameters: {
-            //     type: 'object',
-            //     properties: {
-            //       location: {
-            //         type: 'string',
-            //         description: 'The city and state, e.g. San Francisco, CA',
-            //       },
-            //       unit: {
-            //         type: 'string',
-            //         enum: ['celsius', 'fahrenheit'],
-            //         description: 'Temperature unit',
-            //       },
-            //     },
-            //     required: ['location'],
-            //     additionalProperties: false,
-            //   },
-            // },
+            {
+              type: 'function',
+              name: 'get_weather',
+              description: 'Get the current weather at a specific location',
+              deferLoading: true,
+              parameters: {
+                type: 'object',
+                properties: {
+                  location: {
+                    type: 'string',
+                    description: 'The city and state, e.g. San Francisco, CA',
+                  },
+                  unit: {
+                    type: 'string',
+                    enum: ['celsius', 'fahrenheit'],
+                    description: 'Temperature unit',
+                  },
+                },
+                required: ['location'],
+                additionalProperties: false,
+              },
+            },
             {
               type: 'function',
               name: 'search_files',

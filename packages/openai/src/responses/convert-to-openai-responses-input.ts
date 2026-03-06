@@ -215,7 +215,7 @@ export async function convertToOpenAIResponsesInput({
                 part.toolName,
               );
 
-              if (part.providerExecuted && resolvedToolName === 'tool_search') {
+              if (resolvedToolName === 'tool_search') {
                 if (store && id != null) {
                   input.push({ type: 'item_reference', id });
                   break;
@@ -232,10 +232,13 @@ export async function convertToOpenAIResponsesInput({
                         schema: toolSearchInputSchema,
                       });
 
+                const execution =
+                  parsedInput.call_id != null ? 'client' : 'server';
+
                 input.push({
                   type: 'tool_search_call',
                   id: id ?? part.toolCallId,
-                  execution: 'server',
+                  execution,
                   call_id: parsedInput.call_id ?? null,
                   status: 'completed',
                   arguments: parsedInput.arguments,
@@ -588,6 +591,22 @@ export async function convertToOpenAIResponsesInput({
           const resolvedToolName = toolNameMapping.toProviderToolName(
             part.toolName,
           );
+
+          if (resolvedToolName === 'tool_search' && output.type === 'json') {
+            const parsedOutput = await validateTypes({
+              value: output.value,
+              schema: toolSearchOutputSchema,
+            });
+
+            input.push({
+              type: 'tool_search_output',
+              execution: 'client',
+              call_id: part.toolCallId,
+              status: 'completed',
+              tools: parsedOutput.tools,
+            });
+            continue;
+          }
 
           if (
             hasLocalShellTool &&
