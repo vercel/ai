@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [210ed3d]
+  - ai@7.0.0-beta.7
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
 - ai@7.0.0-beta.6
 
 ## 0.0.1-beta.0
