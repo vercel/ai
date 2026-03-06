@@ -391,6 +391,72 @@ describe('AmazonBedrockProvider', () => {
         );
       });
 
+      it('should resolve aws-iso partition endpoint for us-iso regions', () => {
+        const provider = createAmazonBedrock({
+          region: 'us-iso-east-1',
+        });
+
+        provider('anthropic.claude-v2');
+
+        const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
+        expect(constructorCall[1].baseUrl()).toBe(
+          'https://bedrock-runtime.us-iso-east-1.c2s.ic.gov',
+        );
+      });
+
+      it('should resolve aws-iso-b partition endpoint for us-isob regions', () => {
+        const provider = createAmazonBedrock({
+          region: 'us-isob-east-1',
+        });
+
+        provider('anthropic.claude-v2');
+
+        const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
+        expect(constructorCall[1].baseUrl()).toBe(
+          'https://bedrock-runtime.us-isob-east-1.sc2s.sgov.gov',
+        );
+      });
+
+      it('should resolve aws-cn partition endpoint for China regions', () => {
+        const provider = createAmazonBedrock({
+          region: 'cn-north-1',
+        });
+
+        provider('anthropic.claude-v2');
+
+        const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
+        expect(constructorCall[1].baseUrl()).toBe(
+          'https://bedrock-runtime.cn-north-1.amazonaws.com.cn',
+        );
+      });
+
+      it('should resolve standard endpoint for us-gov regions', () => {
+        const provider = createAmazonBedrock({
+          region: 'us-gov-west-1',
+        });
+
+        provider('anthropic.claude-v2');
+
+        const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
+        expect(constructorCall[1].baseUrl()).toBe(
+          'https://bedrock-runtime.us-gov-west-1.amazonaws.com',
+        );
+      });
+
+      it('should use explicit baseURL over partition resolution', () => {
+        const provider = createAmazonBedrock({
+          region: 'us-iso-east-1',
+          baseURL: 'https://custom-endpoint.example.com',
+        });
+
+        provider('anthropic.claude-v2');
+
+        const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
+        expect(constructorCall[1].baseUrl()).toBe(
+          'https://custom-endpoint.example.com',
+        );
+      });
+
       it('should work with credential provider when no API key is provided', () => {
         // Mock loadOptionalSetting to return undefined (no API key)
         mockLoadOptionalSetting.mockImplementation(() => undefined);

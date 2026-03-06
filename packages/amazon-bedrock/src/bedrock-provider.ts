@@ -25,6 +25,7 @@ import {
   createApiKeyFetchFunction,
   createSigV4FetchFunction,
 } from './bedrock-sigv4-fetch';
+import { resolvePartitionDomain } from './bedrock-partition';
 import { BedrockRerankingModel } from './reranking/bedrock-reranking-model';
 import { BedrockRerankingModelId } from './reranking/bedrock-reranking-options';
 import { VERSION } from './version';
@@ -263,27 +264,33 @@ export function createAmazonBedrock(
     return withUserAgentSuffix(baseHeaders, `ai-sdk/amazon-bedrock/${VERSION}`);
   };
 
-  const getBedrockRuntimeBaseUrl = (): string =>
-    withoutTrailingSlash(
-      options.baseURL ??
-        `https://bedrock-runtime.${loadSetting({
-          settingValue: options.region,
-          settingName: 'region',
-          environmentVariableName: 'AWS_REGION',
-          description: 'AWS region',
-        })}.amazonaws.com`,
-    ) ?? `https://bedrock-runtime.us-east-1.amazonaws.com`;
+  const getBedrockRuntimeBaseUrl = (): string => {
+    if (options.baseURL) {
+      return withoutTrailingSlash(options.baseURL) ?? options.baseURL;
+    }
+    const region = loadSetting({
+      settingValue: options.region,
+      settingName: 'region',
+      environmentVariableName: 'AWS_REGION',
+      description: 'AWS region',
+    });
+    const domain = resolvePartitionDomain(region);
+    return `https://bedrock-runtime.${region}.${domain}`;
+  };
 
-  const getBedrockAgentRuntimeBaseUrl = (): string =>
-    withoutTrailingSlash(
-      options.baseURL ??
-        `https://bedrock-agent-runtime.${loadSetting({
-          settingValue: options.region,
-          settingName: 'region',
-          environmentVariableName: 'AWS_REGION',
-          description: 'AWS region',
-        })}.amazonaws.com`,
-    ) ?? `https://bedrock-agent-runtime.us-west-2.amazonaws.com`;
+  const getBedrockAgentRuntimeBaseUrl = (): string => {
+    if (options.baseURL) {
+      return withoutTrailingSlash(options.baseURL) ?? options.baseURL;
+    }
+    const region = loadSetting({
+      settingValue: options.region,
+      settingName: 'region',
+      environmentVariableName: 'AWS_REGION',
+      description: 'AWS region',
+    });
+    const domain = resolvePartitionDomain(region);
+    return `https://bedrock-agent-runtime.${region}.${domain}`;
+  };
 
   const createChatModel = (modelId: BedrockChatModelId) =>
     new BedrockChatLanguageModel(modelId, {
