@@ -6,7 +6,9 @@ import {
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-messages-api';
 import { CacheControlValidator } from './get-cache-control';
 import { textEditor_20250728ArgsSchema } from './tool/text-editor_20250728';
+import { webSearch_20260209ArgsSchema } from './tool/web-search_20260209';
 import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
+import { webFetch_20260209ArgsSchema } from './tool/web-fetch-20260209';
 import { webFetch_20250910ArgsSchema } from './tool/web-fetch-20250910';
 import { validateTypes } from '@ai-sdk/provider-utils';
 
@@ -15,6 +17,7 @@ export interface AnthropicToolOptions {
   allowedCallers?: Array<
     'direct' | 'code_execution_20250825' | 'code_execution_20260120'
   >;
+  eagerInputStreaming?: boolean;
 }
 
 export async function prepareTools({
@@ -64,6 +67,8 @@ export async function prepareTools({
         const anthropicOptions = tool.providerOptions?.anthropic as
           | AnthropicToolOptions
           | undefined;
+        // eager_input_streaming is only supported on custom (function) tools
+        const eagerInputStreaming = anthropicOptions?.eagerInputStreaming;
         const deferLoading = anthropicOptions?.deferLoading;
         const allowedCallers = anthropicOptions?.allowedCallers;
 
@@ -72,6 +77,7 @@ export async function prepareTools({
           description: tool.description,
           input_schema: tool.inputSchema,
           cache_control: cacheControl,
+          ...(eagerInputStreaming ? { eager_input_streaming: true } : {}),
           ...(supportsStructuredOutput === true && tool.strict != null
             ? { strict: tool.strict }
             : {}),
@@ -249,6 +255,24 @@ export async function prepareTools({
             });
             break;
           }
+          case 'anthropic.web_fetch_20260209': {
+            betas.add('code-execution-web-tools-2026-02-09');
+            const args = await validateTypes({
+              value: tool.args,
+              schema: webFetch_20260209ArgsSchema,
+            });
+            anthropicTools.push({
+              type: 'web_fetch_20260209',
+              name: 'web_fetch',
+              max_uses: args.maxUses,
+              allowed_domains: args.allowedDomains,
+              blocked_domains: args.blockedDomains,
+              citations: args.citations,
+              max_content_tokens: args.maxContentTokens,
+              cache_control: undefined,
+            });
+            break;
+          }
           case 'anthropic.web_search_20250305': {
             const args = await validateTypes({
               value: tool.args,
@@ -256,6 +280,23 @@ export async function prepareTools({
             });
             anthropicTools.push({
               type: 'web_search_20250305',
+              name: 'web_search',
+              max_uses: args.maxUses,
+              allowed_domains: args.allowedDomains,
+              blocked_domains: args.blockedDomains,
+              user_location: args.userLocation,
+              cache_control: undefined,
+            });
+            break;
+          }
+          case 'anthropic.web_search_20260209': {
+            betas.add('code-execution-web-tools-2026-02-09');
+            const args = await validateTypes({
+              value: tool.args,
+              schema: webSearch_20260209ArgsSchema,
+            });
+            anthropicTools.push({
+              type: 'web_search_20260209',
               name: 'web_search',
               max_uses: args.maxUses,
               allowed_domains: args.allowedDomains,
