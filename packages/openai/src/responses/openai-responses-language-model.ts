@@ -937,9 +937,27 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         }
 
         case 'tool_search_call': {
-          // Store the ID and arguments for pairing with the subsequent tool_search_output
-          lastToolSearchCallId = part.id;
-          lastToolSearchCallArguments = part.arguments;
+          if (part.execution === 'client') {
+            hasFunctionCall = true;
+            content.push({
+              type: 'tool-call',
+              toolCallId: part.call_id!,
+              toolName: toolNameMapping.toCustomToolName('tool_search'),
+              input: JSON.stringify({
+                arguments: part.arguments,
+                call_id: part.call_id,
+              }),
+              providerMetadata: {
+                [providerOptionsName]: {
+                  itemId: part.id,
+                },
+              },
+            });
+          } else {
+            // Hosted: store for pairing with subsequent tool_search_output
+            lastToolSearchCallId = part.id;
+            lastToolSearchCallArguments = part.arguments;
+          }
           break;
         }
 
@@ -1300,9 +1318,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               } else if (value.item.type === 'shell_call_output') {
                 // shell_call_output is handled in output_item.done
               } else if (value.item.type === 'tool_search_call') {
-                // Store ID and arguments for pairing with subsequent tool_search_output
-                lastToolSearchCallId = value.item.id;
-                lastToolSearchCallArguments = value.item.arguments;
+                if (value.item.execution === 'client') {
+                  // Client-executed: will be fully handled in output_item.done
+                } else {
+                  // Hosted: store for pairing with subsequent tool_search_output
+                  lastToolSearchCallId = value.item.id;
+                  lastToolSearchCallArguments = value.item.arguments;
+                }
               } else if (value.item.type === 'tool_search_output') {
                 const inputJson = JSON.stringify({
                   arguments: lastToolSearchCallArguments,
@@ -1729,9 +1751,46 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   } satisfies InferSchema<typeof shellOutputSchema>,
                 });
               } else if (value.item.type === 'tool_search_call') {
-                // Store ID and arguments for pairing with subsequent tool_search_output (if not already stored in added)
-                lastToolSearchCallId = value.item.id;
-                lastToolSearchCallArguments = value.item.arguments;
+                if (value.item.execution === 'client') {
+                  hasFunctionCall = true;
+                  const inputJson = JSON.stringify({
+                    arguments: value.item.arguments,
+                    call_id: value.item.call_id,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id: value.item.call_id!,
+                    toolName: toolNameMapping.toCustomToolName('tool_search'),
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: value.item.call_id!,
+                    delta: inputJson,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: value.item.call_id!,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: value.item.call_id!,
+                    toolName: toolNameMapping.toCustomToolName('tool_search'),
+                    input: inputJson,
+                    providerMetadata: {
+                      [providerOptionsName]: {
+                        itemId: value.item.id,
+                      },
+                    },
+                  });
+                } else {
+                  // Hosted: store for pairing with subsequent tool_search_output
+                  lastToolSearchCallId = value.item.id;
+                  lastToolSearchCallArguments = value.item.arguments;
+                }
               } else if (value.item.type === 'tool_search_output') {
                 // tool_search_output is fully handled in output_item.added
               } else if (value.item.type === 'reasoning') {

@@ -212,7 +212,7 @@ export type OpenAIResponsesToolSearchCall = {
 
 export type OpenAIResponsesToolSearchOutput = {
   type: 'tool_search_output';
-  id: string;
+  id?: string;
   execution: 'server' | 'client';
   call_id: string | null;
   status: 'in_progress' | 'completed' | 'incomplete';
@@ -431,6 +431,9 @@ export type OpenAIResponsesTool =
     }
   | {
       type: 'tool_search';
+      execution?: 'server' | 'client';
+      description?: string;
+      parameters?: Record<string, unknown>;
     };
 
 export type OpenAIResponsesReasoning = {

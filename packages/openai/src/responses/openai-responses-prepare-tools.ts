@@ -10,6 +10,7 @@ import { imageGenerationArgsSchema } from '../tool/image-generation';
 import { customArgsSchema } from '../tool/custom';
 import { mcpArgsSchema } from '../tool/mcp';
 import { shellArgsSchema } from '../tool/shell';
+import { toolSearchArgsSchema } from '../tool/tool-search';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
 import { OpenAIResponsesTool } from './openai-responses-api';
@@ -256,8 +257,19 @@ export async function prepareResponsesTools({
             break;
           }
           case 'openai.tool_search': {
+            const args = await validateTypes({
+              value: tool.args,
+              schema: toolSearchArgsSchema,
+            });
             openaiTools.push({
               type: 'tool_search',
+              ...(args.execution != null ? { execution: args.execution } : {}),
+              ...(args.description != null
+                ? { description: args.description }
+                : {}),
+              ...(args.parameters != null
+                ? { parameters: args.parameters }
+                : {}),
             });
             break;
           }

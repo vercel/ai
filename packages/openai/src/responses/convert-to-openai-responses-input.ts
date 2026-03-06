@@ -227,7 +227,7 @@ export async function convertToOpenAIResponsesInput({
                 if (store && id != null) {
                   break;
                 }
-                // Reconstruct tool_search_call for multi-turn conversations
+                // Reconstruct hosted tool_search_call for multi-turn conversations
                 const inputValue =
                   typeof part.input === 'string'
                     ? await parseJSON({ text: part.input })
@@ -241,6 +241,35 @@ export async function convertToOpenAIResponsesInput({
                   id: id ?? part.toolCallId,
                   execution: 'server',
                   call_id: null,
+                  status: 'completed',
+                  arguments: parsedInput.arguments,
+                });
+                break;
+              }
+
+              // Client-executed tool_search_call reconstruction
+              if (
+                !part.providerExecuted &&
+                hasToolSearchTool &&
+                resolvedToolName === 'tool_search'
+              ) {
+                if (store && id != null) {
+                  input.push({ type: 'item_reference', id });
+                  break;
+                }
+                const inputValue =
+                  typeof part.input === 'string'
+                    ? await parseJSON({ text: part.input })
+                    : part.input;
+                const parsedInput = await validateTypes({
+                  value: inputValue,
+                  schema: toolSearchInputSchema,
+                });
+                input.push({
+                  type: 'tool_search_call',
+                  id: id ?? part.toolCallId,
+                  execution: 'client',
+                  call_id: parsedInput.call_id ?? part.toolCallId,
                   status: 'completed',
                   arguments: parsedInput.arguments,
                 });
@@ -398,21 +427,24 @@ export async function convertToOpenAIResponsesInput({
               }
 
               /*
-               * Tool search results are separate output items (tool_search_output)
-               * that need to be reconstructed for multi-turn conversations.
+               * Tool search results in assistant content are from hosted (server-executed)
+               * tool search. Client-executed tool search results go through tool role.
                */
               if (
                 hasToolSearchTool &&
                 resolvedResultToolName === 'tool_search'
               ) {
-                if (store) {
-                  const itemId =
-                    (
-                      part.providerOptions?.[providerOptionsName] as
-                        | { itemId?: string }
-                        | undefined
-                    )?.itemId ?? part.toolCallId;
-                  input.push({ type: 'item_reference', id: itemId });
+                const itemId = (
+                  part.providerOptions?.[providerOptionsName] as
+                    | { itemId?: string }
+                    | undefined
+                )?.itemId;
+
+                if (store && itemId != null) {
+                  input.push({
+                    type: 'item_reference',
+                    id: itemId,
+                  });
                 } else if (part.output.type === 'json') {
                   const parsedOutput = await validateTypes({
                     value: part.output.value,
@@ -420,7 +452,7 @@ export async function convertToOpenAIResponsesInput({
                   });
                   input.push({
                     type: 'tool_search_output',
-                    id: part.toolCallId,
+                    id: itemId ?? part.toolCallId,
                     execution: 'server',
                     call_id: null,
                     status: 'completed',
@@ -428,7 +460,6 @@ export async function convertToOpenAIResponsesInput({
                       const result: Record<string, unknown> = {};
                       for (const [key, value] of Object.entries(tool)) {
                         if (value === undefined) continue;
-                        // Convert camelCase back to snake_case for known properties
                         if (key === 'deferLoading') {
                           result['defer_loading'] = value;
                         } else {
@@ -674,25 +705,21 @@ export async function convertToOpenAIResponsesInput({
             continue;
           }
 
+          /*
+           * Tool search results in tool role are from client-executed tool search.
+           * Client results are not stored server-side, so always reconstruct inline.
+           * Note: client tool_search_output does not include 'id' field - OpenAI generates it.
+           */
           if (hasToolSearchTool && resolvedToolName === 'tool_search') {
-            if (store) {
-              const itemId =
-                (
-                  part.providerOptions?.[providerOptionsName] as
-                    | { itemId?: string }
-                    | undefined
-                )?.itemId ?? part.toolCallId;
-              input.push({ type: 'item_reference', id: itemId });
-            } else if (output.type === 'json') {
+            if (output.type === 'json') {
               const parsedOutput = await validateTypes({
                 value: output.value,
                 schema: toolSearchOutputSchema,
               });
               input.push({
                 type: 'tool_search_output',
-                id: part.toolCallId,
-                execution: 'server',
-                call_id: null,
+                execution: 'client',
+                call_id: part.toolCallId,
                 status: 'completed',
                 tools: parsedOutput.tools.map(tool => {
                   const result: Record<string, unknown> = {};

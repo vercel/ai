@@ -7,12 +7,21 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const toolSearchArgsSchema = lazySchema(() => zodSchema(z.object({})));
+export const toolSearchArgsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      execution: z.enum(['server', 'client']).optional(),
+      description: z.string().optional(),
+      parameters: z.record(z.string(), z.unknown()).optional(),
+    }),
+  ),
+);
 
 export const toolSearchInputSchema = lazySchema(() =>
   zodSchema(
     z.object({
       arguments: z.unknown().optional(),
+      call_id: z.string().nullish(),
     }),
   ),
 );
@@ -34,6 +43,12 @@ const toolSearchToolFactory = createProviderToolFactoryWithOutputSchema<
      * This is preserved for multi-turn conversation reconstruction.
      */
     arguments?: unknown;
+
+    /**
+     * The call ID from the tool_search_call.
+     * Present for client-executed tool search; null for hosted.
+     */
+    call_id?: string | null;
   },
   {
     /**
@@ -51,7 +66,27 @@ const toolSearchToolFactory = createProviderToolFactoryWithOutputSchema<
      */
     tools: Array<JSONObject>;
   },
-  {}
+  {
+    /**
+     * Whether the tool search is executed by the server (hosted) or client.
+     * - `'server'` (default): OpenAI performs the search across deferred tools.
+     * - `'client'`: The model emits a `tool_search_call` and your `execute`
+     *   function performs the lookup, returning the tools to load.
+     */
+    execution?: 'server' | 'client';
+
+    /**
+     * A description of the tool search capability.
+     * Only used for client-executed tool search.
+     */
+    description?: string;
+
+    /**
+     * JSON Schema for the search arguments your application expects.
+     * Only used for client-executed tool search.
+     */
+    parameters?: Record<string, unknown>;
+  }
 >({
   id: 'openai.tool_search',
   inputSchema: toolSearchInputSchema,
