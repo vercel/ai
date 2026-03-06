@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.120
+
+### Patch Changes
+
+- 78c0e26: feat(ai): pass result provider metadata across the stream
+
 ## 6.0.119
 
 ### Patch Changes
