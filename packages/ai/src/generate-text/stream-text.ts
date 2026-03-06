@@ -2469,13 +2469,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             }
 
             case 'reasoning-start': {
-              controller.enqueue({
-                type: 'reasoning-start',
-                id: part.id,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
+              if (sendReasoning) {
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: part.id,
+                  ...(part.providerMetadata != null
+                    ? { providerMetadata: part.providerMetadata }
+                    : {}),
+                });
+              }
               break;
             }
 
@@ -2494,13 +2496,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             }
 
             case 'reasoning-end': {
-              controller.enqueue({
-                type: 'reasoning-end',
-                id: part.id,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
+              if (sendReasoning) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: part.id,
+                  ...(part.providerMetadata != null
+                    ? { providerMetadata: part.providerMetadata }
+                    : {}),
+                });
+              }
               break;
             }
 
