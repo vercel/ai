@@ -178,12 +178,20 @@ export interface AnthropicWebSearchToolResultContent {
 export interface AnthropicCodeExecutionToolResultContent {
   type: 'code_execution_tool_result';
   tool_use_id: string;
-  content: {
-    type: 'code_execution_result';
-    stdout: string;
-    stderr: string;
-    return_code: number;
-  };
+  content:
+    | {
+        type: 'code_execution_result';
+        stdout: string;
+        stderr: string;
+        return_code: number;
+      }
+    | {
+        type: 'encrypted_code_execution_result';
+        encrypted_stdout: string;
+        stderr: string;
+        return_code: number;
+        content: Array<{ type: 'code_execution_output'; file_id: string }>;
+      };
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -278,6 +286,10 @@ export type AnthropicTool =
       name: string;
     }
   | {
+      type: 'code_execution_20260120';
+      name: string;
+    }
+  | {
       name: string;
       type: 'computer_20250124' | 'computer_20241022';
       display_width_px: number;
@@ -309,7 +321,7 @@ export type AnthropicTool =
       type: 'memory_20250818';
     }
   | {
-      type: 'web_fetch_20250910';
+      type: 'web_fetch_20250910' | 'web_fetch_20260209';
       name: string;
       max_uses?: number;
       allowed_domains?: string[];
@@ -319,7 +331,7 @@ export type AnthropicTool =
       cache_control: AnthropicCacheControl | undefined;
     }
   | {
-      type: 'web_search_20250305';
+      type: 'web_search_20250305' | 'web_search_20260209';
       name: string;
       max_uses?: number;
       allowed_domains?: string[];
@@ -493,6 +505,17 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
             id: z.string(),
             name: z.string(),
             input: z.record(z.string(), z.unknown()).nullish(),
+            caller: z
+              .union([
+                z.object({
+                  type: z.literal('code_execution_20260120'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('direct'),
+                }),
+              ])
+              .optional(),
           }),
           z.object({
             type: z.literal('web_fetch_tool_result'),
@@ -555,6 +578,21 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
                 stdout: z.string(),
                 stderr: z.string(),
                 return_code: z.number(),
+              }),
+              z.object({
+                type: z.literal('encrypted_code_execution_result'),
+                encrypted_stdout: z.string(),
+                stderr: z.string(),
+                return_code: z.number(),
+                content: z
+                  .array(
+                    z.object({
+                      type: z.literal('code_execution_output'),
+                      file_id: z.string(),
+                    }),
+                  )
+                  .optional()
+                  .default([]),
               }),
               z.object({
                 type: z.literal('code_execution_tool_result_error'),
@@ -724,6 +762,17 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             id: z.string(),
             name: z.string(),
             input: z.record(z.string(), z.unknown()).nullish(),
+            caller: z
+              .union([
+                z.object({
+                  type: z.literal('code_execution_20260120'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('direct'),
+                }),
+              ])
+              .optional(),
           }),
           z.object({
             type: z.literal('web_fetch_tool_result'),
@@ -786,6 +835,21 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                 stdout: z.string(),
                 stderr: z.string(),
                 return_code: z.number(),
+              }),
+              z.object({
+                type: z.literal('encrypted_code_execution_result'),
+                encrypted_stdout: z.string(),
+                stderr: z.string(),
+                return_code: z.number(),
+                content: z
+                  .array(
+                    z.object({
+                      type: z.literal('code_execution_output'),
+                      file_id: z.string(),
+                    }),
+                  )
+                  .optional()
+                  .default([]),
               }),
               z.object({
                 type: z.literal('code_execution_tool_result_error'),

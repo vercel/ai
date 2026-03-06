@@ -645,6 +645,69 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > memory 20250818 > should 
 ]
 `;
 
+exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > 20260209 text response > should include web fetch 20260209 tool call and result in content 1`] = `
+[
+  {
+    "input": "{"code":"\\nimport json\\nresult = await web_fetch({\\"url\\": \\"https://example.com\\"})\\nparsed = json.loads(result) if isinstance(result, str) else result\\nif isinstance(parsed, list):\\n    print(parsed[0][\\"content\\"][:500])\\nelse:\\n    print(parsed)\\n"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_015CSHH7X69AhdK9gNzotEeh",
+    "toolName": "code_execution",
+    "type": "tool-call",
+  },
+  {
+    "input": "{"url":"https://example.com"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_0152eMmZnBDZc4C2miykFWW5",
+    "toolName": "web_fetch",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "content": {
+        "citations": undefined,
+        "source": {
+          "data": "Example Domain
+
+# Example Domain
+
+This domain is for use in documentation examples without needing permission. Avoid use in operations.
+
+[Learn more](https://iana.org/domains/example)",
+          "mediaType": "text/plain",
+          "type": "text",
+        },
+        "title": "Example Domain",
+        "type": "document",
+      },
+      "retrievedAt": "2026-03-03T15:05:04.091000+00:00",
+      "type": "web_fetch_result",
+      "url": "https://example.com",
+    },
+    "toolCallId": "srvtoolu_0152eMmZnBDZc4C2miykFWW5",
+    "toolName": "web_fetch",
+    "type": "tool-result",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "return_code": 0,
+      "stderr": "",
+      "stdout": "{'type': 'web_fetch_result', 'url': 'https://example.com', 'retrieved_at': '2026-03-03T15:05:04.091000+00:00', 'content': {'type': 'document', 'source': {'type': 'text', 'media_type': 'text/plain', 'data': 'Example Domain\\n\\n# Example Domain\\n\\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\\n\\n[Learn more](https://iana.org/domains/example)'}, 'title': 'Example Domain'}}
+",
+      "type": "code_execution_result",
+    },
+    "toolCallId": "srvtoolu_015CSHH7X69AhdK9gNzotEeh",
+    "toolName": "code_execution",
+    "type": "tool-result",
+  },
+  {
+    "text": "The page at **example.com** is a simple placeholder page for the "Example Domain," which is reserved for use in documentation and illustrative examples without requiring prior permission.",
+    "type": "text",
+  },
+]
+`;
+
 exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text response > should include web fetch tool call and result in content 1`] = `
 [
   {
@@ -11799,6 +11862,316 @@ The Fibonacci sequence starts with 0, ",
       "inputTokens": 8050,
       "outputTokens": 771,
       "totalTokens": 8821,
+    },
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web fetch 20260209 tool > input provided in content_block_start > should stream web fetch 20260209 tool results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_01VYExUoD2gEMU8ZX5j5XBEZ",
+    "modelId": "claude-sonnet-4-6",
+    "type": "response-metadata",
+  },
+  {
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "providerExecuted": true,
+    "toolName": "code_execution",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"code": "\\nimport json",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\nresult",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " = await web",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "_fetch(",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "{\\"url\\": \\"https://example",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".com\\"})\\nif",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " isinstance",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(result, list):\\n    ",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "print(result",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "[0][\\"content",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\"]",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "[:500",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "])",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\nelse:\\n    print(result",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ")",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"code": "\\nimport json\\nresult = await web_fetch({\\"url\\": \\"https://example.com\\"})\\nif isinstance(result, list):\\n    print(result[0][\\"content\\"][:500])\\nelse:\\n    print(result)\\n"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "toolName": "code_execution",
+    "type": "tool-call",
+  },
+  {
+    "id": "srvtoolu_01SyXFZ4vqqE144ySoN6b5UG",
+    "providerExecuted": true,
+    "toolName": "web_fetch",
+    "type": "tool-input-start",
+  },
+  {
+    "id": "srvtoolu_01SyXFZ4vqqE144ySoN6b5UG",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"url":"https://example.com"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01SyXFZ4vqqE144ySoN6b5UG",
+    "toolName": "web_fetch",
+    "type": "tool-call",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "content": {
+        "citations": undefined,
+        "source": {
+          "data": "Example Domain
+
+# Example Domain
+
+This domain is for use in documentation examples without needing permission. Avoid use in operations.
+
+[Learn more](https://iana.org/domains/example)",
+          "mediaType": "text/plain",
+          "type": "text",
+        },
+        "title": "Example Domain",
+        "type": "document",
+      },
+      "retrievedAt": "2026-03-03T15:05:04.091000+00:00",
+      "type": "web_fetch_result",
+      "url": "https://example.com",
+    },
+    "toolCallId": "srvtoolu_01SyXFZ4vqqE144ySoN6b5UG",
+    "toolName": "web_fetch",
+    "type": "tool-result",
+  },
+  {
+    "providerExecuted": true,
+    "result": {
+      "return_code": 0,
+      "stderr": "",
+      "stdout": "{"type": "web_fetch_result", "url": "https://example.com", "retrieved_at": "2026-03-03T15:05:04.091000+00:00", "content": {"type": "document", "source": {"type": "text", "media_type": "text/plain", "data": "Example Domain\\n\\n# Example Domain\\n\\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\\n\\n[Learn more](https://iana.org/domains/example)"}, "title": "Example Domain"}}
+",
+      "type": "code_execution_result",
+    },
+    "toolCallId": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "toolName": "code_execution",
+    "type": "tool-result",
+  },
+  {
+    "id": "4",
+    "type": "text-start",
+  },
+  {
+    "delta": "The",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " page at",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": "example",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".com** is",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a simple placeholder",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " page explaining",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that the",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " domain is reserved",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for use",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in illust",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": "rative documentation",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " examples and",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " does",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " not require prior",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " permission to",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " reference",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "id": "4",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": {
+          "expiresAt": "2026-03-03T19:38:14.861782Z",
+          "id": "container_011CYgdezfe66pcmCprMd28x",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "inference_geo": "global",
+          "input_tokens": 7172,
+          "output_tokens": 144,
+          "server_tool_use": {
+            "web_fetch_requests": 1,
+            "web_search_requests": 0,
+          },
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "cachedInputTokens": 0,
+      "inputTokens": 7172,
+      "outputTokens": 144,
+      "totalTokens": 7316,
     },
   },
 ]
