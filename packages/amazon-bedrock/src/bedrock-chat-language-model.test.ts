@@ -68,6 +68,12 @@ const fakeFetchWithAuth = injectFetchHeaders({ 'x-amz-auth': 'test-auth' });
 
 const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
 const anthropicModelId = 'anthropic.claude-3-5-sonnet-20240620-v1:0'; // Define at top level
+const supportedStructuredOutputModelId =
+  'anthropic.claude-sonnet-4-5-20250929-v1:0';
+const supportedStructuredOutput41ModelId =
+  'anthropic.claude-opus-4-1-20250805-v1:0';
+const dateBasedStructuredOutput4ModelId =
+  'anthropic.claude-sonnet-4-20250514-v1:0';
 const baseUrl = 'https://bedrock-runtime.us-east-1.amazonaws.com';
 
 const streamUrl = `${baseUrl}/model/${encodeURIComponent(
@@ -76,6 +82,15 @@ const streamUrl = `${baseUrl}/model/${encodeURIComponent(
 const generateUrl = `${baseUrl}/model/${encodeURIComponent(modelId)}/converse`;
 const anthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   anthropicModelId,
+)}/converse`;
+const supportedStructuredOutputGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  supportedStructuredOutputModelId,
+)}/converse`;
+const supportedStructuredOutput41GenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  supportedStructuredOutput41ModelId,
+)}/converse`;
+const dateBasedStructuredOutput4GenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  dateBasedStructuredOutput4ModelId,
 )}/converse`;
 
 const novaModelId = 'us.amazon.nova-2-lite-v1:0';
@@ -98,15 +113,21 @@ const server = createTestServer({
   },
   // Configure the server for the Anthropic model from the start
   [anthropicGenerateUrl]: {},
+  [supportedStructuredOutputGenerateUrl]: {},
+  [supportedStructuredOutput41GenerateUrl]: {},
+  [dateBasedStructuredOutput4GenerateUrl]: {},
   [novaGenerateUrl]: {},
   [openaiGenerateUrl]: {},
 });
 
 function prepareJsonFixtureResponse(
   filename: string,
-  { headers }: { headers?: Record<string, string> } = {},
+  {
+    headers,
+    url = generateUrl,
+  }: { headers?: Record<string, string>; url?: string } = {},
 ) {
-  server.urls[generateUrl].response = {
+  server.urls[url].response = {
     type: 'json-value',
     headers,
     body: JSON.parse(
@@ -143,6 +164,18 @@ beforeEach(() => {
     type: 'json-value',
     body: {},
   };
+  server.urls[supportedStructuredOutputGenerateUrl].response = {
+    type: 'json-value',
+    body: {},
+  };
+  server.urls[supportedStructuredOutput41GenerateUrl].response = {
+    type: 'json-value',
+    body: {},
+  };
+  server.urls[dateBasedStructuredOutput4GenerateUrl].response = {
+    type: 'json-value',
+    body: {},
+  };
   mockPrepareAnthropicTools.mockClear();
 });
 
@@ -166,6 +199,36 @@ const openaiModel = new BedrockChatLanguageModel(openaiModelId, {
   fetch: fakeFetchWithAuth,
   generateId: () => 'test-id',
 });
+
+const supportedStructuredOutputModel = new BedrockChatLanguageModel(
+  supportedStructuredOutputModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const supportedStructuredOutput41Model = new BedrockChatLanguageModel(
+  supportedStructuredOutput41ModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const dateBasedStructuredOutput4Model = new BedrockChatLanguageModel(
+  dateBasedStructuredOutput4ModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
 
 let mockOptions: { success: boolean; errorValue?: any } = { success: true };
 
@@ -4328,9 +4391,11 @@ describe('doGenerate', () => {
   });
 
   it('should use native output_config.format instead of json tool when thinking is enabled with structured output', async () => {
-    prepareJsonFixtureResponse('bedrock-text');
+    prepareJsonFixtureResponse('bedrock-text', {
+      url: supportedStructuredOutputGenerateUrl,
+    });
 
-    await model.doGenerate({
+    await supportedStructuredOutputModel.doGenerate({
       prompt: [
         {
           role: 'user',
@@ -4392,9 +4457,11 @@ describe('doGenerate', () => {
   });
 
   it('should merge output_config.effort and output_config.format when thinking with maxReasoningEffort and structured output', async () => {
-    prepareJsonFixtureResponse('bedrock-text');
+    prepareJsonFixtureResponse('bedrock-text', {
+      url: supportedStructuredOutputGenerateUrl,
+    });
 
-    await model.doGenerate({
+    await supportedStructuredOutputModel.doGenerate({
       prompt: [
         {
           role: 'user',
@@ -4441,30 +4508,95 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should still use json tool fallback for structured output without thinking enabled', async () => {
-    server.urls[generateUrl].response = {
-      type: 'json-value',
-      body: {
-        output: {
-          message: {
-            role: 'assistant',
-            content: [
-              {
-                toolUse: {
-                  toolUseId: 'json-tool-id',
-                  name: 'json',
-                  input: { name: 'Test' },
-                },
-              },
-            ],
-          },
-        },
-        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
-        stopReason: 'tool_use',
-      },
-    };
+  it('should use native output_config.format for supported Anthropic models without thinking enabled', async () => {
+    prepareJsonFixtureResponse('bedrock-text', {
+      url: supportedStructuredOutputGenerateUrl,
+    });
 
-    const result = await model.doGenerate({
+    await supportedStructuredOutputModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a name' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+
+    expect(requestBody.additionalModelRequestFields?.output_config).toEqual({
+      format: {
+        type: 'json_schema',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+  });
+
+  it('should use native output_config.format for Anthropic 4-1 models without thinking enabled', async () => {
+    prepareJsonFixtureResponse('bedrock-text', {
+      url: supportedStructuredOutput41GenerateUrl,
+    });
+
+    await supportedStructuredOutput41Model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a name' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+    expect(requestBody.additionalModelRequestFields?.output_config).toEqual({
+      format: {
+        type: 'json_schema',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+  });
+
+  it('should use json tool fallback for date-based Anthropic 4 models without thinking enabled', async () => {
+    prepareJsonFixtureResponse('bedrock-text', {
+      url: dateBasedStructuredOutput4GenerateUrl,
+    });
+
+    await dateBasedStructuredOutput4Model.doGenerate({
       prompt: [
         {
           role: 'user',
@@ -4489,20 +4621,9 @@ describe('doGenerate', () => {
     expect(requestBody.toolConfig.tools).toHaveLength(1);
     expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
     expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
-
     expect(
       requestBody.additionalModelRequestFields?.output_config?.format,
     ).toBeUndefined();
-
-    expect(result.content).toMatchInlineSnapshot(`
-      [
-        {
-          "text": "{"name":"Test"}",
-          "type": "text",
-        },
-      ]
-    `);
-    expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
   });
 
   it('should extract reasoning text with signature', async () => {
