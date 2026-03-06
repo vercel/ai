@@ -6,16 +6,16 @@ import SourcesView from '@/components/sources-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 
-export default function GoogleWebSearch() {
+export default function GoogleImageSearch() {
   const { error, status, sendMessage, messages, regenerate } = useChat({
     transport: new DefaultChatTransport({
-      api: '/api/chat/google-web-search',
+      api: '/api/chat/google-image-search',
     }),
   });
 
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
-      <h1 className="mb-4 text-xl font-bold">Google Web Search</h1>
+      <h1 className="mb-4 text-xl font-bold">Google Image Search</h1>
 
       {messages.map(message => (
         <div key={message.id}>
@@ -24,6 +24,15 @@ export default function GoogleWebSearch() {
             switch (part.type) {
               case 'text': {
                 return <Response key={index}>{part.text}</Response>;
+              }
+              case 'file': {
+                if (part.mediaType.startsWith('image/')) {
+                  return (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={index} src={part.url} alt="Generated image" />
+                  );
+                }
+                return null;
               }
             }
           })}
