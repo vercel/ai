@@ -1,5 +1,12 @@
 # ai
 
+## 6.0.119
+
+### Patch Changes
+
+- ab286f1: fix(ai): doStream should reflect transformed values
+- d68b122: feat(ai): add missing usage attributes
+
 ## 6.0.118
 
 ### Patch Changes
