@@ -222,8 +222,12 @@ export function createGateway(
   let lastFetchTime = 0;
 
   const baseURL =
-    withoutTrailingSlash(options.baseURL) ??
-    'https://ai-gateway.vercel.sh/v4/ai';
+    withoutTrailingSlash(
+      loadOptionalSetting({
+        settingValue: options.baseURL,
+        environmentVariableName: 'AI_GATEWAY_BASE_URL',
+      }),
+    ) ?? 'https://ai-gateway.vercel.sh/v4/ai';
 
   const createAuthHeaders = (auth: {
     token: string;
