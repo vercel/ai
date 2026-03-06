@@ -1,8 +1,8 @@
 import {
-  LanguageModelV3,
-  LanguageModelV3Content,
-  LanguageModelV3ToolCall,
-  LanguageModelV3ToolChoice,
+  LanguageModelV4,
+  LanguageModelV4Content,
+  LanguageModelV4ToolCall,
+  LanguageModelV4ToolChoice,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -15,6 +15,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { NoOutputGeneratedError } from '../error';
+import { notify } from '../util/notify';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
@@ -38,6 +39,7 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
+import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
   LanguageModel,
@@ -440,6 +442,7 @@ export async function generateText<
     };
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
   const model = resolveLanguageModel(modelArg);
+  const createGlobalTelemetry = getGlobalTelemetryIntegration<TOOLS, OUTPUT>();
   const stopConditions = asArray(stopWhen);
 
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
@@ -479,8 +482,10 @@ export async function generateText<
     messages,
   } as Prompt);
 
-  try {
-    await onStart?.({
+  const globalTelemetry = createGlobalTelemetry(telemetry?.integrations);
+
+  await notify({
+    event: {
       model: modelInfo,
       system,
       prompt,
@@ -507,10 +512,14 @@ export async function generateText<
       functionId: telemetry?.functionId,
       metadata: telemetry?.metadata as Record<string, unknown> | undefined,
       experimental_context,
-    });
-  } catch (_ignored) {
-    // Errors in callbacks should not break the generation flow.
-  }
+    },
+    callbacks: [
+      onStart,
+      globalTelemetry.onStart as
+        | undefined
+        | GenerateTextOnStartCallback<TOOLS, OUTPUT>,
+    ],
+  });
 
   const tracer = getTracer(telemetry);
 
@@ -562,8 +571,18 @@ export async function generateText<
             experimental_context,
             stepNumber: 0,
             model: modelInfo,
-            onToolCallStart: onToolCallStart,
-            onToolCallFinish: onToolCallFinish,
+            onToolCallStart: [
+              onToolCallStart,
+              globalTelemetry.onToolCallStart as
+                | undefined
+                | GenerateTextOnToolCallStartCallback<TOOLS>,
+            ],
+            onToolCallFinish: [
+              onToolCallFinish,
+              globalTelemetry.onToolCallFinish as
+                | undefined
+                | GenerateTextOnToolCallFinishCallback<TOOLS>,
+            ],
           });
 
           const toolContent: Array<any> = [];
@@ -576,7 +595,7 @@ export async function generateText<
               tool: tools?.[output.toolName],
               output:
                 output.type === 'tool-result' ? output.output : output.error,
-              errorMode: output.type === 'tool-error' ? 'json' : 'none',
+              errorMode: output.type === 'tool-error' ? 'text' : 'none',
             });
 
             toolContent.push({
@@ -639,7 +658,7 @@ export async function generateText<
         const callSettings = prepareCallSettings(settings);
 
         let currentModelResponse: Awaited<
-          ReturnType<LanguageModelV3['doGenerate']>
+          ReturnType<LanguageModelV4['doGenerate']>
         > & { response: { id: string; timestamp: Date; modelId: string } };
         let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
         let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
@@ -712,8 +731,8 @@ export async function generateText<
               prepareStepResult?.providerOptions,
             );
 
-            try {
-              await onStepStart?.({
+            await notify({
+              event: {
                 stepNumber: steps.length,
                 model: stepModelInfo,
                 system: stepSystem,
@@ -734,10 +753,14 @@ export async function generateText<
                   | Record<string, unknown>
                   | undefined,
                 experimental_context,
-              });
-            } catch (_ignored) {
-              // Errors in callbacks should not break the generation flow.
-            }
+              },
+              callbacks: [
+                onStepStart,
+                globalTelemetry.onStepStart as
+                  | undefined
+                  | GenerateTextOnStepStartCallback<TOOLS, OUTPUT>,
+              ],
+            });
 
             currentModelResponse = await retry(() =>
               recordSpan({
@@ -803,6 +826,7 @@ export async function generateText<
                     headers: result.response?.headers,
                     body: result.response?.body,
                   };
+                  const usage = asLanguageModelUsage(result.usage);
 
                   // Add response information to the span:
                   span.setAttributes(
@@ -832,10 +856,24 @@ export async function generateText<
                           result.providerMetadata,
                         ),
 
-                        // TODO rename telemetry attributes to inputTokens and outputTokens
-                        'ai.usage.promptTokens': result.usage.inputTokens.total,
-                        'ai.usage.completionTokens':
+                        'ai.usage.inputTokens': result.usage.inputTokens.total,
+                        'ai.usage.inputTokenDetails.noCacheTokens':
+                          result.usage.inputTokens.noCache,
+                        'ai.usage.inputTokenDetails.cacheReadTokens':
+                          result.usage.inputTokens.cacheRead,
+                        'ai.usage.inputTokenDetails.cacheWriteTokens':
+                          result.usage.inputTokens.cacheWrite,
+                        'ai.usage.outputTokens':
                           result.usage.outputTokens.total,
+                        'ai.usage.outputTokenDetails.textTokens':
+                          result.usage.outputTokens.text,
+                        'ai.usage.outputTokenDetails.reasoningTokens':
+                          result.usage.outputTokens.reasoning,
+                        'ai.usage.totalTokens': usage.totalTokens,
+                        'ai.usage.reasoningTokens':
+                          result.usage.outputTokens.reasoning,
+                        'ai.usage.cachedInputTokens':
+                          result.usage.inputTokens.cacheRead,
 
                         // standardized gen-ai llm span attributes:
                         'gen_ai.response.finish_reasons': [
@@ -860,7 +898,7 @@ export async function generateText<
             const stepToolCalls: TypedToolCall<TOOLS>[] = await Promise.all(
               currentModelResponse.content
                 .filter(
-                  (part): part is LanguageModelV3ToolCall =>
+                  (part): part is LanguageModelV4ToolCall =>
                     part.type === 'tool-call',
                 )
                 .map(toolCall =>
@@ -958,8 +996,16 @@ export async function generateText<
                   experimental_context,
                   stepNumber: steps.length,
                   model: stepModelInfo,
-                  onToolCallStart: onToolCallStart,
-                  onToolCallFinish: onToolCallFinish,
+                  onToolCallStart: [
+                    onToolCallStart,
+                    globalTelemetry.onToolCallStart as
+                      | undefined
+                      | GenerateTextOnToolCallStartCallback<TOOLS>,
+                  ],
+                  onToolCallFinish: [
+                    onToolCallFinish,
+                    globalTelemetry.onToolCallFinish,
+                  ],
                 })),
               );
             }
@@ -1056,7 +1102,11 @@ export async function generateText<
             });
 
             steps.push(currentStepResult);
-            await onStepFinish?.(currentStepResult);
+
+            await notify({
+              event: currentStepResult,
+              callbacks: [onStepFinish, globalTelemetry.onStepFinish],
+            });
           } finally {
             if (stepTimeoutId != null) {
               clearTimeout(stepTimeoutId);
@@ -1098,12 +1148,6 @@ export async function generateText<
               'ai.response.providerMetadata': JSON.stringify(
                 currentModelResponse.providerMetadata,
               ),
-
-              // TODO rename telemetry attributes to inputTokens and outputTokens
-              'ai.usage.promptTokens':
-                currentModelResponse.usage.inputTokens.total,
-              'ai.usage.completionTokens':
-                currentModelResponse.usage.outputTokens.total,
             },
           }),
         );
@@ -1123,33 +1167,66 @@ export async function generateText<
           } as LanguageModelUsage,
         );
 
-        await onFinish?.({
-          stepNumber: lastStep.stepNumber,
-          model: lastStep.model,
-          functionId: lastStep.functionId,
-          metadata: lastStep.metadata,
-          experimental_context: lastStep.experimental_context,
-          finishReason: lastStep.finishReason,
-          rawFinishReason: lastStep.rawFinishReason,
-          usage: lastStep.usage,
-          content: lastStep.content,
-          text: lastStep.text,
-          reasoningText: lastStep.reasoningText,
-          reasoning: lastStep.reasoning,
-          files: lastStep.files,
-          sources: lastStep.sources,
-          toolCalls: lastStep.toolCalls,
-          staticToolCalls: lastStep.staticToolCalls,
-          dynamicToolCalls: lastStep.dynamicToolCalls,
-          toolResults: lastStep.toolResults,
-          staticToolResults: lastStep.staticToolResults,
-          dynamicToolResults: lastStep.dynamicToolResults,
-          request: lastStep.request,
-          response: lastStep.response,
-          warnings: lastStep.warnings,
-          providerMetadata: lastStep.providerMetadata,
-          steps,
-          totalUsage,
+        span.setAttributes(
+          await selectTelemetryAttributes({
+            telemetry,
+            attributes: {
+              'ai.usage.inputTokens': totalUsage.inputTokens,
+              'ai.usage.inputTokenDetails.noCacheTokens':
+                totalUsage.inputTokenDetails?.noCacheTokens,
+              'ai.usage.inputTokenDetails.cacheReadTokens':
+                totalUsage.inputTokenDetails?.cacheReadTokens,
+              'ai.usage.inputTokenDetails.cacheWriteTokens':
+                totalUsage.inputTokenDetails?.cacheWriteTokens,
+              'ai.usage.outputTokens': totalUsage.outputTokens,
+              'ai.usage.outputTokenDetails.textTokens':
+                totalUsage.outputTokenDetails?.textTokens,
+              'ai.usage.outputTokenDetails.reasoningTokens':
+                totalUsage.outputTokenDetails?.reasoningTokens,
+              'ai.usage.totalTokens': totalUsage.totalTokens,
+              'ai.usage.reasoningTokens':
+                totalUsage.outputTokenDetails?.reasoningTokens,
+              'ai.usage.cachedInputTokens':
+                totalUsage.inputTokenDetails?.cacheReadTokens,
+            },
+          }),
+        );
+
+        await notify({
+          event: {
+            stepNumber: lastStep.stepNumber,
+            model: lastStep.model,
+            functionId: lastStep.functionId,
+            metadata: lastStep.metadata,
+            experimental_context: lastStep.experimental_context,
+            finishReason: lastStep.finishReason,
+            rawFinishReason: lastStep.rawFinishReason,
+            usage: lastStep.usage,
+            content: lastStep.content,
+            text: lastStep.text,
+            reasoningText: lastStep.reasoningText,
+            reasoning: lastStep.reasoning,
+            files: lastStep.files,
+            sources: lastStep.sources,
+            toolCalls: lastStep.toolCalls,
+            staticToolCalls: lastStep.staticToolCalls,
+            dynamicToolCalls: lastStep.dynamicToolCalls,
+            toolResults: lastStep.toolResults,
+            staticToolResults: lastStep.staticToolResults,
+            dynamicToolResults: lastStep.dynamicToolResults,
+            request: lastStep.request,
+            response: lastStep.response,
+            warnings: lastStep.warnings,
+            providerMetadata: lastStep.providerMetadata,
+            steps,
+            totalUsage,
+          },
+          callbacks: [
+            onFinish,
+            globalTelemetry.onFinish as
+              | undefined
+              | GenerateTextOnFinishCallback<TOOLS>,
+          ],
         });
 
         // parse output only if the last step was finished with "stop":
@@ -1200,8 +1277,14 @@ async function executeTools<TOOLS extends ToolSet>({
   experimental_context: unknown;
   stepNumber: number;
   model: { provider: string; modelId: string };
-  onToolCallStart: GenerateTextOnToolCallStartCallback<TOOLS> | undefined;
-  onToolCallFinish: GenerateTextOnToolCallFinishCallback<TOOLS> | undefined;
+  onToolCallStart:
+    | GenerateTextOnToolCallStartCallback<TOOLS>
+    | Array<GenerateTextOnToolCallStartCallback<TOOLS> | undefined | null>
+    | undefined;
+  onToolCallFinish:
+    | GenerateTextOnToolCallFinishCallback<TOOLS>
+    | Array<GenerateTextOnToolCallFinishCallback<TOOLS> | undefined | null>
+    | undefined;
 }): Promise<Array<ToolOutput<TOOLS>>> {
   const toolOutputs = await Promise.all(
     toolCalls.map(async toolCall =>
@@ -1336,9 +1419,9 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
   }
 }
 
-function asToolCalls(content: Array<LanguageModelV3Content>) {
+function asToolCalls(content: Array<LanguageModelV4Content>) {
   const parts = content.filter(
-    (part): part is LanguageModelV3ToolCall => part.type === 'tool-call',
+    (part): part is LanguageModelV4ToolCall => part.type === 'tool-call',
   );
 
   if (parts.length === 0) {
@@ -1359,7 +1442,7 @@ function asContent<TOOLS extends ToolSet>({
   toolApprovalRequests,
   tools,
 }: {
-  content: Array<LanguageModelV3Content>;
+  content: Array<LanguageModelV4Content>;
   toolCalls: Array<TypedToolCall<TOOLS>>;
   toolOutputs: Array<ToolOutput<TOOLS>>;
   toolApprovalRequests: Array<ToolApprovalRequestOutput<TOOLS>>;
