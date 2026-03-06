@@ -39,7 +39,7 @@ import { imageGenerationOutputSchema } from '../tool/image-generation';
 import { localShellInputSchema } from '../tool/local-shell';
 import { mcpOutputSchema } from '../tool/mcp';
 import { shellInputSchema, shellOutputSchema } from '../tool/shell';
-import { toolSearchOutputSchema, ToolSearchOutput } from '../tool/tool-search';
+import { toolSearchOutputSchema } from '../tool/tool-search';
 import { webSearchOutputSchema } from '../tool/web-search';
 import {
   convertOpenAIResponsesUsage,
@@ -1733,17 +1733,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 lastToolSearchCallId = value.item.id;
                 lastToolSearchCallArguments = value.item.arguments;
               } else if (value.item.type === 'tool_search_output') {
-                controller.enqueue({
-                  type: 'tool-result',
-                  toolCallId: value.item.id,
-                  toolName: toolNameMapping.toCustomToolName('tool_search'),
-                  result: mapToolSearchOutput(value.item.tools),
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      itemId: value.item.id,
-                    },
-                  },
-                });
+                // tool_search_output is fully handled in output_item.added
               } else if (value.item.type === 'reasoning') {
                 const activeReasoningPart = activeReasoning[value.item.id];
 
@@ -2217,9 +2207,7 @@ function mapWebSearchOutput(
   }
 }
 
-function mapToolSearchOutput(
-  tools: Array<Record<string, unknown>>,
-): ToolSearchOutput {
+function mapToolSearchOutput(tools: Array<Record<string, unknown>>) {
   return {
     tools: tools.map(tool => {
       const result: JSONObject = {};
@@ -2236,7 +2224,7 @@ function mapToolSearchOutput(
       }
       return result;
     }),
-  };
+  } satisfies InferSchema<typeof toolSearchOutputSchema>;
 }
 
 // The delta is embedded in a JSON string.

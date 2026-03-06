@@ -216,29 +216,29 @@ export async function convertToOpenAIResponsesInput({
                 part.toolName,
               );
 
-              // Handle tool_search specially - need to reconstruct tool_search_call for multi-turn
+              // tool_search_call is implicitly included via the tool_search_output item_reference,
+              // so skip it when store is enabled to avoid duplicate item errors
               if (
                 part.providerExecuted &&
                 hasToolSearchTool &&
                 resolvedToolName === 'tool_search'
               ) {
                 if (store && id != null) {
-                  input.push({ type: 'item_reference', id });
-                } else {
-                  // Reconstruct tool_search_call for multi-turn conversations
-                  const parsedInput = await validateTypes({
-                    value: part.input,
-                    schema: toolSearchInputSchema,
-                  });
-                  input.push({
-                    type: 'tool_search_call',
-                    id: id ?? part.toolCallId,
-                    execution: 'server',
-                    call_id: null,
-                    status: 'completed',
-                    arguments: parsedInput.arguments,
-                  });
+                  break;
                 }
+                // Reconstruct tool_search_call for multi-turn conversations
+                const parsedInput = await validateTypes({
+                  value: part.input,
+                  schema: toolSearchInputSchema,
+                });
+                input.push({
+                  type: 'tool_search_call',
+                  id: id ?? part.toolCallId,
+                  execution: 'server',
+                  call_id: null,
+                  status: 'completed',
+                  arguments: parsedInput.arguments,
+                });
                 break;
               }
 

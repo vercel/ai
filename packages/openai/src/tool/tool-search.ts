@@ -9,18 +9,6 @@ import { z } from 'zod/v4';
 
 export const toolSearchArgsSchema = lazySchema(() => zodSchema(z.object({})));
 
-/**
- * The input shape for tool search (the arguments from tool_search_call).
- * In hosted mode, this contains the search paths/arguments used by the model.
- */
-export type ToolSearchInput = {
-  /**
-   * The arguments from the tool_search_call.
-   * This is preserved for multi-turn conversation reconstruction.
-   */
-  arguments?: unknown;
-};
-
 export const toolSearchInputSchema = lazySchema(() =>
   zodSchema(
     z.object({
@@ -29,42 +17,41 @@ export const toolSearchInputSchema = lazySchema(() =>
   ),
 );
 
-/**
- * The output shape returned by the tool search.
- * Contains the loaded tool definitions.
- */
-export type ToolSearchOutput = {
-  /**
-   * The tools that were loaded by the tool search.
-   * These are the deferred tools that the model requested to load.
-   * Each tool is represented as a JSON object with properties depending on its type.
-   *
-   * Common properties include:
-   * - `type`: The type of the tool (e.g., 'function', 'web_search', etc.)
-   * - `name`: The name of the tool (for function tools)
-   * - `description`: A description of the tool
-   * - `deferLoading`: Whether this tool was deferred (had defer_loading: true)
-   * - `parameters`: The JSON Schema for the function parameters (for function tools)
-   * - `strict`: Whether to enable strict schema adherence (for function tools)
-   */
+export const toolSearchOutputSchema: FlexibleSchema<{
   tools: Array<JSONObject>;
-};
+}> = lazySchema(() =>
+  zodSchema(
+    z.object({
+      tools: z.array(z.record(z.string(), z.unknown())),
+    }),
+  ),
+) as FlexibleSchema<{ tools: Array<JSONObject> }>;
 
-export const toolSearchOutputSchema: FlexibleSchema<ToolSearchOutput> =
-  lazySchema(() =>
-    zodSchema(
-      z.object({
-        tools: z.array(z.record(z.string(), z.unknown())),
-      }),
-    ),
-  ) as FlexibleSchema<ToolSearchOutput>;
-
-export const toolSearchToolFactory = createProviderToolFactoryWithOutputSchema<
-  ToolSearchInput,
-  ToolSearchOutput,
+const toolSearchToolFactory = createProviderToolFactoryWithOutputSchema<
   {
-    // No user configuration needed for hosted tool search
-  }
+    /**
+     * The arguments from the tool_search_call.
+     * This is preserved for multi-turn conversation reconstruction.
+     */
+    arguments?: unknown;
+  },
+  {
+    /**
+     * The tools that were loaded by the tool search.
+     * These are the deferred tools that the model requested to load.
+     * Each tool is represented as a JSON object with properties depending on its type.
+     *
+     * Common properties include:
+     * - `type`: The type of the tool (e.g., 'function', 'web_search', etc.)
+     * - `name`: The name of the tool (for function tools)
+     * - `description`: A description of the tool
+     * - `deferLoading`: Whether this tool was deferred (had defer_loading: true)
+     * - `parameters`: The JSON Schema for the function parameters (for function tools)
+     * - `strict`: Whether to enable strict schema adherence (for function tools)
+     */
+    tools: Array<JSONObject>;
+  },
+  {}
 >({
   id: 'openai.tool_search',
   inputSchema: toolSearchInputSchema,
