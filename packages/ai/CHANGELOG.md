@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.7
+
+### Patch Changes
+
+- 210ed3d: feat(ai): pass result provider metadata across the stream
+
 ## 7.0.0-beta.6
 
 ### Patch Changes
