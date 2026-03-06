@@ -176,19 +176,20 @@ export type StreamObjectOnFinishCallback<RESULT> = (event: {
  * import { streamText, Output } from 'ai';
  * import { z } from 'zod';
  *
- * const { partialObjectStream, output } = await streamText({
+ * const { partialOutputStream, output } = await streamText({
  *   model,
  *   prompt: '...',
  *   output: Output.object({ schema: z.object({ ... }) })
  * });
  *
  * // Stream partial JSON parsing
- * for await (const partial of partialObjectStream) {
+ * for await (const partial of partialOutputStream) {
  *   // ...
  * }
  *
  * // Or wait for the final fully-parsed promise to resolve
  * const finalObject = await output;
+ * ```
  */
 export function streamObject<
   SCHEMA extends FlexibleSchema<unknown> = FlexibleSchema<JSONValue>,
