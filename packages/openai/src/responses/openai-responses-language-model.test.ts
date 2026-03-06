@@ -125,6 +125,77 @@ const HOSTED_TOOL_SEARCH_TOOLS: Array<
   },
 ];
 
+const CLIENT_TOOL_SEARCH_TOOLS: Array<
+  LanguageModelV3FunctionTool | LanguageModelV3ProviderTool
+> = [
+  {
+    type: 'provider' as const,
+    id: 'openai.tool_search' as const,
+    name: 'toolSearch',
+    args: {
+      execution: 'client',
+      description: 'Search for available tools based on what the user needs.',
+      parameters: {
+        type: 'object',
+        properties: {
+          goal: {
+            type: 'string',
+            description: 'What the user is trying to accomplish',
+          },
+        },
+        required: ['goal'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    name: 'get_weather',
+    description: 'Get the current weather at a specific location',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        location: { type: 'string' },
+        unit: {
+          type: 'string',
+          enum: ['celsius', 'fahrenheit'],
+        },
+      },
+      required: ['location', 'unit'],
+      additionalProperties: false,
+    },
+    strict: true,
+    providerOptions: {
+      openai: {
+        deferLoading: true,
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    name: 'search_files',
+    description: 'Search through files in the workspace',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string' },
+        file_types: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+      required: ['query', 'file_types'],
+      additionalProperties: false,
+    },
+    strict: true,
+    providerOptions: {
+      openai: {
+        deferLoading: true,
+      },
+    },
+  },
+];
+
 const nonReasoningModelIds = openaiResponsesModelIds.filter(
   modelId =>
     !openaiResponsesReasoningModelIds.includes(
@@ -2594,6 +2665,92 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ]
         `);
+      });
+    });
+
+    describe('client tool search tool', () => {
+      it('should map client tool search call to non-provider-executed tool parts', async () => {
+        prepareJsonFixtureResponse('openai-client-tool-search.1');
+
+        const result = await createModel('gpt-5.4').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: CLIENT_TOOL_SEARCH_TOOLS,
+          providerOptions: { openai: { store: false } },
+        });
+
+        const clientToolSearchParts = result.content
+          .filter(
+            (
+              part,
+            ): part is Extract<LanguageModelV3Content, { type: 'tool-call' }> =>
+              part.type === 'tool-call' && part.toolName === 'toolSearch',
+          )
+          .map(part => ({
+            ...part,
+            input: JSON.parse(part.input),
+          }));
+
+        expect(clientToolSearchParts).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "arguments": {
+                  "goal": "Find a tool to get current weather for San Francisco",
+                },
+                "call_id": "call_AEvXZ1rvYpxHh8QZb7wGlTGH",
+              },
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "tsc_01166e06cf473fc80169ab66ea404881968795bb327c429d35",
+                },
+              },
+              "toolCallId": "call_AEvXZ1rvYpxHh8QZb7wGlTGH",
+              "toolName": "toolSearch",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should not include providerExecuted flag for client tool search call', async () => {
+        prepareJsonFixtureResponse('openai-client-tool-search.1');
+
+        const result = await createModel('gpt-5.4').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: CLIENT_TOOL_SEARCH_TOOLS,
+          providerOptions: { openai: { store: false } },
+        });
+
+        const toolCallPart = result.content.find(
+          (
+            part,
+          ): part is Extract<LanguageModelV3Content, { type: 'tool-call' }> =>
+            part.type === 'tool-call' && part.toolName === 'toolSearch',
+        );
+
+        expect(toolCallPart?.providerExecuted).toBeUndefined();
+      });
+
+      it('should use call_id as toolCallId for client tool search (not item id)', async () => {
+        prepareJsonFixtureResponse('openai-client-tool-search.1');
+
+        const result = await createModel('gpt-5.4').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: CLIENT_TOOL_SEARCH_TOOLS,
+          providerOptions: { openai: { store: false } },
+        });
+
+        const toolCallPart = result.content.find(
+          (
+            part,
+          ): part is Extract<LanguageModelV3Content, { type: 'tool-call' }> =>
+            part.type === 'tool-call' && part.toolName === 'toolSearch',
+        );
+
+        expect(toolCallPart?.toolCallId).toBe('call_AEvXZ1rvYpxHh8QZb7wGlTGH');
+        expect(JSON.parse(toolCallPart!.input).call_id).toBe(
+          'call_AEvXZ1rvYpxHh8QZb7wGlTGH',
+        );
       });
     });
 
@@ -5999,16 +6156,20 @@ describe('OpenAIResponsesLanguageModel', () => {
           ],
         });
 
-        const toolSearchParts = (
-          await convertReadableStreamToArray(stream)
-        ).filter(
-          part =>
-            (part.type === 'tool-input-start' &&
-              part.toolName === 'toolSearch') ||
-            (part.type === 'tool-input-end' && part.id === 'call_final') ||
-            (part.type === 'tool-call' && part.toolName === 'toolSearch') ||
-            (part.type === 'tool-result' && part.toolName === 'toolSearch'),
-        );
+        const toolSearchParts = (await convertReadableStreamToArray(stream))
+          .filter(
+            part =>
+              (part.type === 'tool-input-start' &&
+                part.toolName === 'toolSearch') ||
+              (part.type === 'tool-input-end' && part.id === 'call_final') ||
+              (part.type === 'tool-call' && part.toolName === 'toolSearch') ||
+              (part.type === 'tool-result' && part.toolName === 'toolSearch'),
+          )
+          .map(part =>
+            part.type === 'tool-call'
+              ? { ...part, input: JSON.parse(part.input) }
+              : part,
+          );
 
         expect(toolSearchParts).toMatchInlineSnapshot(`
           [
@@ -6022,7 +6183,12 @@ describe('OpenAIResponsesLanguageModel', () => {
               "type": "tool-input-end",
             },
             {
-              "input": "{"arguments":{"goal":"Find the weather tool"},"call_id":"call_final"}",
+              "input": {
+                "arguments": {
+                  "goal": "Find the weather tool",
+                },
+                "call_id": "call_final",
+              },
               "providerMetadata": {
                 "openai": {
                   "itemId": "tsc_client_1",
@@ -6067,6 +6233,161 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ]
         `);
+      });
+    });
+
+    describe('client tool search tool', () => {
+      it('should stream client tool search call as non-provider-executed tool parts', async () => {
+        prepareChunksFixtureResponse('openai-client-tool-search.1');
+
+        const { stream } = await createModel('gpt-5.4').doStream({
+          prompt: TEST_PROMPT,
+          tools: CLIENT_TOOL_SEARCH_TOOLS,
+        });
+
+        const allParts = await convertReadableStreamToArray(stream);
+
+        const clientToolSearchParts = allParts
+          .filter(
+            (
+              part,
+            ): part is Extract<
+              LanguageModelV3StreamPart,
+              {
+                type:
+                  | 'tool-input-start'
+                  | 'tool-input-end'
+                  | 'tool-call'
+                  | 'tool-result';
+              }
+            > =>
+              (part.type === 'tool-input-start' &&
+                part.toolName === 'toolSearch') ||
+              part.type === 'tool-input-end' ||
+              (part.type === 'tool-call' && part.toolName === 'toolSearch'),
+          )
+          .map(part =>
+            part.type === 'tool-call'
+              ? { ...part, input: JSON.parse(part.input) }
+              : part,
+          );
+
+        expect(clientToolSearchParts).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "call_RWTIIVfxsJW9fecsg6fy23Dy",
+              "toolName": "toolSearch",
+              "type": "tool-input-start",
+            },
+            {
+              "id": "call_RWTIIVfxsJW9fecsg6fy23Dy",
+              "type": "tool-input-end",
+            },
+            {
+              "input": {
+                "arguments": {
+                  "goal": "Find a tool that can provide current weather information for San Francisco.",
+                },
+                "call_id": "call_RWTIIVfxsJW9fecsg6fy23Dy",
+              },
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "tsc_05147bbe356953b60069ab673598f88196b499a756b524b64c",
+                },
+              },
+              "toolCallId": "call_RWTIIVfxsJW9fecsg6fy23Dy",
+              "toolName": "toolSearch",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should not include providerExecuted flag for client tool search stream parts', async () => {
+        prepareChunksFixtureResponse('openai-client-tool-search.1');
+
+        const { stream } = await createModel('gpt-5.4').doStream({
+          prompt: TEST_PROMPT,
+          tools: CLIENT_TOOL_SEARCH_TOOLS,
+        });
+
+        const allParts = await convertReadableStreamToArray(stream);
+
+        const toolInputStart = allParts.find(
+          (
+            part,
+          ): part is Extract<
+            LanguageModelV3StreamPart,
+            { type: 'tool-input-start' }
+          > =>
+            part.type === 'tool-input-start' && part.toolName === 'toolSearch',
+        );
+        const toolCall = allParts.find(
+          (
+            part,
+          ): part is Extract<
+            LanguageModelV3StreamPart,
+            { type: 'tool-call' }
+          > => part.type === 'tool-call' && part.toolName === 'toolSearch',
+        );
+
+        expect(toolInputStart?.providerExecuted).toBeUndefined();
+        expect(toolCall?.providerExecuted).toBeUndefined();
+      });
+
+      it('should use final call_id from done chunk (not provisional from added chunk)', async () => {
+        prepareChunksFixtureResponse('openai-client-tool-search.1');
+
+        const { stream } = await createModel('gpt-5.4').doStream({
+          prompt: TEST_PROMPT,
+          tools: CLIENT_TOOL_SEARCH_TOOLS,
+        });
+
+        const allParts = await convertReadableStreamToArray(stream);
+
+        const toolCall = allParts.find(
+          (
+            part,
+          ): part is Extract<
+            LanguageModelV3StreamPart,
+            { type: 'tool-call' }
+          > => part.type === 'tool-call' && part.toolName === 'toolSearch',
+        );
+
+        const parsedInput = JSON.parse(toolCall!.input);
+
+        expect(toolCall?.toolCallId).toBe('call_RWTIIVfxsJW9fecsg6fy23Dy');
+        expect(parsedInput.call_id).toBe('call_RWTIIVfxsJW9fecsg6fy23Dy');
+        expect(toolCall?.toolCallId).toBe(parsedInput.call_id);
+      });
+
+      it('should stream step 2 function call after client tool search output', async () => {
+        prepareChunksFixtureResponse('openai-client-tool-search.2');
+
+        const { stream } = await createModel('gpt-5.4').doStream({
+          prompt: TEST_PROMPT,
+          tools: CLIENT_TOOL_SEARCH_TOOLS,
+        });
+
+        const allParts = await convertReadableStreamToArray(stream);
+
+        const functionCallPart = allParts.find(
+          (
+            part,
+          ): part is Extract<
+            LanguageModelV3StreamPart,
+            { type: 'tool-call' }
+          > => part.type === 'tool-call' && part.toolName === 'get_weather',
+        );
+
+        expect(functionCallPart).toBeDefined();
+        expect(functionCallPart?.toolCallId).toBe(
+          'call_Q7pq6EfVGRnauPLWSSYBGJ1l',
+        );
+        expect(JSON.parse(functionCallPart!.input)).toEqual({
+          location: 'San Francisco, CA',
+          unit: 'fahrenheit',
+        });
       });
     });
 

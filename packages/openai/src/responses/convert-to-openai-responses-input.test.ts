@@ -2441,6 +2441,139 @@ describe('convertToOpenAIResponsesInput', () => {
       });
     });
 
+    it('should serialize client tool search output with call_id from tool role', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_abc123',
+                toolName: 'tool_search',
+                input: JSON.stringify({
+                  arguments: { goal: 'Find weather tools' },
+                  call_id: 'call_abc123',
+                }),
+                providerOptions: {
+                  openai: {
+                    itemId: 'tsc_client_1',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_abc123',
+                toolName: 'tool_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    tools: [
+                      {
+                        type: 'function',
+                        name: 'get_weather',
+                        description: 'Get weather',
+                        defer_loading: true,
+                        parameters: {
+                          type: 'object',
+                          properties: {
+                            location: { type: 'string' },
+                          },
+                          required: ['location'],
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            type: 'tool_search_call',
+            id: 'tsc_client_1',
+            execution: 'client',
+            call_id: 'call_abc123',
+            status: 'completed',
+            arguments: { goal: 'Find weather tools' },
+          },
+          {
+            type: 'tool_search_output',
+            execution: 'client',
+            call_id: 'call_abc123',
+            status: 'completed',
+            tools: [
+              {
+                type: 'function',
+                name: 'get_weather',
+                description: 'Get weather',
+                defer_loading: true,
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    location: { type: 'string' },
+                  },
+                  required: ['location'],
+                },
+              },
+            ],
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should use call_id (not item id) for client tool search call serialization', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_xyz789',
+                toolName: 'tool_search',
+                input: JSON.stringify({
+                  arguments: { goal: 'Find tools' },
+                  call_id: 'call_xyz789',
+                }),
+                providerOptions: {
+                  openai: {
+                    itemId: 'tsc_item_id',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      const toolSearchCall = result.input.find(
+        (item: any) => item.type === 'tool_search_call',
+      ) as any;
+
+      expect(toolSearchCall.call_id).toBe('call_xyz789');
+      expect(toolSearchCall.id).toBe('tsc_item_id');
+      expect(toolSearchCall.execution).toBe('client');
+    });
+
     it('should exclude provider-executed tool calls and results from prompt with store: false', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
