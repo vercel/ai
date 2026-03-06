@@ -36,51 +36,51 @@ export function prepareCallSettings({
   }
 
   if (temperature != null) {
-    if (typeof temperature !== 'number') {
+    if (typeof temperature !== 'number' || !Number.isFinite(temperature)) {
       throw new InvalidArgumentError({
         parameter: 'temperature',
         value: temperature,
-        message: 'temperature must be a number',
+        message: 'temperature must be a finite number',
       });
     }
   }
 
   if (topP != null) {
-    if (typeof topP !== 'number') {
+    if (typeof topP !== 'number' || !Number.isFinite(topP)) {
       throw new InvalidArgumentError({
         parameter: 'topP',
         value: topP,
-        message: 'topP must be a number',
+        message: 'topP must be a finite number',
       });
     }
   }
 
   if (topK != null) {
-    if (typeof topK !== 'number') {
+    if (typeof topK !== 'number' || !Number.isFinite(topK)) {
       throw new InvalidArgumentError({
         parameter: 'topK',
         value: topK,
-        message: 'topK must be a number',
+        message: 'topK must be a finite number',
       });
     }
   }
 
   if (presencePenalty != null) {
-    if (typeof presencePenalty !== 'number') {
+    if (typeof presencePenalty !== 'number' || !Number.isFinite(presencePenalty)) {
       throw new InvalidArgumentError({
         parameter: 'presencePenalty',
         value: presencePenalty,
-        message: 'presencePenalty must be a number',
+        message: 'presencePenalty must be a finite number',
       });
     }
   }
 
   if (frequencyPenalty != null) {
-    if (typeof frequencyPenalty !== 'number') {
+    if (typeof frequencyPenalty !== 'number' || !Number.isFinite(frequencyPenalty)) {
       throw new InvalidArgumentError({
         parameter: 'frequencyPenalty',
         value: frequencyPenalty,
-        message: 'frequencyPenalty must be a number',
+        message: 'frequencyPenalty must be a finite number',
       });
     }
   }

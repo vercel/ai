@@ -33,6 +33,13 @@ export function createBedrockEventStreamDecoder<T>(
             buffer.byteLength,
           ).getUint32(0, false);
 
+          // Validate totalLength to prevent buffer misalignment or excessive allocation
+          if (totalLength < 16 || totalLength > 16 * 1024 * 1024) {
+            // Invalid event: minimum AWS event stream message is 16 bytes (prelude + CRC),
+            // cap at 16MB to prevent memory exhaustion
+            break;
+          }
+
           if (buffer.length < totalLength) {
             break;
           }

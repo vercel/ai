@@ -70,11 +70,15 @@ export function pruneMessages({
         ? undefined
         : toolCall.type === 'before-last-message'
           ? 1
-          : Number(
-              toolCall.type
-                .slice('before-last-'.length)
-                .slice(0, -'-messages'.length),
-            );
+          : (() => {
+              const n = Number(
+                toolCall.type
+                  .slice('before-last-'.length)
+                  .slice(0, -'-messages'.length),
+              );
+              if (!Number.isFinite(n) || n < 1) return 1;
+              return Math.min(Math.floor(n), messages.length);
+            })();
 
     // scan kept messages to identify tool calls and approvals that need to be kept:
     const keptToolCallIds: Set<string> = new Set();
