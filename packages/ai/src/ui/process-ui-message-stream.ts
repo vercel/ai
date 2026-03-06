@@ -180,14 +180,21 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.providerExecuted =
                 anyOptions.providerExecuted ?? part.providerExecuted;
 
-              if (anyOptions.providerMetadata != null) {
+              const providerMetadata = anyOptions.providerMetadata;
+
+              if (providerMetadata != null) {
                 if (
                   options.state === 'output-available' ||
                   options.state === 'output-error'
                 ) {
-                  anyPart.resultProviderMetadata = anyOptions.providerMetadata;
+                  const resultPart = part as Extract<
+                    ToolUIPart<InferUIMessageTools<UI_MESSAGE>>,
+                    { state: 'output-available' | 'output-error' }
+                  >;
+
+                  resultPart.resultProviderMetadata = providerMetadata;
                 } else {
-                  part.callProviderMetadata = anyOptions.providerMetadata;
+                  part.callProviderMetadata = providerMetadata;
                 }
               }
             } else {
@@ -274,14 +281,21 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.providerExecuted =
                 anyOptions.providerExecuted ?? part.providerExecuted;
 
-              if (anyOptions.providerMetadata != null) {
+              const providerMetadata = anyOptions.providerMetadata;
+
+              if (providerMetadata != null) {
                 if (
                   options.state === 'output-available' ||
                   options.state === 'output-error'
                 ) {
-                  anyPart.resultProviderMetadata = anyOptions.providerMetadata;
+                  const resultPart = part as Extract<
+                    DynamicToolUIPart,
+                    { state: 'output-available' | 'output-error' }
+                  >;
+
+                  resultPart.resultProviderMetadata = providerMetadata;
                 } else {
-                  part.callProviderMetadata = anyOptions.providerMetadata;
+                  part.callProviderMetadata = providerMetadata;
                 }
               }
             } else {
