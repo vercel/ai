@@ -4,14 +4,21 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { OpenAIChatPrompt } from './openai-chat-prompt';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import { convertToBase64, mediaTypeToExtension } from '@ai-sdk/provider-utils';
+
+function isFileId(data: string, prefixes?: readonly string[]): boolean {
+  if (!prefixes) return false;
+  return prefixes.some(prefix => data.startsWith(prefix));
+}
 
 export function convertToOpenAIChatMessages({
   prompt,
   systemMessageMode = 'system',
+  fileIdPrefixes = ['file-'],
 }: {
   prompt: LanguageModelV3Prompt;
   systemMessageMode?: 'system' | 'developer' | 'remove';
+  fileIdPrefixes?: readonly string[];
 }): {
   messages: OpenAIChatPrompt;
   warnings: Array<SharedV3Warning>;
@@ -114,10 +121,16 @@ export function convertToOpenAIChatMessages({
                       });
                     }
                   }
-                } else if (part.mediaType === 'application/pdf') {
+                } else {
+                  // Handles application/pdf and all other non-image, non-audio
+                  // file types (text/plain, application/json, text/javascript,
+                  // etc.) via the file content type. OpenAI will validate
+                  // whether the specific MIME type is supported.
+                  // Note: Chat Completions API does not support file_url,
+                  // so URL data still throws.
                   if (part.data instanceof URL) {
                     throw new UnsupportedFunctionalityError({
-                      functionality: 'PDF file parts with URLs',
+                      functionality: 'file parts with URLs',
                     });
                   }
 
@@ -125,17 +138,15 @@ export function convertToOpenAIChatMessages({
                     type: 'file',
                     file:
                       typeof part.data === 'string' &&
-                      part.data.startsWith('file-')
+                      isFileId(part.data, fileIdPrefixes)
                         ? { file_id: part.data }
                         : {
-                            filename: part.filename ?? `part-${index}.pdf`,
-                            file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
+                            filename:
+                              part.filename ??
+                              `part-${index}.${mediaTypeToExtension(part.mediaType)}`,
+                            file_data: `data:${part.mediaType};base64,${convertToBase64(part.data)}`,
                           },
                   };
-                } else {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: `file part media type ${part.mediaType}`,
-                  });
                 }
               }
             }
