@@ -197,9 +197,7 @@ export function convertToGoogleGenerativeAIMessages(
                   content:
                     output.type === 'execution-denied'
                       ? (output.reason ?? 'Tool execution denied.')
-                      : typeof output.value === 'string'
-                        ? output.value
-                        : JSON.stringify(output.value),
+                      : output.value,
                 },
               },
             });
