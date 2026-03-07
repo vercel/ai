@@ -220,10 +220,34 @@ The `speed` option accepts `'fast'` or `'standard'` (default behavior).
 
 ### Reasoning
 
-Anthropic has reasoning support for `claude-opus-4-20250514`, `claude-sonnet-4-20250514`, and `claude-sonnet-4-5-20250929` models.
+Anthropic has reasoning support for Claude models. There are two thinking modes:
 
-You can enable it using the `thinking` provider option
-and specifying a thinking budget in tokens.
+#### Adaptive Thinking
+
+For `claude-sonnet-4-6`, `claude-opus-4-6`, and newer models, use adaptive thinking. The model automatically decides when and how much to think based on the complexity of the request—no token budget needed.
+
+```ts highlight="4,8-10"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text, reasoningText, reasoning } = await generateText({
+  model: anthropic('claude-sonnet-4-6'),
+  prompt: 'How many people will live in the world in 2040?',
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'adaptive' },
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+
+console.log(reasoningText); // reasoning text
+console.log(reasoning); // reasoning details including redacted reasoning
+console.log(text); // text response
+```
+
+#### Budget-Based Thinking
+
+For `claude-opus-4-20250514`, `claude-sonnet-4-20250514`, and `claude-sonnet-4-5-20250929`, use the `enabled` type with a `budgetTokens` parameter to set a maximum thinking token budget.
 
 ```ts highlight="4,8-10"
 import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
