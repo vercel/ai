@@ -630,6 +630,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             disableParallelToolUse: true,
             cacheControlValidator,
             supportsStructuredOutput: false,
+            supportsToolStrict,
           }
         : {
             tools: tools ?? [],
