@@ -366,6 +366,42 @@ const result = await generateText({
 });
 ```
 
+You can use `videoMetadata` via `providerOptions` to clip a specific segment of a video or control the frame rate:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: google('gemini-2.5-flash'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'Summarize this part of the video',
+        },
+        {
+          type: 'file',
+          data: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          mediaType: 'video/mp4',
+          providerOptions: {
+            google: {
+              videoMetadata: {
+                startOffset: '60s',
+                endOffset: '600s',
+                fps: 1,
+              },
+            },
+          },
+        },
+      ],
+    },
+  ],
+});
+```
+
 <Note>
   The AI SDK will automatically download URLs if you pass them as data, except
   for `https://generativelanguage.googleapis.com/v1beta/files/` and YouTube
