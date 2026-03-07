@@ -9,6 +9,7 @@ export * from './language-model/index';
 export * from './provider/index';
 export * from './reranking-model/index';
 export * from './shared/index';
+export * from './skills-manager/index';
 export * from './speech-model/index';
 export * from './transcription-model/index';
 export * from './video-model/index';

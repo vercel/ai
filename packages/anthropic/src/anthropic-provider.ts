@@ -3,6 +3,7 @@ import {
   LanguageModelV3,
   NoSuchModelError,
   ProviderV3,
+  Experimental_SkillsManagerV1,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -16,6 +17,7 @@ import { VERSION } from './version';
 import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
 import { AnthropicMessagesModelId } from './anthropic-messages-options';
 import { anthropicTools } from './anthropic-tools';
+import { AnthropicSkillsManager } from './skills/anthropic-skills-manager';
 
 export interface AnthropicProvider extends ProviderV3 {
   /**
@@ -36,6 +38,11 @@ export interface AnthropicProvider extends ProviderV3 {
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: string): never;
+
+  /**
+   * Returns the skills manager for this provider.
+   */
+  skillsManager(): Experimental_SkillsManagerV1;
 
   /**
    * Anthropic-specific computer use tool.
@@ -143,6 +150,14 @@ export function createAnthropic(
       }),
     });
 
+  const createSkillsManager = () =>
+    new AnthropicSkillsManager({
+      provider: `${providerName.replace('.messages', '')}.skills`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (modelId: AnthropicMessagesModelId) {
     if (new.target) {
       throw new Error(
@@ -165,6 +180,8 @@ export function createAnthropic(
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
+
+  provider.skillsManager = createSkillsManager;
 
   provider.tools = anthropicTools;
 
