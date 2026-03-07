@@ -126,6 +126,44 @@ describe('GatewayLanguageModel', () => {
       });
     });
 
+    it('should convert V2 flat usage to V3 nested format in doGenerate', async () => {
+      // The gateway backend returns V2-format usage even with spec version 3.
+      // Simulate the backend returning flat inputTokens/outputTokens numbers.
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-id',
+          content: { type: 'text', text: 'Hi' },
+          finish_reason: 'stop',
+          usage: {
+            inputTokens: 9,
+            outputTokens: 11,
+            totalTokens: 20,
+            reasoningTokens: 0,
+            cachedInputTokens: 2,
+          },
+        },
+      };
+
+      const { usage } = await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage).toEqual({
+        inputTokens: {
+          total: 9,
+          noCache: undefined,
+          cacheRead: 2,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 11,
+          text: undefined,
+          reasoning: 0,
+        },
+      });
+    });
+
     it('should remove abortSignal from the request body', async () => {
       prepareJsonResponse({ content: { type: 'text', text: 'Test response' } });
 
@@ -638,6 +676,53 @@ describe('GatewayLanguageModel', () => {
         'ai-language-model-specification-version': '3',
         'ai-language-model-id': 'test-model',
         'ai-language-model-streaming': 'true',
+      });
+    });
+
+    it('should convert V2 flat usage to V3 nested format in streaming finish event', async () => {
+      // The gateway backend returns V2-format usage in finish events even with spec version 3.
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({ type: 'text-delta', textDelta: 'Hi' })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'finish',
+            finishReason: 'stop',
+            usage: {
+              inputTokens: 9,
+              outputTokens: 11,
+              totalTokens: 20,
+              reasoningTokens: 3,
+              cachedInputTokens: 1,
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+      const finishChunk = chunks.find(c => c.type === 'finish');
+
+      expect(finishChunk).toMatchObject({
+        type: 'finish',
+        finishReason: 'stop',
+        usage: {
+          inputTokens: {
+            total: 9,
+            noCache: undefined,
+            cacheRead: 1,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: 11,
+            text: undefined,
+            reasoning: 3,
+          },
+        },
       });
     });
 
