@@ -133,7 +133,7 @@ async function _retryWithExponentialBackoff<OUTPUT>(
         f,
         {
           maxRetries,
-          delayInMs: backoffFactor * delayInMs,
+          delayInMs: Math.min(backoffFactor * delayInMs, 60_000),
           backoffFactor,
           abortSignal,
         },

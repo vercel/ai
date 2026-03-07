@@ -33,6 +33,14 @@ export function prepareRetries({
         message: 'maxRetries must be >= 0',
       });
     }
+
+    if (maxRetries > 100) {
+      throw new InvalidArgumentError({
+        parameter: 'maxRetries',
+        value: maxRetries,
+        message: 'maxRetries must be <= 100',
+      });
+    }
   }
 
   const maxRetriesResult = maxRetries ?? 2;

@@ -18,13 +18,22 @@ export function createBedrockAnthropicFetch(
     ) {
       const transformedBody = transformBedrockEventStreamToSSE(response.body);
 
+      const safeHeaders: Record<string, string> = Object.create(null);
+      response.headers.forEach((value, key) => {
+        if (
+          key !== '__proto__' &&
+          key !== 'constructor' &&
+          key !== 'prototype'
+        ) {
+          safeHeaders[key] = value;
+        }
+      });
+      safeHeaders['content-type'] = 'text/event-stream';
+
       return new Response(transformedBody, {
         status: response.status,
         statusText: response.statusText,
-        headers: new Headers({
-          ...Object.fromEntries(response.headers.entries()),
-          'content-type': 'text/event-stream',
-        }),
+        headers: new Headers(safeHeaders),
       });
     }
 

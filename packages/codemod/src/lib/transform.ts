@@ -1,4 +1,4 @@
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import debug from 'debug';
 import fs from 'fs';
 import path from 'path';
@@ -15,40 +15,46 @@ function getJscodeshift(): string {
   return fs.existsSync(localJscodeshift) ? localJscodeshift : 'jscodeshift';
 }
 
-function buildCommand(
+function buildArgs(
   codemodPath: string,
   targetPath: string,
-  jscodeshift: string,
   options: TransformOptions,
-): string {
+): string[] {
   // Ignoring everything under `.*/` covers `.next/` along with any other
   // framework build related or otherwise intended-to-be-hidden directories.
-  let command = `${jscodeshift} -t ${codemodPath} ${targetPath} \
-    --parser tsx \
-    --ignore-pattern="**/node_modules/**" \
-    --ignore-pattern="**/.*/**" \
-    --ignore-pattern="**/dist/**" \
-    --ignore-pattern="**/build/**" \
-    --ignore-pattern="**/*.min.js" \
-    --ignore-pattern="**/*.bundle.js"`;
+  const args = [
+    '-t',
+    codemodPath,
+    targetPath,
+    '--parser',
+    'tsx',
+    '--ignore-pattern=**/node_modules/**',
+    '--ignore-pattern=**/.*/**',
+    '--ignore-pattern=**/dist/**',
+    '--ignore-pattern=**/build/**',
+    '--ignore-pattern=**/*.min.js',
+    '--ignore-pattern=**/*.bundle.js',
+  ];
 
   if (options.dry) {
-    command += ' --dry';
+    args.push('--dry');
   }
 
   if (options.print) {
-    command += ' --print';
+    args.push('--print');
   }
 
   if (options.verbose) {
-    command += ' --verbose';
+    args.push('--verbose');
   }
 
   if (options.jscodeshift) {
-    command += ` ${options.jscodeshift}`;
+    // Split additional jscodeshift options safely into individual arguments
+    // to prevent shell injection via options.jscodeshift
+    args.push(...options.jscodeshift.split(/\s+/).filter(Boolean));
   }
 
-  return command;
+  return args;
 }
 
 export type TransformErrors = {
@@ -104,13 +110,11 @@ export function transform(
   const codemodPath = path.resolve(__dirname, `../codemods/${codemod}.js`);
   const targetPath = path.resolve(source);
   const jscodeshift = getJscodeshift();
-  const command = buildCommand(
-    codemodPath,
-    targetPath,
-    jscodeshift,
-    transformOptions,
-  );
-  const stdout = execSync(command, { encoding: 'utf8', stdio: 'pipe' });
+  const args = buildArgs(codemodPath, targetPath, transformOptions);
+  const stdout = execFileSync(jscodeshift, args, {
+    encoding: 'utf8',
+    stdio: 'pipe',
+  });
   const errors = parseErrors(codemod, stdout);
   const notImplementedErrors = parseNotImplementedErrors(codemod, stdout);
   if (options.logStatus) {

@@ -2,6 +2,7 @@ import {
   EventSourceParserStream,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
+  secureJsonParse,
 } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
 import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
@@ -48,11 +49,22 @@ export class SseMCPTransport implements MCPTransport {
   private async commonHeaders(
     base: Record<string, string>,
   ): Promise<Record<string, string>> {
-    const headers: Record<string, string> = {
-      ...this.headers,
-      ...base,
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
-    };
+    const FORBIDDEN_KEYS = new Set([
+      '__proto__',
+      'constructor',
+      'prototype',
+    ]);
+    const headers: Record<string, string> = Object.create(null);
+    for (const source of [this.headers, base]) {
+      if (source) {
+        for (const [key, value] of Object.entries(source)) {
+          if (!FORBIDDEN_KEYS.has(key)) {
+            headers[key] = value;
+          }
+        }
+      }
+    }
+    headers['mcp-protocol-version'] = LATEST_PROTOCOL_VERSION;
 
     if (this.authProvider) {
       const tokens = await this.authProvider.tokens();
@@ -158,7 +170,7 @@ export class SseMCPTransport implements MCPTransport {
                 } else if (event === 'message') {
                   try {
                     const message = JSONRPCMessageSchema.parse(
-                      JSON.parse(data),
+                      secureJsonParse(data),
                     );
                     this.onmessage?.(message);
                   } catch (error) {
@@ -268,5 +280,5 @@ export class SseMCPTransport implements MCPTransport {
 }
 
 export function deserializeMessage(line: string): JSONRPCMessage {
-  return JSONRPCMessageSchema.parse(JSON.parse(line));
+  return JSONRPCMessageSchema.parse(secureJsonParse(line));
 }

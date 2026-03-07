@@ -385,7 +385,16 @@ function App() {
   const parseJson = (str: string | null) => {
     if (!str) return null;
     try {
-      return JSON.parse(str);
+      const parsed = JSON.parse(str);
+      // Prevent prototype pollution from stored data
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        ('__proto__' in parsed || 'constructor' in parsed)
+      ) {
+        return str;
+      }
+      return parsed;
     } catch {
       return str;
     }
@@ -2032,7 +2041,16 @@ function TokenBreakdownTooltip({
 function safeParseJson(value: any): any {
   if (typeof value === 'string') {
     try {
-      return JSON.parse(value);
+      const parsed = JSON.parse(value);
+      // Prevent prototype pollution from stored data
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        ('__proto__' in parsed || 'constructor' in parsed)
+      ) {
+        return value;
+      }
+      return parsed;
     } catch {
       return value;
     }

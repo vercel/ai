@@ -8,6 +8,7 @@ import {
   parseProviderOptions,
   postToApi,
   resolve,
+  secureJsonParse,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -310,7 +311,7 @@ function createMultipartResponseHandler() {
 
       if (contentDisposition.includes('name="job"')) {
         const jsonStr = new TextDecoder().decode(part.body);
-        jobResult = prodiaJobResultSchema.parse(JSON.parse(jsonStr));
+        jobResult = prodiaJobResultSchema.parse(secureJsonParse(jsonStr));
       } else if (contentDisposition.includes('name="output"')) {
         imageBytes = part.body;
       } else if (partContentType.startsWith('image/')) {

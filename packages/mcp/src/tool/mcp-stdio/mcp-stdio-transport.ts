@@ -1,5 +1,6 @@
 import type { ChildProcess, IOType } from 'node:child_process';
 import { Stream } from 'node:stream';
+import { secureJsonParse } from '@ai-sdk/provider-utils';
 import { JSONRPCMessage, JSONRPCMessageSchema } from '../json-rpc-message';
 import { MCPTransport } from '../mcp-transport';
 import { MCPClientError } from '../../error/mcp-client-error';
@@ -150,5 +151,5 @@ function serializeMessage(message: JSONRPCMessage): string {
 }
 
 export function deserializeMessage(line: string): JSONRPCMessage {
-  return JSONRPCMessageSchema.parse(JSON.parse(line));
+  return JSONRPCMessageSchema.parse(secureJsonParse(line));
 }

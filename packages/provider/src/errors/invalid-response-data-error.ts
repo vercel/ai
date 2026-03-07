@@ -15,11 +15,19 @@ export class InvalidResponseDataError extends AISDKError {
 
   constructor({
     data,
-    message = `Invalid response data: ${JSON.stringify(data)}.`,
+    message,
   }: {
     data: unknown;
     message?: string;
   }) {
+    if (message == null) {
+      const dataStr = JSON.stringify(data);
+      const truncatedData =
+        dataStr != null && dataStr.length > 500
+          ? dataStr.slice(0, 500) + '...(truncated)'
+          : dataStr;
+      message = `Invalid response data: ${truncatedData}.`;
+    }
     super({ name, message });
 
     this.data = data;

@@ -1,0 +1,32 @@
+
+ RUN  v2.1.4 /home/user/ai/packages/ai
+
+ ✓ src/security-vulnerability-poc.test.ts > Category 1: Prototype Pollution via JSON.parse > PoC 1.1: JSON.parse allows __proto__ pollution (the core vulnerability)
+ ✓ src/security-vulnerability-poc.test.ts > Category 1: Prototype Pollution via JSON.parse > PoC 1.2: JSON.parse with constructor.prototype pollution
+ ✓ src/security-vulnerability-poc.test.ts > Category 1: Prototype Pollution via JSON.parse > PoC 1.3: Real attack — MCP SSE transport message parsing
+ ✓ src/security-vulnerability-poc.test.ts > Category 2: Prototype Pollution via response.json() > PoC 2.1: response.json() bypasses secureJsonParse entirely
+ ✓ src/security-vulnerability-poc.test.ts > Category 2: Prototype Pollution via response.json() > PoC 2.2: OAuth token response with prototype pollution
+ ✓ src/security-vulnerability-poc.test.ts > Category 3: Prototype Pollution in Object Merge/Spread > PoC 3.1: mergeObjects — original had no __proto__ guard
+ ✓ src/security-vulnerability-poc.test.ts > Category 3: Prototype Pollution in Object Merge/Spread > PoC 3.2: combineHeaders — original used object spread (pollutable)
+ ✓ src/security-vulnerability-poc.test.ts > Category 4: Regex Injection / ReDoS > PoC 4.1: tagName injected into RegExp matches everything
+ ✓ src/security-vulnerability-poc.test.ts > Category 4: Regex Injection / ReDoS > PoC 4.2: baseURL regex injection — dot in domain matches any char
+ ✓ src/security-vulnerability-poc.test.ts > Category 5: Command Injection in Codemod > PoC 5.1: options.jscodeshift allows shell command injection
+ ✓ src/security-vulnerability-poc.test.ts > Category 6: SSRF Bypass via Missing Private IP Ranges > PoC 6.1: Private IP ranges that bypassed the original filter
+ ✓ src/security-vulnerability-poc.test.ts > Category 6: SSRF Bypass via Missing Private IP Ranges > PoC 6.2: Credential URLs were not blocked
+ ✓ src/security-vulnerability-poc.test.ts > Category 7: CRLF Header Injection > PoC 7.1: CRLF in header values injects extra headers
+ ✓ src/security-vulnerability-poc.test.ts > Category 8: Input Validation / Bounds Checking > PoC 8.1: maxRetries capped at 100
+ ✓ src/security-vulnerability-poc.test.ts > Category 8: Input Validation / Bounds Checking > PoC 8.2: NaN/Infinity rejected for numeric call settings
+ ✓ src/security-vulnerability-poc.test.ts > Category 8: Input Validation / Bounds Checking > PoC 8.3: Backoff delay overflow without cap
+ ✓ src/security-vulnerability-poc.test.ts > Category 8: Input Validation / Bounds Checking > PoC 8.4: prune-messages unbounded integer parsing
+ ✓ src/security-vulnerability-poc.test.ts > Category 9: Information Disclosure in Error Messages > PoC 9.1: Full values leaked in TypeValidationError
+ ✓ src/security-vulnerability-poc.test.ts > Category 9: Information Disclosure in Error Messages > PoC 9.2: Full response leaked in InvalidResponseDataError
+ ✓ src/security-vulnerability-poc.test.ts > Category 10: Bedrock Event Stream Buffer Overflow > PoC 10.1: Malicious totalLength causes OOM or infinite loop
+ ✓ src/security-vulnerability-poc.test.ts > Category 11: Unsafe JSON Schema Merge & Data URI Regex > PoC 11.1: __proto__ injection via Zod schema description
+ ✓ src/security-vulnerability-poc.test.ts > Category 11: Unsafe JSON Schema Merge & Data URI Regex > PoC 11.2: Data URI regex strictness
+ ✓ src/security-vulnerability-poc.test.ts > Category 12: secureJsonParse Export > PoC 12.1: secureJsonParse is exported and works
+
+ Test Files  1 passed (1)
+      Tests  23 passed (23)
+   Start at  07:30:41
+   Duration  2.01s (transform 627ms, setup 0ms, collect 872ms, tests 20ms, environment 0ms, prepare 580ms)
+

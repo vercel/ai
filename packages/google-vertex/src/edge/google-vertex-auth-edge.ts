@@ -1,6 +1,7 @@
 import {
   loadOptionalSetting,
   loadSetting,
+  secureJsonParse,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
@@ -153,7 +154,8 @@ export async function generateAuthToken(credentials?: GoogleCredentials) {
       throw new Error(`Token request failed: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const text = await response.text();
+    const data = secureJsonParse(text);
     return data.access_token;
   } catch (error) {
     throw error;

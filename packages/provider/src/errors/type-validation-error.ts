@@ -56,11 +56,17 @@ export class TypeValidationError extends AISDKError {
       contextPrefix += ')';
     }
 
+    const valueStr = JSON.stringify(value);
+    const truncatedValue =
+      valueStr != null && valueStr.length > 500
+        ? valueStr.slice(0, 500) + '...(truncated)'
+        : valueStr;
+
     super({
       name,
       message:
         `${contextPrefix}: ` +
-        `Value: ${JSON.stringify(value)}.\n` +
+        `Value: ${truncatedValue}.\n` +
         `Error message: ${getErrorMessage(cause)}`,
       cause,
     });

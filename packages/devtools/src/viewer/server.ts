@@ -13,6 +13,7 @@ import {
   clearDatabase,
   reloadDb,
 } from '../db.js';
+import { secureJsonParse } from '@ai-sdk/provider-utils';
 
 // SSE client management
 type SSEClient = {
@@ -73,7 +74,7 @@ app.get('/api/runs', async c => {
       const firstStep = steps[0];
       if (firstStep) {
         try {
-          const input = JSON.parse(firstStep.input);
+          const input = secureJsonParse(firstStep.input);
           const userMsg = input?.prompt?.findLast(
             (m: any) => m.role === 'user',
           );

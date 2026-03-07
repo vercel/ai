@@ -2,6 +2,7 @@ import {
   EventSourceParserStream,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
+  secureJsonParse,
 } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
 import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
@@ -62,11 +63,22 @@ export class HttpMCPTransport implements MCPTransport {
   private async commonHeaders(
     base: Record<string, string>,
   ): Promise<Record<string, string>> {
-    const headers: Record<string, string> = {
-      ...this.headers,
-      ...base,
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
-    };
+    const FORBIDDEN_KEYS = new Set([
+      '__proto__',
+      'constructor',
+      'prototype',
+    ]);
+    const headers: Record<string, string> = Object.create(null);
+    for (const source of [this.headers, base]) {
+      if (source) {
+        for (const [key, value] of Object.entries(source)) {
+          if (!FORBIDDEN_KEYS.has(key)) {
+            headers[key] = value;
+          }
+        }
+      }
+    }
+    headers['mcp-protocol-version'] = LATEST_PROTOCOL_VERSION;
 
     if (this.sessionId) {
       headers['mcp-session-id'] = this.sessionId;
@@ -195,7 +207,7 @@ export class HttpMCPTransport implements MCPTransport {
 
         const contentType = response.headers.get('content-type') || '';
         if (contentType.includes('application/json')) {
-          const data = await response.json();
+          const data = secureJsonParse(await response.text());
           const messages: JSONRPCMessage[] = Array.isArray(data)
             ? data.map((m: unknown) => JSONRPCMessageSchema.parse(m))
             : [JSONRPCMessageSchema.parse(data)];
@@ -226,7 +238,7 @@ export class HttpMCPTransport implements MCPTransport {
                 const { event, data } = value;
                 if (event === 'message') {
                   try {
-                    const msg = JSONRPCMessageSchema.parse(JSON.parse(data));
+                    const msg = JSONRPCMessageSchema.parse(secureJsonParse(data));
                     this.onmessage?.(msg);
                   } catch (error) {
                     const e = new MCPClientError({
@@ -372,7 +384,7 @@ export class HttpMCPTransport implements MCPTransport {
 
             if (event === 'message') {
               try {
-                const msg = JSONRPCMessageSchema.parse(JSON.parse(data));
+                const msg = JSONRPCMessageSchema.parse(secureJsonParse(data));
                 this.onmessage?.(msg);
               } catch (error) {
                 const e = new MCPClientError({
