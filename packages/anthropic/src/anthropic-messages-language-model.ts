@@ -129,6 +129,14 @@ type AnthropicMessagesConfig = {
    * When false, the model will use JSON tool fallback for structured outputs.
    */
   supportsNativeStructuredOutput?: boolean;
+
+  /**
+   * When set, controls whether strict tool schemas are supported independently
+   * from native structured output. Defaults to the same as supportsStructuredOutput.
+   * Set to true to enable strict tool schemas even when supportsNativeStructuredOutput
+   * is false (e.g. on providers that support strict tools but not structured output format).
+   */
+  supportsToolStrict?: boolean;
 };
 
 export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
@@ -269,6 +277,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     const supportsStructuredOutput =
       (this.config.supportsNativeStructuredOutput ?? true) &&
       modelSupportsStructuredOutput;
+
+    // Strict tool schemas can be enabled independently from structured output
+    // response format. Defaults to the same as supportsStructuredOutput unless
+    // explicitly configured via supportsToolStrict.
+    const supportsToolStrict =
+      this.config.supportsToolStrict !== undefined
+        ? this.config.supportsToolStrict && modelSupportsStructuredOutput
+        : supportsStructuredOutput;
 
     const structureOutputMode =
       anthropicOptions?.structuredOutputMode ?? 'auto';
@@ -621,6 +637,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
             cacheControlValidator,
             supportsStructuredOutput,
+            supportsToolStrict,
           },
     );
 
