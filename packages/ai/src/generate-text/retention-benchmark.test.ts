@@ -33,7 +33,7 @@ const dummyResponseValues = {
 
 describe('retention benchmark', () => {
   describe('generateText', () => {
-    it('should retain request body by default', async () => {
+    it('should exclude request body by default', async () => {
       const largeBody = createLargeBody();
 
       const result = await generateText({
@@ -47,31 +47,31 @@ describe('retention benchmark', () => {
         prompt: 'test',
       });
 
-      // Body should be retained by default
+      // Body should be excluded by default
+      expect(result.request.body).toBeUndefined();
+    });
+
+    it('should retain request body when include.requestBody is true', async () => {
+      const largeBody = createLargeBody();
+
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello' }],
+            request: { body: largeBody },
+          }),
+        }),
+        prompt: 'test',
+        include: { requestBody: true },
+      });
+
+      // Body should be retained
       expect(result.request.body).toBe(largeBody);
       expect((result.request.body as string).length).toBe(LARGE_BODY_SIZE);
     });
 
-    it('should exclude request body when retention.requestBody is false', async () => {
-      const largeBody = createLargeBody();
-
-      const result = await generateText({
-        model: new MockLanguageModelV3({
-          doGenerate: async () => ({
-            ...dummyResponseValues,
-            content: [{ type: 'text', text: 'Hello' }],
-            request: { body: largeBody },
-          }),
-        }),
-        prompt: 'test',
-        experimental_include: { requestBody: false },
-      });
-
-      // Body should be excluded
-      expect(result.request.body).toBeUndefined();
-    });
-
-    it('should retain response body by default', async () => {
+    it('should exclude response body by default', async () => {
       const largeBody = createLargeBody();
 
       const result = await generateText({
@@ -90,35 +90,35 @@ describe('retention benchmark', () => {
         prompt: 'test',
       });
 
-      // Response body should be retained by default
-      expect(result.response.body).toBe(largeBody);
-    });
-
-    it('should exclude response body when retention.responseBody is false', async () => {
-      const largeBody = createLargeBody();
-
-      const result = await generateText({
-        model: new MockLanguageModelV3({
-          doGenerate: async () => ({
-            ...dummyResponseValues,
-            content: [{ type: 'text', text: 'Hello' }],
-            response: {
-              id: 'test-id',
-              timestamp: new Date(0),
-              modelId: 'test-model',
-              body: largeBody,
-            },
-          }),
-        }),
-        prompt: 'test',
-        experimental_include: { responseBody: false },
-      });
-
-      // Response body should be excluded
+      // Response body should be excluded by default
       expect(result.response.body).toBeUndefined();
     });
 
-    it('should exclude both bodies when both retention options are false', async () => {
+    it('should retain response body when include.responseBody is true', async () => {
+      const largeBody = createLargeBody();
+
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello' }],
+            response: {
+              id: 'test-id',
+              timestamp: new Date(0),
+              modelId: 'test-model',
+              body: largeBody,
+            },
+          }),
+        }),
+        prompt: 'test',
+        include: { responseBody: true },
+      });
+
+      // Response body should be retained
+      expect(result.response.body).toBe(largeBody);
+    });
+
+    it('should retain both bodies when both include options are true', async () => {
       const largeRequestBody = createLargeBody();
       const largeResponseBody = createLargeBody();
 
@@ -137,17 +137,17 @@ describe('retention benchmark', () => {
           }),
         }),
         prompt: 'test',
-        experimental_include: { requestBody: false, responseBody: false },
+        include: { requestBody: true, responseBody: true },
       });
 
-      // Both bodies should be excluded
-      expect(result.request.body).toBeUndefined();
-      expect(result.response.body).toBeUndefined();
+      // Both bodies should be retained
+      expect(result.request.body).toBe(largeRequestBody);
+      expect(result.response.body).toBe(largeResponseBody);
     });
   });
 
   describe('streamText', () => {
-    it('should retain request body by default', async () => {
+    it('should exclude request body by default', async () => {
       const largeBody = createLargeBody();
 
       const result = streamText({
@@ -177,12 +177,11 @@ describe('retention benchmark', () => {
 
       const request = await result.request;
 
-      // Body should be retained by default
-      expect(request.body).toBe(largeBody);
-      expect((request.body as string).length).toBe(LARGE_BODY_SIZE);
+      // Body should be excluded by default
+      expect(request.body).toBeUndefined();
     });
 
-    it('should exclude request body when retention.requestBody is false', async () => {
+    it('should retain request body when include.requestBody is true', async () => {
       const largeBody = createLargeBody();
 
       const result = streamText({
@@ -208,13 +207,14 @@ describe('retention benchmark', () => {
           }),
         }),
         prompt: 'test',
-        experimental_include: { requestBody: false },
+        include: { requestBody: true },
       });
 
       const request = await result.request;
 
-      // Body should be excluded
-      expect(request.body).toBeUndefined();
+      // Body should be retained
+      expect(request.body).toBe(largeBody);
+      expect((request.body as string).length).toBe(LARGE_BODY_SIZE);
     });
   });
 
@@ -222,9 +222,7 @@ describe('retention benchmark', () => {
     it('should use less memory when retention is disabled', async () => {
       const largeBody = createLargeBody();
 
-      // Run with retention enabled (default)
-      const memoryBeforeRetained = process.memoryUsage().heapUsed;
-
+      // Run with retention enabled (explicitly opted in)
       const resultRetained = await generateText({
         model: new MockLanguageModelV3({
           doGenerate: async () => ({
@@ -240,16 +238,14 @@ describe('retention benchmark', () => {
           }),
         }),
         prompt: 'test',
+        include: { requestBody: true, responseBody: true },
       });
 
-      const memoryAfterRetained = process.memoryUsage().heapUsed;
       const retainedSize = (resultRetained.request.body as string)?.length ?? 0;
       const retainedResponseSize =
         (resultRetained.response.body as string)?.length ?? 0;
 
-      // Run with retention disabled
-      const memoryBeforeExcluded = process.memoryUsage().heapUsed;
-
+      // Run with retention disabled (default)
       const resultExcluded = await generateText({
         model: new MockLanguageModelV3({
           doGenerate: async () => ({
@@ -265,10 +261,8 @@ describe('retention benchmark', () => {
           }),
         }),
         prompt: 'test',
-        experimental_include: { requestBody: false, responseBody: false },
       });
 
-      const memoryAfterExcluded = process.memoryUsage().heapUsed;
       const excludedSize = (resultExcluded.request.body as string)?.length ?? 0;
       const excludedResponseSize =
         (resultExcluded.response.body as string)?.length ?? 0;
