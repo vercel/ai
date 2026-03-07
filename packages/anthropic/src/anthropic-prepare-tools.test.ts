@@ -231,6 +231,45 @@ describe('prepareTools', () => {
       `);
     });
 
+    it('should include strict and beta when supportsToolStrict is true even if supportsStructuredOutput is false', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: false,
+        supportsToolStrict: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {
+            "structured-outputs-2025-11-13",
+          },
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "cache_control": undefined,
+              "description": "A test function",
+              "input_schema": {
+                "properties": {},
+                "type": "object",
+              },
+              "name": "testFunction",
+              "strict": true,
+            },
+          ],
+        }
+      `);
+    });
+
     it('should include beta when strict is false and supportsStructuredOutput is true', async () => {
       const result = await prepareTools({
         tools: [
