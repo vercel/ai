@@ -156,7 +156,23 @@ export async function prepareResponsesTools({
                   ? { type: 'auto', file_ids: undefined }
                   : typeof args.container === 'string'
                     ? args.container
-                    : { type: 'auto', file_ids: args.container.fileIds },
+                    : {
+                        type: 'auto',
+                        file_ids: args.container.fileIds,
+                        memory_limit: args.container.memoryLimit,
+                        network_policy:
+                          args.container.networkPolicy == null
+                            ? undefined
+                            : args.container.networkPolicy.type === 'disabled'
+                              ? { type: 'disabled' }
+                              : {
+                                  type: 'allowlist',
+                                  allowed_domains:
+                                    args.container.networkPolicy.allowedDomains,
+                                  domain_secrets:
+                                    args.container.networkPolicy.domainSecrets,
+                                },
+                      },
             });
             break;
           }
