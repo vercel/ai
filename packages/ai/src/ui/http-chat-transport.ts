@@ -219,9 +219,12 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     return this.processResponseStream(response.body);
   }
 
-  async reconnectToStream(
-    options: Parameters<ChatTransport<UI_MESSAGE>['reconnectToStream']>[0],
-  ): Promise<ReadableStream<UIMessageChunk> | null> {
+  async reconnectToStream({
+    abortSignal,
+    ...options
+  }: Parameters<
+    ChatTransport<UI_MESSAGE>['reconnectToStream']
+  >[0]): Promise<ReadableStream<UIMessageChunk> | null> {
     const resolvedBody = await resolve(this.body);
     const resolvedHeaders = await resolve(this.headers);
     const resolvedCredentials = await resolve(this.credentials);
@@ -258,6 +261,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
         getRuntimeEnvironmentUserAgent(),
       ),
       credentials,
+      signal: abortSignal,
     });
 
     // no active stream found, so we do not resume
