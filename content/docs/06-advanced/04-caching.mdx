@@ -21,8 +21,8 @@ import {
   type LanguageModelV3,
   type LanguageModelV3Middleware,
   type LanguageModelV3StreamPart,
-  simulateReadableStream,
-} from 'ai';
+} from '@ai-sdk/provider';
+import { simulateReadableStream } from 'ai';
 
 const redis = new Redis({
   url: process.env.KV_URL,
@@ -30,6 +30,7 @@ const redis = new Redis({
 });
 
 export const cacheMiddleware: LanguageModelV3Middleware = {
+  specificationVersion: 'v3',
   wrapGenerate: async ({ doGenerate, params }) => {
     const cacheKey = JSON.stringify(params);
 
