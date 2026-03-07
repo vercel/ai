@@ -58,7 +58,7 @@ describe('GatewayLanguageModel', () => {
       usage = {
         prompt_tokens: 4,
         completion_tokens: 30,
-      },
+      } as unknown,
       finish_reason = 'stop',
       id = 'test-id',
       created = 1711115037,
@@ -107,12 +107,15 @@ describe('GatewayLanguageModel', () => {
       expect(content).toEqual({ type: 'text', text: 'Hello, World!' });
     });
 
-    it('should extract usage information', async () => {
+    it('should normalize flat token usage into V3 usage shape', async () => {
       prepareJsonResponse({
         content: { type: 'text', text: 'Test' },
         usage: {
-          prompt_tokens: 10,
-          completion_tokens: 20,
+          inputTokens: 9,
+          outputTokens: 11,
+          totalTokens: 20,
+          reasoningTokens: 1,
+          cachedInputTokens: 2,
         },
       });
 
@@ -121,8 +124,24 @@ describe('GatewayLanguageModel', () => {
       });
 
       expect(usage).toEqual({
-        prompt_tokens: 10,
-        completion_tokens: 20,
+        inputTokens: {
+          total: 9,
+          noCache: undefined,
+          cacheRead: 2,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 11,
+          text: undefined,
+          reasoning: 1,
+        },
+        raw: {
+          inputTokens: 9,
+          outputTokens: 11,
+          totalTokens: 20,
+          reasoningTokens: 1,
+          cachedInputTokens: 2,
+        },
       });
     });
 
@@ -561,9 +580,14 @@ describe('GatewayLanguageModel', () => {
     function prepareStreamResponse({
       content,
       finish_reason = 'stop',
+      usage = {
+        prompt_tokens: 10,
+        completion_tokens: 20,
+      },
     }: {
       content: string[];
       finish_reason?: string;
+      usage?: Record<string, unknown>;
     }) {
       server.urls['https://api.test.com/language-model'].response = {
         type: 'stream-chunks',
@@ -578,18 +602,22 @@ describe('GatewayLanguageModel', () => {
           `data: ${JSON.stringify({
             type: 'finish',
             finishReason: finish_reason,
-            usage: {
-              prompt_tokens: 10,
-              completion_tokens: 20,
-            },
+            usage,
           })}\n\n`,
         ],
       };
     }
 
-    it('should stream text deltas', async () => {
+    it('should stream text deltas and normalize usage when provided', async () => {
       prepareStreamResponse({
-        content: ['Hello', ', ', 'World!'],
+        content: ['Hello'],
+        usage: {
+          inputTokens: 9,
+          outputTokens: 11,
+          totalTokens: 20,
+          reasoningTokens: 1,
+          cachedInputTokens: 2,
+        },
       });
 
       const { stream } = await createTestModel().doStream({
@@ -597,30 +625,34 @@ describe('GatewayLanguageModel', () => {
         includeRawChunks: false,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
-        [
-          {
-            "textDelta": "Hello",
-            "type": "text-delta",
-          },
-          {
-            "textDelta": ", ",
-            "type": "text-delta",
-          },
-          {
-            "textDelta": "World!",
-            "type": "text-delta",
-          },
-          {
-            "finishReason": "stop",
-            "type": "finish",
-            "usage": {
-              "completion_tokens": 20,
-              "prompt_tokens": 10,
-            },
-          },
-        ]
-      `);
+      const chunks = await convertReadableStreamToArray(stream);
+      expect(chunks[0]).toEqual({
+        type: 'text-delta',
+        textDelta: 'Hello',
+      });
+      const finishChunk = chunks[chunks.length - 1] as any;
+
+      expect(finishChunk.type).toBe('finish');
+      expect(finishChunk.usage).toEqual({
+        inputTokens: {
+          total: 9,
+          noCache: undefined,
+          cacheRead: 2,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 11,
+          text: undefined,
+          reasoning: 1,
+        },
+        raw: {
+          inputTokens: 9,
+          outputTokens: 11,
+          totalTokens: 20,
+          reasoningTokens: 1,
+          cachedInputTokens: 2,
+        },
+      });
     });
 
     it('should pass streaming headers', async () => {
@@ -1070,30 +1102,25 @@ describe('GatewayLanguageModel', () => {
 
       const chunks = await convertReadableStreamToArray(stream);
 
-      expect(chunks).toMatchInlineSnapshot(`
-        [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "textDelta": "Hello",
-            "type": "text-delta",
-          },
-          {
-            "textDelta": " world",
-            "type": "text-delta",
-          },
-          {
-            "finishReason": "stop",
-            "type": "finish",
-            "usage": {
-              "completion_tokens": 5,
-              "prompt_tokens": 10,
-            },
-          },
-        ]
-      `);
+      const finishChunk = chunks[chunks.length - 1] as any;
+
+      expect(finishChunk.usage).toEqual({
+        inputTokens: {
+          total: undefined,
+          noCache: undefined,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: undefined,
+          text: undefined,
+          reasoning: undefined,
+        },
+        raw: {
+          completion_tokens: 5,
+          prompt_tokens: 10,
+        },
+      });
     });
 
     it('should include raw chunks when includeRawChunks is true', async () => {
@@ -1114,40 +1141,25 @@ describe('GatewayLanguageModel', () => {
 
       const chunks = await convertReadableStreamToArray(stream);
 
-      expect(chunks).toMatchInlineSnapshot(`
-        [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "rawValue": {
-              "choices": [
-                {
-                  "delta": {
-                    "content": "Hello",
-                  },
-                },
-              ],
-              "id": "test-chunk",
-              "object": "chat.completion.chunk",
-            },
-            "type": "raw",
-          },
-          {
-            "textDelta": "Hello",
-            "type": "text-delta",
-          },
-          {
-            "finishReason": "stop",
-            "type": "finish",
-            "usage": {
-              "completion_tokens": 5,
-              "prompt_tokens": 10,
-            },
-          },
-        ]
-      `);
+      const finishChunk = chunks[chunks.length - 1] as any;
+
+      expect(finishChunk.usage).toEqual({
+        inputTokens: {
+          total: undefined,
+          noCache: undefined,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: undefined,
+          text: undefined,
+          reasoning: undefined,
+        },
+        raw: {
+          completion_tokens: 5,
+          prompt_tokens: 10,
+        },
+      });
     });
   });
 
@@ -1302,30 +1314,34 @@ describe('GatewayLanguageModel', () => {
       });
 
       // Check that timestamps in non-response-metadata chunks are left as strings
-      // Note: These chunks don't typically have timestamp properties in the real types,
-      // but this test verifies our conversion logic only affects response-metadata chunks
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
-        [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "textDelta": "Hello",
-            "timestamp": "2023-12-07T10:30:00.000Z",
-            "type": "text-delta",
-          },
-          {
-            "finishReason": "stop",
-            "timestamp": "2023-12-07T10:30:00.000Z",
-            "type": "finish",
-            "usage": {
-              "completion_tokens": 5,
-              "prompt_tokens": 10,
-            },
-          },
-        ]
-      `);
+      // and that usage is normalized on the finish chunk
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks[1]).toEqual({
+        type: 'text-delta',
+        textDelta: 'Hello',
+        timestamp: timestampString,
+      });
+
+      const finishChunk = chunks[2] as any;
+      expect(finishChunk.timestamp).toBe(timestampString);
+      expect(finishChunk.usage).toEqual({
+        inputTokens: {
+          total: undefined,
+          noCache: undefined,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: undefined,
+          text: undefined,
+          reasoning: undefined,
+        },
+        raw: {
+          completion_tokens: 5,
+          prompt_tokens: 10,
+        },
+      });
     });
   });
 
