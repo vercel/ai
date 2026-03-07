@@ -21,25 +21,34 @@
       "path": "../../packages/ai"
     },
     {
+      "path": "../../packages/alibaba"
+    },
+    {
       "path": "../../packages/amazon-bedrock"
     },
     {
       "path": "../../packages/anthropic"
     },
     {
+      "path": "../../packages/assemblyai"
+    },
+    {
       "path": "../../packages/azure"
+    },
+    {
+      "path": "../../packages/baseten"
     },
     {
       "path": "../../packages/black-forest-labs"
     },
     {
+      "path": "../../packages/bytedance"
+    },
+    {
+      "path": "../../packages/camb"
+    },
+    {
       "path": "../../packages/cerebras"
-    },
-    {
-      "path": "../../packages/elevenlabs"
-    },
-    {
-      "path": "../../packages/revai"
     },
     {
       "path": "../../packages/cohere"
@@ -48,31 +57,25 @@
       "path": "../../packages/deepgram"
     },
     {
-      "path": "../../packages/revai"
-    },
-    {
       "path": "../../packages/deepinfra"
-    },
-    {
-      "path": "../../packages/gladia"
-    },
-    {
-      "path": "../../packages/lmnt"
     },
     {
       "path": "../../packages/deepseek"
     },
     {
-      "path": "../../packages/hume"
+      "path": "../../packages/elevenlabs"
     },
     {
       "path": "../../packages/fal"
     },
     {
-      "path": "../../packages/assemblyai"
+      "path": "../../packages/fireworks"
     },
     {
-      "path": "../../packages/fireworks"
+      "path": "../../packages/gateway"
+    },
+    {
+      "path": "../../packages/gladia"
     },
     {
       "path": "../../packages/google"
@@ -84,13 +87,31 @@
       "path": "../../packages/groq"
     },
     {
+      "path": "../../packages/huggingface"
+    },
+    {
+      "path": "../../packages/hume"
+    },
+    {
+      "path": "../../packages/klingai"
+    },
+    {
+      "path": "../../packages/lmnt"
+    },
+    {
       "path": "../../packages/luma"
+    },
+    {
+      "path": "../../packages/mcp"
     },
     {
       "path": "../../packages/mistral"
     },
     {
       "path": "../../packages/moonshotai"
+    },
+    {
+      "path": "../../packages/open-responses"
     },
     {
       "path": "../../packages/openai"
@@ -111,10 +132,16 @@
       "path": "../../packages/replicate"
     },
     {
+      "path": "../../packages/revai"
+    },
+    {
       "path": "../../packages/togetherai"
     },
     {
       "path": "../../packages/valibot"
+    },
+    {
+      "path": "../../packages/vercel"
     },
     {
       "path": "../../packages/xai"
