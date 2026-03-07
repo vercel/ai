@@ -32,6 +32,9 @@
       "path": "../../packages/ai"
     },
     {
+      "path": "../../packages/openai"
+    },
+    {
       "path": "../../packages/react"
     }
   ]
