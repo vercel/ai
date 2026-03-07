@@ -1,5 +1,25 @@
 # @ai-sdk/angular
 
+## 3.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [210ed3d]
+  - ai@7.0.0-beta.7
+
+## 3.0.0-beta.6
+
+### Patch Changes
+
+- ai@7.0.0-beta.6
+
+## 3.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [ebd4da2]
+  - ai@7.0.0-beta.5
+
 ## 3.0.0-beta.4
 
 ### Patch Changes
