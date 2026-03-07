@@ -1,5 +1,16 @@
 # @ai-sdk/devtools
 
+## 1.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/provider@4.0.0-beta.0
+
 ## 0.0.15
 
 ### Patch Changes

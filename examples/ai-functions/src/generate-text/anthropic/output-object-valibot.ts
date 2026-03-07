@@ -6,14 +6,14 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-3-7-sonnet-latest'),
+    model: anthropic('claude-sonnet-4-5-20250929'),
     output: Output.object({
       schema: valibotSchema(
-        v.object({
-          recipe: v.object({
+        v.strictObject({
+          recipe: v.strictObject({
             name: v.string(),
             ingredients: v.array(
-              v.object({
+              v.strictObject({
                 name: v.string(),
                 amount: v.string(),
               }),

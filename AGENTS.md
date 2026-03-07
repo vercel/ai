@@ -194,6 +194,10 @@ export class MyError extends AISDKError {
 }
 ```
 
+## Project Philosophies
+
+For an overview of the project's key philosophies that guide decision making, see `contributing/project-philosophies.md`.
+
 ## Architecture
 
 ### Provider Pattern
