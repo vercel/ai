@@ -1643,6 +1643,42 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should expose finishMessage in provider metadata for MALFORMED_FUNCTION_CALL', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: '' }], role: 'model' },
+            finishReason: 'MALFORMED_FUNCTION_CALL',
+            finishMessage: 'Function call is malformed: missing required field',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        promptFeedback: { safetyRatings: SAFETY_RATINGS },
+      },
+    };
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.finishMessage).toBe(
+      'Function call is malformed: missing required field',
+    );
+  });
+
+  it('should expose null finishMessage in provider metadata for normal finish', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.finishMessage).toBeNull();
+  });
+
   it('should expose grounding metadata in provider metadata', async () => {
     prepareJsonResponse({
       content: 'test response',
@@ -3585,6 +3621,32 @@ describe('doStream', () => {
     `);
   });
 
+  it('should expose finishMessage in provider metadata on finish', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"candidates": [{"content": {"parts": [{"text": ""}],"role": "model"},` +
+          `"finishReason": "MALFORMED_FUNCTION_CALL",` +
+          `"finishMessage": "Function call is malformed: missing required field",` +
+          `"index": 0}]}
+
+`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.finishMessage,
+    ).toBe('Function call is malformed: missing required field');
+  });
+
   it('should stream code execution tool calls and results', async () => {
     server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
       type: 'stream-chunks',
@@ -4173,6 +4235,7 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "google": {
+              "finishMessage": null,
               "groundingMetadata": null,
               "promptFeedback": null,
               "safetyRatings": [
@@ -4581,6 +4644,7 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "google": {
+              "finishMessage": null,
               "groundingMetadata": null,
               "promptFeedback": null,
               "safetyRatings": null,
@@ -4725,6 +4789,7 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "google": {
+              "finishMessage": null,
               "groundingMetadata": null,
               "promptFeedback": null,
               "safetyRatings": [

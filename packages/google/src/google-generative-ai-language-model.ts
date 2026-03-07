@@ -348,6 +348,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           groundingMetadata: candidate.groundingMetadata ?? null,
           urlContextMetadata: candidate.urlContextMetadata ?? null,
           safetyRatings: candidate.safetyRatings ?? null,
+          finishMessage: candidate.finishMessage ?? null,
           usageMetadata: usageMetadata ?? null,
         },
       },
@@ -663,6 +664,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                   groundingMetadata: lastGroundingMetadata,
                   urlContextMetadata: lastUrlContextMetadata,
                   safetyRatings: candidate.safetyRatings ?? null,
+                  finishMessage: candidate.finishMessage ?? null,
                 },
               };
               if (usageMetadata != null) {
@@ -1000,6 +1002,7 @@ const responseSchema = lazySchema(() =>
         z.object({
           content: getContentSchema().nullish().or(z.object({}).strict()),
           finishReason: z.string().nullish(),
+          finishMessage: z.string().nullish(),
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
           groundingMetadata: getGroundingMetadataSchema().nullish(),
           urlContextMetadata: getUrlContextMetadataSchema().nullish(),
@@ -1045,6 +1048,7 @@ const chunkSchema = lazySchema(() =>
           z.object({
             content: getContentSchema().nullish(),
             finishReason: z.string().nullish(),
+            finishMessage: z.string().nullish(),
             safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
             groundingMetadata: getGroundingMetadataSchema().nullish(),
             urlContextMetadata: getUrlContextMetadataSchema().nullish(),
