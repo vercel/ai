@@ -124,14 +124,15 @@ export function convertToDeepSeekChatMessages({
         }
 
         // Only include reasoning_content if thinking mode is enabled
-        // or if reasoning content is explicitly provided
+        // then reasoning content *must* be provided 
+        // for every assistant message in current thinking chain even if empty
         const reasoningContent = thinkingMode
           ? toolCalls.length > 0 &&
             reasoning === undefined &&
             index > lastUserMessageIndex
             ? ''
             : reasoning
-          : reasoning;
+          : undefined;
 
         messages.push({
           role: 'assistant',
