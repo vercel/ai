@@ -11,7 +11,7 @@ import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
 import { webFetch_20260209ArgsSchema } from './tool/web-fetch-20260209';
 import { webFetch_20250910ArgsSchema } from './tool/web-fetch-20250910';
 import { validateTypes } from '@ai-sdk/provider-utils';
-import { convertOneOfToAnyOf } from './convert-oneOf-to-anyOf';
+import { convertOneOfToAnyOf } from '@ai-sdk/provider-utils';
 
 export interface AnthropicToolOptions {
   deferLoading?: boolean;

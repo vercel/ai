@@ -3,7 +3,11 @@ import {
   SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { ToolNameMapping, validateTypes } from '@ai-sdk/provider-utils';
+import {
+  ToolNameMapping,
+  convertOneOfToAnyOf,
+  validateTypes,
+} from '@ai-sdk/provider-utils';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
 import { fileSearchArgsSchema } from '../tool/file-search';
 import { imageGenerationArgsSchema } from '../tool/image-generation';
@@ -61,7 +65,7 @@ export async function prepareResponsesTools({
           type: 'function',
           name: tool.name,
           description: tool.description,
-          parameters: tool.inputSchema,
+          parameters: convertOneOfToAnyOf(tool.inputSchema),
           ...(tool.strict != null ? { strict: tool.strict } : {}),
         });
         break;

@@ -16,6 +16,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertOneOfToAnyOf,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   createToolNameMapping,
@@ -309,7 +310,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     strict: strictJsonSchema,
                     name: responseFormat.name ?? 'response',
                     description: responseFormat.description,
-                    schema: responseFormat.schema,
+                    schema: convertOneOfToAnyOf(responseFormat.schema),
                   }
                 : { type: 'json_object' },
           }),
