@@ -1,5 +1,70 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- c949e25: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- 7afaece: feat(provider/openai): add GPT-5.4 model support
+- f16c103: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 3.0.66
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+
+## 3.0.65
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+
+## 3.0.64
+
+### Patch Changes
+
+- db3d4ca: chore(provider/gateway): update gateway model settings files
+
+## 3.0.63
+
+### Patch Changes
+
+- 1b01ec1: feat(gateway): add providerTimeouts to provider options
+- 8df8e11: chore(provider/gateway): update gateway model settings files
+
+## 3.0.62
+
+### Patch Changes
+
+- 10bec50: feat(provider/google): add `gemini-3.1-flash-lite-preview`
+
 ## 3.0.61
 
 ### Patch Changes

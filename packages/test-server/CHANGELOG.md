@@ -1,5 +1,11 @@
 # @ai-sdk/test-server
 
+## 2.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
 ## 1.0.3
 
 ### Patch Changes
