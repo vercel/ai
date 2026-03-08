@@ -1,5 +1,0 @@
-packages:
-  - 'packages/*'
-  - 'tools/*'
-  - 'examples/*'
-  - 'packages/rsc/tests/e2e/next-server'
