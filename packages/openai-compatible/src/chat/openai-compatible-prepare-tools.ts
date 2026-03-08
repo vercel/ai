@@ -3,14 +3,15 @@ import {
   SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { jsonSchema } from '@ai-sdk/provider-utils';
 
-export function prepareTools({
+export async function prepareTools({
   tools,
   toolChoice,
 }: {
   tools: LanguageModelV3CallOptions['tools'];
   toolChoice?: LanguageModelV3CallOptions['toolChoice'];
-}): {
+}): Promise<{
   tools:
     | undefined
     | Array<{
@@ -29,7 +30,7 @@ export function prepareTools({
     | 'required'
     | undefined;
   toolWarnings: SharedV3Warning[];
-} {
+}> {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
@@ -56,12 +57,22 @@ export function prepareTools({
         feature: `provider-defined tool ${tool.id}`,
       });
     } else {
+      const parameters =
+        tool.inputSchema ??
+        (await (
+          await jsonSchema({
+            type: 'object',
+            properties: {},
+            additionalProperties: false,
+          })
+        ).jsonSchema);
+
       openaiCompatTools.push({
         type: 'function',
         function: {
           name: tool.name,
           description: tool.description,
-          parameters: tool.inputSchema,
+          parameters,
           ...(tool.strict != null ? { strict: tool.strict } : {}),
         },
       });
