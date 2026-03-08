@@ -155,8 +155,14 @@ describe('convertOneOfToAnyOf', () => {
       definitions: {
         Shape: {
           oneOf: [
-            { type: 'object' as const, properties: { kind: { const: 'circle' } } },
-            { type: 'object' as const, properties: { kind: { const: 'square' } } },
+            {
+              type: 'object' as const,
+              properties: { kind: { const: 'circle' } },
+            },
+            {
+              type: 'object' as const,
+              properties: { kind: { const: 'square' } },
+            },
           ],
         },
       },

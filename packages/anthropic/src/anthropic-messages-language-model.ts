@@ -55,7 +55,7 @@ import {
 } from './convert-anthropic-messages-usage';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
-import { convertOneOfToAnyOf } from './convert-oneOf-to-anyOf';
+import { convertOneOfToAnyOf } from '@ai-sdk/provider-utils';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
 function createCitationSource(

@@ -3,6 +3,7 @@ import {
   SharedV4Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { convertOneOfToAnyOf } from '@ai-sdk/provider-utils';
 import {
   OpenAIChatToolChoice,
   OpenAIChatFunctionTool,
@@ -38,7 +39,7 @@ export function prepareChatTools({
           function: {
             name: tool.name,
             description: tool.description,
-            parameters: tool.inputSchema,
+            parameters: convertOneOfToAnyOf(tool.inputSchema),
             ...(tool.strict != null ? { strict: tool.strict } : {}),
           },
         });
