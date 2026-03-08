@@ -1187,6 +1187,73 @@ describe('generateImage', () => {
         cost: '0.04',
       });
     });
+
+    it('should sum numeric gateway metadata values across multiple calls', async () => {
+      let callCount = 0;
+
+      const result = await generateImage({
+        model: new MockImageModelV3({
+          maxImagesPerCall: 1,
+          doGenerate: async () => {
+            switch (callCount++) {
+              case 0:
+                return createMockResponse({
+                  images: [pngBase64],
+                  providerMetaData: {
+                    gateway: {
+                      images: [],
+                      routing: { provider: 'vertex' },
+                      cost: 0.02,
+                    },
+                  },
+                });
+              case 1:
+                return createMockResponse({
+                  images: [jpegBase64],
+                  providerMetaData: {
+                    gateway: {
+                      images: [],
+                      routing: { provider: 'vertex' },
+                      cost: 0.02,
+                    },
+                  },
+                });
+              case 2:
+                return createMockResponse({
+                  images: [gifBase64],
+                  providerMetaData: {
+                    gateway: {
+                      images: [],
+                      routing: { provider: 'vertex' },
+                      cost: 0.02,
+                    },
+                  },
+                });
+              case 3:
+                return createMockResponse({
+                  images: [pngBase64],
+                  providerMetaData: {
+                    gateway: {
+                      images: [],
+                      routing: { provider: 'vertex' },
+                      cost: 0.02,
+                    },
+                  },
+                });
+              default:
+                throw new Error('Unexpected call');
+            }
+          },
+        }),
+        prompt,
+        n: 4,
+      });
+
+      expect(result.providerMetadata.gateway).toStrictEqual({
+        routing: { provider: 'vertex' },
+        cost: 0.08,
+      });
+    });
   });
 });
 
