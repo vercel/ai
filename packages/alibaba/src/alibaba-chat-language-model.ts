@@ -141,7 +141,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
       tools: alibabaTools,
       toolChoice: alibabaToolChoice,
       toolWarnings,
-    } = prepareTools({ tools, toolChoice });
+    } = await prepareTools({ tools, toolChoice });
 
     warnings.push(...cacheControlValidator.getWarnings());
 

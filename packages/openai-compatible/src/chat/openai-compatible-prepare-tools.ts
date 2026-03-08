@@ -59,13 +59,11 @@ export async function prepareTools({
     } else {
       const parameters =
         tool.inputSchema ??
-        (await (
-          await jsonSchema({
-            type: 'object',
-            properties: {},
-            additionalProperties: false,
-          })
-        ).jsonSchema);
+        (await jsonSchema({
+          type: 'object',
+          properties: {},
+          additionalProperties: false,
+        }).jsonSchema);
 
       openaiCompatTools.push({
         type: 'function',
