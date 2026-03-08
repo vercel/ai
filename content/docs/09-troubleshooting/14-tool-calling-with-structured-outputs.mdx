@@ -1,28 +1,28 @@
 ---
-title: Tool calling with generateObject and streamObject
-description: Troubleshooting tool calling when combined with generateObject and streamObject
+title: Tool calling with structured outputs
+description: Troubleshooting tool calling when combined with structured output generation
 ---
 
-# Tool calling with generateObject and streamObject (structured outputs)
+# Tool calling with structured outputs
 
 ## Issue
 
-You may want to combine tool calling with structured output generation. While `generateObject` and `streamObject` are designed specifically for structured outputs, they don't support tool calling.
+You may want to combine tool calling with structured output generation.
 
 ## Background
 
-To use tool calling with structured outputs, use `generateText` or `streamText` with the `experimental_output` option.
+To use tool calling with structured outputs, use `generateText` or `streamText` with the `output` option.
 
-**Important**: When using `experimental_output` with tool calling, the structured output generation counts as an additional step in the execution flow.
+**Important**: When using `output` with tool calling, the structured output generation counts as an additional step in the execution flow.
 
 ## Solution
 
-When using `experimental_output` with tool calling, adjust your `stopWhen` condition to account for the additional step required for structured output generation:
+When using `output` with tool calling, adjust your `stopWhen` condition to account for the additional step required for structured output generation:
 
 ```tsx
 const result = await generateText({
-  model: openai('gpt-4o'),
-  experimental_output: Output.object({
+  model: __MODEL__,
+  output: Output.object({
     schema: z.object({
       summary: z.string(),
       sentiment: z.enum(['positive', 'neutral', 'negative']),

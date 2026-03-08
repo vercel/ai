@@ -10,6 +10,14 @@ The Fireworks provider is available in the `@ai-sdk/fireworks` module. You can i
 npm i @ai-sdk/fireworks
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 You can import the default provider instance `fireworks` from `@ai-sdk/fireworks`:
@@ -34,7 +42,7 @@ const { text } = await generateText({
 
 ```ts
 import { fireworks } from '@ai-sdk/fireworks';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import fs from 'fs';
 
 const { image } = await generateImage({

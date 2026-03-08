@@ -71,7 +71,7 @@ describe('Valid error responses', () => {
       error: {
         message: 'Model not available',
         type: 'model_not_found',
-        param: { modelId: 'gpt-4-turbo' },
+        param: { modelId: 'gpt-ai-sdk-test' }, // Not a real model, just for testing.
       },
     };
 
@@ -83,7 +83,9 @@ describe('Valid error responses', () => {
     expect(error).toBeInstanceOf(GatewayModelNotFoundError);
     expect(error.message).toBe('Model not available');
     expect(error.statusCode).toBe(404);
-    expect((error as GatewayModelNotFoundError).modelId).toBe('gpt-4-turbo');
+    expect((error as GatewayModelNotFoundError).modelId).toBe(
+      'gpt-ai-sdk-test',
+    );
   });
 
   it('should create GatewayModelNotFoundError without modelId for invalid param', async () => {
@@ -425,6 +427,113 @@ describe('Complex scenarios', () => {
     expect(error.cause).toBe(originalCause);
     expect(error.name).toBe('GatewayRateLimitError');
     expect(error.type).toBe('rate_limit_exceeded');
+  });
+});
+
+describe('generationId support', () => {
+  it('should include generationId in error when present in response', async () => {
+    const response = {
+      error: {
+        message: 'Internal server error',
+        type: 'internal_server_error',
+      },
+      generationId: 'gen_01ABC123XYZ',
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 500,
+    });
+
+    expect(error).toBeInstanceOf(GatewayInternalServerError);
+    expect(error.generationId).toBe('gen_01ABC123XYZ');
+  });
+
+  it('should include generationId in authentication error', async () => {
+    const response = {
+      error: {
+        message: 'Invalid API key',
+        type: 'authentication_error',
+      },
+      generationId: 'gen_01AUTH456',
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 401,
+      authMethod: 'api-key',
+    });
+
+    expect(error).toBeInstanceOf(GatewayAuthenticationError);
+    expect(error.generationId).toBe('gen_01AUTH456');
+  });
+
+  it('should include generationId in rate limit error', async () => {
+    const response = {
+      error: {
+        message: 'Rate limit exceeded',
+        type: 'rate_limit_exceeded',
+      },
+      generationId: 'gen_01RATE789',
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 429,
+    });
+
+    expect(error).toBeInstanceOf(GatewayRateLimitError);
+    expect(error.generationId).toBe('gen_01RATE789');
+  });
+
+  it('should include generationId in model not found error', async () => {
+    const response = {
+      error: {
+        message: 'Model not found',
+        type: 'model_not_found',
+        param: { modelId: 'gpt-5' },
+      },
+      generationId: 'gen_01MODEL000',
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 404,
+    });
+
+    expect(error).toBeInstanceOf(GatewayModelNotFoundError);
+    expect(error.generationId).toBe('gen_01MODEL000');
+  });
+
+  it('should have undefined generationId when not present in response', async () => {
+    const response = {
+      error: {
+        message: 'Some error',
+        type: 'internal_server_error',
+      },
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 500,
+    });
+
+    expect(error.generationId).toBeUndefined();
+  });
+
+  it('should extract generationId from malformed response when possible', async () => {
+    const response = {
+      invalidField: 'value',
+      generationId: 'gen_01MALFORMED',
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 500,
+    });
+
+    expect(error).toBeInstanceOf(GatewayResponseError);
+    expect(error.generationId).toBe('gen_01MALFORMED');
   });
 });
 

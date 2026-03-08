@@ -1,4 +1,4 @@
-import { SpeechModelV3, SpeechModelV3CallWarning } from '@ai-sdk/provider';
+import { SpeechModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -15,7 +15,7 @@ import {
 } from './elevenlabs-speech-options';
 
 // Schema for camelCase input from users
-const ElevenLabsProviderOptionsSchema = z.object({
+const elevenLabsSpeechModelOptionsSchema = z.object({
   languageCode: z.string().optional(),
   voiceSettings: z
     .object({
@@ -44,8 +44,8 @@ const ElevenLabsProviderOptionsSchema = z.object({
   enableLogging: z.boolean().optional(),
 });
 
-export type ElevenLabsSpeechCallOptions = z.infer<
-  typeof ElevenLabsProviderOptionsSchema
+export type ElevenLabsSpeechModelOptions = z.infer<
+  typeof elevenLabsSpeechModelOptionsSchema
 >;
 
 interface ElevenLabsSpeechModelConfig extends ElevenLabsConfig {
@@ -75,13 +75,13 @@ export class ElevenLabsSpeechModel implements SpeechModelV3 {
     speed,
     providerOptions,
   }: Parameters<SpeechModelV3['doGenerate']>[0]) {
-    const warnings: SpeechModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // Parse provider options
     const elevenLabsOptions = await parseProviderOptions({
       provider: 'elevenlabs',
       providerOptions,
-      schema: ElevenLabsProviderOptionsSchema,
+      schema: elevenLabsSpeechModelOptionsSchema,
     });
 
     // Create request body
@@ -199,8 +199,8 @@ export class ElevenLabsSpeechModel implements SpeechModelV3 {
 
     if (instructions) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'instructions',
+        type: 'unsupported',
+        feature: 'instructions',
         details: `ElevenLabs speech models do not support instructions. Instructions parameter was ignored.`,
       });
     }

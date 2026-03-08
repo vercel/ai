@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { getToolName, isDataUIPart } from './ui-messages';
+import { getStaticToolName, isDataUIPart } from './ui-messages';
 
-describe('getToolName', () => {
+describe('getStaticToolName', () => {
   it('should return the tool name after the "tool-" prefix', () => {
     expect(
-      getToolName({
+      getStaticToolName({
         type: 'tool-getLocation',
         toolCallId: 'tool1',
         state: 'output-available',
@@ -16,7 +16,7 @@ describe('getToolName', () => {
 
   it('should return the tool name for tools that contains a dash', () => {
     expect(
-      getToolName({
+      getStaticToolName({
         type: 'tool-get-location',
         toolCallId: 'tool1',
         state: 'output-available',

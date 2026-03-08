@@ -1,6 +1,6 @@
 ---
 title: SigNoz
-description: Monitor, obeserve and debug your AI SDK application with SigNoz
+description: Monitor, observe and debug your AI SDK application with SigNoz
 ---
 
 # SigNoz Observability
@@ -20,7 +20,7 @@ description: Monitor, obeserve and debug your AI SDK application with SigNoz
 
 ## Instrument your Next.js application
 
-Check out detailed instructions on how to set up OpenTelemetry instrumentation in your Nextjs applications and view your application traces in SigNoz over [here](https://signoz.io/docs/instrumentation/opentelemetry-nextjs/).
+Check out detailed instructions on how to set up OpenTelemetry instrumentation in your Next.js applications and view your application traces in SigNoz over [here](https://signoz.io/docs/instrumentation/opentelemetry-nextjs/).
 
 ## Send traces directly to SigNoz Cloud
 
@@ -51,7 +51,7 @@ export default nextConfig;
 import { registerOTel, OTLPHttpJsonTraceExporter } from '@vercel/otel';
 // Add otel logging
 import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
-diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR); // set diaglog level to DEBUG when debugging
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR); // set diag log level to DEBUG when debugging
 export function register() {
   registerOTel({
     serviceName: '<service_name>',
@@ -83,7 +83,7 @@ You can then use the `experimental_telemetry` option to enable telemetry on sp
 
 ```jsx
 const result = await generateText({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-5-mini'),
   prompt: 'Write a short story about a cat.',
   experimental_telemetry: { isEnabled: true },
 });
@@ -103,7 +103,7 @@ You can provide a `functionId` to identify the function that the telemetry dat
 
 ```jsx
 const result = await generateText({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-5-mini'),
   prompt: 'Write a short story about a cat.',
   experimental_telemetry: {
     isEnabled: true,
@@ -123,7 +123,7 @@ You may provide a `tracer` which must return an OpenTelemetry `Tracer`. This 
 ```jsx
 const tracerProvider = new NodeTracerProvider();
 const result = await generateText({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-5-mini'),
   prompt: 'Write a short story about a cat.',
   experimental_telemetry: {
     isEnabled: true,

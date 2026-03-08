@@ -14,7 +14,7 @@
         const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
         const location = cities[Math.floor(Math.random() * cities.length)];
 
-        await chat.addToolResult({
+        await chat.addToolOutput({
           toolCallId: toolCall.toolCallId,
           tool: 'getLocation',
           output: location,
@@ -66,7 +66,7 @@
                     <Button
                       variant="default"
                       onclick={() =>
-                        chat.addToolResult({
+                        chat.addToolOutput({
                           toolCallId,
                           tool: 'askForConfirmation',
                           output: 'Yes, confirmed',
@@ -75,7 +75,7 @@
                     <Button
                       variant="secondary"
                       onclick={() =>
-                        chat.addToolResult({
+                        chat.addToolOutput({
                           toolCallId,
                           tool: 'askForConfirmation',
                           output: 'No, denied',

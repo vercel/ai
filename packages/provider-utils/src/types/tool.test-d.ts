@@ -31,6 +31,41 @@ describe('tool type', () => {
       expectTypeOf(aTool.execute).not.toEqualTypeOf<Function>();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<FlexibleSchema<T>>();
     });
+
+    it('should infer input type correctly when inputExamples are present with optional/default zod schema', () => {
+      const inputSchema = z.object({
+        location: z.string(),
+        unit: z.enum(['celsius', 'fahrenheit']).optional().default('celsius'),
+      });
+
+      tool({
+        description: 'Get the weather for a location',
+        inputSchema,
+        inputExamples: [
+          { input: { location: 'San Francisco', unit: 'celsius' } },
+        ],
+        execute: async input => {
+          expectTypeOf(input).toEqualTypeOf<z.infer<typeof inputSchema>>();
+          return { temperature: 20, unit: input.unit };
+        },
+      });
+    });
+
+    it('should infer input type correctly when inputExamples are present with refine zod schema', () => {
+      const inputSchema = z.object({
+        code: z.string().refine(val => val.length === 3),
+      });
+
+      tool({
+        description: 'Get code details',
+        inputSchema,
+        inputExamples: [{ input: { code: 'ABC' } }],
+        execute: async input => {
+          expectTypeOf(input).toEqualTypeOf<z.infer<typeof inputSchema>>();
+          return { valid: true };
+        },
+      });
+    });
   });
 
   describe('output type', () => {
@@ -75,14 +110,19 @@ describe('tool type', () => {
     it('should infer toModelOutput argument when there is only an input schema', () => {
       const aTool = tool({
         inputSchema: z.object({ number: z.number() }),
-        toModelOutput: output => {
+        toModelOutput: ({ output }) => {
           expectTypeOf(output).toEqualTypeOf<any>();
           return { type: 'text', value: 'test' };
         },
       });
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
-        ((output: any) => ToolResultOutput) | undefined
+        | ((options: {
+            toolCallId: string;
+            input: { number: number };
+            output: any;
+          }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
+        | undefined
       >();
     });
 
@@ -90,14 +130,19 @@ describe('tool type', () => {
       const aTool = tool({
         inputSchema: z.object({ number: z.number() }),
         execute: async () => 'test' as const,
-        toModelOutput: output => {
+        toModelOutput: ({ output }) => {
           expectTypeOf(output).toEqualTypeOf<'test'>();
           return { type: 'text', value: 'test' };
         },
       });
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
-        ((output: 'test') => ToolResultOutput) | undefined
+        | ((options: {
+            toolCallId: string;
+            input: { number: number };
+            output: 'test';
+          }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
+        | undefined
       >();
     });
 
@@ -105,14 +150,19 @@ describe('tool type', () => {
       const aTool = tool({
         inputSchema: z.object({ number: z.number() }),
         outputSchema: z.literal('test'),
-        toModelOutput: output => {
+        toModelOutput: ({ output }) => {
           expectTypeOf(output).toEqualTypeOf<'test'>();
           return { type: 'text', value: 'test' };
         },
       });
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
-        ((output: 'test') => ToolResultOutput) | undefined
+        | ((options: {
+            toolCallId: string;
+            input: { number: number };
+            output: 'test';
+          }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
+        | undefined
       >();
     });
   });

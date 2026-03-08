@@ -1,4 +1,5 @@
 export type ReplicateImageModelId =
+  // Text-to-image models
   | 'black-forest-labs/flux-1.1-pro'
   | 'black-forest-labs/flux-1.1-pro-ultra'
   | 'black-forest-labs/flux-dev'
@@ -26,4 +27,10 @@ export type ReplicateImageModelId =
   | 'stability-ai/stable-diffusion-3.5-large-turbo'
   | 'stability-ai/stable-diffusion-3.5-medium'
   | 'tstramer/material-diffusion'
+  // Inpainting and image editing models
+  | 'black-forest-labs/flux-fill-pro'
+  | 'black-forest-labs/flux-fill-dev'
+  // Flux-2 models (support up to 8 reference images)
+  | 'black-forest-labs/flux-2-pro'
+  | 'black-forest-labs/flux-2-dev'
   | (string & {});

@@ -15,6 +15,8 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > agent skills > should exp
         },
       ],
     },
+    "contextManagement": null,
+    "iterations": null,
     "stopSequence": null,
     "usage": {
       "cache_creation": {
@@ -44,6 +46,8 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
       "id": "container_011CU6rVteVhydYXRyNs6G1M",
       "skills": null,
     },
+    "contextManagement": null,
+    "iterations": null,
     "stopSequence": null,
     "usage": {
       "cache_creation": {
@@ -78,7 +82,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "is_file_update": false,
       "type": "text_editor_code_execution_create_result",
@@ -99,7 +102,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": [],
       "return_code": 0,
@@ -155,7 +157,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
       "type": "tool-call",
     },
     {
-      "providerExecuted": true,
       "result": {
         "is_file_update": false,
         "type": "text_editor_code_execution_create_result",
@@ -176,7 +177,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
       "type": "tool-call",
     },
     {
-      "providerExecuted": true,
       "result": {
         "content": [
           {
@@ -237,7 +237,6 @@ DataFrame preview:
       "type": "tool-call",
     },
     {
-      "providerExecuted": true,
       "result": {
         "content": [
           {
@@ -286,7 +285,10 @@ Both files have been exported and are ready for download!",
       "type": "text",
     },
   ],
-  "finishReason": "stop",
+  "finishReason": {
+    "raw": "end_turn",
+    "unified": "stop",
+  },
   "providerMetadata": {
     "anthropic": {
       "cacheCreationInputTokens": 0,
@@ -295,6 +297,8 @@ Both files have been exported and are ready for download!",
         "id": "container_011CUJar2mdkMcv7daEVAQw2",
         "skills": null,
       },
+      "contextManagement": null,
+      "iterations": null,
       "stopSequence": null,
       "usage": {
         "cache_creation": {
@@ -330,6 +334,7 @@ Both files have been exported and are ready for download!",
       ],
       "model": "claude-3-haiku-20240307",
       "stop_sequences": undefined,
+      "stream": undefined,
       "system": undefined,
       "temperature": undefined,
       "tool_choice": undefined,
@@ -619,13 +624,104 @@ Both files have been exported and are ready for download!",
     "modelId": "claude-sonnet-4-5-20250929",
   },
   "usage": {
-    "cachedInputTokens": 0,
-    "inputTokens": 12546,
-    "outputTokens": 1359,
-    "totalTokens": 13905,
+    "inputTokens": {
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "noCache": 12546,
+      "total": 12546,
+    },
+    "outputTokens": {
+      "reasoning": undefined,
+      "text": undefined,
+      "total": 1359,
+    },
+    "raw": {
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0,
+      },
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "input_tokens": 12546,
+      "output_tokens": 1359,
+      "server_tool_use": {
+        "web_fetch_requests": 0,
+        "web_search_requests": 0,
+      },
+      "service_tier": "standard",
+    },
   },
   "warnings": [],
 }
+`;
+
+exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20260120 > should include code execution tool call and result in content 1`] = `
+[
+  {
+    "text": "I'll create a Python script to calculate Fibonacci numbers and then execute it to find the 10th Fibonacci number.",
+    "type": "text",
+  },
+  {
+    "input": "{"type":"text_editor_code_execution","command":"create","path":"/tmp/fibonacci.py","file_text":"def fibonacci(n):\\n    \\"\\"\\"\\n    Calculate the nth Fibonacci number.\\n    \\n    Args:\\n        n: The position in the Fibonacci sequence (1-indexed)\\n    \\n    Returns:\\n        The nth Fibonacci number\\n    \\"\\"\\"\\n    if n <= 0:\\n        raise ValueError(\\"n must be a positive integer\\")\\n    elif n == 1 or n == 2:\\n        return 1\\n    \\n    # Using iterative approach for efficiency\\n    fib_prev = 1  # F(1)\\n    fib_curr = 1  # F(2)\\n    \\n    for i in range(3, n + 1):\\n        fib_next = fib_prev + fib_curr\\n        fib_prev = fib_curr\\n        fib_curr = fib_next\\n    \\n    return fib_curr\\n\\n\\nif __name__ == \\"__main__\\":\\n    # Calculate the 10th Fibonacci number\\n    n = 10\\n    result = fibonacci(n)\\n    print(f\\"The {n}th Fibonacci number is: {result}\\")\\n    \\n    # Display the first 10 Fibonacci numbers for reference\\n    print(f\\"\\\\nFirst {n} Fibonacci numbers:\\")\\n    for i in range(1, n + 1):\\n        print(f\\"F({i}) = {fibonacci(i)}\\")\\n"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_012LCpyzxGBy44bCW4zCxmH2",
+    "toolName": "code_execution",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "is_file_update": false,
+      "type": "text_editor_code_execution_create_result",
+    },
+    "toolCallId": "srvtoolu_012LCpyzxGBy44bCW4zCxmH2",
+    "toolName": "code_execution",
+    "type": "tool-result",
+  },
+  {
+    "text": "Now let me execute the script:",
+    "type": "text",
+  },
+  {
+    "input": "{"type":"bash_code_execution","command":"python /tmp/fibonacci.py"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01KqzcSjepCqNjqeUVqnmEjj",
+    "toolName": "code_execution",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "content": [],
+      "return_code": 0,
+      "stderr": "",
+      "stdout": "The 10th Fibonacci number is: 55
+
+First 10 Fibonacci numbers:
+F(1) = 1
+F(2) = 1
+F(3) = 2
+F(4) = 3
+F(5) = 5
+F(6) = 8
+F(7) = 13
+F(8) = 21
+F(9) = 34
+F(10) = 55
+",
+      "type": "bash_code_execution_result",
+    },
+    "toolCallId": "srvtoolu_01KqzcSjepCqNjqeUVqnmEjj",
+    "toolName": "code_execution",
+    "type": "tool-result",
+  },
+  {
+    "text": "Perfect! The script has been created and executed successfully. 
+
+**Result: The 10th Fibonacci number is 55**
+
+The script uses an iterative approach to calculate Fibonacci numbers efficiently, which is better than a recursive approach for larger values of n (avoiding exponential time complexity). The Fibonacci sequence shown is: 1, 1, 2, 3, 5, 8, 13, 21, 34, 55...",
+    "type": "text",
+  },
+]
 `;
 
 exports[`AnthropicMessagesLanguageModel > doGenerate > mcp servers > should include mcp tool call and result in content 1`] = `
@@ -647,7 +743,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > mcp servers > should incl
   {
     "dynamic": true,
     "isError": false,
-    "providerExecuted": true,
     "providerMetadata": {
       "anthropic": {
         "serverName": "echo",
@@ -684,6 +779,285 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > memory 20250818 > should 
 ]
 `;
 
+exports[`AnthropicMessagesLanguageModel > doGenerate > programmatic tool calling > with fixture (multi-turn dice game) > should parse content with text, server_tool_use, tool_use with caller, and code_execution_tool_result 1`] = `
+[
+  {
+    "text": "I'll help you simulate this dice game between two players! Let me run the game where both players roll dice each round until one player wins 3 rounds.",
+    "type": "text",
+  },
+  {
+    "input": "{"type":"programmatic-tool-call","code":"\\nimport asyncio\\n\\nasync def main():\\n    player1_wins = 0\\n    player2_wins = 0\\n    round_num = 0\\n    \\n    print(\\"=\\" * 60)\\n    print(\\"DICE GAME: First to 3 Round Wins\\")\\n    print(\\"=\\" * 60)\\n    print()\\n    \\n    while player1_wins < 3 and player2_wins < 3:\\n        round_num += 1\\n        print(f\\"Round {round_num}:\\")\\n        \\n        # Both players roll simultaneously\\n        results = await asyncio.gather(\\n            rollDie({\\"player\\": \\"player1\\"}),\\n            rollDie({\\"player\\": \\"player2\\"})\\n        )\\n        \\n        roll1 = int(results[0])\\n        roll2 = int(results[1])\\n        \\n        print(f\\"  Player 1 rolls: {roll1}\\")\\n        print(f\\"  Player 2 rolls: {roll2}\\")\\n        \\n        # Determine winner\\n        if roll1 > roll2:\\n            player1_wins += 1\\n            print(f\\"  → Player 1 wins this round!\\")\\n        elif roll2 > roll1:\\n            player2_wins += 1\\n            print(f\\"  → Player 2 wins this round!\\")\\n        else:\\n            print(f\\"  → Draw! No points awarded.\\")\\n        \\n        print(f\\"  Score: Player 1: {player1_wins} | Player 2: {player2_wins}\\")\\n        print()\\n    \\n    print(\\"=\\" * 60)\\n    if player1_wins == 3:\\n        print(\\"🏆 PLAYER 1 WINS THE GAME!\\")\\n    else:\\n        print(\\"🏆 PLAYER 2 WINS THE GAME!\\")\\n    print(f\\"Final Score: Player 1: {player1_wins} | Player 2: {player2_wins}\\")\\n    print(f\\"Total Rounds: {round_num}\\")\\n    print(\\"=\\" * 60)\\n\\nasyncio.run(main())\\n"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01CberhXc9TgYXrCZU8bQoks",
+    "toolName": "code_execution",
+    "type": "tool-call",
+  },
+  {
+    "input": "{"player":"player2"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01CberhXc9TgYXrCZU8bQoks",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_01PMcE1JBKCeLjn83cgUCvR5",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "input": "{"player":"player1"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01CberhXc9TgYXrCZU8bQoks",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_01MZf5QJ1EQyd2yGyeLzBxAS",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "input": "{"player":"player1"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01CberhXc9TgYXrCZU8bQoks",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_01T7Upuuv8C71nq7DZ9ZPNQW",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "input": "{"player":"player2"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01CberhXc9TgYXrCZU8bQoks",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_016Da1tDet9Bf7dAdYTkF5Ar",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "content": [],
+      "return_code": 0,
+      "stderr": "",
+      "stdout": "============================================================
+DICE GAME: First to 3 Round Wins
+============================================================
+
+Round 1:
+  Player 1 rolls: 6
+  Player 2 rolls: 6
+  → Draw! No points awarded.
+  Score: Player 1: 0 | Player 2: 0
+
+Round 2:
+  Player 1 rolls: 5
+  Player 2 rolls: 4
+  → Player 1 wins this round!
+  Score: Player 1: 1 | Player 2: 0
+
+Round 3:
+  Player 1 rolls: 6
+  Player 2 rolls: 4
+  → Player 1 wins this round!
+  Score: Player 1: 2 | Player 2: 0
+
+Round 4:
+  Player 1 rolls: 6
+  Player 2 rolls: 3
+  → Player 1 wins this round!
+  Score: Player 1: 3 | Player 2: 0
+
+============================================================
+🏆 PLAYER 1 WINS THE GAME!
+Final Score: Player 1: 3 | Player 2: 0
+Total Rounds: 4
+============================================================
+",
+      "type": "code_execution_result",
+    },
+    "toolCallId": "srvtoolu_01CberhXc9TgYXrCZU8bQoks",
+    "toolName": "code_execution",
+    "type": "tool-result",
+  },
+  {
+    "text": "**Game Over!** 
+
+Player 1 dominated this game with a decisive 3-0 victory! Looking at the rolls:
+- **Round 1**: Both rolled 6 (Draw)
+- **Round 2**: Player 1 (5) beat Player 2 (4)
+- **Round 3**: Player 1 (6) beat Player 2 (4)
+- **Round 4**: Player 1 (6) beat Player 2 (3)
+
+Based on these results, it appears **Player 1 is likely the one with the loaded die** - they rolled 6 three times out of four rolls (including the draw), and consistently rolled high numbers (5, 6, 6, 6). Player 2's rolls were more varied and lower (6, 4, 4, 3), which looks more like a fair die distribution.
+
+The loaded die gave Player 1 a significant advantage, allowing them to win the game without Player 2 scoring a single round!",
+    "type": "text",
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doGenerate > tool search tool > bm25 variant > should include tool search tool call and result in content 1`] = `
+[
+  {
+    "text": "I'll search for a weather-related tool to help you get the current weather in San Francisco.",
+    "type": "text",
+  },
+  {
+    "input": "{"query":"weather current conditions San Francisco"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_011Jcb838xqvZyWwDt7bWqAz",
+    "toolName": "tool_search",
+    "type": "tool-call",
+  },
+  {
+    "result": [
+      {
+        "toolName": "get_weather",
+        "type": "tool_reference",
+      },
+    ],
+    "toolCallId": "srvtoolu_011Jcb838xqvZyWwDt7bWqAz",
+    "toolName": "tool_search",
+    "type": "tool-result",
+  },
+  {
+    "text": "Great! I found a weather tool. Let me get the current weather in San Francisco for you.",
+    "type": "text",
+  },
+  {
+    "input": "{"location":"San Francisco, CA"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": undefined,
+          "type": "direct",
+        },
+      },
+    },
+    "toolCallId": "toolu_01PFQG18bVLaXcEaCxTZtX4G",
+    "toolName": "get_weather",
+    "type": "tool-call",
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doGenerate > tool search tool > regex variant > should include tool search tool call and result in content 1`] = `
+[
+  {
+    "input": "{"pattern":"weather|SF|San Francisco|forecast|temperature|climate","limit":10}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01SACvPAnp6ucMJsstB5qb3f",
+    "toolName": "tool_search",
+    "type": "tool-call",
+  },
+  {
+    "result": [
+      {
+        "toolName": "get_temp_data",
+        "type": "tool_reference",
+      },
+    ],
+    "toolCallId": "srvtoolu_01SACvPAnp6ucMJsstB5qb3f",
+    "toolName": "tool_search",
+    "type": "tool-result",
+  },
+  {
+    "text": "I found a tool to get temperature data! Let me use it to get the weather information for San Francisco.",
+    "type": "text",
+  },
+  {
+    "input": "{"location":"San Francisco, CA","unit":"fahrenheit"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": undefined,
+          "type": "direct",
+        },
+      },
+    },
+    "toolCallId": "toolu_01X4r989CAhzqnFqDJn1gVvp",
+    "toolName": "get_temp_data",
+    "type": "tool-call",
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > 20260209 text response > should include web fetch 20260209 tool call and result in content 1`] = `
+[
+  {
+    "input": "{"type":"programmatic-tool-call","code":"\\nimport json\\nresult = await web_fetch({\\"url\\": \\"https://example.com\\"})\\nparsed = json.loads(result) if isinstance(result, str) else result\\nif isinstance(parsed, list):\\n    print(parsed[0][\\"content\\"][:500])\\nelse:\\n    print(parsed)\\n"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_015CSHH7X69AhdK9gNzotEeh",
+    "toolName": "code_execution",
+    "type": "tool-call",
+  },
+  {
+    "input": "{"url":"https://example.com"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_0152eMmZnBDZc4C2miykFWW5",
+    "toolName": "web_fetch",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "content": {
+        "citations": undefined,
+        "source": {
+          "data": "Example Domain
+
+# Example Domain
+
+This domain is for use in documentation examples without needing permission. Avoid use in operations.
+
+[Learn more](https://iana.org/domains/example)",
+          "mediaType": "text/plain",
+          "type": "text",
+        },
+        "title": "Example Domain",
+        "type": "document",
+      },
+      "retrievedAt": "2026-03-03T15:05:04.091000+00:00",
+      "type": "web_fetch_result",
+      "url": "https://example.com",
+    },
+    "toolCallId": "srvtoolu_0152eMmZnBDZc4C2miykFWW5",
+    "toolName": "web_fetch",
+    "type": "tool-result",
+  },
+  {
+    "result": {
+      "content": [],
+      "return_code": 0,
+      "stderr": "",
+      "stdout": "{'type': 'web_fetch_result', 'url': 'https://example.com', 'retrieved_at': '2026-03-03T15:05:04.091000+00:00', 'content': {'type': 'document', 'source': {'type': 'text', 'media_type': 'text/plain', 'data': 'Example Domain\\n\\n# Example Domain\\n\\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\\n\\n[Learn more](https://iana.org/domains/example)'}, 'title': 'Example Domain'}}
+",
+      "type": "code_execution_result",
+    },
+    "toolCallId": "srvtoolu_015CSHH7X69AhdK9gNzotEeh",
+    "toolName": "code_execution",
+    "type": "tool-result",
+  },
+  {
+    "text": "The page at **example.com** is a simple placeholder page for the "Example Domain," which is reserved for use in documentation and illustrative examples without requiring prior permission.",
+    "type": "text",
+  },
+]
+`;
+
 exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text response > should include web fetch tool call and result in content 1`] = `
 [
   {
@@ -698,7 +1072,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text res
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": {
         "citations": undefined,
@@ -790,14 +1163,13 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text res
     "type": "text",
   },
   {
-    "input": "{"url":"https://raw.githubusercontent.com/vercel/ai/main/examples/ai-core/data/ai.pdf"}",
+    "input": "{"url":"https://raw.githubusercontent.com/vercel/ai/main/examples/ai-functions/data/ai.pdf"}",
     "providerExecuted": true,
     "toolCallId": "srvtoolu_01SCw66CVHHhqvHhRgxbXoj4",
     "toolName": "web_fetch",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": {
         "citations": undefined,
@@ -811,7 +1183,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text res
       },
       "retrievedAt": "2025-09-29T07:28:57.560000+00:00",
       "type": "web_fetch_result",
-      "url": "https://raw.githubusercontent.com/vercel/ai/main/examples/ai-core/data/ai.pdf",
+      "url": "https://raw.githubusercontent.com/vercel/ai/main/examples/ai-functions/data/ai.pdf",
     },
     "toolCallId": "srvtoolu_01SCw66CVHHhqvHhRgxbXoj4",
     "toolName": "web_fetch",
@@ -849,7 +1221,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > unavaila
     "type": "text",
   },
   {
-    "input": "{"url":"https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf"}",
+    "input": "{"url":"https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf"}",
     "providerExecuted": true,
     "toolCallId": "srvtoolu_013gia34XNKyTfwHxaPCKEVd",
     "toolName": "web_fetch",
@@ -857,7 +1229,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > unavaila
   },
   {
     "isError": true,
-    "providerExecuted": true,
     "result": {
       "errorCode": "unavailable",
       "type": "web_fetch_tool_result_error",
@@ -883,7 +1254,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": [
       {
         "encryptedContent": "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",
@@ -961,7 +1331,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "type": "tool-result",
   },
   {
-    "id": "id-11",
+    "id": "id-14",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -973,7 +1343,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "url": "https://developer.apple.com/news/",
   },
   {
-    "id": "id-12",
+    "id": "id-15",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -985,7 +1355,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "url": "https://acecomments.mu.nu/?post=411647",
   },
   {
-    "id": "id-13",
+    "id": "id-16",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -997,7 +1367,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "url": "https://www.weforum.org/stories/2024/12/top-technology-stories-from-2024/",
   },
   {
-    "id": "id-14",
+    "id": "id-17",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -1009,7 +1379,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "url": "https://scitechdaily.com/",
   },
   {
-    "id": "id-15",
+    "id": "id-18",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -1021,7 +1391,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "url": "https://www.crescendo.ai/news/latest-ai-news-and-updates",
   },
   {
-    "id": "id-16",
+    "id": "id-19",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "December 21, 2015",
@@ -1033,7 +1403,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "url": "https://www.cnbc.com/technology/",
   },
   {
-    "id": "id-17",
+    "id": "id-20",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "2 days ago",
@@ -1045,7 +1415,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "url": "https://www.sciencedaily.com/news/matter_energy/technology/",
   },
   {
-    "id": "id-18",
+    "id": "id-21",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -1057,7 +1427,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "url": "https://www.technologyreview.com/",
   },
   {
-    "id": "id-19",
+    "id": "id-22",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "December 31, 2024",
@@ -1069,7 +1439,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "url": "https://techstartups.com/2024/12/30/top-tech-news-stories-of-2024/",
   },
   {
-    "id": "id-20",
+    "id": "id-23",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "January 25, 2025",
@@ -1092,7 +1462,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": [],
     "toolCallId": "srvtoolu_01HyorfKHSCsjCUVH6WHcNUC",
     "toolName": "web_search",
@@ -1112,6 +1481,19 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "type": "text",
   },
   {
+    "id": "id-24",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Daily Tech News 26 September 2024 · Top Story Caroline Ellison, Sam Bankman-Fried&#x27;s right-hand woman in the FTX kerfuffle, has been sentenced to ...",
+        "encryptedIndex": "Eo8BCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDDULr5oJyZTXVnDn8RoMK4nGlIB5/8KPBQftIjBoGwKgdBO0xPobCWf4FMQZeJZTexZ2PVubA2Jakj1ei+PHwsUHeXLU+KWVSskeWpEqE9LEcU8cVMZsafx5pIdH1s4Fzo8YBA==",
+      },
+    },
+    "sourceType": "url",
+    "title": "Daily Tech News 26 September 2024",
+    "type": "source",
+    "url": "https://acecomments.mu.nu/?post=411647",
+  },
+  {
     "text": "
 
 Unfortunately, the search results don't show many other specific breaking tech news stories from today, September 26, 2024. However, here are some broader tech trends and recent developments that have been making headlines:
@@ -1125,6 +1507,19 @@ Unfortunately, the search results don't show many other specific breaking tech n
     "type": "text",
   },
   {
+    "id": "id-25",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Date: August 26, 2025 Summary: Anthropic has launched a Chrome extension enabling its Claude AI agent to interact directly with the browser, manipulat...",
+        "encryptedIndex": "EpMBCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDH/NVmfefWyzakcthBoMkqoT8aytDBV0FvAFIjClSipbNID/zEFscAaakdLn5Z6i5W8sJbYqg4XzUNd6572B59pBEvD8haJbwNgojhoqF8z5/oae4RSDzdKPWa4FX1t3q5E8tYfPGAQ=",
+      },
+    },
+    "sourceType": "url",
+    "title": "The Latest AI News and AI Breakthroughs that Matter Most: 2025 | News",
+    "type": "source",
+    "url": "https://www.crescendo.ai/news/latest-ai-news-and-updates",
+  },
+  {
     "text": "
 
 - ",
@@ -1133,6 +1528,19 @@ Unfortunately, the search results don't show many other specific breaking tech n
   {
     "text": "Chinese AI firm DeepSeek has unveiled its R1 model, a significant leap in AI performance trained at a cost 70% lower than comparable U.S. models. The company attributes its efficiency to custom hardware, proprietary optimization techniques, and low energy costs in China. Analysts see this as a direct challenge to Western dominance in large language models, especially OpenAI and Anthropic.",
     "type": "text",
+  },
+  {
+    "id": "id-26",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Date: September 19, 2025 Summary: Chinese AI firm DeepSeek has unveiled its R1 model, a significant leap in AI performance trained at a cost 70% lower...",
+        "encryptedIndex": "EpMBCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDBWUYk1OFyII3dq4JRoM0dCF2bTcT1OwCwSqIjBvViA7Pv/gvLgQlu7pNnhAHjHaThPZ1V7eor1hdefQF/ibzwrZ5o6VFZrPznm3pbEqF8cYd5F85vVDLY++URAQ//xwtev9Lt3kGAQ=",
+      },
+    },
+    "sourceType": "url",
+    "title": "The Latest AI News and AI Breakthroughs that Matter Most: 2025 | News",
+    "type": "source",
+    "url": "https://www.crescendo.ai/news/latest-ai-news-and-updates",
   },
   {
     "text": "
@@ -1146,7 +1554,7 @@ For the most current breaking tech news today, I'd recommend checking major tech
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > agent skills > should stream code execution tool results 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > agent skills > should stream code execution tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -1248,7 +1656,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > agent skills >
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": "---
 name: PowerPoint Suite
@@ -1363,7 +1770,6 @@ You need raw XML access for: comments, speaker notes, slide layouts, animations,
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": "# HTML to PowerPoint Guide
 
@@ -1679,7 +2085,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "is_file_update": false,
       "type": "text_editor_code_execution_create_result",
@@ -1986,7 +2391,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "is_file_update": false,
       "type": "text_editor_code_execution_create_result",
@@ -2408,7 +2812,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "is_file_update": false,
       "type": "text_editor_code_execution_create_result",
@@ -2625,7 +3028,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "is_file_update": false,
       "type": "text_editor_code_execution_create_result",
@@ -2820,7 +3222,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "is_file_update": false,
       "type": "text_editor_code_execution_create_result",
@@ -2895,7 +3296,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": [],
       "return_code": 0,
@@ -3106,7 +3506,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "lines": [
         "   display: flex; align-items: center; justify-content: center;",
@@ -3186,7 +3585,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": [],
       "return_code": 0,
@@ -3592,7 +3990,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "lines": [
         " .footer-text {",
@@ -3680,7 +4077,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": [],
       "return_code": 0,
@@ -4173,7 +4569,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "lines": [
         "   display: flex; align-items: center; justify-content: center;",
@@ -4289,7 +4684,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": [],
       "return_code": 0,
@@ -4423,7 +4817,6 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": [],
       "return_code": 1,
@@ -4561,7 +4954,6 @@ Error: PDF conversion failed
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": [
         {
@@ -4826,7 +5218,10 @@ The presentation has",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
@@ -4841,6 +5236,8 @@ The presentation has",
             },
           ],
         },
+        "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -4861,16 +5258,38 @@ The presentation has",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 2751,
-      "outputTokens": 5558,
-      "totalTokens": 8309,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 320032,
+        "total": 320032,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 5558,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 320032,
+        "output_tokens": 5558,
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0,
+        },
+        "service_tier": "standard",
+      },
     },
   },
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution 20250825 tool > should include file id list in code execution tool call result. 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > code execution 20250825 tool > should include file id list in code execution tool call result. 1`] = `
 [
   {
     "type": "stream-start",
@@ -9384,7 +9803,6 @@ Let's",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "is_file_update": false,
       "type": "text_editor_code_execution_create_result",
@@ -9479,7 +9897,6 @@ Let's",
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": [
         {
@@ -9653,7 +10070,6 @@ CALCULATION COMPLETE!
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": [
         {
@@ -9878,7 +10294,10 @@ Both",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
@@ -9887,6 +10306,8 @@ Both",
           "id": "container_011CUJb5Pk4kFWskBpuCjwXj",
           "skills": null,
         },
+        "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -9907,10 +10328,32 @@ Both",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 2273,
-      "outputTokens": 2479,
-      "totalTokens": 4752,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 15696,
+        "total": 15696,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 2479,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 15696,
+        "output_tokens": 2479,
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0,
+        },
+        "service_tier": "standard",
+      },
     },
   },
   {
@@ -9921,7 +10364,7 @@ Error message: Unexpected end of JSON input],
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution 20250825 tool > should stream code execution tool results 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > code execution 20250825 tool > should stream code execution tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -10958,7 +11401,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "is_file_update": false,
       "type": "text_editor_code_execution_create_result",
@@ -11038,7 +11480,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": {
       "content": [],
       "return_code": 0,
@@ -11177,7 +11618,10 @@ The Fibonacci sequence starts with 0, ",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
@@ -11186,6 +11630,8 @@ The Fibonacci sequence starts with 0, ",
           "id": "container_011CU6pTr2hLT47seQ5Xs4yj",
           "skills": null,
         },
+        "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -11206,16 +11652,2000 @@ The Fibonacci sequence starts with 0, ",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 2263,
-      "outputTokens": 771,
-      "totalTokens": 3034,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 8050,
+        "total": 8050,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 771,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 8050,
+        "output_tokens": 771,
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0,
+        },
+        "service_tier": "standard",
+      },
     },
   },
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > mcp servers > should stream code execution tool results 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > code execution 20260120 tool > should stream code execution tool results without beta header 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_01LEsrXVCLpf7xHaFdFTZNEJ",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "I'll create a Python script to calculate",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Fibonacci numbers and then execute it to fin",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d the 10th Fibonacci number.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "providerExecuted": true,
+    "toolName": "code_execution",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"type": "text_editor_code_execution","",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "comma",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "nd": "c",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "reate"",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ", "",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "path": ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""/",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "tmp/fi",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "bonacci.",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "py"",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ", "file_",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "text":",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " "def fib",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "onacci(n):",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n    \\"\\"\\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""\\n    Calc",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ulate th",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "e nth Fibo",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "nacc",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "i ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "numb",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "er.\\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "    \\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n    Ar",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "gs:",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n      ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "  n: T",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "he ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "positio",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n i",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n the Fibon",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "acci s",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "eq",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "uence (1-",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "indexe",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "d)\\n ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "       \\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n   ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Returns:\\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n    ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "    The n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "th ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "Fibonac",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ci num",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "be",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "r\\n    \\"\\"\\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""\\n ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   if",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " n <= 0",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ":\\n       ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " return \\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""Pleas",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "e enter a ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "positive int",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "eg",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "er",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\"\\n   ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " elif n ==",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " 1:\\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "        retu",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "rn ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "0\\n    el",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "if n == 2:\\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "       ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " return ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "1\\n  ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "  else:\\n ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "       # Usi",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ng",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " itera",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "tive ap",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "proa",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ch ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "for effi",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ciency\\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "        a,",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " b",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " = 0",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ", 1",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n        ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "for _ in ra",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "nge(2, n):\\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n          ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "  a",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ", b = b, ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "a + b\\n   ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "     ret",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "urn ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "b\\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\ndef fi",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "bonacci_rec",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ursive(n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "):\\n   ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " \\"\\"\\"\\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "    Ca",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "lcula",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "te the nth",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Fibonacci",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " numb",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "er using r",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ecursion.\\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "    \\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "    Arg",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "s:\\n ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "      ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " n:",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " The po",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "si",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "tion in ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "the Fibona",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "cci sequen",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ce (1-index",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ed)\\n   ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "     \\n   ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Returns:\\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "       ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " The nth F",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ibonacci n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "umber\\n    \\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""\\"\\"\\n    ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "if n <",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "= 0:\\n ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "       retu",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "rn \\"Plea",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "se enter a",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " positive in",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "teger\\"\\n   ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " elif n ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "== 1",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ":\\n        r",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "et",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ur",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n 0\\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "    elif n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " == 2:\\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "     ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   return",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " 1\\n    els",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "e:\\n        ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "return fib",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "onacci_recur",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "sive(n-1) +",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " fib",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "onacci_re",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "cursive(n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "-2)\\n\\nif ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "__name__ ==",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " \\"_",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "_main_",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "_\\":\\n   ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " # ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "Calcula",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "te ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "the 1",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "0th Fibonacc",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "i numb",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "er\\n    n = ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "10\\n    ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "result = fi",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "bonacc",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "i(n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ")\\n    \\n",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "    print(",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "f\\"The",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " {n}t",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "h Fibonac",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ci numb",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "er",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " is: {resul",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "t}",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\")\\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n    \\n ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "   # Sho",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "w the ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "first 10 ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "Fibona",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "cci numb",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ers\\n    p",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ri",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "nt(f\\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""\\\\nFirst ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "{n}",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Fibon",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "acci numbe",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "rs:\\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "")",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n    fo",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "r i in range",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(1, n + ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "1):\\n      ",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "  pr",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "int(f\\",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""F({i",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "}) = {",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "fibonacci",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(i)}\\")",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n"}",
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"type": "text_editor_code_execution","command": "create", "path": "/tmp/fibonacci.py", "file_text": "def fibonacci(n):\\n    \\"\\"\\"\\n    Calculate the nth Fibonacci number.\\n    \\n    Args:\\n        n: The position in the Fibonacci sequence (1-indexed)\\n        \\n    Returns:\\n        The nth Fibonacci number\\n    \\"\\"\\"\\n    if n <= 0:\\n        return \\"Please enter a positive integer\\"\\n    elif n == 1:\\n        return 0\\n    elif n == 2:\\n        return 1\\n    else:\\n        # Using iterative approach for efficiency\\n        a, b = 0, 1\\n        for _ in range(2, n):\\n            a, b = b, a + b\\n        return b\\n\\ndef fibonacci_recursive(n):\\n    \\"\\"\\"\\n    Calculate the nth Fibonacci number using recursion.\\n    \\n    Args:\\n        n: The position in the Fibonacci sequence (1-indexed)\\n        \\n    Returns:\\n        The nth Fibonacci number\\n    \\"\\"\\"\\n    if n <= 0:\\n        return \\"Please enter a positive integer\\"\\n    elif n == 1:\\n        return 0\\n    elif n == 2:\\n        return 1\\n    else:\\n        return fibonacci_recursive(n-1) + fibonacci_recursive(n-2)\\n\\nif __name__ == \\"__main__\\":\\n    # Calculate the 10th Fibonacci number\\n    n = 10\\n    result = fibonacci(n)\\n    \\n    print(f\\"The {n}th Fibonacci number is: {result}\\")\\n    \\n    # Show the first 10 Fibonacci numbers\\n    print(f\\"\\\\nFirst {n} Fibonacci numbers:\\")\\n    for i in range(1, n + 1):\\n        print(f\\"F({i}) = {fibonacci(i)}\\")\\n"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "toolName": "code_execution",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "is_file_update": false,
+      "type": "text_editor_code_execution_create_result",
+    },
+    "toolCallId": "srvtoolu_0112cP8RpnKv67t2cscmN4ia",
+    "toolName": "code_execution",
+    "type": "tool-result",
+  },
+  {
+    "id": "3",
+    "type": "text-start",
+  },
+  {
+    "delta": "Now let's",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " execute the script to find the 10th Fibonacci",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " number:",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "id": "3",
+    "type": "text-end",
+  },
+  {
+    "id": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+    "providerExecuted": true,
+    "toolName": "code_execution",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"type": "bash_code_execution","command",
+    "id": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "": "python",
+    "id": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " /tmp/fibon",
+    "id": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ac",
+    "id": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ci.py",
+    "id": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"type": "bash_code_execution","command": "python /tmp/fibonacci.py"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+    "toolName": "code_execution",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "content": [],
+      "return_code": 0,
+      "stderr": "",
+      "stdout": "The 10th Fibonacci number is: 34
+
+First 10 Fibonacci numbers:
+F(1) = 0
+F(2) = 1
+F(3) = 1
+F(4) = 2
+F(5) = 3
+F(6) = 5
+F(7) = 8
+F(8) = 13
+F(9) = 21
+F(10) = 34
+",
+      "type": "bash_code_execution_result",
+    },
+    "toolCallId": "srvtoolu_01K2E2j5mkxbtLqNBc6RJHds",
+    "toolName": "code_execution",
+    "type": "tool-result",
+  },
+  {
+    "id": "6",
+    "type": "text-start",
+  },
+  {
+    "delta": "Perfect",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "! The script has been created an",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d executed successfully. 
+
+**Result",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ": The 10th Fibonacci number is",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 34**
+
+The script includes:
+1",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ". An **iterative function** (\`",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "fibonacci\`) - efficient and fast, suitable for larger numbers",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+2. A **recursive function** (\`fibonacci_recursive\`) - sim",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "pler but less efficient for large values
+3. The main execution",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " block that calculates and displays the 10th Fibonacci number",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+4. A bonus display showing all",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Fibonacci numbers from F(1) to F(10)",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+The Fibonacci sequence starts with 0, ",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "1, and each subsequent number is the sum of the",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " previous two numbers: ",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "0, 1, 1,",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 2, 3, 5",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": ", 8, 13, ",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "delta": "21, 34, ...",
+    "id": "6",
+    "type": "text-delta",
+  },
+  {
+    "id": "6",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": {
+          "expiresAt": "2025-10-14T10:02:00.044495Z",
+          "id": "container_011CU6pTr2hLT47seQ5Xs4yj",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 8050,
+          "output_tokens": 771,
+          "server_tool_use": {
+            "web_fetch_requests": 0,
+            "web_search_requests": 0,
+          },
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 8050,
+        "total": 8050,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 771,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 8050,
+        "output_tokens": 771,
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0,
+        },
+        "service_tier": "standard",
+      },
+    },
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doStream > json schema response format with output format (supported model) > should stream the text output 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_01KbeodbKEyjf2fLb2Jnkr5s",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "{"",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "characters"",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":[{"name":"Th",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "eron",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Iron",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "heart","class":"warrior","description",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "":"A battle",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-scar",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "red veteran",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " steel",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "gray hair and a",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " prominent",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " scar across his left eye.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Wiel",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ding a massive two",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-handed sword passe",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d down through his family for",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " generations,",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Theron fights",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with discipl",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ined precision h",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "oned through decades",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of combat. Despite",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " his gruff exterior, he harb",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ors a deep sense of honor and prot",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ects the weak",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " without",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " hesitation.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ""},{"name":"Lyra",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Star",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "weaver","class":"mage","",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "description":"A young",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pro",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "digy in",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " arcane arts with",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " flowing",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " silver ro",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "bes ador",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ned with celest",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ial patterns",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ". Her",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " eyes",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " g",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "low f",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "aintly blue",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " when",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " chann",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "eling powerful",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sp",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ells.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Lyra special",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "izes in ele",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "mental magic an",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d ast",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ral div",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ination, having",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " studie",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d at",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the Gran",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d Academy since",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " childhoo",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d. She is",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " curious",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and ide",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "alistic, often getting",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " into",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " trouble",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " while",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pursuing",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " forbidden",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " knowledge."},{"name":"R",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ook",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Shadow",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "st",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ep",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "","class":"thief","description":"",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "A nim",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ble and cun",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ning r",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ogue who",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " moves through",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " shadows",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " like",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a whis",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "per in",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the night. With",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " jet",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-black hair,",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " leather",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " armor,",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and an array of lock",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "picks an",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d daggers hidden on",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " his person, Rook makes his",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " living liber",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ating treas",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ures from those",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " he",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " deems unworthy of",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " them",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ". Behin",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d his coc",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ky smile",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " lies a trouble",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d past and a strict",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " personal",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " code about",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " who",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " deserves to be",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " rob",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "bed."}]}",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 313,
+          "output_tokens": 305,
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 313,
+        "total": 313,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 305,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 313,
+        "output_tokens": 305,
+        "service_tier": "standard",
+      },
+    },
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doStream > mcp servers > should stream code execution tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -11243,7 +13673,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > mcp servers > 
   {
     "dynamic": true,
     "isError": false,
-    "providerExecuted": true,
     "providerMetadata": {
       "anthropic": {
         "serverName": "echo",
@@ -11286,11 +13715,16 @@ It simply echoed back",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -11311,16 +13745,3539 @@ It simply echoed back",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 589,
-      "outputTokens": 83,
-      "totalTokens": 672,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 1250,
+        "total": 1250,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 83,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 1250,
+        "output_tokens": 83,
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0,
+        },
+        "service_tier": "standard",
+      },
     },
   },
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web fetch tool > txt response > should stream web search tool results 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling > with fixture (multi-turn dice game) > should stream programmatic tool calling with multiple message_start/stop sequences 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_01ERcBqAvLTHWQDk9c9qJLWC",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "I'll help you simulate",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " this",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " game between",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " two players where",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " one",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " using",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a loaded die.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Let me play",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " out",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the game roun",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d by round until",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " one player wins",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 3 rounds.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "providerExecuted": true,
+    "toolName": "code_execution",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"code": "\\nimport async",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "io",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n\\nasync def main",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "():\\n    player",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "1_wins",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " = 0\\n    player2_",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "wins = 0\\n    roun",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "d_num = 0",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n    \\n    print",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(\\"=",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "== DICE",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " GAME:",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " First",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " to",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " 3 ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "Wins",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " ===\\\\",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n\\")\\n    \\n    #",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Play",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " until",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " one player wins",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " 3 rounds\\n    while player",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "1_wins < 3 an",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "d player2_wins < 3:",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n        round_num += 1",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n        print",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(f\\"---",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Round {round_num} ---\\")",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n        \\n        # Both",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " players roll their",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " dice\\n        player1_roll =",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " await rollDie(",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "{\\"player\\": \\"player1\\"})",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n        player2_roll = await",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " rollDie({\\"player\\": \\"",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "player2\\"})\\n        \\n        ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "#",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Extract",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " the numeric",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " values from the results",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n        p",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "1_value",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " = int(player1_roll.",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "strip",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "())\\n        p2_value =",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " int(player2_roll.strip",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "())\\n        \\n        print",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(f\\"Player 1 rolls",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ": {p1_value}\\")",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n        print(f\\"Player ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "2 rolls: {p2_",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "value}\\")\\n        \\n        #",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Determine roun",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "d winner\\n        if p1_value",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " > p2_value:\\n            ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "player1_wins += 1",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n            print(f\\"Player 1",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " wins this",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " round!\\")\\n        elif p2_",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "value > p1_value:",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n            player2_wins += 1",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n            print(f\\"Player ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "2 wins this round!\\")\\n        ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "else:\\n            print(",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "f\\"Draw",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "! No",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " one gets",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " a",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " point",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".\\")",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n        \\n        print",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(f\\"Score",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ": Player 1 =",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " {player1_wins}, Player ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "2 = {player2_wins",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "}\\\\",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n\\")\\n    ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n    #",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Announce",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " the game",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " winner",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n    print",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(\\"",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "=\\"",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " * 40",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ")\\n    if",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " player1_wins == 3:",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n        print(",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "f\\"",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "🏆 GAME OVER:",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Player 1 wins the game!",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " (",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "3-",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "{",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "player2",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "_wins}",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ")\\")\\n    else:\\n        print",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(f\\"🏆 ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "GAME OVER: Player 2 ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "wins the game! (3-{",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "player1_wins})\\")\\n    ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "print(\\"=\\" * 40)",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n    \\n    # Determine who",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " was",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " cheating base",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "d on the results",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n    print",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(\\"\\\\n",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "📊 Analysis",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ":\\")\\n    print(",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "f\\"Total",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " rounds playe",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "d: {round_num}\\")\\n    ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "if",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " player1_wins >",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " player2_wins:\\n        print",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(\\"Player 1 ha",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "d better",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " results",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " -",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " likely",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " using",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " the",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " loaded die!",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " 🎲\\")\\n    elif",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " player2_wins > player1_",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "wins:\\n        print(\\"Player ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "2 had better results - likely using",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " the loaded die! 🎲",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\")\\n    else:\\n        print",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(\\"Results",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " were",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " even",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " - har",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "d to determine who",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " was cheating from",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " this",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " game alone",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".\\")\\n\\nasync",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "io.run(main())",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"type":"programmatic-tool-call","code":"\\nimport asyncio\\n\\nasync def main():\\n    player1_wins = 0\\n    player2_wins = 0\\n    round_num = 0\\n    \\n    print(\\"=== DICE GAME: First to 3 Wins ===\\\\n\\")\\n    \\n    # Play until one player wins 3 rounds\\n    while player1_wins < 3 and player2_wins < 3:\\n        round_num += 1\\n        print(f\\"--- Round {round_num} ---\\")\\n        \\n        # Both players roll their dice\\n        player1_roll = await rollDie({\\"player\\": \\"player1\\"})\\n        player2_roll = await rollDie({\\"player\\": \\"player2\\"})\\n        \\n        # Extract the numeric values from the results\\n        p1_value = int(player1_roll.strip())\\n        p2_value = int(player2_roll.strip())\\n        \\n        print(f\\"Player 1 rolls: {p1_value}\\")\\n        print(f\\"Player 2 rolls: {p2_value}\\")\\n        \\n        # Determine round winner\\n        if p1_value > p2_value:\\n            player1_wins += 1\\n            print(f\\"Player 1 wins this round!\\")\\n        elif p2_value > p1_value:\\n            player2_wins += 1\\n            print(f\\"Player 2 wins this round!\\")\\n        else:\\n            print(f\\"Draw! No one gets a point.\\")\\n        \\n        print(f\\"Score: Player 1 = {player1_wins}, Player 2 = {player2_wins}\\\\n\\")\\n    \\n    # Announce the game winner\\n    print(\\"=\\" * 40)\\n    if player1_wins == 3:\\n        print(f\\"🏆 GAME OVER: Player 1 wins the game! (3-{player2_wins})\\")\\n    else:\\n        print(f\\"🏆 GAME OVER: Player 2 wins the game! (3-{player1_wins})\\")\\n    print(\\"=\\" * 40)\\n    \\n    # Determine who was cheating based on the results\\n    print(\\"\\\\n📊 Analysis:\\")\\n    print(f\\"Total rounds played: {round_num}\\")\\n    if player1_wins > player2_wins:\\n        print(\\"Player 1 had better results - likely using the loaded die! 🎲\\")\\n    elif player2_wins > player1_wins:\\n        print(\\"Player 2 had better results - likely using the loaded die! 🎲\\")\\n    else:\\n        print(\\"Results were even - hard to determine who was cheating from this game alone.\\")\\n\\nasyncio.run(main())\\n"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "toolName": "code_execution",
+    "type": "tool-call",
+  },
+  {
+    "id": "toolu_019jKkXz4jAdwHweHBw92CVY",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "id": "toolu_019jKkXz4jAdwHweHBw92CVY",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player1"}",
+    "providerExecuted": undefined,
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_019jKkXz4jAdwHweHBw92CVY",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:35.789626Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 3369,
+          "output_tokens": 725,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 3369,
+        "total": 3369,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 3369,
+        "output_tokens": 725,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+        "service_tier": "standard",
+      },
+    },
+  },
+  {
+    "id": "msg_01KSVw3xmXbMNJPNMt46BC5W",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player2"}",
+    "id": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player2"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:37.969567Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_016fLapHzDx8DG2SUcsGKyPA",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_01YYqBNq5mk1wMtv3PAqY44m",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player1"}",
+    "id": "toolu_01YYqBNq5mk1wMtv3PAqY44m",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_01YYqBNq5mk1wMtv3PAqY44m",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player1"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_01YYqBNq5mk1wMtv3PAqY44m",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:39.648288Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_01MQHz6AzmwmZoTry5nk5EQC",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_018WxjDkQG8h7i63poySGT2x",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player2"}",
+    "id": "toolu_018WxjDkQG8h7i63poySGT2x",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_018WxjDkQG8h7i63poySGT2x",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player2"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_018WxjDkQG8h7i63poySGT2x",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:41.431511Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_01WCXNc8kDU1jBuaza6uUZ8k",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_014ch4D3vbx928ddwxMvMvF1",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player1"}",
+    "id": "toolu_014ch4D3vbx928ddwxMvMvF1",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_014ch4D3vbx928ddwxMvMvF1",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player1"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_014ch4D3vbx928ddwxMvMvF1",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:43.145757Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_01Hoo8fVNFQyUpbagnajQ4BF",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_01QtZ46GWS93Z5ZaSifgGNnq",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player2"}",
+    "id": "toolu_01QtZ46GWS93Z5ZaSifgGNnq",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_01QtZ46GWS93Z5ZaSifgGNnq",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player2"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_01QtZ46GWS93Z5ZaSifgGNnq",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:44.839216Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_014eWUw8H2P9bDMyXcSpe1ss",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_012Zvp8FdgvjVGkmbHSU4EZk",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player1"}",
+    "id": "toolu_012Zvp8FdgvjVGkmbHSU4EZk",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_012Zvp8FdgvjVGkmbHSU4EZk",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player1"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_012Zvp8FdgvjVGkmbHSU4EZk",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:46.531362Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_015ecR3hog8LhtqDLdysH8p1",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_01CMz8Jhv6EfnzHQzEMdpHut",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player2"}",
+    "id": "toolu_01CMz8Jhv6EfnzHQzEMdpHut",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_01CMz8Jhv6EfnzHQzEMdpHut",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player2"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_01CMz8Jhv6EfnzHQzEMdpHut",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:48.294455Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_01CHzXfYTqEJ9HV3Kic1Uz5q",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_01PfH6ADzq8Yct5jeRY9QkS2",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player1"}",
+    "id": "toolu_01PfH6ADzq8Yct5jeRY9QkS2",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_01PfH6ADzq8Yct5jeRY9QkS2",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player1"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_01PfH6ADzq8Yct5jeRY9QkS2",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:49.977349Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_014nyoTPq6LG3UwHW1zvMTH3",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_013DE3qaKvBMheZXUhwkvpdF",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player2"}",
+    "id": "toolu_013DE3qaKvBMheZXUhwkvpdF",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_013DE3qaKvBMheZXUhwkvpdF",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player2"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_013DE3qaKvBMheZXUhwkvpdF",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:51.565949Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_01HLQ2uhM6N45SyR39CddV55",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_01MTRMy9BEvFHWR7hpCWc4nJ",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player1"}",
+    "id": "toolu_01MTRMy9BEvFHWR7hpCWc4nJ",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_01MTRMy9BEvFHWR7hpCWc4nJ",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player1"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_01MTRMy9BEvFHWR7hpCWc4nJ",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:53.308898Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_01TdKL1d8pQ9hLtyzbPUNGNf",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_01CXqv27ozPihE5nj6eA3Joc",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player2"}",
+    "id": "toolu_01CXqv27ozPihE5nj6eA3Joc",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_01CXqv27ozPihE5nj6eA3Joc",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player2"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_01CXqv27ozPihE5nj6eA3Joc",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:55.035858Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_01Q5bmB7EBDZYRnY5A78n34S",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_01K6ST6orjmPHHwM8rwLj1n9",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player1"}",
+    "id": "toolu_01K6ST6orjmPHHwM8rwLj1n9",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_01K6ST6orjmPHHwM8rwLj1n9",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player1"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_01K6ST6orjmPHHwM8rwLj1n9",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:56.857745Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_01E9RpqZHoGBsPDB9P3r1aBA",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_01QcWWQcQ1pd7nx9xohX4zAr",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player2"}",
+    "id": "toolu_01QcWWQcQ1pd7nx9xohX4zAr",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_01QcWWQcQ1pd7nx9xohX4zAr",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player2"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_01QcWWQcQ1pd7nx9xohX4zAr",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:58.450677Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_01CfmDducyrt61n4Q7QS8VFK",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "result": {
+      "content": [],
+      "return_code": 0,
+      "stderr": "",
+      "stdout": "=== DICE GAME: First to 3 Wins ===
+
+--- Round 1 ---
+Player 1 rolls: 5
+Player 2 rolls: 6
+Player 2 wins this round!
+Score: Player 1 = 0, Player 2 = 1
+
+--- Round 2 ---
+Player 1 rolls: 4
+Player 2 rolls: 6
+Player 2 wins this round!
+Score: Player 1 = 0, Player 2 = 2
+
+--- Round 3 ---
+Player 1 rolls: 5
+Player 2 rolls: 2
+Player 1 wins this round!
+Score: Player 1 = 1, Player 2 = 2
+
+--- Round 4 ---
+Player 1 rolls: 6
+Player 2 rolls: 6
+Draw! No one gets a point.
+Score: Player 1 = 1, Player 2 = 2
+
+--- Round 5 ---
+Player 1 rolls: 3
+Player 2 rolls: 2
+Player 1 wins this round!
+Score: Player 1 = 2, Player 2 = 2
+
+--- Round 6 ---
+Player 1 rolls: 6
+Player 2 rolls: 6
+Draw! No one gets a point.
+Score: Player 1 = 2, Player 2 = 2
+
+--- Round 7 ---
+Player 1 rolls: 2
+Player 2 rolls: 3
+Player 2 wins this round!
+Score: Player 1 = 2, Player 2 = 3
+
+========================================
+🏆 GAME OVER: Player 2 wins the game! (3-2)
+========================================
+
+📊 Analysis:
+Total rounds played: 7
+Player 2 had better results - likely using the loaded die! 🎲
+",
+      "type": "code_execution_result",
+    },
+    "toolCallId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "toolName": "code_execution",
+    "type": "tool-result",
+  },
+  {
+    "id": "1",
+    "type": "text-start",
+  },
+  {
+    "delta": "##",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Game",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Results",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+**Player 2",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " wins the game ",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "3-2!**",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 🏆
+
+The",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " game laste",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d 7 rounds with",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " following breakdown",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":
+- **",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Player",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 1**:",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 2",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " roun",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d wins",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+- **Player 2**: 3",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " round wins  ",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+- **",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Draws",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**: 2 rounds",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (both",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " rolling",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 6",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")
+
+Base",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d on the results",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Player 2 ",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "appears",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to be the one",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " using the loaded die**,",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as they",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " manage",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d to win the",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " game",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " an",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d had slightly",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " better overall",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " results.",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Player",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 2",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " rolle",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d high",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " consistently",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " including",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " multiple",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 6s",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " which helped them secure",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the victory.
+
+The",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " game was",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " actually",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " quite competitive",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " despite",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the cheating,",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with Player 1",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " managing",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to win 2 rounds an",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d the",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " score",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " being tied ",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "2-2 before",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Player 2 won",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the decisive",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "7",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "th round with",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a roll",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of 3",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "against",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Player 1's 2",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "id": "1",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 4551,
+          "output_tokens": 197,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 4551,
+        "total": 4551,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 197,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 4551,
+        "output_tokens": 197,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+        "service_tier": "standard",
+      },
+    },
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 variant > should stream tool search bm25 results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_011bqgzot9grwdetCByUmXRP",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "I'll search for a",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " weather",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "related tool",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to help",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " you get the weather",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " information for San Francisco.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "id": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "providerExecuted": true,
+    "toolName": "tool_search",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"query": "weather forecast current",
+    "id": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " conditions",
+    "id": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"query": "weather forecast current conditions"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "toolName": "tool_search",
+    "type": "tool-call",
+  },
+  {
+    "result": [
+      {
+        "toolName": "get_weather",
+        "type": "tool_reference",
+      },
+    ],
+    "toolCallId": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "toolName": "tool_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "3",
+    "type": "text-start",
+  },
+  {
+    "delta": "Great",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": "! I found a weather tool.",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Let me get the current weather for",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " San Francisco.",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "id": "3",
+    "type": "text-end",
+  },
+  {
+    "id": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "toolName": "get_weather",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"location": "San",
+    "id": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Francisco, CA",
+    "id": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"location": "San Francisco, CA"}",
+    "providerExecuted": undefined,
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": undefined,
+          "type": "direct",
+        },
+      },
+    },
+    "toolCallId": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "toolName": "get_weather",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 1630,
+          "output_tokens": 158,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 1630,
+        "total": 1630,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 158,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 1630,
+        "output_tokens": 158,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+        "service_tier": "standard",
+      },
+    },
+  },
+  {
+    "id": "msg_0132hQ7tpsGJhdPtEBhmKA2R",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "The",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " current",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " weather in San Francisco,",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " CA is:
+- **Temperature:**",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 64°F",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+- **Condition:** Partly clou",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "dy
+- **Humidity:** ",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "65%",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 1040,
+          "output_tokens": 41,
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 1040,
+        "total": 1040,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 41,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 1040,
+        "output_tokens": 41,
+        "service_tier": "standard",
+      },
+    },
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > regex variant > should stream tool search regex results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_01A4vjL51mNRof8JMvA9CFph",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "providerExecuted": true,
+    "toolName": "tool_search",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"pattern": "weather|",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "SF",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "|",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "San Francisco|",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "forecast",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "|temperature",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "|climate",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "", "limit": 10",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "}",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"pattern": "weather|SF|San Francisco|forecast|temperature|climate", "limit": 10}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "toolName": "tool_search",
+    "type": "tool-call",
+  },
+  {
+    "result": [
+      {
+        "toolName": "get_temp_data",
+        "type": "tool_reference",
+      },
+    ],
+    "toolCallId": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "toolName": "tool_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "2",
+    "type": "text-start",
+  },
+  {
+    "delta": "Great",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": "! I",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " found a",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " weather tool",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Let",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " me get the current weather",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " data for San Francisco.",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "id": "2",
+    "type": "text-end",
+  },
+  {
+    "id": "toolu_01UmPwkecewaEpMupy2ywk8b",
+    "toolName": "get_temp_data",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"location": "San Francisco, CA",
+    "id": "toolu_01UmPwkecewaEpMupy2ywk8b",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "toolu_01UmPwkecewaEpMupy2ywk8b",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_01UmPwkecewaEpMupy2ywk8b",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"location": "San Francisco, CA"}",
+    "providerExecuted": undefined,
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": undefined,
+          "type": "direct",
+        },
+      },
+    },
+    "toolCallId": "toolu_01UmPwkecewaEpMupy2ywk8b",
+    "toolName": "get_temp_data",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 1681,
+          "output_tokens": 163,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 1681,
+        "total": 1681,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 163,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 1681,
+        "output_tokens": 163,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+        "service_tier": "standard",
+      },
+    },
+  },
+  {
+    "id": "msg_01L42mFXxzijtGwwfiLdKoUn",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "Here",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "'s the current",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " weather data for San Francisco:
+
+-",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Location:** San Francisco, CA",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+- **Temperature:** 64°F",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+- **Condition:** Partly clou",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "dy
+- **Humidity:** ",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "65%
+
+The weather in",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " SF",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is pleasant",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with partly cloudy skies and moderate",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " humidity!",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 1071,
+          "output_tokens": 67,
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 1071,
+        "total": 1071,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 67,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 1071,
+        "output_tokens": 67,
+        "service_tier": "standard",
+      },
+    },
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doStream > web fetch 20260209 tool > input provided in content_block_start > should stream web fetch 20260209 tool results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_01VYExUoD2gEMU8ZX5j5XBEZ",
+    "modelId": "claude-sonnet-4-6",
+    "type": "response-metadata",
+  },
+  {
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "providerExecuted": true,
+    "toolName": "code_execution",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"code": "\\nimport json",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\nresult",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " = await web",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "_fetch(",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "{\\"url\\": \\"https://example",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".com\\"})\\nif",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " isinstance",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(result, list):\\n    ",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "print(result",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "[0][\\"content",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\"]",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "[:500",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "])",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\nelse:\\n    print(result",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ")",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"type":"programmatic-tool-call","code":"\\nimport json\\nresult = await web_fetch({\\"url\\": \\"https://example.com\\"})\\nif isinstance(result, list):\\n    print(result[0][\\"content\\"][:500])\\nelse:\\n    print(result)\\n"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "toolName": "code_execution",
+    "type": "tool-call",
+  },
+  {
+    "id": "srvtoolu_01SyXFZ4vqqE144ySoN6b5UG",
+    "providerExecuted": true,
+    "toolName": "web_fetch",
+    "type": "tool-input-start",
+  },
+  {
+    "id": "srvtoolu_01SyXFZ4vqqE144ySoN6b5UG",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"url":"https://example.com"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01SyXFZ4vqqE144ySoN6b5UG",
+    "toolName": "web_fetch",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "content": {
+        "citations": undefined,
+        "source": {
+          "data": "Example Domain
+
+# Example Domain
+
+This domain is for use in documentation examples without needing permission. Avoid use in operations.
+
+[Learn more](https://iana.org/domains/example)",
+          "mediaType": "text/plain",
+          "type": "text",
+        },
+        "title": "Example Domain",
+        "type": "document",
+      },
+      "retrievedAt": "2026-03-03T15:05:04.091000+00:00",
+      "type": "web_fetch_result",
+      "url": "https://example.com",
+    },
+    "toolCallId": "srvtoolu_01SyXFZ4vqqE144ySoN6b5UG",
+    "toolName": "web_fetch",
+    "type": "tool-result",
+  },
+  {
+    "result": {
+      "content": [],
+      "return_code": 0,
+      "stderr": "",
+      "stdout": "{"type": "web_fetch_result", "url": "https://example.com", "retrieved_at": "2026-03-03T15:05:04.091000+00:00", "content": {"type": "document", "source": {"type": "text", "media_type": "text/plain", "data": "Example Domain\\n\\n# Example Domain\\n\\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\\n\\n[Learn more](https://iana.org/domains/example)"}, "title": "Example Domain"}}
+",
+      "type": "code_execution_result",
+    },
+    "toolCallId": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
+    "toolName": "code_execution",
+    "type": "tool-result",
+  },
+  {
+    "id": "4",
+    "type": "text-start",
+  },
+  {
+    "delta": "The",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " page at",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": "example",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".com** is",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a simple placeholder",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " page explaining",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that the",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " domain is reserved",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for use",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in illust",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": "rative documentation",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " examples and",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " does",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " not require prior",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " permission to",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": " reference",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "4",
+    "type": "text-delta",
+  },
+  {
+    "id": "4",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": {
+          "expiresAt": "2026-03-03T19:38:14.861782Z",
+          "id": "container_011CYgdezfe66pcmCprMd28x",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "inference_geo": "global",
+          "input_tokens": 7172,
+          "output_tokens": 144,
+          "server_tool_use": {
+            "web_fetch_requests": 1,
+            "web_search_requests": 0,
+          },
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 7172,
+        "total": 7172,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 144,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "inference_geo": "global",
+        "input_tokens": 7172,
+        "output_tokens": 144,
+        "server_tool_use": {
+          "web_fetch_requests": 1,
+          "web_search_requests": 0,
+        },
+        "service_tier": "standard",
+      },
+    },
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doStream > web fetch tool > txt response > should stream web search tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -11685,11 +17642,16 @@ The page also discusses",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -11710,16 +17672,38 @@ The page also discusses",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 868,
-      "outputTokens": 446,
-      "totalTokens": 1314,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 4230,
+        "total": 4230,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 446,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 4230,
+        "output_tokens": 446,
+        "server_tool_use": {
+          "web_fetch_requests": 1,
+          "web_search_requests": 0,
+        },
+        "service_tier": "standard",
+      },
     },
   },
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search tool > should stream web search tool results 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > web search tool > should stream web search tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -11768,7 +17752,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "type": "tool-call",
   },
   {
-    "providerExecuted": true,
     "result": [
       {
         "encryptedContent": "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",
@@ -11846,7 +17829,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "type": "tool-result",
   },
   {
-    "id": "id-21",
+    "id": "id-27",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -11858,7 +17841,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "url": "https://www.crescendo.ai/news/latest-ai-news-and-updates",
   },
   {
-    "id": "id-22",
+    "id": "id-28",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "3 hours ago",
@@ -11870,7 +17853,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "url": "https://future.forem.com/junyu_fang_a216509a97501d/fang-junyus-technology-weekly-september-26-2025-2ndd",
   },
   {
-    "id": "id-23",
+    "id": "id-29",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "1 day ago",
@@ -11882,7 +17865,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "url": "https://www.apple.com/newsroom/2025/09/the-all-new-apple-ginza-opens-this-friday-september-26-in-tokyo/",
   },
   {
-    "id": "id-24",
+    "id": "id-30",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -11894,7 +17877,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "url": "https://www.techradar.com/news/archive",
   },
   {
-    "id": "id-25",
+    "id": "id-31",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "4 days ago",
@@ -11906,7 +17889,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "url": "https://9to5mac.com/2025/09/22/ios-26-1-beta-1/",
   },
   {
-    "id": "id-26",
+    "id": "id-32",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "2 weeks ago",
@@ -11918,7 +17901,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "url": "https://www.cnbc.com/2025/09/09/live-updates-apple-event-iphone17-airpods-ios26.html",
   },
   {
-    "id": "id-27",
+    "id": "id-33",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "15 hours ago",
@@ -11930,7 +17913,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "url": "https://future.forem.com/om_shree_0709/major-tech-news-september-25-2025-5h38",
   },
   {
-    "id": "id-28",
+    "id": "id-34",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "1 week ago",
@@ -11942,7 +17925,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "url": "https://9to5mac.com/2025/09/16/ios-26-1-beta-is-coming-when-to-expect-the-next-update/",
   },
   {
-    "id": "id-29",
+    "id": "id-35",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -11954,7 +17937,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "url": "https://scitechdaily.com/",
   },
   {
-    "id": "id-30",
+    "id": "id-36",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "December 21, 2015",
@@ -12006,6 +17989,45 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "type": "text-start",
   },
   {
+    "id": "id-37",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Apple today announced the grand reopening of Apple Ginza on Friday, September 26, located in the vibrant Ginza district.",
+        "encryptedIndex": "Eo8BCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDN+3yPep8hrW9WwANxoMO/sEZvNTf/xpoyVuIjDRoNaRlBo0z68VAiTpUeOWF+P5edPT3/3i60mbhvTMOTWMAyGiNjnSf0/ceg9FvmcqE5T//6pWT15OO5PH9g/jQaotEHkYBA==",
+      },
+    },
+    "sourceType": "url",
+    "title": "The all-new Apple Ginza opens this Friday, September 26, in Tokyo - Apple",
+    "type": "source",
+    "url": "https://www.apple.com/newsroom/2025/09/the-all-new-apple-ginza-opens-this-friday-september-26-in-tokyo/",
+  },
+  {
+    "id": "id-38",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "TOKYO Apple today announced the grand reopening of Apple Ginza on Friday, September 26, located in the vibrant Ginza district where Apple’s retail jou...",
+        "encryptedIndex": "Eo8BCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDPhQNm231kpbwvo5GxoM7h/deBh9okrXVy+0IjCF8Fu6pVDoxH5kEHYnDxHcXjYGxUWsqPa7zWJj63JvpbcAnqR54Fuu/j7sEf52c3gqE4+wq/aNt50hD3nwsq0nGX7XZFoYBA==",
+      },
+    },
+    "sourceType": "url",
+    "title": "The all-new Apple Ginza opens this Friday, September 26, in Tokyo - Apple",
+    "type": "source",
+    "url": "https://www.apple.com/newsroom/2025/09/the-all-new-apple-ginza-opens-this-friday-september-26-in-tokyo/",
+  },
+  {
+    "id": "id-39",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Apple Ginza opens to customers Friday, September 26, at 10 a.m. JST. ",
+        "encryptedIndex": "Eo8BCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDLbB+GC68MPUyjdjEBoMxbiOu598WzwdiRCJIjAAhTSlAu9Es/ErWBtEgie/Mp5VktMqh/JvZ//uprZEXDRnbmLUPROzgt7MC+BHPFcqE4mv+hJs7CQQtjFEovk32MFh4QIYBA==",
+      },
+    },
+    "sourceType": "url",
+    "title": "The all-new Apple Ginza opens this Friday, September 26, in Tokyo - Apple",
+    "type": "source",
+    "url": "https://www.apple.com/newsroom/2025/09/the-all-new-apple-ginza-opens-this-friday-september-26-in-tokyo/",
+  },
+  {
     "delta": "Apple today announced the grand reopening of Apple Ginza on Friday, September 26, located in the vib",
     "id": "3",
     "type": "text-delta",
@@ -12050,6 +18072,32 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
   {
     "id": "5",
     "type": "text-start",
+  },
+  {
+    "id": "id-40",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Opened in 2003 as Apple’s first store outside the U.S., Apple Ginza now returns in an all-new four-story design that brings together the best of Apple...",
+        "encryptedIndex": "Eo8BCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDInhmZCA7JQw90CQiBoMZdhuGlh0urSfikIlIjAOfQluExdSLykntVUY5/QUlAIPpun6DAqXn9jxHbTB/GTMr7QuGMGbT+5fwdMk/U0qEwvQELJf9hlOYKENgMoheizRBfgYBA==",
+      },
+    },
+    "sourceType": "url",
+    "title": "The all-new Apple Ginza opens this Friday, September 26, in Tokyo - Apple",
+    "type": "source",
+    "url": "https://www.apple.com/newsroom/2025/09/the-all-new-apple-ginza-opens-this-friday-september-26-in-tokyo/",
+  },
+  {
+    "id": "id-41",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Opened in 2003 as Apple’s first store outside the U.S., Apple Ginza now returns in an all-new four-story design that brings together the best of Apple...",
+        "encryptedIndex": "EpABCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDPdYUCIhgQkfi58EphoMC8P48MQ3sQFlcnfKIjDPwLNXEt13Rqsgkakpa0pFH+se7uElXxWFBumPnCSJebZSZBCdBelu8VeP32khIMAqFLCf9j+bfA9UCuOfz3TCRcqVUYbnGAQ=",
+      },
+    },
+    "sourceType": "url",
+    "title": "The all-new Apple Ginza opens this Friday, September 26, in Tokyo - Apple",
+    "type": "source",
+    "url": "https://www.apple.com/newsroom/2025/09/the-all-new-apple-ginza-opens-this-friday-september-26-in-tokyo/",
   },
   {
     "delta": "Opened in 2003 as Apple's first store outside the U.S., Apple Ginza now",
@@ -12099,6 +18147,19 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
   {
     "id": "7",
     "type": "text-start",
+  },
+  {
+    "id": "id-42",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Apple is considering building a pilot production line for a foldable iPhone in Taiwan, with plans to launch the new foldable iPhone in 2026. Currently...",
+        "encryptedIndex": "EpEBCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDN9RRNtj1Qp6RaNu1xoM99Hpd9h5/iiAHVV1IjACHitA/CndYvvQF5mFfD37nMJCc2Dt9+WarXhj7MOp0SULX1XGU/UsFAkp+LFUxWwqFUTSJ7/UKDtvO7kikg9WL6iVvVicxhgE",
+      },
+    },
+    "sourceType": "url",
+    "title": "Fang Junyu's Technology Weekly - September 26, 2025 - Future",
+    "type": "source",
+    "url": "https://future.forem.com/junyu_fang_a216509a97501d/fang-junyus-technology-weekly-september-26-2025-2ndd",
   },
   {
     "delta": "Apple is considering building a pilot production line for a foldable iPhone in Taiwan, with plans to launch the new",
@@ -12152,6 +18213,19 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
   {
     "id": "9",
     "type": "text-start",
+  },
+  {
+    "id": "id-43",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "OpenAI launches ChatGPT Pulse, proactively writing your morning briefing. OpenAI is rolling out a new feature in ChatGPT called Pulse, which generates...",
+        "encryptedIndex": "EpMBCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDLi26WjvZzuqNWkZGBoMN2xRMzTInXpgc+N0IjBV5WkXoe+qIbxhn3ZuE4vKJxW1DxkaVK1FOzOsZl5XK9Wl2IRhbEGLpqKsJF2uSNgqF8CAJjYkYVTQUPqU4JKD7jE6ZgE6NwvhGAQ=",
+      },
+    },
+    "sourceType": "url",
+    "title": "Fang Junyu's Technology Weekly - September 26, 2025 - Future",
+    "type": "source",
+    "url": "https://future.forem.com/junyu_fang_a216509a97501d/fang-junyus-technology-weekly-september-26-2025-2ndd",
   },
   {
     "delta": "OpenAI launches ChatGPT",
@@ -12229,6 +18303,32 @@ exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search too
     "type": "text-start",
   },
   {
+    "id": "id-44",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "On September 25, 2025, headlines were dominated by seismic shifts in AI infrastructure, potential blockbuster partnerships between legacy chip giants,...",
+        "encryptedIndex": "Eo8BCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDOQ/NQu+nnBHHIkVuhoMXqvV+iEabI/JvCcEIjDan9SLf1kUDEjapUM3Tstq5f3nrHJSMRj+XdWWzrlUVfLX4K6afVpgOK6pZzKJ8/4qEwZgT6oJF/sGnrdCPAA8mlKGdxkYBA==",
+      },
+    },
+    "sourceType": "url",
+    "title": "📰 Major Tech News: September 25, 2025 - Future",
+    "type": "source",
+    "url": "https://future.forem.com/om_shree_0709/major-tech-news-september-25-2025-5h38",
+  },
+  {
+    "id": "id-45",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "On September 25, 2025, headlines were dominated by seismic shifts in AI infrastructure, potential blockbuster partnerships between legacy chip giants,...",
+        "encryptedIndex": "Eo8BCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDPTNFSUt4rkCaRmBiBoM8HcdQPJstID+PCGGIjBLhIRYpaD2k2EGRa++jM2pLq1TF7VFh2pj20i5gpPW7qKG8awi0bxnbUHJh6kI7hcqE63MfpB43d2a081kYEEtnpCMjDkYBA==",
+      },
+    },
+    "sourceType": "url",
+    "title": "📰 Major Tech News: September 25, 2025 - Future",
+    "type": "source",
+    "url": "https://future.forem.com/om_shree_0709/major-tech-news-september-25-2025-5h38",
+  },
+  {
     "delta": "On September 25, 2025, headlines were dominated by seismic shifts in AI infrastructure, potential block",
     "id": "11",
     "type": "text-delta",
@@ -12268,6 +18368,19 @@ Key highlights include:
     "type": "text-start",
   },
   {
+    "id": "id-46",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Microsoft shook up its AI stack by integrating Anthropic's models into Copilot for Microsoft 365, reducing OpenAI dependency and boosting productivity...",
+        "encryptedIndex": "EpABCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDAC88THJtPYWws/AnRoM9vnyF6Cv1kG0w+zfIjABi6xlH9yl/cfwW1kVKxEww0QSITFKBixiNoGIEoEOPy/unW0Jt1KgaQ5X8sdVDBwqFB1AfiWedfrXpRtEghZYy+a3LIanGAQ=",
+      },
+    },
+    "sourceType": "url",
+    "title": "📰 Major Tech News: September 25, 2025 - Future",
+    "type": "source",
+    "url": "https://future.forem.com/om_shree_0709/major-tech-news-september-25-2025-5h38",
+  },
+  {
     "delta": "Microsoft shook up its AI stack by integrating Anthropic's models into Copilot for Microsoft 365, reducing OpenAI dependency and boosting productivity tools like real-time",
     "id": "13",
     "type": "text-delta",
@@ -12300,6 +18413,19 @@ Key highlights include:
     "type": "text-start",
   },
   {
+    "id": "id-47",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Oracle followed with a $15 billion bond raise for cloud expansion, riding AI demand waves. ",
+        "encryptedIndex": "EpABCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDFusGSC0EOZjZBGgARoMfOwWDOch04HX9MVdIjBZ3DN9EtoEgYz3dKM+oRWK2bhrg/5/O0JBbumO0HMXLjwnoFzD25fvVr3ic1VLcB8qFL0kqPObH+ugPBuuh8a/3gCs5xApGAQ=",
+      },
+    },
+    "sourceType": "url",
+    "title": "📰 Major Tech News: September 25, 2025 - Future",
+    "type": "source",
+    "url": "https://future.forem.com/om_shree_0709/major-tech-news-september-25-2025-5h38",
+  },
+  {
     "delta": "Oracle followed with a $15 billion bond raise for cloud expansion, riding AI demand waves.",
     "id": "15",
     "type": "text-delta",
@@ -12325,6 +18451,19 @@ Key highlights include:
   {
     "id": "17",
     "type": "text-start",
+  },
+  {
+    "id": "id-48",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Google launched Mixboard, an AI mood board app with Gemini-powered suggestions for designers, and rolled conversational editing to more Android phones...",
+        "encryptedIndex": "EpABCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDKTAT7cc6BiCx6BdmRoMkVcS4u/F+dWR3K8bIjCBixw1ZX30TadhFVj+NE2sUZLJjkKxJtNtYPIyQBhIpZoOhTIvkp2lsbwkzR/CtWMqFIABgH01yvhMEvw4JGr9mx6g+XhBGAQ=",
+      },
+    },
+    "sourceType": "url",
+    "title": "📰 Major Tech News: September 25, 2025 - Future",
+    "type": "source",
+    "url": "https://future.forem.com/om_shree_0709/major-tech-news-september-25-2025-5h38",
   },
   {
     "delta": "Google launched Mixboard, an AI mood board app with Gemini-powered suggestions for designers, and rolled conversational editing to more Android phones in",
@@ -12359,6 +18498,32 @@ Key highlights include:
   {
     "id": "19",
     "type": "text-start",
+  },
+  {
+    "id": "id-49",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "With iOS 26 officially launched, Apple is moving forward with iOS 26.1. ",
+        "encryptedIndex": "Eo8BCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDIPB/AN3fJlbLwK8RhoMuar7jkDtGlWf2zAqIjDhSubMgOqlu9mQga+JzkQPW2Kq/+Lc2PPJarWoWOwpvAhd0wEkDbe+tvffGYUvH0gqE2r0uwM2Ab9FL7pYWlhK9dXq7NYYBA==",
+      },
+    },
+    "sourceType": "url",
+    "title": "Apple releases first iOS 26.1 developer beta for iPhone - 9to5Mac",
+    "type": "source",
+    "url": "https://9to5mac.com/2025/09/22/ios-26-1-beta-1/",
+  },
+  {
+    "id": "id-50",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Apple released iOS 26 on September 15, bringing the Liquid Glass redesign to the iPhone. ",
+        "encryptedIndex": "Eo8BCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDKwFwl13npJwcmRCphoM51Qmc4OrGRffab8VIjD6jLriOpBhiA1tmErisXQlR3pDvzabIE/sUXyiW8bv5d+URlUm8GQRQOGdMY82kscqE7REcFDzGjDki9CZFMNYpjMkKXIYBA==",
+      },
+    },
+    "sourceType": "url",
+    "title": "Apple releases first iOS 26.1 developer beta for iPhone - 9to5Mac",
+    "type": "source",
+    "url": "https://9to5mac.com/2025/09/22/ios-26-1-beta-1/",
   },
   {
     "delta": "With iOS 26 officially launched, Apple is moving forward with iOS 26.1.",
@@ -12420,11 +18585,16 @@ The main tech story today appears to be Apple's significant",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "contextManagement": null,
+        "iterations": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -12445,10 +18615,32 @@ The main tech story today appears to be Apple's significant",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 2037,
-      "outputTokens": 795,
-      "totalTokens": 2832,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 15665,
+        "total": 15665,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 795,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 15665,
+        "output_tokens": 795,
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 1,
+        },
+        "service_tier": "standard",
+      },
     },
   },
 ]

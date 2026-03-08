@@ -16,7 +16,7 @@ const provider = createOpenAICompatible({
     Authorization: `Bearer test-api-key`,
   },
 });
-const model = provider.textEmbeddingModel('text-embedding-3-large');
+const model = provider.embeddingModel('text-embedding-3-large');
 
 const server = createTestServer({
   'https://my.api.com/v1/embeddings': {},
@@ -98,10 +98,10 @@ describe('doEmbed', () => {
   it('should pass the dimensions setting', async () => {
     prepareJsonResponse();
 
-    await provider.textEmbeddingModel('text-embedding-3-large').doEmbed({
+    await provider.embeddingModel('text-embedding-3-large').doEmbed({
       values: testValues,
       providerOptions: {
-        'openai-compatible': {
+        openaiCompatible: {
           dimensions: 64,
         },
       },
@@ -112,6 +112,33 @@ describe('doEmbed', () => {
       input: testValues,
       encoding_format: 'float',
       dimensions: 64,
+    });
+  });
+
+  it('should pass settings with deprecated openai-compatible key and emit warning', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .embeddingModel('text-embedding-3-large')
+      .doEmbed({
+        values: testValues,
+        providerOptions: {
+          'openai-compatible': {
+            dimensions: 64,
+          },
+        },
+      });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'text-embedding-3-large',
+      input: testValues,
+      encoding_format: 'float',
+      dimensions: 64,
+    });
+
+    expect(result.warnings).toContainEqual({
+      type: 'other',
+      message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
     });
   });
 
@@ -127,7 +154,7 @@ describe('doEmbed', () => {
       },
     });
 
-    await provider.textEmbeddingModel('text-embedding-3-large').doEmbed({
+    await provider.embeddingModel('text-embedding-3-large').doEmbed({
       values: testValues,
       headers: {
         'Custom-Request-Header': 'request-header-value',

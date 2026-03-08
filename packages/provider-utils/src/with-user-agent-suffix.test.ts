@@ -55,4 +55,30 @@ describe('withUserAgentSuffix', () => {
     expect(result['authorization']).toBeUndefined();
     expect(result['cache-control']).toBeUndefined();
   });
+
+  it('should preserve headers when given a Headers instance', () => {
+    const headers = new Headers({
+      Authorization: 'Bearer token123',
+      'X-Custom': 'value',
+    });
+
+    const result = withUserAgentSuffix(headers, 'ai-sdk/0.0.0-test');
+
+    expect(result['authorization']).toBe('Bearer token123');
+    expect(result['x-custom']).toBe('value');
+    expect(result['user-agent']).toBe('ai-sdk/0.0.0-test');
+  });
+
+  it('should handle array header entries', () => {
+    const headers: HeadersInit = [
+      ['Authorization', 'Bearer token123'],
+      ['X-Feature', 'alpha'],
+    ];
+
+    const result = withUserAgentSuffix(headers, 'ai-sdk/0.0.0-test');
+
+    expect(result['authorization']).toBe('Bearer token123');
+    expect(result['x-feature']).toBe('alpha');
+    expect(result['user-agent']).toBe('ai-sdk/0.0.0-test');
+  });
 });

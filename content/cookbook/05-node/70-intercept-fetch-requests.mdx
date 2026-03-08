@@ -22,10 +22,9 @@ Use cases for intercepting requests include:
 ## Example
 
 ```ts file='index.ts' highlight="5-13"
-import { generateText } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
+import { generateText, createGateway } from 'ai';
 
-const openai = createOpenAI({
+const gateway = createGateway({
   // example fetch wrapper that logs the input to the API call:
   fetch: async (url, options) => {
     console.log('URL', url);
@@ -38,7 +37,7 @@ const openai = createOpenAI({
 });
 
 const { text } = await generateText({
-  model: openai('gpt-4o'),
+  model: gateway('openai/gpt-4o'),
   prompt: 'Why is the sky blue?',
 });
 ```

@@ -5,219 +5,286 @@ description: Monitor and optimize your AI SDK applications with minimal configur
 
 # Helicone Observability
 
-[Helicone](https://helicone.ai) is an open-source LLM observability platform that helps you monitor, analyze, and optimize your AI applications through a proxy-based approach, requiring minimal setup and zero additional dependencies.
+[Helicone](https://helicone.ai) is an open-source LLM observability platform that helps you monitor, analyze, and optimize your AI applications. Built-in observability tracks every request automatically, providing comprehensive insights into performance, costs, user behavior, and model usage without requiring additional instrumentation.
 
 ## Setup
+
+The Helicone provider is available in the `@helicone/ai-sdk-provider` package. Install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @helicone/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @helicone/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @helicone/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @helicone/ai-sdk-provider" dark />
+  </Tab>
+</Tabs>
 
 Setting up Helicone:
 
 1. Create a Helicone account at [helicone.ai](https://helicone.ai)
-2. Set your API key as an environment variable:
+2. Get your API key from the [Helicone Dashboard](https://us.helicone.ai/settings/api-keys)
+3. Set your API key as an environment variable:
    ```bash filename=".env"
    HELICONE_API_KEY=your-helicone-api-key
    ```
-3. Update your model provider configuration to use Helicone's proxy:
+4. Use Helicone in your application:
 
    ```javascript
-   import { createOpenAI } from '@ai-sdk/openai';
+   import { createHelicone } from '@helicone/ai-sdk-provider';
+   import { generateText } from 'ai';
 
-   const openai = createOpenAI({
-     baseURL: 'https://oai.helicone.ai/v1',
-     headers: {
-       'Helicone-Auth': `Bearer ${process.env.HELICONE_API_KEY}`,
-     },
+   const helicone = createHelicone({
+     apiKey: process.env.HELICONE_API_KEY,
    });
 
-   // Use normally with AI SDK
-   const response = await generateText({
-     model: openai('gpt-4o-mini'),
+   // Use the provider with any supported model: https://helicone.ai/models
+   const result = await generateText({
+     model: helicone('claude-4.5-haiku'),
      prompt: 'Hello world',
    });
+
+   console.log(result.text);
    ```
 
-That's it! Your requests are now being logged and monitored through Helicone.
+That's it! Your requests are now being logged and monitored through Helicone with automatic observability.
 
-[→ Learn more about getting started with Helicone on AI SDK](https://docs.helicone.ai/getting-started/integration-method/vercelai)
+[→ Learn more about Helicone AI Gateway](https://docs.helicone.ai)
 
-## Integration Approach
+## Key Observability Features
 
-While other observability solutions require OpenTelemetry instrumentation, Helicone uses a simple proxy approach:
+Helicone provides comprehensive observability for your AI applications with zero additional instrumentation:
 
-<Tabs items={['Helicone Proxy (3 lines)', 'Typical OTEL Setup (simplified)']}>
-  <Tab>
-  ```javascript
-  const openai = createOpenAI({
-    baseURL: "https://oai.helicone.ai/v1",
-    headers: { "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}` },
-  });
-  ```
-  </Tab>
-  
-  <Tab>
-  ```javascript
-  // Install multiple packages
-  // @vercel/otel, @opentelemetry/sdk-node, @opentelemetry/auto-instrumentations-node, etc.
-  
-  // Create exporter
-  const exporter = new OtherProviderExporter({ 
-    projectApiKey: process.env.API_KEY 
-  });
-  
-  // Setup SDK
-  const sdk = new NodeSDK({
-    traceExporter: exporter,
-    instrumentations: [getNodeAutoInstrumentations()],
-    resource: new Resource({...}),
-  });
-  
-  // Start SDK
-  sdk.start();
-  
-  // Enable telemetry on each request
-  const response = await generateText({
-    model: openai("gpt-4o-mini"),
-    prompt: "Hello world",
-    experimental_telemetry: { isEnabled: true }
-  });
-  
-  // Shutdown SDK to flush traces
-  await sdk.shutdown();
-  ```
-  </Tab>
-</Tabs>
+**Automatic Request Tracking**
 
-**Characteristics of Helicone's Proxy Approach:**
+- Every request is logged automatically with full request/response data
+- Track latency, tokens, costs, and model performance in real-time
+- No OpenTelemetry setup or additional configuration required
 
-- No additional packages required
-- Compatible with JavaScript environments
-- Minimal code changes to existing implementations
-- Supports features such as caching and rate limiting
+**Analytics Dashboard**
 
-[→ Learn more about Helicone's proxy approach](https://docs.helicone.ai/references/proxy-vs-async)
+- View metrics across all your AI requests: costs, latency, token usage, and error rates
+- Filter by user, session, model, or custom properties
+- Identify performance bottlenecks and optimize model selection
 
-## Core Features
+**User & Session Analytics**
+
+- Track individual user behavior and usage patterns
+- Monitor conversation flows with session tracking
+- Analyze user engagement and feature adoption
+
+**Cost Monitoring**
+
+- Real-time cost tracking per request, user, feature, or model
+- Budget alerts and cost optimization insights
+- Compare costs across different models and providers
+
+**Debugging & Troubleshooting**
+
+- Full request/response logging for every call
+- Error tracking with detailed context
+- Search and filter requests to identify issues quickly
+
+[→ Learn more about Helicone Observability](https://docs.helicone.ai)
+
+## Observability Configuration
 
 ### User Tracking
 
-Monitor how individual users interact with your AI application:
+Track individual user behavior and analyze usage patterns across your application. This helps you understand which users are most active, identify power users, and monitor per-user costs:
 
 ```javascript
-const response = await generateText({
-  model: openai('gpt-4o-mini'),
+import { createHelicone } from '@helicone/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const helicone = createHelicone({
+  apiKey: process.env.HELICONE_API_KEY,
+});
+
+const result = await generateText({
+  model: helicone('gpt-4o-mini', {
+    extraBody: {
+      helicone: {
+        userId: 'user@example.com',
+      },
+    },
+  }),
   prompt: 'Hello world',
-  headers: {
-    'Helicone-User-Id': 'user@example.com',
-  },
 });
 ```
+
+**What you can track:**
+
+- Total requests per user
+- Cost per user
+- Average latency per user
+- Most common use cases by user segment
 
 [→ Learn more about User Metrics](https://docs.helicone.ai/features/advanced-usage/user-metrics)
 
 ### Custom Properties
 
-Add structured metadata to filter and analyze requests:
+Add structured metadata to segment and analyze requests by feature, environment, or any custom dimension. This enables powerful filtering and insights in your analytics dashboard:
 
 ```javascript
-const response = await generateText({
-  model: openai('gpt-4o-mini'),
+import { createHelicone } from '@helicone/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const helicone = createHelicone({
+  apiKey: process.env.HELICONE_API_KEY,
+});
+
+const result = await generateText({
+  model: helicone('gpt-4o-mini', {
+    extraBody: {
+      helicone: {
+        properties: {
+          feature: 'translation',
+          source: 'mobile-app',
+          language: 'French',
+          environment: 'production',
+        },
+      },
+    },
+  }),
   prompt: 'Translate this text to French',
-  headers: {
-    'Helicone-Property-Feature': 'translation',
-    'Helicone-Property-Source': 'mobile-app',
-    'Helicone-Property-Language': 'French',
-  },
 });
 ```
+
+**Use cases for custom properties:**
+
+- Compare performance across different features or environments
+- Track costs by product area or customer tier
+- Identify which features drive the most AI usage
+- A/B test different prompts or models by tagging experiments
 
 [→ Learn more about Custom Properties](https://docs.helicone.ai/features/advanced-usage/custom-properties)
 
 ### Session Tracking
 
-Group related requests into coherent conversations:
+Group related requests into sessions to analyze conversation flows and multi-turn interactions. This is essential for understanding user journeys and debugging complex conversations:
 
 ```javascript
-const response = await generateText({
-  model: openai('gpt-4o-mini'),
+import { createHelicone } from '@helicone/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const helicone = createHelicone({
+  apiKey: process.env.HELICONE_API_KEY,
+});
+
+const result = await generateText({
+  model: helicone('gpt-4o-mini', {
+    extraBody: {
+      helicone: {
+        sessionId: 'convo-123',
+        sessionName: 'Travel Planning',
+        sessionPath: '/chats/travel',
+      },
+    },
+  }),
   prompt: 'Tell me more about that',
-  headers: {
-    'Helicone-Session-Id': 'convo-123',
-    'Helicone-Session-Name': 'Travel Planning',
-    'Helicone-Session-Path': '/chats/travel',
-  },
 });
 ```
+
+**Session tracking benefits:**
+
+- View complete conversation history in a single timeline
+- Calculate total cost per session/conversation
+- Measure session duration and message counts
+- Identify where users drop off in multi-turn conversations
+- Debug issues by replaying entire conversation flows
 
 [→ Learn more about Sessions](https://docs.helicone.ai/features/sessions)
 
-## Advanced Configuration
+## Advanced Observability Features
 
-### Request Caching
+### Tags and Organization
 
-Reduce costs by caching identical requests:
+Add tags to organize and filter requests in your analytics dashboard:
 
 ```javascript
-const response = await generateText({
-  model: openai('gpt-4o-mini'),
-  prompt: 'What is the capital of France?',
-  headers: {
-    'Helicone-Cache-Enabled': 'true',
-  },
+import { createHelicone } from '@helicone/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const helicone = createHelicone({
+  apiKey: process.env.HELICONE_API_KEY,
+});
+
+const result = await generateText({
+  model: helicone('gpt-4o-mini', {
+    extraBody: {
+      helicone: {
+        tags: ['customer-support', 'urgent'],
+        properties: {
+          ticketId: 'TICKET-789',
+          priority: 'high',
+          department: 'support',
+        },
+      },
+    },
+  }),
+  prompt: 'Help resolve this customer issue',
 });
 ```
 
-[→ Learn more about Caching](https://docs.helicone.ai/features/advanced-usage/caching)
+**Tags insights:**
 
-### Rate Limiting
+- Filter and group requests by tags
+- Track performance across different categories
+- Identify patterns in tagged requests
+- Build custom dashboards around specific tags
 
-Control usage by adding a rate limit policy:
+[→ Learn more about Helicone Features](https://docs.helicone.ai)
 
-```javascript
-const response = await generateText({
-  model: openai('gpt-4o-mini'),
-  prompt: 'Generate creative content',
-  headers: {
-    // Allow 10,000 requests per hour
-    'Helicone-RateLimit-Policy': '10000;w=3600',
+### Streaming Response Tracking
 
-    // Optional: limit by user
-    'Helicone-User-Id': 'user@example.com',
-  },
-});
-```
-
-Format: `[quota];w=[time_window];u=[unit];s=[segment]` where:
-
-- `quota`: Maximum requests allowed in the time window
-- `w`: Time window in seconds (minimum 60s)
-- `u`: Optional unit - "request" (default) or "cents"
-- `s`: Optional segment - "user", custom property, or global (default)
-
-[→ Learn more about Rate Limiting](https://docs.helicone.ai/features/advanced-usage/custom-rate-limits)
-
-### LLM Security
-
-Protect against prompt injection, jailbreaking, and other LLM-specific threats:
+Monitor streaming responses with full observability, including time-to-first-token and total streaming duration:
 
 ```javascript
-const response = await generateText({
-  model: openai('gpt-4o-mini'),
-  prompt: userInput,
-  headers: {
-    // Basic protection (Prompt Guard model)
-    'Helicone-LLM-Security-Enabled': 'true',
+import { createHelicone } from '@helicone/ai-sdk-provider';
+import { streamText } from 'ai';
 
-    // Optional: Advanced protection (Llama Guard model)
-    'Helicone-LLM-Security-Advanced': 'true',
-  },
+const helicone = createHelicone({
+  apiKey: process.env.HELICONE_API_KEY,
 });
+
+const result = await streamText({
+  model: helicone('gpt-4o-mini', {
+    extraBody: {
+      helicone: {
+        userId: 'user@example.com',
+        sessionId: 'stream-session-123',
+        tags: ['streaming', 'content-generation'],
+      },
+    },
+  }),
+  prompt: 'Write a short story about AI',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
 ```
 
-Protects against multiple attack vectors in 8 languages with minimal latency. Advanced mode adds protection across 14 threat categories.
+**Streaming metrics tracked:**
 
-[→ Learn more about LLM Security](https://docs.helicone.ai/features/advanced-usage/llm-security)
+- Time to first token (TTFT)
+- Total streaming duration
+- Tokens per second
+- Complete request/response logging even for streams
+- User experience metrics for real-time applications
+- All metadata (sessions, users, tags) tracked for streamed responses
 
 ## Resources
 
 - [Helicone Documentation](https://docs.helicone.ai)
-- [GitHub Repository](https://github.com/Helicone/helicone)
-- [Discord Community](https://discord.com/invite/2TkeWdXNPQ)
+- [AI SDK Provider Package](https://github.com/Helicone/ai-sdk-provider)
+- [Helicone GitHub Repository](https://github.com/Helicone/helicone)
+- [Discord Community](https://discord.gg/7aSCGCGUeu)
+- [Supported Models](https://helicone.ai/models)

@@ -37,7 +37,6 @@ const exclusionPrefixes = [
   'docs/07-reference/01-ai-sdk-core',
   'docs/07-reference/02-ai-sdk-ui',
   'docs/07-reference/03-ai-sdk-rsc',
-  'docs/07-reference/04-stream-helpers',
   'docs/07-reference/05-ai-sdk-errors/index',
   'docs/08-migration-guides',
   'docs/09-troubleshooting',

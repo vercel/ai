@@ -44,6 +44,8 @@ describe('DeepInfraImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '16:9',
@@ -65,6 +67,8 @@ describe('DeepInfraImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -87,6 +91,8 @@ describe('DeepInfraImageModel', () => {
 
       await modelWithHeaders.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -119,6 +125,8 @@ describe('DeepInfraImageModel', () => {
       await expect(
         model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
@@ -133,6 +141,8 @@ describe('DeepInfraImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x768',
         aspectRatio: undefined,
@@ -155,6 +165,8 @@ describe('DeepInfraImageModel', () => {
 
       const generatePromise = model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -178,6 +190,8 @@ describe('DeepInfraImageModel', () => {
 
         const result = await model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
@@ -206,6 +220,8 @@ describe('DeepInfraImageModel', () => {
         const model = createBasicModel();
         const result = await model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
@@ -230,6 +246,186 @@ describe('DeepInfraImageModel', () => {
       expect(model.modelId).toBe('stability-ai/sdxl');
       expect(model.specificationVersion).toBe('v3');
       expect(model.maxImagesPerCall).toBe(1);
+    });
+  });
+
+  describe('Image Editing', () => {
+    const editServer = createTestServer({
+      'https://edit.example.com/openai/images/edits': {
+        response: {
+          type: 'json-value',
+          body: {
+            created: 1234567890,
+            data: [{ b64_json: 'edited-image-base64' }],
+          },
+        },
+      },
+    });
+
+    // Model with baseURL that will resolve to edit endpoint
+    const editModel = new DeepInfraImageModel(
+      'black-forest-labs/FLUX.1-Kontext-dev',
+      {
+        provider: 'deepinfra',
+        baseURL: 'https://edit.example.com/inference',
+        headers: () => ({ 'api-key': 'test-key' }),
+      },
+    );
+
+    it('should send edit request with files', async () => {
+      const imageData = new Uint8Array([137, 80, 78, 71]); // PNG magic bytes
+
+      const result = await editModel.doGenerate({
+        prompt: 'Turn the cat into a dog',
+        files: [
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toStrictEqual(['edited-image-base64']);
+      expect(editServer.calls[0].requestUrl).toBe(
+        'https://edit.example.com/openai/images/edits',
+      );
+    });
+
+    it('should send edit request with files and mask', async () => {
+      const imageData = new Uint8Array([137, 80, 78, 71]);
+      const maskData = new Uint8Array([255, 255, 255, 0]);
+
+      const result = await editModel.doGenerate({
+        prompt: 'Add a flamingo to the pool',
+        files: [
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: {
+          type: 'file',
+          data: maskData,
+          mediaType: 'image/png',
+        },
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toStrictEqual(['edited-image-base64']);
+      expect(editServer.calls[0].requestUrl).toBe(
+        'https://edit.example.com/openai/images/edits',
+      );
+    });
+
+    it('should send edit request with multiple images', async () => {
+      const image1 = new Uint8Array([137, 80, 78, 71]);
+      const image2 = new Uint8Array([137, 80, 78, 71]);
+
+      const result = await editModel.doGenerate({
+        prompt: 'Combine these images',
+        files: [
+          {
+            type: 'file',
+            data: image1,
+            mediaType: 'image/png',
+          },
+          {
+            type: 'file',
+            data: image2,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toStrictEqual(['edited-image-base64']);
+    });
+
+    it('should include response metadata for edit requests', async () => {
+      const testDate = new Date('2024-01-01T00:00:00Z');
+      const modelWithDate = new DeepInfraImageModel(
+        'black-forest-labs/FLUX.1-Kontext-dev',
+        {
+          provider: 'deepinfra',
+          baseURL: 'https://edit.example.com/inference',
+          headers: () => ({ 'api-key': 'test-key' }),
+          _internal: {
+            currentDate: () => testDate,
+          },
+        },
+      );
+
+      const imageData = new Uint8Array([137, 80, 78, 71]);
+
+      const result = await modelWithDate.doGenerate({
+        prompt: 'Edit this image',
+        files: [
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.response).toStrictEqual({
+        timestamp: testDate,
+        modelId: 'black-forest-labs/FLUX.1-Kontext-dev',
+        headers: expect.any(Object),
+      });
+    });
+
+    it('should pass provider options in edit request', async () => {
+      const imageData = new Uint8Array([137, 80, 78, 71]);
+
+      await editModel.doGenerate({
+        prompt: 'Edit with custom options',
+        files: [
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          deepinfra: {
+            guidance: 7.5,
+          },
+        },
+      });
+
+      // The request should have been made to the edit endpoint
+      expect(editServer.calls[0].requestUrl).toBe(
+        'https://edit.example.com/openai/images/edits',
+      );
     });
   });
 });

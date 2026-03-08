@@ -96,7 +96,10 @@ describe('Chat', () => {
           formatChunk({ type: 'text-delta', id: 'text-1', delta: '.' }),
           formatChunk({ type: 'text-end', id: 'text-1' }),
           formatChunk({ type: 'finish-step' }),
-          formatChunk({ type: 'finish' }),
+          formatChunk({
+            type: 'finish',
+            finishReason: 'stop',
+          }),
         ],
       };
 
@@ -126,6 +129,7 @@ describe('Chat', () => {
       expect(letOnFinishArgs).toMatchInlineSnapshot(`
         [
           {
+            "finishReason": "stop",
             "isAbort": false,
             "isDisconnect": false,
             "isError": false,
@@ -484,6 +488,7 @@ describe('Chat', () => {
       expect(letOnFinishArgs).toMatchInlineSnapshot(`
         [
           {
+            "finishReason": undefined,
             "isAbort": false,
             "isDisconnect": true,
             "isError": true,
@@ -719,6 +724,7 @@ describe('Chat', () => {
       expect(letOnFinishArgs).toMatchInlineSnapshot(`
         [
           {
+            "finishReason": undefined,
             "isAbort": true,
             "isDisconnect": false,
             "isError": false,
@@ -900,7 +906,10 @@ describe('Chat', () => {
         }),
         formatChunk({ type: 'text-end', id: 'text-1' }),
         formatChunk({ type: 'finish-step' }),
-        formatChunk({ type: 'finish' }),
+        formatChunk({
+          type: 'finish',
+          finishReason: 'stop',
+        }),
       ],
     };
 
@@ -1451,7 +1460,7 @@ describe('Chat', () => {
   });
 
   describe('sendAutomaticallyWhen', () => {
-    it('should delay tool result submission until the stream is finished', async () => {
+    it('should delay tool output submission until the stream is finished', async () => {
       const controller1 = new TestResponseController();
 
       server.urls['http://localhost:3000/api/chat'].response = [
@@ -1500,14 +1509,14 @@ describe('Chat', () => {
 
       await toolCallPromise.promise;
 
-      // user submits the tool result
-      await chat.addToolResult({
+      // user submits the tool output
+      await chat.addToolOutput({
         tool: 'test-tool',
         toolCallId: 'tool-call-0',
-        output: 'test-result',
+        output: 'test-output',
       });
 
-      // UI should show the tool result
+      // UI should show the tool output
       expect(chat.messages).toMatchInlineSnapshot(`
         [
           {
@@ -1533,11 +1542,12 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
-                "output": "test-result",
+                "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
                 "rawInput": undefined,
                 "state": "output-available",
+                "title": undefined,
                 "toolCallId": "tool-call-0",
                 "type": "tool-test-tool",
               },
@@ -1552,7 +1562,12 @@ describe('Chat', () => {
 
       // finish stream
       controller1.write(formatChunk({ type: 'finish-step' }));
-      controller1.write(formatChunk({ type: 'finish' }));
+      controller1.write(
+        formatChunk({
+          type: 'finish',
+          finishReason: 'stop',
+        }),
+      );
 
       await controller1.close();
 
@@ -1587,7 +1602,7 @@ describe('Chat', () => {
                   "input": {
                     "testArg": "test-value",
                   },
-                  "output": "test-result",
+                  "output": "test-output",
                   "state": "output-available",
                   "toolCallId": "tool-call-0",
                   "type": "tool-test-tool",
@@ -1601,7 +1616,7 @@ describe('Chat', () => {
       `);
     });
 
-    it('should send message when a tool result is submitted', async () => {
+    it('should send message when a tool output is submitted', async () => {
       server.urls['http://localhost:3000/api/chat'].response = [
         {
           type: 'stream-chunks',
@@ -1651,14 +1666,14 @@ describe('Chat', () => {
         text: 'Hello, world!',
       });
 
-      // user submits the tool result
-      await chat.addToolResult({
+      // user submits the tool output
+      await chat.addToolOutput({
         tool: 'test-tool',
         toolCallId: 'tool-call-0',
-        output: 'test-result',
+        output: 'test-output',
       });
 
-      // UI should show the tool result
+      // UI should show the tool output
       expect(chat.messages).toMatchInlineSnapshot(`
         [
           {
@@ -1684,11 +1699,12 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
-                "output": "test-result",
+                "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
                 "rawInput": undefined,
                 "state": "output-available",
+                "title": undefined,
                 "toolCallId": "tool-call-0",
                 "type": "tool-test-tool",
               },
@@ -1729,7 +1745,7 @@ describe('Chat', () => {
                   "input": {
                     "testArg": "test-value",
                   },
-                  "output": "test-result",
+                  "output": "test-output",
                   "state": "output-available",
                   "toolCallId": "tool-call-0",
                   "type": "tool-test-tool",
@@ -1793,15 +1809,15 @@ describe('Chat', () => {
         text: 'Hello, world!',
       });
 
-      // user submits the tool result
-      await chat.addToolResult({
+      // user submits the tool output
+      await chat.addToolOutput({
         state: 'output-error',
         tool: 'test-tool',
         toolCallId: 'tool-call-0',
         errorText: 'test-error',
       });
 
-      // UI should show the tool result
+      // UI should show the tool output
       expect(chat.messages).toMatchInlineSnapshot(`
         [
           {
@@ -1832,6 +1848,7 @@ describe('Chat', () => {
                 "providerExecuted": undefined,
                 "rawInput": undefined,
                 "state": "output-error",
+                "title": undefined,
                 "toolCallId": "tool-call-0",
                 "type": "tool-test-tool",
               },
@@ -1886,7 +1903,7 @@ describe('Chat', () => {
       `);
     });
 
-    it('should send message when a dynamic tool result is submitted', async () => {
+    it('should send message when a dynamic tool output is submitted', async () => {
       server.urls['http://localhost:3000/api/chat'].response = [
         {
           type: 'stream-chunks',
@@ -1917,7 +1934,10 @@ describe('Chat', () => {
             }),
             formatChunk({ type: 'text-end', id: 'id-1' }),
             formatChunk({ type: 'finish-step' }),
-            formatChunk({ type: 'finish' }),
+            formatChunk({
+              type: 'finish',
+              finishReason: 'stop',
+            }),
           ],
         },
       ];
@@ -1944,15 +1964,15 @@ describe('Chat', () => {
         text: 'Hello, world!',
       });
 
-      // user submits the tool result
-      await chat.addToolResult({
+      // user submits the tool output
+      await chat.addToolOutput({
         state: 'output-available',
         tool: 'test-tool',
         toolCallId: 'tool-call-0',
-        output: 'test-result',
+        output: 'test-output',
       });
 
-      // UI should show the tool result
+      // UI should show the tool output
       expect(chat.messages).toMatchInlineSnapshot(`
         [
           {
@@ -1978,10 +1998,11 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
-                "output": "test-result",
+                "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
                 "state": "output-available",
+                "title": undefined,
                 "toolCallId": "tool-call-0",
                 "toolName": "test-tool",
                 "type": "dynamic-tool",
@@ -2023,7 +2044,7 @@ describe('Chat', () => {
                   "input": {
                     "testArg": "test-value",
                   },
-                  "output": "test-result",
+                  "output": "test-output",
                   "state": "output-available",
                   "toolCallId": "tool-call-0",
                   "toolName": "test-tool",
@@ -2063,10 +2084,11 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
-                "output": "test-result",
+                "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
                 "state": "output-available",
+                "title": undefined,
                 "toolCallId": "tool-call-0",
                 "toolName": "test-tool",
                 "type": "dynamic-tool",
@@ -2134,15 +2156,15 @@ describe('Chat', () => {
         text: 'Hello, world!',
       });
 
-      // user submits the tool result
-      await chat.addToolResult({
+      // user submits the tool output
+      await chat.addToolOutput({
         state: 'output-available',
         tool: 'test-tool',
         toolCallId: 'tool-call-0',
-        output: 'test-result',
+        output: 'test-output',
       });
 
-      // UI should show the tool result
+      // UI should show the tool output
       expect(chat.messages).toMatchInlineSnapshot(`
         [
           {
@@ -2168,10 +2190,11 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
-                "output": "test-result",
+                "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
                 "state": "output-available",
+                "title": undefined,
                 "toolCallId": "tool-call-0",
                 "toolName": "test-tool",
                 "type": "dynamic-tool",
@@ -2213,7 +2236,7 @@ describe('Chat', () => {
                   "input": {
                     "testArg": "test-value",
                   },
-                  "output": "test-result",
+                  "output": "test-output",
                   "state": "output-available",
                   "toolCallId": "tool-call-0",
                   "toolName": "test-tool",
@@ -2253,10 +2276,11 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
-                "output": "test-result",
+                "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
                 "state": "output-available",
+                "title": undefined,
                 "toolCallId": "tool-call-0",
                 "toolName": "test-tool",
                 "type": "dynamic-tool",
@@ -2272,6 +2296,97 @@ describe('Chat', () => {
       expect(chat.error).toMatchInlineSnapshot(
         `[Error: Internal Server Error]`,
       );
+    });
+
+    it('should not send message when sendAutomaticallyWhen returns false via promise', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = [
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start' }),
+            formatChunk({ type: 'start-step' }),
+            formatChunk({
+              type: 'tool-input-available',
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              input: { testArg: 'test-value' },
+            }),
+            formatChunk({ type: 'finish-step' }),
+            formatChunk({ type: 'finish' }),
+          ],
+        },
+      ];
+
+      const onFinishPromise = createResolvablePromise<void>();
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        sendAutomaticallyWhen: () => Promise.resolve(false),
+        onFinish: () => {
+          onFinishPromise.resolve();
+        },
+      });
+
+      await chat.sendMessage({
+        text: 'Hello, world!',
+      });
+
+      await onFinishPromise.promise;
+
+      // user submits the tool output
+      await chat.addToolOutput({
+        tool: 'test-tool',
+        toolCallId: 'tool-call-0',
+        output: 'test-output',
+      });
+
+      // UI should show the tool output
+      expect(chat.messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "id-1",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "errorText": undefined,
+                "input": {
+                  "testArg": "test-value",
+                },
+                "output": "test-output",
+                "preliminary": undefined,
+                "providerExecuted": undefined,
+                "rawInput": undefined,
+                "state": "output-available",
+                "title": undefined,
+                "toolCallId": "tool-call-0",
+                "type": "tool-test-tool",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+
+      // should not have made a 2nd call since sendAutomaticallyWhen returns false
+      expect(server.calls.length).toBe(1);
     });
   });
 
@@ -2309,6 +2424,163 @@ describe('Chat', () => {
 
       expect(chat.error).toBeUndefined();
       expect(chat.status).toBe('ready');
+    });
+  });
+
+  describe('addToolOutput options forwarding', () => {
+    it('should forward options to makeRequest when auto-sending', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = [
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start' }),
+            formatChunk({ type: 'start-step' }),
+            formatChunk({
+              type: 'tool-input-available',
+              dynamic: true,
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              input: { testArg: 'test-value' },
+            }),
+            formatChunk({ type: 'finish-step' }),
+            formatChunk({ type: 'finish' }),
+          ],
+        },
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start' }),
+            formatChunk({ type: 'start-step' }),
+            formatChunk({ type: 'finish-step' }),
+            formatChunk({ type: 'finish' }),
+          ],
+        },
+      ];
+
+      let callCount = 0;
+      const onFinishPromise = createResolvablePromise<void>();
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+        onFinish: () => {
+          callCount++;
+          if (callCount === 2) {
+            onFinishPromise.resolve();
+          }
+        },
+      });
+
+      await chat.sendMessage({
+        text: 'Hello, world!',
+      });
+
+      await chat.addToolOutput({
+        state: 'output-available',
+        tool: 'test-tool',
+        toolCallId: 'tool-call-0',
+        output: 'test-output',
+        options: {
+          headers: { 'x-custom': 'test-value' },
+          body: { extra: 'data' },
+        },
+      });
+
+      await onFinishPromise.promise;
+
+      expect(server.calls.length).toBe(2);
+      expect(server.calls[1].requestHeaders['x-custom']).toBe('test-value');
+      expect(await server.calls[1].requestBodyJson).toMatchObject({
+        extra: 'data',
+      });
+    });
+  });
+
+  describe('addToolApprovalResponse options forwarding', () => {
+    it('should forward options to makeRequest when auto-sending', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = [
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start' }),
+            formatChunk({ type: 'start-step' }),
+            formatChunk({
+              type: 'tool-output-available',
+              toolCallId: 'call-1',
+              output: { temperature: 72, weather: 'sunny' },
+            }),
+            formatChunk({ type: 'text-start', id: 'txt-1' }),
+            formatChunk({
+              type: 'text-delta',
+              id: 'txt-1',
+              delta: 'The weather in Tokyo is sunny.',
+            }),
+            formatChunk({ type: 'text-end', id: 'txt-1' }),
+            formatChunk({ type: 'finish-step' }),
+            formatChunk({
+              type: 'finish',
+              finishReason: 'stop',
+            }),
+          ],
+        },
+      ];
+
+      const onFinishPromise = createResolvablePromise<void>();
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId({ prefix: 'newid' }),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        messages: [
+          {
+            id: 'id-0',
+            role: 'user',
+            parts: [{ text: 'What is the weather in Tokyo?', type: 'text' }],
+          },
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-1',
+                state: 'approval-requested',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval-1' },
+              },
+            ],
+          },
+        ],
+        sendAutomaticallyWhen:
+          lastAssistantMessageIsCompleteWithApprovalResponses,
+        onFinish: () => {
+          onFinishPromise.resolve();
+        },
+      });
+
+      await chat.addToolApprovalResponse({
+        id: 'approval-1',
+        approved: true,
+        options: {
+          headers: { 'x-custom': 'test-value' },
+          body: { extra: 'data' },
+        },
+      });
+
+      await onFinishPromise.promise;
+
+      expect(server.calls.length).toBe(1);
+      expect(server.calls[0].requestHeaders['x-custom']).toBe('test-value');
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        extra: 'data',
+      });
     });
   });
 
@@ -2416,7 +2688,10 @@ describe('Chat', () => {
               }),
               formatChunk({ type: 'text-end', id: 'txt-1' }),
               formatChunk({ type: 'finish-step' }),
-              formatChunk({ type: 'finish' }),
+              formatChunk({
+                type: 'finish',
+                finishReason: 'stop',
+              }),
             ],
           },
         ];
@@ -2518,6 +2793,151 @@ describe('Chat', () => {
           ]
         `);
       });
+    });
+  });
+
+  describe('addToolResult', () => {
+    it('should send message when a tool result is submitted', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = [
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start' }),
+            formatChunk({ type: 'start-step' }),
+            formatChunk({
+              type: 'tool-input-available',
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              input: { testArg: 'test-value' },
+            }),
+            formatChunk({ type: 'finish-step' }),
+            formatChunk({ type: 'finish' }),
+          ],
+        },
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start' }),
+            formatChunk({ type: 'start-step' }),
+            formatChunk({ type: 'finish-step' }),
+            formatChunk({ type: 'finish' }),
+          ],
+        },
+      ];
+
+      let callCount = 0;
+      const onFinishPromise = createResolvablePromise<void>();
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+        onFinish: () => {
+          callCount++;
+          if (callCount === 2) {
+            onFinishPromise.resolve();
+          }
+        },
+      });
+
+      await chat.sendMessage({
+        text: 'Hello, world!',
+      });
+
+      // user submits the tool output
+      await chat.addToolResult({
+        tool: 'test-tool',
+        toolCallId: 'tool-call-0',
+        output: 'test-output',
+      });
+
+      // UI should show the tool output
+      expect(chat.messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "id-1",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "errorText": undefined,
+                "input": {
+                  "testArg": "test-value",
+                },
+                "output": "test-output",
+                "preliminary": undefined,
+                "providerExecuted": undefined,
+                "rawInput": undefined,
+                "state": "output-available",
+                "title": undefined,
+                "toolCallId": "tool-call-0",
+                "type": "tool-test-tool",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+
+      await onFinishPromise.promise;
+
+      // 2nd call should happen after the stream is finished
+      expect(server.calls.length).toBe(2);
+
+      // check details of the 2nd call
+      expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "id": "123",
+          "messageId": "id-1",
+          "messages": [
+            {
+              "id": "id-0",
+              "parts": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "id": "id-1",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "input": {
+                    "testArg": "test-value",
+                  },
+                  "output": "test-output",
+                  "state": "output-available",
+                  "toolCallId": "tool-call-0",
+                  "type": "tool-test-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "trigger": "submit-message",
+        }
+      `);
     });
   });
 });

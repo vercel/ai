@@ -33,6 +33,8 @@ export function createAsyncIterableStream<T>(
      * Cleans up the reader by cancelling and releasing the lock.
      */
     async function cleanup(cancelStream: boolean) {
+      if (finished) return;
+
       finished = true;
       try {
         if (cancelStream) {
@@ -66,7 +68,7 @@ export function createAsyncIterableStream<T>(
       },
 
       /**
-       * Called on early exit (e.g., break from for-await).
+       * May be called on early exit (e.g., break from for-await) or after completion.
        * Ensures the stream is cancelled and resources are released.
        * @returns A promise resolving to a completed IteratorResult.
        */

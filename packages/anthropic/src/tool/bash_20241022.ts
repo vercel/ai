@@ -1,5 +1,5 @@
 import {
-  createProviderDefinedToolFactory,
+  createProviderToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -14,7 +14,7 @@ const bash_20241022InputSchema = lazySchema(() =>
   ),
 );
 
-export const bash_20241022 = createProviderDefinedToolFactory<
+export const bash_20241022 = createProviderToolFactory<
   {
     /**
      * The bash command to run. Required unless the tool is being restarted.
@@ -29,6 +29,5 @@ export const bash_20241022 = createProviderDefinedToolFactory<
   {}
 >({
   id: 'anthropic.bash_20241022',
-  name: 'bash',
   inputSchema: bash_20241022InputSchema,
 });

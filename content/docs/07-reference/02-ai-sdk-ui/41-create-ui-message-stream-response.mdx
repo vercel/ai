@@ -17,7 +17,12 @@ The `createUIMessageStreamResponse` function creates a Response object that stre
 ## Example
 
 ```tsx
-import { createUIMessageStream, createUIMessageStreamResponse } from 'ai';
+import {
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  streamText,
+} from 'ai';
+__PROVIDER_IMPORT__;
 
 const response = createUIMessageStreamResponse({
   status: 200,
@@ -27,32 +32,38 @@ const response = createUIMessageStreamResponse({
   },
   stream: createUIMessageStream({
     execute({ writer }) {
-      // Write custom data
+      // Write custom data (type must be 'data-<name>')
       writer.write({
-        type: 'data',
-        value: { message: 'Hello' },
+        type: 'data-message',
+        data: { content: 'Hello' },
       });
 
-      // Write text content
+      // Write text content using start/delta/end pattern
       writer.write({
-        type: 'text',
-        value: 'Hello, world!',
+        type: 'text-start',
+        id: 'greeting-text',
+      });
+      writer.write({
+        type: 'text-delta',
+        id: 'greeting-text',
+        delta: 'Hello, world!',
+      });
+      writer.write({
+        type: 'text-end',
+        id: 'greeting-text',
       });
 
-      // Write source information
+      // Write source information (flat properties, not nested)
       writer.write({
         type: 'source-url',
-        value: {
-          type: 'source',
-          id: 'source-1',
-          url: 'https://example.com',
-          title: 'Example Source',
-        },
+        sourceId: 'source-1',
+        url: 'https://example.com',
+        title: 'Example Source',
       });
 
       // Merge with LLM stream
       const result = streamText({
-        model: openai('gpt-4'),
+        model: __MODEL__,
         prompt: 'Say hello',
       });
 

@@ -1,7 +1,7 @@
 import {
   TranscriptionModelV3,
   TranscriptionModelV3CallOptions,
-  TranscriptionModelV3CallWarning,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -16,8 +16,8 @@ import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiTranscriptionResponseSchema } from './openai-transcription-api';
 import {
   OpenAITranscriptionModelId,
-  openAITranscriptionProviderOptions,
-  OpenAITranscriptionProviderOptions,
+  openAITranscriptionModelOptions,
+  OpenAITranscriptionModelOptions,
 } from './openai-transcription-options';
 
 export type OpenAITranscriptionCallOptions = Omit<
@@ -25,7 +25,7 @@ export type OpenAITranscriptionCallOptions = Omit<
   'providerOptions'
 > & {
   providerOptions?: {
-    openai?: OpenAITranscriptionProviderOptions;
+    openai?: OpenAITranscriptionModelOptions;
   };
 };
 
@@ -113,13 +113,13 @@ export class OpenAITranscriptionModel implements TranscriptionModelV3 {
     mediaType,
     providerOptions,
   }: OpenAITranscriptionCallOptions) {
-    const warnings: TranscriptionModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // Parse provider options
     const openAIOptions = await parseProviderOptions({
       provider: 'openai',
       providerOptions,
-      schema: openAITranscriptionProviderOptions,
+      schema: openAITranscriptionModelOptions,
     });
 
     // Create form data with base fields

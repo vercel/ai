@@ -1,4 +1,4 @@
-import { resolve } from '@ai-sdk/provider-utils';
+import { loadOptionalSetting, resolve } from '@ai-sdk/provider-utils';
 import {
   createVertex as createVertexOriginal,
   GoogleVertexProvider,
@@ -24,6 +24,15 @@ export interface GoogleVertexProviderSettings
 export function createVertex(
   options: GoogleVertexProviderSettings = {},
 ): GoogleVertexProvider {
+  const apiKey = loadOptionalSetting({
+    settingValue: options.apiKey,
+    environmentVariableName: 'GOOGLE_VERTEX_API_KEY',
+  });
+
+  if (apiKey) {
+    return createVertexOriginal(options);
+  }
+
   return createVertexOriginal({
     ...options,
     headers: async () => ({
@@ -36,6 +45,6 @@ export function createVertex(
 }
 
 /**
-Default Google Vertex AI provider instance.
+ * Default Google Vertex AI provider instance.
  */
 export const vertex = createVertex();

@@ -35,6 +35,46 @@ describe('system messages', () => {
       messages: [],
     });
   });
+
+  it('should add cache point with 5m TTL to system message', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'system',
+        content: 'Hello',
+        providerOptions: {
+          bedrock: { cachePoint: { type: 'default', ttl: '5m' } },
+        },
+      },
+    ]);
+
+    expect(result).toEqual({
+      system: [
+        { text: 'Hello' },
+        { cachePoint: { type: 'default', ttl: '5m' } },
+      ],
+      messages: [],
+    });
+  });
+
+  it('should add cache point with 1h TTL to system message', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'system',
+        content: 'Hello',
+        providerOptions: {
+          bedrock: { cachePoint: { type: 'default', ttl: '1h' } },
+        },
+      },
+    ]);
+
+    expect(result).toEqual({
+      system: [
+        { text: 'Hello' },
+        { cachePoint: { type: 'default', ttl: '1h' } },
+      ],
+      messages: [],
+    });
+  });
 });
 
 describe('user messages', () => {
@@ -111,7 +151,7 @@ describe('user messages', () => {
     `);
   });
 
-  it('should be converted with actual filename when provided', async () => {
+  it('should strip file extension when filename is provided', async () => {
     const fileData = new Uint8Array([0, 1, 2, 3]);
 
     const { messages } = await convertToBedrockChatMessages([
@@ -119,6 +159,46 @@ describe('user messages', () => {
         role: 'user',
         content: [
           { type: 'text', text: 'Hello' },
+          {
+            type: 'file',
+            data: Buffer.from(fileData).toString('base64'),
+            mediaType: 'application/pdf',
+            filename: 'custom-filename.pdf',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Hello",
+            },
+            {
+              "document": {
+                "format": "pdf",
+                "name": "custom-filename",
+                "source": {
+                  "bytes": "AAECAw==",
+                },
+              },
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
+  it('should preserve filename without extension when provided', async () => {
+    const fileData = new Uint8Array([0, 1, 2, 3]);
+
+    const { messages } = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
           {
             type: 'file',
             data: Buffer.from(fileData).toString('base64'),
@@ -133,9 +213,6 @@ describe('user messages', () => {
       [
         {
           "content": [
-            {
-              "text": "Hello",
-            },
             {
               "document": {
                 "format": "pdf",
@@ -264,6 +341,56 @@ describe('user messages', () => {
         {
           role: 'user',
           content: [{ text: 'Hello' }, { cachePoint: { type: 'default' } }],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should add cache point with 5m TTL to user message', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello' }],
+        providerOptions: {
+          bedrock: { cachePoint: { type: 'default', ttl: '5m' } },
+        },
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { text: 'Hello' },
+            { cachePoint: { type: 'default', ttl: '5m' } },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should add cache point with 1h TTL to user message', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello' }],
+        providerOptions: {
+          bedrock: { cachePoint: { type: 'default', ttl: '1h' } },
+        },
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { text: 'Hello' },
+            { cachePoint: { type: 'default', ttl: '1h' } },
+          ],
         },
       ],
       system: [],
@@ -398,6 +525,56 @@ describe('assistant messages', () => {
         {
           role: 'assistant',
           content: [{ text: 'Hello' }, { cachePoint: { type: 'default' } }],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should add cache point with 5m TTL to assistant message', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hello' }],
+        providerOptions: {
+          bedrock: { cachePoint: { type: 'default', ttl: '5m' } },
+        },
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            { text: 'Hello' },
+            { cachePoint: { type: 'default', ttl: '5m' } },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should add cache point with 1h TTL to assistant message', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hello' }],
+        providerOptions: {
+          bedrock: { cachePoint: { type: 'default', ttl: '1h' } },
+        },
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            { text: 'Hello' },
+            { cachePoint: { type: 'default', ttl: '1h' } },
+          ],
         },
       ],
       system: [],
@@ -1045,5 +1222,131 @@ describe('additional file format tests', () => {
         "system": [],
       }
     `);
+  });
+});
+
+describe('Mistral tool call ID normalization', () => {
+  it('should normalize tool call IDs in tool results when isMistral is true', async () => {
+    const result = await convertToBedrockChatMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'tooluse_bpe71yCfRu2b5i-nKGDr5g',
+              toolName: 'calculator',
+              output: { type: 'text', value: 'The result is 42' },
+            },
+          ],
+        },
+      ],
+      true,
+    );
+
+    expect(result.messages[0]).toEqual({
+      role: 'user',
+      content: [
+        {
+          toolResult: {
+            toolUseId: 'toolusebp',
+            content: [{ text: 'The result is 42' }],
+          },
+        },
+      ],
+    });
+  });
+
+  it('should normalize tool call IDs in tool calls when isMistral is true', async () => {
+    const result = await convertToBedrockChatMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tooluse_xyz123ABC456-def',
+              toolName: 'test-tool',
+              input: { query: 'test' },
+            },
+          ],
+        },
+      ],
+      true,
+    );
+
+    expect(result.messages[0]).toEqual({
+      role: 'assistant',
+      content: [
+        {
+          toolUse: {
+            toolUseId: 'toolusexy',
+            name: 'test-tool',
+            input: { query: 'test' },
+          },
+        },
+      ],
+    });
+  });
+
+  it('should not normalize tool call IDs when isMistral is false', async () => {
+    const originalId = 'tooluse_bpe71yCfRu2b5i-nKGDr5g';
+    const result = await convertToBedrockChatMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: originalId,
+              toolName: 'calculator',
+              output: { type: 'text', value: 'The result is 42' },
+            },
+          ],
+        },
+      ],
+      false,
+    );
+
+    expect(result.messages[0]).toEqual({
+      role: 'user',
+      content: [
+        {
+          toolResult: {
+            toolUseId: originalId,
+            content: [{ text: 'The result is 42' }],
+          },
+        },
+      ],
+    });
+  });
+
+  it('should default to not normalizing when isMistral is not provided', async () => {
+    const originalId = 'tooluse_bpe71yCfRu2b5i-nKGDr5g';
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: originalId,
+            toolName: 'calculator',
+            output: { type: 'text', value: 'The result is 42' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages[0]).toEqual({
+      role: 'user',
+      content: [
+        {
+          toolResult: {
+            toolUseId: originalId,
+            content: [{ text: 'The result is 42' }],
+          },
+        },
+      ],
+    });
   });
 });

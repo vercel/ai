@@ -109,6 +109,111 @@ const messagesFixture2: ModelMessage[] = [
   },
 ];
 
+const multiTurnToolCallMessagesFixture: ModelMessage[] = [
+  {
+    role: 'user',
+    content: [
+      {
+        type: 'text',
+        text: 'ask me a question',
+      },
+    ],
+  },
+  {
+    role: 'assistant',
+    content: [
+      {
+        type: 'text',
+        text: 'What can i help you with',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'toolu_01P9s4havAQSjDmS4eWT1N2V',
+        toolName: 'AskUserQuestion',
+        input: {
+          question: 'What would you like help with today?',
+          options: ['Tool 1 Option 1', 'Tool 1 Option 2', 'Tool 1 Option 3'],
+        },
+      },
+    ],
+  },
+  {
+    role: 'tool',
+    content: [
+      {
+        type: 'tool-result',
+        toolCallId: 'toolu_01P9s4havAQSjDmS4eWT1N2V',
+        toolName: 'AskUserQuestion',
+        output: { type: 'text', value: 'Something else' },
+      },
+    ],
+  },
+  {
+    role: 'assistant',
+    content: [
+      {
+        type: 'tool-call',
+        toolCallId: 'toolu_01TMAuwWKLmBoQtx7K88dxsQ',
+        toolName: 'AskUserQuestion',
+        input: {
+          question: 'Ok what else?',
+          options: ['Tool 2 Option 1', 'Tool 2 Option 2', 'Tool 2 Option 3'],
+        },
+      },
+    ],
+  },
+  {
+    role: 'tool',
+    content: [
+      {
+        type: 'tool-result',
+        toolCallId: 'toolu_01TMAuwWKLmBoQtx7K88dxsQ',
+        toolName: 'AskUserQuestion',
+        output: {
+          type: 'text',
+          value: "Other - I'll describe it",
+        },
+      },
+    ],
+  },
+  {
+    role: 'assistant',
+    content: [
+      {
+        type: 'text',
+        text: 'What would you like to discuss or work on?',
+      },
+    ],
+  },
+  {
+    role: 'user',
+    content: [
+      {
+        type: 'text',
+        text: 'never mind. lets end this conversation',
+      },
+    ],
+  },
+  {
+    role: 'assistant',
+    content: [
+      {
+        type: 'text',
+        text: 'ok, have a nice day',
+      },
+    ],
+  },
+  {
+    role: 'user',
+    content: [
+      {
+        type: 'text',
+        text: 'thank you',
+      },
+    ],
+  },
+];
+
 describe('pruneMessages', () => {
   describe('reasoning', () => {
     describe('all', () => {
@@ -369,6 +474,72 @@ describe('pruneMessages', () => {
                 },
               ],
               "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should prune tool calls and results from multi-turn conversation when last message has no tool calls', () => {
+        const result = pruneMessages({
+          messages: multiTurnToolCallMessagesFixture,
+          toolCalls: 'before-last-message',
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "ask me a question",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "content": [
+                {
+                  "text": "What can i help you with",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "text": "What would you like to discuss or work on?",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "text": "never mind. lets end this conversation",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "content": [
+                {
+                  "text": "ok, have a nice day",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "text": "thank you",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
             },
           ]
         `);

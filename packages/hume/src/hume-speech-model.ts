@@ -1,4 +1,4 @@
-import { SpeechModelV3, SpeechModelV3CallWarning } from '@ai-sdk/provider';
+import { SpeechModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -11,7 +11,7 @@ import { humeFailedResponseHandler } from './hume-error';
 import { HumeSpeechAPITypes } from './hume-api-types';
 
 // https://dev.hume.ai/reference/text-to-speech-tts/synthesize-file
-const humeSpeechCallOptionsSchema = z.object({
+const humeSpeechModelOptionsSchema = z.object({
   /**
    * Context for the speech synthesis request.
    * Can be either a generationId for retrieving a previous generation,
@@ -82,7 +82,9 @@ const humeSpeechCallOptionsSchema = z.object({
     .nullish(),
 });
 
-export type HumeSpeechCallOptions = z.infer<typeof humeSpeechCallOptionsSchema>;
+export type HumeSpeechModelOptions = z.infer<
+  typeof humeSpeechModelOptionsSchema
+>;
 
 interface HumeSpeechModelConfig extends HumeConfig {
   _internal?: {
@@ -111,13 +113,13 @@ export class HumeSpeechModel implements SpeechModelV3 {
     language,
     providerOptions,
   }: Parameters<SpeechModelV3['doGenerate']>[0]) {
-    const warnings: SpeechModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // Parse provider options
     const humeOptions = await parseProviderOptions({
       provider: 'hume',
       providerOptions,
-      schema: humeSpeechCallOptionsSchema,
+      schema: humeSpeechModelOptionsSchema,
     });
 
     // Create request body
@@ -141,8 +143,8 @@ export class HumeSpeechModel implements SpeechModelV3 {
         requestBody.format = { type: outputFormat as 'mp3' | 'pcm' | 'wav' };
       } else {
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'outputFormat',
+          type: 'unsupported',
+          feature: 'outputFormat',
           details: `Unsupported output format: ${outputFormat}. Using mp3 instead.`,
         });
       }
@@ -186,8 +188,8 @@ export class HumeSpeechModel implements SpeechModelV3 {
 
     if (language) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'language',
+        type: 'unsupported',
+        feature: 'language',
         details: `Hume speech models do not support language selection. Language parameter "${language}" was ignored.`,
       });
     }

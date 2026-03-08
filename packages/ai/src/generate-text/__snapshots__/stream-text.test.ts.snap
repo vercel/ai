@@ -2,6 +2,73 @@
 
 exports[`streamText > errors > should swallow error to prevent server crash 1`] = `[]`;
 
+exports[`streamText > options.experimental_onStart > should send correct information with text prompt 1`] = `
+{
+  "abortSignal": undefined,
+  "activeTools": undefined,
+  "experimental_context": undefined,
+  "frequencyPenalty": undefined,
+  "functionId": "test-function",
+  "headers": undefined,
+  "include": undefined,
+  "maxOutputTokens": undefined,
+  "maxRetries": 2,
+  "messages": undefined,
+  "metadata": {
+    "customKey": "customValue",
+  },
+  "model": {
+    "modelId": "mock-model-id",
+    "provider": "mock-provider",
+  },
+  "output": undefined,
+  "presencePenalty": undefined,
+  "prompt": "test-input",
+  "providerOptions": undefined,
+  "seed": undefined,
+  "stopSequences": undefined,
+  "stopWhen": [Function],
+  "system": undefined,
+  "temperature": undefined,
+  "timeout": undefined,
+  "toolChoice": undefined,
+  "tools": undefined,
+  "topK": undefined,
+  "topP": undefined,
+}
+`;
+
+exports[`streamText > options.experimental_onToolCallStart > should be called with correct tool name, id, and input 1`] = `
+{
+  "abortSignal": undefined,
+  "experimental_context": undefined,
+  "functionId": undefined,
+  "messages": [
+    {
+      "content": "test-input",
+      "role": "user",
+    },
+  ],
+  "metadata": undefined,
+  "model": {
+    "modelId": "mock-model-id",
+    "provider": "mock-provider",
+  },
+  "stepNumber": 0,
+  "toolCall": {
+    "input": {
+      "value": "test-arg",
+    },
+    "providerExecuted": undefined,
+    "providerMetadata": undefined,
+    "title": undefined,
+    "toolCallId": "call-1",
+    "toolName": "tool1",
+    "type": "tool-call",
+  },
+}
+`;
+
 exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should record telemetry data for each step 1`] = `
 [
   {
@@ -13,11 +80,16 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
       "ai.response.finishReason": "stop",
       "ai.response.text": "Hello, world!",
       "ai.settings.maxRetries": 2,
-      "ai.usage.cachedInputTokens": 3,
+      "ai.usage.cachedInputTokens": 0,
+      "ai.usage.inputTokenDetails.cacheReadTokens": 0,
+      "ai.usage.inputTokenDetails.cacheWriteTokens": 0,
+      "ai.usage.inputTokenDetails.noCacheTokens": 6,
       "ai.usage.inputTokens": 6,
+      "ai.usage.outputTokenDetails.reasoningTokens": 10,
+      "ai.usage.outputTokenDetails.textTokens": 20,
       "ai.usage.outputTokens": 20,
       "ai.usage.reasoningTokens": 10,
-      "ai.usage.totalTokens": 36,
+      "ai.usage.totalTokens": 26,
       "operation.name": "ai.streamText",
     },
     "events": [],
@@ -39,11 +111,14 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
       "ai.response.model": "mock-model-id",
       "ai.response.msToFinish": 500,
       "ai.response.msToFirstChunk": 100,
+      "ai.response.reasoning": "thinking",
       "ai.response.text": "",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
       "ai.settings.maxRetries": 2,
+      "ai.usage.inputTokenDetails.noCacheTokens": 3,
       "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokenDetails.textTokens": 10,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
       "gen_ai.request.model": "mock-model-id",
@@ -102,11 +177,16 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
       "ai.response.text": "Hello, world!",
       "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
       "ai.settings.maxRetries": 2,
-      "ai.usage.cachedInputTokens": 3,
+      "ai.usage.cachedInputTokens": 0,
+      "ai.usage.inputTokenDetails.cacheReadTokens": 0,
+      "ai.usage.inputTokenDetails.cacheWriteTokens": 0,
+      "ai.usage.inputTokenDetails.noCacheTokens": 3,
       "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokenDetails.reasoningTokens": 10,
+      "ai.usage.outputTokenDetails.textTokens": 10,
       "ai.usage.outputTokens": 10,
       "ai.usage.reasoningTokens": 10,
-      "ai.usage.totalTokens": 23,
+      "ai.usage.totalTokens": 13,
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.response.finish_reasons": [
         "stop",
@@ -148,7 +228,9 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "ai.response.text": "HELLO, WORLD!",
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"VALUE"}}]",
       "ai.settings.maxRetries": 2,
+      "ai.usage.inputTokenDetails.noCacheTokens": 3,
       "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokenDetails.textTokens": 10,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
       "operation.name": "ai.streamText",
@@ -172,12 +254,14 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "ai.response.model": "mock-model-id",
       "ai.response.msToFinish": 500,
       "ai.response.msToFirstChunk": 100,
-      "ai.response.providerMetadata": "{"testProvider":{"testKey":"testValue"}}",
-      "ai.response.text": "Hello, world!",
+      "ai.response.providerMetadata": "{"testProvider":{"testKey":"TEST VALUE"}}",
+      "ai.response.text": "HELLO, WORLD!",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"VALUE"}}]",
       "ai.settings.maxRetries": 2,
+      "ai.usage.inputTokenDetails.noCacheTokens": 3,
       "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokenDetails.textTokens": 10,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
       "gen_ai.request.model": "mock-model-id",
@@ -220,6 +304,164 @@ exports[`streamText > options.transform > with base transformation > telemetry s
 ]
 `;
 
+exports[`streamText > programmatic tool calling > 5 steps: code_execution triggers client tool across multiple turns (dice game fixture) > step inputs > should include all previous messages in step 5 prompt (final step) 1`] = `
+[
+  {
+    "content": [
+      {
+        "text": "Play a dice game between two players.",
+        "type": "text",
+      },
+    ],
+    "providerOptions": undefined,
+    "role": "user",
+  },
+  {
+    "content": [
+      {
+        "providerOptions": undefined,
+        "text": "I'll help you simulate this game between two players where one is using a loaded die.",
+        "type": "text",
+      },
+      {
+        "input": {
+          "code": "game_loop()",
+        },
+        "providerExecuted": true,
+        "providerOptions": undefined,
+        "toolCallId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+        "toolName": "code_execution",
+        "type": "tool-call",
+      },
+      {
+        "input": {
+          "player": "player1",
+        },
+        "providerExecuted": undefined,
+        "providerOptions": undefined,
+        "toolCallId": "toolu_019jKkXz4jAdwHweHBw92CVY",
+        "toolName": "rollDie",
+        "type": "tool-call",
+      },
+    ],
+    "providerOptions": undefined,
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "output": {
+          "type": "json",
+          "value": 6,
+        },
+        "providerOptions": undefined,
+        "toolCallId": "toolu_019jKkXz4jAdwHweHBw92CVY",
+        "toolName": "rollDie",
+        "type": "tool-result",
+      },
+    ],
+    "providerOptions": undefined,
+    "role": "tool",
+  },
+  {
+    "content": [
+      {
+        "input": {
+          "player": "player2",
+        },
+        "providerExecuted": undefined,
+        "providerOptions": undefined,
+        "toolCallId": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
+        "toolName": "rollDie",
+        "type": "tool-call",
+      },
+    ],
+    "providerOptions": undefined,
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "output": {
+          "type": "json",
+          "value": 3,
+        },
+        "providerOptions": undefined,
+        "toolCallId": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
+        "toolName": "rollDie",
+        "type": "tool-result",
+      },
+    ],
+    "providerOptions": undefined,
+    "role": "tool",
+  },
+  {
+    "content": [
+      {
+        "input": {
+          "player": "player1",
+        },
+        "providerExecuted": undefined,
+        "providerOptions": undefined,
+        "toolCallId": "toolu_01YYqBNq5mk1wMtv3PAqY44m",
+        "toolName": "rollDie",
+        "type": "tool-call",
+      },
+    ],
+    "providerOptions": undefined,
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "output": {
+          "type": "json",
+          "value": 6,
+        },
+        "providerOptions": undefined,
+        "toolCallId": "toolu_01YYqBNq5mk1wMtv3PAqY44m",
+        "toolName": "rollDie",
+        "type": "tool-result",
+      },
+    ],
+    "providerOptions": undefined,
+    "role": "tool",
+  },
+  {
+    "content": [
+      {
+        "input": {
+          "player": "player2",
+        },
+        "providerExecuted": undefined,
+        "providerOptions": undefined,
+        "toolCallId": "toolu_018WxjDkQG8h7i63poySGT2x",
+        "toolName": "rollDie",
+        "type": "tool-call",
+      },
+    ],
+    "providerOptions": undefined,
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "output": {
+          "type": "json",
+          "value": 3,
+        },
+        "providerOptions": undefined,
+        "toolCallId": "toolu_018WxjDkQG8h7i63poySGT2x",
+        "toolName": "rollDie",
+        "type": "tool-result",
+      },
+    ],
+    "providerOptions": undefined,
+    "role": "tool",
+  },
+]
+`;
+
 exports[`streamText > result.files > should contain files 1`] = `
 [
   DefaultGeneratedFileWithType {
@@ -253,6 +495,7 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     },
     "providerExecuted": undefined,
     "providerMetadata": undefined,
+    "title": "Tool 1",
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-call",
@@ -270,6 +513,7 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
   {
     "finishReason": "stop",
     "providerMetadata": undefined,
+    "rawFinishReason": "stop",
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -279,17 +523,37 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 3,
+      },
       "inputTokens": 3,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 10,
+      },
       "outputTokens": 10,
+      "raw": undefined,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
   },
   {
     "finishReason": "stop",
+    "rawFinishReason": "stop",
     "totalUsage": {
       "cachedInputTokens": undefined,
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 3,
+      },
       "inputTokens": 3,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 10,
+      },
       "outputTokens": 10,
       "reasoningTokens": undefined,
       "totalTokens": 13,
@@ -319,6 +583,7 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
         "signature": "sig",
       },
     },
+    "title": "Tool 1",
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-call",
@@ -326,6 +591,7 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
   {
     "finishReason": "stop",
     "providerMetadata": undefined,
+    "rawFinishReason": "stop",
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -335,17 +601,37 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
     "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 3,
+      },
       "inputTokens": 3,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 10,
+      },
       "outputTokens": 10,
+      "raw": undefined,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
   },
   {
     "finishReason": "stop",
+    "rawFinishReason": "stop",
     "totalUsage": {
       "cachedInputTokens": undefined,
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 3,
+      },
       "inputTokens": 3,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 10,
+      },
       "outputTokens": 10,
       "reasoningTokens": undefined,
       "totalTokens": 13,
@@ -371,6 +657,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     },
     "providerExecuted": undefined,
     "providerMetadata": undefined,
+    "title": "Tool 1",
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-call",
@@ -388,6 +675,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
   {
     "finishReason": "stop",
     "providerMetadata": undefined,
+    "rawFinishReason": "stop",
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -397,17 +685,37 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 3,
+      },
       "inputTokens": 3,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 10,
+      },
       "outputTokens": 10,
+      "raw": undefined,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
   },
   {
     "finishReason": "stop",
+    "rawFinishReason": "stop",
     "totalUsage": {
       "cachedInputTokens": undefined,
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 3,
+      },
       "inputTokens": 3,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 10,
+      },
       "outputTokens": 10,
       "reasoningTokens": undefined,
       "totalTokens": 13,
@@ -431,7 +739,7 @@ exports[`streamText > result.pipeUIMessageStreamToResponse > should mask error m
   "data: {"type":"finish-step"}
 
 ",
-  "data: {"type":"finish"}
+  "data: {"type":"finish","finishReason":"error"}
 
 ",
   "data: [DONE]
@@ -454,7 +762,7 @@ exports[`streamText > result.pipeUIMessageStreamToResponse > should support cust
   "data: {"type":"finish-step"}
 
 ",
-  "data: {"type":"finish"}
+  "data: {"type":"finish","finishReason":"error"}
 
 ",
   "data: [DONE]
@@ -577,6 +885,7 @@ exports[`streamText > result.toUIMessageStream > should mask error messages by d
     "type": "finish-step",
   },
   {
+    "finishReason": "error",
     "type": "finish",
   },
 ]
@@ -622,6 +931,7 @@ exports[`streamText > result.toUIMessageStream > should send tool call, tool cal
     "type": "finish-step",
   },
   {
+    "finishReason": "stop",
     "type": "finish",
   },
 ]
@@ -643,6 +953,7 @@ exports[`streamText > result.toUIMessageStream > should support custom error mes
     "type": "finish-step",
   },
   {
+    "finishReason": "error",
     "type": "finish",
   },
 ]
@@ -662,7 +973,7 @@ exports[`streamText > result.toUIMessageStreamResponse > should mask error messa
   "data: {"type":"finish-step"}
 
 ",
-  "data: {"type":"finish"}
+  "data: {"type":"finish","finishReason":"error"}
 
 ",
   "data: [DONE]
@@ -685,7 +996,7 @@ exports[`streamText > result.toUIMessageStreamResponse > should support custom e
   "data: {"type":"finish-step"}
 
 ",
-  "data: {"type":"finish"}
+  "data: {"type":"finish","finishReason":"error"}
 
 ",
   "data: [DONE]
@@ -705,7 +1016,9 @@ exports[`streamText > telemetry > should not record telemetry inputs / outputs w
       "ai.operationId": "ai.streamText",
       "ai.response.finishReason": "stop",
       "ai.settings.maxRetries": 2,
+      "ai.usage.inputTokenDetails.noCacheTokens": 3,
       "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokenDetails.textTokens": 10,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
       "operation.name": "ai.streamText",
@@ -726,7 +1039,9 @@ exports[`streamText > telemetry > should not record telemetry inputs / outputs w
       "ai.response.msToFirstChunk": 100,
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.settings.maxRetries": 2,
+      "ai.usage.inputTokenDetails.noCacheTokens": 3,
       "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokenDetails.textTokens": 10,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
       "gen_ai.request.model": "mock-model-id",
@@ -779,7 +1094,9 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "ai.response.text": "",
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
       "ai.settings.maxRetries": 2,
+      "ai.usage.inputTokenDetails.noCacheTokens": 3,
       "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokenDetails.textTokens": 10,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
       "operation.name": "ai.streamText",
@@ -807,7 +1124,9 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
       "ai.settings.maxRetries": 2,
+      "ai.usage.inputTokenDetails.noCacheTokens": 3,
       "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokenDetails.textTokens": 10,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
       "gen_ai.request.model": "mock-model-id",
@@ -875,7 +1194,9 @@ exports[`streamText > telemetry > should record telemetry data when enabled 1`] 
       "ai.telemetry.functionId": "test-function-id",
       "ai.telemetry.metadata.test1": "value1",
       "ai.telemetry.metadata.test2": false,
+      "ai.usage.inputTokenDetails.noCacheTokens": 3,
       "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokenDetails.textTokens": 10,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
       "operation.name": "ai.streamText test-function-id",
@@ -913,7 +1234,9 @@ exports[`streamText > telemetry > should record telemetry data when enabled 1`] 
       "ai.telemetry.functionId": "test-function-id",
       "ai.telemetry.metadata.test1": "value1",
       "ai.telemetry.metadata.test2": false,
+      "ai.usage.inputTokenDetails.noCacheTokens": 3,
       "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokenDetails.textTokens": 10,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
       "gen_ai.request.frequency_penalty": 0.3,
@@ -969,6 +1292,7 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
     },
     "providerExecuted": undefined,
     "providerMetadata": undefined,
+    "title": "Tool 1",
     "toolCallId": "call-1",
     "toolName": "tool1",
     "type": "tool-call",
@@ -976,6 +1300,7 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
   {
     "finishReason": "stop",
     "providerMetadata": undefined,
+    "rawFinishReason": "stop",
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -985,17 +1310,37 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
     "type": "finish-step",
     "usage": {
       "cachedInputTokens": undefined,
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 3,
+      },
       "inputTokens": 3,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 10,
+      },
       "outputTokens": 10,
+      "raw": undefined,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
   },
   {
     "finishReason": "stop",
+    "rawFinishReason": "stop",
     "totalUsage": {
       "cachedInputTokens": undefined,
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 3,
+      },
       "inputTokens": 3,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 10,
+      },
       "outputTokens": 10,
       "reasoningTokens": undefined,
       "totalTokens": 13,

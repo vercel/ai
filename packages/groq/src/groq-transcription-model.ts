@@ -1,7 +1,4 @@
-import {
-  TranscriptionModelV3,
-  TranscriptionModelV3CallWarning,
-} from '@ai-sdk/provider';
+import { TranscriptionModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -13,21 +10,11 @@ import {
 import { z } from 'zod/v4';
 import { GroqConfig } from './groq-config';
 import { groqFailedResponseHandler } from './groq-error';
-import { GroqTranscriptionModelId } from './groq-transcription-options';
+import {
+  GroqTranscriptionModelId,
+  groqTranscriptionModelOptions,
+} from './groq-transcription-options';
 import { GroqTranscriptionAPITypes } from './groq-api-types';
-
-// https://console.groq.com/docs/speech-to-text
-const groqProviderOptionsSchema = z.object({
-  language: z.string().nullish(),
-  prompt: z.string().nullish(),
-  responseFormat: z.string().nullish(),
-  temperature: z.number().min(0).max(1).nullish(),
-  timestampGranularities: z.array(z.string()).nullish(),
-});
-
-export type GroqTranscriptionCallOptions = z.infer<
-  typeof groqProviderOptionsSchema
->;
 
 interface GroqTranscriptionModelConfig extends GroqConfig {
   _internal?: {
@@ -52,13 +39,13 @@ export class GroqTranscriptionModel implements TranscriptionModelV3 {
     mediaType,
     providerOptions,
   }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
-    const warnings: TranscriptionModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // Parse provider options
     const groqOptions = await parseProviderOptions({
       provider: 'groq',
       providerOptions,
-      schema: groqProviderOptionsSchema,
+      schema: groqTranscriptionModelOptions,
     });
 
     // Create form data with base fields
@@ -96,7 +83,13 @@ export class GroqTranscriptionModel implements TranscriptionModelV3 {
             key as keyof Omit<GroqTranscriptionAPITypes, 'model'>
           ];
         if (value !== undefined) {
-          formData.append(key, String(value));
+          if (Array.isArray(value)) {
+            for (const item of value) {
+              formData.append(`${key}[]`, String(item));
+            }
+          } else {
+            formData.append(key, String(value));
+          }
         }
       }
     }

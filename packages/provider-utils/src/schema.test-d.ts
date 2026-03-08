@@ -1,10 +1,9 @@
-import { StandardSchemaV1 } from '@standard-schema/spec';
 import { describe, expectTypeOf, it } from 'vitest';
-import { InferSchema } from './schema';
+import { InferSchema, StandardSchema } from './schema';
 
 describe('InferSchema type', () => {
-  it('should work with fixed inputSchema', () => {
-    type MySchema = StandardSchemaV1<unknown, number>;
+  it('should work with StandardSchema', () => {
+    type MySchema = StandardSchema<number>;
     type Result = InferSchema<MySchema>;
 
     expectTypeOf<Result>().toMatchTypeOf<number>();

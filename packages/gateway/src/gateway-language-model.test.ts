@@ -91,7 +91,7 @@ describe('GatewayLanguageModel', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer test-token',
         'custom-header': 'test-value',
-        'ai-language-model-specification-version': '2',
+        'ai-language-model-specification-version': '3',
         'ai-language-model-id': 'test-model',
         'ai-language-model-streaming': 'false',
       });
@@ -597,19 +597,30 @@ describe('GatewayLanguageModel', () => {
         includeRawChunks: false,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toEqual([
-        { type: 'text-delta', textDelta: 'Hello' },
-        { type: 'text-delta', textDelta: ', ' },
-        { type: 'text-delta', textDelta: 'World!' },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          usage: {
-            prompt_tokens: 10,
-            completion_tokens: 20,
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "textDelta": "Hello",
+            "type": "text-delta",
           },
-        },
-      ]);
+          {
+            "textDelta": ", ",
+            "type": "text-delta",
+          },
+          {
+            "textDelta": "World!",
+            "type": "text-delta",
+          },
+          {
+            "finishReason": "stop",
+            "type": "finish",
+            "usage": {
+              "completion_tokens": 20,
+              "prompt_tokens": 10,
+            },
+          },
+        ]
+      `);
     });
 
     it('should pass streaming headers', async () => {
@@ -624,7 +635,7 @@ describe('GatewayLanguageModel', () => {
 
       const headers = server.calls[0].requestHeaders;
       expect(headers).toMatchObject({
-        'ai-language-model-specification-version': '2',
+        'ai-language-model-specification-version': '3',
         'ai-language-model-id': 'test-model',
         'ai-language-model-streaming': 'true',
       });
@@ -1290,27 +1301,31 @@ describe('GatewayLanguageModel', () => {
         includeRawChunks: false,
       });
 
-      const chunks = await convertReadableStreamToArray(stream);
-
-      expect(chunks).toHaveLength(3);
-
       // Check that timestamps in non-response-metadata chunks are left as strings
       // Note: These chunks don't typically have timestamp properties in the real types,
       // but this test verifies our conversion logic only affects response-metadata chunks
-      const textDeltaChunk = chunks[1] as any;
-      expect(textDeltaChunk).toEqual({
-        type: 'text-delta',
-        textDelta: 'Hello',
-        timestamp: timestampString, // Should remain a string
-      });
-
-      const finishChunk = chunks[2] as any;
-      expect(finishChunk).toEqual({
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { prompt_tokens: 10, completion_tokens: 5 },
-        timestamp: timestampString, // Should remain a string
-      });
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "textDelta": "Hello",
+            "timestamp": "2023-12-07T10:30:00.000Z",
+            "type": "text-delta",
+          },
+          {
+            "finishReason": "stop",
+            "timestamp": "2023-12-07T10:30:00.000Z",
+            "type": "finish",
+            "usage": {
+              "completion_tokens": 5,
+              "prompt_tokens": 10,
+            },
+          },
+        ]
+      `);
     });
   });
 
@@ -1464,6 +1479,60 @@ describe('GatewayLanguageModel', () => {
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody.providerOptions).toEqual({
         gateway: { order: ['anthropic', 'bedrock', 'openai'] },
+      });
+    });
+
+    it('should pass providerTimeouts for doGenerate', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            providerTimeouts: {
+              byok: { openai: 5000, anthropic: 2000 },
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: {
+          providerTimeouts: {
+            byok: { openai: 5000, anthropic: 2000 },
+          },
+        },
+      });
+    });
+
+    it('should pass providerTimeouts for doStream', async () => {
+      prepareStreamResponse({
+        content: ['Hello', ' world'],
+      });
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            providerTimeouts: {
+              byok: { anthropic: 3000 },
+            },
+          },
+        },
+      });
+
+      await convertReadableStreamToArray(stream);
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: {
+          providerTimeouts: {
+            byok: { anthropic: 3000 },
+          },
+        },
       });
     });
   });

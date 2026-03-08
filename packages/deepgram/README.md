@@ -1,7 +1,7 @@
 # AI SDK - Deepgram Provider
 
 The **[Deepgram provider](https://ai-sdk.dev/providers/ai-sdk-providers/deepgram)** for the [AI SDK](https://ai-sdk.dev/docs)
-contains transcription model support for the Deepgram transcription API.
+contains transcription model support for the Deepgram transcription API and speech model support for the Deepgram text-to-speech API.
 
 ## Setup
 
@@ -9,6 +9,14 @@ The Deepgram provider is available in the `@ai-sdk/deepgram` module. You can ins
 
 ```bash
 npm i @ai-sdk/deepgram
+```
+
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
 ```
 
 ## Provider Instance
@@ -19,7 +27,9 @@ You can import the default provider instance `deepgram` from `@ai-sdk/deepgram`:
 import { deepgram } from '@ai-sdk/deepgram';
 ```
 
-## Example
+## Examples
+
+### Transcription
 
 ```ts
 import { deepgram } from '@ai-sdk/deepgram';
@@ -28,8 +38,39 @@ import { experimental_transcribe as transcribe } from 'ai';
 const { text } = await transcribe({
   model: deepgram.transcription('nova-3'),
   audio: new URL(
-    'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-core/data/galileo.mp3',
+    'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-functions/data/galileo.mp3',
   ),
+});
+```
+
+### Transcription with Language Detection
+
+```ts
+import { deepgram } from '@ai-sdk/deepgram';
+import { experimental_transcribe as transcribe } from 'ai';
+
+const { text, language } = await transcribe({
+  model: deepgram.transcription('nova-3'),
+  audio: new URL(
+    'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-functions/data/galileo.mp3',
+  ),
+  providerOptions: {
+    deepgram: {
+      detectLanguage: true,
+    },
+  },
+});
+```
+
+### Text-to-Speech
+
+```ts
+import { deepgram } from '@ai-sdk/deepgram';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+
+const { audio } = await generateSpeech({
+  model: deepgram.speech('aura-2-helena-en'),
+  text: 'Hello, welcome to Deepgram!',
 });
 ```
 

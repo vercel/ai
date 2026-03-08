@@ -1,14 +1,19 @@
 import { InvalidPromptError } from '@ai-sdk/provider';
-import { ModelMessage, safeValidateTypes } from '@ai-sdk/provider-utils';
+import {
+  ModelMessage,
+  safeValidateTypes,
+  SystemModelMessage,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { modelMessageSchema } from './message';
 import { Prompt } from './prompt';
+import { asArray } from '../util/as-array';
 
 export type StandardizedPrompt = {
   /**
    * System message.
    */
-  system?: string;
+  system?: string | SystemModelMessage | Array<SystemModelMessage>;
 
   /**
    * Messages.
@@ -33,11 +38,22 @@ export async function standardizePrompt(
     });
   }
 
-  // validate that system is a string
-  if (prompt.system != null && typeof prompt.system !== 'string') {
+  // validate that system is a string or a SystemModelMessage
+  if (
+    prompt.system != null &&
+    typeof prompt.system !== 'string' &&
+    !asArray(prompt.system).every(
+      message =>
+        typeof message === 'object' &&
+        message !== null &&
+        'role' in message &&
+        message.role === 'system',
+    )
+  ) {
     throw new InvalidPromptError({
       prompt,
-      message: 'system must be a string',
+      message:
+        'system must be a string, SystemModelMessage, or array of SystemModelMessage',
     });
   }
 
@@ -71,9 +87,7 @@ export async function standardizePrompt(
   if (!validationResult.success) {
     throw new InvalidPromptError({
       prompt,
-      message:
-        'The messages must be a ModelMessage[]. ' +
-        'If you have passed a UIMessage[], you can use convertToModelMessages to convert them.',
+      message: 'The messages do not match the ModelMessage[] schema.',
       cause: validationResult.error,
     });
   }

@@ -11,6 +11,14 @@ The OpenAI provider is available in the `@ai-sdk/openai` module. You can install
 npm i @ai-sdk/openai
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 You can import the default provider instance `openai` from `@ai-sdk/openai`:
@@ -26,7 +34,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-5-mini'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```

@@ -1,7 +1,7 @@
-import { convertHeadersToRecord, extractHeaders } from './headers-utils';
 import {
   FetchFunction,
   combineHeaders,
+  normalizeHeaders,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
@@ -16,11 +16,11 @@ export interface BedrockCredentials {
 }
 
 /**
-Creates a fetch function that applies AWS Signature Version 4 signing.
-
-@param getCredentials - Function that returns the AWS credentials to use when signing.
-@param fetch - Optional original fetch implementation to wrap. Defaults to global fetch.
-@returns A FetchFunction that signs requests before passing them to the underlying fetch.
+ * Creates a fetch function that applies AWS Signature Version 4 signing.
+ *
+ * @param getCredentials - Function that returns the AWS credentials to use when signing.
+ * @param fetch - Optional original fetch implementation to wrap. Defaults to global fetch.
+ * @returns A FetchFunction that signs requests before passing them to the underlying fetch.
  */
 export function createSigV4FetchFunction(
   getCredentials: () => BedrockCredentials | PromiseLike<BedrockCredentials>,
@@ -32,8 +32,8 @@ export function createSigV4FetchFunction(
   ): Promise<Response> => {
     const request = input instanceof Request ? input : undefined;
     const originalHeaders = combineHeaders(
-      extractHeaders(request?.headers),
-      extractHeaders(init?.headers),
+      normalizeHeaders(request?.headers),
+      normalizeHeaders(init?.headers),
     );
     const headersWithUserAgent = withUserAgentSuffix(
       originalHeaders,
@@ -79,7 +79,7 @@ export function createSigV4FetchFunction(
     });
 
     const signingResult = await signer.sign();
-    const signedHeaders = convertHeadersToRecord(signingResult.headers);
+    const signedHeaders = normalizeHeaders(signingResult.headers);
 
     // Use the combined headers directly as HeadersInit
     const combinedHeaders = combineHeaders(headersWithUserAgent, signedHeaders);
@@ -105,11 +105,11 @@ function prepareBodyString(body: BodyInit | undefined): string {
 }
 
 /**
-Creates a fetch function that applies Bearer token authentication.
-
-@param apiKey - The API key to use for Bearer token authentication.
-@param fetch - Optional original fetch implementation to wrap. Defaults to global fetch.
-@returns A FetchFunction that adds Authorization header with Bearer token to requests.
+ * Creates a fetch function that applies Bearer token authentication.
+ *
+ * @param apiKey - The API key to use for Bearer token authentication.
+ * @param fetch - Optional original fetch implementation to wrap. Defaults to global fetch.
+ * @returns A FetchFunction that adds Authorization header with Bearer token to requests.
  */
 export function createApiKeyFetchFunction(
   apiKey: string,
@@ -119,7 +119,7 @@ export function createApiKeyFetchFunction(
     input: RequestInfo | URL,
     init?: RequestInit,
   ): Promise<Response> => {
-    const originalHeaders = extractHeaders(init?.headers);
+    const originalHeaders = normalizeHeaders(init?.headers);
     const headersWithUserAgent = withUserAgentSuffix(
       originalHeaders,
       `ai-sdk/amazon-bedrock/${VERSION}`,

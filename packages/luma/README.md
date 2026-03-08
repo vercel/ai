@@ -22,6 +22,14 @@ The Luma provider is available in the `@ai-sdk/luma` module. You can install it 
 npm i @ai-sdk/luma
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 You can import the default provider instance `luma` from `@ai-sdk/luma`:
@@ -34,7 +42,7 @@ import { luma } from '@ai-sdk/luma';
 
 ```ts
 import { luma } from '@ai-sdk/luma';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import fs from 'fs';
 
 const { image } = await generateImage({

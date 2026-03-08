@@ -1,6 +1,7 @@
 import {
   FetchFunction,
   Resolvable,
+  normalizeHeaders,
   resolve,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
@@ -95,30 +96,22 @@ export type HttpChatTransportInitOptions<UI_MESSAGE extends UIMessage> = {
   body?: Resolvable<object>;
 
   /**
-  Custom fetch implementation. You can use it as a middleware to intercept requests,
-  or to provide a custom fetch implementation for e.g. testing.
-      */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   /**
    * When a function is provided, it will be used
    * to prepare the request body for the chat API. This can be useful for
    * customizing the request body based on the messages and data in the chat.
-   *
-   * @param id The id of the chat.
-   * @param messages The current messages in the chat.
-   * @param requestBody The request body object passed in the chat request.
    */
   prepareSendMessagesRequest?: PrepareSendMessagesRequest<UI_MESSAGE>;
 
   /**
    * When a function is provided, it will be used
-   * to prepare the request body for the chat API. This can be useful for
-   * customizing the request body based on the messages and data in the chat.
-   *
-   * @param id The id of the chat.
-   * @param messages The current messages in the chat.
-   * @param requestBody The request body object passed in the chat request.
+   * to prepare the reconnect request for the chat API. This can be useful for
+   * customizing the request based on the chat session.
    */
   prepareReconnectToStreamRequest?: PrepareReconnectToStreamRequest;
 };
@@ -160,12 +153,17 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     const resolvedHeaders = await resolve(this.headers);
     const resolvedCredentials = await resolve(this.credentials);
 
+    const baseHeaders = {
+      ...normalizeHeaders(resolvedHeaders),
+      ...normalizeHeaders(options.headers),
+    };
+
     const preparedRequest = await this.prepareSendMessagesRequest?.({
       api: this.api,
       id: options.chatId,
       messages: options.messages,
       body: { ...resolvedBody, ...options.body },
-      headers: { ...resolvedHeaders, ...options.headers },
+      headers: baseHeaders,
       credentials: resolvedCredentials,
       requestMetadata: options.metadata,
       trigger: options.trigger,
@@ -175,8 +173,8 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     const api = preparedRequest?.api ?? this.api;
     const headers =
       preparedRequest?.headers !== undefined
-        ? preparedRequest.headers
-        : { ...resolvedHeaders, ...options.headers };
+        ? normalizeHeaders(preparedRequest.headers)
+        : baseHeaders;
     const body =
       preparedRequest?.body !== undefined
         ? preparedRequest.body
@@ -228,11 +226,16 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     const resolvedHeaders = await resolve(this.headers);
     const resolvedCredentials = await resolve(this.credentials);
 
+    const baseHeaders = {
+      ...normalizeHeaders(resolvedHeaders),
+      ...normalizeHeaders(options.headers),
+    };
+
     const preparedRequest = await this.prepareReconnectToStreamRequest?.({
       api: this.api,
       id: options.chatId,
       body: { ...resolvedBody, ...options.body },
-      headers: { ...resolvedHeaders, ...options.headers },
+      headers: baseHeaders,
       credentials: resolvedCredentials,
       requestMetadata: options.metadata,
     });
@@ -240,8 +243,8 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     const api = preparedRequest?.api ?? `${this.api}/${options.chatId}/stream`;
     const headers =
       preparedRequest?.headers !== undefined
-        ? preparedRequest.headers
-        : { ...resolvedHeaders, ...options.headers };
+        ? normalizeHeaders(preparedRequest.headers)
+        : baseHeaders;
     const credentials = preparedRequest?.credentials ?? resolvedCredentials;
 
     // avoid caching globalThis.fetch in case it is patched by other libraries

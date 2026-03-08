@@ -1,19 +1,16 @@
-import {
-  JSONValue,
-  SpeechModelV3,
-  SpeechModelV3CallWarning,
-} from '@ai-sdk/provider';
+import { JSONObject, SpeechModelV3 } from '@ai-sdk/provider';
 import {
   afterEach,
   beforeEach,
   describe,
   expect,
   it,
-  vitest,
   vi,
+  vitest,
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockSpeechModelV3 } from '../test/mock-speech-model-v3';
+import { Warning } from '../types/warning';
 import { generateSpeech } from './generate-speech';
 import {
   DefaultGeneratedAudioFile,
@@ -37,11 +34,11 @@ vi.mock('../version', () => {
 
 const createMockResponse = (options: {
   audio: GeneratedAudioFile;
-  warnings?: SpeechModelV3CallWarning[];
+  warnings?: Warning[];
   timestamp?: Date;
   modelId?: string;
   headers?: Record<string, string>;
-  providerMetadata?: Record<string, Record<string, JSONValue>>;
+  providerMetadata?: Record<string, JSONObject>;
 }) => ({
   audio: options.audio.uint8Array,
   warnings: options.warnings ?? [],
@@ -136,14 +133,14 @@ describe('generateSpeech', () => {
   });
 
   it('should call logWarnings with the correct warnings', async () => {
-    const expectedWarnings: SpeechModelV3CallWarning[] = [
+    const expectedWarnings: Warning[] = [
       {
         type: 'other',
         message: 'Setting is not supported',
       },
       {
-        type: 'unsupported-setting',
-        setting: 'voice',
+        type: 'unsupported',
+        feature: 'voice',
         details: 'Voice parameter not supported',
       },
     ];
@@ -160,7 +157,11 @@ describe('generateSpeech', () => {
     });
 
     expect(logWarningsSpy).toHaveBeenCalledOnce();
-    expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+    expect(logWarningsSpy).toHaveBeenCalledWith({
+      warnings: expectedWarnings,
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
   });
 
   it('should call logWarnings with empty array when no warnings are present', async () => {
@@ -176,7 +177,11 @@ describe('generateSpeech', () => {
     });
 
     expect(logWarningsSpy).toHaveBeenCalledOnce();
-    expect(logWarningsSpy).toHaveBeenCalledWith([]);
+    expect(logWarningsSpy).toHaveBeenCalledWith({
+      warnings: [],
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
   });
 
   it('should return the audio data', async () => {
