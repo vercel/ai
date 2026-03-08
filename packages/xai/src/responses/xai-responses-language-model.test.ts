@@ -1124,9 +1124,11 @@ describe('XaiResponsesLanguageModel', () => {
           ],
         });
 
-        expect(result.content).toHaveLength(2);
+        expect(result.content).toHaveLength(4);
         expect(result.content[0].type).toBe('tool-call');
-        expect(result.content[1].type).toBe('tool-call');
+        expect(result.content[1].type).toBe('tool-result');
+        expect(result.content[2].type).toBe('tool-call');
+        expect(result.content[3].type).toBe('tool-result');
       });
     });
 
@@ -1170,6 +1172,12 @@ describe('XaiResponsesLanguageModel', () => {
             input: '{"query":"test"}',
             providerExecuted: true,
           },
+          {
+            type: 'tool-result',
+            toolCallId: 'ws_123',
+            toolName: 'web_search',
+            result: {},
+          },
         ]);
       });
 
@@ -1211,6 +1219,12 @@ describe('XaiResponsesLanguageModel', () => {
             toolName: 'x_search',
             input: '{"query":"test"}',
             providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'xs_123',
+            toolName: 'x_search',
+            result: {},
           },
         ]);
       });
@@ -1254,6 +1268,12 @@ describe('XaiResponsesLanguageModel', () => {
             input: '{}',
             providerExecuted: true,
           },
+          {
+            type: 'tool-result',
+            toolCallId: 'ci_123',
+            toolName: 'code_execution',
+            result: {},
+          },
         ]);
       });
 
@@ -1296,6 +1316,12 @@ describe('XaiResponsesLanguageModel', () => {
             input: '{}',
             providerExecuted: true,
           },
+          {
+            type: 'tool-result',
+            toolCallId: 'ce_123',
+            toolName: 'code_execution',
+            result: {},
+          },
         ]);
       });
 
@@ -1337,6 +1363,12 @@ describe('XaiResponsesLanguageModel', () => {
             toolName: 'my_custom_search',
             input: '{}',
             providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'ws_123',
+            toolName: 'my_custom_search',
+            result: {},
           },
         ]);
       });
@@ -2159,6 +2191,252 @@ describe('XaiResponsesLanguageModel', () => {
               },
             ],
           },
+        });
+      });
+
+      it('should stream web_search tool call and result', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'web_search_call',
+              id: 'ws_stream_123',
+              name: '',
+              arguments: '{"query":"test"}',
+              call_id: '',
+              status: 'in_progress',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'web_search_call',
+              id: 'ws_stream_123',
+              name: '',
+              arguments: '{"query":"test"}',
+              call_id: '',
+              status: 'completed',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'ws_stream_123',
+          toolName: 'web_search',
+          input: '{"query":"test"}',
+          providerExecuted: true,
+        });
+
+        expect(parts).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_stream_123',
+          toolName: 'web_search',
+          result: {},
+        });
+      });
+
+      it('should stream code_execution tool call and result', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'code_execution_call',
+              id: 'ce_stream_123',
+              name: 'code_execution',
+              arguments: '{"code":"print(1)"}',
+              call_id: '',
+              status: 'in_progress',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'code_execution_call',
+              id: 'ce_stream_123',
+              name: 'code_execution',
+              arguments: '{"code":"print(1)"}',
+              call_id: '',
+              status: 'completed',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.code_execution',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'ce_stream_123',
+          toolName: 'code_execution',
+          input: '{"code":"print(1)"}',
+          providerExecuted: true,
+        });
+
+        expect(parts).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ce_stream_123',
+          toolName: 'code_execution',
+          result: {},
+        });
+      });
+
+      it('should stream custom_tool_call and result', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'custom_tool_call',
+              id: 'ct_stream_123',
+              name: 'x_keyword_search',
+              input: '',
+              call_id: 'xs_call_123',
+              status: 'in_progress',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.custom_tool_call_input.delta',
+            item_id: 'ct_stream_123',
+            output_index: 0,
+            delta: '{"query":"test"}',
+          }),
+          JSON.stringify({
+            type: 'response.custom_tool_call_input.done',
+            item_id: 'ct_stream_123',
+            output_index: 0,
+            input: '{"query":"test"}',
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'custom_tool_call',
+              id: 'ct_stream_123',
+              name: 'x_keyword_search',
+              input: '{"query":"test"}',
+              call_id: 'xs_call_123',
+              status: 'completed',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.x_search',
+              name: 'x_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'ct_stream_123',
+          toolName: 'x_search',
+          input: '{"query":"test"}',
+          providerExecuted: true,
+        });
+
+        expect(parts).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ct_stream_123',
+          toolName: 'x_search',
+          result: {},
         });
       });
     });
