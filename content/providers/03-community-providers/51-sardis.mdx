@@ -1,54 +1,50 @@
 ---
-title: Sardis
-description: Policy-controlled payments for AI agents
+title: 'Sardis'
+description: 'Learn how to use the Sardis AI SDK provider for policy-controlled agent payments.'
 ---
 
-# Sardis Provider
+# Sardis
 
-[Sardis](https://sardis.sh) is the Payment OS for the Agent Economy. The `@sardis/ai-sdk` package provides Vercel AI SDK tools that enable AI agents to make real financial transactions with policy guardrails.
+[Sardis](https://sardis.sh) is the Payment OS for the Agent Economy. The [`@sardis/ai-sdk`](https://www.npmjs.com/package/@sardis/ai-sdk) package provides Vercel AI SDK-compatible tools that let your AI agents make real financial transactions safely, enforced by spending policies.
+
+- Policy-controlled payments with configurable guardrails
+- Non-custodial MPC wallets via Turnkey
+- Multi-chain USDC/USDT support (Base, Polygon, Ethereum, Arbitrum, Optimism)
+- Works with `generateText`, `streamText`, and agentic tool loops
+- Full TypeScript support
 
 ## Setup
 
+The Sardis provider is available in the `@sardis/ai-sdk` module:
+
 <Tabs items={['pnpm', 'npm', 'yarn']}>
   <Tab>
-
-```bash
-pnpm add @sardis/ai-sdk
-```
-
+    <Snippet text="pnpm add @sardis/ai-sdk" dark />
   </Tab>
   <Tab>
-
-```bash
-npm install @sardis/ai-sdk
-```
-
+    <Snippet text="npm install @sardis/ai-sdk" dark />
   </Tab>
   <Tab>
-
-```bash
-yarn add @sardis/ai-sdk
-```
-
+    <Snippet text="yarn add @sardis/ai-sdk" dark />
   </Tab>
 </Tabs>
 
 ## Provider Instance
-
-Create Sardis payment tools:
 
 ```ts
 import { createSardisTools } from '@sardis/ai-sdk';
 
 const tools = createSardisTools({
   apiKey: process.env.SARDIS_API_KEY!,
-  walletId: 'wallet_abc123',
+  walletId: 'wal_abc123',
+  maxPaymentAmount: 100,
+  blockedCategories: ['gambling'],
 });
 ```
 
 ## Example
 
-Use with `generateText`:
+### `generateText`
 
 ```ts
 import { generateText } from 'ai';
@@ -57,9 +53,7 @@ import { createSardisTools } from '@sardis/ai-sdk';
 
 const tools = createSardisTools({
   apiKey: process.env.SARDIS_API_KEY!,
-  walletId: 'wallet_abc123',
-  maxPaymentAmount: 100,
-  blockedCategories: ['gambling'],
+  walletId: 'wal_abc123',
 });
 
 const { text, toolResults } = await generateText({
@@ -67,6 +61,29 @@ const { text, toolResults } = await generateText({
   tools,
   prompt: 'Check my balance and pay $25 to OpenAI for API credits',
 });
+```
+
+### `streamText`
+
+```ts
+import { streamText } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+import { createSardisTools } from '@sardis/ai-sdk';
+
+const tools = createSardisTools({
+  apiKey: process.env.SARDIS_API_KEY!,
+  walletId: 'wal_abc123',
+});
+
+const { textStream } = streamText({
+  model: anthropic('claude-sonnet-4-6'),
+  tools,
+  prompt: 'Pay $10 to OpenAI for API credits',
+});
+
+for await (const chunk of textStream) {
+  process.stdout.write(chunk);
+}
 ```
 
 ## Configuration
@@ -112,8 +129,8 @@ const minimalTools = createMinimalSardisTools(config);
 const readOnlyTools = createReadOnlySardisTools(config);
 ```
 
-## Documentation
+## More Information
 
 - [Sardis Documentation](https://sardis.sh/docs)
-- [@sardis/ai-sdk on npm](https://www.npmjs.com/package/@sardis/ai-sdk)
-- [GitHub Repository](https://github.com/EfeDurmaz16/sardis)
+- [npm: @sardis/ai-sdk](https://www.npmjs.com/package/@sardis/ai-sdk)
+- [GitHub](https://github.com/EfeDurmaz16/sardis)
