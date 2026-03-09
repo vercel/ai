@@ -36,9 +36,12 @@ type InferToolSetContext<TOOLS extends ToolSet> = UnionToIntersection<
   }[keyof TOOLS]
 >;
 
+type ExpandedContext<TOOLS extends ToolSet> = InferToolSetContext<TOOLS> &
+  Record<string, unknown>;
+
 function executeTool<
   TOOLS extends ToolSet,
-  CONTEXT extends InferToolSetContext<TOOLS> & Record<string, unknown>,
+  CONTEXT extends ExpandedContext<TOOLS>,
 >({
   tools,
   toolName,
