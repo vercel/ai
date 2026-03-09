@@ -446,7 +446,7 @@ class OtelTelemetryIntegration implements TelemetryIntegration {
       ).filter(([, value]) => value != null),
     ) as Attributes;
 
-    state.stepSpan.addEvent(chunk.type, attributes);
+    state.stepSpan.addEvent(chunk.type);
     if (Object.keys(attributes).length > 0) {
       state.stepSpan.setAttributes(attributes);
     }
