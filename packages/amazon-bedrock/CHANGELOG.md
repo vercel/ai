@@ -1,5 +1,60 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+  - @ai-sdk/anthropic@4.0.0-beta.1
+
+## 5.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/anthropic@4.0.0-beta.0
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 4.0.77
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+- Updated dependencies [3fb4e70]
+  - @ai-sdk/provider-utils@4.0.19
+  - @ai-sdk/anthropic@3.0.58
+
+## 4.0.76
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+  - @ai-sdk/anthropic@3.0.57
+
+## 4.0.75
+
+### Patch Changes
+
+- e49c34d: feat(anthropic): expose anthropic.anthropicBeta to downstream providers
+- e49c34d: feat(anthropic): expose anthropic.anthropicBeta to downstream provider
+- Updated dependencies [e49c34d]
+- Updated dependencies [e49c34d]
+  - @ai-sdk/anthropic@3.0.56
+
+## 4.0.74
+
+### Patch Changes
+
+- Updated dependencies [7531e72]
+  - @ai-sdk/anthropic@3.0.55
+
 ## 4.0.73
 
 ### Patch Changes

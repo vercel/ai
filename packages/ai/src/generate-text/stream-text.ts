@@ -1,8 +1,8 @@
 import {
   getErrorMessage,
-  LanguageModelV3,
-  LanguageModelV3ToolChoice,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4ToolChoice,
+  SharedV4Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -758,7 +758,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     download,
     include,
   }: {
-    model: LanguageModelV3;
+    model: LanguageModelV4;
     telemetry: TelemetrySettings | undefined;
     headers: Record<string, string | undefined> | undefined;
     settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
@@ -978,7 +978,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         }
 
         if (part.type === 'file') {
-          recordedContent.push({ type: 'file', file: part.file });
+          recordedContent.push({
+            type: 'file',
+            file: part.file,
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
+          });
         }
 
         if (part.type === 'source') {
@@ -1152,12 +1158,23 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 'ai.response.providerMetadata': JSON.stringify(
                   finalStep.providerMetadata,
                 ),
-
                 'ai.usage.inputTokens': totalUsage.inputTokens,
+                'ai.usage.inputTokenDetails.noCacheTokens':
+                  totalUsage.inputTokenDetails?.noCacheTokens,
+                'ai.usage.inputTokenDetails.cacheReadTokens':
+                  totalUsage.inputTokenDetails?.cacheReadTokens,
+                'ai.usage.inputTokenDetails.cacheWriteTokens':
+                  totalUsage.inputTokenDetails?.cacheWriteTokens,
                 'ai.usage.outputTokens': totalUsage.outputTokens,
+                'ai.usage.outputTokenDetails.textTokens':
+                  totalUsage.outputTokenDetails?.textTokens,
+                'ai.usage.outputTokenDetails.reasoningTokens':
+                  totalUsage.outputTokenDetails?.reasoningTokens,
                 'ai.usage.totalTokens': totalUsage.totalTokens,
-                'ai.usage.reasoningTokens': totalUsage.reasoningTokens,
-                'ai.usage.cachedInputTokens': totalUsage.cachedInputTokens,
+                'ai.usage.reasoningTokens':
+                  totalUsage.outputTokenDetails?.reasoningTokens,
+                'ai.usage.cachedInputTokens':
+                  totalUsage.inputTokenDetails?.cacheReadTokens,
               },
             }),
           );
@@ -1451,7 +1468,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                       output.type === 'tool-result'
                         ? output.output
                         : output.error,
-                    errorMode: output.type === 'tool-error' ? 'json' : 'none',
+                    errorMode: output.type === 'tool-error' ? 'text' : 'none',
                   }),
                 });
               }
@@ -1709,7 +1726,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 : { ...request, body: undefined };
             const stepToolCalls: TypedToolCall<TOOLS>[] = [];
             const stepToolOutputs: ToolOutput<TOOLS>[] = [];
-            let warnings: SharedV3Warning[] | undefined;
+            let warnings: SharedV4Warning[] | undefined;
 
             const activeToolCallToolNames: Record<string, string> = {};
 
@@ -1940,29 +1957,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                         ? JSON.stringify(stepToolCalls)
                         : undefined;
 
-                    // record telemetry information first to ensure best effort timing
+                    // record telemetry attributes that don't depend on transforms:
                     try {
                       doStreamSpan.setAttributes(
                         await selectTelemetryAttributes({
                           telemetry,
                           attributes: {
                             'ai.response.finishReason': stepFinishReason,
-                            'ai.response.text': {
-                              output: () => activeText,
-                            },
-                            'ai.response.reasoning': {
-                              output: () => {
-                                const reasoningParts = recordedContent.filter(
-                                  (
-                                    c,
-                                  ): c is { type: 'reasoning'; text: string } =>
-                                    c.type === 'reasoning',
-                                );
-                                return reasoningParts.length > 0
-                                  ? reasoningParts.map(r => r.text).join('\n')
-                                  : undefined;
-                              },
-                            },
                             'ai.response.toolCalls': {
                               output: () => stepToolCallsJson,
                             },
@@ -1970,16 +1971,23 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                             'ai.response.model': stepResponse.modelId,
                             'ai.response.timestamp':
                               stepResponse.timestamp.toISOString(),
-                            'ai.response.providerMetadata':
-                              JSON.stringify(stepProviderMetadata),
-
                             'ai.usage.inputTokens': stepUsage.inputTokens,
+                            'ai.usage.inputTokenDetails.noCacheTokens':
+                              stepUsage.inputTokenDetails?.noCacheTokens,
+                            'ai.usage.inputTokenDetails.cacheReadTokens':
+                              stepUsage.inputTokenDetails?.cacheReadTokens,
+                            'ai.usage.inputTokenDetails.cacheWriteTokens':
+                              stepUsage.inputTokenDetails?.cacheWriteTokens,
                             'ai.usage.outputTokens': stepUsage.outputTokens,
+                            'ai.usage.outputTokenDetails.textTokens':
+                              stepUsage.outputTokenDetails?.textTokens,
+                            'ai.usage.outputTokenDetails.reasoningTokens':
+                              stepUsage.outputTokenDetails?.reasoningTokens,
                             'ai.usage.totalTokens': stepUsage.totalTokens,
                             'ai.usage.reasoningTokens':
-                              stepUsage.reasoningTokens,
+                              stepUsage.outputTokenDetails?.reasoningTokens,
                             'ai.usage.cachedInputTokens':
-                              stepUsage.cachedInputTokens,
+                              stepUsage.inputTokenDetails?.cacheReadTokens,
 
                             // standardized gen-ai llm span attributes:
                             'gen_ai.response.finish_reasons': [
@@ -1995,9 +2003,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                       );
                     } catch (error) {
                       // ignore error setting telemetry attributes
-                    } finally {
-                      // finish doStreamSpan before other operations for correct timing:
-                      doStreamSpan.end();
                     }
 
                     controller.enqueue({
@@ -2020,6 +2025,33 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     // wait for the step to be fully processed by the event processor
                     // to ensure that the recorded steps are complete:
                     await stepFinish.promise;
+
+                    // set transform-dependent attributes after the step has been
+                    // fully processed (post-transform) by the event processor:
+                    const processedStep =
+                      recordedSteps[recordedSteps.length - 1];
+                    try {
+                      doStreamSpan.setAttributes(
+                        await selectTelemetryAttributes({
+                          telemetry,
+                          attributes: {
+                            'ai.response.text': {
+                              output: () => processedStep.text,
+                            },
+                            'ai.response.reasoning': {
+                              output: () => processedStep.reasoningText,
+                            },
+                            'ai.response.providerMetadata': JSON.stringify(
+                              processedStep.providerMetadata,
+                            ),
+                          },
+                        }),
+                      );
+                    } catch (error) {
+                      // ignore error setting telemetry attributes
+                    } finally {
+                      doStreamSpan.end();
+                    }
 
                     const clientToolCalls = stepToolCalls.filter(
                       toolCall => toolCall.providerExecuted !== true,
@@ -2477,6 +2509,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 type: 'file',
                 mediaType: part.file.mediaType,
                 url: `data:${part.file.mediaType};base64,${part.file.base64}`,
+                ...(part.providerMetadata != null
+                  ? { providerMetadata: part.providerMetadata }
+                  : {}),
               });
               break;
             }
@@ -2595,6 +2630,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 ...(part.providerExecuted != null
                   ? { providerExecuted: part.providerExecuted }
                   : {}),
+                ...(part.providerMetadata != null
+                  ? { providerMetadata: part.providerMetadata }
+                  : {}),
                 ...(part.preliminary != null
                   ? { preliminary: part.preliminary }
                   : {}),
@@ -2612,6 +2650,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 errorText: onError(part.error),
                 ...(part.providerExecuted != null
                   ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(part.providerMetadata != null
+                  ? { providerMetadata: part.providerMetadata }
                   : {}),
                 ...(dynamic != null ? { dynamic } : {}),
               });

@@ -352,6 +352,7 @@ export type AnthropicTool =
       description: string | undefined;
       input_schema: JSONSchema7;
       cache_control: AnthropicCacheControl | undefined;
+      eager_input_streaming?: boolean;
       strict?: boolean;
       /**
        * When true, this tool is deferred and will only be loaded when
