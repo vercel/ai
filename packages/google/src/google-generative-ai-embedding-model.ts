@@ -74,8 +74,15 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
       headers,
     );
 
-    // For single embeddings, use the single endpoint (ratelimits, etc.)
-    if (values.length === 1) {
+    // Use single endpoint for single values or multimodal content
+    const hasMultimodalContent =
+      googleOptions?.content && googleOptions.content.length > 0;
+
+    if (values.length === 1 || hasMultimodalContent) {
+      const contentParts = hasMultimodalContent
+        ? googleOptions.content
+        : [{ text: values[0] }];
+
       const {
         responseHeaders,
         value: response,
@@ -86,7 +93,7 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
         body: {
           model: `models/${this.modelId}`,
           content: {
-            parts: [{ text: values[0] }],
+            parts: contentParts,
           },
           outputDimensionality: googleOptions?.outputDimensionality,
           taskType: googleOptions?.taskType,
