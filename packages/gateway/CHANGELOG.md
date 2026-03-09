@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.71
+
+### Patch Changes
+
+- 55ccbe2: chore(provider/xai): remove obsolete Grok 2 models now that they are shut down in their API
+
 ## 3.0.70
 
 ### Patch Changes
