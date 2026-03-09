@@ -30,6 +30,7 @@ export interface CallbackModelInfo {
  */
 export interface OnStartEvent<
   TOOLS extends ToolSet,
+  CONTEXT extends ExpandedContext<TOOLS>,
   OUTPUT extends Output = Output,
   INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
@@ -94,8 +95,8 @@ export interface OnStartEvent<
    * When the condition is an array, any of the conditions can be met to stop.
    */
   readonly stopWhen:
-    | StopCondition<TOOLS>
-    | Array<StopCondition<TOOLS>>
+    | StopCondition<TOOLS, CONTEXT>
+    | Array<StopCondition<TOOLS, CONTEXT>>
     | undefined;
 
   /** The output specification for structured outputs, if configured. */
@@ -185,8 +186,8 @@ export interface OnStepStartEvent<
    * When the condition is an array, any of the conditions can be met to stop.
    */
   readonly stopWhen:
-    | StopCondition<TOOLS>
-    | Array<StopCondition<TOOLS>>
+    | StopCondition<TOOLS, CONTEXT>
+    | Array<StopCondition<TOOLS, CONTEXT>>
     | undefined;
 
   /** The output specification for structured outputs, if configured. */

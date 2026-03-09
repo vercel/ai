@@ -115,9 +115,10 @@ type GenerateTextIncludeSettings = {
  */
 export type GenerateTextOnStartCallback<
   TOOLS extends ToolSet,
+  CONTEXT extends ExpandedContext<TOOLS>,
   OUTPUT extends Output = Output,
 > = (
-  event: OnStartEvent<TOOLS, OUTPUT, GenerateTextIncludeSettings>,
+  event: OnStartEvent<TOOLS, CONTEXT, OUTPUT, GenerateTextIncludeSettings>,
 ) => PromiseLike<void> | void;
 
 /**
@@ -370,7 +371,11 @@ export async function generateText<
      * Callback that is called when the generateText operation begins,
      * before any LLM calls are made.
      */
-    experimental_onStart?: GenerateTextOnStartCallback<NoInfer<TOOLS>, OUTPUT>;
+    experimental_onStart?: GenerateTextOnStartCallback<
+      NoInfer<TOOLS>,
+      CONTEXT,
+      OUTPUT
+    >;
 
     /**
      * Callback that is called when a step (LLM call) begins,
@@ -520,7 +525,7 @@ export async function generateText<
       onStart,
       globalTelemetry.onStart as
         | undefined
-        | GenerateTextOnStartCallback<TOOLS, OUTPUT>,
+        | GenerateTextOnStartCallback<TOOLS, CONTEXT, OUTPUT>,
     ],
   });
 

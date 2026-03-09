@@ -16,7 +16,7 @@ import { Listener } from '../util/notify';
  * Methods can be sync or return a PromiseLike.
  */
 export interface TelemetryIntegration {
-  onStart?: Listener<OnStartEvent<ToolSet, Output>>;
+  onStart?: Listener<OnStartEvent<ToolSet, Context, Output>>;
   onStepStart?: Listener<OnStepStartEvent<ToolSet, Context, Output>>;
   onToolCallStart?: Listener<OnToolCallStartEvent<ToolSet>>;
   onToolCallFinish?: Listener<OnToolCallFinishEvent<ToolSet>>;
