@@ -1,5 +1,11 @@
 # @ai-sdk/rsc
 
+## 1.0.153
+
+### Patch Changes
+
+- ai@5.0.151
+
 ## 1.0.152
 
 ### Patch Changes
