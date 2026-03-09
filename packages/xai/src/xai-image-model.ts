@@ -27,7 +27,7 @@ interface XaiImageModelConfig {
 
 export class XaiImageModel implements ImageModelV3 {
   readonly specificationVersion = 'v3';
-  readonly maxImagesPerCall = 1;
+  readonly maxImagesPerCall = 3;
 
   get provider(): string {
     return this.config.provider;
@@ -84,19 +84,9 @@ export class XaiImageModel implements ImageModelV3 {
     });
 
     const hasFiles = files != null && files.length > 0;
-    let imageUrl: string | undefined;
-
-    if (hasFiles) {
-      imageUrl = convertImageModelFileToDataUri(files[0]);
-
-      if (files.length > 1) {
-        warnings.push({
-          type: 'other',
-          message:
-            'xAI only supports a single input image. Additional images are ignored.',
-        });
-      }
-    }
+    const imageUrls = hasFiles
+      ? files.map(file => convertImageModelFileToDataUri(file))
+      : [];
 
     const endpoint = hasFiles ? '/images/edits' : '/images/generations';
 
@@ -127,8 +117,10 @@ export class XaiImageModel implements ImageModelV3 {
       body.resolution = xaiOptions.resolution;
     }
 
-    if (imageUrl != null) {
-      body.image = { url: imageUrl, type: 'image_url' };
+    if (imageUrls.length === 1) {
+      body.image = { url: imageUrls[0], type: 'image_url' };
+    } else if (imageUrls.length > 1) {
+      body.images = imageUrls.map(url => ({ url, type: 'image_url' }));
     }
 
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
