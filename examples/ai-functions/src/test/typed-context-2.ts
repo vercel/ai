@@ -2,13 +2,15 @@ import { FlexibleSchema } from 'ai';
 import { run } from '../lib/run';
 import { z } from 'zod';
 
-interface Tool<INPUT = any, CONTEXT = any> {
+type Context = Record<string, unknown>;
+
+interface Tool<INPUT = any, CONTEXT extends Context = Context> {
   inputSchema: FlexibleSchema<INPUT>;
   contextSchema: FlexibleSchema<CONTEXT>;
   execute: (input: NoInfer<INPUT>, context: NoInfer<CONTEXT>) => unknown;
 }
 
-function tool<INPUT, CONTEXT>(options: {
+function tool<INPUT, CONTEXT extends Context>(options: {
   inputSchema: FlexibleSchema<INPUT>;
   contextSchema: FlexibleSchema<CONTEXT>;
   execute: (input: NoInfer<INPUT>, context: NoInfer<CONTEXT>) => unknown;
@@ -37,7 +39,7 @@ type InferToolSetContext<TOOLS extends ToolSet> = UnionToIntersection<
 >;
 
 type ExpandedContext<TOOLS extends ToolSet> = InferToolSetContext<TOOLS> &
-  Record<string, unknown>;
+  Context;
 
 function executeTool<
   TOOLS extends ToolSet,
