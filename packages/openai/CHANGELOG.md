@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.44
+
+### Patch Changes
+
+- f4a734a: fix(provider/openai): drop reasoning parts without encrypted content when store: false
+
 ## 3.0.43
 
 ### Patch Changes
