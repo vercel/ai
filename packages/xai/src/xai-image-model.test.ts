@@ -29,7 +29,7 @@ describe('XaiImageModel', () => {
       response: {
         type: 'json-value',
         body: {
-          data: [{ url: imageUrl }],
+          data: [{ b64_json: 'dGVzdA==' }],
         },
       },
     },
@@ -37,14 +37,8 @@ describe('XaiImageModel', () => {
       response: {
         type: 'json-value',
         body: {
-          data: [{ url: imageUrl }],
+          data: [{ b64_json: 'dGVzdA==' }],
         },
-      },
-    },
-    [imageUrl]: {
-      response: {
-        type: 'binary',
-        body: Buffer.from('test-binary-content'),
       },
     },
   });
@@ -83,7 +77,7 @@ describe('XaiImageModel', () => {
         model: 'grok-2-image-1212',
         prompt,
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         aspect_ratio: '16:9',
       });
     });
@@ -116,7 +110,7 @@ describe('XaiImageModel', () => {
         model: 'grok-2-image-1212',
         prompt: 'Turn the cat into a dog',
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         image: {
           url: 'data:image/png;base64,iVBORw==',
           type: 'image_url',
@@ -147,7 +141,7 @@ describe('XaiImageModel', () => {
         model: 'grok-2-image-1212',
         prompt: 'Edit this image',
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         image: {
           url: 'https://example.com/input.png',
           type: 'image_url',
@@ -179,7 +173,7 @@ describe('XaiImageModel', () => {
         model: 'grok-2-image-1212',
         prompt: 'Edit this image',
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         image: {
           url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAE=',
           type: 'image_url',
@@ -221,7 +215,7 @@ describe('XaiImageModel', () => {
         model: 'grok-2-image-1212',
         prompt: 'Combine these images',
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         images: [
           {
             url: 'data:image/png;base64,iVBORw==',
@@ -263,7 +257,7 @@ describe('XaiImageModel', () => {
         model: 'grok-2-image-1212',
         prompt: 'Combine these images',
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         images: [
           {
             url: 'https://example.com/input.png',
@@ -277,7 +271,7 @@ describe('XaiImageModel', () => {
       });
     });
 
-    it('should download images from returned URLs', async () => {
+    it('should return base64 images from b64_json response', async () => {
       const model = createModel();
 
       const result = await model.doGenerate({
@@ -292,10 +286,7 @@ describe('XaiImageModel', () => {
       });
 
       expect(result.images).toHaveLength(1);
-      expect(result.images[0]).toBeInstanceOf(Uint8Array);
-      expect(Buffer.from(result.images[0] as Uint8Array).toString()).toBe(
-        'test-binary-content',
-      );
+      expect(result.images[0]).toBe('dGVzdA==');
     });
 
     it('should pass headers', async () => {
@@ -349,7 +340,7 @@ describe('XaiImageModel', () => {
         model: 'grok-2-image-1212',
         prompt,
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         output_format: 'jpeg',
         sync_mode: true,
       });
@@ -377,7 +368,7 @@ describe('XaiImageModel', () => {
         model: 'grok-2-image-1212',
         prompt,
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         resolution: '2k',
       });
     });
@@ -386,7 +377,7 @@ describe('XaiImageModel', () => {
       server.urls['https://api.example.com/images/generations'].response = {
         type: 'json-value',
         body: {
-          data: [{ url: imageUrl, revised_prompt: 'A revised prompt' }],
+          data: [{ b64_json: 'dGVzdA==', revised_prompt: 'A revised prompt' }],
         },
       };
 
