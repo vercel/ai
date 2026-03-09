@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- aa5a583: chore(provider/xai): remove obsolete Grok 2 models now that they are shut down in their API
+
 ## 4.0.0-beta.4
 
 ### Patch Changes
