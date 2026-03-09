@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.47
+
+### Patch Changes
+
+- 9d46b93: fix(provider/google): correctly mark reasoning files as such and fix related multi-turn errors
+
 ## 3.0.46
 
 ### Patch Changes
