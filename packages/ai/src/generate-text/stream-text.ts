@@ -541,7 +541,7 @@ export function streamText<
       now?: () => number;
       generateId?: IdGenerator;
     };
-  }): StreamTextResult<TOOLS, OUTPUT> {
+  }): StreamTextResult<TOOLS, CONTEXT, OUTPUT> {
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
   const chunkTimeoutMs = getChunkTimeoutMs(timeout);
@@ -704,19 +704,19 @@ class DefaultStreamTextResult<
   TOOLS extends ToolSet,
   CONTEXT extends ExpandedContext<TOOLS>,
   OUTPUT extends Output,
-> implements StreamTextResult<TOOLS, OUTPUT>
+> implements StreamTextResult<TOOLS, CONTEXT, OUTPUT>
 {
   private readonly _totalUsage = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, OUTPUT>['usage']>
+    Awaited<StreamTextResult<TOOLS, CONTEXT, OUTPUT>['usage']>
   >();
   private readonly _finishReason = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, OUTPUT>['finishReason']>
+    Awaited<StreamTextResult<TOOLS, CONTEXT, OUTPUT>['finishReason']>
   >();
   private readonly _rawFinishReason = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, OUTPUT>['rawFinishReason']>
+    Awaited<StreamTextResult<TOOLS, CONTEXT, OUTPUT>['rawFinishReason']>
   >();
   private readonly _steps = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, OUTPUT>['steps']>
+    Awaited<StreamTextResult<TOOLS, CONTEXT, OUTPUT>['steps']>
   >();
 
   private readonly addStream: (
