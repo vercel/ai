@@ -27,6 +27,22 @@ import { TelemetrySettings } from './telemetry-settings';
 import type { TelemetryIntegration } from './telemetry-integration';
 import { registerTelemetryIntegration } from './telemetry-integration-registry';
 
+function recordSpanError(span: Span, error: unknown): void {
+  if (error instanceof Error) {
+    span.recordException({
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    });
+    span.setStatus({
+      code: SpanStatusCode.ERROR,
+      message: error.message,
+    });
+  } else {
+    span.setStatus({ code: SpanStatusCode.ERROR });
+  }
+}
+
 function shouldRecord(
   telemetry: TelemetrySettings | undefined,
 ): telemetry is TelemetrySettings {
@@ -292,19 +308,7 @@ class OtelTelemetryIntegration implements TelemetryIntegration {
         // JSON.stringify might fail for non-serializable results
       }
     } else {
-      if (event.error instanceof Error) {
-        span.recordException({
-          name: event.error.name,
-          message: event.error.message,
-          stack: event.error.stack,
-        });
-        span.setStatus({
-          code: SpanStatusCode.ERROR,
-          message: event.error.message,
-        });
-      } else {
-        span.setStatus({ code: SpanStatusCode.ERROR });
-      }
+      recordSpanError(span, event.error);
     }
 
     span.end();
@@ -463,35 +467,11 @@ class OtelTelemetryIntegration implements TelemetryIntegration {
     const actualError = event.error ?? error;
 
     if (state.stepSpan) {
-      if (actualError instanceof Error) {
-        state.stepSpan.recordException({
-          name: actualError.name,
-          message: actualError.message,
-          stack: actualError.stack,
-        });
-        state.stepSpan.setStatus({
-          code: SpanStatusCode.ERROR,
-          message: actualError.message,
-        });
-      } else {
-        state.stepSpan.setStatus({ code: SpanStatusCode.ERROR });
-      }
+      recordSpanError(state.stepSpan, actualError);
       state.stepSpan.end();
     }
 
-    if (actualError instanceof Error) {
-      state.rootSpan.recordException({
-        name: actualError.name,
-        message: actualError.message,
-        stack: actualError.stack,
-      });
-      state.rootSpan.setStatus({
-        code: SpanStatusCode.ERROR,
-        message: actualError.message,
-      });
-    } else {
-      state.rootSpan.setStatus({ code: SpanStatusCode.ERROR });
-    }
+    recordSpanError(state.rootSpan, actualError);
 
     state.rootSpan.end();
     this.cleanupCallState(event.callId);
