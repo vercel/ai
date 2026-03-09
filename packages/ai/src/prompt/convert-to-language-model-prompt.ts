@@ -371,7 +371,10 @@ async function downloadAssets(
 
     .filter(
       (part): part is { mediaType: string | undefined; data: URL } =>
-        part.data instanceof URL,
+        // Exclude data: URLs — they are inline binary and do not need downloading.
+        // Passing them to the download function would cause an SSRF-protection error
+        // because validateDownloadUrl() only allows http: and https: schemes.
+        part.data instanceof URL && part.data.protocol !== 'data:',
     )
     .map(part => ({
       url: part.data,
