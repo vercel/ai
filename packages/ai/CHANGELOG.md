@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.9
+
+### Patch Changes
+
+- 1fe058b: fix(anthropic): preserve the error code returned by model
+
 ## 7.0.0-beta.8
 
 ### Patch Changes
