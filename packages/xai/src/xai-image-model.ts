@@ -70,13 +70,6 @@ export class XaiImageModel implements ImageModelV3 {
       });
     }
 
-    if (mask != null) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'mask',
-      });
-    }
-
     const xaiOptions = await parseProviderOptions({
       provider: 'xai',
       providerOptions,
@@ -129,6 +122,20 @@ export class XaiImageModel implements ImageModelV3 {
 
     if (imageUrl != null) {
       body.image = { url: imageUrl, type: 'image_url' };
+    }
+
+    if (mask != null && hasFiles) {
+      const maskUrl = convertImageModelFileToDataUri(mask);
+      body.mask = { url: maskUrl };
+    }
+
+    if (mask != null && !hasFiles) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'mask',
+        details:
+          'Mask is only supported for image editing (when files are provided).',
+      });
     }
 
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';

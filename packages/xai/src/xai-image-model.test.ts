@@ -389,7 +389,33 @@ describe('XaiImageModel', () => {
         });
       });
 
-      it('should warn when mask is provided', async () => {
+      it('should warn when mask is provided without files (generation mode)', async () => {
+        const model = createModel();
+
+        const result = await model.doGenerate({
+          prompt,
+          files: undefined,
+          mask: {
+            type: 'file',
+            data: new Uint8Array([255, 255, 255, 0]),
+            mediaType: 'image/png',
+          },
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        });
+
+        expect(result.warnings).toContainEqual({
+          type: 'unsupported',
+          feature: 'mask',
+          details:
+            'Mask is only supported for image editing (when files are provided).',
+        });
+      });
+
+      it('should send mask as image_url in edits request', async () => {
         const model = createModel();
 
         const result = await model.doGenerate({
@@ -413,9 +439,62 @@ describe('XaiImageModel', () => {
           providerOptions: {},
         });
 
-        expect(result.warnings).toContainEqual({
-          type: 'unsupported',
-          feature: 'mask',
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'grok-2-image-1212',
+          prompt: 'Edit this',
+          n: 1,
+          response_format: 'url',
+          image: {
+            url: 'data:image/png;base64,iVBORw==',
+            type: 'image_url',
+          },
+          mask: {
+            url: 'data:image/png;base64,////AA==',
+            type: 'image_url',
+          },
+        });
+
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({ feature: 'mask' }),
+        );
+      });
+
+      it('should send URL-based mask as image_url', async () => {
+        const model = createModel();
+
+        await model.doGenerate({
+          prompt: 'Edit this',
+          files: [
+            {
+              type: 'file',
+              data: new Uint8Array([137, 80, 78, 71]),
+              mediaType: 'image/png',
+            },
+          ],
+          mask: {
+            type: 'url',
+            url: 'https://example.com/mask.png',
+          },
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'grok-2-image-1212',
+          prompt: 'Edit this',
+          n: 1,
+          response_format: 'url',
+          image: {
+            url: 'data:image/png;base64,iVBORw==',
+            type: 'image_url',
+          },
+          mask: {
+            url: 'https://example.com/mask.png',
+            type: 'image_url',
+          },
         });
       });
 
