@@ -450,7 +450,7 @@ export async function generateText<
     _internal?: {
       generateId?: IdGenerator;
     };
-  }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
+  }): Promise<GenerateTextResult<TOOLS, CONTEXT, OUTPUT>> {
   const model = resolveLanguageModel(modelArg);
   const createGlobalTelemetry = getGlobalTelemetryIntegration<any, OUTPUT>();
   const stopConditions = asArray(stopWhen);
@@ -1332,7 +1332,7 @@ class DefaultGenerateTextResult<
   TOOLS extends ToolSet,
   CONTEXT extends ExpandedContext<TOOLS>,
   OUTPUT extends Output,
-> implements GenerateTextResult<TOOLS, OUTPUT>
+> implements GenerateTextResult<TOOLS, CONTEXT, OUTPUT>
 {
   readonly steps: StepResult<TOOLS, CONTEXT>[];
   readonly totalUsage: LanguageModelUsage;

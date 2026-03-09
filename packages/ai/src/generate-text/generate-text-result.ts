@@ -16,7 +16,7 @@ import {
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-import { ToolSet } from './tool-set';
+import { ExpandedContext, ToolSet } from './tool-set';
 
 /**
  * The result of a `generateText` call.
@@ -24,6 +24,7 @@ import { ToolSet } from './tool-set';
  */
 export interface GenerateTextResult<
   TOOLS extends ToolSet,
+  CONTEXT extends ExpandedContext<TOOLS>,
   OUTPUT extends Output,
 > {
   /**
@@ -151,7 +152,7 @@ export interface GenerateTextResult<
    * You can use this to get information about intermediate steps,
    * such as the tool calls or the response headers.
    */
-  readonly steps: Array<StepResult<TOOLS>>;
+  readonly steps: Array<StepResult<TOOLS, CONTEXT>>;
 
   /**
    * The generated structured output. It uses the `output` specification.
