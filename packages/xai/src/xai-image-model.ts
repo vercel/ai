@@ -94,7 +94,7 @@ export class XaiImageModel implements ImageModelV3 {
       model: this.modelId,
       prompt,
       n,
-      response_format: 'url',
+      response_format: 'b64_json',
     };
 
     if (aspectRatio != null) {
@@ -117,6 +117,14 @@ export class XaiImageModel implements ImageModelV3 {
       body.resolution = xaiOptions.resolution;
     }
 
+    if (xaiOptions?.quality != null) {
+      body.quality = xaiOptions.quality;
+    }
+
+    if (xaiOptions?.user != null) {
+      body.user = xaiOptions.user;
+    }
+
     if (imageUrls.length === 1) {
       body.image = { url: imageUrls[0], type: 'image_url' };
     } else if (imageUrls.length > 1) {
@@ -137,12 +145,18 @@ export class XaiImageModel implements ImageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const downloadedImages = await Promise.all(
-      response.data.map(image => this.downloadImage(image.url, abortSignal)),
-    );
+    const hasAllBase64 = response.data.every(image => image.b64_json != null);
+
+    const images = hasAllBase64
+      ? response.data.map(image => image.b64_json!)
+      : await Promise.all(
+          response.data.map(image =>
+            this.downloadImage(image.url!, abortSignal),
+          ),
+        );
 
     return {
-      images: downloadedImages,
+      images,
       warnings,
       response: {
         timestamp: currentDate,
@@ -156,6 +170,9 @@ export class XaiImageModel implements ImageModelV3 {
               ? { revisedPrompt: item.revised_prompt }
               : {}),
           })),
+          ...(response.usage?.cost_in_usd_ticks != null
+            ? { costInUsdTicks: response.usage.cost_in_usd_ticks }
+            : {}),
         },
       },
     };
@@ -179,8 +196,14 @@ export class XaiImageModel implements ImageModelV3 {
 const xaiImageResponseSchema = z.object({
   data: z.array(
     z.object({
-      url: z.string(),
+      url: z.string().nullish(),
+      b64_json: z.string().nullish(),
       revised_prompt: z.string().nullish(),
     }),
   ),
+  usage: z
+    .object({
+      cost_in_usd_ticks: z.number().nullish(),
+    })
+    .nullish(),
 });
