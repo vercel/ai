@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.99
+
+### Patch Changes
+
+- 0aab803: feat(provider/openai): add `gpt-5.3-chat-latest`
+
 ## 2.0.98
 
 ### Patch Changes
