@@ -1571,7 +1571,7 @@ describe('assistant messages', () => {
       {
         "cache_control": undefined,
         "content": {
-          "error_code": "unknown",
+          "error_code": "unavailable",
           "type": "web_fetch_tool_result_error",
         },
         "tool_use_id": "srvtoolu_test123",
