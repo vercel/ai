@@ -945,6 +945,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -960,7 +961,7 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               type: 'reasoning',
               id: 'reasoning_001',
-              encrypted_content: undefined,
+              encrypted_content: 'encrypted_content_001',
               summary: [
                 {
                   type: 'summary_text',
@@ -1028,7 +1029,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
-                        reasoningEncryptedContent: null,
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -1044,7 +1045,7 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               type: 'reasoning',
               id: 'reasoning_001',
-              encrypted_content: null,
+              encrypted_content: 'encrypted_content_001',
               summary: [
                 {
                   type: 'summary_text',
@@ -1072,6 +1073,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -1087,7 +1089,7 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               type: 'reasoning',
               id: 'reasoning_001',
-              encrypted_content: undefined,
+              encrypted_content: 'encrypted_content_001',
               summary: [],
             },
           ]);
@@ -1154,6 +1156,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -1169,7 +1172,7 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               type: 'reasoning',
               id: 'reasoning_001',
-              encrypted_content: undefined,
+              encrypted_content: 'encrypted_content_001',
               summary: [
                 {
                   type: 'summary_text',
@@ -1182,7 +1185,7 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.warnings).toMatchInlineSnapshot(`
             [
               {
-                "message": "Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: {"type":"reasoning","text":"","providerOptions":{"openai":{"itemId":"reasoning_001"}}}.",
+                "message": "Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: {"type":"reasoning","text":"","providerOptions":{"openai":{"itemId":"reasoning_001","reasoningEncryptedContent":"encrypted_content_001"}}}.",
                 "type": "other",
               },
             ]
@@ -1249,6 +1252,51 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.warnings).toHaveLength(0);
         });
 
+        it('should drop reasoning parts without encrypted content when store is false', async () => {
+          const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
+            prompt: [
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'First reasoning step',
+                    providerOptions: {
+                      openai: {
+                        itemId: 'reasoning_001',
+                      },
+                    },
+                  },
+                  {
+                    type: 'reasoning',
+                    text: 'Second reasoning step',
+                    providerOptions: {
+                      openai: {
+                        itemId: 'reasoning_001',
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+            systemMessageMode: 'system',
+            providerOptionsName: 'openai',
+            store: false,
+          });
+
+          expect(result.input).toMatchInlineSnapshot(`[]`);
+
+          expect(result.warnings).toMatchInlineSnapshot(`
+            [
+              {
+                "message": "Reasoning parts without encrypted content are not supported when store is false. Skipping reasoning parts.",
+                "type": "other",
+              },
+            ]
+          `);
+        });
+
         it('should create separate messages for different reasoning IDs', async () => {
           const result = await convertToOpenAIResponsesInput({
             toolNameMapping: testToolNameMapping,
@@ -1262,6 +1310,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -1271,6 +1320,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_002',
+                        reasoningEncryptedContent: 'encrypted_content_002',
                       },
                     },
                   },
@@ -1286,7 +1336,7 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               type: 'reasoning',
               id: 'reasoning_001',
-              encrypted_content: undefined,
+              encrypted_content: 'encrypted_content_001',
               summary: [
                 {
                   type: 'summary_text',
@@ -1297,7 +1347,7 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               type: 'reasoning',
               id: 'reasoning_002',
-              encrypted_content: undefined,
+              encrypted_content: 'encrypted_content_002',
               summary: [
                 {
                   type: 'summary_text',
@@ -1447,6 +1497,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -1466,6 +1517,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_002',
+                        reasoningEncryptedContent: 'encrypted_content_002',
                       },
                     },
                   },
@@ -1478,50 +1530,74 @@ describe('convertToOpenAIResponsesInput', () => {
             store: false,
           });
 
-          expect(result.input).toEqual([
-            {
-              role: 'user',
-              content: [{ type: 'input_text', text: 'First user question' }],
-            },
-            {
-              type: 'reasoning',
-              id: 'reasoning_001',
-              encrypted_content: undefined,
-              summary: [
-                {
-                  type: 'summary_text',
-                  text: 'First reasoning step (message 1)',
-                },
-                {
-                  type: 'summary_text',
-                  text: 'Second reasoning step (message 1)',
-                },
-              ],
-            },
-            {
-              role: 'assistant',
-              content: [{ type: 'output_text', text: 'First response' }],
-            },
-            {
-              role: 'user',
-              content: [{ type: 'input_text', text: 'Second user question' }],
-            },
-            {
-              type: 'reasoning',
-              id: 'reasoning_002',
-              encrypted_content: undefined,
-              summary: [
-                {
-                  type: 'summary_text',
-                  text: 'First reasoning step (message 2)',
-                },
-              ],
-            },
-            {
-              role: 'assistant',
-              content: [{ type: 'output_text', text: 'Second response' }],
-            },
-          ]);
+          expect(result.input).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "text": "First user question",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+              {
+                "encrypted_content": "encrypted_content_001",
+                "id": "reasoning_001",
+                "summary": [
+                  {
+                    "text": "First reasoning step (message 1)",
+                    "type": "summary_text",
+                  },
+                  {
+                    "text": "Second reasoning step (message 1)",
+                    "type": "summary_text",
+                  },
+                ],
+                "type": "reasoning",
+              },
+              {
+                "content": [
+                  {
+                    "text": "First response",
+                    "type": "output_text",
+                  },
+                ],
+                "id": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "text": "Second user question",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+              {
+                "encrypted_content": "encrypted_content_002",
+                "id": "reasoning_002",
+                "summary": [
+                  {
+                    "text": "First reasoning step (message 2)",
+                    "type": "summary_text",
+                  },
+                ],
+                "type": "reasoning",
+              },
+              {
+                "content": [
+                  {
+                    "text": "Second response",
+                    "type": "output_text",
+                  },
+                ],
+                "id": undefined,
+                "role": "assistant",
+              },
+            ]
+          `);
 
           expect(result.warnings).toHaveLength(0);
         });
