@@ -244,6 +244,27 @@ console.log(reasoning); // reasoning details including redacted reasoning
 console.log(text); // text response
 ```
 
+#### Adaptive Thinking
+
+Adaptive thinking allows the model to dynamically decide how much reasoning to apply, instead of allocating a fixed budget. Enable it by setting `budgetTokens` to `0`:
+
+```ts highlight="4,8-10"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text, reasoningText, reasoning } = await generateText({
+  model: anthropic('claude-opus-4-20250514'),
+  prompt: 'How many people will live in the world in 2040?',
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'enabled', budgetTokens: 0 },
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
+With `budgetTokens: 0`, the model uses adaptive thinking — it reasons as much as needed for the task without a hard token cap.
+
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
 
