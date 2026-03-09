@@ -10714,11 +10714,16 @@ describe('streamText', () => {
               },
               "events": [
                 {
-                  "attributes": undefined,
+                  "attributes": {
+                    "ai.response.msToFirstChunk": 100,
+                  },
                   "name": "ai.stream.firstChunk",
                 },
                 {
-                  "attributes": undefined,
+                  "attributes": {
+                    "ai.response.avgOutputTokensPerSecond": 20,
+                    "ai.response.msToFinish": 500,
+                  },
                   "name": "ai.stream.finish",
                 },
               ],
@@ -10778,11 +10783,16 @@ describe('streamText', () => {
               },
               "events": [
                 {
-                  "attributes": undefined,
+                  "attributes": {
+                    "ai.response.msToFirstChunk": 400,
+                  },
                   "name": "ai.stream.firstChunk",
                 },
                 {
-                  "attributes": undefined,
+                  "attributes": {
+                    "ai.response.avgOutputTokensPerSecond": 25,
+                    "ai.response.msToFinish": 400,
+                  },
                   "name": "ai.stream.finish",
                 },
               ],

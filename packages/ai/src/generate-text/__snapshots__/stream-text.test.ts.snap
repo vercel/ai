@@ -143,11 +143,16 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
     },
     "events": [
       {
-        "attributes": undefined,
+        "attributes": {
+          "ai.response.msToFirstChunk": 100,
+        },
         "name": "ai.stream.firstChunk",
       },
       {
-        "attributes": undefined,
+        "attributes": {
+          "ai.response.avgOutputTokensPerSecond": 20,
+          "ai.response.msToFinish": 500,
+        },
         "name": "ai.stream.finish",
       },
     ],
@@ -207,11 +212,16 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
     },
     "events": [
       {
-        "attributes": undefined,
+        "attributes": {
+          "ai.response.msToFirstChunk": 400,
+        },
         "name": "ai.stream.firstChunk",
       },
       {
-        "attributes": undefined,
+        "attributes": {
+          "ai.response.avgOutputTokensPerSecond": 25,
+          "ai.response.msToFinish": 400,
+        },
         "name": "ai.stream.finish",
       },
     ],
@@ -282,11 +292,16 @@ exports[`streamText > options.transform > with base transformation > telemetry s
     },
     "events": [
       {
-        "attributes": undefined,
+        "attributes": {
+          "ai.response.msToFirstChunk": 100,
+        },
         "name": "ai.stream.firstChunk",
       },
       {
-        "attributes": undefined,
+        "attributes": {
+          "ai.response.avgOutputTokensPerSecond": 20,
+          "ai.response.msToFinish": 500,
+        },
         "name": "ai.stream.finish",
       },
     ],
@@ -1060,11 +1075,16 @@ exports[`streamText > telemetry > should not record telemetry inputs / outputs w
     },
     "events": [
       {
-        "attributes": undefined,
+        "attributes": {
+          "ai.response.msToFirstChunk": 100,
+        },
         "name": "ai.stream.firstChunk",
       },
       {
-        "attributes": undefined,
+        "attributes": {
+          "ai.response.avgOutputTokensPerSecond": 20,
+          "ai.response.msToFinish": 500,
+        },
         "name": "ai.stream.finish",
       },
     ],
@@ -1143,11 +1163,16 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
     },
     "events": [
       {
-        "attributes": undefined,
+        "attributes": {
+          "ai.response.msToFirstChunk": 100,
+        },
         "name": "ai.stream.firstChunk",
       },
       {
-        "attributes": undefined,
+        "attributes": {
+          "ai.response.avgOutputTokensPerSecond": 20,
+          "ai.response.msToFinish": 500,
+        },
         "name": "ai.stream.finish",
       },
     ],
@@ -1260,11 +1285,16 @@ exports[`streamText > telemetry > should record telemetry data when enabled 1`] 
     },
     "events": [
       {
-        "attributes": undefined,
+        "attributes": {
+          "ai.response.msToFirstChunk": 100,
+        },
         "name": "ai.stream.firstChunk",
       },
       {
-        "attributes": undefined,
+        "attributes": {
+          "ai.response.avgOutputTokensPerSecond": 20,
+          "ai.response.msToFinish": 500,
+        },
         "name": "ai.stream.finish",
       },
     ],
