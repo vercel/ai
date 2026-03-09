@@ -2299,6 +2299,71 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should preserve thought flag on file parts in providerMetadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: 'image/png',
+                    data: 'thoughtimagedata',
+                  },
+                  thought: true,
+                  thoughtSignature: 'img_sig1',
+                },
+                {
+                  inlineData: {
+                    mimeType: 'image/jpeg',
+                    data: 'regularimagedata',
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 20,
+          totalTokenCount: 30,
+        },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "data": "thoughtimagedata",
+          "mediaType": "image/png",
+          "providerMetadata": {
+            "google": {
+              "thought": true,
+              "thoughtSignature": "img_sig1",
+            },
+          },
+          "type": "file",
+        },
+        {
+          "data": "regularimagedata",
+          "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
+          "type": "file",
+        },
+      ]
+    `);
+  });
+
   it('should pass responseModalities in provider options', async () => {
     prepareJsonFixtureResponse('google-text');
 
@@ -4215,6 +4280,74 @@ describe('doStream', () => {
               "totalTokenCount": 527,
             },
           },
+        },
+      ]
+    `);
+  });
+
+  it('should stream file parts with thought flag in providerMetadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    inlineData: { data: 'thoughtimg', mimeType: 'image/png' },
+                    thought: true,
+                    thoughtSignature: 'stream_sig',
+                  },
+                  {
+                    inlineData: {
+                      data: 'regularimg',
+                      mimeType: 'image/jpeg',
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 20,
+            totalTokenCount: 30,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    const fileEvents = events.filter(e => e.type === 'file');
+    expect(fileEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "data": "thoughtimg",
+          "mediaType": "image/png",
+          "providerMetadata": {
+            "google": {
+              "thought": true,
+              "thoughtSignature": "stream_sig",
+            },
+          },
+          "type": "file",
+        },
+        {
+          "data": "regularimg",
+          "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
+          "type": "file",
         },
       ]
     `);
