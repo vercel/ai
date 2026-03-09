@@ -145,14 +145,15 @@ export class XaiImageModel implements ImageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const images = await Promise.all(
-      response.data.map(image => {
-        if (image.b64_json != null) {
-          return Promise.resolve(image.b64_json);
-        }
-        return this.downloadImage(image.url!, abortSignal);
-      }),
-    );
+    const hasAllBase64 = response.data.every(image => image.b64_json != null);
+
+    const images = hasAllBase64
+      ? response.data.map(image => image.b64_json!)
+      : await Promise.all(
+          response.data.map(image =>
+            this.downloadImage(image.url!, abortSignal),
+          ),
+        );
 
     return {
       images,

@@ -19,9 +19,11 @@ run(async () => {
   await presentImages([image]);
 
   // Log cost metadata if available
-  if (providerMetadata?.xai?.costInUsdTicks != null) {
+  const costInUsdTicks = (providerMetadata?.xai as Record<string, unknown>)
+    ?.costInUsdTicks as number | undefined;
+  if (costInUsdTicks != null) {
     console.log(
-      `Cost: ${providerMetadata.xai.costInUsdTicks} USD ticks ($${(providerMetadata.xai.costInUsdTicks / 1_000_000).toFixed(6)})`,
+      `Cost: ${costInUsdTicks} USD ticks ($${(costInUsdTicks / 1_000_000).toFixed(6)})`,
     );
   }
 });
