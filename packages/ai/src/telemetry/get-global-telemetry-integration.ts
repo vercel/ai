@@ -1,8 +1,13 @@
 import type { Output } from '../generate-text/output';
 import type { ToolSet } from '../generate-text/tool-set';
 import { asArray } from '../util/as-array';
+import { otelIntegration } from './otel-event-handler';
 import type { TelemetryIntegration } from './telemetry-integration';
-import { getGlobalTelemetryIntegrations } from './telemetry-integration-registry';
+import {
+  getGlobalTelemetryIntegrations,
+  hasIntegration,
+  registerTelemetryIntegration,
+} from './telemetry-integration-registry';
 
 /**
  * Wraps a telemetry integration with bound methods.
@@ -38,6 +43,10 @@ export function getGlobalTelemetryIntegration<
 >(): (
   integrations: TelemetryIntegration | Array<TelemetryIntegration> | undefined,
 ) => TelemetryIntegration {
+  if (!hasIntegration(otelIntegration)) {
+    registerTelemetryIntegration(otelIntegration);
+  }
+
   const globalIntegrations = getGlobalTelemetryIntegrations();
 
   return (

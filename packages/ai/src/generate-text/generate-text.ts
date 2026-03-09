@@ -33,7 +33,6 @@ import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
-import '../telemetry/otel-event-handler';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
   LanguageModel,

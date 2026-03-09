@@ -25,7 +25,6 @@ import { getTracer } from './get-tracer';
 import { stringifyForTelemetry } from './stringify-for-telemetry';
 import { TelemetrySettings } from './telemetry-settings';
 import type { TelemetryIntegration } from './telemetry-integration';
-import { registerTelemetryIntegration } from './telemetry-integration-registry';
 
 function recordSpanError(span: Span, error: unknown): void {
   if (error instanceof Error) {
@@ -478,6 +477,5 @@ class OtelTelemetryIntegration implements TelemetryIntegration {
   }
 }
 
-const otelIntegration: TelemetryIntegration = new OtelTelemetryIntegration();
-
-registerTelemetryIntegration(otelIntegration);
+export const otelIntegration: TelemetryIntegration =
+  new OtelTelemetryIntegration();
