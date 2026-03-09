@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.27
+
+### Patch Changes
+
+- 1920b22: fix(mcp): add MCP protocol version 2025-11-25 to supported versions
+
 ## 1.0.26
 
 ### Patch Changes
