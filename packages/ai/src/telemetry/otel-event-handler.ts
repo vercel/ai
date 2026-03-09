@@ -327,7 +327,10 @@ class OtelTelemetryIntegration implements TelemetryIntegration {
           output: () => event.text ?? undefined,
         },
         'ai.response.reasoning': {
-          output: () => event.reasoningText ?? undefined,
+          output: () =>
+            event.reasoning.length > 0
+              ? event.reasoning.map(part => part.text).join('\n')
+              : undefined,
         },
         'ai.response.toolCalls': {
           output: () =>
@@ -384,7 +387,10 @@ class OtelTelemetryIntegration implements TelemetryIntegration {
           output: () => event.text ?? undefined,
         },
         'ai.response.reasoning': {
-          output: () => event.reasoningText ?? undefined,
+          output: () =>
+            event.reasoning.length > 0
+              ? event.reasoning.map(part => part.text).join('\n')
+              : undefined,
         },
         'ai.response.toolCalls': {
           output: () =>

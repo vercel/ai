@@ -4401,10 +4401,10 @@ describe('generateText', () => {
       );
 
       expect(rootSpan?.attributes['ai.response.reasoning']).toBe(
-        'I will open the conversation with witty banter.',
+        'I will open the conversation with witty banter.\n',
       );
       expect(doGenerateSpan?.attributes['ai.response.reasoning']).toBe(
-        'I will open the conversation with witty banter.',
+        'I will open the conversation with witty banter.\n',
       );
     });
 
