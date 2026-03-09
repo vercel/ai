@@ -21,7 +21,7 @@ const provider = createOpenAICompatible({
   },
 });
 
-const model = provider('grok-beta');
+const model = provider('grok-3');
 
 const server = createTestServer({
   'https://my.api.com/v1/chat/completions': {},
@@ -60,7 +60,7 @@ function prepareChunksFixtureResponse(
 
 describe('config', () => {
   it('should extract base name from provider string', () => {
-    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
       provider: 'anthropic.beta',
       url: () => '',
       headers: () => ({}),
@@ -70,7 +70,7 @@ describe('config', () => {
   });
 
   it('should handle provider without dot notation', () => {
-    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
       provider: 'openai',
       url: () => '',
       headers: () => ({}),
@@ -80,7 +80,7 @@ describe('config', () => {
   });
 
   it('should return empty for empty provider', () => {
-    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
       provider: '',
       url: () => '',
       headers: () => ({}),
@@ -105,7 +105,7 @@ describe('doGenerate', () => {
     finish_reason = 'stop',
     id = 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
     created = 1711115037,
-    model = 'grok-beta',
+    model = 'grok-3',
     headers,
   }: {
     content?: string;
@@ -278,7 +278,7 @@ describe('doGenerate', () => {
 
   it('should pass user setting to requests', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
-    const modelWithUser = provider('grok-beta');
+    const modelWithUser = provider('grok-3');
     await modelWithUser.doGenerate({
       prompt: TEST_PROMPT,
       providerOptions: {
@@ -295,7 +295,7 @@ describe('doGenerate', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
       }
     `);
   });
@@ -407,7 +407,7 @@ describe('doGenerate', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
       }
     `);
   });
@@ -415,7 +415,7 @@ describe('doGenerate', () => {
   it('should pass settings', async () => {
     prepareJsonResponse();
 
-    await provider('grok-beta').doGenerate({
+    await provider('grok-3').doGenerate({
       prompt: TEST_PROMPT,
       providerOptions: {
         openaiCompatible: {
@@ -432,7 +432,7 @@ describe('doGenerate', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
         "user": "test-user-id",
       }
     `);
@@ -441,7 +441,7 @@ describe('doGenerate', () => {
   it('should pass settings with deprecated openai-compatible key and emit warning', async () => {
     prepareJsonResponse();
 
-    const result = await provider('grok-beta').doGenerate({
+    const result = await provider('grok-3').doGenerate({
       prompt: TEST_PROMPT,
       providerOptions: {
         'openai-compatible': {
@@ -458,7 +458,7 @@ describe('doGenerate', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
         "user": "test-user-id",
       }
     `);
@@ -472,7 +472,7 @@ describe('doGenerate', () => {
   it('should include provider-specific options', async () => {
     prepareJsonResponse();
 
-    await provider('grok-beta').doGenerate({
+    await provider('grok-3').doGenerate({
       providerOptions: {
         'test-provider': {
           someCustomOption: 'test-value',
@@ -489,7 +489,7 @@ describe('doGenerate', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
         "someCustomOption": "test-value",
       }
     `);
@@ -498,7 +498,7 @@ describe('doGenerate', () => {
   it('should not include provider-specific options for different provider', async () => {
     prepareJsonResponse();
 
-    await provider('grok-beta').doGenerate({
+    await provider('grok-3').doGenerate({
       providerOptions: {
         notThisProviderName: {
           someCustomOption: 'test-value',
@@ -515,7 +515,7 @@ describe('doGenerate', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
       }
     `);
   });
@@ -552,7 +552,7 @@ describe('doGenerate', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
         "tool_choice": {
           "function": {
             "name": "test-tool",
@@ -596,7 +596,7 @@ describe('doGenerate', () => {
       },
     });
 
-    await provider('grok-beta').doGenerate({
+    await provider('grok-3').doGenerate({
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -1283,7 +1283,7 @@ describe('doGenerate', () => {
 
     expect(request).toMatchInlineSnapshot(`
       {
-        "body": "{"model":"grok-beta","messages":[{"role":"user","content":"Hello"}]}",
+        "body": "{"model":"grok-3","messages":[{"role":"user","content":"Hello"}]}",
       }
     `);
   });
@@ -1421,7 +1421,7 @@ describe('doGenerate', () => {
           id: 'chatcmpl-test',
           object: 'chat.completion',
           created: 1711115037,
-          model: 'grok-beta',
+          model: 'grok-3',
           choices: [
             {
               index: 0,
@@ -1478,17 +1478,17 @@ describe('doStream', () => {
       type: 'stream-chunks',
       headers,
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
           `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
         ...content.map(text => {
           return (
-            `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-beta",` +
+            `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
             `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"${text}"},"finish_reason":null}]}\n\n`
           );
         }),
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
           `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}"}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}"}],` +
           `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
           `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
@@ -1579,15 +1579,15 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":"", "reasoning_content":"Let me think"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"", "reasoning_content":" about this"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"Here's"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":" my response"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
           `"usage":{"prompt_tokens":18,"completion_tokens":439}}\n\n`,
         'data: [DONE]\n\n',
@@ -1607,7 +1607,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -1682,15 +1682,15 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":"", "reasoning":"Let me consider"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"", "reasoning":" this carefully"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"My answer is"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":" correct"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
           `"usage":{"prompt_tokens":18,"completion_tokens":439}}\n\n`,
         'data: [DONE]\n\n',
@@ -1710,7 +1710,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -1785,11 +1785,11 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":"", "reasoning_content":"From reasoning_content", "reasoning":"From reasoning"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"Final response"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
           `"usage":{"prompt_tokens":18,"completion_tokens":439}}\n\n`,
         'data: [DONE]\n\n',
@@ -1809,7 +1809,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -1874,32 +1874,32 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
           `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":""}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\""}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"value"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
           `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
           `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
@@ -1933,7 +1933,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -2165,32 +2165,32 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
           `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\""}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"va"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"lue"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
           `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
           `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
@@ -2224,7 +2224,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -2468,11 +2468,11 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
           `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\"value\\":\\"Sparkle Day\\"}"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
           `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
           `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
@@ -2506,7 +2506,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -2570,11 +2570,11 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
           `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":""}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
           `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
           `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
@@ -2607,7 +2607,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -2783,7 +2783,7 @@ describe('doStream', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
         "stream": true,
       }
     `);
@@ -2801,7 +2801,7 @@ describe('doStream', () => {
       },
     });
 
-    await provider('grok-beta').doStream({
+    await provider('grok-3').doStream({
       prompt: TEST_PROMPT,
       includeRawChunks: false,
       headers: {
@@ -2822,7 +2822,7 @@ describe('doStream', () => {
   it('should include provider-specific options', async () => {
     prepareStreamResponse({ content: [] });
 
-    await provider('grok-beta').doStream({
+    await provider('grok-3').doStream({
       providerOptions: {
         'test-provider': {
           someCustomOption: 'test-value',
@@ -2840,7 +2840,7 @@ describe('doStream', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
         "someCustomOption": "test-value",
         "stream": true,
       }
@@ -2850,7 +2850,7 @@ describe('doStream', () => {
   it('should not include provider-specific options for different provider', async () => {
     prepareStreamResponse({ content: [] });
 
-    await provider('grok-beta').doStream({
+    await provider('grok-3').doStream({
       providerOptions: {
         notThisProviderName: {
           someCustomOption: 'test-value',
@@ -2868,7 +2868,7 @@ describe('doStream', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
         "stream": true,
       }
     `);
@@ -2893,7 +2893,7 @@ describe('doStream', () => {
               "role": "user",
             },
           ],
-          "model": "grok-beta",
+          "model": "grok-3",
           "presence_penalty": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
@@ -3116,7 +3116,7 @@ describe('metadata extraction', () => {
         id: 'chatcmpl-123',
         object: 'chat.completion',
         created: 1711115037,
-        model: 'gpt-4',
+        model: 'gpt-5',
         choices: [
           {
             index: 0,
@@ -3130,7 +3130,7 @@ describe('metadata extraction', () => {
       },
     };
 
-    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
       provider: 'test-provider',
       url: () => 'https://my.api.com/v1/chat/completions',
       headers: () => ({}),
@@ -3155,7 +3155,7 @@ describe('metadata extraction', () => {
             "role": "user",
           },
         ],
-        "model": "gpt-4",
+        "model": "gpt-5",
       }
     `);
   });
@@ -3170,7 +3170,7 @@ describe('metadata extraction', () => {
       ],
     };
 
-    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
       provider: 'test-provider',
       url: () => 'https://my.api.com/v1/chat/completions',
       headers: () => ({}),
@@ -3199,7 +3199,7 @@ describe('metadata extraction', () => {
             "role": "user",
           },
         ],
-        "model": "gpt-4",
+        "model": "gpt-5",
         "stream": true,
       }
     `);
@@ -3308,7 +3308,7 @@ describe('transformRequestBody', () => {
         id: 'chatcmpl-test',
         object: 'chat.completion',
         created: 1711115037,
-        model: 'grok-beta',
+        model: 'grok-3',
         choices: [
           {
             index: 0,
@@ -3332,8 +3332,8 @@ describe('transformRequestBody', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"grok-beta","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"grok-beta","choices":[{"index":0,"delta":{"content":"!"},"finish_reason":"stop"}],"usage":{"prompt_tokens":4,"completion_tokens":2,"total_tokens":6}}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"grok-3","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"grok-3","choices":[{"index":0,"delta":{"content":"!"},"finish_reason":"stop"}],"usage":{"prompt_tokens":4,"completion_tokens":2,"total_tokens":6}}\n\n`,
         'data: [DONE]\n\n',
       ],
     };
@@ -3347,7 +3347,7 @@ describe('transformRequestBody', () => {
 
     prepareTransformJsonResponse();
 
-    const model = new OpenAICompatibleChatLanguageModel('grok-beta', {
+    const model = new OpenAICompatibleChatLanguageModel('grok-3', {
       provider: 'test-provider',
       url: ({ path }) => `https://my.api.com/v1${path}`,
       headers: () => ({}),
@@ -3362,7 +3362,7 @@ describe('transformRequestBody', () => {
     expect(transformFn).toHaveBeenCalledOnce();
     expect(transformFn).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'grok-beta',
+        model: 'grok-3',
         messages: [{ role: 'user', content: 'Hello' }],
       }),
     );
@@ -3381,7 +3381,7 @@ describe('transformRequestBody', () => {
 
     prepareTransformStreamResponse();
 
-    const model = new OpenAICompatibleChatLanguageModel('grok-beta', {
+    const model = new OpenAICompatibleChatLanguageModel('grok-3', {
       provider: 'test-provider',
       url: ({ path }) => `https://my.api.com/v1${path}`,
       headers: () => ({}),
@@ -3399,7 +3399,7 @@ describe('transformRequestBody', () => {
     expect(transformFn).toHaveBeenCalledOnce();
     expect(transformFn).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'grok-beta',
+        model: 'grok-3',
         messages: [{ role: 'user', content: 'Hello' }],
         stream: true,
       }),
@@ -3414,7 +3414,7 @@ describe('transformRequestBody', () => {
   it('should work without transformRequestBody', async () => {
     prepareTransformJsonResponse();
 
-    const model = new OpenAICompatibleChatLanguageModel('grok-beta', {
+    const model = new OpenAICompatibleChatLanguageModel('grok-3', {
       provider: 'test-provider',
       url: ({ path }) => `https://my.api.com/v1${path}`,
       headers: () => ({}),
@@ -3426,7 +3426,7 @@ describe('transformRequestBody', () => {
 
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody).toMatchObject({
-      model: 'grok-beta',
+      model: 'grok-3',
     });
     expect(requestBody).not.toHaveProperty('custom_field');
   });
