@@ -61,18 +61,11 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     return undefined;
   }
 
-  // Keep callback/telemetry tool-call input stable even if downstream stream
-  // transforms mutate emitted tool-call chunks.
-  const callbackToolCall = {
-    ...toolCall,
-    input: structuredClone(toolCall.input),
-  } as TypedToolCall<TOOLS>;
-
   const baseCallbackEvent = {
     callId,
     stepNumber,
     model,
-    toolCall: callbackToolCall,
+    toolCall,
     messages,
     abortSignal,
     functionId: telemetry?.functionId,
