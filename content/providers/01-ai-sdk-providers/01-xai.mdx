@@ -164,7 +164,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai.responses('grok-2-vision-1212'),
+  model: xai.responses('grok-3'),
   messages: [
     {
       role: 'user',
@@ -781,9 +781,6 @@ console.log('Sources:', await result.sources);
 | `grok-3-latest`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `grok-3-mini`                 | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `grok-3-mini-latest`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-2-vision`               | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-2-vision-latest`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-2-vision-1212`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [xAI
@@ -800,7 +797,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: xai.image('grok-2-image'),
+  model: xai.image('grok-imagine-image'),
   prompt: 'A futuristic cityscape at sunset',
 });
 ```
@@ -813,7 +810,7 @@ const { image } = await generateImage({
 
 ### Image Editing
 
-xAI supports image editing through the `grok-2-image` and `grok-imagine-image` models. Pass input images via `prompt.images` to transform or edit existing images.
+xAI supports image editing through the `grok-imagine-image` model. Pass input images via `prompt.images` to transform or edit existing images.
 
 <Note>
   xAI image editing does not support masks. Editing is prompt-driven - describe
@@ -832,7 +829,7 @@ import { readFileSync } from 'fs';
 const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
-  model: xai.image('grok-2-image'),
+  model: xai.image('grok-imagine-image'),
   prompt: {
     text: 'Turn the cat into a golden retriever dog',
     images: [imageBuffer],
@@ -869,7 +866,7 @@ Apply artistic styles to an image:
 const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
-  model: xai.image('grok-2-image'),
+  model: xai.image('grok-imagine-image'),
   prompt: {
     text: 'Transform this into a watercolor painting style',
     images: [imageBuffer],
@@ -892,7 +889,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateImage } from 'ai';
 
 const { images } = await generateImage({
-  model: xai.image('grok-2-image'),
+  model: xai.image('grok-imagine-image'),
   prompt: 'A futuristic cityscape at sunset',
   aspectRatio: '16:9',
   n: 2,
@@ -903,7 +900,6 @@ const { images } = await generateImage({
 
 | Model                | Aspect Ratios                                                                                               | Image Editing       |
 | -------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------- |
-| `grok-2-image`       | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check size={18} /> |
 | `grok-imagine-image` | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check size={18} /> |
 
 ## Video Models

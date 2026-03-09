@@ -115,7 +115,7 @@ describe('xAIProvider', () => {
   describe('imageModel', () => {
     it('should construct an image model with correct configuration', () => {
       const provider = createXai();
-      const modelId = 'grok-2-image';
+      const modelId = 'grok-imagine-image';
 
       const model = provider.imageModel(modelId);
 
@@ -132,7 +132,7 @@ describe('xAIProvider', () => {
     it('should use custom baseURL for image model', () => {
       const customBaseURL = 'https://custom.xai.api';
       const provider = createXai({ baseURL: customBaseURL });
-      const modelId = 'grok-2-image';
+      const modelId = 'grok-imagine-image';
 
       provider.imageModel(modelId);
 
@@ -145,7 +145,7 @@ describe('xAIProvider', () => {
       const customHeaders = { 'Custom-Header': 'test-value' };
       const provider = createXai({ headers: customHeaders });
 
-      provider.imageModel('grok-2-image-1212');
+      provider.imageModel('grok-imagine-image');
 
       const constructorCall = XaiImageModelMock.mock.calls[0];
       const config = constructorCall[1];
