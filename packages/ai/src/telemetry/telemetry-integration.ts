@@ -17,9 +17,9 @@ import { Listener } from '../util/notify';
  */
 export interface TelemetryIntegration {
   onStart?: Listener<OnStartEvent<ToolSet, Output>>;
-  onStepStart?: Listener<OnStepStartEvent<Context, ToolSet, Output>>;
+  onStepStart?: Listener<OnStepStartEvent<ToolSet, Context, Output>>;
   onToolCallStart?: Listener<OnToolCallStartEvent<ToolSet>>;
   onToolCallFinish?: Listener<OnToolCallFinishEvent<ToolSet>>;
-  onStepFinish?: Listener<OnStepFinishEvent<Context, ToolSet>>;
-  onFinish?: Listener<OnFinishEvent<Context, ToolSet>>;
+  onStepFinish?: Listener<OnStepFinishEvent<ToolSet, Context>>;
+  onFinish?: Listener<OnFinishEvent<ToolSet, Context>>;
 }

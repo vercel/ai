@@ -1,15 +1,16 @@
-import { Context, Tool } from '@ai-sdk/provider-utils';
+import { Context, InferToolContext, Tool } from '@ai-sdk/provider-utils';
+import { UnionToIntersection } from '../util/union-to-intersection';
 
-export type ToolSet<CONTEXT extends Context = any> = Record<
+export type ToolSet = Record<
   string,
   (
-    | Tool<never, never, CONTEXT>
-    | Tool<any, any, CONTEXT>
-    | Tool<any, never, CONTEXT>
-    | Tool<never, any, CONTEXT>
+    | Tool<never, never, Context>
+    | Tool<any, any, Context>
+    | Tool<any, never, Context>
+    | Tool<never, any, Context>
   ) &
     Pick<
-      Tool<any, any, CONTEXT>,
+      Tool<any, any, Context>,
       | 'execute'
       | 'onInputAvailable'
       | 'onInputStart'
@@ -18,5 +19,11 @@ export type ToolSet<CONTEXT extends Context = any> = Record<
     >
 >;
 
-export type InferContextFromToolSet<TOOLS extends ToolSet> =
-  TOOLS extends ToolSet<infer CONTEXT> ? CONTEXT : never;
+export type InferToolSetContext<TOOLS extends ToolSet> = UnionToIntersection<
+  {
+    [K in keyof TOOLS]: InferToolContext<TOOLS[K]>;
+  }[keyof TOOLS]
+>;
+
+export type ExpandedContext<TOOLS extends ToolSet> =
+  InferToolSetContext<TOOLS> & Context;

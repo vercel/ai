@@ -20,6 +20,7 @@ export type { SystemModelMessage } from './system-model-message';
 export {
   dynamicTool,
   tool,
+  type InferToolContext,
   type InferToolInput,
   type InferToolOutput,
   type Tool,
@@ -34,8 +35,8 @@ export type { ToolContent, ToolModelMessage } from './tool-model-message';
 export type { ToolResult } from './tool-result';
 export type { UserContent, UserModelMessage } from './user-model-message';
 
-import type { ToolExecutionOptions } from './tool';
 import type { Context } from './context';
+import type { ToolExecutionOptions } from './tool';
 
 /**
  * @deprecated Use ToolExecutionOptions instead.

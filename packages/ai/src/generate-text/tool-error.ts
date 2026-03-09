@@ -1,17 +1,14 @@
-import { ContextRegistry, InferToolInput } from '@ai-sdk/provider-utils';
+import { InferToolInput } from '@ai-sdk/provider-utils';
 import { ProviderMetadata } from '../types';
 import { ValueOf } from '../util/value-of';
 import { ToolSet } from './tool-set';
 
-export type StaticToolError<
-  CONTEXT extends Partial<ContextRegistry>,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
-> = ValueOf<{
+export type StaticToolError<TOOLS extends ToolSet> = ValueOf<{
   [NAME in keyof TOOLS]: {
     type: 'tool-error';
     toolCallId: string;
     toolName: NAME & string;
-    input: InferToolInput<CONTEXT, TOOLS[NAME]>;
+    input: InferToolInput<TOOLS[NAME]>;
     error: unknown;
     providerExecuted?: boolean;
     providerMetadata?: ProviderMetadata;
@@ -32,7 +29,6 @@ export type DynamicToolError = {
   title?: string;
 };
 
-export type TypedToolError<
-  CONTEXT extends Partial<ContextRegistry>,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
-> = StaticToolError<TOOLS> | DynamicToolError;
+export type TypedToolError<TOOLS extends ToolSet> =
+  | StaticToolError<TOOLS>
+  | DynamicToolError;

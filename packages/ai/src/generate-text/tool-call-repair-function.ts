@@ -1,5 +1,4 @@
 import { JSONSchema7, LanguageModelV4ToolCall } from '@ai-sdk/provider';
-import { Context } from '@ai-sdk/provider-utils';
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ModelMessage, SystemModelMessage } from '../prompt';
@@ -18,10 +17,7 @@ import { ToolSet } from './tool-set';
  * @param options.inputSchema - A function that returns the JSON Schema for a tool.
  * @param options.error - The error that occurred while parsing the tool call.
  */
-export type ToolCallRepairFunction<
-  CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
-> = (options: {
+export type ToolCallRepairFunction<TOOLS extends ToolSet> = (options: {
   system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
   messages: ModelMessage[];
   toolCall: LanguageModelV4ToolCall;

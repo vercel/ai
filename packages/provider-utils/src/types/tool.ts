@@ -113,7 +113,7 @@ type ToolOutputProperties<
 export type Tool<
   INPUT extends JSONValue | unknown | never = any,
   OUTPUT extends JSONValue | unknown | never = any,
-  CONTEXT extends Context = any,
+  CONTEXT extends Context = Context,
 > = {
   /**
    * An optional description of what the tool does.
@@ -281,6 +281,12 @@ export type InferToolInput<TOOL extends Tool> =
  */
 export type InferToolOutput<TOOL extends Tool> =
   TOOL extends Tool<any, infer OUTPUT, any> ? OUTPUT : never;
+
+/**
+ * Infer the context type of a tool.
+ */
+export type InferToolContext<TOOL extends Tool> =
+  TOOL extends Tool<any, any, infer CONTEXT> ? CONTEXT : never;
 
 /**
  * Helper function for inferring the execute args of a tool.

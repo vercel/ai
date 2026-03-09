@@ -12,7 +12,7 @@ import {
 } from './generate-text';
 import { TypedToolCall } from './tool-call';
 import { ToolOutput } from './tool-output';
-import { ToolSet } from './tool-set';
+import { ExpandedContext, ToolSet } from './tool-set';
 import { TypedToolResult } from './tool-result';
 import { TypedToolError } from './tool-error';
 
@@ -28,8 +28,8 @@ import { TypedToolError } from './tool-error';
  * @returns The tool output (result or error), or undefined if the tool has no execute function.
  */
 export async function executeToolCall<
-  CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT>,
+  TOOLS extends ToolSet,
+  CONTEXT extends ExpandedContext<TOOLS>,
 >({
   toolCall,
   tools,

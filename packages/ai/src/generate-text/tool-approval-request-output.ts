@@ -1,4 +1,3 @@
-import { ContextRegistry } from '@ai-sdk/provider-utils';
 import { TypedToolCall } from './tool-call';
 import { ToolSet } from './tool-set';
 
@@ -7,10 +6,7 @@ import { ToolSet } from './tool-set';
  *
  * The tool approval request can be approved or denied in the next tool message.
  */
-export type ToolApprovalRequestOutput<
-  CONTEXT extends Partial<ContextRegistry>,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
-> = {
+export type ToolApprovalRequestOutput<TOOLS extends ToolSet> = {
   type: 'tool-approval-request';
 
   /**
@@ -21,5 +17,5 @@ export type ToolApprovalRequestOutput<
   /**
    * Tool call that the approval request is for.
    */
-  toolCall: TypedToolCall<CONTEXT, TOOLS>;
+  toolCall: TypedToolCall<TOOLS>;
 };

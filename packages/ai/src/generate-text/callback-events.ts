@@ -1,6 +1,5 @@
 import type { LanguageModelV4ToolChoice } from '@ai-sdk/provider';
 import type {
-  Context,
   ModelMessage,
   ProviderOptions,
   SystemModelMessage,
@@ -12,7 +11,7 @@ import type { Output } from './output';
 import type { StepResult } from './step-result';
 import type { StopCondition } from './stop-condition';
 import type { TypedToolCall } from './tool-call';
-import type { ToolSet } from './tool-set';
+import type { ExpandedContext, ToolSet } from './tool-set';
 
 /**
  * Common model information used across callback events.
@@ -130,8 +129,8 @@ export interface OnStartEvent<
  * Each step represents a single LLM invocation.
  */
 export interface OnStepStartEvent<
-  CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT>,
+  TOOLS extends ToolSet,
+  CONTEXT extends ExpandedContext<TOOLS>,
   OUTPUT extends Output = Output,
   INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
@@ -167,7 +166,7 @@ export interface OnStepStartEvent<
   readonly activeTools: Array<keyof TOOLS> | undefined;
 
   /** Array of results from previous steps (empty for first step). */
-  readonly steps: ReadonlyArray<StepResult<CONTEXT, TOOLS>>;
+  readonly steps: ReadonlyArray<StepResult<TOOLS, CONTEXT>>;
 
   /** Additional provider-specific options for this step. */
   readonly providerOptions: ProviderOptions | undefined;
@@ -301,9 +300,9 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet> = {
  * This is simply the StepResult for that step.
  */
 export type OnStepFinishEvent<
-  CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT>,
-> = StepResult<CONTEXT, TOOLS>;
+  TOOLS extends ToolSet,
+  CONTEXT extends ExpandedContext<TOOLS>,
+> = StepResult<TOOLS, CONTEXT>;
 
 /**
  * Event passed to the `onFinish` callback.
@@ -312,11 +311,11 @@ export type OnStepFinishEvent<
  * Includes the final step's result along with aggregated data from all steps.
  */
 export type OnFinishEvent<
-  CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT>,
-> = StepResult<CONTEXT, TOOLS> & {
+  TOOLS extends ToolSet,
+  CONTEXT extends ExpandedContext<TOOLS>,
+> = StepResult<TOOLS, CONTEXT> & {
   /** Array containing results from all steps in the generation. */
-  readonly steps: StepResult<CONTEXT, TOOLS>[];
+  readonly steps: StepResult<TOOLS, CONTEXT>[];
 
   /** Aggregated token usage across all steps. */
   readonly totalUsage: LanguageModelUsage;

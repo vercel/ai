@@ -17,14 +17,14 @@ import {
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-import { ToolSet } from './tool-set';
+import { ExpandedContext, ToolSet } from './tool-set';
 
 /**
  * The result of a single step in the generation process.
  */
 export type StepResult<
-  CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT>,
+  TOOLS extends ToolSet,
+  CONTEXT extends ExpandedContext<TOOLS>,
 > = {
   /**
    * Zero-based index of this step.
@@ -169,26 +169,26 @@ export type StepResult<
 };
 
 export class DefaultStepResult<
-  CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT>,
-> implements StepResult<CONTEXT, TOOLS>
+  TOOLS extends ToolSet,
+  CONTEXT extends ExpandedContext<TOOLS>,
+> implements StepResult<TOOLS, CONTEXT>
 {
-  readonly stepNumber: StepResult<CONTEXT, TOOLS>['stepNumber'];
-  readonly model: StepResult<CONTEXT, TOOLS>['model'];
-  readonly functionId: StepResult<CONTEXT, TOOLS>['functionId'];
-  readonly metadata: StepResult<CONTEXT, TOOLS>['metadata'];
+  readonly stepNumber: StepResult<TOOLS, CONTEXT>['stepNumber'];
+  readonly model: StepResult<TOOLS, CONTEXT>['model'];
+  readonly functionId: StepResult<TOOLS, CONTEXT>['functionId'];
+  readonly metadata: StepResult<TOOLS, CONTEXT>['metadata'];
   readonly experimental_context: StepResult<
-    CONTEXT,
-    TOOLS
+    TOOLS,
+    CONTEXT
   >['experimental_context'];
-  readonly content: StepResult<CONTEXT, TOOLS>['content'];
-  readonly finishReason: StepResult<CONTEXT, TOOLS>['finishReason'];
-  readonly rawFinishReason: StepResult<CONTEXT, TOOLS>['rawFinishReason'];
-  readonly usage: StepResult<CONTEXT, TOOLS>['usage'];
-  readonly warnings: StepResult<CONTEXT, TOOLS>['warnings'];
-  readonly request: StepResult<CONTEXT, TOOLS>['request'];
-  readonly response: StepResult<CONTEXT, TOOLS>['response'];
-  readonly providerMetadata: StepResult<CONTEXT, TOOLS>['providerMetadata'];
+  readonly content: StepResult<TOOLS, CONTEXT>['content'];
+  readonly finishReason: StepResult<TOOLS, CONTEXT>['finishReason'];
+  readonly rawFinishReason: StepResult<TOOLS, CONTEXT>['rawFinishReason'];
+  readonly usage: StepResult<TOOLS, CONTEXT>['usage'];
+  readonly warnings: StepResult<TOOLS, CONTEXT>['warnings'];
+  readonly request: StepResult<TOOLS, CONTEXT>['request'];
+  readonly response: StepResult<TOOLS, CONTEXT>['response'];
+  readonly providerMetadata: StepResult<TOOLS, CONTEXT>['providerMetadata'];
 
   constructor({
     stepNumber,
@@ -205,19 +205,19 @@ export class DefaultStepResult<
     response,
     providerMetadata,
   }: {
-    stepNumber: StepResult<CONTEXT, TOOLS>['stepNumber'];
-    model: StepResult<CONTEXT, TOOLS>['model'];
-    functionId: StepResult<CONTEXT, TOOLS>['functionId'];
-    metadata: StepResult<CONTEXT, TOOLS>['metadata'];
-    experimental_context: StepResult<CONTEXT, TOOLS>['experimental_context'];
-    content: StepResult<CONTEXT, TOOLS>['content'];
-    finishReason: StepResult<CONTEXT, TOOLS>['finishReason'];
-    rawFinishReason: StepResult<CONTEXT, TOOLS>['rawFinishReason'];
-    usage: StepResult<CONTEXT, TOOLS>['usage'];
-    warnings: StepResult<CONTEXT, TOOLS>['warnings'];
-    request: StepResult<CONTEXT, TOOLS>['request'];
-    response: StepResult<CONTEXT, TOOLS>['response'];
-    providerMetadata: StepResult<CONTEXT, TOOLS>['providerMetadata'];
+    stepNumber: StepResult<TOOLS, CONTEXT>['stepNumber'];
+    model: StepResult<TOOLS, CONTEXT>['model'];
+    functionId: StepResult<TOOLS, CONTEXT>['functionId'];
+    metadata: StepResult<TOOLS, CONTEXT>['metadata'];
+    experimental_context: StepResult<TOOLS, CONTEXT>['experimental_context'];
+    content: StepResult<TOOLS, CONTEXT>['content'];
+    finishReason: StepResult<TOOLS, CONTEXT>['finishReason'];
+    rawFinishReason: StepResult<TOOLS, CONTEXT>['rawFinishReason'];
+    usage: StepResult<TOOLS, CONTEXT>['usage'];
+    warnings: StepResult<TOOLS, CONTEXT>['warnings'];
+    request: StepResult<TOOLS, CONTEXT>['request'];
+    response: StepResult<TOOLS, CONTEXT>['response'];
+    providerMetadata: StepResult<TOOLS, CONTEXT>['providerMetadata'];
   }) {
     this.stepNumber = stepNumber;
     this.model = model;
