@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.69
+
+### Patch Changes
+
+- e7664a4: feat(provider/xai): support multiple input images for image editing
+
 ## 3.0.68
 
 ### Patch Changes
