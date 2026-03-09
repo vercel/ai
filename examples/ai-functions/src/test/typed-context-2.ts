@@ -36,7 +36,6 @@ type InferToolSetContext<TOOLS extends ToolSet> = UnionToIntersection<
   }[keyof TOOLS]
 >;
 
-// TODO prepareStep
 function executeTool<
   TOOLS extends ToolSet,
   CONTEXT extends InferToolSetContext<TOOLS> & Record<string, unknown>,
