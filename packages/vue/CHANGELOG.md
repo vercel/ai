@@ -1,5 +1,11 @@
 # @ai-sdk/vue
 
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- ai@7.0.0-beta.10
+
 ## 4.0.0-beta.9
 
 ### Patch Changes
