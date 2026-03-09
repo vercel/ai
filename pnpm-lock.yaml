@@ -116,7 +116,7 @@ importers:
         specifier: 3.0.0-beta.1
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 4.0.0-beta.2
+        specifier: 4.0.0-beta.3
         version: link:../../packages/xai
       '@modelcontextprotocol/sdk':
         specifier: ^1.26.0
