@@ -82,5 +82,20 @@
     "generate-llms-txt": "0.0.0",
     "@vercel/ai-tsconfig": "0.0.0"
   },
-  "changesets": ["google-validated-strict-tools", "start-v7-prerelease"]
+  "changesets": [
+    "brown-planets-tell",
+    "calm-squids-sparkle",
+    "clean-peaches-fly",
+    "curvy-doors-shake",
+    "fix-ssrf-redirect-bypass",
+    "fix-streaming-tool-call-early-finalization",
+    "google-stream-grounding-metadata",
+    "google-validated-strict-tools",
+    "neat-cats-sip",
+    "pretty-pandas-sleep",
+    "psncj-ecfys-yryon",
+    "serious-houses-argue",
+    "shyiw-vvoqc-mivmr",
+    "start-v7-prerelease"
+  ]
 }

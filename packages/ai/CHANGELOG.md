@@ -1,5 +1,56 @@
 # ai
 
+## 7.0.0-beta.7
+
+### Patch Changes
+
+- 210ed3d: feat(ai): pass result provider metadata across the stream
+
+## 7.0.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [c949e25]
+  - @ai-sdk/gateway@4.0.0-beta.3
+
+## 7.0.0-beta.5
+
+### Patch Changes
+
+- ebd4da2: feat(ai): add missing usage attributes
+
+## 7.0.0-beta.4
+
+### Patch Changes
+
+- 5ceed7d: fix(ai): doStream should reflect transformed values
+
+## 7.0.0-beta.3
+
+### Patch Changes
+
+- 531251e: fix(security): validate redirect targets in download functions to prevent SSRF bypass
+
+  Both `downloadBlob` and `download` now validate the final URL after following HTTP redirects, preventing attackers from bypassing SSRF protections via open redirects to internal/private addresses.
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+  - @ai-sdk/gateway@4.0.0-beta.2
+
+## 7.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [7afaece]
+- Updated dependencies [f16c103]
+  - @ai-sdk/gateway@4.0.0-beta.1
+
+## 7.0.0-beta.1
+
+### Patch Changes
+
+- 6a3793e: chore(ai): add optional ChatRequestOptions to `addToolApprovalResponse` and `addToolOutput`
+
 ## 7.0.0-beta.0
 
 ### Major Changes

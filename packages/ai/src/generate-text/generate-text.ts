@@ -831,6 +831,7 @@ export async function generateText<
                     headers: result.response?.headers,
                     body: result.response?.body,
                   };
+                  const usage = asLanguageModelUsage(result.usage);
 
                   // Add response information to the span:
                   span.setAttributes(
@@ -860,10 +861,24 @@ export async function generateText<
                           result.providerMetadata,
                         ),
 
-                        // TODO rename telemetry attributes to inputTokens and outputTokens
-                        'ai.usage.promptTokens': result.usage.inputTokens.total,
-                        'ai.usage.completionTokens':
+                        'ai.usage.inputTokens': result.usage.inputTokens.total,
+                        'ai.usage.inputTokenDetails.noCacheTokens':
+                          result.usage.inputTokens.noCache,
+                        'ai.usage.inputTokenDetails.cacheReadTokens':
+                          result.usage.inputTokens.cacheRead,
+                        'ai.usage.inputTokenDetails.cacheWriteTokens':
+                          result.usage.inputTokens.cacheWrite,
+                        'ai.usage.outputTokens':
                           result.usage.outputTokens.total,
+                        'ai.usage.outputTokenDetails.textTokens':
+                          result.usage.outputTokens.text,
+                        'ai.usage.outputTokenDetails.reasoningTokens':
+                          result.usage.outputTokens.reasoning,
+                        'ai.usage.totalTokens': usage.totalTokens,
+                        'ai.usage.reasoningTokens':
+                          result.usage.outputTokens.reasoning,
+                        'ai.usage.cachedInputTokens':
+                          result.usage.inputTokens.cacheRead,
 
                         // standardized gen-ai llm span attributes:
                         'gen_ai.response.finish_reasons': [
@@ -1139,12 +1154,6 @@ export async function generateText<
               'ai.response.providerMetadata': JSON.stringify(
                 currentModelResponse.providerMetadata,
               ),
-
-              // TODO rename telemetry attributes to inputTokens and outputTokens
-              'ai.usage.promptTokens':
-                currentModelResponse.usage.inputTokens.total,
-              'ai.usage.completionTokens':
-                currentModelResponse.usage.outputTokens.total,
             },
           }),
         );
@@ -1162,6 +1171,31 @@ export async function generateText<
             reasoningTokens: undefined,
             cachedInputTokens: undefined,
           } as LanguageModelUsage,
+        );
+
+        span.setAttributes(
+          await selectTelemetryAttributes({
+            telemetry,
+            attributes: {
+              'ai.usage.inputTokens': totalUsage.inputTokens,
+              'ai.usage.inputTokenDetails.noCacheTokens':
+                totalUsage.inputTokenDetails?.noCacheTokens,
+              'ai.usage.inputTokenDetails.cacheReadTokens':
+                totalUsage.inputTokenDetails?.cacheReadTokens,
+              'ai.usage.inputTokenDetails.cacheWriteTokens':
+                totalUsage.inputTokenDetails?.cacheWriteTokens,
+              'ai.usage.outputTokens': totalUsage.outputTokens,
+              'ai.usage.outputTokenDetails.textTokens':
+                totalUsage.outputTokenDetails?.textTokens,
+              'ai.usage.outputTokenDetails.reasoningTokens':
+                totalUsage.outputTokenDetails?.reasoningTokens,
+              'ai.usage.totalTokens': totalUsage.totalTokens,
+              'ai.usage.reasoningTokens':
+                totalUsage.outputTokenDetails?.reasoningTokens,
+              'ai.usage.cachedInputTokens':
+                totalUsage.inputTokenDetails?.cacheReadTokens,
+            },
+          }),
         );
 
         await notify({
@@ -1482,6 +1516,9 @@ function asContent<TOOLS extends ToolSet<any>>({
               error: part.result,
               providerExecuted: true,
               dynamic: part.dynamic,
+              ...(part.providerMetadata != null
+                ? { providerMetadata: part.providerMetadata }
+                : {}),
             } as TypedToolError<TOOLS>);
           } else {
             contentParts.push({
@@ -1492,6 +1529,9 @@ function asContent<TOOLS extends ToolSet<any>>({
               output: part.result,
               providerExecuted: true,
               dynamic: part.dynamic,
+              ...(part.providerMetadata != null
+                ? { providerMetadata: part.providerMetadata }
+                : {}),
             } as TypedToolResult<TOOLS>);
           }
           break;
@@ -1506,6 +1546,9 @@ function asContent<TOOLS extends ToolSet<any>>({
             error: part.result,
             providerExecuted: true,
             dynamic: toolCall.dynamic,
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
           } as TypedToolError<TOOLS>);
         } else {
           contentParts.push({
@@ -1516,6 +1559,9 @@ function asContent<TOOLS extends ToolSet<any>>({
             output: part.result,
             providerExecuted: true,
             dynamic: toolCall.dynamic,
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
           } as TypedToolResult<TOOLS>);
         }
         break;

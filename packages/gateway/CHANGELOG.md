@@ -1,5 +1,25 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- c949e25: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- 7afaece: feat(provider/openai): add GPT-5.4 model support
+- f16c103: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.0-beta.0
 
 ### Major Changes
