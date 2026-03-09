@@ -220,17 +220,58 @@ The `speed` option accepts `'fast'` or `'standard'` (default behavior).
 
 ### Reasoning
 
-Anthropic has reasoning support for `claude-opus-4-20250514`, `claude-sonnet-4-20250514`, and `claude-sonnet-4-5-20250929` models.
+Anthropic models support extended thinking, where Claude shows its reasoning process before providing a final answer.
 
-You can enable it using the `thinking` provider option
-and specifying a thinking budget in tokens.
+#### Adaptive Thinking
+
+For newer models (`claude-sonnet-4-6`, `claude-opus-4-6`, and later), use adaptive thinking.
+Claude automatically determines how much reasoning to use based on the complexity of the prompt.
 
 ```ts highlight="4,8-10"
 import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text, reasoningText, reasoning } = await generateText({
-  model: anthropic('claude-opus-4-20250514'),
+  model: anthropic('claude-opus-4-6'),
+  prompt: 'How many people will live in the world in 2040?',
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'adaptive' },
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+
+console.log(reasoningText); // reasoning text
+console.log(reasoning); // reasoning details including redacted reasoning
+console.log(text); // text response
+```
+
+You can combine adaptive thinking with the `effort` option to control how much reasoning Claude uses:
+
+```ts highlight="9"
+const { text } = await generateText({
+  model: anthropic('claude-opus-4-6'),
+  prompt: 'Invent a new holiday and describe its traditions.',
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'adaptive' },
+      effort: 'max', // 'low' | 'medium' | 'high' | 'max'
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
+#### Budget-Based Thinking
+
+For earlier models (`claude-opus-4-20250514`, `claude-sonnet-4-20250514`, `claude-sonnet-4-5-20250929`),
+use `type: 'enabled'` with an explicit token budget:
+
+```ts highlight="4,8-10"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text, reasoningText, reasoning } = await generateText({
+  model: anthropic('claude-sonnet-4-5-20250929'),
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
     anthropic: {
