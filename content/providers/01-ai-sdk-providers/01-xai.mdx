@@ -840,6 +840,27 @@ const { images } = await generateImage({
 });
 ```
 
+#### Multi-Image Editing
+
+Combine or reference multiple input images (up to 3) in the prompt:
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { generateImage } from 'ai';
+import { readFileSync } from 'fs';
+
+const cat = readFileSync('./cat.png');
+const dog = readFileSync('./dog.png');
+
+const { images } = await generateImage({
+  model: xai.image('grok-imagine-image'),
+  prompt: {
+    text: 'Combine these two animals into a group photo',
+    images: [cat, dog],
+  },
+});
+```
+
 #### Style Transfer
 
 Apply artistic styles to an image:
@@ -859,7 +880,7 @@ const { images } = await generateImage({
 
 <Note>
   Input images can be provided as `Buffer`, `ArrayBuffer`, `Uint8Array`, or
-  base64-encoded strings. xAI only supports a single input image per request.
+  base64-encoded strings. Up to 3 input images are supported per request.
 </Note>
 
 ### Model-specific options

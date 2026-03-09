@@ -1,5 +1,24 @@
 # ai
 
+## 7.0.0-beta.9
+
+### Patch Changes
+
+- 1fe058b: fix(anthropic): preserve the error code returned by model
+
+## 7.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [f32d84a]
+  - @ai-sdk/gateway@4.0.0-beta.4
+
+## 7.0.0-beta.7
+
+### Patch Changes
+
+- 210ed3d: feat(ai): pass result provider metadata across the stream
+
 ## 7.0.0-beta.6
 
 ### Patch Changes
