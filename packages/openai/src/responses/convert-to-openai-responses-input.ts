@@ -46,8 +46,14 @@ export async function convertToOpenAIResponsesInput({
   input: OpenAIResponsesInput;
   warnings: Array<LanguageModelV2CallWarning>;
 }> {
+<<<<<<< HEAD
   const input: OpenAIResponsesInput = [];
   const warnings: Array<LanguageModelV2CallWarning> = [];
+=======
+  let input: OpenAIResponsesInput = [];
+  const warnings: Array<SharedV3Warning> = [];
+  const processedApprovalIds = new Set<string>();
+>>>>>>> f4a734a92 (Backport: fix(provider/openai): drop reasoning parts without encrypted content when store: false (#13239))
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -376,6 +382,29 @@ export async function convertToOpenAIResponsesInput({
         throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
       }
     }
+  }
+
+  // when store is false, remove reasoning parts without encrypted content
+  if (
+    !store &&
+    input.some(
+      item =>
+        'type' in item &&
+        item.type === 'reasoning' &&
+        item.encrypted_content == null,
+    )
+  ) {
+    warnings.push({
+      type: 'other',
+      message:
+        'Reasoning parts without encrypted content are not supported when store is false. Skipping reasoning parts.',
+    });
+    input = input.filter(
+      item =>
+        !('type' in item) ||
+        item.type !== 'reasoning' ||
+        item.encrypted_content != null,
+    );
   }
 
   return { input, warnings };
