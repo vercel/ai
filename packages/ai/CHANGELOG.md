@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.123
+
+### Patch Changes
+
+- ffe0f90: fix(anthropic): preserve the error code returned by model
+
 ## 6.0.122
 
 ### Patch Changes
