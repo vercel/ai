@@ -5,12 +5,12 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { image, providerMetadata } = await generateImage({
-    model: xai.image('grok-2-image'),
+    model: xai.image('grok-imagine-image'),
     prompt:
       'A serene mountain lake at sunrise with mist rising from the water.',
     providerOptions: {
       xai: {
-        quality: 'hd',
+        quality: 'high',
         user: 'example-user-123',
       },
     },

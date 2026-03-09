@@ -5,7 +5,7 @@ export const xaiImageModelOptions = z.object({
   output_format: z.string().optional(),
   sync_mode: z.boolean().optional(),
   resolution: z.enum(['1k', '2k']).optional(),
-  quality: z.enum(['standard', 'hd']).optional(),
+  quality: z.enum(['low', 'medium', 'high']).optional(),
   user: z.string().optional(),
 });
 
