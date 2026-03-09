@@ -448,11 +448,11 @@ class OtelTelemetryIntegration implements TelemetryIntegration {
     }
   }
 
-  recordError(error: unknown): void {
-    // recordError receives the raw error; we need callId to look up state.
+  onError(error: unknown): void {
+    // onError receives the raw error; we need callId to look up state.
     // The callId is attached to the error event by generate-text.ts via
-    // the globalTelemetry.recordError composite which wraps it.
-    // However, since TelemetryIntegration.recordError is Listener<unknown>,
+    // the globalTelemetry.onError composite which wraps it.
+    // However, since TelemetryIntegration.onError is Listener<unknown>,
     // we accept a { callId, error } shape here.
     const event = error as { callId?: string; error?: unknown };
     if (!event?.callId) return;

@@ -1967,7 +1967,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         usage: createNullLanguageModelUsage(),
       });
     })().catch(async error => {
-      await globalTelemetry.recordError?.({ callId, error });
+      await globalTelemetry.onError?.({ callId, error });
 
       // add an error stream part and close the streams:
       self.addStream(

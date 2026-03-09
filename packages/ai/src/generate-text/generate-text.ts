@@ -1083,7 +1083,7 @@ export async function generateText<
       output: resolvedOutput,
     });
   } catch (error) {
-    await globalTelemetry.recordError?.({ callId, error });
+    await globalTelemetry.onError?.({ callId, error });
     throw wrapGatewayError(error);
   }
 }

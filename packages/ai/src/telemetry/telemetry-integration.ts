@@ -23,5 +23,5 @@ export interface TelemetryIntegration {
   onChunk?: Listener<OnChunkEvent>;
   onStepFinish?: Listener<OnStepFinishEvent<ToolSet>>;
   onFinish?: Listener<OnFinishEvent<ToolSet>>;
-  recordError?: Listener<unknown>;
+  onError?: Listener<unknown>;
 }
