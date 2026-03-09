@@ -118,7 +118,10 @@ type AnthropicMessagesConfig = {
   headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   buildRequestUrl?: (baseURL: string, isStreaming: boolean) => string;
-  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+  transformRequestBody?: (
+    args: Record<string, any>,
+    betas: Set<string>,
+  ) => Record<string, any>;
   supportedUrls?: () => LanguageModelV3['supportedUrls'];
   generateId?: () => string;
 
@@ -632,7 +635,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         stream: stream === true ? true : undefined, // do not send when not streaming
       },
       warnings: [...warnings, ...toolWarnings, ...cacheWarnings],
-      betas: new Set([...betas, ...toolsBetas, ...userSuppliedBetas]),
+      betas: new Set([
+        ...betas,
+        ...toolsBetas,
+        ...userSuppliedBetas,
+        ...(anthropicOptions?.anthropicBeta ?? []),
+      ]),
       usesJsonResponseTool: jsonResponseTool != null,
       toolNameMapping,
       providerOptionsName,
@@ -679,8 +687,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     );
   }
 
-  private transformRequestBody(args: Record<string, any>): Record<string, any> {
-    return this.config.transformRequestBody?.(args) ?? args;
+  private transformRequestBody(
+    args: Record<string, any>,
+    betas: Set<string>,
+  ): Record<string, any> {
+    return this.config.transformRequestBody?.(args, betas) ?? args;
   }
 
   private extractCitationDocuments(prompt: LanguageModelV3Prompt): Array<{
@@ -759,7 +770,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     } = await postJsonToApi({
       url: this.buildRequestUrl(false),
       headers: await this.getHeaders({ betas, headers: options.headers }),
-      body: this.transformRequestBody(args),
+      body: this.transformRequestBody(args, betas),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         anthropicMessagesResponseSchema,
@@ -1056,6 +1067,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 content: part.content.content ?? [],
               },
             });
+          } else if (part.content.type === 'encrypted_code_execution_result') {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: toolNameMapping.toCustomToolName('code_execution'),
+              result: {
+                type: part.content.type,
+                encrypted_stdout: part.content.encrypted_stdout,
+                stderr: part.content.stderr,
+                return_code: part.content.return_code,
+                content: part.content.content ?? [],
+              },
+            });
           } else if (part.content.type === 'code_execution_tool_result_error') {
             content.push({
               type: 'tool-result',
@@ -1224,7 +1248,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     const { responseHeaders, value: response } = await postJsonToApi({
       url,
       headers: await this.getHeaders({ betas, headers: options.headers }),
-      body: this.transformRequestBody(body),
+      body: this.transformRequestBody(body, betas),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         anthropicMessagesChunkSchema,
@@ -1617,6 +1641,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       result: {
                         type: part.content.type,
                         stdout: part.content.stdout,
+                        stderr: part.content.stderr,
+                        return_code: part.content.return_code,
+                        content: part.content.content ?? [],
+                      },
+                    });
+                  } else if (
+                    part.content.type === 'encrypted_code_execution_result'
+                  ) {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName:
+                        toolNameMapping.toCustomToolName('code_execution'),
+                      result: {
+                        type: part.content.type,
+                        encrypted_stdout: part.content.encrypted_stdout,
                         stderr: part.content.stderr,
                         return_code: part.content.return_code,
                         content: part.content.content ?? [],

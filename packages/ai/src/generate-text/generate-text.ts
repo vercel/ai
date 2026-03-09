@@ -1,8 +1,8 @@
 import {
-  LanguageModelV3,
-  LanguageModelV3Content,
-  LanguageModelV3ToolCall,
-  LanguageModelV3ToolChoice,
+  LanguageModelV4,
+  LanguageModelV4Content,
+  LanguageModelV4ToolCall,
+  LanguageModelV4ToolChoice,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -577,7 +577,7 @@ export async function generateText<
           input: output.input,
           tool: tools?.[output.toolName],
           output: output.type === 'tool-result' ? output.output : output.error,
-          errorMode: output.type === 'tool-error' ? 'json' : 'none',
+          errorMode: output.type === 'tool-error' ? 'text' : 'none',
         });
 
         toolContent.push({
@@ -640,7 +640,7 @@ export async function generateText<
     const callSettings = prepareCallSettings(settings);
 
     let currentModelResponse: Awaited<
-      ReturnType<LanguageModelV3['doGenerate']>
+      ReturnType<LanguageModelV4['doGenerate']>
     > & { response: { id: string; timestamp: Date; modelId: string } };
     let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
     let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
@@ -769,7 +769,7 @@ export async function generateText<
         const stepToolCalls: TypedToolCall<TOOLS>[] = await Promise.all(
           currentModelResponse.content
             .filter(
-              (part): part is LanguageModelV3ToolCall =>
+              (part): part is LanguageModelV4ToolCall =>
                 part.type === 'tool-call',
             )
             .map(toolCall =>
@@ -1253,7 +1253,7 @@ function asContent<TOOLS extends ToolSet>({
   toolApprovalRequests,
   tools,
 }: {
-  content: Array<LanguageModelV3Content>;
+  content: Array<LanguageModelV4Content>;
   toolCalls: Array<TypedToolCall<TOOLS>>;
   toolOutputs: Array<ToolOutput<TOOLS>>;
   toolApprovalRequests: Array<ToolApprovalRequestOutput<TOOLS>>;
@@ -1315,6 +1315,9 @@ function asContent<TOOLS extends ToolSet>({
               error: part.result,
               providerExecuted: true,
               dynamic: part.dynamic,
+              ...(part.providerMetadata != null
+                ? { providerMetadata: part.providerMetadata }
+                : {}),
             } as TypedToolError<TOOLS>);
           } else {
             contentParts.push({
@@ -1325,6 +1328,9 @@ function asContent<TOOLS extends ToolSet>({
               output: part.result,
               providerExecuted: true,
               dynamic: part.dynamic,
+              ...(part.providerMetadata != null
+                ? { providerMetadata: part.providerMetadata }
+                : {}),
             } as TypedToolResult<TOOLS>);
           }
           break;
@@ -1339,6 +1345,9 @@ function asContent<TOOLS extends ToolSet>({
             error: part.result,
             providerExecuted: true,
             dynamic: toolCall.dynamic,
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
           } as TypedToolError<TOOLS>);
         } else {
           contentParts.push({
@@ -1349,6 +1358,9 @@ function asContent<TOOLS extends ToolSet>({
             output: part.result,
             providerExecuted: true,
             dynamic: toolCall.dynamic,
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
           } as TypedToolResult<TOOLS>);
         }
         break;
