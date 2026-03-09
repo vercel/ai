@@ -125,6 +125,9 @@ export function convertToGoogleGenerativeAIMessages(
                       mimeType: part.mediaType,
                       data: convertToBase64(part.data),
                     },
+                    ...(providerOpts?.thought === true
+                      ? { thought: true }
+                      : {}),
                     thoughtSignature,
                   };
                 }

@@ -304,17 +304,23 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             : undefined,
         });
       } else if ('inlineData' in part) {
+        const hasThought = part.thought === true;
+        const hasThoughtSignature = !!part.thoughtSignature;
         content.push({
           type: 'file' as const,
           data: part.inlineData.data,
           mediaType: part.inlineData.mimeType,
-          providerMetadata: part.thoughtSignature
-            ? {
-                [providerOptionsName]: {
-                  thoughtSignature: part.thoughtSignature,
-                },
-              }
-            : undefined,
+          providerMetadata:
+            hasThought || hasThoughtSignature
+              ? {
+                  [providerOptionsName]: {
+                    ...(hasThought ? { thought: true } : {}),
+                    ...(hasThoughtSignature
+                      ? { thoughtSignature: part.thoughtSignature }
+                      : {}),
+                  },
+                }
+              : undefined,
         });
       }
     }
@@ -590,19 +596,24 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                     currentReasoningBlockId = null;
                   }
 
-                  // Process file parts inline to preserve order with text
-                  const thoughtSignatureMetadata = part.thoughtSignature
-                    ? {
-                        [providerOptionsName]: {
-                          thoughtSignature: part.thoughtSignature,
-                        },
-                      }
-                    : undefined;
+                  const hasThought = part.thought === true;
+                  const hasThoughtSignature = !!part.thoughtSignature;
+                  const fileMeta =
+                    hasThought || hasThoughtSignature
+                      ? {
+                          [providerOptionsName]: {
+                            ...(hasThought ? { thought: true } : {}),
+                            ...(hasThoughtSignature
+                              ? { thoughtSignature: part.thoughtSignature }
+                              : {}),
+                          },
+                        }
+                      : undefined;
                   controller.enqueue({
                     type: 'file',
                     mediaType: part.inlineData.mimeType,
                     data: part.inlineData.data,
-                    providerMetadata: thoughtSignatureMetadata,
+                    providerMetadata: fileMeta,
                   });
                 }
               }
@@ -935,6 +946,7 @@ const getContentSchema = () =>
               mimeType: z.string(),
               data: z.string(),
             }),
+            thought: z.boolean().nullish(),
             thoughtSignature: z.string().nullish(),
           }),
           z.object({
