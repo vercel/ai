@@ -83,18 +83,27 @@
     "@vercel/ai-tsconfig": "0.0.0"
   },
   "changesets": [
+    "brown-planets-tell",
     "calm-squids-sparkle",
     "clean-peaches-fly",
+    "cool-toes-cough",
+    "cuddly-roses-collect",
     "curvy-doors-shake",
     "fix-ssrf-redirect-bypass",
     "fix-streaming-tool-call-early-finalization",
     "google-stream-grounding-metadata",
     "google-validated-strict-tools",
+    "nbokd-xjyoj-etciv",
     "neat-cats-sip",
+    "old-schools-wait",
     "pretty-pandas-sleep",
     "psncj-ecfys-yryon",
+    "selfish-fishes-check",
     "serious-houses-argue",
+    "seven-garlics-jog",
     "shyiw-vvoqc-mivmr",
-    "start-v7-prerelease"
+    "slimy-coats-attack",
+    "start-v7-prerelease",
+    "wicked-nails-prove"
   ]
 }

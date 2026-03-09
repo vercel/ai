@@ -568,6 +568,55 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should include thought flag on file parts when set in providerOptions', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'file',
+            data: 'AAECAw==',
+            mediaType: 'image/png',
+            providerOptions: {
+              google: { thought: true, thoughtSignature: 'sig1' },
+            },
+          },
+          {
+            type: 'file',
+            data: 'BAUG',
+            mediaType: 'image/jpeg',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'model',
+          parts: [
+            {
+              inlineData: {
+                data: 'AAECAw==',
+                mimeType: 'image/png',
+              },
+              thought: true,
+              thoughtSignature: 'sig1',
+            },
+            {
+              inlineData: {
+                data: 'BAUG',
+                mimeType: 'image/jpeg',
+              },
+              thoughtSignature: undefined,
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   it('should throw error for URL file data in assistant messages', async () => {
     expect(() =>
       convertToGoogleGenerativeAIMessages([

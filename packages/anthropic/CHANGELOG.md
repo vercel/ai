@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- 1fe058b: fix(anthropic): preserve the error code returned by model
+
 ## 4.0.0-beta.1
 
 ### Patch Changes
