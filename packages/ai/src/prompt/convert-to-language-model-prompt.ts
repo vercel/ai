@@ -362,7 +362,11 @@ async function downloadAssets(
       let data = part.type === 'image' ? part.image : part.data;
       if (typeof data === 'string') {
         try {
-          data = new URL(data);
+          const url = new URL(data);
+          // Only treat http/https URLs as downloadable - data: URLs contain inline base64 data
+          if (url.protocol === 'http:' || url.protocol === 'https:') {
+            data = url;
+          }
         } catch (ignored) {}
       }
 
