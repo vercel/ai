@@ -151,7 +151,6 @@ export type GatewayModelId =
   | 'prime-intellect/intellect-3'
   | 'vercel/v0-1.0-md'
   | 'vercel/v0-1.5-md'
-  | 'xai/grok-2-vision'
   | 'xai/grok-3'
   | 'xai/grok-3-fast'
   | 'xai/grok-3-mini'
