@@ -56,7 +56,7 @@ describe('XaiImageModel', () => {
       expect(model.provider).toBe('xai.image');
       expect(model.modelId).toBe('grok-2-image-1212');
       expect(model.specificationVersion).toBe('v3');
-      expect(model.maxImagesPerCall).toBe(1);
+      expect(model.maxImagesPerCall).toBe(3);
     });
   });
 
@@ -184,6 +184,96 @@ describe('XaiImageModel', () => {
           url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAE=',
           type: 'image_url',
         },
+      });
+    });
+
+    it('should send multiple files as images array', async () => {
+      const model = createModel();
+      const imageData1 = new Uint8Array([137, 80, 78, 71]);
+      const imageData2 = new Uint8Array([255, 216, 255, 224]);
+
+      await model.doGenerate({
+        prompt: 'Combine these images',
+        files: [
+          {
+            type: 'file',
+            data: imageData1,
+            mediaType: 'image/png',
+          },
+          {
+            type: 'file',
+            data: imageData2,
+            mediaType: 'image/jpeg',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        'https://api.example.com/images/edits',
+      );
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'grok-2-image-1212',
+        prompt: 'Combine these images',
+        n: 1,
+        response_format: 'url',
+        images: [
+          {
+            url: 'data:image/png;base64,iVBORw==',
+            type: 'image_url',
+          },
+          {
+            url: 'data:image/jpeg;base64,/9j/4A==',
+            type: 'image_url',
+          },
+        ],
+      });
+    });
+
+    it('should send mixed file types as images array', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        prompt: 'Combine these images',
+        files: [
+          {
+            type: 'url',
+            url: 'https://example.com/input.png',
+          },
+          {
+            type: 'file',
+            data: new Uint8Array([137, 80, 78, 71]),
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'grok-2-image-1212',
+        prompt: 'Combine these images',
+        n: 1,
+        response_format: 'url',
+        images: [
+          {
+            url: 'https://example.com/input.png',
+            type: 'image_url',
+          },
+          {
+            url: 'data:image/png;base64,iVBORw==',
+            type: 'image_url',
+          },
+        ],
       });
     });
 
@@ -419,7 +509,7 @@ describe('XaiImageModel', () => {
         });
       });
 
-      it('should warn when multiple files are provided', async () => {
+      it('should not warn when multiple files are provided', async () => {
         const model = createModel();
         const imageData = new Uint8Array([137, 80, 78, 71]);
 
@@ -445,11 +535,9 @@ describe('XaiImageModel', () => {
           providerOptions: {},
         });
 
-        expect(result.warnings).toContainEqual({
-          type: 'other',
-          message:
-            'xAI only supports a single input image. Additional images are ignored.',
-        });
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({ type: 'other' }),
+        );
       });
     });
 
