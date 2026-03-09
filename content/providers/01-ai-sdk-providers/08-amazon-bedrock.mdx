@@ -514,6 +514,37 @@ console.log(amazonResult.text); // text response
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
 
+## Service Tiers
+
+Amazon Bedrock supports selecting an inference service tier per request via the `serviceTier` provider option.
+
+```ts
+import {
+  bedrock,
+  type AmazonBedrockLanguageModelOptions,
+} from '@ai-sdk/amazon-bedrock';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: bedrock('us.anthropic.claude-sonnet-4-20250514-v1:0'),
+  prompt: 'Summarize this support ticket backlog.',
+  providerOptions: {
+    bedrock: {
+      serviceTier: 'priority',
+    } satisfies AmazonBedrockLanguageModelOptions,
+  },
+});
+```
+
+Supported values are:
+
+- `reserved`
+- `priority`
+- `default`
+- `flex`
+
+See the [Amazon Bedrock service tiers documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/service-tiers-inference.html) for model availability and behavior.
+
 ## Extended Context Window
 
 Claude Sonnet 4 models on Amazon Bedrock support an extended context window of up to 1 million tokens when using the `context-1m-2025-08-07` beta feature.
