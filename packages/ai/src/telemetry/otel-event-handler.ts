@@ -339,13 +339,21 @@ class OtelTelemetryIntegration implements TelemetryIntegration {
           ? JSON.stringify(event.providerMetadata)
           : undefined,
 
-        'ai.usage.promptTokens': event.usage.inputTokens,
-        'ai.usage.completionTokens': event.usage.outputTokens,
         'ai.usage.inputTokens': event.usage.inputTokens,
         'ai.usage.outputTokens': event.usage.outputTokens,
         'ai.usage.totalTokens': event.usage.totalTokens,
         'ai.usage.reasoningTokens': event.usage.reasoningTokens,
         'ai.usage.cachedInputTokens': event.usage.cachedInputTokens,
+        'ai.usage.inputTokenDetails.noCacheTokens':
+          event.usage.inputTokenDetails?.noCacheTokens,
+        'ai.usage.inputTokenDetails.cacheReadTokens':
+          event.usage.inputTokenDetails?.cacheReadTokens,
+        'ai.usage.inputTokenDetails.cacheWriteTokens':
+          event.usage.inputTokenDetails?.cacheWriteTokens,
+        'ai.usage.outputTokenDetails.textTokens':
+          event.usage.outputTokenDetails?.textTokens,
+        'ai.usage.outputTokenDetails.reasoningTokens':
+          event.usage.outputTokenDetails?.reasoningTokens,
 
         'gen_ai.response.finish_reasons': [event.finishReason],
         'gen_ai.response.id': event.response.id,
@@ -385,13 +393,21 @@ class OtelTelemetryIntegration implements TelemetryIntegration {
           ? JSON.stringify(event.providerMetadata)
           : undefined,
 
-        'ai.usage.promptTokens': event.totalUsage.inputTokens,
-        'ai.usage.completionTokens': event.totalUsage.outputTokens,
         'ai.usage.inputTokens': event.totalUsage.inputTokens,
         'ai.usage.outputTokens': event.totalUsage.outputTokens,
         'ai.usage.totalTokens': event.totalUsage.totalTokens,
         'ai.usage.reasoningTokens': event.totalUsage.reasoningTokens,
         'ai.usage.cachedInputTokens': event.totalUsage.cachedInputTokens,
+        'ai.usage.inputTokenDetails.noCacheTokens':
+          event.totalUsage.inputTokenDetails?.noCacheTokens,
+        'ai.usage.inputTokenDetails.cacheReadTokens':
+          event.totalUsage.inputTokenDetails?.cacheReadTokens,
+        'ai.usage.inputTokenDetails.cacheWriteTokens':
+          event.totalUsage.inputTokenDetails?.cacheWriteTokens,
+        'ai.usage.outputTokenDetails.textTokens':
+          event.totalUsage.outputTokenDetails?.textTokens,
+        'ai.usage.outputTokenDetails.reasoningTokens':
+          event.totalUsage.outputTokenDetails?.reasoningTokens,
       }),
     );
 
