@@ -326,7 +326,7 @@ describe('generateText', () => {
         prompt: 'prompt',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
-          generateCallId: () => 'test-call-id',
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -339,7 +339,7 @@ describe('generateText', () => {
         prompt: 'prompt',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
-          generateCallId: () => 'test-call-id',
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -352,7 +352,7 @@ describe('generateText', () => {
         prompt: 'prompt',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
-          generateCallId: () => 'test-call-id',
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -711,7 +711,7 @@ describe('generateText', () => {
         },
         _internal: {
           generateId: () => 'test-call-id',
-          generateCallId: () => 'test-call-id',
+          generateCallId: () => 'test-telemetry-call-id',
         },
         experimental_onStart: async event => {
           startEvent = event;
@@ -1419,7 +1419,7 @@ describe('generateText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: () => 'test-call-id',
-          generateCallId: () => 'test-call-id',
+          generateCallId: () => 'test-telemetry-call-id',
         },
         experimental_onToolCallStart: async event => {
           toolCallStartEvents.push(event);
@@ -2105,7 +2105,7 @@ describe('generateText', () => {
         },
         _internal: {
           generateId: () => 'test-call-id',
-          generateCallId: () => 'test-call-id',
+          generateCallId: () => 'test-telemetry-call-id',
         },
         onFinish: async event => {
           result = event as unknown as typeof result;
@@ -2115,7 +2115,7 @@ describe('generateText', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "callId": "test-call-id",
+          "callId": "test-telemetry-call-id",
           "content": [
             {
               "text": "Hello, World!",
@@ -2233,7 +2233,7 @@ describe('generateText', () => {
           "stepNumber": 0,
           "steps": [
             DefaultStepResult {
-              "callId": "test-call-id",
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "text": "Hello, World!",
@@ -2515,7 +2515,7 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: () => 'test-call-id',
-            generateCallId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
           },
           onFinish: async event => {
             onFinishResult = event as unknown as typeof onFinishResult;
@@ -2694,7 +2694,7 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: () => 'test-call-id',
-            generateCallId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
           },
           stopWhen: stepCountIs(3),
           onStepFinish: async event => {
@@ -2765,7 +2765,7 @@ describe('generateText', () => {
               "stepNumber": 0,
               "steps": [
                 DefaultStepResult {
-                  "callId": "test-call-id",
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "input": {
@@ -2861,7 +2861,7 @@ describe('generateText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
-                  "callId": "test-call-id",
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "text": "Hello, world!",
@@ -2996,7 +2996,7 @@ describe('generateText', () => {
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
-                  "callId": "test-call-id",
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "input": {
@@ -3092,7 +3092,7 @@ describe('generateText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
-                  "callId": "test-call-id",
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "text": "Hello, world!",
@@ -3440,7 +3440,7 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: () => 'test-call-id',
-            generateCallId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
           },
           stopWhen: [
             ({ steps }) => {
@@ -3466,7 +3466,7 @@ describe('generateText', () => {
               "number": 0,
               "steps": [
                 DefaultStepResult {
-                  "callId": "test-call-id",
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "input": {
@@ -3565,7 +3565,7 @@ describe('generateText', () => {
               "number": 1,
               "steps": [
                 DefaultStepResult {
-                  "callId": "test-call-id",
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "input": {
@@ -4202,7 +4202,7 @@ describe('generateText', () => {
         },
         _internal: {
           generateId: () => 'test-id',
-          generateCallId: () => 'test-call-id',
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -4313,7 +4313,7 @@ describe('generateText', () => {
         },
         _internal: {
           generateId: () => 'test-id',
-          generateCallId: () => 'test-call-id',
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -4375,7 +4375,7 @@ describe('generateText', () => {
         },
         _internal: {
           generateId: () => 'test-id',
-          generateCallId: () => 'test-call-id',
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -4641,7 +4641,7 @@ describe('generateText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: () => 'test-id',
-          generateCallId: () => 'test-call-id',
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -6967,7 +6967,7 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: () => 'test-id',
-            generateCallId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
           },
           tools: {
             cityAttractions: tool({
@@ -7025,7 +7025,7 @@ describe('generateText', () => {
         expect(result.steps).toMatchInlineSnapshot(`
           [
             DefaultStepResult {
-              "callId": "test-call-id",
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "input": {
@@ -7283,7 +7283,7 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
-            generateCallId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
           },
         });
       });
@@ -7400,7 +7400,7 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
-            generateCallId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
           },
         });
       });
@@ -7590,7 +7590,7 @@ describe('generateText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
-            generateCallId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -7870,7 +7870,7 @@ describe('generateText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
-            generateCallId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -8029,7 +8029,7 @@ describe('generateText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
-            generateCallId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -8237,7 +8237,7 @@ describe('generateText', () => {
             prompt: 'test-input',
             _internal: {
               generateId: mockId({ prefix: 'id' }),
-              generateCallId: () => 'test-call-id',
+              generateCallId: () => 'test-telemetry-call-id',
             },
           });
         });
@@ -8370,7 +8370,7 @@ describe('generateText', () => {
             stopWhen: stepCountIs(3),
             _internal: {
               generateId: mockId({ prefix: 'id' }),
-              generateCallId: () => 'test-call-id',
+              generateCallId: () => 'test-telemetry-call-id',
             },
             messages: [
               {
@@ -8530,7 +8530,7 @@ describe('generateText', () => {
             stopWhen: stepCountIs(3),
             _internal: {
               generateId: mockId({ prefix: 'id' }),
-              generateCallId: () => 'test-call-id',
+              generateCallId: () => 'test-telemetry-call-id',
             },
             messages: [
               {
