@@ -83,6 +83,7 @@
     "@vercel/ai-tsconfig": "0.0.0"
   },
   "changesets": [
+    "brown-planets-tell",
     "calm-squids-sparkle",
     "clean-peaches-fly",
     "curvy-doors-shake",
@@ -95,6 +96,7 @@
     "psncj-ecfys-yryon",
     "serious-houses-argue",
     "shyiw-vvoqc-mivmr",
-    "start-v7-prerelease"
+    "start-v7-prerelease",
+    "wicked-nails-prove"
   ]
 }
