@@ -188,6 +188,22 @@ describe('google-vertex-anthropic-provider', () => {
     );
   });
 
+  it('should pass supportsStrictToolSchemas: true to enable strict tool validation', () => {
+    const provider = createVertexAnthropic({
+      project: 'test-project',
+      location: 'us-east5',
+    });
+    provider('test-model-id');
+
+    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        supportsNativeStructuredOutput: false,
+        supportsStrictToolSchemas: true,
+      }),
+    );
+  });
+
   it('should support combining tools with structured outputs (inherited from Anthropic)', () => {
     const provider = createVertexAnthropic({
       project: 'test-project',

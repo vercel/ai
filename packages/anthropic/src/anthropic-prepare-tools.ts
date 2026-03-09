@@ -26,6 +26,7 @@ export async function prepareTools({
   disableParallelToolUse,
   cacheControlValidator,
   supportsStructuredOutput,
+  supportsStrictTools: supportsStrictToolsParam,
 }: {
   tools: LanguageModelV3CallOptions['tools'];
   toolChoice: LanguageModelV3CallOptions['toolChoice'] | undefined;
@@ -36,6 +37,12 @@ export async function prepareTools({
    * Whether the model supports structured output.
    */
   supportsStructuredOutput: boolean;
+
+  /**
+   * Whether the model supports strict tool schemas.
+   * Defaults to the value of supportsStructuredOutput.
+   */
+  supportsStrictTools?: boolean;
 }): Promise<{
   tools: Array<AnthropicTool> | undefined;
   toolChoice: AnthropicToolChoice | undefined;
@@ -48,6 +55,8 @@ export async function prepareTools({
   const toolWarnings: SharedV3Warning[] = [];
   const betas = new Set<string>();
   const validator = cacheControlValidator || new CacheControlValidator();
+  const supportsStrictTools =
+    supportsStrictToolsParam ?? supportsStructuredOutput;
 
   if (tools == null) {
     return { tools: undefined, toolChoice: undefined, toolWarnings, betas };
@@ -78,7 +87,7 @@ export async function prepareTools({
           input_schema: tool.inputSchema,
           cache_control: cacheControl,
           ...(eagerInputStreaming ? { eager_input_streaming: true } : {}),
-          ...(supportsStructuredOutput === true && tool.strict != null
+          ...(supportsStrictTools === true && tool.strict != null
             ? { strict: tool.strict }
             : {}),
           ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
@@ -94,7 +103,7 @@ export async function prepareTools({
             : {}),
         });
 
-        if (supportsStructuredOutput === true) {
+        if (supportsStructuredOutput === true || supportsStrictTools === true) {
           betas.add('structured-outputs-2025-11-13');
         }
 

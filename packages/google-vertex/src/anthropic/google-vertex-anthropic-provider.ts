@@ -179,6 +179,8 @@ export function createVertexAnthropic(
       supportedUrls: () => ({}),
       // force the use of JSON tool fallback for structured outputs since beta header isn't supported
       supportsNativeStructuredOutput: false,
+      // strict tool schemas are supported via the structured-outputs beta
+      supportsStrictToolSchemas: true,
     });
 
   const provider = function (modelId: GoogleVertexAnthropicMessagesModelId) {
