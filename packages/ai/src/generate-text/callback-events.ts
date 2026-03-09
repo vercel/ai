@@ -29,8 +29,8 @@ export interface CallbackModelInfo {
  * Called when the generation operation begins, before any LLM calls.
  */
 export interface OnStartEvent<
-  TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  TOOLS extends ToolSet = ToolSet,
+  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
   OUTPUT extends Output = Output,
   INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
@@ -95,8 +95,8 @@ export interface OnStartEvent<
    * When the condition is an array, any of the conditions can be met to stop.
    */
   readonly stopWhen:
-    | StopCondition<TOOLS, CONTEXT>
-    | Array<StopCondition<TOOLS, CONTEXT>>
+    | StopCondition<NoInfer<TOOLS>, CONTEXT>
+    | Array<StopCondition<NoInfer<TOOLS>, CONTEXT>>
     | undefined;
 
   /** The output specification for structured outputs, if configured. */
@@ -130,8 +130,8 @@ export interface OnStartEvent<
  * Each step represents a single LLM invocation.
  */
 export interface OnStepStartEvent<
-  TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  TOOLS extends ToolSet = ToolSet,
+  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
   OUTPUT extends Output = Output,
   INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
@@ -218,7 +218,7 @@ export interface OnStepStartEvent<
  *
  * Called when a tool execution begins, before the tool's `execute` function is invoked.
  */
-export interface OnToolCallStartEvent<TOOLS extends ToolSet> {
+export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
   /** Zero-based index of the current step where this tool call occurs. */
   readonly stepNumber: number | undefined;
 
@@ -250,7 +250,7 @@ export interface OnToolCallStartEvent<TOOLS extends ToolSet> {
  * Called when a tool execution completes, either successfully or with an error.
  * Uses a discriminated union on the `success` field.
  */
-export type OnToolCallFinishEvent<TOOLS extends ToolSet> = {
+export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
   /** Zero-based index of the current step where this tool call occurred. */
   readonly stepNumber: number | undefined;
 
@@ -301,8 +301,8 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet> = {
  * This is simply the StepResult for that step.
  */
 export type OnStepFinishEvent<
-  TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  TOOLS extends ToolSet = ToolSet,
+  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
 > = StepResult<TOOLS, CONTEXT>;
 
 /**
@@ -312,8 +312,8 @@ export type OnStepFinishEvent<
  * Includes the final step's result along with aggregated data from all steps.
  */
 export type OnFinishEvent<
-  TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  TOOLS extends ToolSet = ToolSet,
+  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
 > = StepResult<TOOLS, CONTEXT> & {
   /** Array containing results from all steps in the generation. */
   readonly steps: StepResult<TOOLS, CONTEXT>[];
