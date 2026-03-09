@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.70
+
+### Patch Changes
+
+- 49ae502: feat(xai): add b64_json response format, usage cost tracking, and quality/user parameters for image models
+
 ## 3.0.69
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.60
+
+### Patch Changes
+
+- ffe0f90: fix(anthropic): preserve the error code returned by model
+
 ## 3.0.59
 
 ### Patch Changes
