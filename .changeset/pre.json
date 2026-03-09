@@ -83,6 +83,7 @@
     "@vercel/ai-tsconfig": "0.0.0"
   },
   "changesets": [
+    "brown-planets-tell",
     "calm-squids-sparkle",
     "clean-peaches-fly",
     "curvy-doors-shake",
