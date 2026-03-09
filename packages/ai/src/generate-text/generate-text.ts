@@ -4,7 +4,6 @@ import {
   LanguageModelV4ToolCall,
 } from '@ai-sdk/provider';
 import {
-  Context,
   createIdGenerator,
   getErrorMessage,
   IdGenerator,
@@ -89,7 +88,7 @@ import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
-import { ExpandedContext, InferToolSetContext, ToolSet } from './tool-set';
+import { ExpandedContext, ToolSet } from './tool-set';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -355,12 +354,12 @@ export async function generateText<
     /**
      * @deprecated Use `prepareStep` instead.
      */
-    experimental_prepareStep?: PrepareStepFunction<CONTEXT, NoInfer<TOOLS>>;
+    experimental_prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, CONTEXT>;
 
     /**
      * Optional function that you can use to provide different settings for a step.
      */
-    prepareStep?: PrepareStepFunction<CONTEXT, NoInfer<TOOLS>>;
+    prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, CONTEXT>;
 
     /**
      * A function that attempts to repair a tool call that failed to parse.
@@ -373,8 +372,8 @@ export async function generateText<
      */
     experimental_onStart?: GenerateTextOnStartCallback<
       NoInfer<TOOLS>,
-      CONTEXT,
-      OUTPUT
+      NoInfer<CONTEXT>,
+      NoInfer<OUTPUT>
     >;
 
     /**
@@ -382,9 +381,9 @@ export async function generateText<
      * before the provider is called.
      */
     experimental_onStepStart?: GenerateTextOnStepStartCallback<
-      TOOLS,
-      CONTEXT,
-      OUTPUT
+      NoInfer<TOOLS>,
+      NoInfer<CONTEXT>,
+      NoInfer<OUTPUT>
     >;
 
     /**
@@ -404,12 +403,15 @@ export async function generateText<
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
      */
-    onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS, CONTEXT>;
+    onStepFinish?: GenerateTextOnStepFinishCallback<
+      NoInfer<TOOLS>,
+      NoInfer<CONTEXT>
+    >;
 
     /**
      * Callback that is called when all steps are finished and the response is complete.
      */
-    onFinish?: GenerateTextOnFinishCallback<TOOLS, CONTEXT>;
+    onFinish?: GenerateTextOnFinishCallback<NoInfer<TOOLS>, NoInfer<CONTEXT>>;
 
     /**
      * Context that is passed into tool execution.

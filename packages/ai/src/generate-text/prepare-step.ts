@@ -6,7 +6,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { LanguageModel, ToolChoice } from '../types/language-model';
 import { StepResult } from './step-result';
-import { ToolSet } from './tool-set';
+import { ExpandedContext, ToolSet } from './tool-set';
 
 /**
  * Function that you can use to provide different settings for a step.
@@ -22,13 +22,13 @@ import { ToolSet } from './tool-set';
  * If you return undefined (or for undefined settings), the settings from the outer level will be used.
  */
 export type PrepareStepFunction<
-  CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+  TOOLS extends ToolSet,
+  CONTEXT extends ExpandedContext<TOOLS>,
 > = (options: {
   /**
    * The steps that have been executed so far.
    */
-  steps: Array<StepResult<NoInfer<TOOLS>>>;
+  steps: Array<StepResult<TOOLS, CONTEXT>>;
 
   /**
    * The number of the step that is being executed.
@@ -50,16 +50,16 @@ export type PrepareStepFunction<
    */
   experimental_context: CONTEXT;
 }) =>
-  | PromiseLike<PrepareStepResult<CONTEXT, TOOLS>>
-  | PrepareStepResult<CONTEXT, TOOLS>;
+  | PromiseLike<PrepareStepResult<TOOLS, CONTEXT>>
+  | PrepareStepResult<TOOLS, CONTEXT>;
 
 /**
  * The result type returned by a {@link PrepareStepFunction},
  * allowing per-step overrides of model, tools, or messages.
  */
 export type PrepareStepResult<
-  CONTEXT extends Context,
-  TOOLS extends ToolSet<CONTEXT> = ToolSet<CONTEXT>,
+  TOOLS extends ToolSet,
+  CONTEXT extends ExpandedContext<TOOLS>,
 > =
   | {
       /**
