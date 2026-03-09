@@ -22,6 +22,8 @@ jobs:
         include:
           - target-branch: main
             branch-prefix: update-gateway-models
+          - target-branch: release-v6.0
+            branch-prefix: update-gateway-models-v6
           - target-branch: release-v5.0
             branch-prefix: update-gateway-models-v5
 
@@ -93,7 +95,7 @@ jobs:
           WORD3=$(tr -dc 'a-z' < /dev/urandom | head -c 5)
           CHANGESET_FILE=".changeset/${WORD1}-${WORD2}-${WORD3}.md"
 
-          if [ "${{ matrix.target-branch }}" == "release-v5.0" ]; then
+          if [ "${{ matrix.target-branch }}" == "release-v6.0" ] || [ "${{ matrix.target-branch }}" == "release-v5.0" ]; then
             CHANGESET_TITLE="Backport: chore(provider/gateway): update gateway model settings files"
           else
             CHANGESET_TITLE="chore(provider/gateway): update gateway model settings files"
@@ -125,8 +127,10 @@ jobs:
         if: steps.check-changes.outputs.has-changes == 'true'
         id: create-pr
         run: |
-          if [ "${{ matrix.target-branch }}" == "release-v5.0" ]; then
-            PR_TITLE="Backport: chore(provider/gateway): update gateway model settings files"
+          if [ "${{ matrix.target-branch }}" == "release-v6.0" ]; then
+            PR_TITLE="Backport: chore(provider/gateway): update gateway model settings files v6"
+          elif [ "${{ matrix.target-branch }}" == "release-v5.0" ]; then
+            PR_TITLE="Backport: chore(provider/gateway): update gateway model settings files v5"
           else
             PR_TITLE="chore(provider/gateway): update gateway model settings files"
           fi
