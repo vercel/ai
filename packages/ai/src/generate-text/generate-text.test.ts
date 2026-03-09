@@ -5216,6 +5216,49 @@ describe('generateText', () => {
       expect(result.toolCalls).toHaveLength(1);
       expect(result.toolResults).toHaveLength(1);
     });
+
+    it('should throw actionable error when stop condition met with tool-calls finish reason', async () => {
+      let callCount = 0;
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            callCount++;
+            return {
+              ...dummyResponseValues,
+              finishReason: { unified: 'tool-calls', raw: undefined },
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: `call-${callCount}`,
+                  toolName: 'testTool',
+                  input: `{ "value": "test" }`,
+                },
+              ],
+            };
+          },
+        }),
+        prompt: 'prompt',
+        output: Output.object({
+          schema: z.object({ summary: z.string() }),
+        }),
+        tools: {
+          testTool: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'tool result',
+          },
+        },
+        stopWhen: stepCountIs(2),
+      });
+
+      expect(() => {
+        result.output;
+      }).toThrow(/prepareStep/);
+
+      expect(() => {
+        result.output;
+      }).toThrow(/toolChoice/);
+    });
   });
 
   describe('tool execution errors', () => {

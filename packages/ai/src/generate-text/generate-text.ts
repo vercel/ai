@@ -1247,6 +1247,7 @@ export async function generateText<
           steps,
           totalUsage,
           output: resolvedOutput,
+          hasOutputSpecification: output != null,
         });
       },
     });
@@ -1315,15 +1316,18 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
   readonly steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
   readonly totalUsage: LanguageModelUsage;
   private readonly _output: InferCompleteOutput<OUTPUT> | undefined;
+  private readonly hasOutputSpecification: boolean;
 
   constructor(options: {
     steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
     output: InferCompleteOutput<OUTPUT> | undefined;
     totalUsage: LanguageModelUsage;
+    hasOutputSpecification?: boolean;
   }) {
     this.steps = options.steps;
     this._output = options.output;
     this.totalUsage = options.totalUsage;
+    this.hasOutputSpecification = options.hasOutputSpecification ?? false;
   }
 
   private get finalStep() {
@@ -1412,6 +1416,22 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
   get output() {
     if (this._output == null) {
+      const lastStep = this.steps[this.steps.length - 1];
+
+      if (
+        this.hasOutputSpecification &&
+        lastStep?.finishReason === 'tool-calls'
+      ) {
+        throw new NoOutputGeneratedError({
+          message:
+            `No output generated. The model continued making tool calls ` +
+            `(finishReason: "tool-calls") until the stop condition was met, ` +
+            `without producing a text response for output parsing. ` +
+            `Use "prepareStep" to set "toolChoice: 'none'" on the final ` +
+            `step to force the model to generate a text response.`,
+        });
+      }
+
       throw new NoOutputGeneratedError();
     }
 
