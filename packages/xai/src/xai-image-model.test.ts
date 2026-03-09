@@ -373,6 +373,60 @@ describe('XaiImageModel', () => {
       });
     });
 
+    it('should pass quality provider option', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          xai: {
+            quality: 'high',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'grok-2-image-1212',
+        prompt,
+        n: 1,
+        response_format: 'b64_json',
+        quality: 'high',
+      });
+    });
+
+    it('should pass user provider option', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          xai: {
+            user: 'example-user-123',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'grok-2-image-1212',
+        prompt,
+        n: 1,
+        response_format: 'b64_json',
+        user: 'example-user-123',
+      });
+    });
+
     it('should include revised_prompt in providerMetadata', async () => {
       server.urls['https://api.example.com/images/generations'].response = {
         type: 'json-value',
