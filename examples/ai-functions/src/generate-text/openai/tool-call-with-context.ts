@@ -47,7 +47,15 @@ run(async () => {
         },
       }),
     },
-    experimental_context: { weatherApiKey: '123', calculatorApiKey: '456' },
+    experimental_context: {
+      weatherApiKey: '123',
+      calculatorApiKey: '456',
+      somethingElse: 'context',
+    },
+    prepareStep: async ({ experimental_context: context }) => {
+      console.log(context);
+      return {};
+    },
     prompt: 'What is the weather in San Francisco?',
   });
 

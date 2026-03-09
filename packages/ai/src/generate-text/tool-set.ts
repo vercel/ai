@@ -4,13 +4,13 @@ import { UnionToIntersection } from '../util/union-to-intersection';
 export type ToolSet = Record<
   string,
   (
-    | Tool<never, never, Context>
-    | Tool<any, any, Context>
-    | Tool<any, never, Context>
-    | Tool<never, any, Context>
+    | Tool<never, never, any>
+    | Tool<any, any, any>
+    | Tool<any, never, any>
+    | Tool<never, any, any>
   ) &
     Pick<
-      Tool<any, any, Context>,
+      Tool<any, any, any>,
       | 'execute'
       | 'onInputAvailable'
       | 'onInputStart'
@@ -21,9 +21,11 @@ export type ToolSet = Record<
 
 export type InferToolSetContext<TOOLS extends ToolSet> = UnionToIntersection<
   {
-    [K in keyof TOOLS]: InferToolContext<TOOLS[K]>;
+    [K in keyof TOOLS]: InferToolContext<NoInfer<TOOLS[K]>>;
   }[keyof TOOLS]
 >;
 
-export type ExpandedContext<TOOLS extends ToolSet> =
-  InferToolSetContext<TOOLS> & Context;
+export type ExpandedContext<TOOLS extends ToolSet> = InferToolSetContext<
+  NoInfer<TOOLS>
+> &
+  Context;
