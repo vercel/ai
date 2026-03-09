@@ -77,6 +77,7 @@ export type GatewayModelId =
   | 'minimax/minimax-m2.1'
   | 'minimax/minimax-m2.1-lightning'
   | 'minimax/minimax-m2.5'
+  | 'minimax/minimax-m2.5-highspeed'
   | 'mistral/codestral'
   | 'mistral/devstral-2'
   | 'mistral/devstral-small'
@@ -168,6 +169,7 @@ export type GatewayModelId =
   | 'zai/glm-4.6v'
   | 'zai/glm-4.6v-flash'
   | 'zai/glm-4.7'
+  | 'zai/glm-4.7-flash'
   | 'zai/glm-4.7-flashx'
   | 'zai/glm-5'
   | (string & {});
