@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- add4326: fix(provider/google): correct JSDoc for multimodal embedding content option
+
 ## 4.0.0-beta.5
 
 ### Patch Changes
