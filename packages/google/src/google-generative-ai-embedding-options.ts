@@ -10,6 +10,16 @@ export type GoogleGenerativeAIEmbeddingModelId =
   | 'text-embedding-004'
   | (string & {});
 
+const googleEmbeddingContentPartSchema = z.union([
+  z.object({ text: z.string() }),
+  z.object({
+    inlineData: z.object({
+      mimeType: z.string(),
+      data: z.string(),
+    }),
+  }),
+]);
+
 export const googleGenerativeAIEmbeddingProviderOptions = lazySchema(() =>
   zodSchema(
     z.object({
@@ -43,6 +53,13 @@ export const googleGenerativeAIEmbeddingProviderOptions = lazySchema(() =>
           'CODE_RETRIEVAL_QUERY',
         ])
         .optional(),
+
+      /**
+       * Optional. Multimodal content parts for embedding non-text content
+       * (images, video, PDF, audio). When provided, these parts are merged
+       * with the text values in the embedding request.
+       */
+      content: z.array(googleEmbeddingContentPartSchema).min(1).optional(),
     }),
   ),
 );
