@@ -1,10 +1,10 @@
 import {
-  EmbeddingModelV3,
-  ImageModelV3,
-  LanguageModelV3,
-  ProviderV3,
-  SpeechModelV3,
-  TranscriptionModelV3,
+  EmbeddingModelV4,
+  ImageModelV4,
+  LanguageModelV4,
+  ProviderV4,
+  SpeechModelV4,
+  TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -30,68 +30,68 @@ import { OpenAITranscriptionModel } from './transcription/openai-transcription-m
 import { OpenAITranscriptionModelId } from './transcription/openai-transcription-options';
 import { VERSION } from './version';
 
-export interface OpenAIProvider extends ProviderV3 {
-  (modelId: OpenAIResponsesModelId): LanguageModelV3;
+export interface OpenAIProvider extends ProviderV4 {
+  (modelId: OpenAIResponsesModelId): LanguageModelV4;
 
   /**
    * Creates an OpenAI model for text generation.
    */
-  languageModel(modelId: OpenAIResponsesModelId): LanguageModelV3;
+  languageModel(modelId: OpenAIResponsesModelId): LanguageModelV4;
 
   /**
    * Creates an OpenAI chat model for text generation.
    */
-  chat(modelId: OpenAIChatModelId): LanguageModelV3;
+  chat(modelId: OpenAIChatModelId): LanguageModelV4;
 
   /**
    * Creates an OpenAI responses API model for text generation.
    */
-  responses(modelId: OpenAIResponsesModelId): LanguageModelV3;
+  responses(modelId: OpenAIResponsesModelId): LanguageModelV4;
 
   /**
    * Creates an OpenAI completion model for text generation.
    */
-  completion(modelId: OpenAICompletionModelId): LanguageModelV3;
+  completion(modelId: OpenAICompletionModelId): LanguageModelV4;
 
   /**
    * Creates a model for text embeddings.
    */
-  embedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3;
+  embedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * Creates a model for text embeddings.
    */
-  embeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3;
+  embeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embedding` instead.
    */
-  textEmbedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3;
+  textEmbedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3;
+  textEmbeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * Creates a model for image generation.
    */
-  image(modelId: OpenAIImageModelId): ImageModelV3;
+  image(modelId: OpenAIImageModelId): ImageModelV4;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: OpenAIImageModelId): ImageModelV3;
+  imageModel(modelId: OpenAIImageModelId): ImageModelV4;
 
   /**
    * Creates a model for transcription.
    */
-  transcription(modelId: OpenAITranscriptionModelId): TranscriptionModelV3;
+  transcription(modelId: OpenAITranscriptionModelId): TranscriptionModelV4;
 
   /**
    * Creates a model for speech generation.
    */
-  speech(modelId: OpenAISpeechModelId): SpeechModelV3;
+  speech(modelId: OpenAISpeechModelId): SpeechModelV4;
 
   /**
    * OpenAI-specific tools.
@@ -240,7 +240,7 @@ export function createOpenAI(
     return createLanguageModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;

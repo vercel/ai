@@ -1,4 +1,4 @@
-import { SpeechModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -19,8 +19,8 @@ interface OpenAISpeechModelConfig extends OpenAIConfig {
   };
 }
 
-export class OpenAISpeechModel implements SpeechModelV3 {
-  readonly specificationVersion = 'v3';
+export class OpenAISpeechModel implements SpeechModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
@@ -39,8 +39,8 @@ export class OpenAISpeechModel implements SpeechModelV3 {
     instructions,
     language,
     providerOptions,
-  }: Parameters<SpeechModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const openAIOptions = await parseProviderOptions({
@@ -98,8 +98,8 @@ export class OpenAISpeechModel implements SpeechModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV3['doGenerate']>>> {
+    options: Parameters<SpeechModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = await this.getArgs(options);
 
