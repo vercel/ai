@@ -1,7 +1,7 @@
 import {
-  LanguageModelV3,
-  LanguageModelV3StreamResult,
-  LanguageModelV3Usage,
+  LanguageModelV4,
+  LanguageModelV4StreamResult,
+  LanguageModelV4Usage,
   SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -85,7 +85,7 @@ type RenderText = Renderer<
 
 type RenderResult = {
   value: ReactNode;
-} & LanguageModelV3StreamResult;
+} & LanguageModelV4StreamResult;
 
 const defaultTextRenderer: RenderText = ({ content }: { content: string }) =>
   content;
@@ -115,7 +115,7 @@ export async function streamUI<
     /**
      * The language model to use.
      */
-    model: LanguageModelV3;
+    model: LanguageModelV4;
 
     /**
      * The tools that the model can call. The model needs to support calling tools.
@@ -206,7 +206,7 @@ export async function streamUI<
 
   let finishEvent: {
     finishReason: FinishReason;
-    usage: LanguageModelV3Usage;
+    usage: LanguageModelV4Usage;
     warnings?: CallWarning[];
     response?: {
       headers?: Record<string, string>;
