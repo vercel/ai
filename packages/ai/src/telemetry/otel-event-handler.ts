@@ -335,7 +335,13 @@ class OtelTelemetryIntegration implements TelemetryIntegration {
         'ai.response.toolCalls': {
           output: () =>
             event.toolCalls.length > 0
-              ? JSON.stringify(event.toolCalls)
+              ? JSON.stringify(
+                  event.toolCalls.map(toolCall => ({
+                    toolCallId: toolCall.toolCallId,
+                    toolName: toolCall.toolName,
+                    input: toolCall.input,
+                  })),
+                )
               : undefined,
         },
         'ai.response.id': event.response.id,
@@ -395,7 +401,13 @@ class OtelTelemetryIntegration implements TelemetryIntegration {
         'ai.response.toolCalls': {
           output: () =>
             event.toolCalls.length > 0
-              ? JSON.stringify(event.toolCalls)
+              ? JSON.stringify(
+                  event.toolCalls.map(toolCall => ({
+                    toolCallId: toolCall.toolCallId,
+                    toolName: toolCall.toolName,
+                    input: toolCall.input,
+                  })),
+                )
               : undefined,
         },
         'ai.response.providerMetadata': event.providerMetadata
