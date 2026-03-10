@@ -40,6 +40,7 @@
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/replicate": "workspace:*",
     "@ai-sdk/revai": "workspace:*",
+    "@ai-sdk/sarvam": "workspace:*",
     "@ai-sdk/togetherai": "workspace:*",
     "@ai-sdk/valibot": "workspace:*",
     "@ai-sdk/vercel": "workspace:*",

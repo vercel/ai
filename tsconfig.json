@@ -44,6 +44,7 @@
     { "path": "packages/replicate" },
     { "path": "packages/revai" },
     { "path": "packages/rsc" },
+    { "path": "packages/sarvam" },
     { "path": "packages/svelte" },
     { "path": "packages/test-server" },
     { "path": "packages/togetherai" },
