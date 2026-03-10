@@ -1604,6 +1604,54 @@ describe('convertToModelMessages', () => {
       `);
     });
 
+    it('should include approval data in an approved tool approval response', async () => {
+      const result = await convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            {
+              type: 'step-start',
+            },
+            {
+              approval: {
+                approved: true,
+                data: { token: 'abc123', confirmedBy: 'user' },
+                id: 'approval-1',
+                reason: undefined,
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result[2]).toMatchObject({
+        role: 'tool',
+        content: [
+          {
+            approvalId: 'approval-1',
+            approved: true,
+            data: { token: 'abc123', confirmedBy: 'user' },
+            type: 'tool-approval-response',
+          },
+        ],
+      });
+    });
+
     it('should convert a denied tool approval request and follow up text (static tool)', async () => {
       const result = await convertToModelMessages([
         {
