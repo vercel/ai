@@ -7,11 +7,7 @@ import { z } from 'zod/v4';
 
 export type GoogleGenerativeAIEmbeddingModelId =
   | 'gemini-embedding-001'
-<<<<<<< HEAD
-  | 'text-embedding-004'
-=======
   | 'gemini-embedding-2-preview'
->>>>>>> 5ffb1adb9 (Backport: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany` (#13316))
   | (string & {});
 
 const googleEmbeddingContentPartSchema = z.union([

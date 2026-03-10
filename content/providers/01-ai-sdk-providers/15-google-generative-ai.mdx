@@ -1010,7 +1010,7 @@ You can create models that call the [Google Generative AI embeddings API](https:
 using the `.textEmbedding()` factory method.
 
 ```ts
-const model = google.textEmbedding('gemini-embedding-001');
+const model = google.textEmbedding('gemini-embedding-2-preview');
 ```
 
 The Google Generative AI provider sends API calls to the right endpoint based on the type of embedding:
@@ -1018,13 +1018,13 @@ The Google Generative AI provider sends API calls to the right endpoint based on
 - **Single embeddings**: When embedding a single value with `embed()`, the provider uses the single `:embedContent` endpoint, which typically has higher rate limits compared to the batch endpoint.
 - **Batch embeddings**: When embedding multiple values with `embedMany()` or multiple values in `embed()`, the provider uses the `:batchEmbedContents` endpoint.
 
-Google Generative AI embedding models support aditional settings. You can pass them as an options argument:
+Google Generative AI embedding models support additional settings, including multimodal embeddings. You can pass them as an options argument:
 
 ```ts
 import { google } from '@ai-sdk/google';
 import { embed } from 'ai';
 
-const model = google.textEmbedding('gemini-embedding-001');
+const model = google.textEmbedding('gemini-embedding-2-preview');
 
 const { embedding } = await embed({
   model,
@@ -1033,9 +1033,6 @@ const { embedding } = await embed({
     google: {
       outputDimensionality: 512, // optional, number of dimensions for the embedding
       taskType: 'SEMANTIC_SIMILARITY', // optional, specifies the task type for generating embeddings
-<<<<<<< HEAD
-    },
-=======
       content: [[{ text: 'additional context' }]], // optional, per-value multimodal content (only 1 here, since `value` is only a single one)
     } satisfies GoogleEmbeddingModelOptions,
   },
@@ -1059,7 +1056,6 @@ const { embeddings } = await embedMany({
         null, // text-only, pairs with values[1]
       ],
     } satisfies GoogleEmbeddingModelOptions,
->>>>>>> 5ffb1adb9 (Backport: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany` (#13316))
   },
 });
 ```
@@ -1089,17 +1085,10 @@ The following optional provider options are available for Google Generative AI e
 
 ### Model Capabilities
 
-<<<<<<< HEAD
-| Model                  | Default Dimensions | Custom Dimensions   |
-| ---------------------- | ------------------ | ------------------- |
-| `gemini-embedding-001` | 3072               | <Check size={18} /> |
-| `text-embedding-004`   | 768                | <Check size={18} /> |
-=======
 | Model                        | Default Dimensions | Custom Dimensions   | Multimodal          |
 | ---------------------------- | ------------------ | ------------------- | ------------------- |
 | `gemini-embedding-001`       | 3072               | <Check size={18} /> | <Cross size={18} /> |
 | `gemini-embedding-2-preview` | 3072               | <Check size={18} /> | <Check size={18} /> |
->>>>>>> 5ffb1adb9 (Backport: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany` (#13316))
 
 ## Image Models
 
