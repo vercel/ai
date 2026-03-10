@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.48
+
+### Patch Changes
+
+- 35c46d1: feat(provider/google): support multimodal content parts in embedding provider options
+
 ## 3.0.47
 
 ### Patch Changes
