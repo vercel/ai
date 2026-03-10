@@ -78,7 +78,7 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
     const hasMultimodalContent =
       googleOptions?.content && googleOptions.content.length > 0;
 
-    if (values.length === 1 || hasMultimodalContent) {
+    if (values.length === 1) {
       const contentParts = hasMultimodalContent
         ? googleOptions.content
         : [{ text: values[0] }];
