@@ -436,7 +436,7 @@ class OtelTelemetryIntegration implements TelemetryIntegration {
     this.cleanupCallState(event.callId);
   }
 
-  onChunk(event: OnChunkEvent): void {
+  onChunk(event: OnChunkEvent<ToolSet>): void {
     const chunk = event.chunk as {
       type: string;
       callId?: unknown;

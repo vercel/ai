@@ -13,6 +13,7 @@ import type { StepResult } from './step-result';
 import type { StopCondition } from './stop-condition';
 import type { TypedToolCall } from './tool-call';
 import type { ToolSet } from './tool-set';
+import { TextStreamPart } from './stream-text-result';
 
 /**
  * Common model information used across callback events.
@@ -305,8 +306,28 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
     }
 );
 
-export interface OnChunkEvent {
-  readonly chunk: { readonly type: string; readonly [key: string]: unknown };
+export interface OnChunkEvent<TOOLS extends ToolSet = ToolSet> {
+  readonly chunk:
+    | Extract<
+        TextStreamPart<TOOLS>,
+        {
+          type:
+            | 'text-delta'
+            | 'reasoning-delta'
+            | 'source'
+            | 'tool-call'
+            | 'tool-input-start'
+            | 'tool-input-delta'
+            | 'tool-result'
+            | 'raw';
+        }
+      >
+    | {
+        readonly type: 'ai.stream.firstChunk' | 'ai.stream.finish';
+        readonly callId: string;
+        readonly stepNumber: number;
+        readonly attributes?: Record<string, unknown>;
+      };
 }
 
 /**
