@@ -321,6 +321,13 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
     }
 );
 
+/**
+ * Event passed to the `onChunk` callback.
+ *
+ * Called for each chunk received during streaming (`streamText` only).
+ * The chunk is either a content part (text-delta, tool-call, etc.) or
+ * a stream lifecycle marker (`ai.stream.firstChunk` / `ai.stream.finish`).
+ */
 export interface OnChunkEvent<TOOLS extends ToolSet = ToolSet> {
   readonly chunk:
     | Extract<
