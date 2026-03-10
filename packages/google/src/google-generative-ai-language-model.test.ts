@@ -511,6 +511,50 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should expose finishMessage in provider metadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {},
+            finishReason: 'MALFORMED_FUNCTION_CALL',
+            finishMessage:
+              "Malformed function call: print(default_api.create(name='test'))",
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 130,
+          totalTokenCount: 130,
+          promptTokensDetails: [
+            {
+              modality: 'TEXT',
+              tokenCount: 130,
+            },
+          ],
+        },
+      },
+    };
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.finishMessage).toBe(
+      "Malformed function call: print(default_api.create(name='test'))",
+    );
+  });
+
+  it('should expose null finishMessage in provider metadata when not present', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.finishMessage).toBeNull();
+  });
+
   describe('tool-call', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('google-tool-call');
@@ -3650,6 +3694,57 @@ describe('doStream', () => {
     `);
   });
 
+  it('should expose finishMessage in provider metadata on finish', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {},
+              finishReason: 'MALFORMED_FUNCTION_CALL',
+              finishMessage:
+                "Malformed function call: print(default_api.create(name='test'))",
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 130,
+            totalTokenCount: 130,
+            promptTokensDetails: [{ modality: 'TEXT', tokenCount: 130 }],
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.finishMessage,
+    ).toBe("Malformed function call: print(default_api.create(name='test'))");
+  });
+
+  it('should expose null finishMessage in provider metadata on finish when not present', async () => {
+    prepareStreamResponse({ content: ['test'] });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.finishMessage,
+    ).toBeNull();
+  });
+
   it('should stream code execution tool calls and results', async () => {
     server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
       type: 'stream-chunks',
@@ -4238,6 +4333,7 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "google": {
+              "finishMessage": null,
               "groundingMetadata": null,
               "promptFeedback": null,
               "safetyRatings": [
@@ -4259,6 +4355,7 @@ describe('doStream', () => {
                 },
               ],
               "urlContextMetadata": null,
+              "usageMetadata": null,
             },
           },
           "type": "finish",
@@ -4714,6 +4811,7 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "google": {
+              "finishMessage": null,
               "groundingMetadata": null,
               "promptFeedback": null,
               "safetyRatings": null,
@@ -4858,6 +4956,7 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "google": {
+              "finishMessage": null,
               "groundingMetadata": null,
               "promptFeedback": null,
               "safetyRatings": [
@@ -4879,6 +4978,7 @@ describe('doStream', () => {
                 },
               ],
               "urlContextMetadata": null,
+              "usageMetadata": null,
             },
           },
           "type": "finish",
