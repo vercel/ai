@@ -7,6 +7,7 @@ import { z } from 'zod/v4';
 
 export type GoogleGenerativeAIEmbeddingModelId =
   | 'gemini-embedding-001'
+  | 'gemini-embedding-2-preview'
   | (string & {});
 
 const googleEmbeddingContentPartSchema = z.union([
