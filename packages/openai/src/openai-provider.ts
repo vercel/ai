@@ -3,6 +3,7 @@ import {
   ImageModelV3,
   LanguageModelV3,
   ProviderV3,
+  Experimental_SkillsManagerV1,
   SpeechModelV3,
   TranscriptionModelV3,
 } from '@ai-sdk/provider';
@@ -28,6 +29,7 @@ import { OpenAISpeechModel } from './speech/openai-speech-model';
 import { OpenAISpeechModelId } from './speech/openai-speech-options';
 import { OpenAITranscriptionModel } from './transcription/openai-transcription-model';
 import { OpenAITranscriptionModelId } from './transcription/openai-transcription-options';
+import { OpenAISkillsManager } from './skills/openai-skills-manager';
 import { VERSION } from './version';
 
 export interface OpenAIProvider extends ProviderV3 {
@@ -92,6 +94,11 @@ export interface OpenAIProvider extends ProviderV3 {
    * Creates a model for speech generation.
    */
   speech(modelId: OpenAISpeechModelId): SpeechModelV3;
+
+  /**
+   * Returns the skills manager for this provider.
+   */
+  skillsManager(): Experimental_SkillsManagerV1;
 
   /**
    * OpenAI-specific tools.
@@ -236,6 +243,14 @@ export function createOpenAI(
     });
   };
 
+  const createSkillsManager = () =>
+    new OpenAISkillsManager({
+      provider: `${providerName}.skills`,
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (modelId: OpenAIResponsesModelId) {
     return createLanguageModel(modelId);
   };
@@ -258,6 +273,8 @@ export function createOpenAI(
 
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
+
+  provider.skillsManager = createSkillsManager;
 
   provider.tools = openaiTools;
 
