@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.62
+
+### Patch Changes
+
+- a608d48: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany`
+
 ## 2.0.61
 
 ### Patch Changes
