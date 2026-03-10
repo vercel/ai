@@ -4,7 +4,7 @@ import { readFileSync } from 'fs';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const imageData = readFileSync('../../data/comic-cat.png').toString('base64');
+  const imageData = readFileSync('./data/comic-cat.png').toString('base64');
 
   const { embedding, usage, warnings } = await embed({
     model: google.embeddingModel('gemini-embedding-2-preview'),
