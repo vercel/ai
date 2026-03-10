@@ -3730,4 +3730,99 @@ describe('doStream', () => {
       expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
     });
   });
+
+  describe('doCountTokens', () => {
+    it('should return token count for simple prompt', async () => {
+      const result = await model.doCountTokens!({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.tokens).toBeGreaterThan(0);
+      expect(result.warnings).toEqual([]);
+      expect(result.providerMetadata?.openai?.estimatedTokenCount).toBe(true);
+    });
+
+    it('should return higher count with tools', async () => {
+      const resultWithoutTools = await model.doCountTokens!({
+        prompt: TEST_PROMPT,
+      });
+
+      const resultWithTools = await model.doCountTokens!({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the weather in a location',
+            inputSchema: {
+              type: 'object',
+              properties: { location: { type: 'string' } },
+            },
+          },
+        ],
+      });
+
+      expect(resultWithTools.tokens).toBeGreaterThan(resultWithoutTools.tokens);
+    });
+
+    it('should indicate that count is an estimate', async () => {
+      const result = await model.doCountTokens!({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata?.openai?.estimatedTokenCount).toBe(true);
+    });
+
+    it('should count tokens for multi-turn conversation', async () => {
+      const multiTurnPrompt: LanguageModelV3Prompt = [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant.',
+        },
+        { role: 'user', content: [{ type: 'text' as const, text: 'Hello' }] },
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text' as const, text: 'Hi! How can I help you today?' },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            { type: 'text' as const, text: 'What is the weather like?' },
+          ],
+        },
+      ];
+
+      const result = await model.doCountTokens!({
+        prompt: multiTurnPrompt,
+      });
+
+      expect(result.tokens).toBeGreaterThan(10);
+    });
+
+    it('should count system message content tokens', async () => {
+      const promptWithoutSystem: LanguageModelV3Prompt = [
+        { role: 'user', content: [{ type: 'text' as const, text: 'Hello' }] },
+      ];
+
+      const promptWithSystem: LanguageModelV3Prompt = [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant that speaks French.',
+        },
+        { role: 'user', content: [{ type: 'text' as const, text: 'Hello' }] },
+      ];
+
+      const resultWithout = await model.doCountTokens!({
+        prompt: promptWithoutSystem,
+      });
+      const resultWith = await model.doCountTokens!({
+        prompt: promptWithSystem,
+      });
+
+      // System message should add more than just the 4-token overhead
+      expect(resultWith.tokens).toBeGreaterThan(resultWithout.tokens + 4);
+    });
+  });
 });

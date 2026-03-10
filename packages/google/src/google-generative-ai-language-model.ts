@@ -2,6 +2,8 @@ import {
   LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3Content,
+  LanguageModelV3CountTokensOptions,
+  LanguageModelV3CountTokensResult,
   LanguageModelV3FinishReason,
   LanguageModelV3GenerateResult,
   LanguageModelV3Source,
@@ -714,6 +716,54 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       request: { body: args },
     };
   }
+
+  async doCountTokens(
+    options: LanguageModelV3CountTokensOptions,
+  ): Promise<LanguageModelV3CountTokensResult> {
+    const { args, warnings, providerOptionsName } = await this.getArgs(options);
+
+    // Strip generation-specific fields
+    const {
+      generationConfig,
+      safetySettings,
+      cachedContent,
+      labels,
+      ...countTokensBody
+    } = args;
+
+    const mergedHeaders = combineHeaders(
+      await resolve(this.config.headers),
+      options.headers,
+    );
+
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
+      url: `${this.config.baseURL}/${getModelPath(this.modelId)}:countTokens`,
+      headers: mergedHeaders,
+      body: countTokensBody,
+      failedResponseHandler: googleFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        countTokensResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    return {
+      tokens: response.totalTokens,
+      warnings,
+      request: { body: countTokensBody },
+      response: { headers: responseHeaders, body: rawResponse },
+      providerMetadata: {
+        [providerOptionsName]: {
+          cachedContentTokenCount: response.cachedContentTokenCount ?? null,
+        },
+      },
+    };
+  }
 }
 
 function getToolCallsFromParts({
@@ -1075,3 +1125,13 @@ const chunkSchema = lazySchema(() =>
 );
 
 type ChunkSchema = InferSchema<typeof chunkSchema>;
+
+// Response schema for countTokens endpoint
+const countTokensResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      totalTokens: z.number(),
+      cachedContentTokenCount: z.number().nullish(),
+    }),
+  ),
+);
