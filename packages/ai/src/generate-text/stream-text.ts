@@ -1239,6 +1239,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
       functionId: telemetry?.functionId,
       metadata: telemetry?.metadata as Record<string, unknown> | undefined,
     };
+    const onStartTelemetryProps = {
+      isEnabled: telemetry?.isEnabled,
+      recordInputs: telemetry?.recordInputs,
+      recordOutputs: telemetry?.recordOutputs,
+      functionId: telemetry?.functionId,
+      metadata: telemetry?.metadata,
+      tracer: telemetry?.tracer,
+    };
 
     (async () => {
       const initialPrompt = await standardizePrompt({
@@ -1274,8 +1282,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           output,
           abortSignal: originalAbortSignal,
           include,
-          telemetry,
-          ...callbackTelemetryProps,
+          ...onStartTelemetryProps,
           experimental_context,
         },
         callbacks: [

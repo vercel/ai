@@ -96,9 +96,13 @@ function getSetAttributesArg(span: MockSpan, callIndex = 0): Attributes {
 let callId: string;
 let callIdCounter = 0;
 
-function telemetrySettings(tracer: Tracer) {
+function telemetryFields(tracer: Tracer) {
   return {
     isEnabled: true as const,
+    recordInputs: undefined,
+    recordOutputs: undefined,
+    functionId: undefined,
+    metadata: undefined,
     tracer,
   };
 }
@@ -132,7 +136,7 @@ function makeOnStartEvent(tracer: Tracer, overrides?: Record<string, unknown>) {
     output: undefined,
     abortSignal: undefined,
     include: undefined,
-    telemetry: telemetrySettings(tracer),
+    ...telemetryFields(tracer),
     experimental_context: undefined,
     ...overrides,
   } as Parameters<NonNullable<typeof otelIntegration.onStart>>[0];
@@ -349,16 +353,16 @@ describe('OtelTelemetryIntegration', () => {
     it('does not create a span when telemetry is disabled', () => {
       otelIntegration.onStart!(
         makeOnStartEvent(tracer, {
-          telemetry: { isEnabled: false, tracer },
+          isEnabled: false,
         }),
       );
 
       expect(tracer.startSpan).not.toHaveBeenCalled();
     });
 
-    it('does not create a span when telemetry is undefined', () => {
+    it('does not create a span when isEnabled is undefined', () => {
       otelIntegration.onStart!(
-        makeOnStartEvent(tracer, { telemetry: undefined }),
+        makeOnStartEvent(tracer, { isEnabled: undefined }),
       );
 
       expect(tracer.startSpan).not.toHaveBeenCalled();
@@ -920,9 +924,7 @@ describe('OtelTelemetryIntegration', () => {
   describe('telemetry disabled / recordInputs / recordOutputs', () => {
     it('does not record input attributes when recordInputs is false', () => {
       otelIntegration.onStart!(
-        makeOnStartEvent(tracer, {
-          telemetry: { isEnabled: true, tracer, recordInputs: false },
-        }),
+        makeOnStartEvent(tracer, { recordInputs: false }),
       );
 
       const attrs = getStartSpanAttributes(tracer, 0);
@@ -931,9 +933,7 @@ describe('OtelTelemetryIntegration', () => {
 
     it('does not record output attributes when recordOutputs is false', () => {
       otelIntegration.onStart!(
-        makeOnStartEvent(tracer, {
-          telemetry: { isEnabled: true, tracer, recordOutputs: false },
-        }),
+        makeOnStartEvent(tracer, { recordOutputs: false }),
       );
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(
@@ -947,9 +947,7 @@ describe('OtelTelemetryIntegration', () => {
 
     it('records non-input/output attributes even when recordInputs is false', () => {
       otelIntegration.onStart!(
-        makeOnStartEvent(tracer, {
-          telemetry: { isEnabled: true, tracer, recordInputs: false },
-        }),
+        makeOnStartEvent(tracer, { recordInputs: false }),
       );
 
       const attrs = getStartSpanAttributes(tracer, 0);
@@ -959,9 +957,7 @@ describe('OtelTelemetryIntegration', () => {
 
     it('does not record tool call args when recordOutputs is false', () => {
       otelIntegration.onStart!(
-        makeOnStartEvent(tracer, {
-          telemetry: { isEnabled: true, tracer, recordOutputs: false },
-        }),
+        makeOnStartEvent(tracer, { recordOutputs: false }),
       );
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onToolCallStart!(makeToolCallStartEvent());
@@ -972,9 +968,7 @@ describe('OtelTelemetryIntegration', () => {
 
     it('does not record tool call result when recordOutputs is false', () => {
       otelIntegration.onStart!(
-        makeOnStartEvent(tracer, {
-          telemetry: { isEnabled: true, tracer, recordOutputs: false },
-        }),
+        makeOnStartEvent(tracer, { recordOutputs: false }),
       );
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onToolCallStart!(makeToolCallStartEvent());
@@ -1111,11 +1105,7 @@ describe('OtelTelemetryIntegration', () => {
     it('includes functionId in operation name', () => {
       otelIntegration.onStart!(
         makeOnStartEvent(tracer, {
-          telemetry: {
-            isEnabled: true,
-            tracer,
-            functionId: 'my-chat',
-          },
+          functionId: 'my-chat',
         }),
       );
 
@@ -1130,11 +1120,7 @@ describe('OtelTelemetryIntegration', () => {
     it('includes metadata as telemetry attributes', () => {
       otelIntegration.onStart!(
         makeOnStartEvent(tracer, {
-          telemetry: {
-            isEnabled: true,
-            tracer,
-            metadata: { userId: 'user-123', sessionId: 'sess-456' },
-          },
+          metadata: { userId: 'user-123', sessionId: 'sess-456' },
         }),
       );
 

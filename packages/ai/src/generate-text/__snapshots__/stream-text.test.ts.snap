@@ -12,6 +12,7 @@ exports[`streamText > options.experimental_onStart > should send correct informa
   "functionId": "test-function",
   "headers": undefined,
   "include": undefined,
+  "isEnabled": undefined,
   "maxOutputTokens": undefined,
   "maxRetries": 2,
   "messages": undefined,
@@ -27,22 +28,19 @@ exports[`streamText > options.experimental_onStart > should send correct informa
   "presencePenalty": undefined,
   "prompt": "test-input",
   "providerOptions": undefined,
+  "recordInputs": undefined,
+  "recordOutputs": undefined,
   "seed": undefined,
   "stopSequences": undefined,
   "stopWhen": [Function],
   "system": undefined,
-  "telemetry": {
-    "functionId": "test-function",
-    "metadata": {
-      "customKey": "customValue",
-    },
-  },
   "temperature": undefined,
   "timeout": undefined,
   "toolChoice": undefined,
   "tools": undefined,
   "topK": undefined,
   "topP": undefined,
+  "tracer": undefined,
 }
 `;
 

@@ -128,8 +128,15 @@ class OtelTelemetryIntegration implements TelemetryIntegration {
   }
 
   onStart(event: OnStartEvent<ToolSet, Output>): void {
-    const telemetry = event.telemetry;
-    if (telemetry?.isEnabled === false) return;
+    const telemetry: TelemetrySettings | undefined = {
+      isEnabled: event.isEnabled,
+      recordInputs: event.recordInputs,
+      recordOutputs: event.recordOutputs,
+      functionId: event.functionId,
+      metadata: event.metadata,
+      tracer: event.tracer,
+    };
+    if (telemetry.isEnabled === false) return;
 
     const tracer = getTracer(telemetry);
 
