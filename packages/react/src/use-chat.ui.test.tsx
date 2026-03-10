@@ -11,9 +11,11 @@ import {
   screen,
   waitFor,
   render,
+  renderHook
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
+  ChatTransport,
   DefaultChatTransport,
   isStaticToolUIPart,
   TextStreamChatTransport,
@@ -2634,6 +2636,117 @@ describe('use-chat', () => {
       ]);
     });
   });
+
+describe('id change aborts previous stream', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should abort the previous stream when id changes during streaming', async () => {
+    let aborted = false;
+
+    const transport: ChatTransport<UIMessage> = {
+      sendMessages({ abortSignal }) {
+        return Promise.resolve(
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.enqueue({ type: 'text-start', id: '0' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: '0',
+                delta: 'Hello',
+              });
+              abortSignal?.addEventListener('abort', () => {
+                aborted = true;
+                controller.error(new DOMException('Aborted', 'AbortError'));
+              });
+            },
+          }),
+        );
+      },
+      reconnectToStream: () => Promise.resolve(null),
+    };
+
+    const { rerender, result } = renderHook(
+      ({ id }: { id: string }) =>
+        useChat({ id, transport, generateId: mockId() }),
+      { initialProps: { id: 'chat-1' } },
+    );
+
+    act(() => {
+      result.current.sendMessage({ text: 'hi' });
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('streaming');
+    });
+
+    // Switch chat ID while streaming — should abort the previous stream
+    act(() => {
+      rerender({ id: 'chat-2' });
+    });
+
+    await waitFor(() => {
+      expect(aborted).toBe(true);
+    });
+
+    // New chat starts with empty messages
+    expect(result.current.messages).toStrictEqual([]);
+  });
+
+  it('should NOT abort when an external Chat instance is replaced', async () => {
+    let aborted = false;
+
+    const transport: ChatTransport<UIMessage> = {
+      sendMessages({ abortSignal }) {
+        return Promise.resolve(
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.enqueue({ type: 'text-start', id: '0' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: '0',
+                delta: 'Hello',
+              });
+              abortSignal?.addEventListener('abort', () => {
+                aborted = true;
+                controller.error(new DOMException('Aborted', 'AbortError'));
+              });
+            },
+          }),
+        );
+      },
+      reconnectToStream: () => Promise.resolve(null),
+    };
+
+    const chat1 = new Chat({ id: 'chat-1', transport, generateId: mockId() });
+    const chat2 = new Chat({ id: 'chat-2', transport, generateId: mockId() });
+
+    const { rerender, result } = renderHook(
+      ({ chat }: { chat: Chat<UIMessage> }) => useChat({ chat }),
+      { initialProps: { chat: chat1 } },
+    );
+
+    act(() => {
+      result.current.sendMessage({ text: 'hi' });
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('streaming');
+    });
+
+    // Replace with an external Chat — useChat should NOT auto-stop here
+    act(() => {
+      rerender({ chat: chat2 });
+    });
+
+    // Give time for any (incorrect) stop to be called
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    // chat1's stream should NOT have been aborted by useChat
+    expect(aborted).toBe(false);
+  });
+});
 
   describe('chat instance changes', () => {
     setupTestComponent(
