@@ -55,8 +55,8 @@ export const googleEmbeddingModelOptions = lazySchema(() =>
 
       /**
        * Optional. Multimodal content parts for embedding non-text content
-       * (images, video, PDF, audio). When provided, these parts are used
-       * instead of the text values in the embedding request.
+       * (images, video, PDF, audio). When provided, these parts are merged
+       * with the text values in the embedding request.
        */
       content: z.array(googleEmbeddingContentPartSchema).min(1).optional(),
     }),
