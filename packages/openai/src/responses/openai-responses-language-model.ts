@@ -1,18 +1,18 @@
 import {
   APICallError,
   JSONValue,
-  LanguageModelV3,
-  LanguageModelV3Prompt,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3ProviderTool,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  LanguageModelV3ToolApprovalRequest,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4Prompt,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4ProviderTool,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  LanguageModelV4ToolApprovalRequest,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -77,7 +77,7 @@ import {
  * so that tool results reference the correct tool call.
  */
 function extractApprovalRequestIdToToolCallIdMapping(
-  prompt: LanguageModelV3Prompt,
+  prompt: LanguageModelV4Prompt,
 ): Record<string, string> {
   const mapping: Record<string, string> = {};
   for (const message of prompt) {
@@ -94,8 +94,8 @@ function extractApprovalRequestIdToToolCallIdMapping(
   return mapping;
 }
 
-export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: OpenAIResponsesModelId;
 
@@ -129,8 +129,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     responseFormat,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
 
     if (topK != null) {
@@ -273,7 +273,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           tool.type === 'provider' &&
           (tool.id === 'openai.web_search' ||
             tool.id === 'openai.web_search_preview'),
-      ) as LanguageModelV3ProviderTool | undefined
+      ) as LanguageModelV4ProviderTool | undefined
     )?.name;
 
     if (webSearchToolName) {
@@ -454,8 +454,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const {
       args: body,
       warnings,
@@ -500,7 +500,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       });
     }
 
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
     const logprobs: Array<OpenAIResponsesLogprobs> = [];
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
@@ -621,7 +621,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               logprobs.push(contentPart.logprobs);
             }
 
-            const providerMetadata: SharedV3ProviderMetadata[string] = {
+            const providerMetadata: SharedV4ProviderMetadata[string] = {
               itemId: part.id,
               ...(part.phase != null && { phase: part.phase }),
               ...(contentPart.annotations.length > 0 && {
@@ -833,7 +833,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             type: 'tool-approval-request',
             approvalId: approvalRequestId,
             toolCallId: dummyToolCallId,
-          } satisfies LanguageModelV3ToolApprovalRequest);
+          } satisfies LanguageModelV4ToolApprovalRequest);
           break;
         }
 
@@ -930,7 +930,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       }
     }
 
-    const providerMetadata: SharedV3ProviderMetadata = {
+    const providerMetadata: SharedV4ProviderMetadata = {
       [providerOptionsName]: {
         responseId: response.id,
         ...(logprobs.length > 0 ? { logprobs } : {}),
@@ -966,8 +966,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const {
       args: body,
       warnings,
@@ -1006,7 +1006,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       string
     >();
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -1059,7 +1059,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<OpenAIResponsesChunk>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -1941,7 +1941,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           },
 
           flush(controller) {
-            const providerMetadata: SharedV3ProviderMetadata = {
+            const providerMetadata: SharedV4ProviderMetadata = {
               [providerOptionsName]: {
                 responseId: responseId,
                 ...(logprobs.length > 0 ? { logprobs } : {}),
