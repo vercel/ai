@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 4.0.88
+
+### Patch Changes
+
+- 5ffb1ad: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany`
+- Updated dependencies [5ffb1ad]
+  - @ai-sdk/google@3.0.50
+
 ## 4.0.87
 
 ### Patch Changes
