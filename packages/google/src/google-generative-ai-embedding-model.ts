@@ -74,14 +74,15 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
       headers,
     );
 
-    // Use single endpoint for single values or multimodal content
-    const hasMultimodalContent =
-      googleOptions?.content && googleOptions.content.length > 0;
+    const multimodalContent = googleOptions?.content ?? [];
 
+    // For single embeddings, use the single endpoint
     if (values.length === 1) {
-      const contentParts = hasMultimodalContent
-        ? googleOptions.content
-        : [{ text: values[0] }];
+      const textPart = values[0] ? [{ text: values[0] }] : [];
+      const parts =
+        multimodalContent.length > 0
+          ? [...textPart, ...multimodalContent]
+          : [{ text: values[0] }];
 
       const {
         responseHeaders,
@@ -93,7 +94,7 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
         body: {
           model: `models/${this.modelId}`,
           content: {
-            parts: contentParts,
+            parts,
           },
           outputDimensionality: googleOptions?.outputDimensionality,
           taskType: googleOptions?.taskType,
@@ -114,6 +115,8 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
       };
     }
 
+    // For multiple values, use the batch endpoint
+    // If multimodal content is provided, merge it into each request's parts
     const {
       responseHeaders,
       value: response,
@@ -122,12 +125,21 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
       url: `${this.config.baseURL}/models/${this.modelId}:batchEmbedContents`,
       headers: mergedHeaders,
       body: {
-        requests: values.map(value => ({
-          model: `models/${this.modelId}`,
-          content: { role: 'user', parts: [{ text: value }] },
-          outputDimensionality: googleOptions?.outputDimensionality,
-          taskType: googleOptions?.taskType,
-        })),
+        requests: values.map(value => {
+          const textPart = value ? [{ text: value }] : [];
+          return {
+            model: `models/${this.modelId}`,
+            content: {
+              role: 'user',
+              parts:
+                multimodalContent.length > 0
+                  ? [...textPart, ...multimodalContent]
+                  : [{ text: value }],
+            },
+            outputDimensionality: googleOptions?.outputDimensionality,
+            taskType: googleOptions?.taskType,
+          };
+        }),
       },
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
