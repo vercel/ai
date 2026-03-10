@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-5-mini'),
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
@@ -15,10 +15,11 @@ run(async () => {
         contextSchema: z.object({
           weatherApiKey: z.string().describe('The API key for the weather API'),
         }),
-        execute: async ({ location }, { experimental_context: context }) => {
-          console.log(context);
-
-          context satisfies { weatherApiKey: string };
+        execute: async (
+          { location },
+          { experimental_context: { weatherApiKey } },
+        ) => {
+          console.log('weather tool api key:', weatherApiKey);
 
           return {
             location,
@@ -38,8 +39,11 @@ run(async () => {
             .string()
             .describe('The API key for the calculator API'),
         }),
-        execute: async ({ expression }, { experimental_context: context }) => {
-          console.log(context);
+        execute: async (
+          { expression },
+          { experimental_context: { calculatorApiKey } },
+        ) => {
+          console.log('calculator tool api key:', calculatorApiKey);
           return {
             expression,
             result: eval(expression),
@@ -48,12 +52,12 @@ run(async () => {
       }),
     },
     experimental_context: {
-      weatherApiKey: '123',
-      calculatorApiKey: '456',
-      somethingElse: 'context',
+      weatherApiKey: 'weather-123',
+      calculatorApiKey: 'calculator-456',
+      somethingElse: 'other-context',
     },
     prepareStep: async ({ experimental_context: context }) => {
-      console.log(context);
+      console.log('prepareStep context:', context);
       return {};
     },
     prompt: 'What is the weather in San Francisco?',
