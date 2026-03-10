@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.51
+
+### Patch Changes
+
+- 8901054: feat(google): add new finishMessage field in providerMetadata
+
 ## 3.0.50
 
 ### Patch Changes
