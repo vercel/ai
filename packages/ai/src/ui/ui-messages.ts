@@ -77,6 +77,7 @@ export type UIMessagePart<
   TOOLS extends UITools,
 > =
   | TextUIPart
+  | CustomUIPart
   | ReasoningUIPart
   | ToolUIPart<TOOLS>
   | DynamicToolUIPart
@@ -101,6 +102,18 @@ export type TextUIPart = {
    * The state of the text part.
    */
   state?: 'streaming' | 'done';
+
+  /**
+   * The provider metadata.
+   */
+  providerMetadata?: ProviderMetadata;
+};
+
+/**
+ * A provider-specific part of a message.
+ */
+export type CustomUIPart = {
+  type: 'custom';
 
   /**
    * The provider metadata.
@@ -423,6 +436,15 @@ export function isTextUIPart(
   part: UIMessagePart<UIDataTypes, UITools>,
 ): part is TextUIPart {
   return part.type === 'text';
+}
+
+/**
+ * Type guard to check if a message part is a custom part.
+ */
+export function isCustomUIPart(
+  part: UIMessagePart<UIDataTypes, UITools>,
+): part is CustomUIPart {
+  return part.type === 'custom';
 }
 
 /**

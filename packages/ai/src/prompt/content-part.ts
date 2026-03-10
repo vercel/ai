@@ -1,4 +1,5 @@
 import {
+  CustomPart,
   FilePart,
   ImagePart,
   ProviderOptions,
@@ -50,6 +51,14 @@ export const filePartSchema: z.ZodType<FilePart> = z.object({
 export const reasoningPartSchema: z.ZodType<ReasoningPart> = z.object({
   type: z.literal('reasoning'),
   text: z.string(),
+  providerOptions: providerMetadataSchema.optional(),
+});
+
+/**
+ * @internal
+ */
+export const customPartSchema: z.ZodType<CustomPart> = z.object({
+  type: z.literal('custom'),
   providerOptions: providerMetadataSchema.optional(),
 });
 

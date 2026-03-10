@@ -1,3 +1,4 @@
+import { LanguageModelV4Custom } from './language-model-v4-custom';
 import { LanguageModelV4File } from './language-model-v4-file';
 import { LanguageModelV4Reasoning } from './language-model-v4-reasoning';
 import { LanguageModelV4Source } from './language-model-v4-source';
@@ -9,6 +10,7 @@ import { LanguageModelV4ToolResult } from './language-model-v4-tool-result';
 export type LanguageModelV4Content =
   | LanguageModelV4Text
   | LanguageModelV4Reasoning
+  | LanguageModelV4Custom
   | LanguageModelV4File
   | LanguageModelV4ToolApprovalRequest
   | LanguageModelV4Source

@@ -1453,6 +1453,7 @@ function asContent<TOOLS extends ToolSet>({
   for (const part of content) {
     switch (part.type) {
       case 'text':
+      case 'custom':
       case 'reasoning':
       case 'source':
         contentParts.push(part);

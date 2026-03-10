@@ -31,6 +31,7 @@ export type LanguageModelV4Message =
         content: Array<
           | LanguageModelV4TextPart
           | LanguageModelV4FilePart
+          | LanguageModelV4CustomPart
           | LanguageModelV4ReasoningPart
           | LanguageModelV4ToolCallPart
           | LanguageModelV4ToolResultPart
@@ -81,6 +82,21 @@ export interface LanguageModelV4ReasoningPart {
    * The reasoning text.
    */
   text: string;
+
+  /**
+   * Additional provider-specific options. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
+  providerOptions?: SharedV3ProviderOptions;
+}
+
+/**
+ * Provider-specific content part of a prompt. It contains no standardized
+ * payload beyond provider-specific options.
+ */
+export interface LanguageModelV4CustomPart {
+  type: 'custom';
 
   /**
    * Additional provider-specific options. They are passed through

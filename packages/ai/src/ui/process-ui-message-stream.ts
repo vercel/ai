@@ -14,6 +14,7 @@ import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { UIDataTypesToSchemas } from './chat';
 import {
+  CustomUIPart,
   DataUIPart,
   DynamicToolUIPart,
   getStaticToolName,
@@ -396,6 +397,16 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               textPart.providerMetadata =
                 chunk.providerMetadata ?? textPart.providerMetadata;
               delete state.activeTextParts[chunk.id];
+              write();
+              break;
+            }
+
+            case 'custom': {
+              const customPart: CustomUIPart = {
+                type: 'custom',
+                providerMetadata: chunk.providerMetadata,
+              };
+              state.message.parts.push(customPart);
               write();
               break;
             }
