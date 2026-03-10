@@ -1,5 +1,23 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- aa5a583: chore(provider/xai): remove obsolete Grok 2 models now that they are shut down in their API
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- 25f1837: feat(xai): add b64_json response format, usage cost tracking, and quality/user parameters for image models
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- f5181ad: feat(provider/xai): support multiple input images for image editing
+
 ## 4.0.0-beta.2
 
 ### Patch Changes

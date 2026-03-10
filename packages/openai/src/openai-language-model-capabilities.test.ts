@@ -62,6 +62,7 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5.2', true],
       ['gpt-5.2-pro', true],
       ['gpt-5.2-chat-latest', true],
+      ['gpt-5.3-chat-latest', true],
       ['gpt-5.4', true],
       ['gpt-5.4-pro', true],
       ['gpt-5.4-2026-03-05', true],
