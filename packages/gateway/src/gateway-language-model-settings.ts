@@ -106,7 +106,6 @@ export type GatewayModelId =
   | 'nvidia/nemotron-3-nano-30b-a3b'
   | 'nvidia/nemotron-nano-12b-v2-vl'
   | 'nvidia/nemotron-nano-9b-v2'
-  | 'openai/codex-mini'
   | 'openai/gpt-3.5-turbo'
   | 'openai/gpt-3.5-turbo-instruct'
   | 'openai/gpt-4-turbo'
