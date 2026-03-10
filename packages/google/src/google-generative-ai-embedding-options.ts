@@ -10,9 +10,6 @@ export type GoogleGenerativeAIEmbeddingModelId =
   | 'text-embedding-004'
   | (string & {});
 
-<<<<<<< HEAD
-export const googleGenerativeAIEmbeddingProviderOptions = lazySchema(() =>
-=======
 const googleEmbeddingContentPartSchema = z.union([
   z.object({ text: z.string() }),
   z.object({
@@ -23,8 +20,7 @@ const googleEmbeddingContentPartSchema = z.union([
   }),
 ]);
 
-export const googleEmbeddingModelOptions = lazySchema(() =>
->>>>>>> 35c46d1be (Backport: feat(provider/google): support multimodal embeddings (#13292))
+export const googleGenerativeAIEmbeddingProviderOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -60,8 +56,8 @@ export const googleEmbeddingModelOptions = lazySchema(() =>
 
       /**
        * Optional. Multimodal content parts for embedding non-text content
-       * (images, video, PDF, audio). When provided, these parts are used
-       * instead of the text values in the embedding request.
+       * (images, video, PDF, audio). When provided, these parts are merged
+       * with the text values in the embedding request.
        */
       content: z.array(googleEmbeddingContentPartSchema).min(1).optional(),
     }),
