@@ -7,7 +7,11 @@ import { z } from 'zod/v4';
 
 export type GoogleGenerativeAIEmbeddingModelId =
   | 'gemini-embedding-001'
+<<<<<<< HEAD
   | 'text-embedding-004'
+=======
+  | 'gemini-embedding-2-preview'
+>>>>>>> 5ffb1adb9 (Backport: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany` (#13316))
   | (string & {});
 
 const googleEmbeddingContentPartSchema = z.union([
@@ -55,11 +59,17 @@ export const googleGenerativeAIEmbeddingProviderOptions = lazySchema(() =>
         .optional(),
 
       /**
-       * Optional. Multimodal content parts for embedding non-text content
-       * (images, video, PDF, audio). When provided, these parts are merged
-       * with the text values in the embedding request.
+       * Optional. Per-value multimodal content parts for embedding non-text
+       * content (images, video, PDF, audio). Each entry corresponds to the
+       * embedding value at the same index and its parts are merged with the
+       * text value in the request. Use `null` for entries that are text-only.
+       *
+       * The array length must match the number of values being embedded. In
+       * the case of a single embedding, the array length must be 1.
        */
-      content: z.array(googleEmbeddingContentPartSchema).min(1).optional(),
+      content: z
+        .array(z.array(googleEmbeddingContentPartSchema).min(1).nullable())
+        .optional(),
     }),
   ),
 );
