@@ -13,7 +13,7 @@ function createModel({
   headers?: () => Record<string, string>;
   currentDate?: () => Date;
 } = {}) {
-  return new XaiImageModel('grok-2-image-1212', {
+  return new XaiImageModel('grok-imagine-image', {
     provider: 'xai.image',
     baseURL: 'https://api.example.com',
     headers: headers ?? (() => ({ 'api-key': 'test-key' })),
@@ -29,7 +29,7 @@ describe('XaiImageModel', () => {
       response: {
         type: 'json-value',
         body: {
-          data: [{ url: imageUrl }],
+          data: [{ b64_json: 'dGVzdA==' }],
         },
       },
     },
@@ -37,14 +37,8 @@ describe('XaiImageModel', () => {
       response: {
         type: 'json-value',
         body: {
-          data: [{ url: imageUrl }],
+          data: [{ b64_json: 'dGVzdA==' }],
         },
-      },
-    },
-    [imageUrl]: {
-      response: {
-        type: 'binary',
-        body: Buffer.from('test-binary-content'),
       },
     },
   });
@@ -54,7 +48,7 @@ describe('XaiImageModel', () => {
       const model = createModel();
 
       expect(model.provider).toBe('xai.image');
-      expect(model.modelId).toBe('grok-2-image-1212');
+      expect(model.modelId).toBe('grok-imagine-image');
       expect(model.specificationVersion).toBe('v3');
       expect(model.maxImagesPerCall).toBe(3);
     });
@@ -80,10 +74,10 @@ describe('XaiImageModel', () => {
         'https://api.example.com/images/generations',
       );
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-2-image-1212',
+        model: 'grok-imagine-image',
         prompt,
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         aspect_ratio: '16:9',
       });
     });
@@ -113,10 +107,10 @@ describe('XaiImageModel', () => {
         'https://api.example.com/images/edits',
       );
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-2-image-1212',
+        model: 'grok-imagine-image',
         prompt: 'Turn the cat into a dog',
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         image: {
           url: 'data:image/png;base64,iVBORw==',
           type: 'image_url',
@@ -144,10 +138,10 @@ describe('XaiImageModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-2-image-1212',
+        model: 'grok-imagine-image',
         prompt: 'Edit this image',
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         image: {
           url: 'https://example.com/input.png',
           type: 'image_url',
@@ -176,10 +170,10 @@ describe('XaiImageModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-2-image-1212',
+        model: 'grok-imagine-image',
         prompt: 'Edit this image',
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         image: {
           url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAE=',
           type: 'image_url',
@@ -218,10 +212,10 @@ describe('XaiImageModel', () => {
         'https://api.example.com/images/edits',
       );
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-2-image-1212',
+        model: 'grok-imagine-image',
         prompt: 'Combine these images',
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         images: [
           {
             url: 'data:image/png;base64,iVBORw==',
@@ -260,10 +254,10 @@ describe('XaiImageModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-2-image-1212',
+        model: 'grok-imagine-image',
         prompt: 'Combine these images',
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         images: [
           {
             url: 'https://example.com/input.png',
@@ -277,7 +271,7 @@ describe('XaiImageModel', () => {
       });
     });
 
-    it('should download images from returned URLs', async () => {
+    it('should return base64 images from b64_json response', async () => {
       const model = createModel();
 
       const result = await model.doGenerate({
@@ -292,10 +286,7 @@ describe('XaiImageModel', () => {
       });
 
       expect(result.images).toHaveLength(1);
-      expect(result.images[0]).toBeInstanceOf(Uint8Array);
-      expect(Buffer.from(result.images[0] as Uint8Array).toString()).toBe(
-        'test-binary-content',
-      );
+      expect(result.images[0]).toBe('dGVzdA==');
     });
 
     it('should pass headers', async () => {
@@ -346,10 +337,10 @@ describe('XaiImageModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-2-image-1212',
+        model: 'grok-imagine-image',
         prompt,
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         output_format: 'jpeg',
         sync_mode: true,
       });
@@ -374,11 +365,65 @@ describe('XaiImageModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-2-image-1212',
+        model: 'grok-imagine-image',
         prompt,
         n: 1,
-        response_format: 'url',
+        response_format: 'b64_json',
         resolution: '2k',
+      });
+    });
+
+    it('should pass quality provider option', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          xai: {
+            quality: 'high',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'grok-imagine-image',
+        prompt,
+        n: 1,
+        response_format: 'b64_json',
+        quality: 'high',
+      });
+    });
+
+    it('should pass user provider option', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          xai: {
+            user: 'example-user-123',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'grok-imagine-image',
+        prompt,
+        n: 1,
+        response_format: 'b64_json',
+        user: 'example-user-123',
       });
     });
 
@@ -386,7 +431,7 @@ describe('XaiImageModel', () => {
       server.urls['https://api.example.com/images/generations'].response = {
         type: 'json-value',
         body: {
-          data: [{ url: imageUrl, revised_prompt: 'A revised prompt' }],
+          data: [{ b64_json: 'dGVzdA==', revised_prompt: 'A revised prompt' }],
         },
       };
 
@@ -430,7 +475,7 @@ describe('XaiImageModel', () => {
 
         expect(result.response).toStrictEqual({
           timestamp: testDate,
-          modelId: 'grok-2-image-1212',
+          modelId: 'grok-imagine-image',
           headers: expect.any(Object),
         });
       });
