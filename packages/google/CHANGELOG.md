@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.49
+
+### Patch Changes
+
+- 85f4bb4: fix(provider/google): correct JSDoc for multimodal embedding content option
+
 ## 3.0.48
 
 ### Patch Changes
