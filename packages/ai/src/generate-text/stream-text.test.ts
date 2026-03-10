@@ -6362,6 +6362,7 @@ describe('streamText', () => {
           type:
             | 'text-delta'
             | 'reasoning-delta'
+            | 'custom'
             | 'source'
             | 'tool-call'
             | 'tool-input-start'
@@ -14630,6 +14631,7 @@ describe('streamText', () => {
               type:
                 | 'text-delta'
                 | 'reasoning-delta'
+                | 'custom'
                 | 'source'
                 | 'tool-call'
                 | 'tool-input-start'
