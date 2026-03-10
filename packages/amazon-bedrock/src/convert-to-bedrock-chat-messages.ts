@@ -56,6 +56,7 @@ async function shouldEnableCitations(
 export async function convertToBedrockChatMessages(
   prompt: LanguageModelV3Prompt,
   isMistral: boolean = false,
+  isMoonshotai: boolean = false,
 ): Promise<{
   system: BedrockSystemMessages;
   messages: BedrockMessages;
@@ -220,7 +221,11 @@ export async function convertToBedrockChatMessages(
 
                 bedrockContent.push({
                   toolResult: {
-                    toolUseId: normalizeToolCallId(part.toolCallId, isMistral),
+                    toolUseId: normalizeToolCallId(
+                      part.toolCallId,
+                      isMistral,
+                      isMoonshotai,
+                    ),
                     content: toolResultContent,
                   },
                 });
@@ -322,7 +327,11 @@ export async function convertToBedrockChatMessages(
               case 'tool-call': {
                 bedrockContent.push({
                   toolUse: {
-                    toolUseId: normalizeToolCallId(part.toolCallId, isMistral),
+                    toolUseId: normalizeToolCallId(
+                      part.toolCallId,
+                      isMistral,
+                      isMoonshotai,
+                    ),
                     name: part.toolName,
                     input: part.input as JSONObject,
                   },

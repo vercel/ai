@@ -39,7 +39,11 @@ import { prepareTools } from './bedrock-prepare-tools';
 import { BedrockUsage, convertBedrockUsage } from './convert-bedrock-usage';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
-import { isMistralModel, normalizeToolCallId } from './normalize-tool-call-id';
+import {
+  isMistralModel,
+  isMoonshotaiModel,
+  normalizeToolCallId,
+} from './normalize-tool-call-id';
 
 type BedrockChatConfig = {
   baseUrl: () => string;
@@ -359,9 +363,11 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     }
 
     const isMistral = isMistralModel(this.modelId);
+    const isMoonshotai = isMoonshotaiModel(this.modelId);
     const { system, messages } = await convertToBedrockChatMessages(
       filteredPrompt,
       isMistral,
+      isMoonshotai,
     );
 
     // Filter out reasoningConfig from providerOptions.bedrock to prevent sending it to Bedrock API
@@ -490,11 +496,16 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           });
         } else {
           const isMistral = isMistralModel(this.modelId);
+          const isMoonshotai = isMoonshotaiModel(this.modelId);
           const rawToolCallId =
             part.toolUse?.toolUseId ?? this.config.generateId();
           content.push({
             type: 'tool-call' as const,
-            toolCallId: normalizeToolCallId(rawToolCallId, isMistral),
+            toolCallId: normalizeToolCallId(
+              rawToolCallId,
+              isMistral,
+              isMoonshotai,
+            ),
             toolName: part.toolUse?.name ?? `tool-${this.config.generateId()}`,
             input: JSON.stringify(part.toolUse?.input ?? {}),
           });
@@ -575,6 +586,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     } = await this.getArgs(options);
     const modelId = this.modelId;
     const isMistral = isMistralModel(modelId);
+    const isMoonshotai = isMoonshotaiModel(modelId);
     const url = `${this.getUrl(modelId)}/converse-stream`;
 
     const { value: response, responseHeaders } = await postJsonToApi({
@@ -879,6 +891,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
               const normalizedToolCallId = normalizeToolCallId(
                 toolUse.toolUseId!,
                 isMistral,
+                isMoonshotai,
               );
               contentBlocks[blockIndex] = {
                 type: 'tool-call',

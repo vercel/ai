@@ -7,6 +7,14 @@ export function isMistralModel(modelId: string): boolean {
 }
 
 /**
+ * Checks if the given model ID is a Moonshot AI model.
+ * Moonshot models on Bedrock are prefixed with 'moonshotai.'.
+ */
+export function isMoonshotaiModel(modelId: string): boolean {
+  return modelId.includes('moonshotai.');
+}
+
+/**
  * Normalizes a tool call ID for Mistral models.
  *
  * Mistral models require tool call IDs to match the regex `^[a-zA-Z0-9]{9}$`:
@@ -25,12 +33,19 @@ export function isMistralModel(modelId: string): boolean {
 export function normalizeToolCallId(
   toolCallId: string,
   isMistral: boolean,
+  isMoonshotai: boolean,
 ): string {
-  if (!isMistral) {
-    return toolCallId;
+  if (isMistral) {
+    // Mistral: extract only alphanumeric characters and take first 9
+    const alphanumericChars = toolCallId.replace(/[^a-zA-Z0-9]/g, '');
+    return alphanumericChars.slice(0, 9);
   }
 
-  // Extract only alphanumeric characters and take first 9
-  const alphanumericChars = toolCallId.replace(/[^a-zA-Z0-9]/g, '');
-  return alphanumericChars.slice(0, 9);
+  if (isMoonshotai) {
+    // Moonshot uses "name:index" format (e.g. "get_weather:0") which
+    // violates Bedrock Converse API constraint: [a-zA-Z0-9_-]+
+    return toolCallId.replace(/[^a-zA-Z0-9_-]/g, '_');
+  }
+
+  return toolCallId;
 }
