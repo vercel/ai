@@ -12,12 +12,14 @@ run(async () => {
     providerOptions: {
       google: {
         content: [
-          {
-            inlineData: {
-              mimeType: 'image/png',
-              data: imageData,
+          [
+            {
+              inlineData: {
+                mimeType: 'image/png',
+                data: imageData,
+              },
             },
-          },
+          ],
         ],
       } satisfies GoogleEmbeddingModelOptions,
     },

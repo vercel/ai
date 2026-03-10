@@ -1131,7 +1131,28 @@ const { embedding } = await embed({
     google: {
       outputDimensionality: 512, // optional, number of dimensions for the embedding
       taskType: 'SEMANTIC_SIMILARITY', // optional, specifies the task type for generating embeddings
-      content: [{ text: 'additional context' }], // optional, multimodal content parts
+      content: [[{ text: 'additional context' }]], // optional, per-value multimodal content (only 1 here, since `value` is only a single one)
+    } satisfies GoogleEmbeddingModelOptions,
+  },
+});
+```
+
+When using `embedMany`, provide per-value multimodal content via the `content` option. Each entry corresponds to a value at the same index; use `null` for text-only entries:
+
+```ts
+import { google, type GoogleEmbeddingModelOptions } from '@ai-sdk/google';
+import { embedMany } from 'ai';
+
+const { embeddings } = await embedMany({
+  model: google.embedding('gemini-embedding-2-preview'),
+  values: ['sunny day at the beach', 'rainy afternoon in the city'],
+  providerOptions: {
+    google: {
+      // content array must have the same length as values
+      content: [
+        [{ inlineData: { mimeType: 'image/png', data: '<base64>' } }], // pairs with values[0]
+        null, // text-only, pairs with values[1]
+      ],
     } satisfies GoogleEmbeddingModelOptions,
   },
 });
@@ -1158,7 +1179,7 @@ The following optional provider options are available for Google Generative AI e
 
 - **content**: _array_
 
-  Optional. Multimodal content parts for embedding non-text content (images, video, PDF, audio). When provided, these parts are merged with the text values in the embedding request. Each part can be either `{ text: string }` or `{ inlineData: { mimeType: string, data: string } }`. Supported by `gemini-embedding-2-preview`.
+  Optional. Per-value multimodal content parts for embedding non-text content (images, video, PDF, audio). Each entry corresponds to the embedding value at the same index — its parts are merged with the text value in the request. Use `null` for entries that are text-only. The array length must match the number of values being embedded. Each non-null entry is an array of parts, where each part can be either `{ text: string }` or `{ inlineData: { mimeType: string, data: string } }`. Supported by `gemini-embedding-2-preview`.
 
 ### Model Capabilities
 
