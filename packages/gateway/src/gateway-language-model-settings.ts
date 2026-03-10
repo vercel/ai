@@ -78,6 +78,7 @@ export type GatewayModelId =
   | 'minimax/minimax-m2.1'
   | 'minimax/minimax-m2.1-lightning'
   | 'minimax/minimax-m2.5'
+  | 'minimax/minimax-m2.5-highspeed'
   | 'mistral/codestral'
   | 'mistral/devstral-2'
   | 'mistral/devstral-small'
@@ -150,7 +151,6 @@ export type GatewayModelId =
   | 'prime-intellect/intellect-3'
   | 'vercel/v0-1.0-md'
   | 'vercel/v0-1.5-md'
-  | 'xai/grok-2-vision'
   | 'xai/grok-3'
   | 'xai/grok-3-fast'
   | 'xai/grok-3-mini'
@@ -169,6 +169,7 @@ export type GatewayModelId =
   | 'zai/glm-4.6v'
   | 'zai/glm-4.6v-flash'
   | 'zai/glm-4.7'
+  | 'zai/glm-4.7-flash'
   | 'zai/glm-4.7-flashx'
   | 'zai/glm-5'
   | (string & {});
