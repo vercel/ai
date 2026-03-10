@@ -1131,6 +1131,7 @@ const { embedding } = await embed({
     google: {
       outputDimensionality: 512, // optional, number of dimensions for the embedding
       taskType: 'SEMANTIC_SIMILARITY', // optional, specifies the task type for generating embeddings
+      content: [{ text: 'additional context' }], // optional, multimodal content parts
     } satisfies GoogleEmbeddingModelOptions,
   },
 });
@@ -1155,11 +1156,16 @@ The following optional provider options are available for Google Generative AI e
   - `FACT_VERIFICATION`: Optimized for verifying factual information.
   - `CODE_RETRIEVAL_QUERY`: Optimized for retrieving code blocks based on natural language queries.
 
+- **content**: _array_
+
+  Optional. Multimodal content parts for embedding non-text content (images, video, PDF, audio). When provided, these parts are merged with the text values in the embedding request. Each part can be either `{ text: string }` or `{ inlineData: { mimeType: string, data: string } }`. Supported by `gemini-embedding-2-preview`.
+
 ### Model Capabilities
 
-| Model                  | Default Dimensions | Custom Dimensions   |
-| ---------------------- | ------------------ | ------------------- |
-| `gemini-embedding-001` | 3072               | <Check size={18} /> |
+| Model                        | Default Dimensions | Custom Dimensions   | Multimodal          |
+| ---------------------------- | ------------------ | ------------------- | ------------------- |
+| `gemini-embedding-001`       | 3072               | <Check size={18} /> | <Cross size={18} /> |
+| `gemini-embedding-2-preview` | 3072               | <Check size={18} /> | <Check size={18} /> |
 
 ## Image Models
 
