@@ -79,7 +79,7 @@ first argument is the model id, e.g. `grok-3`.
 const model = xai('grok-3');
 ```
 
-By default, `xai(modelId)` uses the Chat API. To use the Responses API with server-side agentic tools, explicitly use `xai.responses(modelId)`.
+By default, `xai(modelId)` uses the Responses API. To use the Chat API, use `xai.chat(modelId)`.
 
 ### Example
 
@@ -107,7 +107,7 @@ the [standard call settings](/docs/ai-sdk-core/settings). You can pass them in t
 ```ts
 import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
 
-const model = xai('grok-3-mini');
+const model = xai.chat('grok-3-mini');
 
 await generateText({
   model,
@@ -139,7 +139,7 @@ The following optional provider options are available for xAI chat models:
 
 ## Responses API (Agentic Tools)
 
-You can use the xAI Responses API with the `xai.responses(modelId)` factory method for server-side agentic tool calling. This enables the model to autonomously orchestrate tool calls and research on xAI's servers.
+The xAI Responses API is the default when using `xai(modelId)`. You can also use `xai.responses(modelId)` explicitly. This enables the model to autonomously orchestrate tool calls and research on xAI's servers.
 
 ```ts
 const model = xai.responses('grok-4-fast-non-reasoning');
@@ -492,7 +492,7 @@ import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
-  model: xai('grok-3-latest'),
+  model: xai.chat('grok-3-latest'),
   prompt: 'What are the latest developments in AI?',
   providerOptions: {
     xai: {
@@ -551,7 +551,7 @@ You can specify different types of data sources for search:
 import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
 
 const result = await generateText({
-  model: xai('grok-3-latest'),
+  model: xai.chat('grok-3-latest'),
   prompt: 'Best ski resorts in Switzerland',
   providerOptions: {
     xai: {
@@ -584,7 +584,7 @@ const result = await generateText({
 import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
 
 const result = await generateText({
-  model: xai('grok-3-latest'),
+  model: xai.chat('grok-3-latest'),
   prompt: 'Latest updates on Grok AI',
   providerOptions: {
     xai: {
@@ -618,7 +618,7 @@ const result = await generateText({
 import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
 
 const result = await generateText({
-  model: xai('grok-3-latest'),
+  model: xai.chat('grok-3-latest'),
   prompt: 'Recent tech industry news',
   providerOptions: {
     xai: {
@@ -650,7 +650,7 @@ const result = await generateText({
 import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
 
 const result = await generateText({
-  model: xai('grok-3-latest'),
+  model: xai.chat('grok-3-latest'),
   prompt: 'Latest status updates',
   providerOptions: {
     xai: {
@@ -680,7 +680,7 @@ You can combine multiple data sources in a single search:
 import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
 
 const result = await generateText({
-  model: xai('grok-3-latest'),
+  model: xai.chat('grok-3-latest'),
   prompt: 'Comprehensive overview of recent AI breakthroughs',
   providerOptions: {
     xai: {
@@ -716,7 +716,7 @@ When search is enabled with `returnCitations: true`, the response includes sourc
 import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
 
 const { text, sources } = await generateText({
-  model: xai('grok-3-latest'),
+  model: xai.chat('grok-3-latest'),
   prompt: 'What are the latest developments in AI?',
   providerOptions: {
     xai: {
@@ -745,7 +745,7 @@ import { xai, type XaiLanguageModelChatOptions } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: xai('grok-3-latest'),
+  model: xai.chat('grok-3-latest'),
   prompt: 'What has happened in tech recently?',
   providerOptions: {
     xai: {
