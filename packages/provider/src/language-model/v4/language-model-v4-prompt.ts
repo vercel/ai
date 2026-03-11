@@ -32,6 +32,7 @@ export type LanguageModelV4Message =
           | LanguageModelV4TextPart
           | LanguageModelV4FilePart
           | LanguageModelV4ReasoningPart
+          | LanguageModelV4ReasoningFilePart
           | LanguageModelV4ToolCallPart
           | LanguageModelV4ToolResultPart
         >;
@@ -81,6 +82,32 @@ export interface LanguageModelV4ReasoningPart {
    * The reasoning text.
    */
   text: string;
+
+  /**
+   * Additional provider-specific options. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
+  providerOptions?: SharedV3ProviderOptions;
+}
+
+/**
+ * Reasoning file content part of a prompt. It contains a file generated as part of reasoning.
+ */
+export interface LanguageModelV4ReasoningFilePart {
+  type: 'reasoning-file';
+
+  /**
+   * File data. Can be a Uint8Array, base64 encoded data as a string or a URL.
+   */
+  data: LanguageModelV4DataContent;
+
+  /**
+   * IANA media type of the file.
+   *
+   * @see https://www.iana.org/assignments/media-types/media-types.xhtml
+   */
+  mediaType: string;
 
   /**
    * Additional provider-specific options. They are passed through

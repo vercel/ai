@@ -1,5 +1,6 @@
 import {
   FilePart,
+  ReasoningFilePart,
   ReasoningPart,
   TextPart,
   ToolCallPart,
@@ -33,6 +34,7 @@ export type AssistantContent =
       | TextPart
       | FilePart
       | ReasoningPart
+      | ReasoningFilePart
       | ToolCallPart
       | ToolResultPart
       | ToolApprovalRequest

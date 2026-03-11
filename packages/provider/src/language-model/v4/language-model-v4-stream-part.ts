@@ -2,6 +2,7 @@ import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-met
 import { SharedV3Warning } from '../../shared/v3/shared-v3-warning';
 import { LanguageModelV4File } from './language-model-v4-file';
 import { LanguageModelV4FinishReason } from './language-model-v4-finish-reason';
+import { LanguageModelV4ReasoningFile } from './language-model-v4-reasoning-file';
 import { LanguageModelV4ResponseMetadata } from './language-model-v4-response-metadata';
 import { LanguageModelV4Source } from './language-model-v4-source';
 import { LanguageModelV4ToolApprovalRequest } from './language-model-v4-tool-approval-request';
@@ -73,6 +74,7 @@ export type LanguageModelV4StreamPart =
 
   // Files and sources:
   | LanguageModelV4File
+  | LanguageModelV4ReasoningFile
   | LanguageModelV4Source
 
   // stream start event with warnings for the call, e.g. unsupported settings:
