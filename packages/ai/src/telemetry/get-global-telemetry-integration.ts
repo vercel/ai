@@ -2,9 +2,13 @@ import type { Tracer } from '@opentelemetry/api';
 import type { Output } from '../generate-text/output';
 import type { ToolSet } from '../generate-text/tool-set';
 import { asArray } from '../util/as-array';
-import { createOtelIntegration } from './otel-event-handler';
+import { otelIntegration } from './otel-event-handler';
 import type { TelemetryIntegration } from './telemetry-integration';
-import { getGlobalTelemetryIntegrations } from './telemetry-integration-registry';
+import {
+  getGlobalTelemetryIntegrations,
+  hasIntegration,
+  registerTelemetryIntegration,
+} from './telemetry-integration-registry';
 
 /**
  * Wraps a telemetry integration with bound methods.
@@ -26,17 +30,6 @@ export function bindTelemetryIntegration(
   };
 }
 
-/**
- * Creates a factory that merges a per-call OTEL integration,
- * globally registered integrations (via `registerTelemetryIntegration`),
- * and per-call integrations into a single composite integration.
- *
- * A fresh OTEL integration is created for each call using the
- * provided tracer, avoiding a global singleton.
- *
- * Returns a factory function that accepts per-call args and
- * returns the merged TelemetryIntegration.
- */
 export function getGlobalTelemetryIntegration<
   TOOLS extends ToolSet = ToolSet,
   OUTPUT extends Output = Output,
@@ -44,6 +37,12 @@ export function getGlobalTelemetryIntegration<
   tracer?: Tracer;
   integrations?: TelemetryIntegration | Array<TelemetryIntegration>;
 }) => TelemetryIntegration {
+  if (!hasIntegration(otelIntegration)) {
+    registerTelemetryIntegration(otelIntegration);
+  }
+
+  const globalIntegrations = getGlobalTelemetryIntegrations();
+
   return ({
     tracer,
     integrations,
@@ -51,25 +50,24 @@ export function getGlobalTelemetryIntegration<
     tracer?: Tracer;
     integrations?: TelemetryIntegration | Array<TelemetryIntegration>;
   } = {}): TelemetryIntegration => {
-    const globalIntegrations = getGlobalTelemetryIntegrations();
     const localIntegrations = asArray(integrations);
-
-    const allIntegrations = [
-      createOtelIntegration({ tracer }),
-      ...globalIntegrations,
-      ...localIntegrations,
-    ].map(bindTelemetryIntegration);
+    const allIntegrations = [...globalIntegrations, ...localIntegrations].map(
+      bindTelemetryIntegration,
+    );
 
     function createTelemetryComposite<EVENT>(
       getListenerFromIntegration: (
         integration: TelemetryIntegration,
       ) => ((event: EVENT) => PromiseLike<void> | void) | undefined,
+      prepareEvent?: (event: EVENT) => void,
     ): ((event: EVENT) => Promise<void>) | undefined {
       const listeners = allIntegrations
         .map(getListenerFromIntegration)
         .filter(Boolean) as Array<(event: EVENT) => PromiseLike<void> | void>;
 
       return async (event: EVENT) => {
+        prepareEvent?.(event);
+
         for (const listener of listeners) {
           try {
             await listener(event);
@@ -79,7 +77,17 @@ export function getGlobalTelemetryIntegration<
     }
 
     return {
-      onStart: createTelemetryComposite(integration => integration.onStart),
+      onStart: createTelemetryComposite(
+        integration => integration.onStart,
+        event => {
+          if (tracer != null) {
+            otelIntegration.configureTracerForCall({
+              callId: (event as { callId: string }).callId,
+              tracer,
+            });
+          }
+        },
+      ),
       onStepStart: createTelemetryComposite(
         integration => integration.onStepStart,
       ),

@@ -367,6 +367,19 @@ describe('OtelTelemetryIntegration', () => {
 
       expect(tracer.startSpan).not.toHaveBeenCalled();
     });
+
+    it('uses a tracer configured for the call id', () => {
+      const configuredTracer = createMockTracer();
+      const configuredIntegration = createOtelIntegration();
+
+      configuredIntegration.configureTracerForCall({
+        callId,
+        tracer: configuredTracer,
+      });
+      configuredIntegration.onStart!(makeOnStartEvent());
+
+      expect(configuredTracer.startSpan).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('onStepStart', () => {

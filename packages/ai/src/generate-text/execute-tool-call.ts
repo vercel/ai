@@ -1,4 +1,5 @@
 import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
+import { otelIntegration } from '../telemetry/otel-event-handler';
 import { notify } from '../util/notify';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { now } from '../util/now';
@@ -80,29 +81,35 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   const startTime = now();
 
   try {
-    const stream = executeTool({
-      execute: tool.execute!.bind(tool),
-      input,
-      options: {
-        toolCallId,
-        messages,
-        abortSignal,
-        experimental_context,
+    await otelIntegration.runWithToolCallContext({
+      callId,
+      toolCallId,
+      fn: async () => {
+        const stream = executeTool({
+          execute: tool.execute!.bind(tool),
+          input,
+          options: {
+            toolCallId,
+            messages,
+            abortSignal,
+            experimental_context,
+          },
+        });
+
+        for await (const part of stream) {
+          if (part.type === 'preliminary') {
+            onPreliminaryToolResult?.({
+              ...toolCall,
+              type: 'tool-result',
+              output: part.output,
+              preliminary: true,
+            });
+          } else {
+            output = part.output;
+          }
+        }
       },
     });
-
-    for await (const part of stream) {
-      if (part.type === 'preliminary') {
-        onPreliminaryToolResult?.({
-          ...toolCall,
-          type: 'tool-result',
-          output: part.output,
-          preliminary: true,
-        });
-      } else {
-        output = part.output;
-      }
-    }
   } catch (error) {
     const durationMs = now() - startTime;
 

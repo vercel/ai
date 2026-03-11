@@ -117,14 +117,18 @@ interface CallState {
   settings: Record<string, unknown>;
 }
 
-class OtelTelemetryIntegration implements TelemetryIntegration {
+export class OtelTelemetryIntegration implements TelemetryIntegration {
   private readonly callStates = new Map<string, CallState>();
+  private readonly pendingTracers = new Map<string, Tracer>();
 
   constructor(private readonly customTracer: Tracer | undefined) {}
 
   private getTracer(telemetry: TelemetrySettings | undefined): Tracer {
     if (telemetry?.isEnabled !== true) {
       return noopTracer;
+    }
+    if (telemetry?.tracer) {
+      return telemetry.tracer;
     }
     if (this.customTracer) {
       return this.customTracer;
@@ -138,6 +142,41 @@ class OtelTelemetryIntegration implements TelemetryIntegration {
 
   private cleanupCallState(callId: string): void {
     this.callStates.delete(callId);
+    this.pendingTracers.delete(callId);
+  }
+
+  configureTracerForCall({
+    callId,
+    tracer,
+  }: {
+    callId: string;
+    tracer: Tracer;
+  }): void {
+    this.pendingTracers.set(callId, tracer);
+  }
+
+  private consumeConfiguredTracer(callId: string): Tracer | undefined {
+    const tracer = this.pendingTracers.get(callId);
+    this.pendingTracers.delete(callId);
+    return tracer;
+  }
+
+  runWithToolCallContext<T>({
+    callId,
+    toolCallId,
+    fn,
+  }: {
+    callId: string;
+    toolCallId: string;
+    fn: () => Promise<T>;
+  }): Promise<T> {
+    const toolSpanEntry = this.getCallState(callId)?.toolSpans.get(toolCallId);
+
+    if (toolSpanEntry == null) {
+      return fn();
+    }
+
+    return context.with(toolSpanEntry.context, fn);
   }
 
   onStart(event: OnStartEvent<ToolSet, Output>): void {
@@ -147,6 +186,7 @@ class OtelTelemetryIntegration implements TelemetryIntegration {
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
       metadata: event.metadata,
+      tracer: this.consumeConfiguredTracer(event.callId),
     };
     if (telemetry.isEnabled === false) return;
 
@@ -518,6 +558,8 @@ export function createOtelIntegration({
   tracer,
 }: {
   tracer?: Tracer;
-} = {}): TelemetryIntegration {
+} = {}): OtelTelemetryIntegration {
   return new OtelTelemetryIntegration(tracer);
 }
+
+export const otelIntegration = new OtelTelemetryIntegration(undefined);
