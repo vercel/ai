@@ -977,9 +977,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           delete activeReasoningContent[part.id];
         }
 
-        if (part.type === 'file') {
+        if (part.type === 'file' || part.type === 'reasoning-file') {
           recordedContent.push({
-            type: 'file',
+            type: part.type,
             file: part.file,
             ...(part.providerMetadata != null
               ? { providerMetadata: part.providerMetadata }
@@ -1873,7 +1873,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                         break;
                       }
 
-                      case 'file': {
+                      case 'file':
+                      case 'reasoning-file': {
                         controller.enqueue(chunk);
                         break;
                       }
@@ -2504,9 +2505,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               break;
             }
 
-            case 'file': {
+            case 'file':
+            case 'reasoning-file': {
               controller.enqueue({
-                type: 'file',
+                type: part.type,
                 mediaType: part.file.mediaType,
                 url: `data:${part.file.mediaType};base64,${part.file.base64}`,
                 ...(part.providerMetadata != null

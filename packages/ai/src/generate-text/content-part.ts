@@ -12,7 +12,12 @@ export type ContentPart<TOOLS extends ToolSet> =
   | { type: 'text'; text: string; providerMetadata?: ProviderMetadata }
   | ReasoningOutput
   | ({ type: 'source' } & Source)
-  | { type: 'file'; file: GeneratedFile; providerMetadata?: ProviderMetadata } // different because of GeneratedFile object
+  | { type: 'file'; file: GeneratedFile; providerMetadata?: ProviderMetadata }
+  | {
+      type: 'reasoning-file';
+      file: GeneratedFile;
+      providerMetadata?: ProviderMetadata;
+    }
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS> & {
         providerMetadata?: ProviderMetadata;
       })

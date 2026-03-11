@@ -381,6 +381,47 @@ const modelWithReasoning = new MockLanguageModelV3({
   }),
 });
 
+const modelWithReasoningFiles = new MockLanguageModelV3({
+  doStream: async () => ({
+    stream: convertArrayToReadableStream([
+      {
+        type: 'response-metadata',
+        id: 'id-0',
+        modelId: 'mock-model-id',
+        timestamp: new Date(0),
+      },
+      {
+        type: 'reasoning-file',
+        data: 'reasoning-file-data-1',
+        mediaType: 'image/png',
+      },
+      { type: 'reasoning-start', id: '1' },
+      {
+        type: 'reasoning-delta',
+        id: '1',
+        delta: 'Some reasoning text.',
+      },
+      { type: 'reasoning-end', id: '1' },
+      {
+        type: 'reasoning-file',
+        data: 'reasoning-file-data-2',
+        mediaType: 'image/jpeg',
+        providerMetadata: {
+          testProvider: { signature: 'rf-sig-1' },
+        },
+      },
+      { type: 'text-start', id: '1' },
+      { type: 'text-delta', id: '1', delta: 'Hello!' },
+      { type: 'text-end', id: '1' },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage: testUsage,
+      },
+    ]),
+  }),
+});
+
 describe('streamText', () => {
   let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
 
@@ -1081,6 +1122,128 @@ describe('streamText', () => {
           },
         ]
       `);
+    });
+
+    it('should send reasoning-files', async () => {
+      const result = streamText({
+        model: modelWithReasoningFiles,
+        ...defaultSettings(),
+      });
+
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "file": DefaultGeneratedFileWithType {
+                "base64Data": "reasoning-file-data-1",
+                "mediaType": "image/png",
+                "type": "file",
+                "uint8ArrayData": undefined,
+              },
+              "type": "reasoning-file",
+            },
+            {
+              "id": "1",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Some reasoning text.",
+              "type": "reasoning-delta",
+            },
+            {
+              "id": "1",
+              "type": "reasoning-end",
+            },
+            {
+              "file": DefaultGeneratedFileWithType {
+                "base64Data": "reasoning-file-data-2",
+                "mediaType": "image/jpeg",
+                "type": "file",
+                "uint8ArrayData": undefined,
+              },
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "rf-sig-1",
+                },
+              },
+              "type": "reasoning-file",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Hello!",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "rawFinishReason": "stop",
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
+                "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
+                "outputTokens": 10,
+                "raw": undefined,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "rawFinishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
+                "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
     });
 
     it('should use fallback response metadata when response metadata is not provided', async () => {
@@ -4884,6 +5047,124 @@ describe('streamText', () => {
                       "mediaType": "image/jpeg",
                       "providerOptions": undefined,
                       "type": "file",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+              ],
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "stepNumber": 0,
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "warnings": [],
+          },
+        ]
+      `);
+    });
+
+    it('should add reasoning-files from the model response to the step result', async () => {
+      const result = streamText({
+        model: modelWithReasoningFiles,
+        ...defaultSettings(),
+      });
+
+      expect(await result.steps).toMatchInlineSnapshot(`
+        [
+          DefaultStepResult {
+            "content": [
+              {
+                "file": DefaultGeneratedFileWithType {
+                  "base64Data": "reasoning-file-data-1",
+                  "mediaType": "image/png",
+                  "type": "file",
+                  "uint8ArrayData": undefined,
+                },
+                "type": "reasoning-file",
+              },
+              {
+                "providerMetadata": undefined,
+                "text": "Some reasoning text.",
+                "type": "reasoning",
+              },
+              {
+                "file": DefaultGeneratedFileWithType {
+                  "base64Data": "reasoning-file-data-2",
+                  "mediaType": "image/jpeg",
+                  "type": "file",
+                  "uint8ArrayData": undefined,
+                },
+                "providerMetadata": {
+                  "testProvider": {
+                    "signature": "rf-sig-1",
+                  },
+                },
+                "type": "reasoning-file",
+              },
+              {
+                "providerMetadata": undefined,
+                "text": "Hello!",
+                "type": "text",
+              },
+            ],
+            "experimental_context": undefined,
+            "finishReason": "stop",
+            "functionId": undefined,
+            "metadata": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "request": {},
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "data": "reasoning-file-data-1",
+                      "mediaType": "image/png",
+                      "providerOptions": undefined,
+                      "type": "reasoning-file",
+                    },
+                    {
+                      "providerOptions": undefined,
+                      "text": "Some reasoning text.",
+                      "type": "reasoning",
+                    },
+                    {
+                      "data": "reasoning-file-data-2",
+                      "mediaType": "image/jpeg",
+                      "providerOptions": {
+                        "testProvider": {
+                          "signature": "rf-sig-1",
+                        },
+                      },
+                      "type": "reasoning-file",
+                    },
+                    {
+                      "providerOptions": undefined,
+                      "text": "Hello!",
+                      "type": "text",
                     },
                   ],
                   "role": "assistant",

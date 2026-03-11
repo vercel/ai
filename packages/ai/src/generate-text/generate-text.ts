@@ -1458,9 +1458,10 @@ function asContent<TOOLS extends ToolSet>({
         contentParts.push(part);
         break;
 
-      case 'file': {
+      case 'file':
+      case 'reasoning-file': {
         contentParts.push({
-          type: 'file' as const,
+          type: part.type as 'file' | 'reasoning-file',
           file: new DefaultGeneratedFile(part),
           ...(part.providerMetadata != null
             ? { providerMetadata: part.providerMetadata }

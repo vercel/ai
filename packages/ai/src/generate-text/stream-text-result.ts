@@ -421,7 +421,12 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       providerMetadata?: ProviderMetadata;
     }
   | ({ type: 'source' } & Source)
-  | { type: 'file'; file: GeneratedFile; providerMetadata?: ProviderMetadata } // different because of GeneratedFile object
+  | { type: 'file'; file: GeneratedFile; providerMetadata?: ProviderMetadata }
+  | {
+      type: 'reasoning-file';
+      file: GeneratedFile;
+      providerMetadata?: ProviderMetadata;
+    }
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
   | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
   | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
