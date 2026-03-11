@@ -1,6 +1,7 @@
 import {
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
+  LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import { delay, tool } from '@ai-sdk/provider-utils';
 import {
@@ -29,6 +30,90 @@ const testUsage: LanguageModelV3Usage = {
 };
 
 describe('runToolsTransformation', () => {
+  it('should forward custom parts', async () => {
+    const inputStream: ReadableStream<LanguageModelV4StreamPart> =
+      convertArrayToReadableStream([
+        {
+          type: 'custom',
+          providerMetadata: {
+            openai: { itemId: 'cmp_123' },
+          },
+        },
+        { type: 'text-start', id: '1' },
+        { type: 'text-delta', id: '1', delta: 'text' },
+        { type: 'text-end', id: '1' },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: testUsage,
+        },
+      ]);
+
+    const transformedStream = runToolsTransformation({
+      generateId: mockId({ prefix: 'id' }),
+      tools: undefined,
+      generatorStream: inputStream,
+      tracer: new MockTracer(),
+      telemetry: undefined,
+      messages: [],
+      system: undefined,
+      abortSignal: undefined,
+      repairToolCall: undefined,
+      experimental_context: undefined,
+    });
+
+    const result = await convertReadableStreamToArray(transformedStream);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": {
+            "openai": {
+              "itemId": "cmp_123",
+            },
+          },
+          "type": "custom",
+        },
+        {
+          "id": "1",
+          "type": "text-start",
+        },
+        {
+          "delta": "text",
+          "id": "1",
+          "type": "text-delta",
+        },
+        {
+          "id": "1",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": undefined,
+          "rawFinishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
+            "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
+            "outputTokens": 10,
+            "raw": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          },
+        },
+      ]
+    `);
+  });
+
   it('should forward text parts', async () => {
     const inputStream: ReadableStream<LanguageModelV3StreamPart> =
       convertArrayToReadableStream([

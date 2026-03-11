@@ -40,6 +40,7 @@ import { z } from 'zod/v4';
 import { Output } from '..';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
@@ -159,6 +160,27 @@ const modelWithSources = new MockLanguageModelV3({
         url: 'https://example.com/2',
         title: 'Example 2',
         providerMetadata: { provider: { custom: 'value2' } },
+      },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage: testUsage,
+      },
+    ]),
+  }),
+});
+
+const modelWithCustom = new MockLanguageModelV4({
+  doStream: async () => ({
+    stream: convertArrayToReadableStream([
+      { type: 'text-start', id: '1' },
+      { type: 'text-delta', id: '1', delta: 'Hello!' },
+      { type: 'text-end', id: '1' },
+      {
+        type: 'custom',
+        providerMetadata: {
+          openai: { itemId: 'cmp_123' },
+        },
       },
       {
         type: 'finish',
@@ -887,6 +909,99 @@ describe('streamText', () => {
               "title": "Example 2",
               "type": "source",
               "url": "https://example.com/2",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "rawFinishReason": "stop",
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
+                "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
+                "outputTokens": 10,
+                "raw": undefined,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "rawFinishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
+                "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
+    });
+
+    it('should send custom parts', async () => {
+      const result = streamText({
+        model: modelWithCustom,
+        ...defaultSettings(),
+      });
+
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Hello!",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "cmp_123",
+                },
+              },
+              "type": "custom",
             },
             {
               "finishReason": "stop",
@@ -3226,6 +3341,55 @@ describe('streamText', () => {
               "sourceId": "doc-456",
               "title": "Text Document",
               "type": "source-document",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "finishReason": "stop",
+              "type": "finish",
+            },
+          ]
+        `);
+    });
+
+    it('should send custom parts in toUIMessageStream', async () => {
+      const result = streamText({
+        model: modelWithCustom,
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream();
+
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "cmp_123",
+                },
+              },
+              "type": "custom",
             },
             {
               "type": "finish-step",
@@ -6518,6 +6682,35 @@ describe('streamText', () => {
         ]
       `);
     });
+
+    it('should include custom parts in onChunk events', async () => {
+      const chunks: Array<Record<string, unknown>> = [];
+
+      const resultObject = streamText({
+        model: modelWithCustom,
+        prompt: 'test-input',
+        onChunk(event) {
+          chunks.push(event.chunk);
+        },
+      });
+
+      await resultObject.consumeStream();
+
+      expect(chunks).toStrictEqual([
+        {
+          id: '1',
+          providerMetadata: undefined,
+          text: 'Hello!',
+          type: 'text-delta',
+        },
+        {
+          providerMetadata: {
+            openai: { itemId: 'cmp_123' },
+          },
+          type: 'custom',
+        },
+      ]);
+    });
   });
 
   describe('options.onError', () => {
@@ -7119,6 +7312,36 @@ describe('streamText', () => {
           "warnings": [],
         }
       `);
+    });
+
+    it('should send custom parts', async () => {
+      let result!: Parameters<
+        Required<Parameters<typeof streamText>[0]>['onFinish']
+      >[0];
+
+      const resultObject = streamText({
+        model: modelWithCustom,
+        onFinish: async event => {
+          result = event as unknown as typeof result;
+        },
+        ...defaultSettings(),
+      });
+
+      await resultObject.consumeStream();
+
+      expect(result.content).toStrictEqual([
+        {
+          providerMetadata: undefined,
+          text: 'Hello!',
+          type: 'text',
+        },
+        {
+          providerMetadata: {
+            openai: { itemId: 'cmp_123' },
+          },
+          type: 'custom',
+        },
+      ]);
     });
 
     it('should send files', async () => {
