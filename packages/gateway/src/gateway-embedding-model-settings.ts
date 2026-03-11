@@ -5,7 +5,6 @@ export type GatewayEmbeddingModelId =
   | 'amazon/titan-embed-text-v2'
   | 'cohere/embed-v4.0'
   | 'google/gemini-embedding-001'
-  | 'google/gemini-embedding-2-preview'
   | 'google/text-embedding-005'
   | 'google/text-multilingual-embedding-002'
   | 'mistral/codestral-embed'
