@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 4adc485: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.0-beta.7
 
 ### Patch Changes
