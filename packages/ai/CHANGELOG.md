@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.153
+
+### Patch Changes
+
+- c59a31c: Remove custom User-Agent header from HttpChatTransport to fix CORS preflight failures in Safari and Firefox
+
 ## 5.0.152
 
 ### Patch Changes
