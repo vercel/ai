@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- 83f9d04: feat(openai): upgrade v3 specs to v4
+
 ## 4.0.0-beta.5
 
 ### Patch Changes

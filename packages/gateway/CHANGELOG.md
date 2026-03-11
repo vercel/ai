@@ -1,5 +1,17 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- e046ea3: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- 82288b0: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany`
+
 ## 4.0.0-beta.5
 
 ### Patch Changes

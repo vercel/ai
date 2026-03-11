@@ -1,5 +1,30 @@
 # @ai-sdk/rsc
 
+## 3.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [c26ca8d]
+  - ai@7.0.0-beta.13
+
+## 3.0.0-beta.13
+
+### Patch Changes
+
+- 83f9d04: feat(openai): upgrade v3 specs to v4
+
+## 3.0.0-beta.12
+
+### Patch Changes
+
+- ai@7.0.0-beta.12
+
+## 3.0.0-beta.11
+
+### Patch Changes
+
+- ai@7.0.0-beta.11
+
 ## 3.0.0-beta.10
 
 ### Patch Changes

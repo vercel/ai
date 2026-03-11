@@ -1,5 +1,17 @@
 # @ai-sdk/google
 
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 4dac142: feat(google): add new finishMessage field in providerMetadata
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- 82288b0: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany`
+
 ## 4.0.0-beta.6
 
 ### Patch Changes
