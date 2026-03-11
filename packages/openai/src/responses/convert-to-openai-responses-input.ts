@@ -1,7 +1,7 @@
 import {
-  LanguageModelV3Prompt,
-  LanguageModelV3ToolApprovalResponsePart,
-  SharedV3Warning,
+  LanguageModelV4Prompt,
+  LanguageModelV4ToolApprovalResponsePart,
+  SharedV4Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -50,7 +50,7 @@ export async function convertToOpenAIResponsesInput({
   hasApplyPatchTool = false,
   customProviderToolNames,
 }: {
-  prompt: LanguageModelV3Prompt;
+  prompt: LanguageModelV4Prompt;
   toolNameMapping: ToolNameMapping;
   systemMessageMode: 'system' | 'developer' | 'remove';
   providerOptionsName: string;
@@ -63,10 +63,10 @@ export async function convertToOpenAIResponsesInput({
   customProviderToolNames?: Set<string>;
 }): Promise<{
   input: OpenAIResponsesInput;
-  warnings: Array<SharedV3Warning>;
+  warnings: Array<SharedV4Warning>;
 }> {
-  const input: OpenAIResponsesInput = [];
-  const warnings: Array<SharedV3Warning> = [];
+  let input: OpenAIResponsesInput = [];
+  const warnings: Array<SharedV4Warning> = [];
   const processedApprovalIds = new Set<string>();
 
   for (const { role, content } of prompt) {
@@ -488,7 +488,7 @@ export async function convertToOpenAIResponsesInput({
         for (const part of content) {
           if (part.type === 'tool-approval-response') {
             const approvalResponse =
-              part as LanguageModelV3ToolApprovalResponsePart;
+              part as LanguageModelV4ToolApprovalResponsePart;
 
             if (processedApprovalIds.has(approvalResponse.approvalId)) {
               continue;
@@ -720,6 +720,29 @@ export async function convertToOpenAIResponsesInput({
         throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
       }
     }
+  }
+
+  // when store is false, remove reasoning parts without encrypted content
+  if (
+    !store &&
+    input.some(
+      item =>
+        'type' in item &&
+        item.type === 'reasoning' &&
+        item.encrypted_content == null,
+    )
+  ) {
+    warnings.push({
+      type: 'other',
+      message:
+        'Reasoning parts without encrypted content are not supported when store is false. Skipping reasoning parts.',
+    });
+    input = input.filter(
+      item =>
+        !('type' in item) ||
+        item.type !== 'reasoning' ||
+        item.encrypted_content != null,
+    );
   }
 
   return { input, warnings };

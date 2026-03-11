@@ -78,6 +78,7 @@ export type GatewayModelId =
   | 'minimax/minimax-m2.1'
   | 'minimax/minimax-m2.1-lightning'
   | 'minimax/minimax-m2.5'
+  | 'minimax/minimax-m2.5-highspeed'
   | 'mistral/codestral'
   | 'mistral/devstral-2'
   | 'mistral/devstral-small'
@@ -105,7 +106,6 @@ export type GatewayModelId =
   | 'nvidia/nemotron-3-nano-30b-a3b'
   | 'nvidia/nemotron-nano-12b-v2-vl'
   | 'nvidia/nemotron-nano-9b-v2'
-  | 'openai/codex-mini'
   | 'openai/gpt-3.5-turbo'
   | 'openai/gpt-3.5-turbo-instruct'
   | 'openai/gpt-4-turbo'
@@ -169,6 +169,7 @@ export type GatewayModelId =
   | 'zai/glm-4.6v'
   | 'zai/glm-4.6v-flash'
   | 'zai/glm-4.7'
+  | 'zai/glm-4.7-flash'
   | 'zai/glm-4.7-flashx'
   | 'zai/glm-5'
   | (string & {});
