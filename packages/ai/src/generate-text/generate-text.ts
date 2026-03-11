@@ -476,7 +476,10 @@ export async function generateText<
   } as Prompt);
 
   const callId = generateCallId();
-  const globalTelemetry = createGlobalTelemetry(telemetry?.integrations);
+  const globalTelemetry = createGlobalTelemetry({
+    tracer: telemetry?.tracer,
+    integrations: telemetry?.integrations,
+  });
 
   await notify({
     event: {
@@ -510,7 +513,6 @@ export async function generateText<
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
       metadata: telemetry?.metadata,
-      tracer: telemetry?.tracer,
       experimental_context,
     },
     callbacks: [

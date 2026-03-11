@@ -1,13 +1,10 @@
+import type { Tracer } from '@opentelemetry/api';
 import type { Output } from '../generate-text/output';
 import type { ToolSet } from '../generate-text/tool-set';
 import { asArray } from '../util/as-array';
-import { otelIntegration } from './otel-event-handler';
+import { createOtelIntegration } from './otel-event-handler';
 import type { TelemetryIntegration } from './telemetry-integration';
-import {
-  getGlobalTelemetryIntegrations,
-  hasIntegration,
-  registerTelemetryIntegration,
-} from './telemetry-integration-registry';
+import { getGlobalTelemetryIntegrations } from './telemetry-integration-registry';
 
 /**
  * Wraps a telemetry integration with bound methods.
@@ -30,35 +27,38 @@ export function bindTelemetryIntegration(
 }
 
 /**
- * Creates a factory that merges globally registered integrations
- * (via `registerTelemetryIntegration`) with per-call integrations
- * into a single composite integration.
+ * Creates a factory that merges a per-call OTEL integration,
+ * globally registered integrations (via `registerTelemetryIntegration`),
+ * and per-call integrations into a single composite integration.
  *
- * Returns a factory function that accepts local integrations and
+ * A fresh OTEL integration is created for each call using the
+ * provided tracer, avoiding a global singleton.
+ *
+ * Returns a factory function that accepts per-call args and
  * returns the merged TelemetryIntegration.
  */
 export function getGlobalTelemetryIntegration<
   TOOLS extends ToolSet = ToolSet,
   OUTPUT extends Output = Output,
->(): (
-  integrations: TelemetryIntegration | Array<TelemetryIntegration> | undefined,
-) => TelemetryIntegration {
-  if (!hasIntegration(otelIntegration)) {
-    registerTelemetryIntegration(otelIntegration);
-  }
-
-  const globalIntegrations = getGlobalTelemetryIntegrations();
-
-  return (
-    integrations:
-      | TelemetryIntegration
-      | Array<TelemetryIntegration>
-      | undefined,
-  ): TelemetryIntegration => {
+>(): (args?: {
+  tracer?: Tracer;
+  integrations?: TelemetryIntegration | Array<TelemetryIntegration>;
+}) => TelemetryIntegration {
+  return ({
+    tracer,
+    integrations,
+  }: {
+    tracer?: Tracer;
+    integrations?: TelemetryIntegration | Array<TelemetryIntegration>;
+  } = {}): TelemetryIntegration => {
+    const globalIntegrations = getGlobalTelemetryIntegrations();
     const localIntegrations = asArray(integrations);
-    const allIntegrations = [...globalIntegrations, ...localIntegrations].map(
-      bindTelemetryIntegration,
-    );
+
+    const allIntegrations = [
+      createOtelIntegration({ tracer }),
+      ...globalIntegrations,
+      ...localIntegrations,
+    ].map(bindTelemetryIntegration);
 
     function createTelemetryComposite<EVENT>(
       getListenerFromIntegration: (

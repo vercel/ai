@@ -40,7 +40,6 @@ exports[`streamText > options.experimental_onStart > should send correct informa
   "tools": undefined,
   "topK": undefined,
   "topP": undefined,
-  "tracer": undefined,
 }
 `;
 

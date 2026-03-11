@@ -7,6 +7,7 @@ import {
   Attributes,
   AttributeValue,
   SpanStatusCode,
+  Tracer,
 } from '@opentelemetry/api';
 import type {
   OnChunkEvent,
@@ -21,7 +22,7 @@ import type { Output } from '../generate-text/output';
 import type { ToolSet } from '../generate-text/tool-set';
 import { assembleOperationName } from './assemble-operation-name';
 import { getBaseTelemetryAttributes } from './get-base-telemetry-attributes';
-import { getTracer } from './get-tracer';
+import { noopTracer } from './noop-tracer';
 import { stringifyForTelemetry } from './stringify-for-telemetry';
 import { TelemetrySettings } from './telemetry-settings';
 import type { TelemetryIntegration } from './telemetry-integration';
@@ -119,6 +120,18 @@ interface CallState {
 class OtelTelemetryIntegration implements TelemetryIntegration {
   private readonly callStates = new Map<string, CallState>();
 
+  constructor(private readonly customTracer: Tracer | undefined) {}
+
+  private getTracer(telemetry: TelemetrySettings | undefined): Tracer {
+    if (telemetry?.isEnabled !== true) {
+      return noopTracer;
+    }
+    if (this.customTracer) {
+      return this.customTracer;
+    }
+    return trace.getTracer('ai');
+  }
+
   private getCallState(callId: string): CallState | undefined {
     return this.callStates.get(callId);
   }
@@ -134,11 +147,10 @@ class OtelTelemetryIntegration implements TelemetryIntegration {
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
       metadata: event.metadata,
-      tracer: event.tracer,
     };
     if (telemetry.isEnabled === false) return;
 
-    const tracer = getTracer(telemetry);
+    const tracer = this.getTracer(telemetry);
 
     const settings: Record<string, unknown> = {
       maxOutputTokens: event.maxOutputTokens,
@@ -249,7 +261,7 @@ class OtelTelemetryIntegration implements TelemetryIntegration {
       'gen_ai.request.top_p': state.settings.topP as number | undefined,
     });
 
-    const tracer = getTracer(telemetry);
+    const tracer = this.getTracer(telemetry);
     state.stepSpan = tracer.startSpan(
       stepOperationId,
       { attributes },
@@ -277,7 +289,7 @@ class OtelTelemetryIntegration implements TelemetryIntegration {
       },
     });
 
-    const tracer = getTracer(telemetry);
+    const tracer = this.getTracer(telemetry);
     const toolSpan = tracer.startSpan(
       'ai.toolCall',
       { attributes },
@@ -502,5 +514,10 @@ class OtelTelemetryIntegration implements TelemetryIntegration {
   }
 }
 
-export const otelIntegration: TelemetryIntegration =
-  new OtelTelemetryIntegration();
+export function createOtelIntegration({
+  tracer,
+}: {
+  tracer?: Tracer;
+} = {}): TelemetryIntegration {
+  return new OtelTelemetryIntegration(tracer);
+}

@@ -40,7 +40,6 @@ exports[`generateText > options.experimental_onStart > should send correct infor
   "tools": undefined,
   "topK": undefined,
   "topP": undefined,
-  "tracer": undefined,
 }
 `;
 

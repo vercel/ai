@@ -6,7 +6,8 @@ import {
   SpanStatusCode,
   Tracer,
 } from '@opentelemetry/api';
-import { otelIntegration } from './otel-event-handler';
+import { createOtelIntegration } from './otel-event-handler';
+import type { TelemetryIntegration } from './telemetry-integration';
 
 type MockSpan = Span & {
   name: string;
@@ -96,20 +97,19 @@ function getSetAttributesArg(span: MockSpan, callIndex = 0): Attributes {
 let callId: string;
 let callIdCounter = 0;
 
-function telemetryFields(tracer: Tracer) {
+function telemetryFields() {
   return {
     isEnabled: true as const,
     recordInputs: undefined,
     recordOutputs: undefined,
     functionId: undefined,
     metadata: undefined,
-    tracer,
   };
 }
 
 const model = { provider: 'test-provider', modelId: 'test-model' };
 
-function makeOnStartEvent(tracer: Tracer, overrides?: Record<string, unknown>) {
+function makeOnStartEvent(overrides?: Record<string, unknown>) {
   return {
     callId,
     operationId: 'ai.generateText',
@@ -136,10 +136,10 @@ function makeOnStartEvent(tracer: Tracer, overrides?: Record<string, unknown>) {
     output: undefined,
     abortSignal: undefined,
     include: undefined,
-    ...telemetryFields(tracer),
+    ...telemetryFields(),
     experimental_context: undefined,
     ...overrides,
-  } as Parameters<NonNullable<typeof otelIntegration.onStart>>[0];
+  } as Parameters<NonNullable<TelemetryIntegration['onStart']>>[0];
 }
 
 function makeStepStartEvent(overrides?: Record<string, unknown>) {
@@ -167,7 +167,7 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
     stepTools: undefined,
     stepToolChoice: undefined,
     ...overrides,
-  } as Parameters<NonNullable<typeof otelIntegration.onStepStart>>[0];
+  } as Parameters<NonNullable<TelemetryIntegration['onStepStart']>>[0];
 }
 
 function makeStepFinishEvent(overrides?: Record<string, unknown>) {
@@ -218,7 +218,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
     },
     providerMetadata: undefined,
     ...overrides,
-  } as Parameters<NonNullable<typeof otelIntegration.onStepFinish>>[0];
+  } as Parameters<NonNullable<TelemetryIntegration['onStepFinish']>>[0];
 }
 
 function makeFinishEvent(overrides?: Record<string, unknown>) {
@@ -242,7 +242,7 @@ function makeFinishEvent(overrides?: Record<string, unknown>) {
       },
     },
     ...overrides,
-  } as Parameters<NonNullable<typeof otelIntegration.onFinish>>[0];
+  } as Parameters<NonNullable<TelemetryIntegration['onFinish']>>[0];
 }
 
 function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
@@ -262,7 +262,7 @@ function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
     metadata: undefined,
     experimental_context: undefined,
     ...overrides,
-  } as Parameters<NonNullable<typeof otelIntegration.onToolCallStart>>[0];
+  } as Parameters<NonNullable<TelemetryIntegration['onToolCallStart']>>[0];
 }
 
 function makeToolCallFinishEvent(
@@ -293,34 +293,36 @@ function makeToolCallFinishEvent(
       ...base,
       success: true as const,
       output: { result: 'ok' },
-    } as Parameters<NonNullable<typeof otelIntegration.onToolCallFinish>>[0];
+    } as Parameters<NonNullable<TelemetryIntegration['onToolCallFinish']>>[0];
   }
   return {
     ...base,
     success: false as const,
     error: new Error('tool failed'),
-  } as Parameters<NonNullable<typeof otelIntegration.onToolCallFinish>>[0];
+  } as Parameters<NonNullable<TelemetryIntegration['onToolCallFinish']>>[0];
 }
 
 function makeChunkEvent(
-  chunk: Parameters<NonNullable<typeof otelIntegration.onChunk>>[0]['chunk'],
+  chunk: Parameters<NonNullable<TelemetryIntegration['onChunk']>>[0]['chunk'],
 ) {
   return { chunk } as Parameters<
-    NonNullable<typeof otelIntegration.onChunk>
+    NonNullable<TelemetryIntegration['onChunk']>
   >[0];
 }
 
 describe('OtelTelemetryIntegration', () => {
   let tracer: MockTracer;
+  let otelIntegration: TelemetryIntegration;
 
   beforeEach(() => {
     tracer = createMockTracer();
     callId = `test-call-${++callIdCounter}`;
+    otelIntegration = createOtelIntegration({ tracer });
   });
 
   describe('onStart', () => {
     it('creates a root span', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
 
       expect(tracer.startSpan).toHaveBeenCalledTimes(1);
       expect(tracer.spans).toHaveLength(1);
@@ -328,7 +330,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('sets model attributes on the root span', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
 
       const attrs = getStartSpanAttributes(tracer, 0);
       expect(attrs['ai.model.provider']).toBe('test-provider');
@@ -336,14 +338,14 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('sets prompt as input attribute', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
 
       const attrs = getStartSpanAttributes(tracer, 0);
       expect(attrs['ai.prompt']).toContain('Hello');
     });
 
     it('sets operation name attributes', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
 
       const attrs = getStartSpanAttributes(tracer, 0);
       expect(attrs['ai.operationId']).toBe('ai.generateText');
@@ -352,7 +354,7 @@ describe('OtelTelemetryIntegration', () => {
 
     it('does not create a span when telemetry is disabled', () => {
       otelIntegration.onStart!(
-        makeOnStartEvent(tracer, {
+        makeOnStartEvent({
           isEnabled: false,
         }),
       );
@@ -361,9 +363,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('does not create a span when isEnabled is undefined', () => {
-      otelIntegration.onStart!(
-        makeOnStartEvent(tracer, { isEnabled: undefined }),
-      );
+      otelIntegration.onStart!(makeOnStartEvent({ isEnabled: undefined }));
 
       expect(tracer.startSpan).not.toHaveBeenCalled();
     });
@@ -371,7 +371,7 @@ describe('OtelTelemetryIntegration', () => {
 
   describe('onStepStart', () => {
     it('creates a step span as child of root span', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
 
       expect(tracer.startSpan).toHaveBeenCalledTimes(2);
@@ -381,7 +381,7 @@ describe('OtelTelemetryIntegration', () => {
 
     it('uses ai.streamText.doStream for streamText operations', () => {
       otelIntegration.onStart!(
-        makeOnStartEvent(tracer, { operationId: 'ai.streamText' }),
+        makeOnStartEvent({ operationId: 'ai.streamText' }),
       );
       otelIntegration.onStepStart!(makeStepStartEvent());
 
@@ -389,7 +389,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('sets gen_ai attributes on step span', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
 
       const attrs = getStartSpanAttributes(tracer, 1);
@@ -404,7 +404,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('does not create step span for unknown callId', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(
         makeStepStartEvent({ callId: 'unknown-id' }),
       );
@@ -413,7 +413,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('includes prompt messages when provided', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(
         makeStepStartEvent({
           promptMessages: [
@@ -427,7 +427,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('includes tool choice and tools when provided', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(
         makeStepStartEvent({
           stepTools: [{ type: 'function', name: 'myTool' }],
@@ -443,7 +443,7 @@ describe('OtelTelemetryIntegration', () => {
 
   describe('onToolCallStart', () => {
     it('creates a tool span as child of step span', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onToolCallStart!(makeToolCallStartEvent());
 
@@ -453,7 +453,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('sets tool call attributes', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onToolCallStart!(makeToolCallStartEvent());
 
@@ -463,7 +463,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('sets tool call args as output attribute', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onToolCallStart!(makeToolCallStartEvent());
 
@@ -472,14 +472,14 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('does not create tool span without prior step span', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onToolCallStart!(makeToolCallStartEvent());
 
       expect(tracer.spans).toHaveLength(1);
     });
 
     it('creates multiple tool spans for concurrent tool calls', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
 
       otelIntegration.onToolCallStart!(
@@ -509,7 +509,7 @@ describe('OtelTelemetryIntegration', () => {
 
   describe('onToolCallFinish', () => {
     it('ends the tool span on success', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onToolCallStart!(makeToolCallStartEvent());
       otelIntegration.onToolCallFinish!(makeToolCallFinishEvent(true));
@@ -519,7 +519,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('sets result attribute on successful tool call', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onToolCallStart!(makeToolCallStartEvent());
       otelIntegration.onToolCallFinish!(makeToolCallFinishEvent(true));
@@ -529,7 +529,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('records error on failed tool call', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onToolCallStart!(makeToolCallStartEvent());
       otelIntegration.onToolCallFinish!(makeToolCallFinishEvent(false));
@@ -543,7 +543,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('does nothing for unknown tool call id', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onToolCallStart!(makeToolCallStartEvent());
 
@@ -562,7 +562,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('removes tool span from state after finishing', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onToolCallStart!(makeToolCallStartEvent());
       otelIntegration.onToolCallFinish!(makeToolCallFinishEvent(true));
@@ -575,7 +575,7 @@ describe('OtelTelemetryIntegration', () => {
 
   describe('onStepFinish', () => {
     it('ends the step span', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent());
 
@@ -584,7 +584,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('sets response attributes on step span', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent());
 
@@ -600,7 +600,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('sets gen_ai response attributes', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent());
 
@@ -614,7 +614,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('includes text in output attributes', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(
         makeStepFinishEvent({ text: 'Generated text' }),
@@ -626,7 +626,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('includes reasoning when present', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(
         makeStepFinishEvent({
@@ -643,7 +643,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('includes tool calls when present', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(
         makeStepFinishEvent({
@@ -667,14 +667,14 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('does nothing without prior step span', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent());
 
       expect(tracer.spans).toHaveLength(1);
     });
 
     it('allows a new step span after finishing a step', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
 
       otelIntegration.onStepStart!(makeStepStartEvent({ stepNumber: 0 }));
       otelIntegration.onStepFinish!(makeStepFinishEvent({ stepNumber: 0 }));
@@ -690,7 +690,7 @@ describe('OtelTelemetryIntegration', () => {
 
   describe('onFinish', () => {
     it('ends the root span', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent());
       otelIntegration.onFinish!(makeFinishEvent());
@@ -700,7 +700,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('sets aggregated usage attributes on root span', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent());
       otelIntegration.onFinish!(
@@ -721,7 +721,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('sets finish reason on root span', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent());
       otelIntegration.onFinish!(makeFinishEvent());
@@ -732,7 +732,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('cleans up call state after finishing', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent());
       otelIntegration.onFinish!(makeFinishEvent());
@@ -750,7 +750,7 @@ describe('OtelTelemetryIntegration', () => {
 
   describe('onChunk', () => {
     it('adds event to step span for ai.stream.firstChunk', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
 
       otelIntegration.onChunk!(
@@ -770,7 +770,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('adds event to step span for ai.stream.finish', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
 
       otelIntegration.onChunk!(
@@ -790,7 +790,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('sets attributes on step span when chunk has attributes', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
 
       otelIntegration.onChunk!(
@@ -809,7 +809,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('ignores chunks without callId in the chunk body', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
 
       otelIntegration.onChunk!(
@@ -825,7 +825,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('does not set attributes when chunk attributes are empty', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
 
       otelIntegration.onChunk!(
@@ -845,7 +845,7 @@ describe('OtelTelemetryIntegration', () => {
 
   describe('onError', () => {
     it('records error on root span and ends it', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
 
       const error = new Error('something went wrong');
@@ -868,7 +868,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('records error on step span and ends it when active', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
 
       const error = new Error('step error');
@@ -880,7 +880,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('handles non-Error objects', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
 
       otelIntegration.onError!({ callId, error: 'string error' });
 
@@ -892,7 +892,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('does nothing without callId', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
 
       otelIntegration.onError!({ error: new Error('no callId') });
 
@@ -901,7 +901,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('does nothing for unknown callId', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
 
       otelIntegration.onError!({
         callId: 'unknown',
@@ -913,7 +913,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('cleans up call state after error', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onError!({ callId, error: new Error('fail') });
 
       otelIntegration.onStepStart!(makeStepStartEvent());
@@ -923,18 +923,14 @@ describe('OtelTelemetryIntegration', () => {
 
   describe('telemetry disabled / recordInputs / recordOutputs', () => {
     it('does not record input attributes when recordInputs is false', () => {
-      otelIntegration.onStart!(
-        makeOnStartEvent(tracer, { recordInputs: false }),
-      );
+      otelIntegration.onStart!(makeOnStartEvent({ recordInputs: false }));
 
       const attrs = getStartSpanAttributes(tracer, 0);
       expect(attrs['ai.prompt']).toBeUndefined();
     });
 
     it('does not record output attributes when recordOutputs is false', () => {
-      otelIntegration.onStart!(
-        makeOnStartEvent(tracer, { recordOutputs: false }),
-      );
+      otelIntegration.onStart!(makeOnStartEvent({ recordOutputs: false }));
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(
         makeStepFinishEvent({ text: 'secret output' }),
@@ -946,9 +942,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('records non-input/output attributes even when recordInputs is false', () => {
-      otelIntegration.onStart!(
-        makeOnStartEvent(tracer, { recordInputs: false }),
-      );
+      otelIntegration.onStart!(makeOnStartEvent({ recordInputs: false }));
 
       const attrs = getStartSpanAttributes(tracer, 0);
       expect(attrs['ai.model.provider']).toBe('test-provider');
@@ -956,9 +950,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('does not record tool call args when recordOutputs is false', () => {
-      otelIntegration.onStart!(
-        makeOnStartEvent(tracer, { recordOutputs: false }),
-      );
+      otelIntegration.onStart!(makeOnStartEvent({ recordOutputs: false }));
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onToolCallStart!(makeToolCallStartEvent());
 
@@ -967,9 +959,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('does not record tool call result when recordOutputs is false', () => {
-      otelIntegration.onStart!(
-        makeOnStartEvent(tracer, { recordOutputs: false }),
-      );
+      otelIntegration.onStart!(makeOnStartEvent({ recordOutputs: false }));
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onToolCallStart!(makeToolCallStartEvent());
       otelIntegration.onToolCallFinish!(makeToolCallFinishEvent(true));
@@ -987,7 +977,7 @@ describe('OtelTelemetryIntegration', () => {
 
   describe('full lifecycle', () => {
     it('creates correct span hierarchy for generateText with tool call', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onToolCallStart!(makeToolCallStartEvent());
       otelIntegration.onToolCallFinish!(makeToolCallFinishEvent(true));
@@ -1005,7 +995,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('creates correct span hierarchy for multi-step generation', () => {
-      otelIntegration.onStart!(makeOnStartEvent(tracer));
+      otelIntegration.onStart!(makeOnStartEvent());
 
       otelIntegration.onStepStart!(makeStepStartEvent({ stepNumber: 0 }));
       otelIntegration.onToolCallStart!(makeToolCallStartEvent());
@@ -1032,8 +1022,8 @@ describe('OtelTelemetryIntegration', () => {
       const callId1 = 'call-1';
       const callId2 = 'call-2';
 
-      otelIntegration.onStart!(makeOnStartEvent(tracer, { callId: callId1 }));
-      otelIntegration.onStart!(makeOnStartEvent(tracer, { callId: callId2 }));
+      otelIntegration.onStart!(makeOnStartEvent({ callId: callId1 }));
+      otelIntegration.onStart!(makeOnStartEvent({ callId: callId2 }));
 
       expect(tracer.spans).toHaveLength(2);
 
@@ -1061,7 +1051,7 @@ describe('OtelTelemetryIntegration', () => {
 
     it('creates correct span hierarchy for streamText', () => {
       otelIntegration.onStart!(
-        makeOnStartEvent(tracer, { operationId: 'ai.streamText' }),
+        makeOnStartEvent({ operationId: 'ai.streamText' }),
       );
       otelIntegration.onStepStart!(makeStepStartEvent());
 
@@ -1104,7 +1094,7 @@ describe('OtelTelemetryIntegration', () => {
   describe('functionId in telemetry', () => {
     it('includes functionId in operation name', () => {
       otelIntegration.onStart!(
-        makeOnStartEvent(tracer, {
+        makeOnStartEvent({
           functionId: 'my-chat',
         }),
       );
@@ -1119,7 +1109,7 @@ describe('OtelTelemetryIntegration', () => {
   describe('metadata in telemetry', () => {
     it('includes metadata as telemetry attributes', () => {
       otelIntegration.onStart!(
-        makeOnStartEvent(tracer, {
+        makeOnStartEvent({
           metadata: { userId: 'user-123', sessionId: 'sess-456' },
         }),
       );

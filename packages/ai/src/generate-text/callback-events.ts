@@ -4,7 +4,7 @@ import type {
   ProviderOptions,
   SystemModelMessage,
 } from '@ai-sdk/provider-utils';
-import type { AttributeValue, Tracer } from '@opentelemetry/api';
+import type { AttributeValue } from '@opentelemetry/api';
 import type { TimeoutConfiguration } from '../prompt/call-settings';
 import type { ToolChoice } from '../types/language-model';
 import type { LanguageModelUsage } from '../types/usage';
@@ -131,9 +131,6 @@ export interface OnStartEvent<
 
   /** Additional metadata from telemetry settings. */
   readonly metadata: Record<string, AttributeValue> | undefined;
-
-  /** A custom tracer to use for telemetry. */
-  readonly tracer: Tracer | undefined;
 
   /**
    * User-defined context object that flows through the entire generation lifecycle.

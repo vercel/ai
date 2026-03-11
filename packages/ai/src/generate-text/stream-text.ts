@@ -818,7 +818,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
       TOOLS,
       OUTPUT
     >();
-    const globalTelemetry = createGlobalTelemetry(telemetry?.integrations);
+    const globalTelemetry = createGlobalTelemetry({
+      tracer: telemetry?.tracer,
+      integrations: telemetry?.integrations,
+    });
 
     // promise to ensure that the step has been fully processed by the event processor
     // before a new step is started. This is required because the continuation condition
@@ -1245,7 +1248,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
       metadata: telemetry?.metadata,
-      tracer: telemetry?.tracer,
     };
 
     (async () => {
