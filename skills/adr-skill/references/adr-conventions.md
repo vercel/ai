@@ -9,7 +9,7 @@ If the repo has no ADR directory, choose based on project size:
 - **`docs/decisions/`** — MADR default, recommended for projects with existing `docs/` structure.
 - **`adr/`** — simpler alternative for smaller repos.
 
-Detection order (used by scripts): `docs/decisions/`, `adr/`, `docs/adr/`, `docs/adrs/`, `decisions/`.
+Detection order (used by scripts): `contributing/decisions/`, `docs/decisions/`, `adr/`, `docs/adr/`, `docs/adrs/`, `decisions/`.
 
 ## Filename Conventions
 
@@ -80,7 +80,7 @@ The `consulted` and `informed` fields follow the RACI model and are useful for a
 For repos accumulating many ADRs, use subdirectories:
 
 ```
-docs/decisions/
+contributing/decisions/   # or docs/decisions/
   backend/
     0001-use-postgres.md
   frontend/

@@ -56,7 +56,7 @@ Every ADR goes through four phases. Do not skip phases.
 
 Before asking any questions, gather context from the repo:
 
-1. **Find existing ADRs.** Check `docs/decisions/`, `adr/`, `docs/adr/`, `decisions/` for existing records. Read them. Note:
+1. **Find existing ADRs.** Check `contributing/decisions/`, `docs/decisions/`, `adr/`, `docs/adr/`, `decisions/` for existing records. Read them. Note:
 
    - Existing conventions (directory, naming, template style)
    - Decisions that relate to or constrain the current one
@@ -118,7 +118,7 @@ Do NOT proceed to Phase 2 until the human confirms the summary.
 1. **Choose the ADR directory.**
 
    - If one exists (found in Phase 0), use it.
-   - If none exists, create `docs/decisions/` (MADR default) or `adr/` (simpler repos).
+   - If none exists, create `contributing/decisions/` (if `contributing/` exists), `docs/decisions/` (MADR default), or `adr/` (simpler repos).
 
 2. **Choose a filename strategy.**
 
@@ -178,7 +178,7 @@ Agents should read existing ADRs **before implementing changes** in a codebase t
 
 ### How to Consult ADRs
 
-1. **Find the ADR directory.** Check `docs/decisions/`, `adr/`, `docs/adr/`, `decisions/`. Also check for an index file (`README.md` or `index.md`).
+1. **Find the ADR directory.** Check `contributing/decisions/`, `docs/decisions/`, `adr/`, `docs/adr/`, `decisions/`. Also check for an index file (`README.md` or `index.md`).
 
 2. **Scan titles and statuses.** Read the index or list filenames. Focus on `accepted` ADRs — these are active decisions.
 

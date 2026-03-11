@@ -112,6 +112,7 @@ function parseArgs(argv) {
 
 function detectAdrDir(repoRoot) {
   const candidates = [
+    path.join(repoRoot, 'contributing', 'decisions'),
     path.join(repoRoot, 'docs', 'decisions'),
     path.join(repoRoot, 'adr'),
     path.join(repoRoot, 'docs', 'adr'),
