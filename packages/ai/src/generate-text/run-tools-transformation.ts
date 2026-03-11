@@ -6,6 +6,7 @@ import {
   SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
+import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
@@ -122,6 +123,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   model,
   onToolCallStart,
   onToolCallFinish,
+  wrapToolExecution,
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV4StreamPart>;
@@ -141,6 +143,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   onToolCallFinish?:
     | StreamTextOnToolCallFinishCallback<TOOLS>
     | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
+  wrapToolExecution?: TelemetryIntegration['wrapToolExecution'];
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
@@ -344,6 +347,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 model,
                 onToolCallStart,
                 onToolCallFinish,
+                wrapToolExecution,
                 onPreliminaryToolResult: result => {
                   toolResultsStreamController!.enqueue(result);
                 },

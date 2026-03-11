@@ -27,6 +27,7 @@ export function bindTelemetryIntegration(
     onStepFinish: integration.onStepFinish?.bind(integration),
     onFinish: integration.onFinish?.bind(integration),
     onError: integration.onError?.bind(integration),
+    wrapToolExecution: integration.wrapToolExecution?.bind(integration),
   };
 }
 
@@ -76,6 +77,10 @@ export function getGlobalTelemetryIntegration<
       };
     }
 
+    const wrappers = allIntegrations
+      .map(i => i.wrapToolExecution)
+      .filter(Boolean) as Array<TelemetryIntegration['wrapToolExecution']>;
+
     return {
       onStart: createTelemetryComposite(
         integration => integration.onStart,
@@ -103,6 +108,17 @@ export function getGlobalTelemetryIntegration<
       ),
       onFinish: createTelemetryComposite(integration => integration.onFinish),
       onError: createTelemetryComposite(integration => integration.onError),
+      wrapToolExecution:
+        wrappers.length > 0
+          ? async params => {
+              let fn = params.fn;
+              for (const wrapper of wrappers) {
+                const inner = fn;
+                fn = () => wrapper!({ ...params, fn: inner });
+              }
+              return fn();
+            }
+          : undefined,
     };
   };
 }

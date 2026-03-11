@@ -33,6 +33,7 @@ import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
+import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
   LanguageModel,
@@ -570,6 +571,7 @@ export async function generateText<
                 | GenerateTextOnToolCallFinishCallback<TOOLS>,
             ],
           }),
+        wrapToolExecution: globalTelemetry.wrapToolExecution,
       });
 
       const toolContent: Array<any> = [];
@@ -891,6 +893,7 @@ export async function generateText<
                       | GenerateTextOnToolCallFinishCallback<TOOLS>,
                   ],
                 }),
+              wrapToolExecution: globalTelemetry.wrapToolExecution,
             })),
           );
         }
@@ -1104,6 +1107,7 @@ async function executeTools<TOOLS extends ToolSet>({
   model,
   onToolCallStart,
   onToolCallFinish,
+  wrapToolExecution,
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
@@ -1116,6 +1120,7 @@ async function executeTools<TOOLS extends ToolSet>({
   model: { provider: string; modelId: string };
   onToolCallStart?: GenerateTextOnToolCallStartCallback<TOOLS>;
   onToolCallFinish?: GenerateTextOnToolCallFinishCallback<TOOLS>;
+  wrapToolExecution?: TelemetryIntegration['wrapToolExecution'];
 }): Promise<Array<ToolOutput<TOOLS>>> {
   const toolOutputs = await Promise.all(
     toolCalls.map(async toolCall =>
@@ -1131,6 +1136,7 @@ async function executeTools<TOOLS extends ToolSet>({
         model,
         onToolCallStart,
         onToolCallFinish,
+        wrapToolExecution,
       }),
     ),
   );

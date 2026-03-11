@@ -1,7 +1,6 @@
 import { tool } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as z from 'zod/v4';
-import { otelIntegration } from '../telemetry/otel-event-handler';
 import { executeToolCall } from './execute-tool-call';
 import {
   GenerateTextOnToolCallFinishCallback,
@@ -619,10 +618,12 @@ describe('executeToolCall', () => {
       expect(finishEvents[0].durationMs).toEqual(expect.any(Number));
     });
 
-    it('should execute the tool inside the otel tool-call context runner', async () => {
-      const contextRunnerSpy = vi
-        .spyOn(otelIntegration, 'runWithToolCallContext')
-        .mockImplementation(async ({ fn }) => fn());
+    it('should execute the tool inside the wrapToolExecution wrapper when provided', async () => {
+      const wrapToolExecution: <T>(params: {
+        callId: string;
+        toolCallId: string;
+        fn: () => Promise<T>;
+      }) => Promise<T> = vi.fn(async ({ fn }) => fn());
 
       await executeToolCall({
         toolCall: createToolCall({ toolCallId: 'my-call-id' }),
@@ -637,12 +638,35 @@ describe('executeToolCall', () => {
         messages: [],
         abortSignal: undefined,
         experimental_context: undefined,
+        wrapToolExecution,
       });
 
-      expect(contextRunnerSpy).toHaveBeenCalledWith({
+      expect(wrapToolExecution).toHaveBeenCalledWith({
         callId: 'test-telemetry-call-id',
         toolCallId: 'my-call-id',
         fn: expect.any(Function),
+      });
+    });
+
+    it('should execute the tool directly when wrapToolExecution is not provided', async () => {
+      const result = await executeToolCall({
+        toolCall: createToolCall({ toolCallId: 'my-call-id' }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        telemetry: { isEnabled: true },
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        experimental_context: undefined,
+      });
+
+      expect(result).toMatchObject({
+        type: 'tool-result',
+        output: 'test-result',
       });
     });
   });

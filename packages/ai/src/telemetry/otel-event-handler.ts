@@ -161,7 +161,7 @@ export class OtelTelemetryIntegration implements TelemetryIntegration {
     return tracer;
   }
 
-  runWithToolCallContext<T>({
+  wrapToolExecution<T>({
     callId,
     toolCallId,
     fn,

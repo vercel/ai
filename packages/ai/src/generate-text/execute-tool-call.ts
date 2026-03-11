@@ -1,5 +1,4 @@
 import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
-import { otelIntegration } from '../telemetry/otel-event-handler';
 import { notify } from '../util/notify';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { now } from '../util/now';
@@ -37,6 +36,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   onPreliminaryToolResult,
   onToolCallStart,
   onToolCallFinish,
+  wrapToolExecution,
 }: {
   toolCall: TypedToolCall<TOOLS>;
   tools: TOOLS | undefined;
@@ -54,6 +54,11 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   onToolCallFinish?:
     | GenerateTextOnToolCallFinishCallback<TOOLS>
     | Array<GenerateTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
+  wrapToolExecution?: <T>(params: {
+    callId: string;
+    toolCallId: string;
+    fn: () => Promise<T>;
+  }) => Promise<T>;
 }): Promise<ToolOutput<TOOLS> | undefined> {
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
@@ -81,35 +86,37 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   const startTime = now();
 
   try {
-    await otelIntegration.runWithToolCallContext({
-      callId,
-      toolCallId,
-      fn: async () => {
-        const stream = executeTool({
-          execute: tool.execute!.bind(tool),
-          input,
-          options: {
-            toolCallId,
-            messages,
-            abortSignal,
-            experimental_context,
-          },
-        });
+    const executeFn = async () => {
+      const stream = executeTool({
+        execute: tool.execute!.bind(tool),
+        input,
+        options: {
+          toolCallId,
+          messages,
+          abortSignal,
+          experimental_context,
+        },
+      });
 
-        for await (const part of stream) {
-          if (part.type === 'preliminary') {
-            onPreliminaryToolResult?.({
-              ...toolCall,
-              type: 'tool-result',
-              output: part.output,
-              preliminary: true,
-            });
-          } else {
-            output = part.output;
-          }
+      for await (const part of stream) {
+        if (part.type === 'preliminary') {
+          onPreliminaryToolResult?.({
+            ...toolCall,
+            type: 'tool-result',
+            output: part.output,
+            preliminary: true,
+          });
+        } else {
+          output = part.output;
         }
-      },
-    });
+      }
+    };
+
+    if (wrapToolExecution) {
+      await wrapToolExecution({ callId, toolCallId, fn: executeFn });
+    } else {
+      await executeFn();
+    }
   } catch (error) {
     const durationMs = now() - startTime;
 

@@ -82,4 +82,17 @@ export interface TelemetryIntegration {
    * Use this to record error details on telemetry spans and set error status.
    */
   onError?: Listener<unknown>;
+
+  /**
+   * Wraps tool execution in an integration-specific context. This enables
+   * nested traces — e.g. when a tool's `execute` function calls `generateText`,
+   * the inner call's spans become children of the tool span.
+   *
+   * If not provided, the tool execution runs without additional context wrapping.
+   */
+  wrapToolExecution?: <T>(params: {
+    callId: string;
+    toolCallId: string;
+    fn: () => Promise<T>;
+  }) => Promise<T>;
 }
