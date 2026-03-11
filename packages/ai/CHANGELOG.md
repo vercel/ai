@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.13
+
+### Patch Changes
+
+- c26ca8d: Remove custom User-Agent header from HttpChatTransport to fix CORS preflight failures in Safari and Firefox
+
 ## 7.0.0-beta.12
 
 ### Patch Changes
