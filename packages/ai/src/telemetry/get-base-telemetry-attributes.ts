@@ -36,7 +36,9 @@ export function getBaseTelemetryAttributes({
     // add metadata as attributes:
     ...Object.entries(telemetry?.metadata ?? {}).reduce(
       (attributes, [key, value]) => {
-        attributes[`ai.telemetry.metadata.${key}`] = value;
+        if (value != null) {
+          attributes[`ai.telemetry.metadata.${key}`] = value as AttributeValue;
+        }
         return attributes;
       },
       {} as Attributes,

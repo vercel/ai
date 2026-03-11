@@ -1,10 +1,9 @@
-import type { LanguageModelV4ToolChoice } from '@ai-sdk/provider';
+import type { JSONValue, LanguageModelV4ToolChoice } from '@ai-sdk/provider';
 import type {
   ModelMessage,
   ProviderOptions,
   SystemModelMessage,
 } from '@ai-sdk/provider-utils';
-import type { AttributeValue } from '@opentelemetry/api';
 import type { TimeoutConfiguration } from '../prompt/call-settings';
 import type { ToolChoice } from '../types/language-model';
 import type { LanguageModelUsage } from '../types/usage';
@@ -130,7 +129,7 @@ export interface OnStartEvent<
   readonly functionId: string | undefined;
 
   /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, AttributeValue> | undefined;
+  readonly metadata: Record<string, JSONValue> | undefined;
 
   /**
    * User-defined context object that flows through the entire generation lifecycle.

@@ -141,7 +141,7 @@ class OtelTelemetryIntegration implements TelemetryIntegration {
   }
 
   onStart(event: OnStartEvent<ToolSet, Output>): void {
-    const telemetry: TelemetrySettings | undefined = {
+    const telemetry: TelemetrySettings = {
       isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
