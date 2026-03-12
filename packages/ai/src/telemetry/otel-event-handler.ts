@@ -22,7 +22,6 @@ import type { Output } from '../generate-text/output';
 import type { ToolSet } from '../generate-text/tool-set';
 import { assembleOperationName } from './assemble-operation-name';
 import { getBaseTelemetryAttributes } from './get-base-telemetry-attributes';
-import { noopTracer } from './noop-tracer';
 import { stringifyForTelemetry } from './stringify-for-telemetry';
 import { TelemetrySettings } from './telemetry-settings';
 import type { TelemetryIntegration } from './telemetry-integration';
@@ -119,32 +118,18 @@ interface CallState {
 
 export class OtelTelemetryIntegration implements TelemetryIntegration {
   private readonly callStates = new Map<string, CallState>();
-  private readonly pendingTracers = new Map<string, Tracer>();
 
   /**
-   * A custom tracer to use for the telemetry data.
+   * The tracer to use for the telemetry data.
    */
-  private readonly tracer: Tracer | undefined;
+  private readonly tracer: Tracer;
 
   constructor(
     options: {
       tracer?: Tracer;
     } = {},
   ) {
-    this.tracer = options.tracer;
-  }
-
-  private getTracer(telemetry: TelemetrySettings | undefined): Tracer {
-    if (telemetry?.isEnabled !== true) {
-      return noopTracer;
-    }
-    if (telemetry?.tracer) {
-      return telemetry.tracer;
-    }
-    if (this.tracer) {
-      return this.tracer;
-    }
-    return trace.getTracer('ai');
+    this.tracer = options.tracer ?? trace.getTracer('ai');
   }
 
   private getCallState(callId: string): CallState | undefined {
@@ -153,23 +138,6 @@ export class OtelTelemetryIntegration implements TelemetryIntegration {
 
   private cleanupCallState(callId: string): void {
     this.callStates.delete(callId);
-    this.pendingTracers.delete(callId);
-  }
-
-  configureTracerForCall({
-    callId,
-    tracer,
-  }: {
-    callId: string;
-    tracer: Tracer;
-  }): void {
-    this.pendingTracers.set(callId, tracer);
-  }
-
-  private consumeConfiguredTracer(callId: string): Tracer | undefined {
-    const tracer = this.pendingTracers.get(callId);
-    this.pendingTracers.delete(callId);
-    return tracer;
   }
 
   wrapToolExecution<T>({
@@ -191,17 +159,15 @@ export class OtelTelemetryIntegration implements TelemetryIntegration {
   }
 
   onStart(event: OnStartEvent<ToolSet, Output>): void {
+    if (event.isEnabled !== true) return;
+
     const telemetry: TelemetrySettings = {
       isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
       metadata: event.metadata,
-      tracer: this.consumeConfiguredTracer(event.callId),
     };
-    if (telemetry.isEnabled === false) return;
-
-    const tracer = this.getTracer(telemetry);
 
     const settings: Record<string, unknown> = {
       maxOutputTokens: event.maxOutputTokens,
@@ -240,7 +206,7 @@ export class OtelTelemetryIntegration implements TelemetryIntegration {
       },
     });
 
-    const rootSpan = tracer.startSpan(event.operationId, { attributes });
+    const rootSpan = this.tracer.startSpan(event.operationId, { attributes });
     const rootContext = trace.setSpan(context.active(), rootSpan);
 
     this.callStates.set(event.callId, {
@@ -312,8 +278,7 @@ export class OtelTelemetryIntegration implements TelemetryIntegration {
       'gen_ai.request.top_p': state.settings.topP as number | undefined,
     });
 
-    const tracer = this.getTracer(telemetry);
-    state.stepSpan = tracer.startSpan(
+    state.stepSpan = this.tracer.startSpan(
       stepOperationId,
       { attributes },
       state.rootContext,
@@ -340,8 +305,7 @@ export class OtelTelemetryIntegration implements TelemetryIntegration {
       },
     });
 
-    const tracer = this.getTracer(telemetry);
-    const toolSpan = tracer.startSpan(
+    const toolSpan = this.tracer.startSpan(
       'ai.toolCall',
       { attributes },
       state.stepContext,

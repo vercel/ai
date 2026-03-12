@@ -42,6 +42,7 @@ import {
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
+import { OtelTelemetryIntegration } from '../telemetry/otel-event-handler';
 
 vi.mock('../version', () => {
   return {
@@ -4124,7 +4125,9 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'prompt',
-        experimental_telemetry: { tracer },
+        experimental_telemetry: {
+          integrations: new OtelTelemetryIntegration({ tracer }),
+        },
       });
 
       expect(tracer.jsonSpans).toMatchSnapshot();
@@ -4166,7 +4169,7 @@ describe('generateText', () => {
             test1: 'value1',
             test2: false,
           },
-          tracer,
+          integrations: new OtelTelemetryIntegration({ tracer }),
         },
       });
 
@@ -4198,7 +4201,7 @@ describe('generateText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           isEnabled: true,
-          tracer,
+          integrations: new OtelTelemetryIntegration({ tracer }),
         },
         _internal: {
           generateId: () => 'test-id',
@@ -4309,7 +4312,7 @@ describe('generateText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           isEnabled: true,
-          tracer,
+          integrations: new OtelTelemetryIntegration({ tracer }),
         },
         _internal: {
           generateId: () => 'test-id',
@@ -4371,7 +4374,7 @@ describe('generateText', () => {
           isEnabled: true,
           recordInputs: false,
           recordOutputs: false,
-          tracer,
+          integrations: new OtelTelemetryIntegration({ tracer }),
         },
         _internal: {
           generateId: () => 'test-id',
@@ -4388,7 +4391,7 @@ describe('generateText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           isEnabled: true,
-          tracer,
+          integrations: new OtelTelemetryIntegration({ tracer }),
         },
       });
 
@@ -4480,7 +4483,7 @@ describe('generateText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           isEnabled: true,
-          tracer,
+          integrations: new OtelTelemetryIntegration({ tracer }),
         },
       });
 

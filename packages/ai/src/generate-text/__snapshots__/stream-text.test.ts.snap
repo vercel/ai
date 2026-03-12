@@ -307,7 +307,7 @@ exports[`streamText > options.transform > with base transformation > telemetry s
   {
     "attributes": {
       "ai.operationId": "ai.toolCall",
-      "ai.toolCall.args": "{"value":"value"}",
+      "ai.toolCall.args": "{"value":"VALUE"}",
       "ai.toolCall.id": "call-1",
       "ai.toolCall.name": "tool1",
       "ai.toolCall.result": ""value-result"",

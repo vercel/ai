@@ -363,7 +363,7 @@ describe('OtelTelemetryIntegration', () => {
     });
 
     it('does not create a span when isEnabled is undefined', () => {
-      otelIntegration.onStart!(makeOnStartEvent({ isEnabled: undefined }));
+      otelIntegration.onStart?.(makeOnStartEvent({ isEnabled: undefined }));
 
       expect(tracer.startSpan).not.toHaveBeenCalled();
     });
@@ -374,10 +374,6 @@ describe('OtelTelemetryIntegration', () => {
         tracer: configuredTracer,
       });
 
-      configuredIntegration.configureTracerForCall({
-        callId,
-        tracer: configuredTracer,
-      });
       configuredIntegration.onStart!(makeOnStartEvent());
 
       expect(configuredTracer.startSpan).toHaveBeenCalledTimes(1);

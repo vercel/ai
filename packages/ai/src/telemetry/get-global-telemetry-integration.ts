@@ -48,10 +48,8 @@ export function getGlobalTelemetryIntegration<
   const globalIntegrations = getGlobalTelemetryIntegrations();
 
   return ({
-    tracer,
     integrations,
   }: {
-    tracer?: Tracer;
     integrations?: TelemetryIntegration | Array<TelemetryIntegration>;
   } = {}): TelemetryIntegration => {
     const localIntegrations = asArray(integrations);
@@ -63,15 +61,12 @@ export function getGlobalTelemetryIntegration<
       getListenerFromIntegration: (
         integration: TelemetryIntegration,
       ) => ((event: EVENT) => PromiseLike<void> | void) | undefined,
-      prepareEvent?: (event: EVENT) => void,
     ): ((event: EVENT) => Promise<void>) | undefined {
       const listeners = allIntegrations
         .map(getListenerFromIntegration)
         .filter(Boolean) as Array<(event: EVENT) => PromiseLike<void> | void>;
 
       return async (event: EVENT) => {
-        prepareEvent?.(event);
-
         for (const listener of listeners) {
           try {
             await listener(event);
@@ -85,17 +80,7 @@ export function getGlobalTelemetryIntegration<
       .filter(Boolean) as Array<TelemetryIntegration['wrapToolExecution']>;
 
     return {
-      onStart: createTelemetryComposite(
-        integration => integration.onStart,
-        event => {
-          if (tracer != null) {
-            otelIntegration.configureTracerForCall({
-              callId: (event as { callId: string }).callId,
-              tracer,
-            });
-          }
-        },
-      ),
+      onStart: createTelemetryComposite(integration => integration.onStart),
       onStepStart: createTelemetryComposite(
         integration => integration.onStepStart,
       ),
