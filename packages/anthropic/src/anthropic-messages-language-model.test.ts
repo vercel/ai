@@ -603,6 +603,64 @@ describe('AnthropicMessagesLanguageModel', () => {
           }
         `);
       });
+
+      it('should strip Anthropic-unsupported validation keywords from structured output schemas', async () => {
+        prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                items: {
+                  type: 'array',
+                  items: {
+                    type: 'string',
+                    minLength: 1,
+                  },
+                  minItems: 2,
+                  maxItems: 5,
+                },
+                count: {
+                  type: 'integer',
+                  minimum: 0,
+                  maximum: 10,
+                },
+              },
+              required: ['items', 'count'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          output_config: {
+            format: {
+              type: 'json_schema',
+              schema: {
+                $schema: 'http://json-schema.org/draft-07/schema#',
+                additionalProperties: false,
+                properties: {
+                  items: {
+                    type: 'array',
+                    items: {
+                      type: 'string',
+                    },
+                  },
+                  count: {
+                    type: 'integer',
+                  },
+                },
+                required: ['items', 'count'],
+                type: 'object',
+              },
+            },
+          },
+        });
+      });
     });
 
     describe('json schema response format with output format (unknown model, forced)', () => {
