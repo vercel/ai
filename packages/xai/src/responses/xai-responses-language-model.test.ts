@@ -552,6 +552,47 @@ describe('XaiResponsesLanguageModel', () => {
             'reasoning.encrypted_content',
           ]);
         });
+
+        it('promptCacheKey', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                promptCacheKey: 'my-cache-key',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.prompt_cache_key).toBe('my-cache-key');
+        });
+
+        it('promptCacheKey not sent when not provided', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.prompt_cache_key).toBeUndefined();
+        });
       });
 
       it('should warn about unsupported stopSequences', async () => {
