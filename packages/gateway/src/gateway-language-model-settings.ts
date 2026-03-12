@@ -65,6 +65,7 @@ export type GatewayModelId =
   | 'kwaipilot/kat-coder-pro-v1'
   | 'meituan/longcat-flash-chat'
   | 'meituan/longcat-flash-thinking'
+  | 'meituan/longcat-flash-thinking-2601'
   | 'meta/llama-3.1-70b'
   | 'meta/llama-3.1-8b'
   | 'meta/llama-3.2-11b'
