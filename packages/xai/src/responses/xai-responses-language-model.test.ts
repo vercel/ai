@@ -552,6 +552,47 @@ describe('XaiResponsesLanguageModel', () => {
             'reasoning.encrypted_content',
           ]);
         });
+
+        it('parallelToolCalls', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                parallelToolCalls: false,
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.parallel_tool_calls).toBe(false);
+        });
+
+        it('parallelToolCalls not sent when not provided', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.parallel_tool_calls).toBeUndefined();
+        });
       });
 
       it('should warn about unsupported stopSequences', async () => {
