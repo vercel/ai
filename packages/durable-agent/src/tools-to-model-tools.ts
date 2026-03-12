@@ -4,13 +4,10 @@ import { asSchema, type ToolSet } from 'ai';
 export function toolsToModelTools(
   tools: ToolSet,
 ): LanguageModelV3FunctionTool[] {
-  return Object.entries(tools).map(([name, tool]) => {
-    const schema = asSchema(tool.inputSchema);
-    return {
-      type: 'function' as const,
-      name,
-      description: tool.description,
-      inputSchema: schema.jsonSchema as any,
-    };
-  });
+  return Object.entries(tools).map(([name, tool]) => ({
+    type: 'function',
+    name,
+    description: tool.description,
+    inputSchema: asSchema(tool.inputSchema).jsonSchema,
+  }));
 }
