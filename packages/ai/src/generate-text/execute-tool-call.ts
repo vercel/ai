@@ -36,7 +36,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   onPreliminaryToolResult,
   onToolCallStart,
   onToolCallFinish,
-  executeToolCallWithTelemetry = async ({ execute }) => execute(),
+  executeToolCallInTelemetryContext = async ({ execute }) => execute(),
 }: {
   toolCall: TypedToolCall<TOOLS>;
   tools: TOOLS | undefined;
@@ -54,7 +54,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   onToolCallFinish?:
     | GenerateTextOnToolCallFinishCallback<TOOLS>
     | Array<GenerateTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
-  executeToolCallWithTelemetry?: <T>(params: {
+  executeToolCallInTelemetryContext?: <T>(params: {
     callId: string;
     toolCallId: string;
     execute: () => PromiseLike<T>;
@@ -86,33 +86,40 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   const startTime = now();
 
   try {
-    const execute = async () => {
-      const stream = executeTool({
-        execute: tool.execute!.bind(tool),
-        input,
-        options: {
-          toolCallId,
-          messages,
-          abortSignal,
-          experimental_context,
-        },
-      });
+    // In order to correctly nest telemetry spans within tool calls spans, telemetry integrations need
+    // to be able to execute the tool call in a telemetry-integration-specific context.
+    //
+    // The call id and the tool call id are provided to the telemetry integration so that it can correctly
+    // identify the parent span.
+    await executeToolCallInTelemetryContext({
+      callId,
+      toolCallId,
+      execute: async () => {
+        const stream = executeTool({
+          execute: tool.execute!.bind(tool),
+          input,
+          options: {
+            toolCallId,
+            messages,
+            abortSignal,
+            experimental_context,
+          },
+        });
 
-      for await (const part of stream) {
-        if (part.type === 'preliminary') {
-          onPreliminaryToolResult?.({
-            ...toolCall,
-            type: 'tool-result',
-            output: part.output,
-            preliminary: true,
-          });
-        } else {
-          output = part.output;
+        for await (const part of stream) {
+          if (part.type === 'preliminary') {
+            onPreliminaryToolResult?.({
+              ...toolCall,
+              type: 'tool-result',
+              output: part.output,
+              preliminary: true,
+            });
+          } else {
+            output = part.output;
+          }
         }
-      }
-    };
-
-    await executeToolCallWithTelemetry({ callId, toolCallId, execute });
+      },
+    });
   } catch (error) {
     const durationMs = now() - startTime;
 
