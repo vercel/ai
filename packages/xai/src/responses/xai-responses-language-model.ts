@@ -369,7 +369,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
             .filter(text => text && text.length > 0)
             .join('');
 
-          if (reasoningText.length > 0) {
+          if (reasoningText) {
             if (part.encrypted_content || part.id) {
               content.push({
                 type: 'reasoning',
