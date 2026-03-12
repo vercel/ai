@@ -121,7 +121,18 @@ export class OtelTelemetryIntegration implements TelemetryIntegration {
   private readonly callStates = new Map<string, CallState>();
   private readonly pendingTracers = new Map<string, Tracer>();
 
-  constructor(private readonly customTracer: Tracer | undefined) {}
+  /**
+   * A custom tracer to use for the telemetry data.
+   */
+  private readonly tracer: Tracer | undefined;
+
+  constructor(
+    options: {
+      tracer?: Tracer;
+    } = {},
+  ) {
+    this.tracer = options.tracer;
+  }
 
   private getTracer(telemetry: TelemetrySettings | undefined): Tracer {
     if (telemetry?.isEnabled !== true) {
@@ -130,8 +141,8 @@ export class OtelTelemetryIntegration implements TelemetryIntegration {
     if (telemetry?.tracer) {
       return telemetry.tracer;
     }
-    if (this.customTracer) {
-      return this.customTracer;
+    if (this.tracer) {
+      return this.tracer;
     }
     return trace.getTracer('ai');
   }
@@ -553,13 +564,3 @@ export class OtelTelemetryIntegration implements TelemetryIntegration {
     this.cleanupCallState(event.callId);
   }
 }
-
-export function createOtelIntegration({
-  tracer,
-}: {
-  tracer?: Tracer;
-} = {}): OtelTelemetryIntegration {
-  return new OtelTelemetryIntegration(tracer);
-}
-
-export const otelIntegration = new OtelTelemetryIntegration(undefined);
