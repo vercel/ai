@@ -1,4 +1,4 @@
-import type { LanguageModelV3ToolChoice } from '@ai-sdk/provider';
+import type { LanguageModelV4ToolChoice } from '@ai-sdk/provider';
 import type {
   ModelMessage,
   ProviderOptions,
@@ -169,7 +169,7 @@ export interface OnStepStartEvent<
   readonly tools: TOOLS | undefined;
 
   /** The tool choice configuration for this step. */
-  readonly toolChoice: LanguageModelV3ToolChoice | undefined;
+  readonly toolChoice: LanguageModelV4ToolChoice | undefined;
 
   /** Limits which tools are available for this step. */
   readonly activeTools: Array<keyof TOOLS> | undefined;

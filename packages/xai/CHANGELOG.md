@@ -1,5 +1,74 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- aa5a583: chore(provider/xai): remove obsolete Grok 2 models now that they are shut down in their API
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- 25f1837: feat(xai): add b64_json response format, usage cost tracking, and quality/user parameters for image models
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- f5181ad: feat(provider/xai): support multiple input images for image editing
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [45b3d76]
+- Updated dependencies [f7295cb]
+  - @ai-sdk/openai-compatible@3.0.0-beta.2
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+  - @ai-sdk/openai-compatible@3.0.0-beta.1
+
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/openai-compatible@3.0.0-beta.0
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 3.0.67
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+  - @ai-sdk/openai-compatible@2.0.35
+
+## 3.0.66
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+  - @ai-sdk/openai-compatible@2.0.34
+
+## 3.0.65
+
+### Patch Changes
+
+- d5801fe: fix(xai): ensure strict mode for tools
+
 ## 3.0.64
 
 ### Patch Changes

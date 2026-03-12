@@ -1571,7 +1571,7 @@ describe('assistant messages', () => {
       {
         "cache_control": undefined,
         "content": {
-          "error_code": "unknown",
+          "error_code": "unavailable",
           "type": "web_fetch_tool_result_error",
         },
         "tool_use_id": "srvtoolu_test123",
@@ -1737,6 +1737,88 @@ describe('assistant messages', () => {
           },
         }
       `);
+      expect(warnings).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should pass back encrypted_code_execution_result for multi-turn (web_fetch_20260209/web_search_20260209)', async () => {
+      const warnings: SharedV3Warning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_webfetch_01',
+                toolName: 'web_fetch',
+                input: { url: 'https://example.com' },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'srvtoolu_webfetch_01',
+                toolName: 'web_fetch',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'web_fetch_result',
+                    url: 'https://example.com',
+                    retrievedAt: '2026-01-01T00:00:00Z',
+                    content: {
+                      type: 'document',
+                      title: 'Example',
+                      source: {
+                        type: 'text',
+                        mediaType: 'text/plain',
+                        data: 'hello',
+                      },
+                    },
+                  },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_codeexec_01',
+                toolName: 'code_execution',
+                input: { code: 'print("done")' },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'srvtoolu_codeexec_01',
+                toolName: 'code_execution',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'encrypted_code_execution_result',
+                    encrypted_stdout: 'enc_abc123',
+                    stderr: '',
+                    return_code: 0,
+                    content: [],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      const assistantMessage = result.prompt.messages[0];
+      expect(assistantMessage.role).toBe('assistant');
+      const codeExecResult = (assistantMessage.content as any[]).find(
+        (c: any) => c.type === 'code_execution_tool_result',
+      );
+      expect(codeExecResult).toBeDefined();
+      expect(codeExecResult.content).toEqual({
+        type: 'encrypted_code_execution_result',
+        encrypted_stdout: 'enc_abc123',
+        stderr: '',
+        return_code: 0,
+        content: [],
+      });
       expect(warnings).toMatchInlineSnapshot(`[]`);
     });
   });

@@ -1,4 +1,4 @@
-import { ProviderV3 } from '@ai-sdk/provider';
+import { ProviderV2, ProviderV3, ProviderV4 } from '@ai-sdk/provider';
 import { LogWarningsFunction } from './logger/log-warnings';
 import type { TelemetryIntegration } from './telemetry/telemetry-integration';
 
@@ -12,7 +12,7 @@ declare global {
    *
    * @see https://ai-sdk.dev/docs/ai-sdk-core/provider-management#global-provider-configuration
    */
-  var AI_SDK_DEFAULT_PROVIDER: ProviderV3 | undefined;
+  var AI_SDK_DEFAULT_PROVIDER: ProviderV4 | ProviderV3 | ProviderV2 | undefined;
 
   /**
    * The warning logger to use for the AI SDK.
