@@ -1,6 +1,6 @@
 # Sarvam AI Provider
 
-The **[Sarvam provider](https://ai-sdk.dev/docs)** for the [AI SDK](https://ai-sdk.dev/docs) enables text generation with [Sarvam AI](https://sarvam.ai/) models, including support for Indian languages.
+The **[Sarvam models](https://docs.sarvam.ai/api-reference-docs/getting-started/models)** for the [AI SDK](https://ai-sdk.dev/docs) enables text generation with [Sarvam AI](https://sarvam.ai/) models, including support for Indian languages.
 
 ## Setup
 

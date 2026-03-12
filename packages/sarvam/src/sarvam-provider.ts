@@ -1,3 +1,4 @@
+import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
   LanguageModelV3,
   NoSuchModelError,
@@ -8,12 +9,8 @@ import {
   loadApiKey,
   loadOptionalSetting,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import {
-  createOpenAICompatible,
-  OpenAICompatibleProvider,
-  OpenAICompatibleProviderSettings,
-} from '@ai-sdk/openai-compatible';
 import { SarvamChatModelId } from './types';
 import { VERSION } from './version';
 
@@ -86,38 +83,36 @@ export function createSarvam(
       }),
     ) ?? 'https://api.sarvam.ai/v1';
 
-  const apiKey = loadApiKey({
-    apiKey: options.apiKey,
-    environmentVariableName: 'SARVAM_API_KEY',
-    description: 'Sarvam',
-  });
+  const getHeaders = () =>
+    withUserAgentSuffix(
+      {
+        'api-subscription-key': loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'SARVAM_API_KEY',
+          description: 'Sarvam',
+        }),
+        ...options.headers,
+      },
+      `ai-sdk/sarvam/${VERSION}`,
+    );
 
-  // Sarvam uses api-subscription-key header instead of Authorization Bearer
-  const sarvamHeaders: Record<string, string> = {
-    'api-subscription-key': apiKey,
-    ...options.headers,
-  };
-
-  const openAICompatibleSettings: OpenAICompatibleProviderSettings = {
-    baseURL,
-    name: 'sarvam',
-    headers: sarvamHeaders,
-    fetch: options.fetch,
-    includeUsage: true,
-    supportsStructuredOutputs: false,
-  };
-
-  const openAICompatible = createOpenAICompatible(openAICompatibleSettings);
+  const createChatModel = (modelId: SarvamChatModelId) =>
+    new OpenAICompatibleChatLanguageModel(modelId, {
+      provider: 'sarvam.chat',
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+      includeUsage: true,
+      supportsStructuredOutputs: false,
+    });
 
   const provider = function (modelId: SarvamChatModelId) {
-    return openAICompatible.languageModel(modelId);
+    return createChatModel(modelId);
   };
 
   provider.specificationVersion = 'v3' as const;
-  provider.languageModel = (modelId: SarvamChatModelId) =>
-    openAICompatible.languageModel(modelId);
-  provider.chat = (modelId: SarvamChatModelId) =>
-    openAICompatible.chatModel(modelId);
+  provider.languageModel = createChatModel;
+  provider.chat = createChatModel;
 
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
