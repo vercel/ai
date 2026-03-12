@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.6
+
+### Major Changes
+
+- f62681f: feat(provider/xai): make responses api the default
+
 ## 4.0.0-beta.5
 
 ### Patch Changes
