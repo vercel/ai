@@ -36,7 +36,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   onPreliminaryToolResult,
   onToolCallStart,
   onToolCallFinish,
-  wrapToolExecution,
+  executeToolCallWithTelemetry = async ({ execute }) => execute(),
 }: {
   toolCall: TypedToolCall<TOOLS>;
   tools: TOOLS | undefined;
@@ -54,11 +54,11 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   onToolCallFinish?:
     | GenerateTextOnToolCallFinishCallback<TOOLS>
     | Array<GenerateTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
-  wrapToolExecution?: <T>(params: {
+  executeToolCallWithTelemetry?: <T>(params: {
     callId: string;
     toolCallId: string;
-    fn: () => Promise<T>;
-  }) => Promise<T>;
+    execute: () => PromiseLike<T>;
+  }) => PromiseLike<T>;
 }): Promise<ToolOutput<TOOLS> | undefined> {
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
@@ -86,7 +86,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   const startTime = now();
 
   try {
-    const executeFn = async () => {
+    const execute = async () => {
       const stream = executeTool({
         execute: tool.execute!.bind(tool),
         input,
@@ -112,11 +112,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
       }
     };
 
-    if (wrapToolExecution) {
-      await wrapToolExecution({ callId, toolCallId, fn: executeFn });
-    } else {
-      await executeFn();
-    }
+    await executeToolCallWithTelemetry({ callId, toolCallId, execute });
   } catch (error) {
     const durationMs = now() - startTime;
 

@@ -26,7 +26,7 @@ export function bindTelemetryIntegration(
     onStepFinish: integration.onStepFinish?.bind(integration),
     onFinish: integration.onFinish?.bind(integration),
     onError: integration.onError?.bind(integration),
-    wrapToolExecution: integration.wrapToolExecution?.bind(integration),
+    executeToolCall: integration.executeToolCall?.bind(integration),
   };
 }
 
@@ -73,9 +73,9 @@ export function getGlobalTelemetryIntegration<
       };
     }
 
-    const wrappers = allIntegrations
-      .map(i => i.wrapToolExecution)
-      .filter(Boolean) as Array<TelemetryIntegration['wrapToolExecution']>;
+    const executeWrappers = allIntegrations
+      .map(integration => integration.executeToolCall)
+      .filter(Boolean) as Array<TelemetryIntegration['executeToolCall']>;
 
     return {
       onStart: createTelemetryComposite(integration => integration.onStart),
@@ -94,15 +94,15 @@ export function getGlobalTelemetryIntegration<
       ),
       onFinish: createTelemetryComposite(integration => integration.onFinish),
       onError: createTelemetryComposite(integration => integration.onError),
-      wrapToolExecution:
-        wrappers.length > 0
+      executeToolCall:
+        executeWrappers.length > 0
           ? async params => {
-              let fn = params.fn;
-              for (const wrapper of wrappers) {
-                const inner = fn;
-                fn = () => wrapper!({ ...params, fn: inner });
+              let execute = params.execute;
+              for (const wrapper of executeWrappers) {
+                const inner = execute;
+                execute = () => wrapper!({ ...params, execute: inner });
               }
-              return fn();
+              return execute();
             }
           : undefined,
     };

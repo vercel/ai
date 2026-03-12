@@ -123,7 +123,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   model,
   onToolCallStart,
   onToolCallFinish,
-  wrapToolExecution,
+  executeToolCallWithTelemetry,
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV4StreamPart>;
@@ -143,7 +143,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   onToolCallFinish?:
     | StreamTextOnToolCallFinishCallback<TOOLS>
     | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
-  wrapToolExecution?: TelemetryIntegration['wrapToolExecution'];
+  executeToolCallWithTelemetry?: TelemetryIntegration['executeToolCall'];
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
@@ -347,7 +347,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 model,
                 onToolCallStart,
                 onToolCallFinish,
-                wrapToolExecution,
+                executeToolCallWithTelemetry,
                 onPreliminaryToolResult: result => {
                   toolResultsStreamController!.enqueue(result);
                 },

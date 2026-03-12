@@ -1367,7 +1367,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   onToolCallFinish,
                   globalTelemetry.onToolCallFinish,
                 ],
-                wrapToolExecution: globalTelemetry.wrapToolExecution,
+                executeToolCallWithTelemetry: globalTelemetry.executeToolCall,
                 onPreliminaryToolResult: result => {
                   toolExecutionStepStreamController?.enqueue(result);
                 },
@@ -1612,7 +1612,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               onToolCallFinish,
               globalTelemetry.onToolCallFinish,
             ],
-            wrapToolExecution: globalTelemetry.wrapToolExecution,
+            executeToolCallWithTelemetry: globalTelemetry.executeToolCall,
           });
 
           // Conditionally include request.body based on include settings.

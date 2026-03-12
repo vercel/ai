@@ -618,11 +618,11 @@ describe('executeToolCall', () => {
       expect(finishEvents[0].durationMs).toEqual(expect.any(Number));
     });
 
-    it('should execute the tool inside the wrapToolExecution wrapper when provided', async () => {
-      const wrapToolExecution: <T>(params: {
+    it('should execute the tool inside the executeToolCallWithTelemetry wrapper when provided', async () => {
+      const executeToolCallWithTelemetry: <T>(params: {
         callId: string;
         toolCallId: string;
-        fn: () => Promise<T>;
+        execute: () => PromiseLike<T>;
       }) => Promise<T> = vi.fn(async ({ fn }) => fn());
 
       await executeToolCall({
@@ -638,17 +638,17 @@ describe('executeToolCall', () => {
         messages: [],
         abortSignal: undefined,
         experimental_context: undefined,
-        wrapToolExecution,
+        executeToolCallWithTelemetry,
       });
 
-      expect(wrapToolExecution).toHaveBeenCalledWith({
+      expect(executeToolCallWithTelemetry).toHaveBeenCalledWith({
         callId: 'test-telemetry-call-id',
         toolCallId: 'my-call-id',
-        fn: expect.any(Function),
+        execute: expect.any(Function),
       });
     });
 
-    it('should execute the tool directly when wrapToolExecution is not provided', async () => {
+    it('should execute the tool directly when executeToolCallWithTelemetry is not provided', async () => {
       const result = await executeToolCall({
         toolCall: createToolCall({ toolCallId: 'my-call-id' }),
         tools: {

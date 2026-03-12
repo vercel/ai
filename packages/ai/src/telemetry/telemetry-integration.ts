@@ -84,15 +84,17 @@ export interface TelemetryIntegration {
   onError?: Listener<unknown>;
 
   /**
-   * Wraps tool execution in an integration-specific context. This enables
+   * Optionally runs the tool execute function in a telemetry-integration-specific context. This enables
    * nested traces — e.g. when a tool's `execute` function calls `generateText`,
    * the inner call's spans become children of the tool span.
    *
-   * If not provided, the tool execution runs without additional context wrapping.
+   * @param params.callId - The call ID of the tool call.
+   * @param params.toolCallId - The tool call ID.
+   * @param params.execute - The function to execute.
    */
-  wrapToolExecution?: <T>(params: {
+  executeToolCall?: <T>(params: {
     callId: string;
     toolCallId: string;
-    fn: () => Promise<T>;
-  }) => Promise<T>;
+    execute: () => PromiseLike<T>;
+  }) => PromiseLike<T>;
 }
