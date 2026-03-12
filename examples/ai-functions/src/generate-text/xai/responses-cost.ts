@@ -8,15 +8,10 @@ run(async () => {
     prompt: 'What is the capital of France?',
   });
 
-  console.log(result.text);
+  console.log('Response:', result.text);
   console.log();
-  console.log('Usage:', result.usage);
-
-  const costInUsdTicks = result.providerMetadata?.xai?.costInUsdTicks as
-    | number
-    | undefined;
-  if (costInUsdTicks != null) {
-    console.log('Cost (usd ticks):', costInUsdTicks);
-    console.log('Cost (USD):', (costInUsdTicks / 1e8).toFixed(6));
-  }
+  console.log(
+    'Provider metadata:',
+    JSON.stringify(result.providerMetadata, null, 2),
+  );
 });
