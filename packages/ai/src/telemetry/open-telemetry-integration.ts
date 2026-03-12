@@ -140,23 +140,22 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
     this.callStates.delete(callId);
   }
 
-  // TODO rename/implement
-  wrapToolExecution<T>({
+  executeToolCall<T>({
     callId,
     toolCallId,
-    fn,
+    execute,
   }: {
     callId: string;
     toolCallId: string;
-    fn: () => Promise<T>;
-  }): Promise<T> {
+    execute: () => PromiseLike<T>;
+  }): PromiseLike<T> {
     const toolSpanEntry = this.getCallState(callId)?.toolSpans.get(toolCallId);
 
     if (toolSpanEntry == null) {
-      return fn();
+      return execute();
     }
 
-    return context.with(toolSpanEntry.context, fn);
+    return context.with(toolSpanEntry.context, execute);
   }
 
   onStart(event: OnStartEvent<ToolSet, Output>): void {
