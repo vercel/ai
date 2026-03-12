@@ -177,6 +177,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       ...(options.previousResponseId != null && {
         previous_response_id: options.previousResponseId,
       }),
+      ...(options.parallelToolCalls != null && {
+        parallel_tool_calls: options.parallelToolCalls,
+      }),
     };
 
     if (xaiTools && xaiTools.length > 0) {

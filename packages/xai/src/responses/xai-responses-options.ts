@@ -33,6 +33,7 @@ export const xaiLanguageModelResponsesOptions = z.object({
    * Example values: 'file_search_call.results'.
    */
   include: z.array(z.enum(['file_search_call.results'])).nullish(),
+  parallelToolCalls: z.boolean().optional(),
 });
 
 export type XaiLanguageModelResponsesOptions = z.infer<
