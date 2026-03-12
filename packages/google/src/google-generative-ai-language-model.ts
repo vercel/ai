@@ -310,14 +310,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         const hasThought = part.thought === true;
         const hasThoughtSignature = !!part.thoughtSignature;
         content.push({
-          type: 'file' as const,
+          type: hasThought ? ('reasoning-file' as const) : ('file' as const),
           data: part.inlineData.data,
           mediaType: part.inlineData.mimeType,
           providerMetadata:
             hasThought || hasThoughtSignature
               ? {
                   [providerOptionsName]: {
-                    ...(hasThought ? { thought: true } : {}),
                     ...(hasThoughtSignature
                       ? { thoughtSignature: part.thoughtSignature }
                       : {}),
@@ -606,7 +605,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                     hasThought || hasThoughtSignature
                       ? {
                           [providerOptionsName]: {
-                            ...(hasThought ? { thought: true } : {}),
                             ...(hasThoughtSignature
                               ? { thoughtSignature: part.thoughtSignature }
                               : {}),
@@ -614,7 +612,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                         }
                       : undefined;
                   controller.enqueue({
-                    type: 'file',
+                    type: hasThought ? 'reasoning-file' : 'file',
                     mediaType: part.inlineData.mimeType,
                     data: part.inlineData.data,
                     providerMetadata: fileMeta,

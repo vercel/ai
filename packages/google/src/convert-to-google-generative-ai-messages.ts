@@ -112,6 +112,24 @@ export function convertToGoogleGenerativeAIMessages(
                       };
                 }
 
+                case 'reasoning-file': {
+                  if (part.data instanceof URL) {
+                    throw new UnsupportedFunctionalityError({
+                      functionality:
+                        'File data URLs in assistant messages are not supported',
+                    });
+                  }
+
+                  return {
+                    inlineData: {
+                      mimeType: part.mediaType,
+                      data: convertToBase64(part.data),
+                    },
+                    thought: true,
+                    thoughtSignature,
+                  };
+                }
+
                 case 'file': {
                   if (part.data instanceof URL) {
                     throw new UnsupportedFunctionalityError({

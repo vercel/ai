@@ -2392,11 +2392,10 @@ describe('doGenerate', () => {
           "mediaType": "image/png",
           "providerMetadata": {
             "google": {
-              "thought": true,
               "thoughtSignature": "img_sig1",
             },
           },
-          "type": "file",
+          "type": "reasoning-file",
         },
         {
           "data": "regularimagedata",
@@ -4426,7 +4425,9 @@ describe('doStream', () => {
 
     const events = await convertReadableStreamToArray(stream);
 
-    const fileEvents = events.filter(e => e.type === 'file');
+    const fileEvents = events.filter(
+      e => e.type === 'file' || e.type === 'reasoning-file',
+    );
     expect(fileEvents).toMatchInlineSnapshot(`
       [
         {
@@ -4434,11 +4435,10 @@ describe('doStream', () => {
           "mediaType": "image/png",
           "providerMetadata": {
             "google": {
-              "thought": true,
               "thoughtSignature": "stream_sig",
             },
           },
-          "type": "file",
+          "type": "reasoning-file",
         },
         {
           "data": "regularimg",
