@@ -4,6 +4,7 @@
 .envrc
 .next
 .turbo
+.workflow-vitest
 dist
 dist-ssr
 dist-bundle-check
