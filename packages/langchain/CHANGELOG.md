@@ -1,5 +1,354 @@
 # @ai-sdk/langchain
 
+## 3.0.0-beta.14
+
+### Patch Changes
+
+- ai@7.0.0-beta.14
+
+## 3.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [c26ca8d]
+  - ai@7.0.0-beta.13
+
+## 3.0.0-beta.12
+
+### Patch Changes
+
+- ai@7.0.0-beta.12
+
+## 3.0.0-beta.11
+
+### Patch Changes
+
+- ai@7.0.0-beta.11
+
+## 3.0.0-beta.10
+
+### Patch Changes
+
+- ai@7.0.0-beta.10
+
+## 3.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [1fe058b]
+  - ai@7.0.0-beta.9
+
+## 3.0.0-beta.8
+
+### Patch Changes
+
+- ai@7.0.0-beta.8
+
+## 3.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [210ed3d]
+  - ai@7.0.0-beta.7
+
+## 3.0.0-beta.6
+
+### Patch Changes
+
+- ai@7.0.0-beta.6
+
+## 3.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [ebd4da2]
+  - ai@7.0.0-beta.5
+
+## 3.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [5ceed7d]
+  - ai@7.0.0-beta.4
+
+## 3.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - ai@7.0.0-beta.3
+
+## 3.0.0-beta.2
+
+### Patch Changes
+
+- ai@7.0.0-beta.2
+
+## 3.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [6a3793e]
+  - ai@7.0.0-beta.1
+
+## 3.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - ai@7.0.0-beta.0
+
+## 2.0.122
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - ai@6.0.116
+
+## 2.0.121
+
+### Patch Changes
+
+- ai@6.0.115
+
+## 2.0.120
+
+### Patch Changes
+
+- Updated dependencies [2291047]
+  - ai@6.0.114
+
+## 2.0.119
+
+### Patch Changes
+
+- Updated dependencies [70d3980]
+  - ai@6.0.113
+
+## 2.0.118
+
+### Patch Changes
+
+- ai@6.0.112
+
+## 2.0.117
+
+### Patch Changes
+
+- Updated dependencies [2129c82]
+  - ai@6.0.111
+
+## 2.0.116
+
+### Patch Changes
+
+- ai@6.0.110
+
+## 2.0.115
+
+### Patch Changes
+
+- ai@6.0.109
+
+## 2.0.114
+
+### Patch Changes
+
+- Updated dependencies [2a4f512]
+  - ai@6.0.108
+
+## 2.0.113
+
+### Patch Changes
+
+- ai@6.0.107
+
+## 2.0.112
+
+### Patch Changes
+
+- ai@6.0.106
+
+## 2.0.111
+
+### Patch Changes
+
+- ai@6.0.105
+
+## 2.0.110
+
+### Patch Changes
+
+- ai@6.0.104
+
+## 2.0.109
+
+### Patch Changes
+
+- ai@6.0.103
+
+## 2.0.108
+
+### Patch Changes
+
+- ai@6.0.102
+
+## 2.0.107
+
+### Patch Changes
+
+- Updated dependencies [5230482]
+  - ai@6.0.101
+
+## 2.0.106
+
+### Patch Changes
+
+- Updated dependencies [b7fba77]
+  - ai@6.0.100
+
+## 2.0.105
+
+### Patch Changes
+
+- ai@6.0.99
+
+## 2.0.104
+
+### Patch Changes
+
+- ai@6.0.98
+
+## 2.0.103
+
+### Patch Changes
+
+- Updated dependencies [ebfdad1]
+  - ai@6.0.97
+
+## 2.0.102
+
+### Patch Changes
+
+- Updated dependencies [30c9de6]
+  - ai@6.0.96
+
+## 2.0.101
+
+### Patch Changes
+
+- ai@6.0.95
+
+## 2.0.100
+
+### Patch Changes
+
+- ai@6.0.94
+
+## 2.0.99
+
+### Patch Changes
+
+- Updated dependencies [d3769ec]
+  - ai@6.0.93
+
+## 2.0.98
+
+### Patch Changes
+
+- ai@6.0.92
+
+## 2.0.97
+
+### Patch Changes
+
+- ai@6.0.91
+
+## 2.0.96
+
+### Patch Changes
+
+- Updated dependencies [98e83ab]
+  - ai@6.0.90
+
+## 2.0.95
+
+### Patch Changes
+
+- ai@6.0.89
+
+## 2.0.94
+
+### Patch Changes
+
+- ai@6.0.88
+
+## 2.0.93
+
+### Patch Changes
+
+- ai@6.0.87
+
+## 2.0.92
+
+### Patch Changes
+
+- ai@6.0.86
+
+## 2.0.91
+
+### Patch Changes
+
+- ai@6.0.85
+
+## 2.0.90
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - ai@6.0.84
+
+## 2.0.89
+
+### Patch Changes
+
+- ai@6.0.83
+
+## 2.0.88
+
+### Patch Changes
+
+- 2b29f7a: Add `onFinish`, `onError`, and `onAbort` callbacks to `StreamCallbacks` for `toUIMessageStream`.
+
+  - `onFinish(state)`: Called on successful completion with final LangGraph state (or `undefined` for other stream types)
+  - `onError(error)`: Called when stream encounters an error
+  - `onAbort()`: Called when stream is aborted
+
+  Also adds `parseLangGraphEvent` helper for parsing LangGraph event tuples.
+
+## 2.0.87
+
+### Patch Changes
+
+- ai@6.0.82
+
+## 2.0.86
+
+### Patch Changes
+
+- Updated dependencies [ee4beee]
+  - ai@6.0.81
+
+## 2.0.85
+
+### Patch Changes
+
+- ai@6.0.80
+
 ## 2.0.84
 
 ### Patch Changes

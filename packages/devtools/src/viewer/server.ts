@@ -36,13 +36,19 @@ const broadcastToClients = (event: string, data: Record<string, unknown>) => {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Determine if we're running from source (tsx) or built (dist)
-// We're in dev mode if NOT running from the dist folder
-const isDevMode =
-  !__dirname.includes('/dist/') || process.env.NODE_ENV === 'development';
-const projectRoot = isDevMode
-  ? path.resolve(__dirname, '../..')
-  : path.resolve(__dirname, '../..');
+// Determine whether to use the dev-mode Vite proxy or serve the built client.
+//
+// We rely exclusively on an explicit env flag to avoid false positives in
+// monorepos where /dist paths are common.
+//
+//   AI_SDK_DEVTOOLS_DEV=true  → use dev mode (Vite proxy)
+//   AI_SDK_DEVTOOLS_DEV=false → use production mode (serve built client)
+//
+// If the flag is unset, default to production mode.
+const devEnv = process.env.AI_SDK_DEVTOOLS_DEV;
+const isDevMode = devEnv !== undefined && devEnv !== 'false' && devEnv !== '0';
+// __dirname points at packages/devtools/src/viewer, so ../.. is the package root.
+const projectRoot = path.resolve(__dirname, '../..');
 
 // Client directory: dist/client in both cases
 const clientDir = path.join(projectRoot, 'dist/client');

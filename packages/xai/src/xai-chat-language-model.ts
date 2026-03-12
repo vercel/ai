@@ -26,7 +26,10 @@ import { convertToXaiChatMessages } from './convert-to-xai-chat-messages';
 import { convertXaiChatUsage } from './convert-xai-chat-usage';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapXaiFinishReason } from './map-xai-finish-reason';
-import { XaiChatModelId, xaiProviderOptions } from './xai-chat-options';
+import {
+  XaiChatModelId,
+  xaiLanguageModelChatOptions,
+} from './xai-chat-options';
 import { xaiFailedResponseHandler } from './xai-error';
 import { prepareTools } from './xai-prepare-tools';
 
@@ -80,7 +83,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
       (await parseProviderOptions({
         provider: 'xai',
         providerOptions,
-        schema: xaiProviderOptions,
+        schema: xaiLanguageModelChatOptions,
       })) ?? {};
 
     // check for unsupported parameters
@@ -121,6 +124,11 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
       model: this.modelId,
 
       // standard generation settings
+      logprobs:
+        options.logprobs === true || options.topLogprobs != null
+          ? true
+          : undefined,
+      top_logprobs: options.topLogprobs,
       max_completion_tokens: maxOutputTokens,
       temperature,
       top_p: topP,

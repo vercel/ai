@@ -1,12 +1,12 @@
 import {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -32,7 +32,7 @@ import {
 } from './openai-completion-api';
 import {
   OpenAICompletionModelId,
-  openaiCompletionProviderOptions,
+  openaiLanguageModelCompletionOptions,
 } from './openai-completion-options';
 
 type OpenAICompletionConfig = {
@@ -42,8 +42,8 @@ type OpenAICompletionConfig = {
   fetch?: FetchFunction;
 };
 
-export class OpenAICompletionLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class OpenAICompletionLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: OpenAICompletionModelId;
 
@@ -83,20 +83,20 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
     toolChoice,
     seed,
     providerOptions,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const openaiOptions = {
       ...(await parseProviderOptions({
         provider: 'openai',
         providerOptions,
-        schema: openaiCompletionProviderOptions,
+        schema: openaiLanguageModelCompletionOptions,
       })),
       ...(await parseProviderOptions({
         provider: this.providerOptionsName,
         providerOptions,
-        schema: openaiCompletionProviderOptions,
+        schema: openaiLanguageModelCompletionOptions,
       })),
     };
 
@@ -161,8 +161,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const {
@@ -186,7 +186,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
 
     const choice = response.choices[0];
 
-    const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
 
     if (choice.logprobs != null) {
       providerMetadata.openai.logprobs = choice.logprobs;
@@ -211,8 +211,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -239,11 +239,11 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
-    const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
     let usage: OpenAICompletionUsage | undefined = undefined;
     let isFirstChunk = true;
 
@@ -251,7 +251,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<OpenAICompletionChunk>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });

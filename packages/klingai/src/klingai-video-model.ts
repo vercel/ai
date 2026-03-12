@@ -51,11 +51,12 @@ const modeEndpointMap: Record<KlingAIVideoMode, string> = {
  * - 'kling-v2.6-t2v' → 'kling-v2-6'
  * - 'kling-v2.1-master-i2v' → 'kling-v2-1-master'
  * - 'kling-v1-t2v' → 'kling-v1'
+ * - 'kling-v3.0-t2v' → 'kling-v3'
  */
 function getApiModelName(modelId: string, mode: KlingAIVideoMode): string {
   const suffix = mode === 'motion-control' ? '-motion-control' : `-${mode}`;
   const baseName = modelId.slice(0, -suffix.length);
-  return baseName.replace(/\./g, '-');
+  return baseName.replace(/\.0$/, '').replace(/\./g, '-');
 }
 
 /**
@@ -65,7 +66,7 @@ function getApiModelName(modelId: string, mode: KlingAIVideoMode): string {
  * motion control). See the KlingAI capability map for detailed compatibility:
  * https://app.klingai.com/global/dev/document-api/apiReference/model/skillsMap
  */
-export type KlingAIVideoProviderOptions = {
+export type KlingAIVideoModelOptions = {
   /**
    * Video generation mode.
    *
@@ -153,6 +154,77 @@ export type KlingAIVideoProviderOptions = {
     trajectories: Array<{ x: number; y: number }>;
   }> | null;
 
+  // --- v3.0 multi-shot options (T2V and I2V) ---
+
+  /**
+   * Enable multi-shot video generation (Kling v3.0+).
+   * When true, the video is split into up to 6 storyboard shots
+   * with individual prompts and durations.
+   *
+   * When multiShot is true with shotType 'customize', multiPrompt is required.
+   * When multiShot is true, the main prompt parameter is ignored by the API.
+   */
+  multiShot?: boolean | null;
+
+  /**
+   * Storyboard method for multi-shot video generation (Kling v3.0+).
+   * Required when multiShot is true.
+   *
+   * - `'customize'`: User-defined shots via multiPrompt.
+   * - `'intelligence'`: Model auto-segments based on the main prompt.
+   */
+  shotType?: 'customize' | 'intelligence' | null;
+
+  /**
+   * Per-shot details for multi-shot video generation (Kling v3.0+).
+   * Required when multiShot is true and shotType is 'customize'.
+   *
+   * Up to 6 shots. Each shot has an index, prompt (max 512 chars),
+   * and duration in seconds. Shot durations must sum to the total duration.
+   */
+  multiPrompt?: Array<{
+    index: number;
+    prompt: string;
+    duration: string;
+  }> | null;
+
+  // --- v3.0 element control (I2V and Motion Control) ---
+
+  /**
+   * Reference elements for element control (Kling v3.0+).
+   * Supports video character elements and multi-image elements.
+   *
+   * - I2V: Up to 3 reference elements. Cannot coexist with voiceList.
+   * - Motion Control: Currently only 1 element supported.
+   *   When referencing an element, the generated video can only
+   *   refer to the orientation of the person in the video.
+   */
+  elementList?: Array<{
+    element_id: number;
+  }> | null;
+
+  // --- v3.0 voice control (T2V and I2V) ---
+
+  /**
+   * Voice references for voice control (Kling v3.0+).
+   * Up to 2 voice references. Referenced via `<<<voice_1>>>` template
+   * syntax in the prompt.
+   *
+   * When voiceList is used and the prompt references voice IDs,
+   * sound must be set to 'on'.
+   * Cannot coexist with elementList on the I2V endpoint.
+   */
+  voiceList?: Array<{
+    voice_id: string;
+  }> | null;
+
+  // --- Shared options ---
+
+  /**
+   * Whether to generate watermarked results simultaneously.
+   */
+  watermarkEnabled?: boolean | null;
+
   // --- Motion-control-specific options ---
 
   /**
@@ -180,15 +252,10 @@ export type KlingAIVideoProviderOptions = {
    */
   keepOriginalSound?: 'yes' | 'no' | null;
 
-  /**
-   * Whether to generate watermarked results simultaneously.
-   */
-  watermarkEnabled?: boolean | null;
-
   [key: string]: unknown; // For passthrough
 };
 
-const klingaiVideoProviderOptionsSchema = lazySchema(() =>
+const klingaiVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
@@ -219,6 +286,34 @@ const klingaiVideoProviderOptionsSchema = lazySchema(() =>
               })
               .nullish(),
           })
+          .nullish(),
+        // v3.0 multi-shot
+        multiShot: z.boolean().nullish(),
+        shotType: z.enum(['customize', 'intelligence']).nullish(),
+        multiPrompt: z
+          .array(
+            z.object({
+              index: z.number(),
+              prompt: z.string(),
+              duration: z.string(),
+            }),
+          )
+          .nullish(),
+        // v3.0 element control (I2V)
+        elementList: z
+          .array(
+            z.object({
+              element_id: z.number(),
+            }),
+          )
+          .nullish(),
+        // v3.0 voice control
+        voiceList: z
+          .array(
+            z.object({
+              voice_id: z.string(),
+            }),
+          )
           .nullish(),
         // I2V-specific
         imageTail: z.string().nullish(),
@@ -253,6 +348,11 @@ const HANDLED_PROVIDER_OPTIONS = new Set([
   'sound',
   'cfgScale',
   'cameraControl',
+  'multiShot',
+  'shotType',
+  'multiPrompt',
+  'elementList',
+  'voiceList',
   'imageTail',
   'staticMask',
   'dynamicMasks',
@@ -295,8 +395,8 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
     const klingaiOptions = (await parseProviderOptions({
       provider: 'klingai',
       providerOptions: options.providerOptions,
-      schema: klingaiVideoProviderOptionsSchema,
-    })) as KlingAIVideoProviderOptions | undefined;
+      schema: klingaiVideoModelOptionsSchema,
+    })) as KlingAIVideoModelOptions | undefined;
 
     let body: Record<string, unknown>;
 
@@ -478,7 +578,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
 
   private buildT2VBody(
     options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-    klingaiOptions: KlingAIVideoProviderOptions | undefined,
+    klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV3Warning[],
   ): Record<string, unknown> {
     const mode = 't2v' as const;
@@ -520,6 +620,28 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
       body.duration = String(options.duration);
     }
 
+    // v3.0 multi-shot
+    if (klingaiOptions?.multiShot != null) {
+      body.multi_shot = klingaiOptions.multiShot;
+    }
+
+    if (klingaiOptions?.shotType != null) {
+      body.shot_type = klingaiOptions.shotType;
+    }
+
+    if (klingaiOptions?.multiPrompt != null) {
+      body.multi_prompt = klingaiOptions.multiPrompt;
+    }
+
+    // v3.0 voice control
+    if (klingaiOptions?.voiceList != null) {
+      body.voice_list = klingaiOptions.voiceList;
+    }
+
+    if (klingaiOptions?.watermarkEnabled != null) {
+      body.watermark_info = { enabled: klingaiOptions.watermarkEnabled };
+    }
+
     // Image is not supported for T2V
     if (options.image != null) {
       warnings.push({
@@ -537,7 +659,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
 
   private buildI2VBody(
     options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-    klingaiOptions: KlingAIVideoProviderOptions | undefined,
+    klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV3Warning[],
   ): Record<string, unknown> {
     const mode = 'i2v' as const;
@@ -594,6 +716,33 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
       body.dynamic_masks = klingaiOptions.dynamicMasks;
     }
 
+    // v3.0 multi-shot
+    if (klingaiOptions?.multiShot != null) {
+      body.multi_shot = klingaiOptions.multiShot;
+    }
+
+    if (klingaiOptions?.shotType != null) {
+      body.shot_type = klingaiOptions.shotType;
+    }
+
+    if (klingaiOptions?.multiPrompt != null) {
+      body.multi_prompt = klingaiOptions.multiPrompt;
+    }
+
+    // v3.0 element control (I2V only)
+    if (klingaiOptions?.elementList != null) {
+      body.element_list = klingaiOptions.elementList;
+    }
+
+    // v3.0 voice control
+    if (klingaiOptions?.voiceList != null) {
+      body.voice_list = klingaiOptions.voiceList;
+    }
+
+    if (klingaiOptions?.watermarkEnabled != null) {
+      body.watermark_info = { enabled: klingaiOptions.watermarkEnabled };
+    }
+
     // Map standard SDK duration (number → string)
     if (options.duration != null) {
       body.duration = String(options.duration);
@@ -617,7 +766,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
 
   private buildMotionControlBody(
     options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-    klingaiOptions: KlingAIVideoProviderOptions | undefined,
+    klingaiOptions: KlingAIVideoModelOptions | undefined,
     warnings: SharedV3Warning[],
   ): Record<string, unknown> {
     if (
@@ -632,7 +781,9 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
+    const mode = 'motion-control' as const;
     const body: Record<string, unknown> = {
+      model_name: getApiModelName(this.modelId, mode),
       video_url: klingaiOptions.videoUrl,
       character_orientation: klingaiOptions.characterOrientation,
       mode: klingaiOptions.mode,
@@ -660,6 +811,11 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
 
     if (klingaiOptions.watermarkEnabled != null) {
       body.watermark_info = { enabled: klingaiOptions.watermarkEnabled };
+    }
+
+    // v3.0 element control
+    if (klingaiOptions.elementList != null) {
+      body.element_list = klingaiOptions.elementList;
     }
 
     // Warn about unsupported standard options for motion control
@@ -690,7 +846,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
 
   private addPassthroughOptions(
     body: Record<string, unknown>,
-    klingaiOptions: KlingAIVideoProviderOptions | undefined,
+    klingaiOptions: KlingAIVideoModelOptions | undefined,
   ): void {
     if (!klingaiOptions) return;
     for (const [key, value] of Object.entries(klingaiOptions)) {

@@ -123,7 +123,7 @@ The following optional provider options are available for Alibaba models:
 Alibaba's Qwen models support thinking/reasoning mode for complex problem-solving:
 
 ```ts
-import { alibaba } from '@ai-sdk/alibaba';
+import { alibaba, type AlibabaLanguageModelOptions } from '@ai-sdk/alibaba';
 import { generateText } from 'ai';
 
 const { text, reasoning } = await generateText({
@@ -132,7 +132,7 @@ const { text, reasoning } = await generateText({
     alibaba: {
       enableThinking: true,
       thinkingBudget: 2048,
-    },
+    } satisfies AlibabaLanguageModelOptions,
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
 });
@@ -176,6 +176,8 @@ Alibaba supports both implicit and explicit prompt caching to reduce costs for r
 
 **Implicit caching** works automatically - the provider caches appropriate content without any configuration. For more control, you can use **explicit caching** by marking specific messages with `cacheControl`:
 
+### Single message cache control
+
 ```ts
 import { alibaba } from '@ai-sdk/alibaba';
 import { generateText } from 'ai';
@@ -186,19 +188,50 @@ const { text, usage } = await generateText({
     {
       role: 'system',
       content: 'You are a helpful assistant. [... long system prompt ...]',
-      providerMetadata: {
+      providerOptions: {
         alibaba: {
           cacheControl: { type: 'ephemeral' },
         },
       },
     },
+  ],
+});
+```
+
+### Multi-part message cache control
+
+```ts
+import { alibaba } from '@ai-sdk/alibaba';
+import { generateText } from 'ai';
+
+const longDocument = '... large document content ...';
+
+const { text, usage } = await generateText({
+  model: alibaba('qwen-plus'),
+  messages: [
     {
       role: 'user',
-      content: 'What is the capital of France?',
+      content: [
+        {
+          type: 'text',
+          text: 'Context: Please analyze this document.',
+        },
+        {
+          type: 'text',
+          text: longDocument,
+          providerOptions: {
+            alibaba: {
+              cacheControl: { type: 'ephemeral' },
+            },
+          },
+        },
+      ],
     },
   ],
 });
 ```
+
+**Note:** The minimum content length for a cache block is 1,024 tokens.
 
 ## Video Models
 
@@ -212,7 +245,7 @@ Alibaba supports three video generation modes: text-to-video, image-to-video (fi
 Generate videos from text prompts:
 
 ```ts
-import { alibaba, type AlibabaVideoProviderOptions } from '@ai-sdk/alibaba';
+import { alibaba, type AlibabaVideoModelOptions } from '@ai-sdk/alibaba';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
@@ -224,7 +257,7 @@ const { video } = await generateVideo({
     alibaba: {
       promptExtend: true,
       pollTimeoutMs: 600000, // 10 minutes
-    } satisfies AlibabaVideoProviderOptions,
+    } satisfies AlibabaVideoModelOptions,
   },
 });
 ```
@@ -234,7 +267,7 @@ const { video } = await generateVideo({
 Generate videos from a first-frame image and optional text prompt:
 
 ```ts
-import { alibaba, type AlibabaVideoProviderOptions } from '@ai-sdk/alibaba';
+import { alibaba, type AlibabaVideoModelOptions } from '@ai-sdk/alibaba';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
@@ -247,7 +280,7 @@ const { video } = await generateVideo({
   providerOptions: {
     alibaba: {
       pollTimeoutMs: 600000, // 10 minutes
-    } satisfies AlibabaVideoProviderOptions,
+    } satisfies AlibabaVideoModelOptions,
   },
 });
 ```
@@ -258,7 +291,7 @@ Generate videos using reference images and/or videos for character consistency. 
 (`character1`, `character2`, etc.) in your prompt to reference them:
 
 ```ts
-import { alibaba, type AlibabaVideoProviderOptions } from '@ai-sdk/alibaba';
+import { alibaba, type AlibabaVideoModelOptions } from '@ai-sdk/alibaba';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
@@ -270,7 +303,7 @@ const { video } = await generateVideo({
     alibaba: {
       referenceUrls: ['https://example.com/character-reference.jpg'],
       pollTimeoutMs: 600000, // 10 minutes
-    } satisfies AlibabaVideoProviderOptions,
+    } satisfies AlibabaVideoModelOptions,
   },
 });
 ```

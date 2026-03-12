@@ -74,7 +74,7 @@ export class TogetherAIImageModel implements ImageModelV3 {
     const togetheraiOptions = await parseProviderOptions({
       provider: 'togetherai',
       providerOptions,
-      schema: togetheraiImageProviderOptionsSchema,
+      schema: togetheraiImageModelOptionsSchema,
     });
 
     // Handle image input from files
@@ -153,7 +153,7 @@ const togetheraiErrorSchema = z.object({
 /**
  * Provider options schema for Together AI image generation.
  */
-export const togetheraiImageProviderOptionsSchema = lazySchema(() =>
+export const togetheraiImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
@@ -183,6 +183,6 @@ export const togetheraiImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type TogetherAIImageProviderOptions = InferSchema<
-  typeof togetheraiImageProviderOptionsSchema
+export type TogetherAIImageModelOptions = InferSchema<
+  typeof togetheraiImageModelOptionsSchema
 >;

@@ -4,6 +4,14 @@ import {
   ProviderOptions,
   SystemModelMessage,
 } from '@ai-sdk/provider-utils';
+import type {
+  OnFinishEvent,
+  OnStartEvent,
+  OnStepFinishEvent,
+  OnStepStartEvent,
+  OnToolCallFinishEvent,
+  OnToolCallStartEvent,
+} from '../generate-text/callback-events';
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
 import { StopCondition } from '../generate-text/stop-condition';
@@ -15,8 +23,32 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types/language-model';
 import { DownloadFunction } from '../util/download/download-function';
 import { AgentCallParameters } from './agent';
-import { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-on-finish-callback';
-import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
+
+export type ToolLoopAgentOnStartCallback<
+  TOOLS extends ToolSet = ToolSet,
+  OUTPUT extends Output = Output,
+> = (event: OnStartEvent<TOOLS, OUTPUT>) => PromiseLike<void> | void;
+
+export type ToolLoopAgentOnStepStartCallback<
+  TOOLS extends ToolSet = ToolSet,
+  OUTPUT extends Output = Output,
+> = (event: OnStepStartEvent<TOOLS, OUTPUT>) => PromiseLike<void> | void;
+
+export type ToolLoopAgentOnToolCallStartCallback<
+  TOOLS extends ToolSet = ToolSet,
+> = (event: OnToolCallStartEvent<TOOLS>) => PromiseLike<void> | void;
+
+export type ToolLoopAgentOnToolCallFinishCallback<
+  TOOLS extends ToolSet = ToolSet,
+> = (event: OnToolCallFinishEvent<TOOLS>) => PromiseLike<void> | void;
+
+export type ToolLoopAgentOnStepFinishCallback<TOOLS extends ToolSet = {}> = (
+  stepResult: OnStepFinishEvent<TOOLS>,
+) => Promise<void> | void;
+
+export type ToolLoopAgentOnFinishCallback<TOOLS extends ToolSet = {}> = (
+  event: OnFinishEvent<TOOLS>,
+) => PromiseLike<void> | void;
 
 /**
  * Configuration options for an agent.
@@ -88,6 +120,33 @@ export type ToolLoopAgentSettings<
    * A function that attempts to repair a tool call that failed to parse.
    */
   experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
+
+  /**
+   * Callback that is called when the agent operation begins, before any LLM calls.
+   */
+  experimental_onStart?: ToolLoopAgentOnStartCallback<NoInfer<TOOLS>, OUTPUT>;
+
+  /**
+   * Callback that is called when a step (LLM call) begins, before the provider is called.
+   */
+  experimental_onStepStart?: ToolLoopAgentOnStepStartCallback<
+    NoInfer<TOOLS>,
+    OUTPUT
+  >;
+
+  /**
+   * Callback that is called before each tool execution begins.
+   */
+  experimental_onToolCallStart?: ToolLoopAgentOnToolCallStartCallback<
+    NoInfer<TOOLS>
+  >;
+
+  /**
+   * Callback that is called after each tool execution completes.
+   */
+  experimental_onToolCallFinish?: ToolLoopAgentOnToolCallFinishCallback<
+    NoInfer<TOOLS>
+  >;
 
   /**
    * Callback that is called when each step (LLM call) is finished, including intermediate steps.

@@ -4,10 +4,6 @@ import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { beforeEach, describe, expect, vi, it } from 'vitest';
 import { injectFetchHeaders } from './inject-fetch-headers';
-import {
-  BedrockReasoningContentBlock,
-  BedrockRedactedReasoningContentBlock,
-} from './bedrock-api-types';
 import { anthropicTools, prepareTools } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
 import fs from 'node:fs';
@@ -325,6 +321,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "id": "0",
           "type": "text-start",
         },
@@ -440,6 +442,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "tool-use-id",
@@ -587,6 +595,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "id": "tool-use-id-1",
           "toolName": "test-tool-1",
           "type": "tool-input-start",
@@ -689,6 +703,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "error": {
             "$fault": "server",
             "$metadata": {},
@@ -748,6 +768,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "error": {
@@ -811,6 +837,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "error": {
             "$fault": "server",
             "$metadata": {},
@@ -872,6 +904,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "error": {
             "$fault": "server",
             "$metadata": {},
@@ -921,6 +959,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "error": {
@@ -1059,6 +1103,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "0",
@@ -1282,6 +1332,47 @@ describe('doStream', () => {
     });
   });
 
+  it('should extract response metadata', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      headers: {
+        'x-amzn-requestid': 'test-request-id',
+        date: 'Wed, 01 Jan 2025 00:00:00 GMT',
+      },
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'end_turn',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const metadata = parts.find(p => p.type === 'response-metadata');
+
+    expect(metadata).toMatchInlineSnapshot(`
+      {
+        "id": "test-request-id",
+        "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+        "timestamp": 2025-01-01T00:00:00.000Z,
+        "type": "response-metadata",
+      }
+    `);
+  });
+
   it('should properly combine headers from all sources', async () => {
     setupMockEventStreamHandler();
     server.urls[streamUrl].response = {
@@ -1440,6 +1531,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "id": "0",
           "type": "text-start",
         },
@@ -1483,6 +1580,143 @@ describe('doStream', () => {
           },
         },
       ]
+    `);
+  });
+
+  it('should include performanceConfig in providerMetadata', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          metadata: {
+            usage: {
+              inputTokens: 4,
+              outputTokens: 34,
+            },
+            performanceConfig: { latency: 'optimized' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: { stopReason: 'end_turn' },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const finish = parts.find(p => p.type === 'finish');
+    expect(finish?.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "performanceConfig": {
+            "latency": "optimized",
+          },
+        },
+      }
+    `);
+  });
+
+  it('should include serviceTier in providerMetadata', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          metadata: {
+            usage: {
+              inputTokens: 4,
+              outputTokens: 34,
+            },
+            serviceTier: { type: 'on-demand' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: { stopReason: 'end_turn' },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const finish = parts.find(p => p.type === 'finish');
+    expect(finish?.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "serviceTier": {
+            "type": "on-demand",
+          },
+        },
+      }
+    `);
+  });
+
+  it('should include cacheDetails in providerMetadata', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          metadata: {
+            usage: {
+              inputTokens: 4,
+              outputTokens: 34,
+              cacheDetails: [{ inputTokens: 100, ttl: 'T5M' }],
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: { stopReason: 'end_turn' },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const finish = parts.find(p => p.type === 'finish');
+    expect(finish?.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "usage": {
+            "cacheDetails": [
+              {
+                "inputTokens": 100,
+                "ttl": "T5M",
+              },
+            ],
+          },
+        },
+      }
     `);
   });
 
@@ -1576,6 +1810,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "0",
@@ -1674,6 +1914,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "delta": "",
           "id": "0",
           "providerMetadata": {
@@ -1746,6 +1992,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "rawValue": {
@@ -1911,6 +2163,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "id": "0",
           "type": "text-start",
         },
@@ -1981,6 +2239,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "0",
@@ -2071,6 +2335,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "id": "0",
           "type": "text-start",
         },
@@ -2158,6 +2428,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "0",
@@ -2266,6 +2542,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "0",
@@ -2392,6 +2674,12 @@ describe('doStream', () => {
         {
           "type": "stream-start",
           "warnings": [],
+        },
+        {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
         },
         {
           "id": "0",
@@ -2555,6 +2843,12 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
+          "timestamp": undefined,
+          "type": "response-metadata",
+        },
+        {
           "id": "0",
           "type": "text-start",
         },
@@ -2711,62 +3005,6 @@ describe('doStream', () => {
 });
 
 describe('doGenerate', () => {
-  function prepareJsonResponse({
-    content = [{ type: 'text', text: 'Hello, World!' }],
-    usage = {
-      inputTokens: 4,
-      outputTokens: 34,
-      totalTokens: 38,
-      cacheReadInputTokens: undefined,
-      cacheWriteInputTokens: undefined,
-    },
-    stopReason = 'stop_sequence',
-    trace,
-  }: {
-    content?: Array<
-      | { type: 'text'; text: string }
-      | { type: 'thinking'; thinking: string; signature: string }
-      | { type: 'tool_use'; id: string; name: string; input: unknown }
-      | BedrockReasoningContentBlock
-      | BedrockRedactedReasoningContentBlock
-    >;
-    toolCalls?: Array<{
-      id?: string;
-      name: string;
-      args: Record<string, unknown>;
-    }>;
-    usage?: {
-      inputTokens: number;
-      outputTokens: number;
-      totalTokens: number;
-      cacheReadInputTokens?: number;
-      cacheWriteInputTokens?: number;
-    };
-    stopReason?: string;
-    trace?: typeof mockTrace;
-    reasoningContent?:
-      | BedrockReasoningContentBlock
-      | BedrockRedactedReasoningContentBlock
-      | Array<
-          BedrockReasoningContentBlock | BedrockRedactedReasoningContentBlock
-        >;
-  }) {
-    server.urls[generateUrl].response = {
-      type: 'json-value',
-      body: {
-        output: {
-          message: {
-            role: 'assistant',
-            content,
-          },
-        },
-        usage,
-        stopReason,
-        ...(trace ? { trace } : {}),
-      },
-    };
-  }
-
   describe('text', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('bedrock-text');
@@ -2821,7 +3059,7 @@ describe('doGenerate', () => {
       }).toMatchInlineSnapshot(`
         {
           "id": undefined,
-          "modelId": undefined,
+          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
           "timestamp": undefined,
         }
       `);
@@ -2860,56 +3098,20 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should extract text response', async () => {
-    prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
-
-    const result = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(result.content).toMatchInlineSnapshot(`
-      [
-        {
-          "text": "Hello, World!",
-          "type": "text",
-        },
-      ]
-    `);
-  });
-
-  it('should extract usage', async () => {
-    prepareJsonResponse({
-      usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
-    });
-
-    const { usage } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(usage).toMatchInlineSnapshot(`
-      {
-        "inputTokens": {
-          "cacheRead": 0,
-          "cacheWrite": 0,
-          "noCache": 4,
-          "total": 4,
-        },
-        "outputTokens": {
-          "reasoning": undefined,
-          "text": 34,
-          "total": 34,
-        },
-        "raw": {
-          "inputTokens": 4,
-          "outputTokens": 34,
-          "totalTokens": 38,
-        },
-      }
-    `);
-  });
-
   it('should extract finish reason', async () => {
-    prepareJsonResponse({ stopReason: 'stop_sequence' });
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello, World!' }],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
 
     const { finishReason } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -2924,7 +3126,19 @@ describe('doGenerate', () => {
   });
 
   it('should support unknown finish reason', async () => {
-    prepareJsonResponse({ stopReason: 'eos' });
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello, World!' }],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'eos',
+      },
+    };
 
     const { finishReason } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -2939,7 +3153,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass the model and the messages', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -2970,7 +3184,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass settings', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -2991,7 +3205,7 @@ describe('doGenerate', () => {
   });
 
   it('should support guardrails', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3016,7 +3230,20 @@ describe('doGenerate', () => {
   });
 
   it('should include trace information in providerMetadata', async () => {
-    prepareJsonResponse({ trace: mockTrace });
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello, World!' }],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+        trace: mockTrace,
+      },
+    };
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3206,8 +3433,44 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should extract response metadata', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      headers: {
+        'x-amzn-requestid': 'test-request-id',
+        date: 'Wed, 01 Jan 2025 00:00:00 GMT',
+      },
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ text: 'Testing' }],
+          },
+        },
+        usage: {
+          inputTokens: 4,
+          outputTokens: 34,
+          totalTokens: 38,
+        },
+        stopReason: 'end_turn',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.response?.id).toMatchInlineSnapshot(`"test-request-id"`);
+    expect(result.response?.timestamp).toMatchInlineSnapshot(
+      `2025-01-01T00:00:00.000Z`,
+    );
+    expect(result.response?.modelId).toMatchInlineSnapshot(
+      `"anthropic.claude-3-haiku-20240307-v1:0"`,
+    );
+  });
+
   it('should pass tools and tool choice correctly', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       tools: [
@@ -3255,8 +3518,106 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should only send the forced tool when toolChoice specifies a specific tool', async () => {
+    prepareJsonFixtureResponse('bedrock-text');
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'getWeatherByCity',
+          description: 'Get weather by city',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+            additionalProperties: false,
+          },
+        },
+        {
+          type: 'function',
+          name: 'getCurrentWeather',
+          description: 'Get current weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+            required: ['location'],
+            additionalProperties: false,
+          },
+        },
+        {
+          type: 'function',
+          name: 'getWeatherForecast',
+          description: 'Get forecast',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              location: { type: 'string' },
+              days: { type: 'number' },
+            },
+            required: ['location', 'days'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      toolChoice: { type: 'tool', toolName: 'getWeatherByCity' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.toolConfig.tools).toHaveLength(1);
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe(
+      'getWeatherByCity',
+    );
+    expect(requestBody.toolConfig.toolChoice).toEqual({
+      tool: { name: 'getWeatherByCity' },
+    });
+  });
+
+  it('should send all tools when toolChoice is auto', async () => {
+    prepareJsonFixtureResponse('bedrock-text');
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'getWeatherByCity',
+          description: 'Get weather by city',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+            additionalProperties: false,
+          },
+        },
+        {
+          type: 'function',
+          name: 'getCurrentWeather',
+          description: 'Get current weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+            required: ['location'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      toolChoice: { type: 'auto' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.toolConfig.tools).toHaveLength(2);
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe(
+      'getWeatherByCity',
+    );
+    expect(requestBody.toolConfig.tools[1].toolSpec.name).toBe(
+      'getCurrentWeather',
+    );
+  });
+
   it('should omit empty tool descriptions to avoid Bedrock validation errors', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       tools: [
@@ -3549,7 +3910,7 @@ describe('doGenerate', () => {
   });
 
   it('should properly combine headers from all sources', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const optionsHeaders = {
       'options-header': 'options-value',
@@ -3586,7 +3947,7 @@ describe('doGenerate', () => {
   });
 
   it('should work with partial headers', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const model = new BedrockChatLanguageModel(modelId, {
       baseUrl: () => baseUrl,
@@ -3612,9 +3973,7 @@ describe('doGenerate', () => {
   });
 
   it('should include providerOptions in the request for generate calls', async () => {
-    prepareJsonResponse({
-      content: [{ type: 'text', text: 'Test generation' }],
-    });
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3625,22 +3984,30 @@ describe('doGenerate', () => {
       },
     });
 
-    // Verify that the outgoing request body includes "foo" at its top level.
     const body = await server.calls[0].requestBodyJson;
     expect(body).toMatchObject({ foo: 'bar' });
   });
 
   it('should include cache token usage in providerMetadata', async () => {
-    prepareJsonResponse({
-      content: [{ type: 'text', text: 'Testing' }],
-      usage: {
-        inputTokens: 4,
-        outputTokens: 34,
-        totalTokens: 38,
-        cacheReadInputTokens: 2,
-        cacheWriteInputTokens: 3,
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Testing' }],
+          },
+        },
+        usage: {
+          inputTokens: 4,
+          outputTokens: 34,
+          totalTokens: 38,
+          cacheReadInputTokens: 2,
+          cacheWriteInputTokens: 3,
+        },
+        stopReason: 'stop_sequence',
       },
-    });
+    };
 
     const response = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3680,8 +4047,115 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should include performanceConfig in providerMetadata', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+        },
+        usage: {
+          inputTokens: 4,
+          outputTokens: 34,
+          totalTokens: 38,
+        },
+        stopReason: 'end_turn',
+        performanceConfig: { latency: 'optimized' },
+      },
+    };
+
+    const response = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(response.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "performanceConfig": {
+            "latency": "optimized",
+          },
+          "stopSequence": null,
+        },
+      }
+    `);
+  });
+
+  it('should include serviceTier in providerMetadata', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+        },
+        usage: {
+          inputTokens: 4,
+          outputTokens: 34,
+          totalTokens: 38,
+        },
+        stopReason: 'end_turn',
+        serviceTier: { type: 'on-demand' },
+      },
+    };
+
+    const response = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(response.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "serviceTier": {
+            "type": "on-demand",
+          },
+          "stopSequence": null,
+        },
+      }
+    `);
+  });
+
+  it('should include cacheDetails in providerMetadata', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+        },
+        usage: {
+          inputTokens: 4,
+          outputTokens: 34,
+          totalTokens: 38,
+          cacheDetails: [{ inputTokens: 100, ttl: 'T5M' }],
+        },
+        stopReason: 'end_turn',
+      },
+    };
+
+    const response = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(response.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "stopSequence": null,
+          "usage": {
+            "cacheDetails": [
+              {
+                "inputTokens": 100,
+                "ttl": "T5M",
+              },
+            ],
+          },
+        },
+      }
+    `);
+  });
+
   it('should handle system messages with cache points', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: [
@@ -3701,7 +4175,7 @@ describe('doGenerate', () => {
   });
 
   it('should transform reasoningConfig to thinking in additionalModelRequestFields', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3736,7 +4210,7 @@ describe('doGenerate', () => {
   });
 
   it('merges user additionalModelRequestFields with derived thinking (generate)', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3830,7 +4304,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass maxReasoningEffort as output_config.effort for Anthropic models (generate)', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3853,23 +4327,208 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should extract reasoning text with signature', async () => {
-    const reasoningText = 'I need to think about this problem carefully...';
-    const signature = 'abc123signature';
+  it('should use native output_config.format instead of json tool when thinking is enabled with structured output', async () => {
+    prepareJsonFixtureResponse('bedrock-text');
 
-    prepareJsonResponse({
-      content: [
+    await model.doGenerate({
+      prompt: [
         {
-          reasoningContent: {
-            reasoningText: {
-              text: reasoningText,
-              signature,
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a recipe' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            recipe: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                ingredients: { type: 'array', items: { type: 'string' } },
+              },
+              required: ['name', 'ingredients'],
             },
           },
+          required: ['recipe'],
         },
-        { type: 'text', text: 'The answer is 42.' },
-      ],
+      },
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            budgetTokens: 2000,
+          },
+        },
+      },
     });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+
+    expect(requestBody.additionalModelRequestFields?.output_config).toEqual({
+      format: {
+        type: 'json_schema',
+        schema: {
+          type: 'object',
+          properties: {
+            recipe: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                ingredients: { type: 'array', items: { type: 'string' } },
+              },
+              required: ['name', 'ingredients'],
+            },
+          },
+          required: ['recipe'],
+        },
+      },
+    });
+
+    expect(requestBody.additionalModelRequestFields?.thinking).toBeDefined();
+  });
+
+  it('should merge output_config.effort and output_config.format when thinking with maxReasoningEffort and structured output', async () => {
+    prepareJsonFixtureResponse('bedrock-text');
+
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a recipe' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            budgetTokens: 2000,
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+
+    expect(requestBody.additionalModelRequestFields?.output_config).toEqual({
+      effort: 'medium',
+      format: {
+        type: 'json_schema',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+  });
+
+  it('should still use json tool fallback for structured output without thinking enabled', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: { name: 'Test' },
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a name' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeDefined();
+    expect(requestBody.toolConfig.tools).toHaveLength(1);
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+    expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toBeUndefined();
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "{"name":"Test"}",
+          "type": "text",
+        },
+      ]
+    `);
+    expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
+  });
+
+  it('should extract reasoning text with signature', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                reasoningContent: {
+                  reasoningText: {
+                    text: 'I need to think about this problem carefully...',
+                    signature: 'abc123signature',
+                  },
+                },
+              },
+              { type: 'text', text: 'The answer is 42.' },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3895,20 +4554,28 @@ describe('doGenerate', () => {
   });
 
   it('should extract reasoning text without signature', async () => {
-    const reasoningText = 'I need to think about this problem carefully...';
-
-    prepareJsonResponse({
-      content: [
-        {
-          reasoningContent: {
-            reasoningText: {
-              text: reasoningText,
-            },
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                reasoningContent: {
+                  reasoningText: {
+                    text: 'I need to think about this problem carefully...',
+                  },
+                },
+              },
+              { type: 'text', text: 'The answer is 42.' },
+            ],
           },
         },
-        { type: 'text', text: 'The answer is 42.' },
-      ],
-    });
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3929,18 +4596,28 @@ describe('doGenerate', () => {
   });
 
   it('should extract redacted reasoning', async () => {
-    prepareJsonResponse({
-      content: [
-        {
-          reasoningContent: {
-            redactedReasoning: {
-              data: 'redacted-reasoning-data',
-            },
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                reasoningContent: {
+                  redactedReasoning: {
+                    data: 'redacted-reasoning-data',
+                  },
+                },
+              },
+              { type: 'text', text: 'The answer is 42.' },
+            ],
           },
         },
-        { type: 'text', text: 'The answer is 42.' },
-      ],
-    });
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3966,26 +4643,36 @@ describe('doGenerate', () => {
   });
 
   it('should handle multiple reasoning blocks', async () => {
-    prepareJsonResponse({
-      content: [
-        {
-          reasoningContent: {
-            reasoningText: {
-              text: 'First reasoning block',
-              signature: 'sig1',
-            },
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                reasoningContent: {
+                  reasoningText: {
+                    text: 'First reasoning block',
+                    signature: 'sig1',
+                  },
+                },
+              },
+              {
+                reasoningContent: {
+                  redactedReasoning: {
+                    data: 'redacted-data',
+                  },
+                },
+              },
+              { type: 'text', text: 'The answer is 42.' },
+            ],
           },
         },
-        {
-          reasoningContent: {
-            redactedReasoning: {
-              data: 'redacted-data',
-            },
-          },
-        },
-        { type: 'text', text: 'The answer is 42.' },
-      ],
-    });
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4020,7 +4707,7 @@ describe('doGenerate', () => {
   });
 
   it('should omit toolConfig and filter tool content when conversation has tool calls but no active tools', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const conversationWithToolCalls: LanguageModelV3Prompt = [
       {
@@ -4095,20 +4782,32 @@ describe('doGenerate', () => {
   });
 
   it('should handle JSON response format with schema', async () => {
-    prepareJsonResponse({
-      content: [
-        {
-          toolUse: {
-            toolUseId: 'json-tool-id',
-            name: 'json',
-            input: {
-              recipe: { name: 'Lasagna', ingredients: ['pasta', 'cheese'] },
-            },
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: {
+                    recipe: {
+                      name: 'Lasagna',
+                      ingredients: ['pasta', 'cheese'],
+                    },
+                  },
+                },
+              },
+            ],
           },
-        } as any,
-      ],
-      stopReason: 'tool_use',
-    });
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'tool_use',
+      },
+    };
 
     const result = await model.doGenerate({
       prompt: [
@@ -4309,7 +5008,7 @@ describe('doGenerate', () => {
   });
 
   it('should handle unsupported response format types', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4328,7 +5027,7 @@ describe('doGenerate', () => {
   });
 
   it('should omit toolConfig when conversation has tool calls but toolChoice is none', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const conversationWithToolCalls: LanguageModelV3Prompt = [
       {
@@ -4390,7 +5089,7 @@ describe('doGenerate', () => {
   });
 
   it('should clamp temperature above 1 to 1 and add warning', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4412,7 +5111,7 @@ describe('doGenerate', () => {
   });
 
   it('should clamp temperature below 0 to 0 and add warning', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -4434,7 +5133,7 @@ describe('doGenerate', () => {
   });
 
   it('should not clamp valid temperature between 0 and 1', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('bedrock-text');
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,

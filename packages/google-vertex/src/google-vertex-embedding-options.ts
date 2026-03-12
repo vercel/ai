@@ -10,9 +10,11 @@ export type GoogleVertexEmbeddingModelId =
   | 'text-multilingual-embedding-002'
   | 'text-embedding-004'
   | 'text-embedding-005'
+  | 'gemini-embedding-001'
+  | 'gemini-embedding-2-preview'
   | (string & {});
 
-export const googleVertexEmbeddingProviderOptions = z.object({
+export const googleVertexEmbeddingModelOptions = z.object({
   /**
    * Optional. Optional reduced dimension for the output embedding.
    * If set, excessive values in the output embedding are truncated from the end.
@@ -58,6 +60,6 @@ export const googleVertexEmbeddingProviderOptions = z.object({
   autoTruncate: z.boolean().optional(),
 });
 
-export type GoogleVertexEmbeddingProviderOptions = z.infer<
-  typeof googleVertexEmbeddingProviderOptions
+export type GoogleVertexEmbeddingModelOptions = z.infer<
+  typeof googleVertexEmbeddingModelOptions
 >;
