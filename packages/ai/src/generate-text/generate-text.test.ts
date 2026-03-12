@@ -4496,9 +4496,10 @@ describe('generateText', () => {
       expect(rootSpan?.attributes['ai.usage.totalTokens']).toBe(50);
     });
 
-    it('should nest subagent generateText spans under the tool call span', async () => {
+    it('should execute subagent generateText inside executeToolCall context', async () => {
+      let activeContext: string | undefined;
+      let capturedContext: string | undefined;
       const otelIntegration = new OpenTelemetryIntegration({ tracer });
-      const executeToolCallSpy = vi.spyOn(otelIntegration, 'executeToolCall');
 
       await generateText({
         model: new MockLanguageModelV3({
@@ -4518,6 +4519,8 @@ describe('generateText', () => {
           researchTool: tool({
             inputSchema: z.object({ city: z.string() }),
             execute: async ({ city }) => {
+              capturedContext = activeContext;
+
               const subResult = await generateText({
                 model: new MockLanguageModelV3({
                   doGenerate: async () => ({
@@ -4542,7 +4545,19 @@ describe('generateText', () => {
         experimental_telemetry: {
           isEnabled: true,
           functionId: 'weather-agent',
-          integrations: otelIntegration,
+          integrations: [
+            otelIntegration,
+            {
+              executeToolCall: async ({ callId, toolCallId, execute }) => {
+                activeContext = `${callId}:${toolCallId}`;
+                try {
+                  return await execute();
+                } finally {
+                  activeContext = undefined;
+                }
+              },
+            },
+          ],
         },
         _internal: {
           generateId: () => 'outer-test-id',
@@ -4550,12 +4565,7 @@ describe('generateText', () => {
         },
       });
 
-      expect(executeToolCallSpy).toHaveBeenCalledOnce();
-      expect(executeToolCallSpy).toHaveBeenCalledWith({
-        callId: 'outer-test-call-id',
-        toolCallId: 'call-1',
-        execute: expect.any(Function),
-      });
+      expect(capturedContext).toBe('outer-test-call-id:call-1');
 
       expect(tracer.spans.map(s => s.name)).toEqual([
         'ai.generateText',
@@ -4567,7 +4577,6 @@ describe('generateText', () => {
 
       const toolCallSpan = tracer.spans[2];
       expect(toolCallSpan.attributes['ai.toolCall.name']).toBe('researchTool');
-      expect(toolCallSpan.context).toBeDefined();
 
       const innerRootSpan = tracer.spans[3];
       expect(innerRootSpan.attributes['ai.telemetry.functionId']).toBe(

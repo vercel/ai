@@ -12978,9 +12978,10 @@ describe('streamText', () => {
       );
     });
 
-    it('should nest subagent streamText spans under the tool call span', async () => {
+    it('should execute subagent streamText inside executeToolCall context', async () => {
+      let activeContext: string | undefined;
+      let capturedContext: string | undefined;
       const otelIntegration = new OpenTelemetryIntegration({ tracer });
-      const executeToolCallSpy = vi.spyOn(otelIntegration, 'executeToolCall');
 
       const result = streamText({
         model: createTestModel({
@@ -13008,6 +13009,8 @@ describe('streamText', () => {
           researchTool: tool({
             inputSchema: z.object({ city: z.string() }),
             execute: async ({ city }) => {
+              capturedContext = activeContext;
+
               const innerResult = streamText({
                 model: createTestModel({
                   stream: convertArrayToReadableStream([
@@ -13049,7 +13052,19 @@ describe('streamText', () => {
         experimental_telemetry: {
           isEnabled: true,
           functionId: 'weather-agent',
-          integrations: otelIntegration,
+          integrations: [
+            otelIntegration,
+            {
+              executeToolCall: async ({ callId, toolCallId, execute }) => {
+                activeContext = `${callId}:${toolCallId}`;
+                try {
+                  return await execute();
+                } finally {
+                  activeContext = undefined;
+                }
+              },
+            },
+          ],
         },
         _internal: {
           now: mockValues(0, 100, 500),
@@ -13061,12 +13076,7 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(executeToolCallSpy).toHaveBeenCalledOnce();
-      expect(executeToolCallSpy).toHaveBeenCalledWith({
-        callId: 'outer-test-call-id',
-        toolCallId: 'call-1',
-        execute: expect.any(Function),
-      });
+      expect(capturedContext).toBe('outer-test-call-id:call-1');
 
       expect(tracer.spans.map(s => s.name)).toEqual([
         'ai.streamText',
@@ -13078,7 +13088,6 @@ describe('streamText', () => {
 
       const toolCallSpan = tracer.spans[2];
       expect(toolCallSpan.attributes['ai.toolCall.name']).toBe('researchTool');
-      expect(toolCallSpan.context).toBeDefined();
 
       const innerRootSpan = tracer.spans[3];
       expect(innerRootSpan.attributes['ai.telemetry.functionId']).toBe(
