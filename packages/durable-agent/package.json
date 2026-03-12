@@ -3,7 +3,10 @@
   "version": "0.0.1",
   "description": "DurableAgent for building AI agents with AI SDK",
   "license": "Apache-2.0",
-  "sideEffects": false,
+  "sideEffects": [
+    "**/*.integration.test.ts",
+    "src/test/**"
+  ],
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -27,6 +30,7 @@
     "test:update": "pnpm test:node -u",
     "test:watch": "vitest --config vitest.node.config.js",
     "test:edge": "vitest --config vitest.edge.config.js --run",
+    "test:integration": "vitest --config vitest.integration.config.mjs --run",
     "test:node": "vitest --config vitest.node.config.js --run"
   },
   "exports": {
@@ -45,8 +49,10 @@
   "devDependencies": {
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
+    "@workflow/vitest": "4.0.1-beta.6",
     "tsup": "^8",
     "typescript": "5.8.3",
+    "workflow": "4.2.0-beta.69",
     "zod": "3.25.76"
   },
   "peerDependencies": {
