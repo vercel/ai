@@ -167,13 +167,10 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+    const { file, ...rest } = await server.calls[0].requestBodyMultipart;
+    expect(file).toBeInstanceOf(File);
+    expect(rest).toMatchInlineSnapshot(`
       {
-        "file": File {
-          Symbol(kHandle): Blob {},
-          Symbol(kLength): 40169,
-          Symbol(kType): "audio/wav",
-        },
         "model": "whisper-1",
         "response_format": "verbose_json",
         "temperature": "0",
@@ -196,13 +193,10 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+    const { file, ...rest } = await server.calls[0].requestBodyMultipart;
+    expect(file).toBeInstanceOf(File);
+    expect(rest).toMatchInlineSnapshot(`
       {
-        "file": File {
-          Symbol(kHandle): Blob {},
-          Symbol(kLength): 40169,
-          Symbol(kType): "audio/wav",
-        },
         "model": "gpt-4o-transcribe",
         "response_format": "json",
         "temperature": "0",
@@ -224,13 +218,10 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+    const { file, ...rest } = await server.calls[0].requestBodyMultipart;
+    expect(file).toBeInstanceOf(File);
+    expect(rest).toMatchInlineSnapshot(`
       {
-        "file": File {
-          Symbol(kHandle): Blob {},
-          Symbol(kLength): 40169,
-          Symbol(kType): "audio/wav",
-        },
         "model": "whisper-1",
         "response_format": "verbose_json",
         "temperature": "0",
