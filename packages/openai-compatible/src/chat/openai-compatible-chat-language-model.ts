@@ -35,7 +35,7 @@ import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
   OpenAICompatibleChatModelId,
-  openaiCompatibleProviderOptions,
+  openaiCompatibleLanguageModelChatOptions,
 } from './openai-compatible-chat-options';
 import { MetadataExtractor } from './openai-compatible-metadata-extractor';
 import { prepareTools } from './openai-compatible-prepare-tools';
@@ -132,7 +132,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     const deprecatedOptions = await parseProviderOptions({
       provider: 'openai-compatible',
       providerOptions,
-      schema: openaiCompatibleProviderOptions,
+      schema: openaiCompatibleLanguageModelChatOptions,
     });
 
     if (deprecatedOptions != null) {
@@ -147,12 +147,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       (await parseProviderOptions({
         provider: 'openaiCompatible',
         providerOptions,
-        schema: openaiCompatibleProviderOptions,
+        schema: openaiCompatibleLanguageModelChatOptions,
       })) ?? {},
       (await parseProviderOptions({
         provider: this.providerOptionsName,
         providerOptions,
-        schema: openaiCompatibleProviderOptions,
+        schema: openaiCompatibleLanguageModelChatOptions,
       })) ?? {},
     );
 
@@ -221,7 +221,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
             providerOptions?.[this.providerOptionsName] ?? {},
           ).filter(
             ([key]) =>
-              !Object.keys(openaiCompatibleProviderOptions.shape).includes(key),
+              !Object.keys(
+                openaiCompatibleLanguageModelChatOptions.shape,
+              ).includes(key),
           ),
         ),
 

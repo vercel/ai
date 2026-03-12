@@ -1,5 +1,41 @@
 # @ai-sdk/devtools
 
+## 1.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/provider@4.0.0-beta.0
+
+## 0.0.15
+
+### Patch Changes
+
+- 4c3a932: Use explicit AI_SDK_DEVTOOLS_DEV env flag for dev mode detection
+
+## 0.0.14
+
+### Patch Changes
+
+- d14f0aa: chore (devtools): include skill instructions in readme
+
+## 0.0.13
+
+### Patch Changes
+
+- b2e7fe2: Fix dev mode detection to prevent false positives when repos are in paths containing '/src/'
+
+## 0.0.12
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+
 ## 0.0.11
 
 ### Patch Changes

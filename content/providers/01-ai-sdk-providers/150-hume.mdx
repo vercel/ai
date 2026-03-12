@@ -125,6 +125,7 @@ You can pass additional provider-specific options using the `providerOptions` ar
 ```ts
 import { experimental_generateSpeech as generateSpeech } from 'ai';
 import { hume } from '@ai-sdk/hume';
+import { type HumeSpeechModelOptions } from '@ai-sdk/hume';
 
 const result = await generateSpeech({
   model: hume.speech(),
@@ -134,7 +135,7 @@ const result = await generateSpeech({
       context: {
         generationId: 'previous-generation-id',
       },
-    },
+    } satisfies HumeSpeechModelOptions,
   },
 });
 ```

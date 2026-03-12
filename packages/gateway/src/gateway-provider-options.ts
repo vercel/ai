@@ -2,7 +2,7 @@ import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // https://vercel.com/docs/ai-gateway/provider-options
-const gatewayProviderOptions = lazySchema(() =>
+const gatewayLanguageModelOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -59,8 +59,22 @@ const gatewayProviderOptions = lazySchema(() =>
        * used.
        */
       zeroDataRetention: z.boolean().optional(),
+      /**
+       * Per-provider timeouts for BYOK credentials in milliseconds.
+       * Controls how long to wait for a provider to start responding
+       * before falling back to the next available provider.
+       *
+       * Example: `{ byok: { openai: 5000, anthropic: 2000 } }`
+       */
+      providerTimeouts: z
+        .object({
+          byok: z.record(z.string(), z.number().int().min(1000)).optional(),
+        })
+        .optional(),
     }),
   ),
 );
 
-export type GatewayProviderOptions = InferSchema<typeof gatewayProviderOptions>;
+export type GatewayLanguageModelOptions = InferSchema<
+  typeof gatewayLanguageModelOptions
+>;

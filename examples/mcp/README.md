@@ -63,4 +63,4 @@ To test the example with the UI, you will first need to run the MCP server:
 pnpm server:elicitation-ui
 ```
 
-and then start the dev server in a new terminal in `examples/next-openai` and navigate to `localhost:3000/mcp-elicitation`
+and then start the dev server in a new terminal in `examples/ai-e2e-next` and navigate to `localhost:3000/chat/mcp-elicitation`

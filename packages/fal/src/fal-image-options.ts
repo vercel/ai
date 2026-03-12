@@ -1,7 +1,7 @@
 import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const falImageProviderOptionsSchema = lazySchema(() =>
+export const falImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
@@ -124,6 +124,6 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type FalImageProviderOptions = InferSchema<
-  typeof falImageProviderOptionsSchema
+export type FalImageModelOptions = InferSchema<
+  typeof falImageModelOptionsSchema
 >;

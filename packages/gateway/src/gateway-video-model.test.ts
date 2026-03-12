@@ -80,16 +80,22 @@ describe('GatewayVideoModel', () => {
       providerMetadata,
     }: {
       videos?: VideoData[];
-      warnings?: Array<{ type: 'other'; message: string }>;
+      warnings?: Array<
+        | { type: 'unsupported'; feature: string; details?: string }
+        | { type: 'compatibility'; feature: string; details?: string }
+        | { type: 'other'; message: string }
+      >;
       providerMetadata?: Record<string, unknown>;
     } = {}) {
+      const ssePayload = {
+        type: 'result',
+        videos,
+        ...(warnings && { warnings }),
+        ...(providerMetadata && { providerMetadata }),
+      };
       server.urls['https://api.test.com/video-model'].response = {
-        type: 'json-value',
-        body: {
-          videos,
-          ...(warnings && { warnings }),
-          ...(providerMetadata && { providerMetadata }),
-        },
+        type: 'stream-chunks',
+        chunks: [`data: ${JSON.stringify(ssePayload)}\n\n`],
       };
     }
 
@@ -353,6 +359,65 @@ describe('GatewayVideoModel', () => {
       expect(result.warnings).toEqual(mockWarnings);
     });
 
+    it('should return unsupported warnings correctly', async () => {
+      const mockWarnings = [
+        {
+          type: 'unsupported' as const,
+          feature: 'aspectRatio',
+          details:
+            'KlingAI image-to-video does not support aspectRatio. The output dimensions are determined by the input image.',
+        },
+      ];
+
+      prepareJsonResponse({
+        videos: [{ type: 'base64', data: 'base64-1', mediaType: 'video/mp4' }],
+        warnings: mockWarnings,
+      });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        image: undefined,
+        n: 1,
+        aspectRatio: undefined,
+        resolution: undefined,
+        duration: undefined,
+        fps: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toEqual(mockWarnings);
+    });
+
+    it('should return compatibility warnings correctly', async () => {
+      const mockWarnings = [
+        {
+          type: 'compatibility' as const,
+          feature: 'resolution',
+          details: 'Resolution was adjusted to nearest supported value.',
+        },
+      ];
+
+      prepareJsonResponse({
+        videos: [{ type: 'base64', data: 'base64-1', mediaType: 'video/mp4' }],
+        warnings: mockWarnings,
+      });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        image: undefined,
+        n: 1,
+        aspectRatio: undefined,
+        resolution: undefined,
+        duration: undefined,
+        fps: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toEqual(mockWarnings);
+    });
+
     it('should return empty warnings array when not provided', async () => {
       prepareJsonResponse({
         videos: [{ type: 'base64', data: 'base64-1', mediaType: 'video/mp4' }],
@@ -521,6 +586,113 @@ describe('GatewayVideoModel', () => {
           providerOptions: {},
         }),
       ).rejects.toThrow();
+    });
+
+    it('should throw on SSE error event with correct message and status', async () => {
+      server.urls['https://api.test.com/video-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'error',
+            message: 'Rate limit exceeded',
+            errorType: 'rate_limit_exceeded',
+            statusCode: 429,
+            param: null,
+          })}\n\n`,
+        ],
+      };
+
+      await expect(
+        createTestModel().doGenerate({
+          prompt: 'Test prompt',
+          image: undefined,
+          n: 1,
+          aspectRatio: undefined,
+          resolution: undefined,
+          duration: undefined,
+          fps: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow('Rate limit exceeded');
+    });
+
+    it('should throw on SSE error event with provider routing failure', async () => {
+      server.urls['https://api.test.com/video-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'error',
+            message: 'All providers failed',
+            errorType: 'internal_server_error',
+            statusCode: 500,
+            param: null,
+          })}\n\n`,
+        ],
+      };
+
+      await expect(
+        createTestModel().doGenerate({
+          prompt: 'Test prompt',
+          image: undefined,
+          n: 1,
+          aspectRatio: undefined,
+          resolution: undefined,
+          duration: undefined,
+          fps: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow('All providers failed');
+    });
+
+    it('should throw on empty SSE stream', async () => {
+      server.urls['https://api.test.com/video-model'].response = {
+        type: 'stream-chunks',
+        chunks: [],
+      };
+
+      await expect(
+        createTestModel().doGenerate({
+          prompt: 'Test prompt',
+          image: undefined,
+          n: 1,
+          aspectRatio: undefined,
+          resolution: undefined,
+          duration: undefined,
+          fps: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('should ignore SSE heartbeat comments and parse data event', async () => {
+      const videos = [
+        { type: 'base64' as const, data: 'base64-1', mediaType: 'video/mp4' },
+      ];
+      server.urls['https://api.test.com/video-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ':\n\n',
+          ':\n\n',
+          `data: ${JSON.stringify({ type: 'result', videos })}\n\n`,
+        ],
+      };
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        image: undefined,
+        n: 1,
+        aspectRatio: undefined,
+        resolution: undefined,
+        duration: undefined,
+        fps: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.videos).toEqual(videos);
     });
 
     it('should include providerOptions object in request body', async () => {

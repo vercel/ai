@@ -6,6 +6,7 @@ import {
   CallToolResult,
   ListResourceTemplatesResult,
   ListResourcesResult,
+  ListToolsResult,
   ReadResourceResult,
   ListPromptsResult,
   GetPromptResult,
@@ -88,6 +89,74 @@ describe('MCPClient', () => {
         "isError": false,
       }
     `);
+  });
+
+  it('should return serializable tool definitions via listTools()', async () => {
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+    const definitions = await client.listTools();
+
+    expect(definitions).toHaveProperty('tools');
+    expect(definitions.tools).toHaveLength(2);
+    expect(definitions.tools[0]).toMatchObject({
+      name: 'mock-tool',
+      description: 'A mock tool for testing',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          foo: { type: 'string' },
+        },
+      },
+    });
+
+    // Verify definitions are serializable (no functions)
+    const serialized = JSON.stringify(definitions);
+    const parsed = JSON.parse(serialized);
+    expect(parsed.tools[0].name).toBe('mock-tool');
+  });
+
+  it('should create tools from cached definitions via toolsFromDefinitions()', async () => {
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    // Get definitions (this would normally be cached)
+    const definitions = await client.listTools();
+
+    // Create tools from definitions without refetching
+    const tools = client.toolsFromDefinitions(definitions);
+
+    expect(tools).toHaveProperty('mock-tool');
+    const tool = tools['mock-tool'];
+    expect(tool).toHaveProperty('inputSchema');
+    expect(tool).toHaveProperty('execute');
+
+    // Verify the execute function works
+    const result = await tool.execute(
+      { foo: 'bar' },
+      { messages: [], toolCallId: '1' },
+    );
+    expect(result).toMatchObject({
+      content: [{ type: 'text', text: 'Mock tool call result' }],
+    });
+  });
+
+  it('should allow caching workflow with listTools() and toolsFromDefinitions()', async () => {
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    // Simulate caching workflow
+    const definitions = await client.listTools();
+    const cachedJson = JSON.stringify(definitions);
+
+    // Later: restore from cache and create tools
+    const restored = JSON.parse(cachedJson);
+    const tools = client.toolsFromDefinitions(restored);
+
+    expect(tools).toHaveProperty('mock-tool');
+    expect(tools['mock-tool'].execute).toBeDefined();
   });
 
   it('should convert MCP image content to AI SDK format via toModelOutput', async () => {
@@ -788,6 +857,60 @@ describe('MCPClient', () => {
         transport: { type: 'sse', url: 'https://example.com/sse' },
       }),
     ).rejects.toThrowError(MCPClientError);
+  });
+
+  it('should accept server responding with 2025-11-25 protocol version', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          initializeResult: {
+            protocolVersion: '2025-11-25',
+            serverInfo: {
+              name: 'mock-mcp-server',
+              version: '1.0.0',
+            },
+            capabilities: {
+              tools: {},
+            },
+          },
+        }),
+    );
+
+    const client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const tools = await client.tools();
+    expect(tools).toBeDefined();
+    await client.close();
+  });
+
+  it('should accept server responding with older supported protocol versions', async () => {
+    for (const version of ['2025-06-18', '2025-03-26', '2024-11-05']) {
+      createMockTransport.mockImplementation(
+        () =>
+          new MockMCPTransport({
+            initializeResult: {
+              protocolVersion: version,
+              serverInfo: {
+                name: 'mock-mcp-server',
+                version: '1.0.0',
+              },
+              capabilities: {
+                tools: {},
+              },
+            },
+          }),
+      );
+
+      const client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+
+      const tools = await client.tools();
+      expect(tools).toBeDefined();
+      await client.close();
+    }
   });
 
   it('should close transport when client is closed', async () => {

@@ -68,6 +68,11 @@ export interface FalProvider extends ProviderV3 {
   video(modelId: FalVideoModelId): Experimental_VideoModelV3;
 
   /**
+   * Creates a model for video generation.
+   */
+  videoModel(modelId: FalVideoModelId): Experimental_VideoModelV3;
+
+  /**
    * Creates a model for speech generation.
    */
   speech(modelId: FalSpeechModelId): SpeechModelV3;
@@ -180,7 +185,6 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
     specificationVersion: 'v3' as const,
     imageModel: createImageModel,
     image: createImageModel,
-    video: createVideoModel,
     languageModel: (modelId: string) => {
       throw new NoSuchModelError({
         modelId,
@@ -191,6 +195,8 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
     embeddingModel,
     textEmbeddingModel: embeddingModel,
     transcription: createTranscriptionModel,
+    video: createVideoModel,
+    videoModel: createVideoModel,
   };
 }
 

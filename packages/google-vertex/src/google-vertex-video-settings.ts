@@ -1,10 +1,7 @@
 export type GoogleVertexVideoModelId =
-  | 'veo-001'
-  | 'veo-002'
-  | 'veo-003'
-  | 'veo-2.0-generate-001'
-  | 'veo-2.0-generate-exp'
   | 'veo-2.0-generate-preview'
+  | 'veo-2.0-generate-exp'
+  | 'veo-2.0-generate-001'
   | 'veo-3.0-generate-001'
   | 'veo-3.0-fast-generate-001'
   | 'veo-3.0-generate-preview'

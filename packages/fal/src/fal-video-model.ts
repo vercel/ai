@@ -20,7 +20,7 @@ import type { FalConfig } from './fal-config';
 import { falErrorDataSchema, falFailedResponseHandler } from './fal-error';
 import type { FalVideoModelId } from './fal-video-settings';
 
-export type FalVideoProviderOptions = {
+export type FalVideoModelOptions = {
   loop?: boolean | null;
   motionStrength?: number | null;
   pollIntervalMs?: number | null;
@@ -32,7 +32,7 @@ export type FalVideoProviderOptions = {
 };
 
 // Provider options schema for FAL video generation
-export const falVideoProviderOptionsSchema = lazySchema(() =>
+export const falVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
@@ -89,8 +89,8 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
     const falOptions = (await parseProviderOptions({
       provider: 'fal',
       providerOptions: options.providerOptions,
-      schema: falVideoProviderOptionsSchema,
-    })) as FalVideoProviderOptions | undefined;
+      schema: falVideoModelOptionsSchema,
+    })) as FalVideoModelOptions | undefined;
 
     const body: Record<string, unknown> = {};
 

@@ -69,6 +69,13 @@ console.log(transcript);
       isOptional: true,
       description: 'Additional HTTP headers for the request.',
     },
+    {
+      name: 'download',
+      type: '(options: { url: URL; abortSignal?: AbortSignal }) => Promise<{ data: Uint8Array; mediaType: string | undefined }>',
+      isOptional: true,
+      description:
+        'Custom download function for fetching audio from URLs. Use `createDownload()` from `ai` to create a download function with custom size limits, e.g. `createDownload({ maxBytes: 50 * 1024 * 1024 })`. Default: built-in download with 2 GiB limit.',
+    },
   ]}
 />
 
