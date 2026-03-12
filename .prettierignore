@@ -5,3 +5,5 @@ dist
 .svelte-kit
 _nuxt
 __testfixtures__
+skills
+skills-lock.json
