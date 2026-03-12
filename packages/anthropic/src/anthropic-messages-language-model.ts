@@ -131,6 +131,41 @@ type AnthropicMessagesConfig = {
   supportsNativeStructuredOutput?: boolean;
 };
 
+const anthropicUnsupportedSchemaKeywords = new Set([
+  'exclusiveMaximum',
+  'exclusiveMinimum',
+  'format',
+  'maxItems',
+  'maxLength',
+  'maxProperties',
+  'maximum',
+  'minItems',
+  'minLength',
+  'minProperties',
+  'minimum',
+  'pattern',
+  'uniqueItems',
+]);
+
+function sanitizeAnthropicJsonSchema<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map(item => sanitizeAnthropicJsonSchema(item)) as T;
+  }
+
+  if (value == null || typeof value !== 'object') {
+    return value;
+  }
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => !anthropicUnsupportedSchemaKeywords.has(key))
+      .map(([key, entryValue]) => [
+        key,
+        sanitizeAnthropicJsonSchema(entryValue),
+      ]),
+  ) as T;
+}
+
 export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
 
@@ -275,16 +310,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     const useStructuredOutput =
       structureOutputMode === 'outputFormat' ||
       (structureOutputMode === 'auto' && supportsStructuredOutput);
+    const sanitizedResponseFormatSchema =
+      responseFormat?.type === 'json' && responseFormat.schema != null
+        ? sanitizeAnthropicJsonSchema(responseFormat.schema)
+        : undefined;
 
     const jsonResponseTool: LanguageModelV3FunctionTool | undefined =
       responseFormat?.type === 'json' &&
-      responseFormat.schema != null &&
+      sanitizedResponseFormatSchema != null &&
       !useStructuredOutput
         ? {
             type: 'function',
             name: 'json',
             description: 'Respond with a JSON object.',
-            inputSchema: responseFormat.schema,
+            inputSchema: sanitizedResponseFormatSchema,
           }
         : undefined;
 
@@ -357,17 +396,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       ...((anthropicOptions?.effort ||
         (useStructuredOutput &&
           responseFormat?.type === 'json' &&
-          responseFormat.schema != null)) && {
+          sanitizedResponseFormatSchema != null)) && {
         output_config: {
           ...(anthropicOptions?.effort && {
             effort: anthropicOptions.effort,
           }),
           ...(useStructuredOutput &&
             responseFormat?.type === 'json' &&
-            responseFormat.schema != null && {
+            sanitizedResponseFormatSchema != null && {
               format: {
                 type: 'json_schema',
-                schema: responseFormat.schema,
+                schema: sanitizedResponseFormatSchema,
               },
             }),
         },
