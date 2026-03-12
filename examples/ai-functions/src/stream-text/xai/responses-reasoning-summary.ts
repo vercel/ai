@@ -11,13 +11,37 @@ run(async () => {
         reasoningSummary: 'detailed',
       } satisfies XaiLanguageModelResponsesOptions,
     },
-    prompt: 'Explain quantum entanglement briefly.',
+    prompt: 'What is 12 * 37?',
   });
 
-  for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
+  let inReasoning = false;
+  let inText = false;
+
+  for await (const part of result.fullStream) {
+    if (part.type === 'reasoning-delta') {
+      if (!inReasoning) {
+        console.log('Reasoning:');
+        inReasoning = true;
+      }
+      process.stdout.write(part.text);
+    }
+    if (part.type === 'text-delta') {
+      if (!inText) {
+        if (inReasoning) console.log('\n');
+        console.log('Response:');
+        inText = true;
+      }
+      process.stdout.write(part.text);
+    }
   }
 
-  console.log();
-  console.log('Usage:', await result.usage);
+  console.log('\n');
+  console.log(
+    'Reasoning tokens:',
+    (await result.usage).outputTokenDetails?.reasoningTokens,
+  );
+  console.log(
+    'Text tokens:',
+    (await result.usage).outputTokenDetails?.textTokens,
+  );
 });

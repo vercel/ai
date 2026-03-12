@@ -11,18 +11,14 @@ run(async () => {
         reasoningSummary: 'detailed',
       } satisfies XaiLanguageModelResponsesOptions,
     },
-    prompt: 'Explain quantum entanglement briefly.',
+    prompt: 'What is 12 * 37?',
   });
 
-  console.log(result.text);
+  console.log('Response:', result.text);
   console.log();
-
-  const reasoningParts = result.content.filter(
-    part => part.type === 'reasoning',
+  console.log(
+    'Reasoning tokens:',
+    result.usage.outputTokenDetails?.reasoningTokens,
   );
-  if (reasoningParts.length > 0) {
-    console.log('Reasoning summary:', reasoningParts[0].text?.slice(0, 200));
-  }
-
-  console.log('Usage:', result.usage);
+  console.log('Text tokens:', result.usage.outputTokenDetails?.textTokens);
 });
