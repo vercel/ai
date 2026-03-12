@@ -24,15 +24,12 @@ import { XaiVideoModel } from './xai-video-model';
 import { XaiVideoModelId } from './xai-video-settings';
 
 export interface XaiProvider extends ProviderV3 {
-  /**
-   * Creates an Xai chat model for text generation.
-   */
-  (modelId: XaiChatModelId): LanguageModelV3;
+  (modelId: XaiResponsesModelId): LanguageModelV3;
 
   /**
    * Creates an Xai language model for text generation.
    */
-  languageModel(modelId: XaiChatModelId): LanguageModelV3;
+  languageModel(modelId: XaiResponsesModelId): LanguageModelV3;
 
   /**
    * Creates an Xai chat model for text generation.
@@ -40,7 +37,7 @@ export interface XaiProvider extends ProviderV3 {
   chat: (modelId: XaiChatModelId) => LanguageModelV3;
 
   /**
-   * Creates an Xai responses model for agentic tool calling.
+   * Creates an Xai responses model for text generation.
    */
   responses: (modelId: XaiResponsesModelId) => LanguageModelV3;
 
@@ -153,11 +150,11 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     });
   };
 
-  const provider = (modelId: XaiChatModelId) =>
-    createChatLanguageModel(modelId);
+  const provider = (modelId: XaiResponsesModelId) =>
+    createResponsesLanguageModel(modelId);
 
   provider.specificationVersion = 'v3' as const;
-  provider.languageModel = createChatLanguageModel;
+  provider.languageModel = createResponsesLanguageModel;
   provider.chat = createChatLanguageModel;
   provider.responses = createResponsesLanguageModel;
   provider.embeddingModel = (modelId: string) => {
