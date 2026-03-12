@@ -1,5 +1,44 @@
 # @ai-sdk/mcp
 
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- 9ecd8ae: fix(mcp): add MCP protocol version 2025-11-25 to supported versions
+
+## 2.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+
+## 2.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 1.0.25
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+
+## 1.0.24
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+
 ## 1.0.23
 
 ### Patch Changes

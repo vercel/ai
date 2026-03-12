@@ -1,5 +1,125 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [4dac142]
+  - @ai-sdk/google@4.0.0-beta.8
+
+## 5.0.0-beta.8
+
+### Patch Changes
+
+- 82288b0: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany`
+- Updated dependencies [82288b0]
+  - @ai-sdk/google@4.0.0-beta.7
+
+## 5.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [add4326]
+  - @ai-sdk/google@4.0.0-beta.6
+
+## 5.0.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [ab43029]
+  - @ai-sdk/google@4.0.0-beta.5
+
+## 5.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [2edd14e]
+  - @ai-sdk/google@4.0.0-beta.4
+
+## 5.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [1fe058b]
+  - @ai-sdk/anthropic@4.0.0-beta.2
+
+## 5.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+  - @ai-sdk/anthropic@4.0.0-beta.1
+  - @ai-sdk/google@4.0.0-beta.3
+
+## 5.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [c9c4661]
+  - @ai-sdk/google@4.0.0-beta.2
+
+## 5.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [19b95f9]
+  - @ai-sdk/google@4.0.0-beta.1
+
+## 5.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/anthropic@4.0.0-beta.0
+  - @ai-sdk/google@4.0.0-beta.0
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 4.0.80
+
+### Patch Changes
+
+- Updated dependencies [7ba09a4]
+  - @ai-sdk/google@3.0.43
+
+## 4.0.79
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+- Updated dependencies [3fb4e70]
+  - @ai-sdk/provider-utils@4.0.19
+  - @ai-sdk/anthropic@3.0.58
+  - @ai-sdk/google@3.0.42
+
+## 4.0.78
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+  - @ai-sdk/anthropic@3.0.57
+  - @ai-sdk/google@3.0.41
+
+## 4.0.77
+
+### Patch Changes
+
+- Updated dependencies [89d8b45]
+  - @ai-sdk/google@3.0.40
+
+## 4.0.76
+
+### Patch Changes
+
+- Updated dependencies [2565e70]
+  - @ai-sdk/google@3.0.39
+
 ## 4.0.75
 
 ### Patch Changes

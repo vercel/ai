@@ -10609,7 +10609,12 @@ describe('streamText', () => {
                 "ai.response.text": "Hello, world!",
                 "ai.settings.maxRetries": 2,
                 "ai.usage.cachedInputTokens": 0,
+                "ai.usage.inputTokenDetails.cacheReadTokens": 0,
+                "ai.usage.inputTokenDetails.cacheWriteTokens": 0,
+                "ai.usage.inputTokenDetails.noCacheTokens": 6,
                 "ai.usage.inputTokens": 6,
+                "ai.usage.outputTokenDetails.reasoningTokens": 10,
+                "ai.usage.outputTokenDetails.textTokens": 20,
                 "ai.usage.outputTokens": 20,
                 "ai.usage.reasoningTokens": 10,
                 "ai.usage.totalTokens": 26,
@@ -10639,7 +10644,9 @@ describe('streamText', () => {
                 "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
                 "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
                 "ai.settings.maxRetries": 2,
+                "ai.usage.inputTokenDetails.noCacheTokens": 3,
                 "ai.usage.inputTokens": 3,
+                "ai.usage.outputTokenDetails.textTokens": 10,
                 "ai.usage.outputTokens": 10,
                 "ai.usage.totalTokens": 13,
                 "gen_ai.request.model": "mock-model-id",
@@ -10699,7 +10706,12 @@ describe('streamText', () => {
                 "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
                 "ai.settings.maxRetries": 2,
                 "ai.usage.cachedInputTokens": 0,
+                "ai.usage.inputTokenDetails.cacheReadTokens": 0,
+                "ai.usage.inputTokenDetails.cacheWriteTokens": 0,
+                "ai.usage.inputTokenDetails.noCacheTokens": 3,
                 "ai.usage.inputTokens": 3,
+                "ai.usage.outputTokenDetails.reasoningTokens": 10,
+                "ai.usage.outputTokenDetails.textTokens": 10,
                 "ai.usage.outputTokens": 10,
                 "ai.usage.reasoningTokens": 10,
                 "ai.usage.totalTokens": 13,
@@ -11191,6 +11203,9 @@ describe('streamText', () => {
                 toolName: 'web_search',
                 result: `{ "value": "result1" }`,
                 providerExecuted: true,
+                providerMetadata: {
+                  provider: { itemId: 'result-1' },
+                },
               },
               {
                 type: 'tool-call',
@@ -11206,6 +11221,9 @@ describe('streamText', () => {
                 result: `ERROR`,
                 isError: true,
                 providerExecuted: true,
+                providerMetadata: {
+                  provider: { itemId: 'error-1' },
+                },
               },
               {
                 type: 'finish',
@@ -11253,6 +11271,11 @@ describe('streamText', () => {
               },
               "output": "{ "value": "result1" }",
               "providerExecuted": true,
+              "providerMetadata": {
+                "provider": {
+                  "itemId": "result-1",
+                },
+              },
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-result",
@@ -11275,6 +11298,11 @@ describe('streamText', () => {
                 "value": "value",
               },
               "providerExecuted": true,
+              "providerMetadata": {
+                "provider": {
+                  "itemId": "error-1",
+                },
+              },
               "toolCallId": "call-2",
               "toolName": "web_search",
               "type": "tool-error",
@@ -11330,6 +11358,11 @@ describe('streamText', () => {
                 },
                 "output": "{ "value": "result1" }",
                 "providerExecuted": true,
+                "providerMetadata": {
+                  "provider": {
+                    "itemId": "result-1",
+                  },
+                },
                 "toolCallId": "call-1",
                 "toolName": "web_search",
                 "type": "tool-result",
@@ -11352,6 +11385,11 @@ describe('streamText', () => {
                   "value": "value",
                 },
                 "providerExecuted": true,
+                "providerMetadata": {
+                  "provider": {
+                    "itemId": "error-1",
+                  },
+                },
                 "toolCallId": "call-2",
                 "toolName": "web_search",
                 "type": "tool-error",
@@ -11443,6 +11481,11 @@ describe('streamText', () => {
               {
                 "output": "{ "value": "result1" }",
                 "providerExecuted": true,
+                "providerMetadata": {
+                  "provider": {
+                    "itemId": "result-1",
+                  },
+                },
                 "toolCallId": "call-1",
                 "type": "tool-output-available",
               },
@@ -11458,6 +11501,11 @@ describe('streamText', () => {
               {
                 "errorText": "ERROR",
                 "providerExecuted": true,
+                "providerMetadata": {
+                  "provider": {
+                    "itemId": "error-1",
+                  },
+                },
                 "toolCallId": "call-2",
                 "type": "tool-output-error",
               },
@@ -11470,6 +11518,286 @@ describe('streamText', () => {
               },
             ]
           `);
+      });
+    });
+
+    describe('provider-executed tool error with structured object preserves error in ui message stream', () => {
+      it('should preserve structured error despite custom onError for provider-executed tools', async () => {
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'web_fetch',
+                input: `{ "url": "https://example.com" }`,
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'web_fetch',
+                result: {
+                  type: 'web_fetch_tool_result_error',
+                  errorCode: 'url_not_accessible',
+                },
+                isError: true,
+                providerExecuted: true,
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          tools: {
+            web_fetch: {
+              type: 'provider',
+              id: 'test.web_fetch',
+              inputSchema: z.object({ url: z.string() }),
+              args: {},
+            },
+          },
+          ...defaultSettings(),
+          stopWhen: stepCountIs(4),
+        });
+
+        const chunks = await convertReadableStreamToArray(
+          result.toUIMessageStream({
+            onError: () => 'Oops, an error occurred!',
+          }),
+        );
+
+        const errorChunk = chunks.find(
+          (c: any) => c.type === 'tool-output-error',
+        );
+
+        const parsed = JSON.parse((errorChunk as any).errorText);
+        expect(parsed).toEqual({
+          type: 'web_fetch_tool_result_error',
+          errorCode: 'url_not_accessible',
+        });
+      });
+    });
+
+    describe('provider-executed tool result replay across steps', () => {
+      it('should preserve provider metadata when replaying the next step', async () => {
+        const stepInputs: Array<{ prompt: LanguageModelV3Prompt }> = [];
+        let responseCount = 0;
+
+        const result = streamText({
+          ...defaultSettings(),
+          model: new MockLanguageModelV3({
+            doStream: async ({ prompt }) => {
+              stepInputs.push({ prompt });
+
+              switch (responseCount++) {
+                case 0: {
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'id-0',
+                        modelId: 'mock-model-id',
+                        timestamp: new Date(0),
+                      },
+                      {
+                        type: 'tool-call',
+                        id: 'tool-search-call-1',
+                        toolCallId: 'tool-search-call-1',
+                        toolName: 'toolSearch',
+                        input: JSON.stringify({
+                          arguments: { paths: ['get_weather'] },
+                          call_id: null,
+                        }),
+                        providerExecuted: true,
+                        providerMetadata: {
+                          openai: { itemId: 'tsc_123' },
+                        },
+                      },
+                      {
+                        type: 'tool-result',
+                        toolCallId: 'tool-search-call-1',
+                        toolName: 'toolSearch',
+                        result: {
+                          tools: [
+                            {
+                              type: 'function',
+                              name: 'get_weather',
+                              description:
+                                'Get the current weather at a specific location',
+                              parameters: {
+                                type: 'object',
+                                properties: {
+                                  location: { type: 'string' },
+                                },
+                                required: ['location'],
+                              },
+                            },
+                          ],
+                        },
+                        providerExecuted: true,
+                        providerMetadata: {
+                          openai: { itemId: 'tso_123' },
+                        },
+                      },
+                      {
+                        type: 'tool-call',
+                        id: 'call-2',
+                        toolCallId: 'call-2',
+                        toolName: 'get_weather',
+                        input: JSON.stringify({
+                          location: 'San Francisco, CA',
+                        }),
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
+                        usage: testUsage,
+                      },
+                    ]),
+                    response: { headers: { call: '1' } },
+                  };
+                }
+
+                case 1: {
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'id-1',
+                        modelId: 'mock-model-id',
+                        timestamp: new Date(1000),
+                      },
+                      { type: 'text-start', id: '1' },
+                      { type: 'text-delta', id: '1', delta: 'Sunny.' },
+                      { type: 'text-end', id: '1' },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage2,
+                      },
+                    ]),
+                    response: { headers: { call: '2' } },
+                  };
+                }
+
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            toolSearch: {
+              type: 'provider',
+              id: 'openai.tool_search',
+              inputSchema: z.object({
+                arguments: z.object({
+                  paths: z.array(z.string()),
+                }),
+                call_id: z.null(),
+              }),
+              outputSchema: z.object({
+                tools: z.array(z.record(z.string(), z.unknown())),
+              }),
+              args: {},
+            },
+            get_weather: tool({
+              inputSchema: z.object({
+                location: z.string(),
+              }),
+              execute: async () => 'sunny',
+            }),
+          },
+          prompt: 'test-input',
+          stopWhen: stepCountIs(3),
+        });
+
+        await result.consumeStream();
+
+        expect(stepInputs).toHaveLength(2);
+        expect(stepInputs[1].prompt).toEqual([
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'test-input' }],
+            providerOptions: undefined,
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'tool-search-call-1',
+                toolName: 'toolSearch',
+                input: {
+                  arguments: { paths: ['get_weather'] },
+                  call_id: null,
+                },
+                providerExecuted: true,
+                providerOptions: {
+                  openai: { itemId: 'tsc_123' },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'tool-search-call-1',
+                toolName: 'toolSearch',
+                output: {
+                  type: 'json',
+                  value: {
+                    tools: [
+                      {
+                        type: 'function',
+                        name: 'get_weather',
+                        description:
+                          'Get the current weather at a specific location',
+                        parameters: {
+                          type: 'object',
+                          properties: {
+                            location: { type: 'string' },
+                          },
+                          required: ['location'],
+                        },
+                      },
+                    ],
+                  },
+                },
+                providerOptions: {
+                  openai: { itemId: 'tso_123' },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-2',
+                toolName: 'get_weather',
+                input: {
+                  location: 'San Francisco, CA',
+                },
+                providerExecuted: undefined,
+                providerOptions: undefined,
+              },
+            ],
+            providerOptions: undefined,
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-2',
+                toolName: 'get_weather',
+                output: {
+                  type: 'text',
+                  value: 'sunny',
+                },
+              },
+            ],
+            providerOptions: undefined,
+          },
+        ]);
       });
     });
   });
@@ -17887,6 +18215,11 @@ describe('streamText', () => {
                   "text": "The weather in San Francisco is 72°F",
                 },
                 "providerExecuted": true,
+                "providerMetadata": {
+                  "anthropic": {
+                    "serverName": "echo",
+                  },
+                },
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-result",
@@ -17994,6 +18327,11 @@ describe('streamText', () => {
                   "text": "The weather in San Francisco is 72°F",
                 },
                 "providerExecuted": true,
+                "providerMetadata": {
+                  "anthropic": {
+                    "serverName": "echo",
+                  },
+                },
                 "toolCallId": "call-1",
                 "type": "tool-output-available",
               },
@@ -18034,6 +18372,11 @@ describe('streamText', () => {
                 "text": "The weather in San Francisco is 72°F",
               },
               "providerExecuted": true,
+              "providerMetadata": {
+                "anthropic": {
+                  "serverName": "echo",
+                },
+              },
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-result",

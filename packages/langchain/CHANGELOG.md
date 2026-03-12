@@ -1,5 +1,120 @@
 # @ai-sdk/langchain
 
+## 3.0.0-beta.14
+
+### Patch Changes
+
+- ai@7.0.0-beta.14
+
+## 3.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [c26ca8d]
+  - ai@7.0.0-beta.13
+
+## 3.0.0-beta.12
+
+### Patch Changes
+
+- ai@7.0.0-beta.12
+
+## 3.0.0-beta.11
+
+### Patch Changes
+
+- ai@7.0.0-beta.11
+
+## 3.0.0-beta.10
+
+### Patch Changes
+
+- ai@7.0.0-beta.10
+
+## 3.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [1fe058b]
+  - ai@7.0.0-beta.9
+
+## 3.0.0-beta.8
+
+### Patch Changes
+
+- ai@7.0.0-beta.8
+
+## 3.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [210ed3d]
+  - ai@7.0.0-beta.7
+
+## 3.0.0-beta.6
+
+### Patch Changes
+
+- ai@7.0.0-beta.6
+
+## 3.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [ebd4da2]
+  - ai@7.0.0-beta.5
+
+## 3.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [5ceed7d]
+  - ai@7.0.0-beta.4
+
+## 3.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - ai@7.0.0-beta.3
+
+## 3.0.0-beta.2
+
+### Patch Changes
+
+- ai@7.0.0-beta.2
+
+## 3.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [6a3793e]
+  - ai@7.0.0-beta.1
+
+## 3.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - ai@7.0.0-beta.0
+
+## 2.0.122
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - ai@6.0.116
+
+## 2.0.121
+
+### Patch Changes
+
+- ai@6.0.115
+
 ## 2.0.120
 
 ### Patch Changes

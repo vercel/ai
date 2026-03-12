@@ -2,7 +2,7 @@ import {
   bedrockAnthropic,
   createBedrockAnthropic,
 } from '@ai-sdk/amazon-bedrock/anthropic';
-import { LanguageModelV3 } from '@ai-sdk/provider';
+import { LanguageModelV3, LanguageModelV4 } from '@ai-sdk/provider';
 import { APICallError, generateText, stepCountIs } from 'ai';
 import 'dotenv/config';
 import fs from 'fs';
@@ -23,7 +23,7 @@ const createModelObject = (
 const createLanguageModel = (
   modelId: string,
   additionalTests: ((model: LanguageModelV3) => void)[] = [],
-): ModelWithCapabilities<LanguageModelV3> => {
+): ModelWithCapabilities<LanguageModelV3 | LanguageModelV4> => {
   const model = createBedrockAnthropic({
     region: process.env.AWS_REGION ?? 'us-east-1',
   })(modelId);
@@ -43,7 +43,7 @@ const createLanguageModel = (
 const createModelVariants = (
   modelId: string,
   tests: ((model: LanguageModelV3) => void)[] = [],
-): ModelWithCapabilities<LanguageModelV3>[] => [
+): ModelWithCapabilities<LanguageModelV3 | LanguageModelV4>[] => [
   createLanguageModel(modelId, tests),
 ];
 
