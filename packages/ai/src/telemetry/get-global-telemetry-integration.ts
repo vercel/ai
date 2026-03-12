@@ -38,7 +38,6 @@ export function getGlobalTelemetryIntegration<
   TOOLS extends ToolSet = ToolSet,
   OUTPUT extends Output = Output,
 >(): (args?: {
-  tracer?: Tracer;
   integrations?: TelemetryIntegration | Array<TelemetryIntegration>;
 }) => TelemetryIntegration {
   if (!hasIntegration(otelIntegration)) {

@@ -819,7 +819,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
       OUTPUT
     >();
     const globalTelemetry = createGlobalTelemetry({
-      tracer: telemetry?.tracer,
       integrations: telemetry?.integrations,
     });
 

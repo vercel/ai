@@ -478,7 +478,6 @@ export async function generateText<
 
   const callId = generateCallId();
   const globalTelemetry = createGlobalTelemetry({
-    tracer: telemetry?.tracer,
     integrations: telemetry?.integrations,
   });
 
