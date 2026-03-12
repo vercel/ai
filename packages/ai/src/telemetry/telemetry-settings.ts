@@ -42,6 +42,7 @@ export type TelemetrySettings = {
   /**
    * A custom tracer to use for the telemetry data.
    */
+  // TODO remove tracer (all ai functions need to be updated)
   tracer?: Tracer;
 
   /**
