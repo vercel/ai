@@ -1,8 +1,7 @@
-import type { Tracer } from '@opentelemetry/api';
 import type { Output } from '../generate-text/output';
 import type { ToolSet } from '../generate-text/tool-set';
 import { asArray } from '../util/as-array';
-import { OtelTelemetryIntegration } from './otel-event-handler';
+import { OpenTelemetryIntegration } from './open-telemetry-integration';
 import type { TelemetryIntegration } from './telemetry-integration';
 import {
   getGlobalTelemetryIntegrations,
@@ -32,7 +31,7 @@ export function bindTelemetryIntegration(
 }
 
 // global otel integration TODO remove when OTel is moved to a separate package
-const otelIntegration = new OtelTelemetryIntegration();
+const otelIntegration = new OpenTelemetryIntegration();
 
 export function getGlobalTelemetryIntegration<
   TOOLS extends ToolSet = ToolSet,

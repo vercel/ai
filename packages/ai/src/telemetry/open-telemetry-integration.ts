@@ -116,7 +116,7 @@ interface CallState {
   settings: Record<string, unknown>;
 }
 
-export class OtelTelemetryIntegration implements TelemetryIntegration {
+export class OpenTelemetryIntegration implements TelemetryIntegration {
   private readonly callStates = new Map<string, CallState>();
 
   /**

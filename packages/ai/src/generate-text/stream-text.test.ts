@@ -59,7 +59,7 @@ import {
 } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
-import { OtelTelemetryIntegration } from '../telemetry/otel-event-handler';
+import { OpenTelemetryIntegration } from '../telemetry/open-telemetry-integration';
 
 const defaultSettings = () =>
   ({
@@ -7612,7 +7612,7 @@ describe('streamText', () => {
           },
           experimental_telemetry: {
             isEnabled: true,
-            integrations: new OtelTelemetryIntegration({ tracer }),
+            integrations: new OpenTelemetryIntegration({ tracer }),
           },
           stopWhen: stepCountIs(3),
           _internal: {
@@ -9636,7 +9636,7 @@ describe('streamText', () => {
           },
           experimental_telemetry: {
             isEnabled: true,
-            integrations: new OtelTelemetryIntegration({ tracer }),
+            integrations: new OpenTelemetryIntegration({ tracer }),
           },
           stopWhen: stepCountIs(3),
           _internal: {
@@ -10949,7 +10949,7 @@ describe('streamText', () => {
           prompt: 'test-input',
           experimental_telemetry: {
             isEnabled: true,
-            integrations: new OtelTelemetryIntegration({ tracer }),
+            integrations: new OpenTelemetryIntegration({ tracer }),
           },
           stopWhen: [
             ({ steps }) => {
@@ -12755,7 +12755,7 @@ describe('streamText', () => {
             test1: 'value1',
             test2: false,
           },
-          integrations: new OtelTelemetryIntegration({ tracer }),
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
         _internal: { now: mockValues(0, 100, 500) },
       });
@@ -12797,7 +12797,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           isEnabled: true,
-          integrations: new OtelTelemetryIntegration({ tracer }),
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
         _internal: { now: mockValues(0, 100, 500) },
       });
@@ -12841,7 +12841,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           isEnabled: true,
-          integrations: new OtelTelemetryIntegration({ tracer }),
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
         _internal: { now: mockValues(0, 100, 500) },
       });
@@ -12910,7 +12910,7 @@ describe('streamText', () => {
           isEnabled: true,
           recordInputs: false,
           recordOutputs: false,
-          integrations: new OtelTelemetryIntegration({ tracer }),
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
         _internal: { now: mockValues(0, 100, 500) },
       });
@@ -12955,7 +12955,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           isEnabled: true,
-          integrations: new OtelTelemetryIntegration({ tracer }),
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
         _internal: { now: mockValues(0, 100, 500) },
       });
@@ -14710,7 +14710,7 @@ describe('streamText', () => {
           experimental_transform: upperCaseTransform,
           experimental_telemetry: {
             isEnabled: true,
-            integrations: new OtelTelemetryIntegration({ tracer }),
+            integrations: new OpenTelemetryIntegration({ tracer }),
           },
           _internal: { now: mockValues(0, 100, 500) },
         });

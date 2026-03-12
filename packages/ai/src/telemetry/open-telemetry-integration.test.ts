@@ -6,7 +6,7 @@ import {
   SpanStatusCode,
   Tracer,
 } from '@opentelemetry/api';
-import { OtelTelemetryIntegration } from './otel-event-handler';
+import { OpenTelemetryIntegration } from './open-telemetry-integration';
 import type { TelemetryIntegration } from './telemetry-integration';
 
 type MockSpan = Span & {
@@ -310,14 +310,14 @@ function makeChunkEvent(
   >[0];
 }
 
-describe('OtelTelemetryIntegration', () => {
+describe('OpenTelemetryIntegration', () => {
   let tracer: MockTracer;
   let otelIntegration: TelemetryIntegration;
 
   beforeEach(() => {
     tracer = createMockTracer();
     callId = `test-call-${++callIdCounter}`;
-    otelIntegration = new OtelTelemetryIntegration({ tracer });
+    otelIntegration = new OpenTelemetryIntegration({ tracer });
   });
 
   describe('onStart', () => {
@@ -370,7 +370,7 @@ describe('OtelTelemetryIntegration', () => {
 
     it('uses a tracer configured for the call id', () => {
       const configuredTracer = createMockTracer();
-      const configuredIntegration = new OtelTelemetryIntegration({
+      const configuredIntegration = new OpenTelemetryIntegration({
         tracer: configuredTracer,
       });
 
