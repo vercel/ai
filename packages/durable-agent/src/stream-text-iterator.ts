@@ -2,7 +2,6 @@ import type {
   LanguageModelV3CallOptions,
   LanguageModelV3Prompt,
   LanguageModelV3ToolCall,
-  LanguageModelV3ToolCallPart,
   LanguageModelV3ToolResultPart,
 } from '@ai-sdk/provider';
 import type {
@@ -36,7 +35,7 @@ export type { ProviderExecutedToolResult } from './do-stream-step.js';
  * Contains both the tool calls and the current conversation messages.
  */
 export interface StreamTextIteratorYieldValue {
-  /** The tool calls requested by the model (with stringified JSON input) */
+  /** The tool calls requested by the model */
   toolCalls: LanguageModelV3ToolCall[];
   /** The conversation messages up to (and including) the tool call request */
   messages: LanguageModelV3Prompt;
@@ -301,18 +300,23 @@ export async function* streamTextIterator({
         // Note: providerMetadata from the tool call is mapped to providerOptions
         // in the prompt format, following the AI SDK convention. This is critical
         // for providers like Gemini that require thoughtSignature to be preserved
-        // across multi-turn tool calls.
+        // across multi-turn tool calls. Some fields are sanitized before mapping.
         conversationPrompt.push({
           role: 'assistant',
-          content: toolCalls.map(toolCall => ({
-            type: 'tool-call',
-            toolCallId: toolCall.toolCallId,
-            toolName: toolCall.toolName,
-            input: JSON.parse(toolCall.input),
-            ...(toolCall.providerMetadata != null
-              ? { providerOptions: toolCall.providerMetadata }
-              : {}),
-          })),
+          content: toolCalls.map(toolCall => {
+            const sanitizedMetadata = sanitizeProviderMetadataForToolCall(
+              toolCall.providerMetadata,
+            );
+            return {
+              type: 'tool-call',
+              toolCallId: toolCall.toolCallId,
+              toolName: toolCall.toolName,
+              input: JSON.parse(toolCall.input),
+              ...(sanitizedMetadata != null
+                ? { providerOptions: sanitizedMetadata }
+                : {}),
+            };
+          }) as typeof toolCalls,
         });
 
         // Yield the tool calls along with the current conversation messages
@@ -432,21 +436,10 @@ async function writeToolOutputToUI(
   const chunks: UIMessageChunk[] = [];
   try {
     for (const result of toolResults) {
-      // Extract the output value from V3 tool result format
-      let outputValue: unknown;
-      const output = result.output;
-      if ('value' in output) {
-        outputValue = output.value;
-      } else if (output.type === 'execution-denied') {
-        outputValue = { type: 'execution-denied', reason: output.reason };
-      } else {
-        outputValue = output;
-      }
-
       const chunk: UIMessageChunk = {
         type: 'tool-output-available' as const,
         toolCallId: result.toolCallId,
-        output: outputValue,
+        output: result.output.value,
       };
       if (collectUIChunks) {
         chunks.push(chunk);
@@ -482,7 +475,43 @@ function normalizeFinishReason(raw: unknown): FinishReason | undefined {
   if (typeof raw === 'string') return raw as FinishReason;
   if (typeof raw === 'object') {
     const obj = raw as { unified?: FinishReason; type?: FinishReason };
-    return obj.unified ?? obj.type ?? 'other';
+    return obj.unified ?? obj.type ?? 'unknown';
   }
   return undefined;
+}
+
+/**
+ * Strip OpenAI's itemId from providerMetadata (requires reasoning items we don't preserve).
+ * Preserves all other provider metadata (e.g., Gemini's thoughtSignature).
+ */
+function sanitizeProviderMetadataForToolCall(
+  metadata: unknown,
+): Record<string, unknown> | undefined {
+  if (metadata == null) return undefined;
+
+  const meta = metadata as Record<string, unknown>;
+
+  // Check if OpenAI metadata exists and needs sanitization
+  if ('openai' in meta && meta.openai != null) {
+    const { openai, ...restProviders } = meta;
+    const openaiMeta = openai as Record<string, unknown>;
+
+    // Remove itemId from OpenAI metadata - it requires reasoning items we don't preserve
+    const { itemId: _itemId, ...restOpenai } = openaiMeta;
+
+    // Reconstruct metadata without itemId
+    const hasOtherOpenaiFields = Object.keys(restOpenai).length > 0;
+    const hasOtherProviders = Object.keys(restProviders).length > 0;
+
+    if (hasOtherOpenaiFields && hasOtherProviders) {
+      return { ...restProviders, openai: restOpenai };
+    } else if (hasOtherOpenaiFields) {
+      return { openai: restOpenai };
+    } else if (hasOtherProviders) {
+      return restProviders;
+    }
+    return undefined;
+  }
+
+  return meta;
 }

@@ -111,11 +111,11 @@ export async function doStreamStep(
 ) {
   'use step';
 
-  // Model can be LanguageModelV2 (AI SDK v5) or LanguageModelV3 (AI SDK v6)
+  // Model can be LanguageModelV3 (AI SDK v5) or LanguageModelV3 (AI SDK v6)
   // Both have compatible doStream interfaces for our use case
   let model: CompatibleLanguageModel | undefined;
   if (typeof modelInit === 'string') {
-    // gateway() returns LanguageModelV2 in AI SDK v5 and LanguageModelV3 in AI SDK v6
+    // gateway() returns LanguageModelV3 in AI SDK v5 and LanguageModelV3 in AI SDK v6
     // Both are compatible at runtime for doStream operations
     model = gateway(modelInit) as CompatibleLanguageModel;
   } else if (typeof modelInit === 'function') {
@@ -171,8 +171,6 @@ export async function doStreamStep(
 
   let finish: FinishPart | undefined;
   const toolCalls: LanguageModelV3ToolCall[] = [];
-  // Track which tool call IDs are provider-executed
-  const providerExecutedToolCallIds = new Set<string>();
   // Map of tool call ID to provider-executed tool result
   const providerExecutedToolResults = new Map<
     string,
@@ -214,13 +212,9 @@ export async function doStreamStep(
               ...chunk,
               input: chunk.input || '{}',
             });
-            // Track if this tool call is provider-executed
-            if (chunk.providerExecuted) {
-              providerExecutedToolCallIds.add(chunk.toolCallId);
-            }
           } else if (chunk.type === 'tool-result') {
             // Capture provider-executed tool results
-            if (providerExecutedToolCallIds.has(chunk.toolCallId)) {
+            if (chunk.providerExecuted) {
               providerExecutedToolResults.set(chunk.toolCallId, {
                 toolCallId: chunk.toolCallId,
                 toolName: chunk.toolName,
@@ -433,6 +427,9 @@ export async function doStreamStep(
                 type: 'tool-output-available',
                 toolCallId: part.toolCallId,
                 output: part.result,
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
               });
               break;
             }
@@ -516,13 +513,13 @@ export function normalizeFinishReason(rawFinishReason: unknown): FinishReason {
   // Handle object-style finish reason (possible in some AI SDK versions/providers)
   if (typeof rawFinishReason === 'object' && rawFinishReason !== null) {
     const objReason = rawFinishReason as { type?: string };
-    return (objReason.type as FinishReason) ?? 'other';
+    return (objReason.type as FinishReason) ?? 'unknown';
   }
   // Handle string finish reason (standard format)
   if (typeof rawFinishReason === 'string') {
     return rawFinishReason as FinishReason;
   }
-  return 'other';
+  return 'unknown';
 }
 
 // This is a stand-in for logic in the AI-SDK streamText code which aggregates
@@ -641,14 +638,8 @@ function chunksToStep(
     staticToolResults: [],
     dynamicToolResults: [],
     finishReason: normalizeFinishReason(finish?.finishReason),
-    usage: (finish?.usage || {
-      inputTokens: 0,
-      outputTokens: 0,
-      totalTokens: 0,
-      inputTokenDetails: { cacheCreation: 0, cacheRead: 0 },
-      outputTokenDetails: { reasoning: 0 },
-    }) as any,
-    warnings: streamStart?.warnings as any,
+    usage: finish?.usage || { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+    warnings: streamStart?.warnings,
     request: {
       body: JSON.stringify({
         prompt: conversationPrompt,
@@ -668,7 +659,6 @@ function chunksToStep(
       messages: [],
     },
     providerMetadata: finish?.providerMetadata || {},
-    rawFinishReason: finish?.finishReason as any,
   };
 
   return stepResult;
