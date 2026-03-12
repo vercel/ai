@@ -12977,6 +12977,119 @@ describe('streamText', () => {
         'This is my reasoning about the problem.',
       );
     });
+
+    it('should nest subagent streamText spans under the tool call span', async () => {
+      const otelIntegration = new OpenTelemetryIntegration({ tracer });
+      const executeToolCallSpy = vi.spyOn(otelIntegration, 'executeToolCall');
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'researchTool',
+              input: '{ "city": "Tokyo" }',
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          researchTool: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async ({ city }) => {
+              const innerResult = streamText({
+                model: createTestModel({
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'inner-id-0',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    { type: 'text-start', id: '1' },
+                    {
+                      type: 'text-delta',
+                      id: '1',
+                      delta: `Weather in ${city}: sunny`,
+                    },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                }),
+                prompt: `Weather for ${city}`,
+                experimental_telemetry: {
+                  isEnabled: true,
+                  functionId: `sub-agent-${city.toLowerCase()}`,
+                  integrations: otelIntegration,
+                },
+                _internal: { now: mockValues(0, 100, 500) },
+                onError: () => {},
+              });
+
+              return await innerResult.text;
+            },
+          }),
+        },
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: 'weather-agent',
+          integrations: otelIntegration,
+        },
+        _internal: {
+          now: mockValues(0, 100, 500),
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'outer-test-call-id',
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(executeToolCallSpy).toHaveBeenCalledOnce();
+      expect(executeToolCallSpy).toHaveBeenCalledWith({
+        callId: 'outer-test-call-id',
+        toolCallId: 'call-1',
+        execute: expect.any(Function),
+      });
+
+      expect(tracer.spans.map(s => s.name)).toEqual([
+        'ai.streamText',
+        'ai.streamText.doStream',
+        'ai.toolCall',
+        'ai.streamText',
+        'ai.streamText.doStream',
+      ]);
+
+      const toolCallSpan = tracer.spans[2];
+      expect(toolCallSpan.attributes['ai.toolCall.name']).toBe('researchTool');
+      expect(toolCallSpan.context).toBeDefined();
+
+      const innerRootSpan = tracer.spans[3];
+      expect(innerRootSpan.attributes['ai.telemetry.functionId']).toBe(
+        'sub-agent-tokyo',
+      );
+
+      const innerStepSpan = tracer.spans[4];
+      expect(innerStepSpan.attributes['ai.response.text']).toBe(
+        'Weather in Tokyo: sunny',
+      );
+    });
   });
 
   describe('tool callbacks', () => {

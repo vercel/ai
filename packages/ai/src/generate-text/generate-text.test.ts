@@ -4495,6 +4495,90 @@ describe('generateText', () => {
       expect(rootSpan?.attributes['ai.usage.outputTokens']).toBe(35);
       expect(rootSpan?.attributes['ai.usage.totalTokens']).toBe(50);
     });
+
+    it('should nest subagent generateText spans under the tool call span', async () => {
+      const otelIntegration = new OpenTelemetryIntegration({ tracer });
+      const executeToolCallSpy = vi.spyOn(otelIntegration, 'executeToolCall');
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'researchTool',
+                input: '{ "city": "Tokyo" }',
+              },
+            ],
+          }),
+        }),
+        tools: {
+          researchTool: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async ({ city }) => {
+              const subResult = await generateText({
+                model: new MockLanguageModelV3({
+                  doGenerate: async () => ({
+                    ...dummyResponseValues,
+                    content: [
+                      { type: 'text', text: `Weather in ${city}: sunny` },
+                    ],
+                  }),
+                }),
+                prompt: `Weather for ${city}`,
+                experimental_telemetry: {
+                  isEnabled: true,
+                  functionId: `sub-agent-${city.toLowerCase()}`,
+                  integrations: otelIntegration,
+                },
+              });
+              return subResult.text;
+            },
+          }),
+        },
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: 'weather-agent',
+          integrations: otelIntegration,
+        },
+        _internal: {
+          generateId: () => 'outer-test-id',
+          generateCallId: () => 'outer-test-call-id',
+        },
+      });
+
+      expect(executeToolCallSpy).toHaveBeenCalledOnce();
+      expect(executeToolCallSpy).toHaveBeenCalledWith({
+        callId: 'outer-test-call-id',
+        toolCallId: 'call-1',
+        execute: expect.any(Function),
+      });
+
+      expect(tracer.spans.map(s => s.name)).toEqual([
+        'ai.generateText',
+        'ai.generateText.doGenerate',
+        'ai.toolCall',
+        'ai.generateText',
+        'ai.generateText.doGenerate',
+      ]);
+
+      const toolCallSpan = tracer.spans[2];
+      expect(toolCallSpan.attributes['ai.toolCall.name']).toBe('researchTool');
+      expect(toolCallSpan.context).toBeDefined();
+
+      const innerRootSpan = tracer.spans[3];
+      expect(innerRootSpan.attributes['ai.telemetry.functionId']).toBe(
+        'sub-agent-tokyo',
+      );
+
+      const innerStepSpan = tracer.spans[4];
+      expect(innerStepSpan.attributes['ai.response.text']).toBe(
+        'Weather in Tokyo: sunny',
+      );
+    });
   });
 
   describe('tool callbacks', () => {
