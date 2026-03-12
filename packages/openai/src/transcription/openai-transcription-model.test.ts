@@ -167,8 +167,9 @@ describe('doGenerate', () => {
       },
     });
 
-    const { file, ...rest } = await server.calls[0].requestBodyMultipart;
-    expect(file).toBeInstanceOf(File);
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.file).toBeInstanceOf(File);
+    const { file: _, ...rest } = body!;
     expect(rest).toMatchInlineSnapshot(`
       {
         "model": "whisper-1",
@@ -193,8 +194,9 @@ describe('doGenerate', () => {
       },
     });
 
-    const { file, ...rest } = await server.calls[0].requestBodyMultipart;
-    expect(file).toBeInstanceOf(File);
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.file).toBeInstanceOf(File);
+    const { file: _, ...rest } = body!;
     expect(rest).toMatchInlineSnapshot(`
       {
         "model": "gpt-4o-transcribe",
@@ -218,8 +220,9 @@ describe('doGenerate', () => {
       },
     });
 
-    const { file, ...rest } = await server.calls[0].requestBodyMultipart;
-    expect(file).toBeInstanceOf(File);
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body!.file).toBeInstanceOf(File);
+    const { file: _, ...rest } = body!;
     expect(rest).toMatchInlineSnapshot(`
       {
         "model": "whisper-1",
