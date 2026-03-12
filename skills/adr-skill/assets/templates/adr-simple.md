@@ -1,5 +1,5 @@
 ---
-status: '{proposed | accepted | rejected | deprecated | superseded by [ADR-NNNN](NNNN-title.md)}'
+status: '{proposed | accepted | rejected | deprecated | superseded by [title](YYYY-MM-DD-title.md)}'
 date: { YYYY-MM-DD }
 decision-makers: '{list everyone who owns the decision}'
 ---

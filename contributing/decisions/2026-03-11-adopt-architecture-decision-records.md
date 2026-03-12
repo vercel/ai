@@ -22,7 +22,7 @@ Adopt Architecture Decision Records (ADRs) using the MADR 4.0 format, stored in 
 
 Conventions:
 
-- One ADR per file, named `NNNN-title-with-dashes.md`
+- One ADR per file, named `YYYY-MM-DD-title-with-dashes.md`
 - New ADRs start as `proposed`, move to `accepted` or `rejected`
 - Superseded ADRs link to their replacement
 - ADRs are written to be self-contained — a coding agent should be able to read one and implement the decision without further context

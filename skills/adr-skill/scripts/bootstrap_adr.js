@@ -24,7 +24,7 @@ function parseArgs(argv) {
     firstStatus: 'accepted',
     deciders: '',
     technicalStory: '',
-    strategy: 'number',
+    strategy: 'date',
     json: false,
   };
 
@@ -57,7 +57,7 @@ function parseArgs(argv) {
           '  --force-index          Overwrite index file if it exists',
           '  --first-title <text>   Title for initial ADR',
           '  --first-status <text>  Status for initial ADR (default: accepted)',
-          '  --strategy number|slug|auto  Filename strategy for initial ADR (default: number)',
+          '  --strategy date|slug|auto  Filename strategy for initial ADR (default: date)',
           '  --json                 Output machine-readable JSON (default: off)',
           '',
         ].join('\n'),
@@ -68,7 +68,7 @@ function parseArgs(argv) {
     }
   }
 
-  if (!['auto', 'number', 'slug'].includes(out.strategy))
+  if (!['auto', 'date', 'slug'].includes(out.strategy))
     die(`Invalid --strategy: ${out.strategy}`);
   return out;
 }
@@ -139,7 +139,7 @@ We need a lightweight, version-controlled way to capture decisions where the cod
 Adopt Architecture Decision Records (ADRs) using the MADR 4.0 format, stored in \`${adrDir}/\`.
 
 Conventions:
-- One ADR per file, named \`NNNN-title-with-dashes.md\`
+- One ADR per file, named \`YYYY-MM-DD-title-with-dashes.md\`
 - New ADRs start as \`proposed\`, move to \`accepted\` or \`rejected\`
 - Superseded ADRs link to their replacement
 - ADRs are written to be self-contained — a coding agent should be able to read one and implement the decision without further context
@@ -223,10 +223,10 @@ function main() {
   });
 
   // Determine filename using same logic as new_adr.js
-  const strategy = args.strategy === 'auto' ? 'number' : args.strategy;
+  const strategy = args.strategy === 'auto' ? 'date' : args.strategy;
   let firstAdrFilename;
-  if (strategy === 'number') {
-    firstAdrFilename = `0001-${slugify(args.firstTitle)}.md`;
+  if (strategy === 'date') {
+    firstAdrFilename = `${today}-${slugify(args.firstTitle)}.md`;
   } else {
     firstAdrFilename = `${slugify(args.firstTitle)}.md`;
   }

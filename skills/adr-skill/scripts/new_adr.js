@@ -38,7 +38,7 @@ function parseArgs(argv) {
     title: null,
     status: 'proposed',
     template: 'simple', // simple | madr
-    strategy: 'auto', // auto | number | slug
+    strategy: 'auto', // auto | date | slug
     deciders: '',
     consulted: '',
     informed: '',
@@ -82,7 +82,7 @@ function parseArgs(argv) {
           '  --no-create-dir        Do not create ADR directory if missing',
           '  --status <value>       ADR status (default: proposed)',
           '  --template simple|madr Template (default: simple)',
-          '  --strategy auto|number|slug  Filename strategy (default: auto)',
+          '  --strategy auto|date|slug  Filename strategy (default: auto)',
           '  --deciders "a,b"      Deciders list',
           '  --consulted "a,b"     Consulted experts (RACI)',
           '  --informed "a,b"      Informed stakeholders (RACI)',
@@ -104,7 +104,7 @@ function parseArgs(argv) {
 
   if (!['simple', 'madr'].includes(out.template))
     die(`Invalid --template: ${out.template}`);
-  if (!['auto', 'number', 'slug'].includes(out.strategy))
+  if (!['auto', 'date', 'slug'].includes(out.strategy))
     die(`Invalid --strategy: ${out.strategy}`);
 
   return out;
@@ -142,37 +142,16 @@ function listMdFiles(dir) {
 }
 
 function detectStrategy(adrDir) {
-  // Heuristic:
-  // - If any ADR looks numbered -> use numbering.
-  // - Else if there are any markdown files at all -> use slug (assume existing convention).
-  // - Else (empty/new) -> default to numbering.
   const md = listMdFiles(adrDir);
   for (const name of md) {
-    if (/^\d+-/.test(name)) return 'number';
+    if (/^\d{4}-\d{2}-\d{2}-/.test(name)) return 'date';
   }
   if (md.length > 0) return 'slug';
-  return 'number';
+  return 'date';
 }
 
-function detectNumberingWidth(adrDir) {
-  const md = listMdFiles(adrDir);
-  for (const name of md) {
-    const m = name.match(/^(\d+)-/);
-    if (m) return m[1].length;
-  }
-  return null;
-}
-
-function nextNumber(adrDir) {
-  const md = listMdFiles(adrDir);
-  let maxN = 0;
-  for (const name of md) {
-    const m = name.match(/^(\d+)-/);
-    if (!m) continue;
-    const n = Number.parseInt(m[1], 10);
-    if (Number.isFinite(n)) maxN = Math.max(maxN, n);
-  }
-  return maxN ? maxN + 1 : 1;
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function loadTemplate(templateName) {
@@ -333,18 +312,18 @@ function main() {
   const title = String(args.title).trim();
   const slug = slugify(title);
 
+  const today = todayISO();
+
   let filename;
-  if (strategy === 'number') {
-    const width = detectNumberingWidth(adrDir) || 4;
-    const n = nextNumber(adrDir);
-    filename = `${String(n).padStart(width, '0')}-${slug}.md`;
+  if (strategy === 'date') {
+    filename = `${today}-${slug}.md`;
   } else {
     filename = `${slug}.md`;
   }
 
   let out = path.join(adrDir, filename);
   if (fs.existsSync(out)) {
-    if (strategy === 'number') die(`ADR already exists: ${out}`);
+    if (strategy === 'date') die(`ADR already exists: ${out}`);
     let i = 2;
     while (true) {
       const candidate = path.join(adrDir, `${slug}-${i}.md`);
@@ -356,7 +335,6 @@ function main() {
     }
   }
 
-  const today = new Date().toISOString().slice(0, 10);
   const deciders = String(args.deciders || '')
     .split(',')
     .map(s => s.trim())

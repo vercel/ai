@@ -66,7 +66,7 @@ Before asking any questions, gather context from the repo:
 
 3. **Find related code patterns.** If the decision involves a specific area (e.g., "how we handle auth"), scan for existing implementations. Identify the specific files, directories, and patterns that will be affected by the decision.
 
-4. **Check for ADR references in code.** Look for `ADR-NNNN` references in comments and docs (see "Code ↔ ADR Linking" below). This reveals which existing decisions govern which parts of the codebase.
+4. **Check for ADR references in code.** Look for ADR references in comments and docs (see "Code ↔ ADR Linking" below). This reveals which existing decisions govern which parts of the codebase.
 
 5. **Note what you found.** Carry this context into Phase 1 — it will sharpen your questions and prevent the ADR from contradicting existing decisions.
 
@@ -122,7 +122,7 @@ Do NOT proceed to Phase 2 until the human confirms the summary.
 
 2. **Choose a filename strategy.**
 
-   - If existing ADRs use numeric prefixes (`0001-...`), continue that.
+   - If existing ADRs use date prefixes (`YYYY-MM-DD-...`), continue that.
    - Otherwise use slug-only filenames (`choose-database.md`).
 
 3. **Choose a template.**
@@ -174,7 +174,7 @@ Agents should read existing ADRs **before implementing changes** in a codebase t
 - When you encounter a pattern in the code and wonder "why is it done this way?"
 - Before proposing a change that might contradict an existing decision
 - When a human says "check the ADRs" or "there's a decision about this"
-- When you find an `ADR-NNNN` reference in a code comment
+- When you find an ADR reference in a code comment
 
 ### How to Consult ADRs
 
@@ -188,7 +188,7 @@ Agents should read existing ADRs **before implementing changes** in a codebase t
 
 5. **Follow the Implementation Plan.** When implementing code in an area governed by an ADR, follow the patterns specified in its Implementation Plan. If the plan says "all new queries go through the data-access layer in `src/db/`," do that.
 
-6. **Reference ADRs in your work.** Add `ADR-NNNN` references in code comments and PR descriptions (see "Code ↔ ADR Linking" below).
+6. **Reference ADRs in your work.** Add ADR references in code comments and PR descriptions (see "Code ↔ ADR Linking" below).
 
 ## Code ↔ ADR Linking
 
@@ -210,8 +210,8 @@ The Implementation Plan section names specific files, directories, and patterns:
 When implementing code guided by an ADR, add a comment referencing it:
 
 ```typescript
-// ADR-0004: Using better-sqlite3 for test database
-// See: docs/decisions/0004-use-sqlite-for-test-database.md
+// ADR: Using better-sqlite3 for test database
+// See: docs/decisions/2025-06-15-use-sqlite-for-test-database.md
 import Database from 'better-sqlite3';
 ```
 
@@ -221,7 +221,7 @@ Keep these lightweight — one comment at the entry point, not on every line. Th
 
 - An agent working in `src/db/` can find which ADRs govern that area
 - An agent reading an ADR can find the code that implements it
-- When an ADR is superseded, the code references make it easy to find everything that needs updating
+- When an ADR is superseded, the code references make it easy to find all code that needs updating
 
 ## Other Operations
 
@@ -241,8 +241,8 @@ Keep these lightweight — one comment at the entry point, not on every line. Th
 After an ADR is accepted:
 
 1. **Create implementation tasks.** Each item in the Implementation Plan and each follow-up in Consequences should become a trackable task (issue, ticket, or TODO).
-2. **Reference the ADR in PRs.** Link to the ADR in PR descriptions: "Implements ADR-0004."
-3. **Add code references.** Add `ADR-NNNN` comments at key implementation points.
+2. **Reference the ADR in PRs.** Link to the ADR in PR descriptions, e.g. "Implements `contributing/decisions/2025-06-15-use-sqlite-for-test-database.md`."
+3. **Add code references.** Add ADR path comments at key implementation points.
 4. **Check verification criteria.** Once implementation is complete, walk through the Verification checkboxes. Update the ADR with results in `## More Information`.
 5. **Revisit when triggers fire.** If the ADR specified revisit conditions ("if X happens, reconsider"), monitor for those conditions.
 
@@ -272,14 +272,14 @@ For repos with many ADRs, organize by subdirectory:
 ```
 docs/decisions/
   backend/
-    0001-use-postgres.md
+    2025-06-15-use-postgres.md
   frontend/
-    0001-use-react.md
+    2025-06-20-use-react.md
   infrastructure/
-    0001-use-terraform.md
+    2025-07-01-use-terraform.md
 ```
 
-Numbers are local to each category. Choose a categorization scheme early (by layer, by domain, by team) and document it in the index.
+Date prefixes are local to each category. Choose a categorization scheme early (by layer, by domain, by team) and document it in the index.
 
 ## Resources
 

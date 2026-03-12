@@ -13,13 +13,14 @@ Detection order (used by scripts): `contributing/decisions/`, `docs/decisions/`,
 
 ## Filename Conventions
 
-Pattern: `NNNN-title-with-dashes.md`
+Pattern: `YYYY-MM-DD-title-with-dashes.md`
 
-- `NNNN` is a zero-padded sequential number (assume max 9,999 ADRs per directory).
+- `YYYY-MM-DD` is the ADR creation date (matches the `date` frontmatter field).
 - Title uses lowercase, dashes, present-tense imperative verb phrase.
-- Examples: `0001-choose-database.md`, `0002-adopt-adrs.md`
+- Examples: `2025-06-15-choose-database.md`, `2025-07-01-adopt-adrs.md`
+- Multiple ADRs on the same date are fine — the slug suffix disambiguates them.
 
-If a repo already uses slug-only filenames (no numeric prefix), follow that convention.
+If a repo already uses slug-only filenames (no date prefix), follow that convention.
 
 ## Minimal Sections
 
@@ -49,13 +50,13 @@ decision-makers: Alice, Bob
 
 Common statuses:
 
-| Status                           | Meaning                                                       |
-| -------------------------------- | ------------------------------------------------------------- |
-| `proposed`                       | Under discussion, not yet decided                             |
-| `accepted`                       | Decision is active and should be followed                     |
-| `rejected`                       | Considered but explicitly not adopted                         |
-| `deprecated`                     | Was accepted but no longer applies — explain replacement path |
-| `superseded by [ADR-NNNN](link)` | Replaced by a newer ADR — always link both ways               |
+| Status                        | Meaning                                                       |
+| ----------------------------- | ------------------------------------------------------------- |
+| `proposed`                    | Under discussion, not yet decided                             |
+| `accepted`                    | Decision is active and should be followed                     |
+| `rejected`                    | Considered but explicitly not adopted                         |
+| `deprecated`                  | Was accepted but no longer applies — explain replacement path |
+| `superseded by [title](link)` | Replaced by a newer ADR — always link both ways               |
 
 ## YAML Front Matter Fields
 
@@ -82,13 +83,13 @@ For repos accumulating many ADRs, use subdirectories:
 ```
 contributing/decisions/   # or docs/decisions/
   backend/
-    0001-use-postgres.md
+    2025-06-15-use-postgres.md
   frontend/
-    0001-use-react.md
+    2025-06-20-use-react.md
   infrastructure/
-    0001-use-terraform.md
+    2025-07-01-use-terraform.md
 ```
 
-Numbers are local to each category. Choose a categorization scheme early (by architectural layer, by domain, by team) and document it in the index.
+Date prefixes are local to each category. Choose a categorization scheme early (by architectural layer, by domain, by team) and document it in the index.
 
 Alternative: use tags or a flat structure with a searchable index. Subdirectories are simpler and work with all tools.

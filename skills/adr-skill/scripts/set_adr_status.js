@@ -26,7 +26,7 @@ function parseArgs(argv) {
         'Usage: node set_adr_status.js <path> --status <value> [--json]',
         '',
         'Example:',
-        '  node set_adr_status.js adr/0001-foo.md --status accepted',
+        '  node set_adr_status.js adr/2025-06-15-foo.md --status accepted',
         '',
       ].join('\n'),
     );

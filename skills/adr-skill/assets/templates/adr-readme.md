@@ -6,7 +6,7 @@ An Architecture Decision Record (ADR) captures an important architecture decisio
 
 - Directory: `{ADR_DIR}`
 - Naming:
-  - Prefer numbered files when starting fresh: `0001-choose-database.md`
+  - Use date-prefixed files: `YYYY-MM-DD-choose-database.md`
   - If the repo already uses slug-only names, keep that: `choose-database.md`
 - Status values: `proposed`, `accepted`, `rejected`, `deprecated`, `superseded`
 

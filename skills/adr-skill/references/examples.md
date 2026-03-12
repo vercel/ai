@@ -81,7 +81,7 @@ Our integration tests require a database but currently hit a shared PostgreSQL i
 
 How can we provide a fast, isolated database for local development and CI without sacrificing confidence in production compatibility?
 
-Related: [ADR-0003 Use PostgreSQL for production](0003-use-postgresql-for-production.md) — this decision must not compromise production database choice.
+Related: [Use PostgreSQL for production](2025-05-01-use-postgresql-for-production.md) — this decision must not compromise production database choice.
 
 ## Decision Drivers
 
@@ -187,7 +187,7 @@ Spin up a fresh PostgreSQL container for each CI job.
 
 - Follow-up task: create data-access abstraction layer — #347
 - Follow-up task: set up weekly PostgreSQL CI job — #348
-- Related: [ADR-0003 Use PostgreSQL for production](0003-use-postgresql-for-production.md)
+- Related: [Use PostgreSQL for production](2025-05-01-use-postgresql-for-production.md)
 - Revisit trigger: if dialect-drift bugs exceed 2 per quarter, reconsider Docker PostgreSQL approach
-- Code references: after implementation, key files will have `// ADR-0004` comments at entry points
+- Code references: after implementation, key files will have `// ADR: 2025-06-15-use-sqlite-for-test-database` comments at entry points
 ```
