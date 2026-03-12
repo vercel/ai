@@ -83,7 +83,9 @@
     "@vercel/ai-tsconfig": "0.0.0"
   },
   "changesets": [
+    "azjeb-lylmk-htihq",
     "brown-planets-tell",
+    "bump-oidc-version",
     "calm-squids-sparkle",
     "clean-peaches-fly",
     "cool-toes-cough",
