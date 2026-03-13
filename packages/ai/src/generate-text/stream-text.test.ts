@@ -5104,6 +5104,7 @@ describe('streamText', () => {
       expect(await result.steps).toMatchInlineSnapshot(`
         [
           DefaultStepResult {
+            "callId": "test-telemetry-call-id",
             "content": [
               {
                 "file": DefaultGeneratedFileWithType {
