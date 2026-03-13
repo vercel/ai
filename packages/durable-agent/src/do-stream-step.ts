@@ -111,15 +111,11 @@ export async function doStreamStep(
 ) {
   'use step';
 
-  // Model can be LanguageModelV3 (AI SDK v5) or LanguageModelV3 (AI SDK v6)
-  // Both have compatible doStream interfaces for our use case
   let model: CompatibleLanguageModel | undefined;
   if (typeof modelInit === 'string') {
-    // gateway() returns LanguageModelV3 in AI SDK v5 and LanguageModelV3 in AI SDK v6
-    // Both are compatible at runtime for doStream operations
     model = gateway(modelInit) as CompatibleLanguageModel;
   } else if (typeof modelInit === 'function') {
-    // User-provided model factory - could return V2 or V3
+    // User-provided model factory - returns V3
     model = await modelInit();
   } else {
     throw new Error(
@@ -213,15 +209,13 @@ export async function doStreamStep(
               input: chunk.input || '{}',
             });
           } else if (chunk.type === 'tool-result') {
-            // Capture provider-executed tool results
-            if (chunk.providerExecuted) {
-              providerExecutedToolResults.set(chunk.toolCallId, {
-                toolCallId: chunk.toolCallId,
-                toolName: chunk.toolName,
-                result: chunk.result,
-                isError: chunk.isError,
-              });
-            }
+            // In V3, all tool-result stream parts are provider-executed by definition
+            providerExecutedToolResults.set(chunk.toolCallId, {
+              toolCallId: chunk.toolCallId,
+              toolName: chunk.toolName,
+              result: chunk.result,
+              isError: chunk.isError,
+            });
           } else if (chunk.type === 'finish') {
             finish = chunk;
           }
@@ -427,9 +421,6 @@ export async function doStreamStep(
                 type: 'tool-output-available',
                 toolCallId: part.toolCallId,
                 output: part.result,
-                ...(part.providerExecuted != null
-                  ? { providerExecuted: part.providerExecuted }
-                  : {}),
               });
               break;
             }
@@ -510,16 +501,28 @@ export async function doStreamStep(
  * @internal Exported for testing
  */
 export function normalizeFinishReason(rawFinishReason: unknown): FinishReason {
-  // Handle object-style finish reason (possible in some AI SDK versions/providers)
+  const KNOWN_FINISH_REASONS = new Set<string>([
+    'stop',
+    'length',
+    'content-filter',
+    'tool-calls',
+    'error',
+    'other',
+  ]);
+
+  // Handle object-style finish reason (V3 returns { unified, raw })
   if (typeof rawFinishReason === 'object' && rawFinishReason !== null) {
-    const objReason = rawFinishReason as { type?: string };
-    return (objReason.type as FinishReason) ?? 'unknown';
+    const objReason = rawFinishReason as { unified?: string; type?: string };
+    const extracted = objReason.unified ?? objReason.type ?? 'other';
+    return (
+      KNOWN_FINISH_REASONS.has(extracted) ? extracted : 'other'
+    ) as FinishReason;
   }
   // Handle string finish reason (standard format)
   if (typeof rawFinishReason === 'string') {
     return rawFinishReason as FinishReason;
   }
-  return 'unknown';
+  return 'other';
 }
 
 // This is a stand-in for logic in the AI-SDK streamText code which aggregates
@@ -600,7 +603,24 @@ function chunksToStep(
     )
     .map(chunk => chunk);
 
+  // Extract the raw finish reason from the V3 finish reason object
+  const v3FinishReason = finish?.finishReason;
+  const rawFinishReason =
+    typeof v3FinishReason === 'object' && v3FinishReason !== null
+      ? (v3FinishReason as { raw?: string }).raw
+      : typeof v3FinishReason === 'string'
+        ? v3FinishReason
+        : undefined;
+
   const stepResult: StepResult<any> = {
+    stepNumber: 0, // Will be overridden by the caller
+    model: {
+      provider: responseMetadata?.modelId?.split(':')[0] ?? 'unknown',
+      modelId: responseMetadata?.modelId ?? 'unknown',
+    },
+    functionId: undefined,
+    metadata: undefined,
+    experimental_context: undefined,
     content: [
       ...(text ? [{ type: 'text' as const, text }] : []),
       ...toolCalls.map(toolCall => ({
@@ -638,7 +658,38 @@ function chunksToStep(
     staticToolResults: [],
     dynamicToolResults: [],
     finishReason: normalizeFinishReason(finish?.finishReason),
-    usage: finish?.usage || { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+    rawFinishReason,
+    usage: finish?.usage
+      ? {
+          inputTokens: finish.usage.inputTokens?.total ?? 0,
+          inputTokenDetails: {
+            noCacheTokens: finish.usage.inputTokens?.noCache,
+            cacheReadTokens: finish.usage.inputTokens?.cacheRead,
+            cacheWriteTokens: finish.usage.inputTokens?.cacheWrite,
+          },
+          outputTokens: finish.usage.outputTokens?.total ?? 0,
+          outputTokenDetails: {
+            textTokens: finish.usage.outputTokens?.text,
+            reasoningTokens: finish.usage.outputTokens?.reasoning,
+          },
+          totalTokens:
+            (finish.usage.inputTokens?.total ?? 0) +
+            (finish.usage.outputTokens?.total ?? 0),
+        }
+      : {
+          inputTokens: 0,
+          inputTokenDetails: {
+            noCacheTokens: undefined,
+            cacheReadTokens: undefined,
+            cacheWriteTokens: undefined,
+          },
+          outputTokens: 0,
+          outputTokenDetails: {
+            textTokens: undefined,
+            reasoningTokens: undefined,
+          },
+          totalTokens: 0,
+        },
     warnings: streamStart?.warnings,
     request: {
       body: JSON.stringify({

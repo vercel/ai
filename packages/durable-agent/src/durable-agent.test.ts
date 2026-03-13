@@ -9,7 +9,7 @@ import type {
   LanguageModelV3,
   LanguageModelV3Prompt,
   LanguageModelV3ToolCall,
-  LanguageModelV3ToolResultPart,
+  LanguageModelV3ToolResult,
 } from '@ai-sdk/provider';
 import type { StepResult, ToolSet } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
@@ -35,7 +35,7 @@ import type { StreamTextIteratorYieldValue } from './stream-text-iterator.js';
  */
 function createMockModel(): LanguageModelV3 {
   return {
-    specificationVersion: 'v2' as const,
+    specificationVersion: 'v3' as const,
     provider: 'test',
     modelId: 'test-model',
     doGenerate: vi.fn(),
@@ -50,7 +50,7 @@ function createMockModel(): LanguageModelV3 {
 type MockIterator = AsyncGenerator<
   StreamTextIteratorYieldValue,
   LanguageModelV3Prompt,
-  LanguageModelV3ToolResultPart[]
+  LanguageModelV3ToolResult[]
 >;
 
 describe('DurableAgent', () => {

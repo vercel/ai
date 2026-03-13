@@ -1,36 +1,11 @@
 /**
- * Shared types for AI SDK v5 and v6 compatibility.
+ * Shared types for AI SDK V3.
  */
-import type {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3StreamPart,
-} from '@ai-sdk/provider';
+import type { LanguageModelV3 } from '@ai-sdk/provider';
 
 /**
- * Compatible language model type that works with both AI SDK v5 and v6.
+ * Language model type for AI SDK V3.
  *
- * AI SDK v5 uses LanguageModelV3, while AI SDK v6 uses LanguageModelV3.
- * Both have compatible `doStream` interfaces for our use case.
- *
- * This type represents the union of both model versions, allowing code
- * to work seamlessly with either AI SDK version.
- *
- * Note: V3 models accept LanguageModelV3CallOptions at runtime due to
- * structural compatibility between V2 and V3 prompt/options formats.
+ * This is a simple alias for LanguageModelV3 from @ai-sdk/provider.
  */
-export type CompatibleLanguageModel =
-  | LanguageModelV3
-  | {
-      readonly specificationVersion: 'v3';
-      readonly provider: string;
-      readonly modelId: string;
-      /**
-       * Stream method compatible with both V2 and V3 models.
-       * V3 models accept V2-style call options due to structural compatibility
-       * at runtime - the prompt and options structures are essentially identical.
-       */
-      doStream(options: LanguageModelV3CallOptions): PromiseLike<{
-        stream: ReadableStream<LanguageModelV3StreamPart>;
-      }>;
-    };
+export type CompatibleLanguageModel = LanguageModelV3;
