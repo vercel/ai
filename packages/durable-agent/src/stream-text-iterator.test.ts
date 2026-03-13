@@ -9,7 +9,7 @@
 import type {
   LanguageModelV3Prompt,
   LanguageModelV3ToolCall,
-  LanguageModelV3ToolResultPart,
+  LanguageModelV3ToolResult,
 } from '@ai-sdk/provider';
 import type { StepResult, ToolSet, UIMessageChunk } from 'ai';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
@@ -128,7 +128,7 @@ describe('streamTextIterator', () => {
       expect(firstResult.value.toolCalls).toHaveLength(1);
 
       // Provide tool results and continue
-      const toolResults: LanguageModelV3ToolResultPart[] = [
+      const toolResults: LanguageModelV3ToolResult[] = [
         {
           type: 'tool-result',
           toolCallId: 'call-1',
@@ -205,7 +205,7 @@ describe('streamTextIterator', () => {
       const firstResult = await iterator.next();
       expect(firstResult.done).toBe(false);
 
-      const toolResults: LanguageModelV3ToolResultPart[] = [
+      const toolResults: LanguageModelV3ToolResult[] = [
         {
           type: 'tool-result',
           toolCallId: 'call-1',
@@ -289,7 +289,7 @@ describe('streamTextIterator', () => {
       expect(firstResult.done).toBe(false);
       expect(firstResult.value.toolCalls).toHaveLength(2);
 
-      const toolResults: LanguageModelV3ToolResultPart[] = [
+      const toolResults: LanguageModelV3ToolResult[] = [
         {
           type: 'tool-result',
           toolCallId: 'call-1',
@@ -389,7 +389,7 @@ describe('streamTextIterator', () => {
 
       await iterator.next();
 
-      const toolResults: LanguageModelV3ToolResultPart[] = [
+      const toolResults: LanguageModelV3ToolResult[] = [
         {
           type: 'tool-result',
           toolCallId: 'call-1',
@@ -474,7 +474,7 @@ describe('streamTextIterator', () => {
 
       await iterator.next();
 
-      const toolResults: LanguageModelV3ToolResultPart[] = [
+      const toolResults: LanguageModelV3ToolResult[] = [
         {
           type: 'tool-result',
           toolCallId: 'call-1',
@@ -546,7 +546,7 @@ describe('streamTextIterator', () => {
 
       await iterator.next();
 
-      const toolResults: LanguageModelV3ToolResultPart[] = [
+      const toolResults: LanguageModelV3ToolResult[] = [
         {
           type: 'tool-result',
           toolCallId: 'call-1',
@@ -624,7 +624,7 @@ describe('streamTextIterator', () => {
 
       await iterator.next();
 
-      const toolResults: LanguageModelV3ToolResultPart[] = [
+      const toolResults: LanguageModelV3ToolResult[] = [
         {
           type: 'tool-result',
           toolCallId: 'call-1',

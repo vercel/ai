@@ -265,7 +265,7 @@ export async function* streamTextIterator({
         conversationPrompt,
         currentModel,
         writable,
-        toolsToModelTools(effectiveTools),
+        await toolsToModelTools(effectiveTools),
         {
           sendStart: sendStart && isFirstIteration,
           ...currentGenerationSettings,
@@ -439,7 +439,7 @@ async function writeToolOutputToUI(
       const chunk: UIMessageChunk = {
         type: 'tool-output-available' as const,
         toolCallId: result.toolCallId,
-        output: result.output.value,
+        output: 'value' in result.output ? result.output.value : undefined,
       };
       if (collectUIChunks) {
         chunks.push(chunk);
@@ -475,7 +475,7 @@ function normalizeFinishReason(raw: unknown): FinishReason | undefined {
   if (typeof raw === 'string') return raw as FinishReason;
   if (typeof raw === 'object') {
     const obj = raw as { unified?: FinishReason; type?: FinishReason };
-    return obj.unified ?? obj.type ?? 'unknown';
+    return obj.unified ?? obj.type ?? 'other';
   }
   return undefined;
 }
