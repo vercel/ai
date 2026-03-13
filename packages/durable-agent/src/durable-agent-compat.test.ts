@@ -285,9 +285,13 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         writable,
       });
 
-      expect(doStreamOptions?.providerOptions).toMatchInlineSnapshot(
-        `undefined`,
-      );
+      expect(doStreamOptions?.providerOptions).toMatchInlineSnapshot(`
+        {
+          "test": {
+            "value": "test",
+          },
+        }
+      `);
     });
 
     it('should pass abortSignal to streamText', async () => {
@@ -519,7 +523,11 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
             writable,
           });
 
-          expect(onStartCalls).toMatchInlineSnapshot(`[]`);
+          expect(onStartCalls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+          ]
+        `);
         },
       );
 
@@ -539,7 +547,11 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
             },
           });
 
-          expect(onStartCalls).toMatchInlineSnapshot(`[]`);
+          expect(onStartCalls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
         },
       );
 
@@ -564,7 +576,12 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
             },
           });
 
-          expect(onStartCalls).toMatchInlineSnapshot(`[]`);
+          expect(onStartCalls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+            "method",
+          ]
+        `);
         },
       );
 
@@ -645,7 +662,11 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
             writable,
           });
 
-          expect(onStepStartCalls).toMatchInlineSnapshot(`[]`);
+          expect(onStepStartCalls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+          ]
+        `);
         },
       );
 
@@ -665,7 +686,11 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
             },
           });
 
-          expect(onStepStartCalls).toMatchInlineSnapshot(`[]`);
+          expect(onStepStartCalls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
         },
       );
 
@@ -690,7 +715,12 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
             },
           });
 
-          expect(onStepStartCalls).toMatchInlineSnapshot(`[]`);
+          expect(onStepStartCalls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+            "method",
+          ]
+        `);
         },
       );
 
@@ -889,7 +919,11 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
             writable,
           });
 
-          expect(calls).toMatchInlineSnapshot(`[]`);
+          expect(calls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+          ]
+        `);
         },
       );
 
@@ -918,7 +952,11 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
             },
           });
 
-          expect(calls).toMatchInlineSnapshot(`[]`);
+          expect(calls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
         },
       );
 
@@ -950,7 +988,12 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
             },
           });
 
-          expect(calls).toMatchInlineSnapshot(`[]`);
+          expect(calls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+            "method",
+          ]
+        `);
         },
       );
 
@@ -1024,7 +1067,11 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
             writable,
           });
 
-          expect(calls).toMatchInlineSnapshot(`[]`);
+          expect(calls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+          ]
+        `);
         },
       );
 
@@ -1053,7 +1100,11 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
             },
           });
 
-          expect(calls).toMatchInlineSnapshot(`[]`);
+          expect(calls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
         },
       );
 
@@ -1085,7 +1136,12 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
             },
           });
 
-          expect(calls).toMatchInlineSnapshot(`[]`);
+          expect(calls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+            "method",
+          ]
+        `);
         },
       );
 
