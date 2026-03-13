@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.88
+
+### Patch Changes
+
+- af256b7: fix(provider/amazon-bedrock): fix base64 decoding
+
 ## 3.0.87
 
 ### Patch Changes
