@@ -2,15 +2,22 @@ import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { createXai } from './xai-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { XaiChatLanguageModel } from './xai-chat-language-model';
+import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
 import { XaiImageModel } from './xai-image-model';
 import { XaiVideoModel } from './xai-video-model';
 
 const XaiChatLanguageModelMock = XaiChatLanguageModel as unknown as Mock;
+const XaiResponsesLanguageModelMock =
+  XaiResponsesLanguageModel as unknown as Mock;
 const XaiImageModelMock = XaiImageModel as unknown as Mock;
 const XaiVideoModelMock = XaiVideoModel as unknown as Mock;
 
 vi.mock('./xai-chat-language-model', () => ({
   XaiChatLanguageModel: vi.fn(),
+}));
+
+vi.mock('./responses/xai-responses-language-model', () => ({
+  XaiResponsesLanguageModel: vi.fn(),
 }));
 
 vi.mock('./xai-image-model', () => ({
@@ -46,7 +53,7 @@ describe('xAIProvider', () => {
       const provider = createXai();
       const model = provider('model-id');
 
-      const constructorCall = XaiChatLanguageModelMock.mock.calls[0];
+      const constructorCall = XaiResponsesLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
       config.headers();
 
@@ -66,7 +73,7 @@ describe('xAIProvider', () => {
       const provider = createXai(options);
       provider('model-id');
 
-      const constructorCall = XaiChatLanguageModelMock.mock.calls[0];
+      const constructorCall = XaiResponsesLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
       config.headers();
 
@@ -77,12 +84,12 @@ describe('xAIProvider', () => {
       });
     });
 
-    it('should return a chat model when called as a function', () => {
+    it('should return a responses model when called as a function', () => {
       const provider = createXai();
       const modelId = 'foo-model-id';
 
       const model = provider(modelId);
-      expect(model).toBeInstanceOf(XaiChatLanguageModel);
+      expect(model).toBeInstanceOf(XaiResponsesLanguageModel);
     });
   });
 
