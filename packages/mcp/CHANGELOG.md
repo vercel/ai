@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.28
+
+### Patch Changes
+
+- 0c86a13: fix(mcp): validate state param in oauth flow
+
 ## 1.0.27
 
 ### Patch Changes
