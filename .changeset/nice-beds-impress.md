@@ -2,4 +2,4 @@
 '@ai-sdk/mcp': patch
 ---
 
-changeset for #13384
+fix(mcp): validate state param in oauth flow
