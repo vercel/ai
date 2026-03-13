@@ -337,8 +337,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             if (tool.execute != null && toolCall.providerExecuted !== true) {
               if (deferToolExecution) {
                 // Buffer tool calls for execution after the provider stream finishes.
-                // This is needed for workflow/durable agent compatibility where tool
-                // execution must happen after the LLM response concludes.
                 deferredToolCalls.push({ toolCall, tool });
               } else {
                 const toolExecutionId = generateId(); // use our own id to guarantee uniqueness

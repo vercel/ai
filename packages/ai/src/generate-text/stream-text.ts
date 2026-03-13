@@ -440,8 +440,6 @@ export function streamText<
     /**
      * When true, tool calls are collected during the provider stream but
      * their execution is deferred until after the stream finishes.
-     * This is needed for workflow/durable agent compatibility where tool
-     * execution must happen after the LLM response concludes.
      * Defaults to false (tools execute immediately as their chunks arrive).
      */
     deferToolExecution?: boolean;
