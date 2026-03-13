@@ -17,6 +17,7 @@ export const xaiLanguageModelResponsesOptions = z.object({
    * Possible values are `low` (uses fewer reasoning tokens), `medium` and `high` (uses more reasoning tokens).
    */
   reasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
+  reasoningSummary: z.enum(['auto', 'concise', 'detailed']).optional(),
   logprobs: z.boolean().optional(),
   topLogprobs: z.number().int().min(0).max(8).optional(),
   /**

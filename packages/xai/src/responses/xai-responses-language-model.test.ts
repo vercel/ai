@@ -378,6 +378,56 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.reasoning.effort).toBe('high');
         });
 
+        it('reasoningSummary', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                reasoningSummary: 'concise',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.summary).toBe('concise');
+        });
+
+        it('reasoningEffort and reasoningSummary together', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                reasoningEffort: 'high',
+                reasoningSummary: 'detailed',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning).toStrictEqual({
+            effort: 'high',
+            summary: 'detailed',
+          });
+        });
+
         it('logprobs and topLogprobs', async () => {
           prepareJsonResponse({
             id: 'resp_123',
