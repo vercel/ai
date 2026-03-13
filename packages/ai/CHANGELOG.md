@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.16
+
+### Major Changes
+
+- 5b8c58f: feat(ai): decouple otel from core functions
+
 ## 7.0.0-beta.15
 
 ### Patch Changes
