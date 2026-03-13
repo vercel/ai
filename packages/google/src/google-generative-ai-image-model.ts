@@ -1,7 +1,7 @@
 import {
-  ImageModelV3,
-  LanguageModelV3Prompt,
-  SharedV3Warning,
+  ImageModelV4,
+  LanguageModelV4Prompt,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -37,8 +37,8 @@ interface GoogleGenerativeAIImageModelConfig {
   };
 }
 
-export class GoogleGenerativeAIImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class GoogleGenerativeAIImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
 
   get maxImagesPerCall(): number {
     if (this.settings.maxImagesPerCall != null) {
@@ -63,8 +63,8 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
   ) {}
 
   async doGenerate(
-    options: Parameters<ImageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<ImageModelV3['doGenerate']>>> {
+    options: Parameters<ImageModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
     // Gemini image models use the language model API internally
     if (isGeminiModel(this.modelId)) {
       return this.doGenerateGemini(options);
@@ -73,8 +73,8 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
   }
 
   private async doGenerateImagen(
-    options: Parameters<ImageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<ImageModelV3['doGenerate']>>> {
+    options: Parameters<ImageModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
     const {
       prompt,
       n = 1,
@@ -87,7 +87,7 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
       files,
       mask,
     } = options;
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     // Imagen API endpoints do not support image editing
     if (files != null && files.length > 0) {
@@ -181,8 +181,8 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
   }
 
   private async doGenerateGemini(
-    options: Parameters<ImageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<ImageModelV3['doGenerate']>>> {
+    options: Parameters<ImageModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
     const {
       prompt,
       n,
@@ -195,7 +195,7 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
       files,
       mask,
     } = options;
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     // Gemini does not support mask-based inpainting
     if (mask != null) {
@@ -253,7 +253,7 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
       }
     }
 
-    const languageModelPrompt: LanguageModelV3Prompt = [
+    const languageModelPrompt: LanguageModelV4Prompt = [
       { role: 'user', content: userContent },
     ];
 

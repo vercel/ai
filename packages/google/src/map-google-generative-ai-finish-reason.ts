@@ -1,4 +1,4 @@
-import { LanguageModelV3FinishReason } from '@ai-sdk/provider';
+import { LanguageModelV4FinishReason } from '@ai-sdk/provider';
 
 export function mapGoogleGenerativeAIFinishReason({
   finishReason,
@@ -6,7 +6,7 @@ export function mapGoogleGenerativeAIFinishReason({
 }: {
   finishReason: string | null | undefined;
   hasToolCalls: boolean;
-}): LanguageModelV3FinishReason['unified'] {
+}): LanguageModelV4FinishReason['unified'] {
   switch (finishReason) {
     case 'STOP':
       return hasToolCalls ? 'tool-calls' : 'stop';
