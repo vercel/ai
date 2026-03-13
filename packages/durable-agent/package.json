@@ -3,10 +3,6 @@
   "version": "0.0.1",
   "description": "DurableAgent for building AI agents with AI SDK",
   "license": "Apache-2.0",
-  "sideEffects": [
-    "**/*.integration.test.ts",
-    "src/**/*.ts"
-  ],
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
