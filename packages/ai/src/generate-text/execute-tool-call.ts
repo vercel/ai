@@ -36,7 +36,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   onPreliminaryToolResult,
   onToolCallStart,
   onToolCallFinish,
-  executeToolCallInTelemetryContext = async ({ execute }) => execute(),
+  executeToolInTelemetryContext = async ({ execute }) => execute(),
 }: {
   toolCall: TypedToolCall<TOOLS>;
   tools: TOOLS | undefined;
@@ -54,7 +54,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   onToolCallFinish?:
     | GenerateTextOnToolCallFinishCallback<TOOLS>
     | Array<GenerateTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
-  executeToolCallInTelemetryContext?: <T>(params: {
+  executeToolInTelemetryContext?: <T>(params: {
     callId: string;
     toolCallId: string;
     execute: () => PromiseLike<T>;
@@ -91,7 +91,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     //
     // The call id and the tool call id are provided to the telemetry integration so that it can correctly
     // identify the parent span.
-    await executeToolCallInTelemetryContext({
+    await executeToolInTelemetryContext({
       callId,
       toolCallId,
       execute: async () => {

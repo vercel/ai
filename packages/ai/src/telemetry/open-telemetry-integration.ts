@@ -140,7 +140,7 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
     this.callStates.delete(callId);
   }
 
-  executeToolCall<T>({
+  executeTool<T>({
     callId,
     toolCallId,
     execute,

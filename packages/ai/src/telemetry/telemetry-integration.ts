@@ -92,7 +92,7 @@ export interface TelemetryIntegration {
    * @param params.toolCallId - The tool call ID.
    * @param params.execute - The function to execute.
    */
-  executeToolCall?: <T>(params: {
+  executeTool?: <T>(params: {
     callId: string;
     toolCallId: string;
     execute: () => PromiseLike<T>;

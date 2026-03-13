@@ -570,7 +570,7 @@ export async function generateText<
                 | GenerateTextOnToolCallFinishCallback<TOOLS>,
             ],
           }),
-        executeToolCallInTelemetryContext: globalTelemetry.executeToolCall,
+        executeToolInTelemetryContext: globalTelemetry.executeTool,
       });
 
       const toolContent: Array<any> = [];
@@ -892,8 +892,7 @@ export async function generateText<
                       | GenerateTextOnToolCallFinishCallback<TOOLS>,
                   ],
                 }),
-              executeToolCallInTelemetryContext:
-                globalTelemetry.executeToolCall,
+              executeToolInTelemetryContext: globalTelemetry.executeTool,
             })),
           );
         }
@@ -1107,7 +1106,7 @@ async function executeTools<TOOLS extends ToolSet>({
   model,
   onToolCallStart,
   onToolCallFinish,
-  executeToolCallInTelemetryContext,
+  executeToolInTelemetryContext,
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
@@ -1120,7 +1119,7 @@ async function executeTools<TOOLS extends ToolSet>({
   model: { provider: string; modelId: string };
   onToolCallStart?: GenerateTextOnToolCallStartCallback<TOOLS>;
   onToolCallFinish?: GenerateTextOnToolCallFinishCallback<TOOLS>;
-  executeToolCallInTelemetryContext?: TelemetryIntegration['executeToolCall'];
+  executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
 }): Promise<Array<ToolOutput<TOOLS>>> {
   const toolOutputs = await Promise.all(
     toolCalls.map(async toolCall =>
@@ -1136,7 +1135,7 @@ async function executeTools<TOOLS extends ToolSet>({
         model,
         onToolCallStart,
         onToolCallFinish,
-        executeToolCallInTelemetryContext,
+        executeToolInTelemetryContext,
       }),
     ),
   );

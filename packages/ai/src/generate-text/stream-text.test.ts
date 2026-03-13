@@ -13055,7 +13055,7 @@ describe('streamText', () => {
           integrations: [
             otelIntegration,
             {
-              executeToolCall: async ({ callId, toolCallId, execute }) => {
+              executeTool: async ({ callId, toolCallId, execute }) => {
                 activeContext = `${callId}:${toolCallId}`;
                 try {
                   return await execute();

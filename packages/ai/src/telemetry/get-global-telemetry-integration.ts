@@ -26,7 +26,7 @@ export function bindTelemetryIntegration(
     onStepFinish: integration.onStepFinish?.bind(integration),
     onFinish: integration.onFinish?.bind(integration),
     onError: integration.onError?.bind(integration),
-    executeToolCall: integration.executeToolCall?.bind(integration),
+    executeTool: integration.executeTool?.bind(integration),
   };
 }
 
@@ -74,8 +74,8 @@ export function getGlobalTelemetryIntegration<
     }
 
     const executeWrappers = allIntegrations
-      .map(integration => integration.executeToolCall)
-      .filter(Boolean) as Array<TelemetryIntegration['executeToolCall']>;
+      .map(integration => integration.executeTool)
+      .filter(Boolean) as Array<TelemetryIntegration['executeTool']>;
 
     return {
       onStart: createTelemetryComposite(integration => integration.onStart),
@@ -94,7 +94,7 @@ export function getGlobalTelemetryIntegration<
       ),
       onFinish: createTelemetryComposite(integration => integration.onFinish),
       onError: createTelemetryComposite(integration => integration.onError),
-      executeToolCall:
+      executeTool:
         executeWrappers.length > 0
           ? async params => {
               let execute = params.execute;

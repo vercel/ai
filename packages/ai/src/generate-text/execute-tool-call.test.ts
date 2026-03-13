@@ -618,8 +618,8 @@ describe('executeToolCall', () => {
       expect(finishEvents[0].durationMs).toEqual(expect.any(Number));
     });
 
-    it('should execute the tool inside the executeToolCallInTelemetryContext wrapper when provided', async () => {
-      const executeToolCallInTelemetryContext: <T>(params: {
+    it('should execute the tool inside the executeToolInTelemetryContext wrapper when provided', async () => {
+      const executeToolInTelemetryContext: <T>(params: {
         callId: string;
         toolCallId: string;
         execute: () => PromiseLike<T>;
@@ -638,17 +638,17 @@ describe('executeToolCall', () => {
         messages: [],
         abortSignal: undefined,
         experimental_context: undefined,
-        executeToolCallInTelemetryContext,
+        executeToolInTelemetryContext,
       });
 
-      expect(executeToolCallInTelemetryContext).toHaveBeenCalledWith({
+      expect(executeToolInTelemetryContext).toHaveBeenCalledWith({
         callId: 'test-telemetry-call-id',
         toolCallId: 'my-call-id',
         execute: expect.any(Function),
       });
     });
 
-    it('should execute the tool directly when executeToolCallInTelemetryContext is not provided', async () => {
+    it('should execute the tool directly when executeToolInTelemetryContext is not provided', async () => {
       const result = await executeToolCall({
         toolCall: createToolCall({ toolCallId: 'my-call-id' }),
         tools: {
