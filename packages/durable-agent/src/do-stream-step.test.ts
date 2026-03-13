@@ -26,10 +26,6 @@ describe('normalizeFinishReason', () => {
     it('should pass through "other"', () => {
       expect(normalizeFinishReason('other')).toBe('other');
     });
-
-    it('should pass through "unknown"', () => {
-      expect(normalizeFinishReason('unknown')).toBe('unknown');
-    });
   });
 
   describe('object finish reasons', () => {
@@ -59,20 +55,20 @@ describe('normalizeFinishReason', () => {
       expect(normalizeFinishReason({ type: 'other' })).toBe('other');
     });
 
-    it('should extract "unknown" from object', () => {
-      expect(normalizeFinishReason({ type: 'unknown' })).toBe('unknown');
+    it('should return "other" for object with unrecognized type', () => {
+      expect(normalizeFinishReason({ type: 'unknown' })).toBe('other');
     });
 
-    it('should return "unknown" for object without type property', () => {
-      expect(normalizeFinishReason({})).toBe('unknown');
+    it('should return "other" for object without type property', () => {
+      expect(normalizeFinishReason({})).toBe('other');
     });
 
-    it('should return "unknown" for object with null type', () => {
-      expect(normalizeFinishReason({ type: null })).toBe('unknown');
+    it('should return "other" for object with null type', () => {
+      expect(normalizeFinishReason({ type: null })).toBe('other');
     });
 
-    it('should return "unknown" for object with undefined type', () => {
-      expect(normalizeFinishReason({ type: undefined })).toBe('unknown');
+    it('should return "other" for object with undefined type', () => {
+      expect(normalizeFinishReason({ type: undefined })).toBe('other');
     });
 
     it('should handle object with additional properties', () => {
@@ -87,24 +83,24 @@ describe('normalizeFinishReason', () => {
   });
 
   describe('edge cases', () => {
-    it('should return "unknown" for undefined', () => {
-      expect(normalizeFinishReason(undefined)).toBe('unknown');
+    it('should return "other" for undefined', () => {
+      expect(normalizeFinishReason(undefined)).toBe('other');
     });
 
-    it('should return "unknown" for null', () => {
-      expect(normalizeFinishReason(null)).toBe('unknown');
+    it('should return "other" for null', () => {
+      expect(normalizeFinishReason(null)).toBe('other');
     });
 
-    it('should return "unknown" for number', () => {
-      expect(normalizeFinishReason(42)).toBe('unknown');
+    it('should return "other" for number', () => {
+      expect(normalizeFinishReason(42)).toBe('other');
     });
 
-    it('should return "unknown" for boolean', () => {
-      expect(normalizeFinishReason(true)).toBe('unknown');
+    it('should return "other" for boolean', () => {
+      expect(normalizeFinishReason(true)).toBe('other');
     });
 
-    it('should return "unknown" for array', () => {
-      expect(normalizeFinishReason(['stop'])).toBe('unknown');
+    it('should return "other" for array', () => {
+      expect(normalizeFinishReason(['stop'])).toBe('other');
     });
 
     it('should handle empty string', () => {
