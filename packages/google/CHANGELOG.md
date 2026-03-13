@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- e59176c: chore(google): update v3 specs to v4
+
 ## 4.0.0-beta.8
 
 ### Patch Changes
