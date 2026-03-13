@@ -24,21 +24,15 @@
   },
   "references": [
     {
+      "path": "../ai"
+    },
+    {
       "path": "../provider-utils"
     },
     {
-      "path": "../ai"
+      "path": "../test-server"
     }
   ],
-  "include": [
-    "./src/**/*.js",
-    "./src/**/*.ts",
-    "./src/**/*.svelte"
-  ],
-  "exclude": [
-    "dist",
-    "build",
-    "node_modules",
-    "tsup.config.ts"
-  ]
+  "include": ["./src/**/*.js", "./src/**/*.ts", "./src/**/*.svelte"],
+  "exclude": ["dist", "build", "node_modules", "tsup.config.ts"]
 }

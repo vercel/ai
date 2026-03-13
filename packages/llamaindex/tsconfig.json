@@ -4,24 +4,12 @@
     "composite": true,
     "rootDir": "src",
     "outDir": "dist",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"]
   },
-  "exclude": [
-    "dist",
-    "build",
-    "node_modules",
-    "tsup.config.ts"
-  ],
+  "exclude": ["dist", "build", "node_modules", "tsup.config.ts"],
   "references": [
     {
       "path": "../ai"
-    },
-    {
-      "path": "../provider-utils"
     }
   ]
 }

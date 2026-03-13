@@ -20,6 +20,9 @@
       "path": "../../packages/ai"
     },
     {
+      "path": "../../packages/mcp"
+    },
+    {
       "path": "../../packages/openai"
     }
   ]
