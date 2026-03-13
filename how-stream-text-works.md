@@ -644,6 +644,39 @@ The stream emits various chunk types as it processes:
 - `error`: Error occurred
 - `raw`: Raw provider chunks (if enabled)
 
+## Tool Execution Timing
+
+### Current Behavior: Immediate (During Stream)
+
+Tool calls are executed **immediately** when their `tool-call` chunk arrives from the provider stream, **before the stream finishes**. This is done intentionally — `executeToolCall()` is called without `await` in `run-tools-transformation.ts` (~line 333):
+
+```typescript
+// Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
+// because we want to process the next chunk as soon as possible.
+executeToolCall({ toolCall, tools, ... })
+  .then(result => {
+    toolResultsStreamController!.enqueue(result);
+  })
+  .finally(() => {
+    outstandingToolResults.delete(toolExecutionId);
+    attemptClose();
+  });
+```
+
+This means tool execution runs **concurrently** with the rest of the provider stream. The stream only closes after all tool results arrive (`attemptClose()` checks `outstandingToolResults.size === 0`).
+
+### Deferred Execution: After Stream Completes
+
+For workflow/durable agent compatibility, tool execution can be deferred until after the provider stream finishes. This is controlled by the `deferToolExecution` option on `runToolsTransformation`.
+
+When `deferToolExecution` is true:
+
+1. Tool calls are **parsed and emitted** to the stream as normal (consumers see `tool-call` chunks in real-time)
+2. But `executeToolCall()` is **not called** until the provider stream's `flush()` fires (i.e., the LLM response is complete)
+3. All buffered tool calls are then executed (in parallel, same as immediate mode)
+
+This matches what Vercel Workflow's `doStreamStep` does — it consumes the entire provider stream first, collecting tool calls, then returns them for execution after the stream concludes. See: `vercel/workflow` `packages/ai/src/agent/do-stream-step.ts`.
+
 ## Key Design Decisions
 
 ### Why Recursive Instead of Iterative Loop?
