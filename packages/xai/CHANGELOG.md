@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 4799fa5: chore(provider/xai): update provider to use v4 types
+
 ## 4.0.0-beta.7
 
 ### Patch Changes
