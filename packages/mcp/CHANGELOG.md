@@ -4,7 +4,7 @@
 
 ### Patch Changes
 
-- b9b3899: changeset for #13384
+- b9b3899: fix(mcp): validate state param in oauth flow
 
 ## 2.0.0-beta.2
 
