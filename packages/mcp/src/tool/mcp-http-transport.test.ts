@@ -128,6 +128,10 @@ describe('HttpMCPTransport', () => {
       params: {},
     });
 
+    // openInboundSse() is fire-and-forget, so wait for the GET call to arrive
+    await vi.waitFor(() => {
+      expect(server.calls[2]).toBeDefined();
+    });
     expect(server.calls[2].requestMethod).toBe('GET');
     expect(server.calls[2].requestHeaders.accept).toBe('text/event-stream');
   });
