@@ -27,9 +27,13 @@ async function testStream(label: string, prompt: string) {
   console.log();
 
   if (corruptionPattern.test(fullText)) {
-    console.log(`\x1b[34mFAIL test ${testNumber}: detected corrupted UTF-8 characters\x1b[0m`);
+    console.log(
+      `\x1b[34mFAIL test ${testNumber}: detected corrupted UTF-8 characters\x1b[0m`,
+    );
   } else {
-    console.log(`\x1b[34mPASS test ${testNumber}: no corrupted characters detected\x1b[0m`);
+    console.log(
+      `\x1b[34mPASS test ${testNumber}: no corrupted characters detected\x1b[0m`,
+    );
   }
   console.log();
 }
