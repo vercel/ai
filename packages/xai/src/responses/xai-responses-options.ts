@@ -30,9 +30,11 @@ export const xaiLanguageModelResponsesOptions = z.object({
   previousResponseId: z.string().optional(),
   /**
    * Specify additional output data to include in the model response.
-   * Example values: 'file_search_call.results'.
+   * Example values: 'file_search_call.results', 'reasoning.encrypted_content'.
    */
-  include: z.array(z.enum(['file_search_call.results'])).nullish(),
+  include: z
+    .array(z.enum(['file_search_call.results', 'reasoning.encrypted_content']))
+    .nullish(),
 });
 
 export type XaiLanguageModelResponsesOptions = z.infer<
