@@ -29,6 +29,7 @@ import { z } from 'zod/v4';
 import { Output } from '.';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockTracer } from '../test/mock-tracer';
 import {
   generateText,
@@ -268,7 +269,7 @@ describe('generateText', () => {
 
     it('should include reasoning-file in content and exclude from files', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: {
             ...dummyResponseValues,
             content: [

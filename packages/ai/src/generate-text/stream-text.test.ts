@@ -40,6 +40,7 @@ import { z } from 'zod/v4';
 import { Output } from '..';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
@@ -381,7 +382,7 @@ const modelWithReasoning = new MockLanguageModelV3({
   }),
 });
 
-const modelWithReasoningFiles = new MockLanguageModelV3({
+const modelWithReasoningFiles = new MockLanguageModelV4({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
