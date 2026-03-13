@@ -15,7 +15,7 @@ const imageAnalysisTool = tool({
   inputSchema: z.object({}),
   execute: async ({}) => {
     try {
-      const imagePath = path.join(__dirname, '../../data/comic-cat.png');
+      const imagePath = path.join(__dirname, '../../../data/comic-cat.png');
       const base64Image = await fileToBase64(imagePath);
 
       return {

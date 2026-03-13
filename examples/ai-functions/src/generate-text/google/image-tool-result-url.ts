@@ -11,7 +11,7 @@ run(async () => {
     inputSchema: z.object({}),
     execute: async () => {
       try {
-        const imagePath = path.join(__dirname, '../../data/comic-cat.png');
+        const imagePath = path.join(__dirname, '../../../data/comic-cat.png');
         const imageData = await fs.readFile(imagePath);
         const base64Data = imageData.toString('base64');
 

@@ -11,7 +11,7 @@ run(async () => {
     inputSchema: z.object({}),
     execute: async () => {
       try {
-        const pdfPath = path.join(__dirname, '../../data/ai.pdf');
+        const pdfPath = path.join(__dirname, '../../../data/ai.pdf');
         const pdfData = await fs.readFile(pdfPath);
         const base64Data = pdfData.toString('base64');
 
