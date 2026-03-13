@@ -1,4 +1,4 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
 import { ToolLoopAgent } from 'ai';
 
 export const openaiWebSearchAgent = new ToolLoopAgent({
@@ -18,6 +18,6 @@ export const openaiWebSearchAgent = new ToolLoopAgent({
     openai: {
       reasoningEffort: 'medium',
       reasoningSummary: 'detailed',
-    } satisfies OpenAIResponsesProviderOptions,
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
 });

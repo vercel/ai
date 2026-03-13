@@ -1,5 +1,286 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- 980f777: chore(provider/gateway): update gateway model settings files
+- 7185ba2: bump `@vercel/oidc` dependency to 3.2.0
+
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 4adc485: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- e046ea3: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- 82288b0: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany`
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- aa5a583: chore(provider/xai): remove obsolete Grok 2 models now that they are shut down in their API
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- f32d84a: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- c949e25: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- 7afaece: feat(provider/openai): add GPT-5.4 model support
+- f16c103: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 3.0.66
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+
+## 3.0.65
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+
+## 3.0.64
+
+### Patch Changes
+
+- db3d4ca: chore(provider/gateway): update gateway model settings files
+
+## 3.0.63
+
+### Patch Changes
+
+- 1b01ec1: feat(gateway): add providerTimeouts to provider options
+- 8df8e11: chore(provider/gateway): update gateway model settings files
+
+## 3.0.62
+
+### Patch Changes
+
+- 10bec50: feat(provider/google): add `gemini-3.1-flash-lite-preview`
+
+## 3.0.61
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+
+## 3.0.60
+
+### Patch Changes
+
+- 29e9f4d: chore(provider/gateway): update gateway model settings files
+
+## 3.0.59
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+
+## 3.0.58
+
+### Patch Changes
+
+- 1330f2f: chore(provider/gateway): update gateway model settings files
+
+## 3.0.57
+
+### Patch Changes
+
+- ba63bc2: chore(provider/gateway): update gateway model settings files
+
+## 3.0.56
+
+### Patch Changes
+
+- 45f0a7f: feat(provider/google): add support for gemini-3.1-flash-image-preview
+
+## 3.0.55
+
+### Patch Changes
+
+- e8172b6: feat (provider/gateway): pass through project id when available for o11y
+
+## 3.0.54
+
+### Patch Changes
+
+- 0c9395b: feat(provider/openai): add `gpt-5.3-codex`
+
+## 3.0.53
+
+### Patch Changes
+
+- 73b7e09: feat (provider/gateway): add SSE support for video generation with heartbeat keep-alive
+
+## 3.0.52
+
+### Patch Changes
+
+- 363fa44: chore(provider/gateway): update gateway model settings files
+
+## 3.0.51
+
+### Patch Changes
+
+- 765b013: feat(provider/google): add support for `gemini-3.1-pro-preview`
+
+## 3.0.50
+
+### Patch Changes
+
+- a433cd3: chore(provider/gateway): update gateway model settings files
+
+## 3.0.49
+
+### Patch Changes
+
+- 5f693c8: chore(provider/gateway): update gateway model settings files
+
+## 3.0.48
+
+### Patch Changes
+
+- 2a1c664: feat(provider/anthropic): add support for new Claude Sonnet 4.6 model
+
+## 3.0.47
+
+### Patch Changes
+
+- 6bbd05b: chore(provider/gateway): update gateway model settings files
+
+## 3.0.46
+
+### Patch Changes
+
+- f75f18c: chore(provider/gateway): update gateway model settings files
+
+## 3.0.45
+
+### Patch Changes
+
+- e858654: fix (provider/gateway): Fixed error handling in Gateway models by making asGatewayError async in both image and video model implementations.
+
+## 3.0.44
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+
+## 3.0.43
+
+### Patch Changes
+
+- b424e50: chore(provider/gateway): update gateway model settings files
+
+## 3.0.42
+
+### Patch Changes
+
+- 1819bc1: fix (provider/gateway): add missing warning types for video response parsing
+
+## 3.0.41
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+
+## 3.0.40
+
+### Patch Changes
+
+- a2208a2: fix (provider/gateway): added custom error class and message for client side timeouts
+
+## 3.0.39
+
+### Patch Changes
+
+- eea5d30: fix: image generation via Gateway warning schema mismatch
+
+## 3.0.38
+
+### Patch Changes
+
+- 70028ab: feat: report image generation usage info in Gateway
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/provider-utils@4.0.14
+
+## 3.0.36
+
+### Patch Changes
+
+- 9892c58: feat(anthropic): add support for Opus 4.6
+
+## 3.0.35
+
+### Patch Changes
+
+- 8e2eaac: chore(provider/gateway): update gateway model settings files
+
+## 3.0.34
+
+### Patch Changes
+
+- 4867635: feat (provider/gateway): add video generation support
+
+## 3.0.33
+
+### Patch Changes
+
+- ae30443: fix(google): remove shut down `gemini-2.5-flash-image-preview`
+
 ## 3.0.32
 
 ### Patch Changes

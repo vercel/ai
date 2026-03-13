@@ -1542,5 +1542,59 @@ describe('GatewayLanguageModel', () => {
         gateway: { zeroDataRetention: true, hipaaCompliant: true },
       });
     });
+
+    it('should pass providerTimeouts for doGenerate', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            providerTimeouts: {
+              byok: { openai: 5000, anthropic: 2000 },
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: {
+          providerTimeouts: {
+            byok: { openai: 5000, anthropic: 2000 },
+          },
+        },
+      });
+    });
+
+    it('should pass providerTimeouts for doStream', async () => {
+      prepareStreamResponse({
+        content: ['Hello', ' world'],
+      });
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            providerTimeouts: {
+              byok: { anthropic: 3000 },
+            },
+          },
+        },
+      });
+
+      await convertReadableStreamToArray(stream);
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: {
+          providerTimeouts: {
+            byok: { anthropic: 3000 },
+          },
+        },
+      });
+    });
   });
 });

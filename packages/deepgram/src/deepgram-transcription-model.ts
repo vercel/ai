@@ -12,7 +12,7 @@ import { deepgramFailedResponseHandler } from './deepgram-error';
 import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
 
 // https://developers.deepgram.com/docs/pre-recorded-audio#results
-const deepgramProviderOptionsSchema = z.object({
+const deepgramTranscriptionModelOptionsSchema = z.object({
   /** Language to use for transcription. If not specified, Deepgram defaults to English. Use `detectLanguage: true` to enable automatic language detection. */
   language: z.string().nullish(),
   /** Whether to enable automatic language detection. When true, Deepgram will detect the language of the audio. */
@@ -51,8 +51,8 @@ const deepgramProviderOptionsSchema = z.object({
   fillerWords: z.boolean().nullish(),
 });
 
-export type DeepgramTranscriptionCallOptions = z.infer<
-  typeof deepgramProviderOptionsSchema
+export type DeepgramTranscriptionModelOptions = z.infer<
+  typeof deepgramTranscriptionModelOptionsSchema
 >;
 
 interface DeepgramTranscriptionModelConfig extends DeepgramConfig {
@@ -82,7 +82,7 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV3 {
     const deepgramOptions = await parseProviderOptions({
       provider: 'deepgram',
       providerOptions,
-      schema: deepgramProviderOptionsSchema,
+      schema: deepgramTranscriptionModelOptionsSchema,
     });
 
     const body: DeepgramTranscriptionAPITypes = {

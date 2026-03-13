@@ -13,7 +13,7 @@ When generating structured outputs, language models sometimes produce malformed 
 - Missing closing brackets or braces
 - Trailing commas
 
-The AI SDK provides an `experimental_repairText` option that lets you intercept and repair malformed JSON before parsing. Combined with the [`jsonrepair`](https://github.com/josdejong/jsonrepair) library, you can automatically fix many common JSON issues.
+With AI SDK v6, a practical pattern is to generate text, repair it, then parse and validate it. Combined with the [`jsonrepair`](https://github.com/josdejong/jsonrepair) library, you can automatically fix many common JSON issues.
 
 ## Installation
 
@@ -23,68 +23,63 @@ First, install the `jsonrepair` library:
 pnpm add jsonrepair
 ```
 
-## Using with generateObject
+## Using with generateText
 
-Here's how to use `jsonrepair` with `generateObject`:
+Here's how to use `jsonrepair` with `generateText`:
 
 ```ts
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
+import { safeParseJSON } from '@ai-sdk/provider-utils';
 __PROVIDER_IMPORT__;
 import { jsonrepair } from 'jsonrepair';
 import { z } from 'zod';
 
-const result = await generateObject({
-  model: __MODEL__,
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(
-        z.object({
-          name: z.string(),
-          amount: z.string(),
-        }),
-      ),
-      steps: z.array(z.string()),
-    }),
+const recipeSchema = z.object({
+  recipe: z.object({
+    name: z.string(),
+    ingredients: z.array(
+      z.object({
+        name: z.string(),
+        amount: z.string(),
+      }),
+    ),
+    steps: z.array(z.string()),
   }),
-  prompt: 'Generate a lasagna recipe.',
-  experimental_repairText: async ({ text }) => {
-    try {
-      return jsonrepair(text);
-    } catch {
-      return null; // Return null if jsonrepair cannot fix the text
-    }
-  },
 });
 
-console.log(result.object.recipe);
+const result = await generateText({
+  model: __MODEL__,
+  output: Output.text(),
+  prompt: 'Generate a lasagna recipe.',
+});
+
+const repairedText = jsonrepair(result.text);
+const parseResult = safeParseJSON({ text: repairedText });
+
+if (!parseResult.success) {
+  throw parseResult.error;
+}
+
+const output = recipeSchema.parse(parseResult.value);
+console.log(output.recipe);
 ```
 
 ## How it Works
 
-The `experimental_repairText` function is called in two scenarios:
+This flow has three steps:
 
-1. **`JSONParseError`** - The model output cannot be parsed as JSON (syntax errors, truncation)
-2. **`TypeValidationError`** - The JSON is valid but doesn't match the schema
-
-When called, it receives:
-
-- `text`: The raw text output from the model
-- `error`: Either a `JSONParseError` or `TypeValidationError`
-
-The function should return:
-
-- A repaired string that will be re-parsed and validated
-- `null` if the text cannot be repaired (the original error will be thrown)
+1. Generate plain text from the model (`Output.text()`).
+2. Repair malformed JSON with `jsonrepair`.
+3. Parse safely and validate with your schema.
 
 ## What jsonrepair Can Fix
 
 The `jsonrepair` library can automatically fix many common issues:
 
-- Missing closing brackets: `{"name": "test"` → `{"name": "test"}`
-- Single quotes: `{'name': 'test'}` → `{"name": "test"}`
-- Missing quotes around keys: `{name: "test"}` → `{"name": "test"}`
-- Trailing commas: `{"items": [1, 2, 3,]}` → `{"items": [1, 2, 3]}`
+- Missing closing brackets: `{"name": "test"` -> `{"name": "test"}`
+- Single quotes: `{'name': 'test'}` -> `{"name": "test"}`
+- Missing quotes around keys: `{name: "test"}` -> `{"name": "test"}`
+- Trailing commas: `{"items": [1, 2, 3,]}` -> `{"items": [1, 2, 3]}`
 - Comments in JSON
 - Unescaped special characters
 

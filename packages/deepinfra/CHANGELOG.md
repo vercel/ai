@@ -1,5 +1,116 @@
 # @ai-sdk/deepinfra
 
+## 3.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [45b3d76]
+- Updated dependencies [f7295cb]
+  - @ai-sdk/openai-compatible@3.0.0-beta.2
+
+## 3.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+  - @ai-sdk/openai-compatible@3.0.0-beta.1
+
+## 3.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/openai-compatible@3.0.0-beta.0
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 2.0.39
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+  - @ai-sdk/openai-compatible@2.0.35
+
+## 2.0.38
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+  - @ai-sdk/openai-compatible@2.0.34
+
+## 2.0.37
+
+### Patch Changes
+
+- Updated dependencies [89caf28]
+  - @ai-sdk/openai-compatible@2.0.33
+
+## 2.0.36
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+  - @ai-sdk/openai-compatible@2.0.32
+
+## 2.0.35
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+  - @ai-sdk/openai-compatible@2.0.31
+
+## 2.0.34
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+  - @ai-sdk/openai-compatible@2.0.30
+
+## 2.0.33
+
+### Patch Changes
+
+- Updated dependencies [99fbed8]
+  - @ai-sdk/openai-compatible@2.0.29
+
+## 2.0.32
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/openai-compatible@2.0.28
+  - @ai-sdk/provider-utils@4.0.14
+
+## 2.0.31
+
+### Patch Changes
+
+- Updated dependencies [9e490ad]
+  - @ai-sdk/openai-compatible@2.0.27
+
+## 2.0.30
+
+### Patch Changes
+
+- e152eef: fix: correct token usage calculation for Gemini/Gemma models
+
+## 2.0.29
+
+### Patch Changes
+
+- 2fd5085: fix: correct token usage calculation for Gemini/Gemma models
+
 ## 2.0.28
 
 ### Patch Changes

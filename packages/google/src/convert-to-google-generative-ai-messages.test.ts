@@ -85,6 +85,251 @@ describe('thought signatures', () => {
   });
 });
 
+describe('thought signatures with vertex providerOptionsName', () => {
+  it('should resolve thoughtSignature from google namespace when using vertex providerOptionsName', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Regular text',
+              providerOptions: { google: { thoughtSignature: 'sig1' } },
+            },
+            {
+              type: 'reasoning',
+              text: 'Reasoning text',
+              providerOptions: { google: { thoughtSignature: 'sig2' } },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call1',
+              toolName: 'getWeather',
+              input: { location: 'London' },
+              providerOptions: { google: { thoughtSignature: 'sig3' } },
+            },
+          ],
+        },
+      ],
+      { providerOptionsName: 'vertex' },
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Regular text",
+                "thoughtSignature": "sig1",
+              },
+              {
+                "text": "Reasoning text",
+                "thought": true,
+                "thoughtSignature": "sig2",
+              },
+              {
+                "functionCall": {
+                  "args": {
+                    "location": "London",
+                  },
+                  "name": "getWeather",
+                },
+                "thoughtSignature": "sig3",
+              },
+            ],
+            "role": "model",
+          },
+        ],
+        "systemInstruction": undefined,
+      }
+    `);
+  });
+
+  it('should prefer vertex namespace over google namespace when both are present', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call1',
+              toolName: 'getWeather',
+              input: { location: 'London' },
+              providerOptions: {
+                vertex: { thoughtSignature: 'vertex_sig' },
+                google: { thoughtSignature: 'google_sig' },
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsName: 'vertex' },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionCall: {
+        name: 'getWeather',
+        args: { location: 'London' },
+      },
+      thoughtSignature: 'vertex_sig',
+    });
+  });
+
+  it('should resolve thoughtSignature from vertex namespace directly', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call1',
+              toolName: 'getWeather',
+              input: { location: 'London' },
+              providerOptions: {
+                vertex: { thoughtSignature: 'vertex_sig' },
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsName: 'vertex' },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionCall: {
+        name: 'getWeather',
+        args: { location: 'London' },
+      },
+      thoughtSignature: 'vertex_sig',
+    });
+  });
+});
+
+describe('thought signatures with google providerOptionsName (gateway failover)', () => {
+  it('should resolve thoughtSignature from vertex namespace when using google providerOptionsName', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Regular text',
+              providerOptions: { vertex: { thoughtSignature: 'sig1' } },
+            },
+            {
+              type: 'reasoning',
+              text: 'Reasoning text',
+              providerOptions: { vertex: { thoughtSignature: 'sig2' } },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call1',
+              toolName: 'getWeather',
+              input: { location: 'London' },
+              providerOptions: { vertex: { thoughtSignature: 'sig3' } },
+            },
+          ],
+        },
+      ],
+      { providerOptionsName: 'google' },
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Regular text",
+                "thoughtSignature": "sig1",
+              },
+              {
+                "text": "Reasoning text",
+                "thought": true,
+                "thoughtSignature": "sig2",
+              },
+              {
+                "functionCall": {
+                  "args": {
+                    "location": "London",
+                  },
+                  "name": "getWeather",
+                },
+                "thoughtSignature": "sig3",
+              },
+            ],
+            "role": "model",
+          },
+        ],
+        "systemInstruction": undefined,
+      }
+    `);
+  });
+
+  it('should prefer google namespace over vertex namespace when both are present', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call1',
+              toolName: 'getWeather',
+              input: { location: 'London' },
+              providerOptions: {
+                google: { thoughtSignature: 'google_sig' },
+                vertex: { thoughtSignature: 'vertex_sig' },
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsName: 'google' },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionCall: {
+        name: 'getWeather',
+        args: { location: 'London' },
+      },
+      thoughtSignature: 'google_sig',
+    });
+  });
+
+  it('should resolve thoughtSignature from vertex namespace when google namespace is absent (default providerOptionsName)', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'getWeather',
+            input: { location: 'London' },
+            providerOptions: {
+              vertex: { thoughtSignature: 'vertex_sig' },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionCall: {
+        name: 'getWeather',
+        args: { location: 'London' },
+      },
+      thoughtSignature: 'vertex_sig',
+    });
+  });
+});
+
 describe('Gemma model system instructions', () => {
   it('should prepend system instruction to first user message for Gemma models', async () => {
     const result = convertToGoogleGenerativeAIMessages(
@@ -316,6 +561,55 @@ describe('assistant messages', () => {
                 data: 'AAECAw==',
                 mimeType: 'image/png',
               },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should include thought flag on file parts when set in providerOptions', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'file',
+            data: 'AAECAw==',
+            mediaType: 'image/png',
+            providerOptions: {
+              google: { thought: true, thoughtSignature: 'sig1' },
+            },
+          },
+          {
+            type: 'file',
+            data: 'BAUG',
+            mediaType: 'image/jpeg',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'model',
+          parts: [
+            {
+              inlineData: {
+                data: 'AAECAw==',
+                mimeType: 'image/png',
+              },
+              thought: true,
+              thoughtSignature: 'sig1',
+            },
+            {
+              inlineData: {
+                data: 'BAUG',
+                mimeType: 'image/jpeg',
+              },
+              thoughtSignature: undefined,
             },
           ],
         },

@@ -256,7 +256,7 @@ export function createBedrockAnthropic(
           isStreaming ? 'invoke-with-response-stream' : 'invoke'
         }`,
 
-      transformRequestBody: args => {
+      transformRequestBody: (args, betas) => {
         const { model, stream, tool_choice, tools, ...rest } = args;
 
         const transformedToolChoice =
@@ -267,7 +267,7 @@ export function createBedrockAnthropic(
               }
             : undefined;
 
-        const requiredBetas = new Set<string>();
+        const requiredBetas = new Set<string>(betas);
         const transformedTools = tools?.map((tool: Record<string, unknown>) => {
           const toolType = tool.type as string | undefined;
 
@@ -319,8 +319,8 @@ export function createBedrockAnthropic(
 
       // Bedrock Anthropic doesn't support URL sources, force download and base64 conversion
       supportedUrls: () => ({}),
-      // force the use of JSON tool fallback for structured outputs since beta header isn't supported
-      supportsNativeStructuredOutput: false,
+      // native structured output via output_config.format is supported on Bedrock
+      supportsNativeStructuredOutput: true,
     });
 
   const provider = function (modelId: BedrockAnthropicModelId) {

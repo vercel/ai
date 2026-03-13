@@ -40,7 +40,14 @@ export interface AnthropicAssistantMessage {
     | AnthropicTextEditorCodeExecutionToolResultContent
     | AnthropicMcpToolUseContent
     | AnthropicMcpToolResultContent
+    | AnthropicCompactionContent
   >;
+}
+
+export interface AnthropicCompactionContent {
+  type: 'compaction';
+  content: string;
+  cache_control?: AnthropicCacheControl;
 }
 
 export interface AnthropicTextContent {
@@ -107,6 +114,10 @@ export type AnthropicToolCallCaller =
       tool_id: string;
     }
   | {
+      type: 'code_execution_20260120';
+      tool_id: string;
+    }
+  | {
       type: 'direct';
     };
 
@@ -164,6 +175,11 @@ type AnthropicNestedDocumentContent = Omit<
   cache_control?: never;
 };
 
+export interface AnthropicToolReferenceContent {
+  type: 'tool_reference';
+  tool_name: string;
+}
+
 export interface AnthropicToolResultContent {
   type: 'tool_result';
   tool_use_id: string;
@@ -173,6 +189,7 @@ export interface AnthropicToolResultContent {
         | AnthropicNestedTextContent
         | AnthropicNestedImageContent
         | AnthropicNestedDocumentContent
+        | AnthropicToolReferenceContent
       >;
   is_error: boolean | undefined;
   cache_control: AnthropicCacheControl | undefined;
@@ -217,6 +234,13 @@ export interface AnthropicCodeExecutionToolResultContent {
     | {
         type: 'code_execution_result';
         stdout: string;
+        stderr: string;
+        return_code: number;
+        content: Array<{ type: 'code_execution_output'; file_id: string }>;
+      }
+    | {
+        type: 'encrypted_code_execution_result';
+        encrypted_stdout: string;
         stderr: string;
         return_code: number;
         content: Array<{ type: 'code_execution_output'; file_id: string }>;
@@ -328,6 +352,7 @@ export type AnthropicTool =
       description: string | undefined;
       input_schema: JSONSchema7;
       cache_control: AnthropicCacheControl | undefined;
+      eager_input_streaming?: boolean;
       strict?: boolean;
       /**
        * When true, this tool is deferred and will only be loaded when
@@ -341,7 +366,9 @@ export type AnthropicTool =
        *
        * @example ['code_execution_20250825']
        */
-      allowed_callers?: Array<'code_execution_20250825'>;
+      allowed_callers?: Array<
+        'direct' | 'code_execution_20250825' | 'code_execution_20260120'
+      >;
     }
   | {
       type: 'code_execution_20250522';
@@ -350,6 +377,10 @@ export type AnthropicTool =
     }
   | {
       type: 'code_execution_20250825';
+      name: string;
+    }
+  | {
+      type: 'code_execution_20260120';
       name: string;
     }
   | {
@@ -393,7 +424,7 @@ export type AnthropicTool =
       type: 'memory_20250818';
     }
   | {
-      type: 'web_fetch_20250910';
+      type: 'web_fetch_20250910' | 'web_fetch_20260209';
       name: string;
       max_uses?: number;
       allowed_domains?: string[];
@@ -403,7 +434,7 @@ export type AnthropicTool =
       cache_control: AnthropicCacheControl | undefined;
     }
   | {
-      type: 'web_search_20250305';
+      type: 'web_search_20250305' | 'web_search_20260209';
       name: string;
       max_uses?: number;
       allowed_domains?: string[];
@@ -425,6 +456,8 @@ export type AnthropicTool =
       type: 'tool_search_tool_bm25_20251119';
       name: string;
     };
+
+export type AnthropicSpeed = 'fast' | 'standard';
 
 export type AnthropicToolChoice =
   | { type: 'auto' | 'any'; disable_parallel_tool_use?: boolean }
@@ -473,9 +506,17 @@ export type AnthropicClearThinkingBlockEdit = {
   keep?: 'all' | { type: 'thinking_turns'; value: number };
 };
 
+export type AnthropicCompactEdit = {
+  type: 'compact_20260112';
+  trigger?: AnthropicInputTokensTrigger;
+  pause_after_compaction?: boolean;
+  instructions?: string;
+};
+
 export type AnthropicContextManagementEdit =
   | AnthropicClearToolUsesEdit
-  | AnthropicClearThinkingBlockEdit;
+  | AnthropicClearThinkingBlockEdit
+  | AnthropicCompactEdit;
 
 export type AnthropicContextManagementConfig = {
   edits: AnthropicContextManagementEdit[];
@@ -493,9 +534,14 @@ export type AnthropicResponseClearThinkingBlockEdit = {
   cleared_input_tokens: number;
 };
 
+export type AnthropicResponseCompactEdit = {
+  type: 'compact_20260112';
+};
+
 export type AnthropicResponseContextManagementEdit =
   | AnthropicResponseClearToolUsesEdit
-  | AnthropicResponseClearThinkingBlockEdit;
+  | AnthropicResponseClearThinkingBlockEdit
+  | AnthropicResponseCompactEdit;
 
 export type AnthropicResponseContextManagement = {
   applied_edits: AnthropicResponseContextManagementEdit[];
@@ -554,6 +600,10 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
             data: z.string(),
           }),
           z.object({
+            type: z.literal('compaction'),
+            content: z.string(),
+          }),
+          z.object({
             type: z.literal('tool_use'),
             id: z.string(),
             name: z.string(),
@@ -563,6 +613,10 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
               .union([
                 z.object({
                   type: z.literal('code_execution_20250825'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('code_execution_20260120'),
                   tool_id: z.string(),
                 }),
                 z.object({
@@ -576,6 +630,17 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
             id: z.string(),
             name: z.string(),
             input: z.record(z.string(), z.unknown()).nullish(),
+            caller: z
+              .union([
+                z.object({
+                  type: z.literal('code_execution_20260120'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('direct'),
+                }),
+              ])
+              .optional(),
           }),
           z.object({
             type: z.literal('mcp_tool_use'),
@@ -654,6 +719,21 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
               z.object({
                 type: z.literal('code_execution_result'),
                 stdout: z.string(),
+                stderr: z.string(),
+                return_code: z.number(),
+                content: z
+                  .array(
+                    z.object({
+                      type: z.literal('code_execution_output'),
+                      file_id: z.string(),
+                    }),
+                  )
+                  .optional()
+                  .default([]),
+              }),
+              z.object({
+                type: z.literal('encrypted_code_execution_result'),
+                encrypted_stdout: z.string(),
                 stderr: z.string(),
                 return_code: z.number(),
                 content: z
@@ -757,6 +837,15 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
         output_tokens: z.number(),
         cache_creation_input_tokens: z.number().nullish(),
         cache_read_input_tokens: z.number().nullish(),
+        iterations: z
+          .array(
+            z.object({
+              type: z.union([z.literal('compaction'), z.literal('message')]),
+              input_tokens: z.number(),
+              output_tokens: z.number(),
+            }),
+          )
+          .nullish(),
       }),
       container: z
         .object({
@@ -786,6 +875,9 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
                 type: z.literal('clear_thinking_20251015'),
                 cleared_thinking_turns: z.number(),
                 cleared_input_tokens: z.number(),
+              }),
+              z.object({
+                type: z.literal('compact_20260112'),
               }),
             ]),
           ),
@@ -824,6 +916,10 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                     .union([
                       z.object({
                         type: z.literal('code_execution_20250825'),
+                        tool_id: z.string(),
+                      }),
+                      z.object({
+                        type: z.literal('code_execution_20260120'),
                         tool_id: z.string(),
                       }),
                       z.object({
@@ -870,6 +966,10 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                   tool_id: z.string(),
                 }),
                 z.object({
+                  type: z.literal('code_execution_20260120'),
+                  tool_id: z.string(),
+                }),
+                z.object({
                   type: z.literal('direct'),
                 }),
               ])
@@ -880,10 +980,25 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             data: z.string(),
           }),
           z.object({
+            type: z.literal('compaction'),
+            content: z.string().nullish(),
+          }),
+          z.object({
             type: z.literal('server_tool_use'),
             id: z.string(),
             name: z.string(),
             input: z.record(z.string(), z.unknown()).nullish(),
+            caller: z
+              .union([
+                z.object({
+                  type: z.literal('code_execution_20260120'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('direct'),
+                }),
+              ])
+              .optional(),
           }),
           z.object({
             type: z.literal('mcp_tool_use'),
@@ -962,6 +1077,21 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
               z.object({
                 type: z.literal('code_execution_result'),
                 stdout: z.string(),
+                stderr: z.string(),
+                return_code: z.number(),
+                content: z
+                  .array(
+                    z.object({
+                      type: z.literal('code_execution_output'),
+                      file_id: z.string(),
+                    }),
+                  )
+                  .optional()
+                  .default([]),
+              }),
+              z.object({
+                type: z.literal('encrypted_code_execution_result'),
+                encrypted_stdout: z.string(),
                 stderr: z.string(),
                 return_code: z.number(),
                 content: z
@@ -1079,6 +1209,10 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             signature: z.string(),
           }),
           z.object({
+            type: z.literal('compaction_delta'),
+            content: z.string().nullish(),
+          }),
+          z.object({
             type: z.literal('citations_delta'),
             citation: z.discriminatedUnion('type', [
               z.object({
@@ -1148,6 +1282,15 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
           output_tokens: z.number(),
           cache_creation_input_tokens: z.number().nullish(),
           cache_read_input_tokens: z.number().nullish(),
+          iterations: z
+            .array(
+              z.object({
+                type: z.union([z.literal('compaction'), z.literal('message')]),
+                input_tokens: z.number(),
+                output_tokens: z.number(),
+              }),
+            )
+            .nullish(),
         }),
         context_management: z
           .object({
@@ -1162,6 +1305,9 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                   type: z.literal('clear_thinking_20251015'),
                   cleared_thinking_turns: z.number(),
                   cleared_input_tokens: z.number(),
+                }),
+                z.object({
+                  type: z.literal('compact_20260112'),
                 }),
               ]),
             ),

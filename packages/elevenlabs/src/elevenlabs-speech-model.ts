@@ -15,7 +15,7 @@ import {
 } from './elevenlabs-speech-options';
 
 // Schema for camelCase input from users
-const ElevenLabsProviderOptionsSchema = z.object({
+const elevenLabsSpeechModelOptionsSchema = z.object({
   languageCode: z.string().optional(),
   voiceSettings: z
     .object({
@@ -44,8 +44,8 @@ const ElevenLabsProviderOptionsSchema = z.object({
   enableLogging: z.boolean().optional(),
 });
 
-export type ElevenLabsSpeechCallOptions = z.infer<
-  typeof ElevenLabsProviderOptionsSchema
+export type ElevenLabsSpeechModelOptions = z.infer<
+  typeof elevenLabsSpeechModelOptionsSchema
 >;
 
 interface ElevenLabsSpeechModelConfig extends ElevenLabsConfig {
@@ -81,7 +81,7 @@ export class ElevenLabsSpeechModel implements SpeechModelV3 {
     const elevenLabsOptions = await parseProviderOptions({
       provider: 'elevenlabs',
       providerOptions,
-      schema: ElevenLabsProviderOptionsSchema,
+      schema: elevenLabsSpeechModelOptionsSchema,
     });
 
     // Create request body

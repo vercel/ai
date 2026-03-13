@@ -75,3 +75,4 @@ Before implementing agent consumption:
 - [Common Errors](references/common-errors.md) - Renamed parameters reference (parameters → inputSchema, etc.)
 - [AI Gateway](references/ai-gateway.md) - Gateway setup and usage
 - [Type-Safe Agents with useChat](references/type-safe-agents.md) - End-to-end type safety with InferAgentUIMessage
+- [DevTools](references/devtools.md) - Set up local debugging and observability (development only)

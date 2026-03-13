@@ -1,4 +1,7 @@
-import { togetherai, TogetherAIRerankingOptions } from '@ai-sdk/togetherai';
+import {
+  togetherai,
+  TogetherAIRerankingModelOptions,
+} from '@ai-sdk/togetherai';
 import { rerank } from 'ai';
 import { print } from '../lib/print';
 import { run } from '../lib/run';
@@ -13,7 +16,7 @@ run(async () => {
     providerOptions: {
       togetherai: {
         rankFields: ['from', 'to', 'date', 'subject', 'text'],
-      } satisfies TogetherAIRerankingOptions,
+      } satisfies TogetherAIRerankingModelOptions,
     },
   });
 

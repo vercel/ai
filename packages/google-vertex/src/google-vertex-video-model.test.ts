@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 import { GoogleVertexVideoModel } from './google-vertex-video-model';
-import { createVertex } from './google-vertex-provider';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -457,6 +456,7 @@ describe('GoogleVertexVideoModel', () => {
             prompt,
             image: {
               bytesBase64Encoded: 'base64-image-data',
+              mimeType: 'image/png',
             },
           },
         ],

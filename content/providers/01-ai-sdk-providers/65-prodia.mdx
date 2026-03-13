@@ -128,7 +128,7 @@ const { image } = await generateImage({
 Prodia image models support additional options through the `providerOptions.prodia` object:
 
 ```ts
-import { prodia, type ProdiaImageProviderOptions } from '@ai-sdk/prodia';
+import { prodia, type ProdiaImageModelOptions } from '@ai-sdk/prodia';
 import { generateImage } from 'ai';
 
 const { image } = await generateImage({
@@ -140,7 +140,7 @@ const { image } = await generateImage({
       height: 768,
       steps: 4,
       stylePreset: 'cinematic',
-    } satisfies ProdiaImageProviderOptions,
+    } satisfies ProdiaImageModelOptions,
   },
 });
 ```

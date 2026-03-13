@@ -5,8 +5,8 @@ import { z } from 'zod/v4';
 
 export type BasetenEmbeddingModelId = string & {};
 
-export const basetenEmbeddingProviderOptions = z.object({});
+export const basetenEmbeddingModelOptions = z.object({});
 
-export type BasetenEmbeddingProviderOptions = z.infer<
-  typeof basetenEmbeddingProviderOptions
+export type BasetenEmbeddingModelOptions = z.infer<
+  typeof basetenEmbeddingModelOptions
 >;
