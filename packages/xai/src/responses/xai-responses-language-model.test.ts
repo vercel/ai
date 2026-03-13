@@ -1,4 +1,4 @@
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import { XaiResponsesLanguageModel } from './xai-responses-language-model';
 import { XaiLanguageModelResponsesOptions } from './xai-responses-options';
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'hello' }] },
 ];
 
