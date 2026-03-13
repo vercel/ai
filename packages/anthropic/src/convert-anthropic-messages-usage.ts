@@ -1,4 +1,4 @@
-import { JSONObject, LanguageModelV3Usage } from '@ai-sdk/provider';
+import { JSONObject, LanguageModelV4Usage } from '@ai-sdk/provider';
 
 /**
  * Represents a single iteration in the usage breakdown.
@@ -31,7 +31,7 @@ export function convertAnthropicMessagesUsage({
 }: {
   usage: AnthropicMessagesUsage;
   rawUsage?: JSONObject;
-}): LanguageModelV3Usage {
+}): LanguageModelV4Usage {
   const cacheCreationTokens = usage.cache_creation_input_tokens ?? 0;
   const cacheReadTokens = usage.cache_read_input_tokens ?? 0;
 

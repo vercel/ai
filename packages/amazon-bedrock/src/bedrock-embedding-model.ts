@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV3,
+  EmbeddingModelV4,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -25,10 +25,10 @@ type BedrockEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-type DoEmbedResponse = Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>;
+type DoEmbedResponse = Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>;
 
-export class BedrockEmbeddingModel implements EmbeddingModelV3 {
-  readonly specificationVersion = 'v3';
+export class BedrockEmbeddingModel implements EmbeddingModelV4 {
+  readonly specificationVersion = 'v4';
   readonly provider = 'amazon-bedrock';
   readonly maxEmbeddingsPerCall = 1;
   readonly supportsParallelCalls = true;
@@ -48,7 +48,7 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<DoEmbedResponse> {
+  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<DoEmbedResponse> {
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
         provider: this.provider,

@@ -1,7 +1,7 @@
 import {
-  LanguageModelV3,
+  LanguageModelV4,
   NoSuchModelError,
-  ProviderV3,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -49,16 +49,16 @@ const BEDROCK_TOOL_BETA_MAP: Record<string, string> = {
   computer_20241022: 'computer-use-2024-10-22',
 };
 
-export interface BedrockAnthropicProvider extends ProviderV3 {
+export interface BedrockAnthropicProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: BedrockAnthropicModelId): LanguageModelV3;
+  (modelId: BedrockAnthropicModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: BedrockAnthropicModelId): LanguageModelV3;
+  languageModel(modelId: BedrockAnthropicModelId): LanguageModelV4;
 
   /**
    * Anthropic-specific computer use tool.
@@ -333,7 +333,7 @@ export function createBedrockAnthropic(
     return createChatModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;

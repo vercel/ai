@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SharedV3Warning } from '@ai-sdk/provider';
+import { SharedV4Warning } from '@ai-sdk/provider';
 import { createToolNameMapping } from '@ai-sdk/provider-utils';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
@@ -1008,7 +1008,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert assistant message reasoning parts with signature into thinking parts when sendReasoning is true', async () => {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1061,7 +1061,7 @@ describe('assistant messages', () => {
   });
 
   it('should ignore reasoning parts without signature into thinking parts when sendReasoning is true', async () => {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1114,7 +1114,7 @@ describe('assistant messages', () => {
   });
 
   it('should omit assistant message reasoning parts with signature when sendReasoning is false', async () => {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1166,7 +1166,7 @@ describe('assistant messages', () => {
   });
 
   it('should omit reasoning parts without signature when sendReasoning is false', async () => {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1213,7 +1213,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic web_search tool call and result parts', async () => {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1295,7 +1295,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic web_fetch tool call and result parts', async () => {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1391,7 +1391,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic web_fetch tool call with error result', async () => {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1463,7 +1463,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic web_fetch tool call with error result as object', async () => {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1535,7 +1535,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic web_fetch tool call with error result as malformed string', async () => {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1582,7 +1582,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic tool_search_tool_regex tool call and result parts', async () => {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1664,7 +1664,7 @@ describe('assistant messages', () => {
 
   describe('code_execution 20250522', () => {
     it('should convert anthropic code_execution tool call and result parts', async () => {
-      const warnings: SharedV3Warning[] = [];
+      const warnings: SharedV4Warning[] = [];
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
@@ -1741,7 +1741,7 @@ describe('assistant messages', () => {
     });
 
     it('should pass back encrypted_code_execution_result for multi-turn (web_fetch_20260209/web_search_20260209)', async () => {
-      const warnings: SharedV3Warning[] = [];
+      const warnings: SharedV4Warning[] = [];
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
@@ -1825,7 +1825,7 @@ describe('assistant messages', () => {
 
   describe('code_execution 20250825', () => {
     it('should convert anthropic code_execution tool call and result parts', async () => {
-      const warnings: SharedV3Warning[] = [];
+      const warnings: SharedV4Warning[] = [];
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
@@ -1953,7 +1953,7 @@ describe('assistant messages', () => {
 
   describe('code_execution 20260120', () => {
     it('should convert anthropic code_execution tool call and result parts', async () => {
-      const warnings: SharedV3Warning[] = [];
+      const warnings: SharedV4Warning[] = [];
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
@@ -2081,7 +2081,7 @@ describe('assistant messages', () => {
 
   describe('mcp tool use', () => {
     it('should convert anthropic mcp tool use parts', async () => {
-      const warnings: SharedV3Warning[] = [];
+      const warnings: SharedV4Warning[] = [];
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
@@ -2546,7 +2546,7 @@ describe('cache control', () => {
 
   describe('cache control validation', () => {
     it('should reject cache_control on thinking blocks', async () => {
-      const warnings: SharedV3Warning[] = [];
+      const warnings: SharedV4Warning[] = [];
       const cacheControlValidator = new CacheControlValidator();
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
@@ -2602,7 +2602,7 @@ describe('cache control', () => {
     });
 
     it('should reject cache_control on redacted thinking blocks', async () => {
-      const warnings: SharedV3Warning[] = [];
+      const warnings: SharedV4Warning[] = [];
       const cacheControlValidator = new CacheControlValidator();
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
@@ -2645,7 +2645,7 @@ describe('cache control', () => {
   });
 
   it('should limit cache breakpoints to 4', async () => {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const cacheControlValidator = new CacheControlValidator();
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [

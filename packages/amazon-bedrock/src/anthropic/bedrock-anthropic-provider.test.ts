@@ -468,7 +468,7 @@ describe('bedrock-anthropic-provider', () => {
       secretAccessKey: 'test-secret',
     });
 
-    expect(provider.specificationVersion).toBe('v3');
+    expect(provider.specificationVersion).toBe('v4');
   });
 
   it('should provide languageModel as alias', () => {

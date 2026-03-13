@@ -32,8 +32,8 @@ const RUNTIME_VARIANTS = {
 } as const;
 
 const createModelObject = (
-  model: LanguageModelV3,
-): { model: LanguageModelV3; modelId: string } => ({
+  model: LanguageModelV4,
+): { model: LanguageModelV4; modelId: string } => ({
   model: model,
   modelId: model.modelId,
 });
@@ -43,7 +43,7 @@ const createLanguageModel = (
     | typeof createVertexAnthropicNode
     | typeof createVertexAnthropicEdge,
   modelId: string,
-  additionalTests: ((model: LanguageModelV3) => void)[] = [],
+  additionalTests: ((model: LanguageModelV4) => void)[] = [],
 ): ModelWithCapabilities<LanguageModelV3 | LanguageModelV4> => {
   const model = createVertexAnthropic({
     project: process.env.GOOGLE_VERTEX_PROJECT!,
@@ -113,7 +113,7 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
   },
 );
 
-const toolTests = (model: LanguageModelV3) => {
+const toolTests = (model: LanguageModelV4) => {
   it.skipIf(!['claude-3-5-sonnet-v2@20241022'].includes(model.modelId))(
     'should execute computer tool commands',
     async () => {

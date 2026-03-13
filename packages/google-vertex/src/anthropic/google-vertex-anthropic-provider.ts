@@ -1,7 +1,7 @@
 import {
-  LanguageModelV3,
+  LanguageModelV4,
   NoSuchModelError,
-  ProviderV3,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -79,16 +79,16 @@ export const vertexAnthropicTools = {
    */
   webSearch_20250305: anthropicTools.webSearch_20250305,
 };
-export interface GoogleVertexAnthropicProvider extends ProviderV3 {
+export interface GoogleVertexAnthropicProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: GoogleVertexAnthropicMessagesModelId): LanguageModelV3;
+  (modelId: GoogleVertexAnthropicMessagesModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: GoogleVertexAnthropicMessagesModelId): LanguageModelV3;
+  languageModel(modelId: GoogleVertexAnthropicMessagesModelId): LanguageModelV4;
 
   /**
    * Anthropic tools supported by Google Vertex.
@@ -191,7 +191,7 @@ export function createVertexAnthropic(
     return createChatModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
