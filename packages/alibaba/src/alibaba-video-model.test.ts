@@ -88,7 +88,7 @@ describe('AlibabaVideoModel', () => {
 
       expect(model.provider).toBe('alibaba.video');
       expect(model.modelId).toBe('wan2.6-t2v');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxVideosPerCall).toBe(1);
     });
 

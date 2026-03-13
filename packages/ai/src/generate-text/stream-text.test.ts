@@ -60,6 +60,7 @@ import {
 } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
+import { OpenTelemetryIntegration } from '../telemetry/open-telemetry-integration';
 
 const defaultSettings = () =>
   ({
@@ -67,6 +68,7 @@ const defaultSettings = () =>
     experimental_generateMessageId: mockId({ prefix: 'msg' }),
     _internal: {
       generateId: mockId({ prefix: 'id' }),
+      generateCallId: () => 'test-telemetry-call-id',
     },
     onError: () => {},
   }) as const;
@@ -1278,6 +1280,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockValues('id-2000'),
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -2095,6 +2098,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -2156,6 +2160,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -2231,6 +2236,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
         onError: () => {},
       });
@@ -2254,6 +2260,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
         onError: () => {},
       });
@@ -3917,6 +3924,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -3977,6 +3985,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -4048,6 +4057,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
         onError: () => {},
       });
@@ -4067,6 +4077,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
         onError: () => {},
       });
@@ -4232,6 +4243,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -4730,6 +4742,7 @@ describe('streamText', () => {
       expect(await result.steps).toMatchInlineSnapshot(`
         [
           DefaultStepResult {
+            "callId": "test-telemetry-call-id",
             "content": [
               {
                 "providerMetadata": {
@@ -4897,6 +4910,7 @@ describe('streamText', () => {
       expect(await result.steps).toMatchInlineSnapshot(`
         [
           DefaultStepResult {
+            "callId": "test-telemetry-call-id",
             "content": [
               {
                 "id": "123",
@@ -4990,6 +5004,7 @@ describe('streamText', () => {
       expect(await result.steps).toMatchInlineSnapshot(`
         [
           DefaultStepResult {
+            "callId": "test-telemetry-call-id",
             "content": [
               {
                 "file": DefaultGeneratedFileWithType {
@@ -5302,6 +5317,10 @@ describe('streamText', () => {
           startEvent = event;
         },
         onError: () => {},
+        _internal: {
+          generateId: () => 'test-call-id',
+          generateCallId: () => 'test-telemetry-call-id',
+        },
       });
 
       await result.consumeStream();
@@ -5858,6 +5877,10 @@ describe('streamText', () => {
           toolCallStartEvents.push(event);
         },
         onError: () => {},
+        _internal: {
+          generateId: () => 'test-call-id',
+          generateCallId: () => 'test-telemetry-call-id',
+        },
       });
 
       await result.consumeStream();
@@ -6874,6 +6897,7 @@ describe('streamText', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
+          "callId": "test-telemetry-call-id",
           "content": [
             {
               "providerMetadata": undefined,
@@ -6995,6 +7019,7 @@ describe('streamText', () => {
           "stepNumber": 0,
           "steps": [
             DefaultStepResult {
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "providerMetadata": undefined,
@@ -7184,6 +7209,7 @@ describe('streamText', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
+          "callId": "test-telemetry-call-id",
           "content": [
             {
               "id": "123",
@@ -7280,6 +7306,7 @@ describe('streamText', () => {
           "stepNumber": 0,
           "steps": [
             DefaultStepResult {
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "id": "123",
@@ -7419,6 +7446,7 @@ describe('streamText', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
+          "callId": "test-telemetry-call-id",
           "content": [
             {
               "file": DefaultGeneratedFileWithType {
@@ -7509,6 +7537,7 @@ describe('streamText', () => {
           "stepNumber": 0,
           "steps": [
             DefaultStepResult {
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "file": DefaultGeneratedFileWithType {
@@ -7863,11 +7892,15 @@ describe('streamText', () => {
           onStepFinish: async event => {
             onStepFinishResults.push(event);
           },
-          experimental_telemetry: { isEnabled: true, tracer },
+          experimental_telemetry: {
+            isEnabled: true,
+            integrations: new OpenTelemetryIntegration({ tracer }),
+          },
           stopWhen: stepCountIs(3),
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
         });
       });
@@ -8161,6 +8194,7 @@ describe('streamText', () => {
         it('onFinish should send correct information', async () => {
           expect(onFinishResult).toMatchInlineSnapshot(`
             {
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "providerMetadata": undefined,
@@ -8244,6 +8278,7 @@ describe('streamText', () => {
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -8348,6 +8383,7 @@ describe('streamText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -8486,6 +8522,7 @@ describe('streamText', () => {
           expect(onStepFinishResults).toMatchInlineSnapshot(`
             [
               DefaultStepResult {
+                "callId": "test-telemetry-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -8590,6 +8627,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
               DefaultStepResult {
+                "callId": "test-telemetry-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -8746,6 +8784,7 @@ describe('streamText', () => {
           expect(await result.steps).toMatchInlineSnapshot(`
             [
               DefaultStepResult {
+                "callId": "test-telemetry-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -8850,6 +8889,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
               DefaultStepResult {
+                "callId": "test-telemetry-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -9154,6 +9194,10 @@ describe('streamText', () => {
           experimental_context: { context: 'state1' },
           prompt: 'test-input',
           stopWhen: stepCountIs(3),
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
+          },
           prepareStep: async ({
             model,
             stepNumber,
@@ -9346,6 +9390,7 @@ describe('streamText', () => {
               "stepNumber": 0,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "input": {
@@ -9442,6 +9487,7 @@ describe('streamText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -9576,6 +9622,7 @@ describe('streamText', () => {
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "input": {
@@ -9672,6 +9719,7 @@ describe('streamText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -9868,11 +9916,15 @@ describe('streamText', () => {
           onStepFinish: async event => {
             onStepFinishResults.push(event);
           },
-          experimental_telemetry: { isEnabled: true, tracer },
+          experimental_telemetry: {
+            isEnabled: true,
+            integrations: new OpenTelemetryIntegration({ tracer }),
+          },
           stopWhen: stepCountIs(3),
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
         });
       });
@@ -10044,6 +10096,7 @@ describe('streamText', () => {
         it('onFinish should send correct information', async () => {
           expect(onFinishResult).toMatchInlineSnapshot(`
             {
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "providerMetadata": undefined,
@@ -10127,6 +10180,7 @@ describe('streamText', () => {
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -10231,6 +10285,7 @@ describe('streamText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -10369,6 +10424,7 @@ describe('streamText', () => {
           expect(onStepFinishResults).toMatchInlineSnapshot(`
             [
               DefaultStepResult {
+                "callId": "test-telemetry-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -10473,6 +10529,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
               DefaultStepResult {
+                "callId": "test-telemetry-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -10625,6 +10682,7 @@ describe('streamText', () => {
           expect(await result.steps).toMatchInlineSnapshot(`
             [
               DefaultStepResult {
+                "callId": "test-telemetry-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -10729,6 +10787,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
               DefaultStepResult {
+                "callId": "test-telemetry-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -10924,7 +10983,7 @@ describe('streamText', () => {
                 "ai.response.reasoning": "thinking",
                 "ai.response.text": "",
                 "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-                "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
+                "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
                 "ai.settings.maxRetries": 2,
                 "ai.usage.inputTokenDetails.noCacheTokens": 3,
                 "ai.usage.inputTokens": 3,
@@ -10950,7 +11009,10 @@ describe('streamText', () => {
                   "name": "ai.stream.firstChunk",
                 },
                 {
-                  "attributes": undefined,
+                  "attributes": {
+                    "ai.response.avgOutputTokensPerSecond": 20,
+                    "ai.response.msToFinish": 500,
+                  },
                   "name": "ai.stream.finish",
                 },
               ],
@@ -11016,7 +11078,10 @@ describe('streamText', () => {
                   "name": "ai.stream.firstChunk",
                 },
                 {
-                  "attributes": undefined,
+                  "attributes": {
+                    "ai.response.avgOutputTokensPerSecond": 25,
+                    "ai.response.msToFinish": 400,
+                  },
                   "name": "ai.stream.finish",
                 },
               ],
@@ -11164,7 +11229,10 @@ describe('streamText', () => {
             },
           },
           prompt: 'test-input',
-          experimental_telemetry: { isEnabled: true, tracer },
+          experimental_telemetry: {
+            isEnabled: true,
+            integrations: new OpenTelemetryIntegration({ tracer }),
+          },
           stopWhen: [
             ({ steps }) => {
               stopConditionCalls.push({ number: 0, steps });
@@ -11177,6 +11245,8 @@ describe('streamText', () => {
           ],
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
           },
         });
       });
@@ -11193,6 +11263,7 @@ describe('streamText', () => {
               "number": 0,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -11302,6 +11373,7 @@ describe('streamText', () => {
               "number": 1,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -12965,7 +13037,7 @@ describe('streamText', () => {
             test1: 'value1',
             test2: false,
           },
-          tracer,
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
         _internal: { now: mockValues(0, 100, 500) },
       });
@@ -13005,7 +13077,10 @@ describe('streamText', () => {
           },
         },
         prompt: 'test-input',
-        experimental_telemetry: { isEnabled: true, tracer },
+        experimental_telemetry: {
+          isEnabled: true,
+          integrations: new OpenTelemetryIntegration({ tracer }),
+        },
         _internal: { now: mockValues(0, 100, 500) },
       });
 
@@ -13046,7 +13121,10 @@ describe('streamText', () => {
           },
         },
         prompt: 'test-input',
-        experimental_telemetry: { isEnabled: true, tracer },
+        experimental_telemetry: {
+          isEnabled: true,
+          integrations: new OpenTelemetryIntegration({ tracer }),
+        },
         _internal: { now: mockValues(0, 100, 500) },
       });
 
@@ -13114,7 +13192,7 @@ describe('streamText', () => {
           isEnabled: true,
           recordInputs: false,
           recordOutputs: false,
-          tracer,
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
         _internal: { now: mockValues(0, 100, 500) },
       });
@@ -13159,7 +13237,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           isEnabled: true,
-          tracer,
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
         _internal: { now: mockValues(0, 100, 500) },
       });
@@ -13179,6 +13257,128 @@ describe('streamText', () => {
       );
       expect(doStreamSpan?.attributes['ai.response.reasoning']).toBe(
         'This is my reasoning about the problem.',
+      );
+    });
+
+    it('should execute subagent streamText inside executeToolCall context', async () => {
+      let activeContext: string | undefined;
+      let capturedContext: string | undefined;
+      const otelIntegration = new OpenTelemetryIntegration({ tracer });
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'researchTool',
+              input: '{ "city": "Tokyo" }',
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          researchTool: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async ({ city }) => {
+              capturedContext = activeContext;
+
+              const innerResult = streamText({
+                model: createTestModel({
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'inner-id-0',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    { type: 'text-start', id: '1' },
+                    {
+                      type: 'text-delta',
+                      id: '1',
+                      delta: `Weather in ${city}: sunny`,
+                    },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                }),
+                prompt: `Weather for ${city}`,
+                experimental_telemetry: {
+                  isEnabled: true,
+                  functionId: `sub-agent-${city.toLowerCase()}`,
+                  integrations: otelIntegration,
+                },
+                _internal: { now: mockValues(0, 100, 500) },
+                onError: () => {},
+              });
+
+              return await innerResult.text;
+            },
+          }),
+        },
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: 'weather-agent',
+          integrations: [
+            otelIntegration,
+            {
+              executeTool: async ({ callId, toolCallId, execute }) => {
+                activeContext = `${callId}:${toolCallId}`;
+                try {
+                  return await execute();
+                } finally {
+                  activeContext = undefined;
+                }
+              },
+            },
+          ],
+        },
+        _internal: {
+          now: mockValues(0, 100, 500),
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'outer-test-call-id',
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(capturedContext).toBe('outer-test-call-id:call-1');
+
+      expect(tracer.spans.map(s => s.name)).toEqual([
+        'ai.streamText',
+        'ai.streamText.doStream',
+        'ai.toolCall',
+        'ai.streamText',
+        'ai.streamText.doStream',
+      ]);
+
+      const toolCallSpan = tracer.spans[2];
+      expect(toolCallSpan.attributes['ai.toolCall.name']).toBe('researchTool');
+
+      const innerRootSpan = tracer.spans[3];
+      expect(innerRootSpan.attributes['ai.telemetry.functionId']).toBe(
+        'sub-agent-tokyo',
+      );
+
+      const innerStepSpan = tracer.spans[4];
+      expect(innerStepSpan.attributes['ai.response.text']).toBe(
+        'Weather in Tokyo: sunny',
       );
     });
   });
@@ -13676,6 +13876,7 @@ describe('streamText', () => {
       expect(await result.steps).toMatchInlineSnapshot(`
         [
           DefaultStepResult {
+            "callId": "test-telemetry-call-id",
             "content": [
               {
                 "input": {
@@ -14166,11 +14367,16 @@ describe('streamText', () => {
           },
           experimental_transform: upperCaseTransform,
           prompt: 'test-input',
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
+          },
         });
 
         expect(await result.steps).toMatchInlineSnapshot(`
           [
             DefaultStepResult {
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "providerMetadata": undefined,
@@ -14392,12 +14598,17 @@ describe('streamText', () => {
             result = event as unknown as typeof result;
           },
           experimental_transform: upperCaseTransform,
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
+          },
         });
 
         await resultObject.consumeStream();
 
         expect(result).toMatchInlineSnapshot(`
           {
+            "callId": "test-telemetry-call-id",
             "content": [
               {
                 "providerMetadata": undefined,
@@ -14519,6 +14730,7 @@ describe('streamText', () => {
             "stepNumber": 0,
             "steps": [
               DefaultStepResult {
+                "callId": "test-telemetry-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -14738,12 +14950,17 @@ describe('streamText', () => {
             result = event as unknown as typeof result;
           },
           experimental_transform: upperCaseTransform,
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
+          },
         });
 
         await resultObject.consumeStream();
 
         expect(result).toMatchInlineSnapshot(`
           DefaultStepResult {
+            "callId": "test-telemetry-call-id",
             "content": [
               {
                 "providerMetadata": undefined,
@@ -14895,7 +15112,10 @@ describe('streamText', () => {
           },
           prompt: 'test-input',
           experimental_transform: upperCaseTransform,
-          experimental_telemetry: { isEnabled: true, tracer },
+          experimental_telemetry: {
+            isEnabled: true,
+            integrations: new OpenTelemetryIntegration({ tracer }),
+          },
           _internal: { now: mockValues(0, 100, 500) },
         });
 
@@ -15257,12 +15477,17 @@ describe('streamText', () => {
             result = event as unknown as typeof result;
           },
           experimental_transform: stopWordTransform(),
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
+          },
         });
 
         await resultObject.consumeStream();
 
         expect(result).toMatchInlineSnapshot(`
           DefaultStepResult {
+            "callId": "test-telemetry-call-id",
             "content": [
               {
                 "providerMetadata": undefined,
@@ -15692,6 +15917,7 @@ describe('streamText', () => {
           },
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
         });
 
@@ -15701,6 +15927,7 @@ describe('streamText', () => {
 
         expect(result).toMatchInlineSnapshot(`
           {
+            "callId": "test-telemetry-call-id",
             "content": [
               {
                 "providerMetadata": undefined,
@@ -15748,6 +15975,7 @@ describe('streamText', () => {
             "stepNumber": 0,
             "steps": [
               DefaultStepResult {
+                "callId": "test-telemetry-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -16634,6 +16862,7 @@ describe('streamText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId(),
+            generateCallId: () => 'test-telemetry-call-id',
           },
         });
       });
@@ -16827,6 +17056,7 @@ describe('streamText', () => {
         expect(await result.steps).toMatchInlineSnapshot(`
           [
             DefaultStepResult {
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "providerMetadata": undefined,
@@ -17216,6 +17446,7 @@ describe('streamText', () => {
             {
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "input": {
@@ -17742,6 +17973,7 @@ describe('streamText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId(),
+            generateCallId: () => 'test-telemetry-call-id',
           },
           tools: {
             cityAttractions: tool({
@@ -18023,6 +18255,7 @@ describe('streamText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId(),
+            generateCallId: () => 'test-telemetry-call-id',
           },
           tools: {
             cityAttractions: tool({
@@ -18261,6 +18494,7 @@ describe('streamText', () => {
         expect(await result.steps).toMatchInlineSnapshot(`
           [
             DefaultStepResult {
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "input": {
@@ -18436,6 +18670,7 @@ describe('streamText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId(),
+            generateCallId: () => 'test-telemetry-call-id',
           },
         });
       });
@@ -20601,6 +20836,7 @@ describe('streamText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
           tools: {
             tool1: tool({
@@ -20844,6 +21080,7 @@ describe('streamText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
         });
       });
@@ -21167,6 +21404,7 @@ describe('streamText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -21594,6 +21832,7 @@ describe('streamText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -21922,6 +22161,7 @@ describe('streamText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -22210,6 +22450,7 @@ describe('streamText', () => {
             prompt: 'test-input',
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-telemetry-call-id',
             },
           });
         });
@@ -22466,6 +22707,7 @@ describe('streamText', () => {
             },
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-telemetry-call-id',
             },
             messages: [
               {
@@ -22640,6 +22882,7 @@ describe('streamText', () => {
             },
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-telemetry-call-id',
             },
             messages: [
               {

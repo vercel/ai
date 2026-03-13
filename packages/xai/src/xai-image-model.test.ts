@@ -49,7 +49,7 @@ describe('XaiImageModel', () => {
 
       expect(model.provider).toBe('xai.image');
       expect(model.modelId).toBe('grok-imagine-image');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxImagesPerCall).toBe(3);
     });
   });

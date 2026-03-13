@@ -24,6 +24,11 @@ import { ToolSet } from './tool-set';
  */
 export type StepResult<TOOLS extends ToolSet> = {
   /**
+   * Unique identifier for the generation call this step belongs to.
+   */
+  readonly callId: string;
+
+  /**
    * Zero-based index of this step.
    */
   readonly stepNumber: number;
@@ -168,6 +173,7 @@ export type StepResult<TOOLS extends ToolSet> = {
 export class DefaultStepResult<TOOLS extends ToolSet>
   implements StepResult<TOOLS>
 {
+  readonly callId: StepResult<TOOLS>['callId'];
   readonly stepNumber: StepResult<TOOLS>['stepNumber'];
   readonly model: StepResult<TOOLS>['model'];
   readonly functionId: StepResult<TOOLS>['functionId'];
@@ -183,6 +189,7 @@ export class DefaultStepResult<TOOLS extends ToolSet>
   readonly providerMetadata: StepResult<TOOLS>['providerMetadata'];
 
   constructor({
+    callId,
     stepNumber,
     model,
     functionId,
@@ -197,6 +204,7 @@ export class DefaultStepResult<TOOLS extends ToolSet>
     response,
     providerMetadata,
   }: {
+    callId: StepResult<TOOLS>['callId'];
     stepNumber: StepResult<TOOLS>['stepNumber'];
     model: StepResult<TOOLS>['model'];
     functionId: StepResult<TOOLS>['functionId'];
@@ -211,6 +219,7 @@ export class DefaultStepResult<TOOLS extends ToolSet>
     response: StepResult<TOOLS>['response'];
     providerMetadata: StepResult<TOOLS>['providerMetadata'];
   }) {
+    this.callId = callId;
     this.stepNumber = stepNumber;
     this.model = model;
     this.functionId = functionId;

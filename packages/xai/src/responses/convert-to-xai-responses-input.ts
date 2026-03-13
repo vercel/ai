@@ -1,6 +1,6 @@
 import {
-  SharedV3Warning,
-  LanguageModelV3Message,
+  SharedV4Warning,
+  LanguageModelV4Message,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
@@ -12,14 +12,14 @@ import {
 export async function convertToXaiResponsesInput({
   prompt,
 }: {
-  prompt: LanguageModelV3Message[];
+  prompt: LanguageModelV4Message[];
   store?: boolean;
 }): Promise<{
   input: XaiResponsesInput;
-  inputWarnings: SharedV3Warning[];
+  inputWarnings: SharedV4Warning[];
 }> {
   const input: XaiResponsesInput = [];
-  const inputWarnings: SharedV3Warning[] = [];
+  const inputWarnings: SharedV4Warning[] = [];
 
   for (const message of prompt) {
     switch (message.role) {
