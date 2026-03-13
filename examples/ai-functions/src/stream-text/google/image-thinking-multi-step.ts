@@ -30,10 +30,13 @@ run(async () => {
         process.stdout.write(part.text);
         break;
       }
-      case 'file': {
-        if (part.providerMetadata?.google?.thought === true) {
-          console.log('Reasoning image:');
+      case 'reasoning-file': {
+        if (part.file.mediaType.startsWith('image/')) {
+          console.log('Reasoning image');
         }
+        break;
+      }
+      case 'file': {
         if (part.file.mediaType.startsWith('image/')) {
           await presentImages([part.file]);
         }
@@ -66,10 +69,13 @@ run(async () => {
         process.stdout.write(part.text);
         break;
       }
-      case 'file': {
-        if (part.providerMetadata?.google?.thought === true) {
-          console.log('Reasoning image:');
+      case 'reasoning-file': {
+        if (part.file.mediaType.startsWith('image/')) {
+          console.log('Reasoning image');
         }
+        break;
+      }
+      case 'file': {
         if (part.file.mediaType.startsWith('image/')) {
           await presentImages([part.file]);
         }
