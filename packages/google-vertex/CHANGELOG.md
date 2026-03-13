@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.10
+
+### Patch Changes
+
+- e748b35: chore: update v3 specs to v4
+- Updated dependencies [e748b35]
+  - @ai-sdk/anthropic@4.0.0-beta.3
+
 ## 5.0.0-beta.9
 
 ### Patch Changes
