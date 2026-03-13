@@ -1,6 +1,6 @@
 import type {
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import type { AlibabaCacheControl } from './alibaba-chat-prompt';
 
@@ -8,7 +8,7 @@ import type { AlibabaCacheControl } from './alibaba-chat-prompt';
 const MAX_CACHE_BREAKPOINTS = 4;
 
 function getCacheControl(
-  providerMetadata: SharedV3ProviderMetadata | undefined,
+  providerMetadata: SharedV4ProviderMetadata | undefined,
 ): AlibabaCacheControl | undefined {
   const alibaba = providerMetadata?.alibaba;
 
@@ -21,10 +21,10 @@ function getCacheControl(
 
 export class CacheControlValidator {
   private breakpointCount = 0;
-  private warnings: SharedV3Warning[] = [];
+  private warnings: SharedV4Warning[] = [];
 
   getCacheControl(
-    providerMetadata: SharedV3ProviderMetadata | undefined,
+    providerMetadata: SharedV4ProviderMetadata | undefined,
   ): AlibabaCacheControl | undefined {
     const cacheControlValue = getCacheControl(providerMetadata);
 
@@ -43,7 +43,7 @@ export class CacheControlValidator {
     return cacheControlValue;
   }
 
-  getWarnings(): SharedV3Warning[] {
+  getWarnings(): SharedV4Warning[] {
     return this.warnings;
   }
 }

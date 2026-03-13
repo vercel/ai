@@ -1,6 +1,6 @@
 import {
-  type LanguageModelV3DataContent,
-  type LanguageModelV3Prompt,
+  type LanguageModelV4DataContent,
+  type LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
@@ -11,7 +11,7 @@ function formatImageUrl({
   data,
   mediaType,
 }: {
-  data: LanguageModelV3DataContent;
+  data: LanguageModelV4DataContent;
   mediaType: string;
 }): string {
   return data instanceof URL
@@ -23,7 +23,7 @@ export function convertToAlibabaChatMessages({
   prompt,
   cacheControlValidator,
 }: {
-  prompt: LanguageModelV3Prompt;
+  prompt: LanguageModelV4Prompt;
   cacheControlValidator?: CacheControlValidator;
 }): AlibabaChatPrompt {
   const messages: AlibabaChatPrompt = [];
