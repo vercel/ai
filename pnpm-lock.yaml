@@ -68,10 +68,10 @@ importers:
   examples/ai-e2e-next:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: 5.0.0-beta.2
+        specifier: 5.0.0-beta.3
         version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
-        specifier: 4.0.0-beta.2
+        specifier: 4.0.0-beta.3
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
         specifier: 4.0.0-beta.6
@@ -86,10 +86,10 @@ importers:
         specifier: 3.0.0-beta.2
         version: link:../../packages/fireworks
       '@ai-sdk/google':
-        specifier: 4.0.0-beta.8
+        specifier: 4.0.0-beta.9
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 5.0.0-beta.9
+        specifier: 5.0.0-beta.11
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 4.0.0-beta.2
@@ -119,7 +119,7 @@ importers:
         specifier: 3.0.0-beta.1
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 4.0.0-beta.6
+        specifier: 4.0.0-beta.8
         version: link:../../packages/xai
       '@modelcontextprotocol/sdk':
         specifier: ^1.26.0
@@ -859,7 +859,7 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 5.0.0-beta.9
+        specifier: 5.0.0-beta.11
         version: link:../../packages/google-vertex
       ai:
         specifier: 7.0.0-beta.17
@@ -24974,6 +24974,13 @@ packages:
       }
     hasBin: true
 
+  node-gyp-build@4.6.1:
+    resolution:
+      {
+        integrity: sha512-24vnklJmyRS8ViBNI8KbtK/r/DmXQMRiOMXTNz2nrTnAYUwjmEEbnnpB/+kt+yWRv73bPsSPRFddrcIbAxSiMQ==,
+      }
+    hasBin: true
+
   node-gyp-build@4.8.4:
     resolution:
       {
@@ -28667,6 +28674,12 @@ packages:
     resolution:
       {
         integrity: sha512-JPbdCEQLj1w5GilpiHAx3qJvFndqybBysA3qUOnznweH4QbNYUsW/ea8QzSrnh0vNsezMMw5bcVool8lM0gwzg==,
+      }
+
+  std-env@3.8.0:
+    resolution:
+      {
+        integrity: sha512-Bc3YwwCB+OzldMxOXJIIvC6cPRWr/LxOp48CdQTOkPyk/t4JWWJbrilwBd7RJzKV8QW7tJkcgAmeuLLJugl5/w==,
       }
 
   std-env@4.0.0:
@@ -36731,12 +36744,12 @@ snapshots:
 
   '@jridgewell/gen-mapping@0.3.12':
     dependencies:
-      '@jridgewell/sourcemap-codec': 1.5.5
+      '@jridgewell/sourcemap-codec': 1.5.0
       '@jridgewell/trace-mapping': 0.3.29
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
-      '@jridgewell/sourcemap-codec': 1.5.5
+      '@jridgewell/sourcemap-codec': 1.5.0
       '@jridgewell/trace-mapping': 0.3.31
 
   '@jridgewell/remapping@2.3.5':
@@ -36765,17 +36778,17 @@ snapshots:
   '@jridgewell/trace-mapping@0.3.29':
     dependencies:
       '@jridgewell/resolve-uri': 3.1.1
-      '@jridgewell/sourcemap-codec': 1.5.5
+      '@jridgewell/sourcemap-codec': 1.5.0
 
   '@jridgewell/trace-mapping@0.3.31':
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
-      '@jridgewell/sourcemap-codec': 1.5.5
+      '@jridgewell/sourcemap-codec': 1.5.0
 
   '@jridgewell/trace-mapping@0.3.9':
     dependencies:
       '@jridgewell/resolve-uri': 3.1.1
-      '@jridgewell/sourcemap-codec': 1.5.5
+      '@jridgewell/sourcemap-codec': 1.5.0
 
   '@js-sdsl/ordered-map@4.4.2': {}
 
@@ -37662,7 +37675,7 @@ snapshots:
       pathe: 1.1.2
       pkg-types: 1.2.1
       scule: 1.3.0
-      std-env: 3.10.0
+      std-env: 3.8.0
       ufo: 1.5.4
       uncrypto: 0.1.3
       unimport: 3.14.4(rollup@4.34.9)
@@ -37711,7 +37724,7 @@ snapshots:
       parse-git-config: 3.0.0
       pathe: 1.1.2
       rc9: 2.1.2
-      std-env: 3.10.0
+      std-env: 3.8.0
     transitivePeerDependencies:
       - magicast
       - rollup
@@ -37738,7 +37751,7 @@ snapshots:
       h3: 1.13.0
       jiti: 2.4.0
       knitwork: 1.1.0
-      magic-string: 0.30.21
+      magic-string: 0.30.17
       mlly: 1.7.2
       ohash: 1.1.4
       pathe: 1.1.2
@@ -37746,7 +37759,7 @@ snapshots:
       pkg-types: 1.2.1
       postcss: 8.5.6
       rollup-plugin-visualizer: 5.12.0(rollup@4.34.9)
-      std-env: 3.10.0
+      std-env: 3.8.0
       strip-literal: 2.1.0
       ufo: 1.5.4
       unenv: 1.10.0
@@ -39576,7 +39589,7 @@ snapshots:
       estree-walker: 2.0.2
       fdir: 6.5.0(picomatch@4.0.3)
       is-reference: 1.2.1
-      magic-string: 0.30.21
+      magic-string: 0.30.17
       picomatch: 4.0.3
     optionalDependencies:
       rollup: 4.34.9
@@ -39588,14 +39601,14 @@ snapshots:
       estree-walker: 2.0.2
       fdir: 6.5.0(picomatch@4.0.3)
       is-reference: 1.2.1
-      magic-string: 0.30.21
+      magic-string: 0.30.17
       picomatch: 4.0.3
     optionalDependencies:
       rollup: 4.52.3
 
   '@rollup/plugin-inject@5.0.5(rollup@4.34.9)':
     dependencies:
-      '@rollup/pluginutils': 5.3.0(rollup@4.34.9)
+      '@rollup/pluginutils': 5.1.3(rollup@4.34.9)
       estree-walker: 2.0.2
       magic-string: 0.30.21
     optionalDependencies:
@@ -39603,13 +39616,13 @@ snapshots:
 
   '@rollup/plugin-json@6.1.0(rollup@4.34.9)':
     dependencies:
-      '@rollup/pluginutils': 5.3.0(rollup@4.34.9)
+      '@rollup/pluginutils': 5.1.3(rollup@4.34.9)
     optionalDependencies:
       rollup: 4.34.9
 
   '@rollup/plugin-node-resolve@15.3.0(rollup@4.34.9)':
     dependencies:
-      '@rollup/pluginutils': 5.3.0(rollup@4.34.9)
+      '@rollup/pluginutils': 5.1.3(rollup@4.34.9)
       '@types/resolve': 1.20.2
       deepmerge: 4.3.1
       is-module: 1.0.0
@@ -39619,7 +39632,7 @@ snapshots:
 
   '@rollup/plugin-replace@6.0.1(rollup@4.34.9)':
     dependencies:
-      '@rollup/pluginutils': 5.3.0(rollup@4.34.9)
+      '@rollup/pluginutils': 5.1.3(rollup@4.34.9)
       magic-string: 0.30.21
     optionalDependencies:
       rollup: 4.34.9
@@ -39660,14 +39673,6 @@ snapshots:
       picomatch: 4.0.3
     optionalDependencies:
       rollup: 4.52.3
-
-  '@rollup/pluginutils@5.3.0(rollup@4.34.9)':
-    dependencies:
-      '@types/estree': 1.0.8
-      estree-walker: 2.0.2
-      picomatch: 4.0.3
-    optionalDependencies:
-      rollup: 4.34.9
 
   '@rollup/pluginutils@5.3.0(rollup@4.59.0)':
     dependencies:
@@ -41028,7 +41033,7 @@ snapshots:
 
   '@types/estree-jsx@1.0.5':
     dependencies:
-      '@types/estree': 1.0.8
+      '@types/estree': 1.0.6
 
   '@types/estree@1.0.6': {}
 
@@ -41613,7 +41618,7 @@ snapshots:
       glob: 7.2.3
       graceful-fs: 4.2.11
       micromatch: 4.0.8
-      node-gyp-build: 4.8.4
+      node-gyp-build: 4.6.1
       resolve-from: 5.0.0
     transitivePeerDependencies:
       - encoding
@@ -41741,7 +41746,7 @@ snapshots:
     dependencies:
       '@vitest/spy': 2.1.4
       estree-walker: 3.0.3
-      magic-string: 0.30.21
+      magic-string: 0.30.17
     optionalDependencies:
       msw: 2.12.10(@types/node@20.17.24)(typescript@5.8.3)
       vite: 5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)
@@ -41750,7 +41755,7 @@ snapshots:
     dependencies:
       '@vitest/spy': 2.1.4
       estree-walker: 3.0.3
-      magic-string: 0.30.21
+      magic-string: 0.30.17
     optionalDependencies:
       msw: 2.6.4(@types/node@20.17.24)(typescript@5.8.3)
       vite: 5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)
@@ -41825,7 +41830,7 @@ snapshots:
   '@vitest/snapshot@2.1.4':
     dependencies:
       '@vitest/pretty-format': 2.1.4
-      magic-string: 0.30.21
+      magic-string: 0.30.17
       pathe: 1.1.2
 
   '@vitest/snapshot@3.2.4':
@@ -41875,7 +41880,7 @@ snapshots:
   '@vue-macros/common@1.15.0(rollup@4.34.9)(vue@3.5.13(typescript@5.9.3))':
     dependencies:
       '@babel/types': 7.28.0
-      '@rollup/pluginutils': 5.3.0(rollup@4.34.9)
+      '@rollup/pluginutils': 5.1.3(rollup@4.34.9)
       '@vue/compiler-sfc': 3.5.13
       ast-kit: 1.3.1
       local-pkg: 0.5.1
@@ -41964,7 +41969,7 @@ snapshots:
       '@vue/compiler-ssr': 3.5.13
       '@vue/shared': 3.5.13
       estree-walker: 2.0.2
-      magic-string: 0.30.21
+      magic-string: 0.30.17
       postcss: 8.5.6
       source-map-js: 1.2.1
 
@@ -45153,7 +45158,7 @@ snapshots:
 
   estree-walker@3.0.3:
     dependencies:
-      '@types/estree': 1.0.8
+      '@types/estree': 1.0.6
 
   esutils@2.0.3: {}
 
@@ -48051,11 +48056,11 @@ snapshots:
 
   magic-string@0.30.11:
     dependencies:
-      '@jridgewell/sourcemap-codec': 1.5.5
+      '@jridgewell/sourcemap-codec': 1.5.0
 
   magic-string@0.30.12:
     dependencies:
-      '@jridgewell/sourcemap-codec': 1.5.5
+      '@jridgewell/sourcemap-codec': 1.5.0
 
   magic-string@0.30.17:
     dependencies:
@@ -48067,7 +48072,7 @@ snapshots:
 
   magic-string@0.30.8:
     dependencies:
-      '@jridgewell/sourcemap-codec': 1.5.5
+      '@jridgewell/sourcemap-codec': 1.5.0
 
   magicast@0.3.5:
     dependencies:
@@ -49300,7 +49305,7 @@ snapshots:
       klona: 2.0.6
       knitwork: 1.1.0
       listhen: 1.9.0
-      magic-string: 0.30.21
+      magic-string: 0.30.17
       magicast: 0.3.5
       mime: 4.0.4
       mlly: 1.7.2
@@ -49319,7 +49324,7 @@ snapshots:
       semver: 7.6.3
       serve-placeholder: 2.0.2
       serve-static: 1.16.2
-      std-env: 3.10.0
+      std-env: 3.8.0
       ufo: 1.5.4
       uncrypto: 0.1.3
       unctx: 2.3.1
@@ -49388,6 +49393,8 @@ snapshots:
     dependencies:
       detect-libc: 2.1.2
     optional: true
+
+  node-gyp-build@4.6.1: {}
 
   node-gyp-build@4.8.4: {}
 
@@ -52014,6 +52021,8 @@ snapshots:
 
   std-env@3.7.0: {}
 
+  std-env@3.8.0: {}
+
   std-env@4.0.0: {}
 
   stdin-discarder@0.2.2: {}
@@ -53308,7 +53317,7 @@ snapshots:
       estree-walker: 3.0.3
       fast-glob: 3.3.3
       local-pkg: 0.5.1
-      magic-string: 0.30.21
+      magic-string: 0.30.17
       mlly: 1.7.2
       pathe: 1.1.2
       pkg-types: 1.2.1
@@ -53326,14 +53335,14 @@ snapshots:
       escape-string-regexp: 5.0.0
       estree-walker: 3.0.3
       local-pkg: 0.5.1
-      magic-string: 0.30.21
+      magic-string: 0.30.17
       mlly: 1.7.3
       pathe: 1.1.2
       picomatch: 4.0.3
       pkg-types: 1.2.1
       scule: 1.3.0
       strip-literal: 2.1.1
-      tinyglobby: 0.2.15
+      tinyglobby: 0.2.14
       unplugin: 1.16.0
     transitivePeerDependencies:
       - rollup
@@ -53412,7 +53421,7 @@ snapshots:
       fast-glob: 3.3.3
       json5: 2.2.3
       local-pkg: 0.5.1
-      magic-string: 0.30.21
+      magic-string: 0.30.17
       mlly: 1.7.2
       pathe: 1.1.2
       scule: 1.3.0
@@ -53708,7 +53717,7 @@ snapshots:
       '@vue/babel-plugin-jsx': 1.2.5(@babel/core@7.26.10)
       '@vue/compiler-dom': 3.5.13
       kolorist: 1.8.0
-      magic-string: 0.30.21
+      magic-string: 0.30.17
       vite: 5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)
     transitivePeerDependencies:
       - supports-color
