@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.11
+
+### Patch Changes
+
+- e59176c: chore(google): update v3 specs to v4
+- Updated dependencies [e59176c]
+  - @ai-sdk/google@4.0.0-beta.9
+
 ## 5.0.0-beta.10
 
 ### Patch Changes
