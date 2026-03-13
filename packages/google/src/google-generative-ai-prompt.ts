@@ -1,7 +1,9 @@
 import {
   GroundingMetadataSchema,
+  PromptFeedbackSchema,
   UrlContextMetadataSchema,
   type SafetyRatingSchema,
+  UsageMetadataSchema,
 } from './google-generative-ai-language-model';
 
 export type GoogleGenerativeAIPrompt = {
@@ -41,8 +43,15 @@ export type GoogleGenerativeAIUrlContextMetadata = UrlContextMetadataSchema;
 
 export type GoogleGenerativeAISafetyRating = SafetyRatingSchema;
 
+export type GoogleGenerativeAIPromptFeedback = PromptFeedbackSchema;
+
+export type GoogleGenerativeAIUsageMetadata = UsageMetadataSchema;
+
 export interface GoogleGenerativeAIProviderMetadata {
+  promptFeedback: GoogleGenerativeAIPromptFeedback | null;
   groundingMetadata: GoogleGenerativeAIGroundingMetadata | null;
   urlContextMetadata: GoogleGenerativeAIUrlContextMetadata | null;
   safetyRatings: GoogleGenerativeAISafetyRating[] | null;
+  usageMetadata: GoogleGenerativeAIUsageMetadata | null;
+  finishMessage: string | null;
 }

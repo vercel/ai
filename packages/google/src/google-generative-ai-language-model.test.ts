@@ -183,6 +183,41 @@ describe('groundingMetadataSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('validates groundingChunks[].image', () => {
+    const metadata = {
+      imageSearchQueries: ['Super Bowl halftime show in space'],
+      groundingChunks: [
+        {
+          image: {
+            sourceUri: 'https://example.com/article',
+            imageUri: 'https://example.com/image.jpg',
+            title: 'Image Title',
+            domain: 'example.com',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates groundingChunks[].image with missing optional fields', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          image: {
+            sourceUri: 'https://example.com/article',
+            imageUri: 'https://example.com/image.jpg',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
   it('validates partial grounding metadata', () => {
     const metadata = {
       webSearchQueries: ['sample query'],
@@ -291,6 +326,13 @@ describe('urlContextMetadata', () => {
     const output = {
       urlMetadata: [],
     };
+
+    const result = urlContextMetadataSchema.safeParse(output);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates empty object without urlMetadata key', () => {
+    const output = {};
 
     const result = urlContextMetadataSchema.safeParse(output);
     expect(result.success).toBe(true);
@@ -467,6 +509,50 @@ describe('doGenerate', () => {
         "unified": "error",
       }
     `);
+  });
+
+  it('should expose finishMessage in provider metadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {},
+            finishReason: 'MALFORMED_FUNCTION_CALL',
+            finishMessage:
+              "Malformed function call: print(default_api.create(name='test'))",
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 130,
+          totalTokenCount: 130,
+          promptTokensDetails: [
+            {
+              modality: 'TEXT',
+              tokenCount: 130,
+            },
+          ],
+        },
+      },
+    };
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.finishMessage).toBe(
+      "Malformed function call: print(default_api.create(name='test'))",
+    );
+  });
+
+  it('should expose null finishMessage in provider metadata when not present', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.finishMessage).toBeNull();
   });
 
   describe('tool-call', () => {
@@ -1258,6 +1344,58 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should extract sources from image grounding metadata', async () => {
+    prepareJsonResponse({
+      content: 'test response with image search',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            image: {
+              sourceUri: 'https://example.com/article',
+              imageUri: 'https://example.com/image.jpg',
+              title: 'Image Result',
+              domain: 'example.com',
+            },
+          },
+          {
+            image: {
+              sourceUri: 'https://other.example.com/page',
+              imageUri: 'https://other.example.com/photo.png',
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": undefined,
+          "text": "test response with image search",
+          "type": "text",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "Image Result",
+          "type": "source",
+          "url": "https://example.com/article",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": undefined,
+          "type": "source",
+          "url": "https://other.example.com/page",
+        },
+      ]
+    `);
+  });
+
   it('should handle mixed source types with correct title defaults', async () => {
     prepareJsonResponse({
       content: 'test response with mixed sources',
@@ -1984,13 +2122,13 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should use googleSearchRetrieval for non-gemini-2 models', async () => {
+    it('should warn for google search on non-gemini-2 models', async () => {
       prepareJsonFixtureResponse('google-text', {
         url: TEST_URL_GEMINI_1_0_PRO,
       });
 
       const geminiPro = provider.languageModel('gemini-1.0-pro');
-      await geminiPro.doGenerate({
+      const result = await geminiPro.doGenerate({
         prompt: TEST_PROMPT,
         tools: [
           {
@@ -2002,46 +2140,17 @@ describe('doGenerate', () => {
         ],
       });
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [{ googleSearchRetrieval: {} }],
-      });
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "Google Search requires Gemini 2.0 or newer.",
+            "feature": "provider-defined tool google.google_search",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
-    it('should use dynamic retrieval for gemini-1-5', async () => {
-      prepareJsonFixtureResponse('google-text', {
-        url: TEST_URL_GEMINI_1_5_FLASH,
-      });
-
-      const geminiPro = provider.languageModel('gemini-1.5-flash');
-
-      await geminiPro.doGenerate({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'provider',
-            id: 'google.google_search',
-            name: 'google_search',
-            args: {
-              mode: 'MODE_DYNAMIC',
-              dynamicThreshold: 1,
-            },
-          },
-        ],
-      });
-
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [
-          {
-            googleSearchRetrieval: {
-              dynamicRetrievalConfig: {
-                mode: 'MODE_DYNAMIC',
-                dynamicThreshold: 1,
-              },
-            },
-          },
-        ],
-      });
-    });
     it('should use urlContextTool for gemini-2.0-pro', async () => {
       prepareJsonFixtureResponse('google-text', {
         url: TEST_URL_GEMINI_2_0_PRO,
@@ -2227,6 +2336,71 @@ describe('doGenerate', () => {
         {
           "data": "imagedata2",
           "mediaType": "image/png",
+          "providerMetadata": undefined,
+          "type": "file",
+        },
+      ]
+    `);
+  });
+
+  it('should preserve thought flag on file parts in providerMetadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: 'image/png',
+                    data: 'thoughtimagedata',
+                  },
+                  thought: true,
+                  thoughtSignature: 'img_sig1',
+                },
+                {
+                  inlineData: {
+                    mimeType: 'image/jpeg',
+                    data: 'regularimagedata',
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 20,
+          totalTokenCount: 30,
+        },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "data": "thoughtimagedata",
+          "mediaType": "image/png",
+          "providerMetadata": {
+            "google": {
+              "thought": true,
+              "thoughtSignature": "img_sig1",
+            },
+          },
+          "type": "file",
+        },
+        {
+          "data": "regularimagedata",
+          "mediaType": "image/jpeg",
           "providerMetadata": undefined,
           "type": "file",
         },
@@ -3275,6 +3449,130 @@ describe('doStream', () => {
     `);
   });
 
+  it('should preserve grounding metadata when it arrives before the finishReason chunk', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'hello' }], role: 'model' },
+              index: 0,
+              groundingMetadata: {
+                webSearchQueries: ['super bowl 2026 halftime show'],
+                groundingChunks: [
+                  {
+                    web: {
+                      uri: 'https://example.com/superbowl',
+                      title: 'Super Bowl 2026',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: ' world' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 38,
+            candidatesTokenCount: 1335,
+            totalTokenCount: 1890,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.groundingMetadata,
+    ).toEqual({
+      webSearchQueries: ['super bowl 2026 halftime show'],
+      groundingChunks: [
+        {
+          web: {
+            uri: 'https://example.com/superbowl',
+            title: 'Super Bowl 2026',
+          },
+        },
+      ],
+    });
+
+    expect(events.filter(e => e.type === 'source')).toHaveLength(1);
+  });
+
+  it('should preserve url context metadata when it arrives before the finishReason chunk', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'hello' }], role: 'model' },
+              index: 0,
+              urlContextMetadata: {
+                urlMetadata: [
+                  {
+                    retrievedUrl: 'https://example.com/page',
+                    urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
+                  },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: ' world' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 5,
+            totalTokenCount: 15,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.urlContextMetadata,
+    ).toEqual({
+      urlMetadata: [
+        {
+          retrievedUrl: 'https://example.com/page',
+          urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
+        },
+      ],
+    });
+  });
+
   it('should expose url context metadata in provider metadata on finish', async () => {
     prepareStreamResponse({
       content: ['test'],
@@ -3394,6 +3692,57 @@ describe('doStream', () => {
         ],
       }
     `);
+  });
+
+  it('should expose finishMessage in provider metadata on finish', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {},
+              finishReason: 'MALFORMED_FUNCTION_CALL',
+              finishMessage:
+                "Malformed function call: print(default_api.create(name='test'))",
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 130,
+            totalTokenCount: 130,
+            promptTokensDetails: [{ modality: 'TEXT', tokenCount: 130 }],
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.finishMessage,
+    ).toBe("Malformed function call: print(default_api.create(name='test'))");
+  });
+
+  it('should expose null finishMessage in provider metadata on finish when not present', async () => {
+    prepareStreamResponse({ content: ['test'] });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.finishMessage,
+    ).toBeNull();
   });
 
   it('should stream code execution tool calls and results', async () => {
@@ -3686,14 +4035,14 @@ describe('doStream', () => {
       });
     });
 
-    it('should use googleSearchRetrieval for non-gemini-2 models', async () => {
+    it('should warn for google search on non-gemini-2 models', async () => {
       prepareStreamResponse({
         content: [''],
         url: TEST_URL_GEMINI_1_0_PRO,
       });
 
       const geminiPro = provider.languageModel('gemini-1.0-pro');
-      await geminiPro.doStream({
+      const { stream } = await geminiPro.doStream({
         prompt: TEST_PROMPT,
         includeRawChunks: false,
         tools: [
@@ -3706,47 +4055,20 @@ describe('doStream', () => {
         ],
       });
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [{ googleSearchRetrieval: {} }],
-      });
-    });
+      const events = await convertReadableStreamToArray(stream);
 
-    it('should use dynamic retrieval for gemini-1-5', async () => {
-      prepareStreamResponse({
-        content: [''],
-        url: TEST_URL_GEMINI_1_5_FLASH,
-      });
-
-      const geminiPro = provider.languageModel('gemini-1.5-flash');
-
-      await geminiPro.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-        tools: [
-          {
-            type: 'provider',
-            id: 'google.google_search',
-            name: 'google_search',
-            args: {
-              mode: 'MODE_DYNAMIC',
-              dynamicThreshold: 1,
+      expect(events[0]).toMatchInlineSnapshot(`
+        {
+          "type": "stream-start",
+          "warnings": [
+            {
+              "details": "Google Search requires Gemini 2.0 or newer.",
+              "feature": "provider-defined tool google.google_search",
+              "type": "unsupported",
             },
-          },
-        ],
-      });
-
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [
-          {
-            googleSearchRetrieval: {
-              dynamicRetrievalConfig: {
-                mode: 'MODE_DYNAMIC',
-                dynamicThreshold: 1,
-              },
-            },
-          },
-        ],
-      });
+          ],
+        }
+      `);
     });
   });
 
@@ -3781,6 +4103,44 @@ describe('doStream', () => {
           "title": "Source Title",
           "type": "source",
           "url": "https://source.example.com",
+        },
+      ]
+    `);
+  });
+
+  it('should stream source events from image grounding metadata', async () => {
+    prepareStreamResponse({
+      content: ['image search response'],
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            image: {
+              sourceUri: 'https://example.com/article',
+              imageUri: 'https://example.com/image.jpg',
+              title: 'Image Source',
+              domain: 'example.com',
+            },
+          },
+        ],
+      },
+    });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const sourceEvents = events.filter(event => event.type === 'source');
+
+    expect(sourceEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "Image Source",
+          "type": "source",
+          "url": "https://example.com/article",
         },
       ]
     `);
@@ -3963,6 +4323,7 @@ describe('doStream', () => {
         {
           "data": "test",
           "mediaType": "text/plain",
+          "providerMetadata": undefined,
           "type": "file",
         },
         {
@@ -3972,6 +4333,7 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "google": {
+              "finishMessage": null,
               "groundingMetadata": null,
               "promptFeedback": null,
               "safetyRatings": [
@@ -3993,6 +4355,7 @@ describe('doStream', () => {
                 },
               ],
               "urlContextMetadata": null,
+              "usageMetadata": null,
             },
           },
           "type": "finish",
@@ -4014,6 +4377,74 @@ describe('doStream', () => {
               "totalTokenCount": 527,
             },
           },
+        },
+      ]
+    `);
+  });
+
+  it('should stream file parts with thought flag in providerMetadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    inlineData: { data: 'thoughtimg', mimeType: 'image/png' },
+                    thought: true,
+                    thoughtSignature: 'stream_sig',
+                  },
+                  {
+                    inlineData: {
+                      data: 'regularimg',
+                      mimeType: 'image/jpeg',
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 20,
+            totalTokenCount: 30,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    const fileEvents = events.filter(e => e.type === 'file');
+    expect(fileEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "data": "thoughtimg",
+          "mediaType": "image/png",
+          "providerMetadata": {
+            "google": {
+              "thought": true,
+              "thoughtSignature": "stream_sig",
+            },
+          },
+          "type": "file",
+        },
+        {
+          "data": "regularimg",
+          "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
+          "type": "file",
         },
       ]
     `);
@@ -4081,29 +4512,49 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
           "data": "image1",
           "mediaType": "image/png",
+          "providerMetadata": undefined,
           "type": "file",
         },
         {
+          "id": "1",
+          "providerMetadata": undefined,
+          "type": "text-start",
+        },
+        {
           "delta": " Step 2: ",
-          "id": "0",
+          "id": "1",
           "providerMetadata": undefined,
           "type": "text-delta",
+        },
+        {
+          "id": "1",
+          "type": "text-end",
         },
         {
           "data": "image2",
           "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
           "type": "file",
         },
         {
+          "id": "2",
+          "providerMetadata": undefined,
+          "type": "text-start",
+        },
+        {
           "delta": " Done",
-          "id": "0",
+          "id": "2",
           "providerMetadata": undefined,
           "type": "text-delta",
         },
         {
-          "id": "0",
+          "id": "2",
           "type": "text-end",
         },
       ]
@@ -4360,6 +4811,7 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "google": {
+              "finishMessage": null,
               "groundingMetadata": null,
               "promptFeedback": null,
               "safetyRatings": null,
@@ -4504,6 +4956,7 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "google": {
+              "finishMessage": null,
               "groundingMetadata": null,
               "promptFeedback": null,
               "safetyRatings": [
@@ -4525,6 +4978,7 @@ describe('doStream', () => {
                 },
               ],
               "urlContextMetadata": null,
+              "usageMetadata": null,
             },
           },
           "type": "finish",

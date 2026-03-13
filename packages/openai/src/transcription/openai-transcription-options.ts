@@ -4,7 +4,10 @@ import { z } from 'zod/v4';
 export type OpenAITranscriptionModelId =
   | 'whisper-1'
   | 'gpt-4o-mini-transcribe'
+  | 'gpt-4o-mini-transcribe-2025-03-20'
+  | 'gpt-4o-mini-transcribe-2025-12-15'
   | 'gpt-4o-transcribe'
+  | 'gpt-4o-transcribe-diarize'
   | (string & {});
 
 // https://platform.openai.com/docs/api-reference/audio/createTranscription

@@ -395,6 +395,7 @@ describe('GatewayProvider', () => {
         VERCEL_DEPLOYMENT_ID: 'test-deployment',
         VERCEL_ENV: 'test',
         VERCEL_REGION: 'iad1',
+        VERCEL_PROJECT_ID: 'prj_test123',
       };
       vi.mocked(getVercelRequestId).mockResolvedValue('test-request-id');
 
@@ -423,6 +424,7 @@ describe('GatewayProvider', () => {
           'ai-o11y-environment': 'test',
           'ai-o11y-region': 'iad1',
           'ai-o11y-request-id': 'test-request-id',
+          'ai-o11y-project-id': 'prj_test123',
         });
       } finally {
         process.env = originalEnv;

@@ -3518,6 +3518,104 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should only send the forced tool when toolChoice specifies a specific tool', async () => {
+    prepareJsonFixtureResponse('bedrock-text');
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'getWeatherByCity',
+          description: 'Get weather by city',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+            additionalProperties: false,
+          },
+        },
+        {
+          type: 'function',
+          name: 'getCurrentWeather',
+          description: 'Get current weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+            required: ['location'],
+            additionalProperties: false,
+          },
+        },
+        {
+          type: 'function',
+          name: 'getWeatherForecast',
+          description: 'Get forecast',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              location: { type: 'string' },
+              days: { type: 'number' },
+            },
+            required: ['location', 'days'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      toolChoice: { type: 'tool', toolName: 'getWeatherByCity' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.toolConfig.tools).toHaveLength(1);
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe(
+      'getWeatherByCity',
+    );
+    expect(requestBody.toolConfig.toolChoice).toEqual({
+      tool: { name: 'getWeatherByCity' },
+    });
+  });
+
+  it('should send all tools when toolChoice is auto', async () => {
+    prepareJsonFixtureResponse('bedrock-text');
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'getWeatherByCity',
+          description: 'Get weather by city',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+            additionalProperties: false,
+          },
+        },
+        {
+          type: 'function',
+          name: 'getCurrentWeather',
+          description: 'Get current weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+            required: ['location'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      toolChoice: { type: 'auto' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.toolConfig.tools).toHaveLength(2);
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe(
+      'getWeatherByCity',
+    );
+    expect(requestBody.toolConfig.tools[1].toolSpec.name).toBe(
+      'getCurrentWeather',
+    );
+  });
+
   it('should omit empty tool descriptions to avoid Bedrock validation errors', async () => {
     prepareJsonFixtureResponse('bedrock-text');
 
@@ -4227,6 +4325,184 @@ describe('doGenerate', () => {
     expect(requestBody.additionalModelRequestFields?.output_config).toEqual({
       effort: 'medium',
     });
+  });
+
+  it('should use native output_config.format instead of json tool when thinking is enabled with structured output', async () => {
+    prepareJsonFixtureResponse('bedrock-text');
+
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a recipe' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            recipe: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                ingredients: { type: 'array', items: { type: 'string' } },
+              },
+              required: ['name', 'ingredients'],
+            },
+          },
+          required: ['recipe'],
+        },
+      },
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            budgetTokens: 2000,
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+
+    expect(requestBody.additionalModelRequestFields?.output_config).toEqual({
+      format: {
+        type: 'json_schema',
+        schema: {
+          type: 'object',
+          properties: {
+            recipe: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                ingredients: { type: 'array', items: { type: 'string' } },
+              },
+              required: ['name', 'ingredients'],
+            },
+          },
+          required: ['recipe'],
+        },
+      },
+    });
+
+    expect(requestBody.additionalModelRequestFields?.thinking).toBeDefined();
+  });
+
+  it('should merge output_config.effort and output_config.format when thinking with maxReasoningEffort and structured output', async () => {
+    prepareJsonFixtureResponse('bedrock-text');
+
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a recipe' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            budgetTokens: 2000,
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+
+    expect(requestBody.additionalModelRequestFields?.output_config).toEqual({
+      effort: 'medium',
+      format: {
+        type: 'json_schema',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+  });
+
+  it('should still use json tool fallback for structured output without thinking enabled', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: { name: 'Test' },
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a name' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeDefined();
+    expect(requestBody.toolConfig.tools).toHaveLength(1);
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+    expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toBeUndefined();
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "{"name":"Test"}",
+          "type": "text",
+        },
+      ]
+    `);
+    expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
   });
 
   it('should extract reasoning text with signature', async () => {

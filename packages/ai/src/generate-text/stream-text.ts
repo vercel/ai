@@ -1,8 +1,8 @@
 import {
   getErrorMessage,
-  LanguageModelV3,
-  LanguageModelV3ToolChoice,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4ToolChoice,
+  SharedV4Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -19,6 +19,7 @@ import {
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
+import { Listener, notify } from '../util/notify';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import {
@@ -41,6 +42,7 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
+import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
@@ -756,7 +758,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     download,
     include,
   }: {
-    model: LanguageModelV3;
+    model: LanguageModelV4;
     telemetry: TelemetrySettings | undefined;
     headers: Record<string, string | undefined> | undefined;
     settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
@@ -805,6 +807,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     this.outputSpecification = output;
     this.includeRawChunks = includeRawChunks;
     this.tools = tools;
+
+    const createGlobalTelemetry = getGlobalTelemetryIntegration<
+      TOOLS,
+      OUTPUT
+    >();
+    const globalTelemetry = createGlobalTelemetry(telemetry?.integrations);
 
     // promise to ensure that the step has been fully processed by the event processor
     // before a new step is started. This is required because the continuation condition
@@ -970,7 +978,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         }
 
         if (part.type === 'file') {
-          recordedContent.push({ type: 'file', file: part.file });
+          recordedContent.push({
+            type: 'file',
+            file: part.file,
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
+          });
         }
 
         if (part.type === 'source') {
@@ -1028,7 +1042,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             providerMetadata: part.providerMetadata,
           });
 
-          await onStepFinish?.(currentStepResult);
+          await notify({
+            event: currentStepResult,
+            callbacks: [onStepFinish, globalTelemetry.onStepFinish],
+          });
 
           logWarnings({
             warnings: recordedWarnings,
@@ -1084,33 +1101,42 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           // call onFinish callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
-          await onFinish?.({
-            stepNumber: finalStep.stepNumber,
-            model: finalStep.model,
-            functionId: finalStep.functionId,
-            metadata: finalStep.metadata,
-            experimental_context: finalStep.experimental_context,
-            finishReason: finalStep.finishReason,
-            rawFinishReason: finalStep.rawFinishReason,
-            totalUsage,
-            usage: finalStep.usage,
-            content: finalStep.content,
-            text: finalStep.text,
-            reasoningText: finalStep.reasoningText,
-            reasoning: finalStep.reasoning,
-            files: finalStep.files,
-            sources: finalStep.sources,
-            toolCalls: finalStep.toolCalls,
-            staticToolCalls: finalStep.staticToolCalls,
-            dynamicToolCalls: finalStep.dynamicToolCalls,
-            toolResults: finalStep.toolResults,
-            staticToolResults: finalStep.staticToolResults,
-            dynamicToolResults: finalStep.dynamicToolResults,
-            request: finalStep.request,
-            response: finalStep.response,
-            warnings: finalStep.warnings,
-            providerMetadata: finalStep.providerMetadata,
-            steps: recordedSteps,
+
+          await notify({
+            event: {
+              stepNumber: finalStep.stepNumber,
+              model: finalStep.model,
+              functionId: finalStep.functionId,
+              metadata: finalStep.metadata,
+              experimental_context: finalStep.experimental_context,
+              finishReason: finalStep.finishReason,
+              rawFinishReason: finalStep.rawFinishReason,
+              totalUsage,
+              usage: finalStep.usage,
+              content: finalStep.content,
+              text: finalStep.text,
+              reasoningText: finalStep.reasoningText,
+              reasoning: finalStep.reasoning,
+              files: finalStep.files,
+              sources: finalStep.sources,
+              toolCalls: finalStep.toolCalls,
+              staticToolCalls: finalStep.staticToolCalls,
+              dynamicToolCalls: finalStep.dynamicToolCalls,
+              toolResults: finalStep.toolResults,
+              staticToolResults: finalStep.staticToolResults,
+              dynamicToolResults: finalStep.dynamicToolResults,
+              request: finalStep.request,
+              response: finalStep.response,
+              warnings: finalStep.warnings,
+              providerMetadata: finalStep.providerMetadata,
+              steps: recordedSteps,
+            },
+            callbacks: [
+              onFinish,
+              globalTelemetry.onFinish as
+                | undefined
+                | StreamTextOnFinishCallback<TOOLS>,
+            ],
           });
 
           // Add response information to the root span:
@@ -1132,12 +1158,23 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 'ai.response.providerMetadata': JSON.stringify(
                   finalStep.providerMetadata,
                 ),
-
                 'ai.usage.inputTokens': totalUsage.inputTokens,
+                'ai.usage.inputTokenDetails.noCacheTokens':
+                  totalUsage.inputTokenDetails?.noCacheTokens,
+                'ai.usage.inputTokenDetails.cacheReadTokens':
+                  totalUsage.inputTokenDetails?.cacheReadTokens,
+                'ai.usage.inputTokenDetails.cacheWriteTokens':
+                  totalUsage.inputTokenDetails?.cacheWriteTokens,
                 'ai.usage.outputTokens': totalUsage.outputTokens,
+                'ai.usage.outputTokenDetails.textTokens':
+                  totalUsage.outputTokenDetails?.textTokens,
+                'ai.usage.outputTokenDetails.reasoningTokens':
+                  totalUsage.outputTokenDetails?.reasoningTokens,
                 'ai.usage.totalTokens': totalUsage.totalTokens,
-                'ai.usage.reasoningTokens': totalUsage.reasoningTokens,
-                'ai.usage.cachedInputTokens': totalUsage.cachedInputTokens,
+                'ai.usage.reasoningTokens':
+                  totalUsage.outputTokenDetails?.reasoningTokens,
+                'ai.usage.cachedInputTokens':
+                  totalUsage.inputTokenDetails?.cacheReadTokens,
               },
             }),
           );
@@ -1271,8 +1308,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           messages,
         } as Prompt);
 
-        try {
-          await onStart?.({
+        await notify({
+          event: {
             model: modelInfo,
             system,
             prompt,
@@ -1298,10 +1335,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             include,
             ...callbackTelemetryProps,
             experimental_context,
-          });
-        } catch (_ignored) {
-          // Errors in callbacks should not break the generation flow.
-        }
+          },
+          callbacks: [
+            onStart,
+            globalTelemetry.onStart as
+              | undefined
+              | StreamTextOnStartCallback<TOOLS, OUTPUT>,
+          ],
+        });
 
         const initialMessages = initialPrompt.messages;
         const initialResponseMessages: Array<ResponseMessage> = [];
@@ -1370,8 +1411,16 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   experimental_context,
                   stepNumber: recordedSteps.length,
                   model: modelInfo,
-                  onToolCallStart,
-                  onToolCallFinish,
+                  onToolCallStart: [
+                    onToolCallStart,
+                    globalTelemetry.onToolCallStart as
+                      | undefined
+                      | StreamTextOnToolCallStartCallback<TOOLS>,
+                  ],
+                  onToolCallFinish: [
+                    onToolCallFinish,
+                    globalTelemetry.onToolCallFinish,
+                  ],
                   onPreliminaryToolResult: result => {
                     toolExecutionStepStreamController?.enqueue(result);
                   },
@@ -1419,7 +1468,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                       output.type === 'tool-result'
                         ? output.output
                         : output.error,
-                    errorMode: output.type === 'tool-error' ? 'json' : 'none',
+                    errorMode: output.type === 'tool-error' ? 'text' : 'none',
                   }),
                 });
               }
@@ -1549,8 +1598,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               prepareStepResult?.providerOptions,
             );
 
-            try {
-              await onStepStart?.({
+            await notify({
+              event: {
                 stepNumber: recordedSteps.length,
                 model: stepModelInfo,
                 system: stepSystem,
@@ -1568,10 +1617,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 include,
                 ...callbackTelemetryProps,
                 experimental_context,
-              });
-            } catch (_ignored) {
-              // Errors in callbacks should not break the generation flow.
-            }
+              },
+              callbacks: [
+                onStepStart,
+                globalTelemetry.onStepStart as
+                  | undefined
+                  | StreamTextOnStepStartCallback<TOOLS, OUTPUT>,
+              ],
+            });
 
             const {
               result: { stream, response, request },
@@ -1653,8 +1706,16 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               generateId,
               stepNumber: recordedSteps.length,
               model: stepModelInfo,
-              onToolCallStart,
-              onToolCallFinish,
+              onToolCallStart: [
+                onToolCallStart,
+                globalTelemetry.onToolCallStart as
+                  | undefined
+                  | StreamTextOnToolCallStartCallback<TOOLS>,
+              ],
+              onToolCallFinish: [
+                onToolCallFinish,
+                globalTelemetry.onToolCallFinish,
+              ],
             });
 
             // Conditionally include request.body based on include settings.
@@ -1665,7 +1726,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 : { ...request, body: undefined };
             const stepToolCalls: TypedToolCall<TOOLS>[] = [];
             const stepToolOutputs: ToolOutput<TOOLS>[] = [];
-            let warnings: SharedV3Warning[] | undefined;
+            let warnings: SharedV4Warning[] | undefined;
 
             const activeToolCallToolNames: Record<string, string> = {};
 
@@ -1896,29 +1957,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                         ? JSON.stringify(stepToolCalls)
                         : undefined;
 
-                    // record telemetry information first to ensure best effort timing
+                    // record telemetry attributes that don't depend on transforms:
                     try {
                       doStreamSpan.setAttributes(
                         await selectTelemetryAttributes({
                           telemetry,
                           attributes: {
                             'ai.response.finishReason': stepFinishReason,
-                            'ai.response.text': {
-                              output: () => activeText,
-                            },
-                            'ai.response.reasoning': {
-                              output: () => {
-                                const reasoningParts = recordedContent.filter(
-                                  (
-                                    c,
-                                  ): c is { type: 'reasoning'; text: string } =>
-                                    c.type === 'reasoning',
-                                );
-                                return reasoningParts.length > 0
-                                  ? reasoningParts.map(r => r.text).join('\n')
-                                  : undefined;
-                              },
-                            },
                             'ai.response.toolCalls': {
                               output: () => stepToolCallsJson,
                             },
@@ -1926,16 +1971,23 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                             'ai.response.model': stepResponse.modelId,
                             'ai.response.timestamp':
                               stepResponse.timestamp.toISOString(),
-                            'ai.response.providerMetadata':
-                              JSON.stringify(stepProviderMetadata),
-
                             'ai.usage.inputTokens': stepUsage.inputTokens,
+                            'ai.usage.inputTokenDetails.noCacheTokens':
+                              stepUsage.inputTokenDetails?.noCacheTokens,
+                            'ai.usage.inputTokenDetails.cacheReadTokens':
+                              stepUsage.inputTokenDetails?.cacheReadTokens,
+                            'ai.usage.inputTokenDetails.cacheWriteTokens':
+                              stepUsage.inputTokenDetails?.cacheWriteTokens,
                             'ai.usage.outputTokens': stepUsage.outputTokens,
+                            'ai.usage.outputTokenDetails.textTokens':
+                              stepUsage.outputTokenDetails?.textTokens,
+                            'ai.usage.outputTokenDetails.reasoningTokens':
+                              stepUsage.outputTokenDetails?.reasoningTokens,
                             'ai.usage.totalTokens': stepUsage.totalTokens,
                             'ai.usage.reasoningTokens':
-                              stepUsage.reasoningTokens,
+                              stepUsage.outputTokenDetails?.reasoningTokens,
                             'ai.usage.cachedInputTokens':
-                              stepUsage.cachedInputTokens,
+                              stepUsage.inputTokenDetails?.cacheReadTokens,
 
                             // standardized gen-ai llm span attributes:
                             'gen_ai.response.finish_reasons': [
@@ -1951,9 +2003,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                       );
                     } catch (error) {
                       // ignore error setting telemetry attributes
-                    } finally {
-                      // finish doStreamSpan before other operations for correct timing:
-                      doStreamSpan.end();
                     }
 
                     controller.enqueue({
@@ -1976,6 +2025,33 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     // wait for the step to be fully processed by the event processor
                     // to ensure that the recorded steps are complete:
                     await stepFinish.promise;
+
+                    // set transform-dependent attributes after the step has been
+                    // fully processed (post-transform) by the event processor:
+                    const processedStep =
+                      recordedSteps[recordedSteps.length - 1];
+                    try {
+                      doStreamSpan.setAttributes(
+                        await selectTelemetryAttributes({
+                          telemetry,
+                          attributes: {
+                            'ai.response.text': {
+                              output: () => processedStep.text,
+                            },
+                            'ai.response.reasoning': {
+                              output: () => processedStep.reasoningText,
+                            },
+                            'ai.response.providerMetadata': JSON.stringify(
+                              processedStep.providerMetadata,
+                            ),
+                          },
+                        }),
+                      );
+                    } catch (error) {
+                      // ignore error setting telemetry attributes
+                    } finally {
+                      doStreamSpan.end();
+                    }
 
                     const clientToolCalls = stepToolCalls.filter(
                       toolCall => toolCall.providerExecuted !== true,
@@ -2433,6 +2509,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 type: 'file',
                 mediaType: part.file.mediaType,
                 url: `data:${part.file.mediaType};base64,${part.file.base64}`,
+                ...(part.providerMetadata != null
+                  ? { providerMetadata: part.providerMetadata }
+                  : {}),
               });
               break;
             }
@@ -2551,6 +2630,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 ...(part.providerExecuted != null
                   ? { providerExecuted: part.providerExecuted }
                   : {}),
+                ...(part.providerMetadata != null
+                  ? { providerMetadata: part.providerMetadata }
+                  : {}),
                 ...(part.preliminary != null
                   ? { preliminary: part.preliminary }
                   : {}),
@@ -2565,9 +2647,16 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               controller.enqueue({
                 type: 'tool-output-error',
                 toolCallId: part.toolCallId,
-                errorText: onError(part.error),
+                errorText: part.providerExecuted
+                  ? typeof part.error === 'string'
+                    ? part.error
+                    : JSON.stringify(part.error)
+                  : onError(part.error),
                 ...(part.providerExecuted != null
                   ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(part.providerMetadata != null
+                  ? { providerMetadata: part.providerMetadata }
                   : {}),
                 ...(dynamic != null ? { dynamic } : {}),
               });

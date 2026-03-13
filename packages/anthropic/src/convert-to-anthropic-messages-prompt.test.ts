@@ -1571,7 +1571,7 @@ describe('assistant messages', () => {
       {
         "cache_control": undefined,
         "content": {
-          "error_code": "unknown",
+          "error_code": "unavailable",
           "type": "web_fetch_tool_result_error",
         },
         "tool_use_id": "srvtoolu_test123",
@@ -1739,9 +1739,219 @@ describe('assistant messages', () => {
       `);
       expect(warnings).toMatchInlineSnapshot(`[]`);
     });
+
+    it('should pass back encrypted_code_execution_result for multi-turn (web_fetch_20260209/web_search_20260209)', async () => {
+      const warnings: SharedV3Warning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_webfetch_01',
+                toolName: 'web_fetch',
+                input: { url: 'https://example.com' },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'srvtoolu_webfetch_01',
+                toolName: 'web_fetch',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'web_fetch_result',
+                    url: 'https://example.com',
+                    retrievedAt: '2026-01-01T00:00:00Z',
+                    content: {
+                      type: 'document',
+                      title: 'Example',
+                      source: {
+                        type: 'text',
+                        mediaType: 'text/plain',
+                        data: 'hello',
+                      },
+                    },
+                  },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_codeexec_01',
+                toolName: 'code_execution',
+                input: { code: 'print("done")' },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'srvtoolu_codeexec_01',
+                toolName: 'code_execution',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'encrypted_code_execution_result',
+                    encrypted_stdout: 'enc_abc123',
+                    stderr: '',
+                    return_code: 0,
+                    content: [],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      const assistantMessage = result.prompt.messages[0];
+      expect(assistantMessage.role).toBe('assistant');
+      const codeExecResult = (assistantMessage.content as any[]).find(
+        (c: any) => c.type === 'code_execution_tool_result',
+      );
+      expect(codeExecResult).toBeDefined();
+      expect(codeExecResult.content).toEqual({
+        type: 'encrypted_code_execution_result',
+        encrypted_stdout: 'enc_abc123',
+        stderr: '',
+        return_code: 0,
+        content: [],
+      });
+      expect(warnings).toMatchInlineSnapshot(`[]`);
+    });
   });
 
   describe('code_execution 20250825', () => {
+    it('should convert anthropic code_execution tool call and result parts', async () => {
+      const warnings: SharedV3Warning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_01Hq9rR6fZwwDGHkTYRafn7k',
+                toolName: 'code_execution',
+                input: {
+                  type: 'text_editor_code_execution',
+                  command: 'create',
+                  path: '/tmp/fibonacci.py',
+                  file_text: 'def..',
+                },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'srvtoolu_01Hq9rR6fZwwDGHkTYRafn7k',
+                toolName: 'code_execution',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'text_editor_code_execution_create_result',
+                    is_file_update: false,
+                  },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_0193G3ttnkiTfZASwHQSKc2V',
+                toolName: 'code_execution',
+                input: {
+                  type: 'bash_code_execution',
+                  command: 'python /tmp/fibonacci.py',
+                },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'srvtoolu_0193G3ttnkiTfZASwHQSKc2V',
+                toolName: 'code_execution',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'bash_code_execution_result',
+                    content: [],
+                    stdout: 'The 10th Fibonacci number is: 34\n',
+                    stderr: '',
+                    return_code: 0,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "prompt": {
+            "messages": [
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "id": "srvtoolu_01Hq9rR6fZwwDGHkTYRafn7k",
+                    "input": {
+                      "command": "create",
+                      "file_text": "def..",
+                      "path": "/tmp/fibonacci.py",
+                      "type": "text_editor_code_execution",
+                    },
+                    "name": "text_editor_code_execution",
+                    "type": "server_tool_use",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "content": {
+                      "is_file_update": false,
+                      "type": "text_editor_code_execution_create_result",
+                    },
+                    "tool_use_id": "srvtoolu_01Hq9rR6fZwwDGHkTYRafn7k",
+                    "type": "text_editor_code_execution_tool_result",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "id": "srvtoolu_0193G3ttnkiTfZASwHQSKc2V",
+                    "input": {
+                      "command": "python /tmp/fibonacci.py",
+                      "type": "bash_code_execution",
+                    },
+                    "name": "bash_code_execution",
+                    "type": "server_tool_use",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "content": {
+                      "content": [],
+                      "return_code": 0,
+                      "stderr": "",
+                      "stdout": "The 10th Fibonacci number is: 34
+        ",
+                      "type": "bash_code_execution_result",
+                    },
+                    "tool_use_id": "srvtoolu_0193G3ttnkiTfZASwHQSKc2V",
+                    "type": "bash_code_execution_tool_result",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ],
+            "system": undefined,
+          },
+        }
+      `);
+      expect(warnings).toMatchInlineSnapshot(`[]`);
+    });
+  });
+
+  describe('code_execution 20260120', () => {
     it('should convert anthropic code_execution tool call and result parts', async () => {
       const warnings: SharedV3Warning[] = [];
       const result = await convertToAnthropicMessagesPrompt({

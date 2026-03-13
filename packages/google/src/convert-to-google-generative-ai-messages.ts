@@ -122,7 +122,7 @@ export function convertToGoogleGenerativeAIMessages(
                 part.providerOptions?.[providerOptionsName] ??
                 (providerOptionsName !== 'google'
                   ? part.providerOptions?.google
-                  : undefined);
+                  : part.providerOptions?.vertex);
               const thoughtSignature =
                 providerOpts?.thoughtSignature != null
                   ? String(providerOpts.thoughtSignature)
@@ -161,6 +161,9 @@ export function convertToGoogleGenerativeAIMessages(
                       mimeType: part.mediaType,
                       data: convertToBase64(part.data),
                     },
+                    ...(providerOpts?.thought === true
+                      ? { thought: true }
+                      : {}),
                     thoughtSignature,
                   };
                 }
