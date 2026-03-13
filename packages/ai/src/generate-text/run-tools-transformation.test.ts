@@ -1861,5 +1861,144 @@ describe('runToolsTransformation', () => {
       const toolResults = result.filter(r => r.type === 'tool-result');
       expect(toolResults).toHaveLength(2);
     });
+
+    it('should emit approval request without executing when tool needs approval', async () => {
+      const executionOrder: string[] = [];
+
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'approvalTool',
+            input: `{ "value": "test" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          approvalTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            needsApproval: true,
+            execute: async ({ value }) => {
+              executionOrder.push('tool-execute');
+              return `${value}-result`;
+            },
+          }),
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+        deferToolExecution: true,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      // Tool should NOT have been executed (approval needed)
+      expect(executionOrder).toHaveLength(0);
+
+      // Should contain tool-call and tool-approval-request, but no tool-result
+      expect(result.map(r => r.type)).toMatchInlineSnapshot(`
+        [
+          "tool-call",
+          "tool-approval-request",
+          "finish",
+        ]
+      `);
+    });
+
+    it('should defer non-approval tools while emitting approval requests for approval tools', async () => {
+      const executionOrder: string[] = [];
+
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'regularTool',
+            input: `{ "value": "auto" }`,
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-2',
+            toolName: 'approvalTool',
+            input: `{ "value": "manual" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]);
+
+      const trackingStream = inputStream.pipeThrough(
+        new TransformStream({
+          flush() {
+            executionOrder.push('stream-flush');
+          },
+        }),
+      );
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          regularTool: {
+            title: 'Regular Tool',
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              executionOrder.push(`tool-execute:${value}`);
+              return `${value}-result`;
+            },
+          },
+          approvalTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            needsApproval: true,
+            execute: async ({ value }) => {
+              executionOrder.push(`tool-execute:${value}`);
+              return `${value}-result`;
+            },
+          }),
+        },
+        generatorStream: trackingStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+        deferToolExecution: true,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      // Only the regular tool should have executed, and after the stream flush
+      const flushIndex = executionOrder.indexOf('stream-flush');
+      const execIndex = executionOrder.indexOf('tool-execute:auto');
+      expect(flushIndex).toBeLessThan(execIndex);
+
+      // The approval tool should NOT have executed
+      expect(executionOrder).not.toContain('tool-execute:manual');
+
+      // Stream should contain: tool-call (regular), tool-call (approval),
+      // tool-approval-request, tool-result (regular), finish
+      const types = result.map(r => r.type);
+      expect(types).toContain('tool-result');
+      expect(types).toContain('tool-approval-request');
+
+      // Only one tool-result (the regular tool)
+      expect(result.filter(r => r.type === 'tool-result')).toHaveLength(1);
+    });
   });
 });
