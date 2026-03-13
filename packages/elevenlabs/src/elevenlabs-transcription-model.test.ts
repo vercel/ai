@@ -102,20 +102,21 @@ describe('doGenerate', () => {
         },
       });
 
-      const body = await server.calls[0].requestBodyMultipart;
-      expect(body!.file).toBeInstanceOf(File);
-      const { file: _, ...rest } = body!;
-      expect(rest).toMatchInlineSnapshot(`
-        {
-          "diarize": "true",
-          "file_format": "pcm_s16le_16",
-          "language_code": "en",
-          "model_id": "scribe_v1",
-          "num_speakers": "2",
-          "tag_audio_events": "false",
-          "timestamps_granularity": "character",
-        }
-      `);
+      const multipart = await server.calls[0].requestBodyMultipart;
+      expect(multipart).toEqual(
+        expect.objectContaining({
+          diarize: 'true',
+          file_format: 'pcm_s16le_16',
+          language_code: 'en',
+          model_id: 'scribe_v1',
+          num_speakers: '2',
+          tag_audio_events: 'false',
+          timestamps_granularity: 'character',
+        }),
+      );
+      expect(multipart.file).toBeInstanceOf(File);
+      expect(multipart.file.type).toBe('audio/wav');
+      expect(multipart.file.size).toBe(40169);
     });
   });
 
