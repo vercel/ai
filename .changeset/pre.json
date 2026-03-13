@@ -83,7 +83,9 @@
     "@vercel/ai-tsconfig": "0.0.0"
   },
   "changesets": [
+    "azjeb-lylmk-htihq",
     "brown-planets-tell",
+    "bump-oidc-version",
     "calm-squids-sparkle",
     "clean-peaches-fly",
     "cool-toes-cough",
@@ -102,6 +104,7 @@
     "nbokd-xjyoj-etciv",
     "neat-cats-sip",
     "new-walls-poke",
+    "nice-beds-impress",
     "old-schools-wait",
     "pretty-pandas-sleep",
     "psncj-ecfys-yryon",
@@ -113,6 +116,7 @@
     "slimy-coats-attack",
     "start-v7-prerelease",
     "twenty-sheep-punch",
+    "weak-penguins-carry",
     "wicked-nails-prove"
   ]
 }
