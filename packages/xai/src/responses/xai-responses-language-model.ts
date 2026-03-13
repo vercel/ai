@@ -367,11 +367,14 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
         }
 
         case 'reasoning': {
-          const summaryTexts = part.summary
-            .map(s => s.text)
-            .filter(text => text && text.length > 0);
+          const texts =
+            part.summary.length > 0
+              ? part.summary.map(s => s.text)
+              : (part.content ?? []).map(c => c.text);
 
-          const reasoningText = summaryTexts.join('');
+          const reasoningText = texts
+            .filter(text => text && text.length > 0)
+            .join('');
 
           // condition changed here since encrypted content can now come with empty reasoning text
           if (reasoningText || part.encrypted_content) {
