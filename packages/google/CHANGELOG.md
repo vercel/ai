@@ -1,5 +1,35 @@
 # @ai-sdk/google
 
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 4dac142: feat(google): add new finishMessage field in providerMetadata
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- 82288b0: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany`
+
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- add4326: fix(provider/google): correct JSDoc for multimodal embedding content option
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- ab43029: feat(provider/google): support multimodal content parts in embedding provider options
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- 2edd14e: fix(provider/google): correctly mark reasoning files as such and fix related multi-turn errors
+
 ## 4.0.0-beta.3
 
 ### Patch Changes

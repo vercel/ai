@@ -1,5 +1,17 @@
 # @ai-sdk/mcp
 
+## 2.0.0-beta.3
+
+### Patch Changes
+
+- b9b3899: changeset for #13384
+
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- 9ecd8ae: fix(mcp): add MCP protocol version 2025-11-25 to supported versions
+
 ## 2.0.0-beta.1
 
 ### Patch Changes

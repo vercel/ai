@@ -1,5 +1,23 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- 83f9d04: feat(openai): upgrade v3 specs to v4
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- ac18f89: feat(provider/openai): add `gpt-5.3-chat-latest`
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- a71d345: fix(provider/openai): drop reasoning parts without encrypted content when store: false
+
 ## 4.0.0-beta.3
 
 ### Patch Changes
