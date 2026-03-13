@@ -1,4 +1,4 @@
-import { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
@@ -25,8 +25,8 @@ interface XaiImageModelConfig {
   };
 }
 
-export class XaiImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class XaiImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 3;
 
   get provider(): string {
@@ -49,10 +49,10 @@ export class XaiImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     if (size != null) {
       warnings.push({

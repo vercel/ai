@@ -1,4 +1,4 @@
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -6,7 +6,7 @@ import { XaiChatLanguageModel } from './xai-chat-language-model';
 import { createXai } from './xai-provider';
 import * as fs from 'node:fs';
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -62,7 +62,7 @@ describe('XaiChatLanguageModel', () => {
   it('should be instantiated correctly', () => {
     expect(model.modelId).toBe('grok-3');
     expect(model.provider).toBe('xai.chat');
-    expect(model.specificationVersion).toBe('v3');
+    expect(model.specificationVersion).toBe('v4');
   });
 
   it('should have supported URLs', () => {
