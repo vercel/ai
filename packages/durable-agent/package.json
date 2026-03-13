@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "sideEffects": [
     "**/*.integration.test.ts",
-    "src/test/**"
+    "src/**/*.ts"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -51,11 +51,11 @@
   "devDependencies": {
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
-    "@workflow/vitest": "4.0.1-beta.6",
+    "@workflow/vitest": "4.0.1-beta.7",
     "eslint-config-vercel-ai": "workspace:*",
     "tsup": "^8",
     "typescript": "5.8.3",
-    "workflow": "4.2.0-beta.69",
+    "workflow": "4.2.0-beta.70",
     "zod": "3.25.76"
   },
   "peerDependencies": {
