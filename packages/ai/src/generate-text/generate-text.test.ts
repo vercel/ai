@@ -3721,6 +3721,7 @@ describe('generateText', () => {
           abortSignal: abortController.signal,
           toolCallId: 'call-1',
           messages: expect.any(Array),
+          currentModelResponse: expect.any(Object),
         },
       );
     });
@@ -3824,6 +3825,7 @@ describe('generateText', () => {
           abortSignal: expect.any(AbortSignal),
           toolCallId: 'call-1',
           messages: expect.any(Array),
+          currentModelResponse: expect.any(Object),
         },
       );
     });
