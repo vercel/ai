@@ -8,7 +8,7 @@ run(async () => {
   const result = streamText({
     model: openai('gpt-5-mini'),
     stopWhen: stepCountIs(3),
-    deferToolExecution: true,
+    experimental_deferToolExecution: true,
     tools: {
       currentLocation: tool({
         description: 'Get the current location.',

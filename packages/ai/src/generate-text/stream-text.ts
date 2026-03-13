@@ -317,7 +317,7 @@ export function streamText<
   experimental_transform: transform,
   experimental_download: download,
   includeRawChunks = false,
-  deferToolExecution = false,
+  experimental_deferToolExecution: deferToolExecution = false,
   onChunk,
   onError = ({ error }) => {
     console.error(error);
@@ -440,9 +440,11 @@ export function streamText<
     /**
      * When true, tool calls are collected during the provider stream but
      * their execution is deferred until after the stream finishes.
+     * This is needed for workflow/durable agent compatibility where tool
+     * execution must happen after the LLM response concludes.
      * Defaults to false (tools execute immediately as their chunks arrive).
      */
-    deferToolExecution?: boolean;
+    experimental_deferToolExecution?: boolean;
 
     /**
      * Callback that is called for each chunk of the stream.

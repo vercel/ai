@@ -48,7 +48,7 @@ run(async () => {
       tools: { weather: weatherTool },
       messages,
       stopWhen: stepCountIs(5),
-      deferToolExecution: true,
+      experimental_deferToolExecution: true,
     });
 
     process.stdout.write('\nAssistant: ');
