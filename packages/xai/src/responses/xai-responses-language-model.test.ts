@@ -306,6 +306,68 @@ describe('XaiResponsesLanguageModel', () => {
           ]
         `);
       });
+
+      it('should extract reasoning from content when summary is empty', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-3-mini',
+          output: [
+            {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'completed',
+              summary: [],
+              content: [
+                {
+                  type: 'reasoning_text',
+                  text: 'Let me think step by step.',
+                },
+              ],
+            },
+            {
+              type: 'message',
+              id: 'msg_123',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'The answer is 444.',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: {
+            input_tokens: 10,
+            output_tokens: 15,
+          },
+        });
+
+        const result = await createModel('grok-3-mini').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "xai": {
+                  "itemId": "rs_456",
+                },
+              },
+              "text": "Let me think step by step.",
+              "type": "reasoning",
+            },
+            {
+              "text": "The answer is 444.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
     });
 
     describe('settings and options', () => {
