@@ -167,10 +167,42 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   const toolCallsByToolCallId = new Map<string, TypedToolCall<TOOLS>>();
 
   // buffer for deferred tool execution (used when deferToolExecution is true)
-  const deferredToolCalls: Array<{
-    toolCall: TypedToolCall<TOOLS>;
-    tool: TOOLS[keyof TOOLS & string];
-  }> = [];
+  const deferredToolCalls: Array<TypedToolCall<TOOLS>> = [];
+
+  function startToolExecution(toolCall: TypedToolCall<TOOLS>) {
+    const toolExecutionId = generateId();
+    outstandingToolResults.add(toolExecutionId);
+
+    executeToolCall({
+      toolCall,
+      tools,
+      tracer,
+      telemetry,
+      messages,
+      abortSignal,
+      experimental_context,
+      stepNumber,
+      model,
+      onToolCallStart,
+      onToolCallFinish,
+      onPreliminaryToolResult: result => {
+        toolResultsStreamController!.enqueue(result);
+      },
+    })
+      .then(result => {
+        toolResultsStreamController!.enqueue(result);
+      })
+      .catch(error => {
+        toolResultsStreamController!.enqueue({
+          type: 'error',
+          error,
+        });
+      })
+      .finally(() => {
+        outstandingToolResults.delete(toolExecutionId);
+        attemptClose();
+      });
+  }
 
   let canClose = false;
   let finishChunk:
@@ -337,43 +369,12 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             if (tool.execute != null && toolCall.providerExecuted !== true) {
               if (deferToolExecution) {
                 // Buffer tool calls for execution after the provider stream finishes.
-                deferredToolCalls.push({ toolCall, tool });
+                deferredToolCalls.push(toolCall);
               } else {
-                const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
-                outstandingToolResults.add(toolExecutionId);
-
-                // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
+                // Note: we don't await the tool execution here,
                 // because we want to process the next chunk as soon as possible.
                 // This is important for the case where the tool execution takes a long time.
-                executeToolCall({
-                  toolCall,
-                  tools,
-                  tracer,
-                  telemetry,
-                  messages,
-                  abortSignal,
-                  experimental_context,
-                  stepNumber,
-                  model,
-                  onToolCallStart,
-                  onToolCallFinish,
-                  onPreliminaryToolResult: result => {
-                    toolResultsStreamController!.enqueue(result);
-                  },
-                })
-                  .then(result => {
-                    toolResultsStreamController!.enqueue(result);
-                  })
-                  .catch(error => {
-                    toolResultsStreamController!.enqueue({
-                      type: 'error',
-                      error,
-                    });
-                  })
-                  .finally(() => {
-                    outstandingToolResults.delete(toolExecutionId);
-                    attemptClose();
-                  });
+                startToolExecution(toolCall);
               }
             }
           } catch (error) {
@@ -425,39 +426,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
     flush() {
       // Execute deferred tool calls now that the provider stream has finished:
-      for (const { toolCall } of deferredToolCalls) {
-        const toolExecutionId = generateId();
-        outstandingToolResults.add(toolExecutionId);
-
-        executeToolCall({
-          toolCall,
-          tools,
-          tracer,
-          telemetry,
-          messages,
-          abortSignal,
-          experimental_context,
-          stepNumber,
-          model,
-          onToolCallStart,
-          onToolCallFinish,
-          onPreliminaryToolResult: result => {
-            toolResultsStreamController!.enqueue(result);
-          },
-        })
-          .then(result => {
-            toolResultsStreamController!.enqueue(result);
-          })
-          .catch(error => {
-            toolResultsStreamController!.enqueue({
-              type: 'error',
-              error,
-            });
-          })
-          .finally(() => {
-            outstandingToolResults.delete(toolExecutionId);
-            attemptClose();
-          });
+      for (const toolCall of deferredToolCalls) {
+        startToolExecution(toolCall);
       }
 
       canClose = true;
