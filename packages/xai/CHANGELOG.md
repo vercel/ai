@@ -1,5 +1,12 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- 0f11f10: add reasoningSummary to responses API provider options
+- 12115e9: fix reasoning text extraction from content in responses doGenerate
+
 ## 4.0.0-beta.6
 
 ### Major Changes
