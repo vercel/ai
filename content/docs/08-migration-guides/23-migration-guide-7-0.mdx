@@ -19,51 +19,6 @@ An example upgrade command would be:
 pnpm install ai@latest @ai-sdk/react@latest @ai-sdk/openai@latest
 ```
 
-## Codemods
-
-The AI SDK provides Codemod transformations to help upgrade your codebase when a
-feature is deprecated, removed, or otherwise changed.
-
-Codemods are transformations that run on your codebase automatically. They
-allow you to easily apply many changes without having to manually go through
-every file.
-
-You can run all v7 codemods (v6 → v7 migration) by running the following command
-from the root of your project:
-
-```sh
-npx @ai-sdk/codemod v7
-```
-
-<Note>
-  There is also an `npx @ai-sdk/codemod upgrade` command, but it runs all
-  codemods from all versions (v4, v5, and v6). Use `v7` when upgrading from v6.
-</Note>
-
-Individual codemods can be run by specifying the name of the codemod:
-
-```sh
-npx @ai-sdk/codemod <codemod-name> <path>
-```
-
-For example, to run a specific v6 codemod:
-
-```sh
-npx @ai-sdk/codemod v7/rename-text-embedding-to-embedding src/
-```
-
-<Note>
-  Codemods are intended as a tool to help you with the upgrade process. They may
-  not cover all of the changes you need to make. You may need to make additional
-  changes manually.
-</Note>
-
-## Codemod Table
-
-| Codemod Name | Description |
-| ------------ | ----------- |
-|              |             |
-
 ## AI SDK Core
 
 ### Telemetry: `tracer` in `experimental_telemetry` Replaced by `OpenTelemetryIntegration`
