@@ -58,14 +58,14 @@ describe('data protocol stream', () => {
     await chat.sendMessage({
       parts: [{ text: 'hi', type: 'text' }],
     });
-    expect(chat.messages.at(0)).toStrictEqual(
+    expect(chat.messages.at(0)).toEqual(
       expect.objectContaining({
         role: 'user',
         parts: [{ text: 'hi', type: 'text' }],
       }),
     );
 
-    expect(chat.messages.at(1)).toStrictEqual(
+    expect(chat.messages.at(1)).toEqual(
       expect.objectContaining({
         role: 'assistant',
         parts: [{ type: 'text', text: 'Hello, world.', state: 'done' }],
@@ -331,7 +331,7 @@ describe('text stream', () => {
     controller.write('He');
 
     await vi.waitFor(() =>
-      expect(chat.messages.at(1)).toStrictEqual(
+      expect(chat.messages.at(1)).toEqual(
         expect.objectContaining({
           id: expect.any(String),
           role: 'assistant',
@@ -350,7 +350,7 @@ describe('text stream', () => {
     await appendOperation;
 
     expect(id).toBeDefined();
-    expect(chat.messages.at(1)).toStrictEqual(
+    expect(chat.messages.at(1)).toEqual(
       expect.objectContaining({
         id,
         role: 'assistant',
@@ -1458,13 +1458,13 @@ describe('reload', () => {
       parts: [{ text: 'hi', type: 'text' }],
     });
 
-    expect(chat.messages.at(0)).toStrictEqual(
+    expect(chat.messages.at(0)).toEqual(
       expect.objectContaining({
         role: 'user',
       }),
     );
 
-    expect(chat.messages.at(1)).toStrictEqual(
+    expect(chat.messages.at(1)).toEqual(
       expect.objectContaining({
         role: 'assistant',
         parts: [{ text: 'first response', type: 'text', state: 'done' }],
@@ -1502,7 +1502,7 @@ describe('reload', () => {
       'header-key': 'header-value',
     });
 
-    expect(chat.messages.at(1)).toStrictEqual(
+    expect(chat.messages.at(1)).toEqual(
       expect.objectContaining({
         role: 'assistant',
         parts: [{ text: 'second response', type: 'text', state: 'done' }],
@@ -1532,7 +1532,7 @@ describe('test sending additional fields during message submission', () => {
       parts: [{ text: 'hi', type: 'text' }],
     });
 
-    expect(chat.messages.at(0)).toStrictEqual(
+    expect(chat.messages.at(0)).toEqual(
       expect.objectContaining({
         role: 'user',
       }),
