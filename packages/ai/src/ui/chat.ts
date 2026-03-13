@@ -70,6 +70,7 @@ export type ChatAddToolApproveResponseFunction = ({
   approved,
   reason,
   options,
+  data,
 }: {
   id: string;
 
@@ -87,6 +88,13 @@ export type ChatAddToolApproveResponseFunction = ({
    * Optional request options to be used if `sendAutomaticallyWhen` callback returns true.
    */
   options?: ChatRequestOptions;
+
+  /**
+   * Optional extra data to pass with the approval response.
+   * This data will be available in the tool's execute function via `options.approvalData`.
+   * Can be used for user input during approval (e.g., confirmation notes, selected options).
+   */
+  data?: unknown;
 }) => void | PromiseLike<void>;
 
 /**
@@ -480,6 +488,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     approved,
     reason,
     options,
+    data,
   }) =>
     this.jobExecutor.run(async () => {
       const messages = this.state.messages;
@@ -494,7 +503,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           ? {
               ...part,
               state: 'approval-responded',
-              approval: { id, approved, reason },
+              approval: {
+                id,
+                approved,
+                reason,
+                ...(data !== undefined ? { data } : {}),
+              },
             }
           : part;
 

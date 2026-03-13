@@ -559,6 +559,15 @@ export async function generateText<
           deniedToolApprovals.length > 0 ||
           localApprovedToolApprovals.length > 0
         ) {
+          // Build a map of tool call IDs to approval data
+          const approvalDataByToolCallId: Record<string, unknown> = {};
+          for (const approval of localApprovedToolApprovals) {
+            if (approval.approvalResponse.data !== undefined) {
+              approvalDataByToolCallId[approval.toolCall.toolCallId] =
+                approval.approvalResponse.data;
+            }
+          }
+
           const toolOutputs = await executeTools({
             toolCalls: localApprovedToolApprovals.map(
               toolApproval => toolApproval.toolCall,
@@ -583,6 +592,7 @@ export async function generateText<
                 | undefined
                 | GenerateTextOnToolCallFinishCallback<TOOLS>,
             ],
+            approvalDataByToolCallId,
           });
 
           const toolContent: Array<any> = [];
@@ -1267,6 +1277,7 @@ async function executeTools<TOOLS extends ToolSet>({
   model,
   onToolCallStart,
   onToolCallFinish,
+  approvalDataByToolCallId,
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
@@ -1285,6 +1296,11 @@ async function executeTools<TOOLS extends ToolSet>({
     | GenerateTextOnToolCallFinishCallback<TOOLS>
     | Array<GenerateTextOnToolCallFinishCallback<TOOLS> | undefined | null>
     | undefined;
+  /**
+   * Map of tool call IDs to approval data.
+   * Used to pass approval data to tool execute functions.
+   */
+  approvalDataByToolCallId?: Record<string, unknown>;
 }): Promise<Array<ToolOutput<TOOLS>>> {
   const toolOutputs = await Promise.all(
     toolCalls.map(async toolCall =>
@@ -1300,6 +1316,7 @@ async function executeTools<TOOLS extends ToolSet>({
         model,
         onToolCallStart,
         onToolCallFinish,
+        approvalData: approvalDataByToolCallId?.[toolCall.toolCallId],
       }),
     ),
   );
