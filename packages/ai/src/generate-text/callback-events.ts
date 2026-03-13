@@ -11,7 +11,7 @@ import type { Output } from './output';
 import type { StepResult } from './step-result';
 import type { StopCondition } from './stop-condition';
 import type { TypedToolCall } from './tool-call';
-import type { ToolSet } from './tool-set';
+import type { ExpandedContext, ToolSet } from './tool-set';
 
 /**
  * Common model information used across callback events.
@@ -30,6 +30,7 @@ export interface CallbackModelInfo {
  */
 export interface OnStartEvent<
   TOOLS extends ToolSet = ToolSet,
+  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
   OUTPUT extends Output = Output,
   INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
@@ -94,8 +95,8 @@ export interface OnStartEvent<
    * When the condition is an array, any of the conditions can be met to stop.
    */
   readonly stopWhen:
-    | StopCondition<TOOLS>
-    | Array<StopCondition<TOOLS>>
+    | StopCondition<NoInfer<TOOLS>, CONTEXT>
+    | Array<StopCondition<NoInfer<TOOLS>, CONTEXT>>
     | undefined;
 
   /** The output specification for structured outputs, if configured. */
@@ -130,6 +131,7 @@ export interface OnStartEvent<
  */
 export interface OnStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
+  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
   OUTPUT extends Output = Output,
   INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
@@ -165,7 +167,7 @@ export interface OnStepStartEvent<
   readonly activeTools: Array<keyof TOOLS> | undefined;
 
   /** Array of results from previous steps (empty for first step). */
-  readonly steps: ReadonlyArray<StepResult<TOOLS>>;
+  readonly steps: ReadonlyArray<StepResult<TOOLS, CONTEXT>>;
 
   /** Additional provider-specific options for this step. */
   readonly providerOptions: ProviderOptions | undefined;
@@ -184,8 +186,8 @@ export interface OnStepStartEvent<
    * When the condition is an array, any of the conditions can be met to stop.
    */
   readonly stopWhen:
-    | StopCondition<TOOLS>
-    | Array<StopCondition<TOOLS>>
+    | StopCondition<TOOLS, CONTEXT>
+    | Array<StopCondition<TOOLS, CONTEXT>>
     | undefined;
 
   /** The output specification for structured outputs, if configured. */
@@ -298,8 +300,10 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
  * Called when a step (LLM call) completes.
  * This is simply the StepResult for that step.
  */
-export type OnStepFinishEvent<TOOLS extends ToolSet = ToolSet> =
-  StepResult<TOOLS>;
+export type OnStepFinishEvent<
+  TOOLS extends ToolSet = ToolSet,
+  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
+> = StepResult<TOOLS, CONTEXT>;
 
 /**
  * Event passed to the `onFinish` callback.
@@ -307,26 +311,28 @@ export type OnStepFinishEvent<TOOLS extends ToolSet = ToolSet> =
  * Called when the entire generation completes (all steps finished).
  * Includes the final step's result along with aggregated data from all steps.
  */
-export type OnFinishEvent<TOOLS extends ToolSet = ToolSet> =
-  StepResult<TOOLS> & {
-    /** Array containing results from all steps in the generation. */
-    readonly steps: StepResult<TOOLS>[];
+export type OnFinishEvent<
+  TOOLS extends ToolSet = ToolSet,
+  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
+> = StepResult<TOOLS, CONTEXT> & {
+  /** Array containing results from all steps in the generation. */
+  readonly steps: StepResult<TOOLS, CONTEXT>[];
 
-    /** Aggregated token usage across all steps. */
-    readonly totalUsage: LanguageModelUsage;
+  /** Aggregated token usage across all steps. */
+  readonly totalUsage: LanguageModelUsage;
 
-    /**
-     * The final state of the user-defined context object.
-     *
-     * Experimental (can break in patch releases).
-     *
-     * @default undefined
-     */
-    experimental_context: unknown;
+  /**
+   * The final state of the user-defined context object.
+   *
+   * Experimental (can break in patch releases).
+   *
+   * @default undefined
+   */
+  experimental_context: CONTEXT;
 
-    /** Identifier from telemetry settings for grouping related operations. */
-    readonly functionId: string | undefined;
+  /** Identifier from telemetry settings for grouping related operations. */
+  readonly functionId: string | undefined;
 
-    /** Additional metadata from telemetry settings. */
-    readonly metadata: Record<string, unknown> | undefined;
-  };
+  /** Additional metadata from telemetry settings. */
+  readonly metadata: Record<string, unknown> | undefined;
+};

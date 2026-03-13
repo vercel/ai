@@ -24,7 +24,7 @@ import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
 import { TypedToolResult } from './tool-result';
-import { ToolSet } from './tool-set';
+import { ExpandedContext, ToolSet } from './tool-set';
 
 export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   // Text blocks:
@@ -108,7 +108,10 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   | { type: 'error'; error: unknown }
   | { type: 'raw'; rawValue: unknown };
 
-export function runToolsTransformation<TOOLS extends ToolSet>({
+export function runToolsTransformation<
+  TOOLS extends ToolSet,
+  CONTEXT extends ExpandedContext<TOOLS>,
+>({
   tools,
   generatorStream,
   tracer,
@@ -132,7 +135,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
-  experimental_context: unknown;
+  experimental_context: CONTEXT;
   generateId: IdGenerator;
   stepNumber?: number;
   model?: { provider: string; modelId: string };

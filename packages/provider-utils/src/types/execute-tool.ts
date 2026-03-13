@@ -1,14 +1,15 @@
 import { isAsyncIterable } from '../is-async-iterable';
-import { ToolExecutionOptions, ToolExecuteFunction } from './tool';
+import { Context } from './context';
+import { ToolExecuteFunction, ToolExecutionOptions } from './tool';
 
-export async function* executeTool<INPUT, OUTPUT>({
+export async function* executeTool<INPUT, OUTPUT, CONTEXT extends Context>({
   execute,
   input,
   options,
 }: {
-  execute: ToolExecuteFunction<INPUT, OUTPUT>;
+  execute: ToolExecuteFunction<INPUT, OUTPUT, CONTEXT>;
   input: INPUT;
-  options: ToolExecutionOptions;
+  options: ToolExecutionOptions<NoInfer<CONTEXT>>;
 }): AsyncGenerator<
   { type: 'preliminary'; output: OUTPUT } | { type: 'final'; output: OUTPUT }
 > {

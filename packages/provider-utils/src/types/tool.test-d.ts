@@ -1,10 +1,10 @@
-import { LanguageModelV3ToolResultPart } from '@ai-sdk/provider';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
 import { FlexibleSchema } from '../schema';
+import { ToolResultOutput } from './content-part';
+import { Context } from './context';
 import { ModelMessage } from './model-message';
 import { Tool, tool, ToolExecuteFunction } from './tool';
-import { ToolResultOutput } from './content-part';
 
 describe('tool type', () => {
   describe('input type', () => {
@@ -13,7 +13,9 @@ describe('tool type', () => {
         inputSchema: z.object({ number: z.number() }),
       });
 
-      expectTypeOf(aTool).toEqualTypeOf<Tool<{ number: number }, never>>();
+      expectTypeOf(aTool).toEqualTypeOf<
+        Tool<{ number: number }, never, Context>
+      >();
       expectTypeOf(aTool.execute).toEqualTypeOf<undefined>();
       expectTypeOf(aTool.execute).not.toEqualTypeOf<Function>();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<
@@ -26,7 +28,7 @@ describe('tool type', () => {
         inputSchema: null as unknown as FlexibleSchema<T>,
       });
 
-      expectTypeOf(aTool).toEqualTypeOf<Tool<T, never>>();
+      expectTypeOf(aTool).toEqualTypeOf<Tool<T, never, Context>>();
       expectTypeOf(aTool.execute).toEqualTypeOf<undefined>();
       expectTypeOf(aTool.execute).not.toEqualTypeOf<Function>();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<FlexibleSchema<T>>();
@@ -78,9 +80,11 @@ describe('tool type', () => {
         },
       });
 
-      expectTypeOf(aTool).toEqualTypeOf<Tool<{ number: number }, 'test'>>();
+      expectTypeOf(aTool).toEqualTypeOf<
+        Tool<{ number: number }, 'test', Context>
+      >();
       expectTypeOf(aTool.execute).toMatchTypeOf<
-        ToolExecuteFunction<{ number: number }, 'test'> | undefined
+        ToolExecuteFunction<{ number: number }, 'test', Context> | undefined
       >();
       expectTypeOf(aTool.execute).not.toEqualTypeOf<undefined>();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<
@@ -96,9 +100,11 @@ describe('tool type', () => {
         },
       });
 
-      expectTypeOf(aTool).toEqualTypeOf<Tool<{ number: number }, 'test'>>();
+      expectTypeOf(aTool).toEqualTypeOf<
+        Tool<{ number: number }, 'test', Context>
+      >();
       expectTypeOf(aTool.execute).toEqualTypeOf<
-        ToolExecuteFunction<{ number: number }, 'test'> | undefined
+        ToolExecuteFunction<{ number: number }, 'test', Context> | undefined
       >();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<
         FlexibleSchema<{ number: number }>
@@ -176,7 +182,7 @@ describe('tool type', () => {
           expectTypeOf(options).toEqualTypeOf<{
             toolCallId: string;
             messages: ModelMessage[];
-            experimental_context?: unknown;
+            experimental_context: Context;
           }>();
           return true;
         },
@@ -189,7 +195,7 @@ describe('tool type', () => {
             options: {
               toolCallId: string;
               messages: ModelMessage[];
-              experimental_context: unknown;
+              experimental_context: Context;
             },
           ) => boolean | PromiseLike<boolean>)
         | undefined
@@ -205,7 +211,7 @@ describe('tool type', () => {
           expectTypeOf(options).toEqualTypeOf<{
             toolCallId: string;
             messages: ModelMessage[];
-            experimental_context?: unknown;
+            experimental_context: Context;
           }>();
           return true;
         },
@@ -218,7 +224,7 @@ describe('tool type', () => {
             options: {
               toolCallId: string;
               messages: ModelMessage[];
-              experimental_context: unknown;
+              experimental_context: Context;
             },
           ) => boolean | PromiseLike<boolean>)
         | undefined
