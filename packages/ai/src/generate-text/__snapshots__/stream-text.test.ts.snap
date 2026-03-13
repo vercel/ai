@@ -6,11 +6,13 @@ exports[`streamText > options.experimental_onStart > should send correct informa
 {
   "abortSignal": undefined,
   "activeTools": undefined,
+  "callId": "test-telemetry-call-id",
   "experimental_context": undefined,
   "frequencyPenalty": undefined,
   "functionId": "test-function",
   "headers": undefined,
   "include": undefined,
+  "isEnabled": undefined,
   "maxOutputTokens": undefined,
   "maxRetries": 2,
   "messages": undefined,
@@ -21,10 +23,13 @@ exports[`streamText > options.experimental_onStart > should send correct informa
     "modelId": "mock-model-id",
     "provider": "mock-provider",
   },
+  "operationId": "ai.streamText",
   "output": undefined,
   "presencePenalty": undefined,
   "prompt": "test-input",
   "providerOptions": undefined,
+  "recordInputs": undefined,
+  "recordOutputs": undefined,
   "seed": undefined,
   "stopSequences": undefined,
   "stopWhen": [Function],
@@ -41,6 +46,7 @@ exports[`streamText > options.experimental_onStart > should send correct informa
 exports[`streamText > options.experimental_onToolCallStart > should be called with correct tool name, id, and input 1`] = `
 {
   "abortSignal": undefined,
+  "callId": "test-telemetry-call-id",
   "experimental_context": undefined,
   "functionId": undefined,
   "messages": [
@@ -114,7 +120,7 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
       "ai.response.reasoning": "thinking",
       "ai.response.text": "",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
+      "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
       "ai.settings.maxRetries": 2,
       "ai.usage.inputTokenDetails.noCacheTokens": 3,
       "ai.usage.inputTokens": 3,
@@ -140,7 +146,10 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
         "name": "ai.stream.firstChunk",
       },
       {
-        "attributes": undefined,
+        "attributes": {
+          "ai.response.avgOutputTokensPerSecond": 20,
+          "ai.response.msToFinish": 500,
+        },
         "name": "ai.stream.finish",
       },
     ],
@@ -206,7 +215,10 @@ exports[`streamText > options.stopWhen > 2 steps: initial, tool-result > should 
         "name": "ai.stream.firstChunk",
       },
       {
-        "attributes": undefined,
+        "attributes": {
+          "ai.response.avgOutputTokensPerSecond": 25,
+          "ai.response.msToFinish": 400,
+        },
         "name": "ai.stream.finish",
       },
     ],
@@ -226,7 +238,7 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "ai.response.finishReason": "stop",
       "ai.response.providerMetadata": "{"testProvider":{"testKey":"TEST VALUE"}}",
       "ai.response.text": "HELLO, WORLD!",
-      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"VALUE"}}]",
+      "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"VALUE"}}]",
       "ai.settings.maxRetries": 2,
       "ai.usage.inputTokenDetails.noCacheTokens": 3,
       "ai.usage.inputTokens": 3,
@@ -257,7 +269,7 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "ai.response.providerMetadata": "{"testProvider":{"testKey":"TEST VALUE"}}",
       "ai.response.text": "HELLO, WORLD!",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"VALUE"}}]",
+      "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"VALUE"}}]",
       "ai.settings.maxRetries": 2,
       "ai.usage.inputTokenDetails.noCacheTokens": 3,
       "ai.usage.inputTokens": 3,
@@ -283,7 +295,10 @@ exports[`streamText > options.transform > with base transformation > telemetry s
         "name": "ai.stream.firstChunk",
       },
       {
-        "attributes": undefined,
+        "attributes": {
+          "ai.response.avgOutputTokensPerSecond": 20,
+          "ai.response.msToFinish": 500,
+        },
         "name": "ai.stream.finish",
       },
     ],
@@ -292,7 +307,7 @@ exports[`streamText > options.transform > with base transformation > telemetry s
   {
     "attributes": {
       "ai.operationId": "ai.toolCall",
-      "ai.toolCall.args": "{"value":"value"}",
+      "ai.toolCall.args": "{"value":"VALUE"}",
       "ai.toolCall.id": "call-1",
       "ai.toolCall.name": "tool1",
       "ai.toolCall.result": ""value-result"",
@@ -1063,7 +1078,10 @@ exports[`streamText > telemetry > should not record telemetry inputs / outputs w
         "name": "ai.stream.firstChunk",
       },
       {
-        "attributes": undefined,
+        "attributes": {
+          "ai.response.avgOutputTokensPerSecond": 20,
+          "ai.response.msToFinish": 500,
+        },
         "name": "ai.stream.finish",
       },
     ],
@@ -1092,7 +1110,7 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "ai.prompt": "{"prompt":"test-input"}",
       "ai.response.finishReason": "stop",
       "ai.response.text": "",
-      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
+      "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
       "ai.settings.maxRetries": 2,
       "ai.usage.inputTokenDetails.noCacheTokens": 3,
       "ai.usage.inputTokens": 3,
@@ -1122,7 +1140,7 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "ai.response.msToFirstChunk": 100,
       "ai.response.text": "",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-      "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
+      "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
       "ai.settings.maxRetries": 2,
       "ai.usage.inputTokenDetails.noCacheTokens": 3,
       "ai.usage.inputTokens": 3,
@@ -1148,7 +1166,10 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
         "name": "ai.stream.firstChunk",
       },
       {
-        "attributes": undefined,
+        "attributes": {
+          "ai.response.avgOutputTokensPerSecond": 20,
+          "ai.response.msToFinish": 500,
+        },
         "name": "ai.stream.finish",
       },
     ],
@@ -1267,7 +1288,10 @@ exports[`streamText > telemetry > should record telemetry data when enabled 1`] 
         "name": "ai.stream.firstChunk",
       },
       {
-        "attributes": undefined,
+        "attributes": {
+          "ai.response.avgOutputTokensPerSecond": 20,
+          "ai.response.msToFinish": 500,
+        },
         "name": "ai.stream.finish",
       },
     ],

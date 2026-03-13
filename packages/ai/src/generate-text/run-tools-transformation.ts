@@ -5,8 +5,8 @@ import {
   ModelMessage,
   SystemModelMessage,
 } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
+import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
@@ -111,8 +111,8 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
 export function runToolsTransformation<TOOLS extends ToolSet>({
   tools,
   generatorStream,
-  tracer,
   telemetry,
+  callId,
   system,
   messages,
   abortSignal,
@@ -123,11 +123,12 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   model,
   onToolCallStart,
   onToolCallFinish,
+  executeToolInTelemetryContext,
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV4StreamPart>;
-  tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
+  callId: string;
   system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
@@ -142,6 +143,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   onToolCallFinish?:
     | StreamTextOnToolCallFinishCallback<TOOLS>
     | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
+  executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
@@ -336,8 +338,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               executeToolCall({
                 toolCall,
                 tools,
-                tracer,
                 telemetry,
+                callId,
                 messages,
                 abortSignal,
                 experimental_context,
@@ -345,6 +347,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 model,
                 onToolCallStart,
                 onToolCallFinish,
+                executeToolInTelemetryContext,
                 onPreliminaryToolResult: result => {
                   toolResultsStreamController!.enqueue(result);
                 },
