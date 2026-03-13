@@ -97,6 +97,7 @@
     "fix-embedding-jsdoc",
     "fix-ssrf-redirect-bypass",
     "fix-streaming-tool-call-early-finalization",
+    "fluffy-boats-glow",
     "gold-rules-own",
     "google-stream-grounding-metadata",
     "google-validated-strict-tools",
