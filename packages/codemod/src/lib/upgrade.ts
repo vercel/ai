@@ -88,6 +88,7 @@ const bundle = [
   'v6/rename-vertex-provider-metadata-key',
   'v6/wrap-tomodeloutput-parameter',
   'v6/add-await-converttomodelmessages',
+  'v7/rename-experimental-include',
 ];
 
 const log = debug('codemod:upgrade');
@@ -97,6 +98,7 @@ const error = debug('codemod:upgrade:error');
 const v4Bundle = bundle.filter(codemod => codemod.startsWith('v4/'));
 const v5Bundle = bundle.filter(codemod => codemod.startsWith('v5/'));
 const v6Bundle = bundle.filter(codemod => codemod.startsWith('v6/'));
+const v7Bundle = bundle.filter(codemod => codemod.startsWith('v7/'));
 
 function runCodemods(
   codemods: string[],
@@ -156,6 +158,10 @@ export function upgradeV5(options: TransformOptions) {
 
 export function upgradeV6(options: TransformOptions) {
   runCodemods(v6Bundle, options, 'v6');
+}
+
+export function upgradeV7(options: TransformOptions) {
+  runCodemods(v7Bundle, options, 'v7');
 }
 
 export function upgrade(options: TransformOptions) {
