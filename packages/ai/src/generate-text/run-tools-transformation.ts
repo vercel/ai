@@ -123,6 +123,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   model,
   onToolCallStart,
   onToolCallFinish,
+  deferToolExecution = false,
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV4StreamPart>;
@@ -142,6 +143,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   onToolCallFinish?:
     | StreamTextOnToolCallFinishCallback<TOOLS>
     | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
+  deferToolExecution?: boolean;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
@@ -163,6 +165,12 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
   // keep track of parsed tool calls so provider-emitted approval requests can reference them
   const toolCallsByToolCallId = new Map<string, TypedToolCall<TOOLS>>();
+
+  // buffer for deferred tool execution (used when deferToolExecution is true)
+  const deferredToolCalls: Array<{
+    toolCall: TypedToolCall<TOOLS>;
+    tool: TOOLS[keyof TOOLS & string];
+  }> = [];
 
   let canClose = false;
   let finishChunk:
@@ -327,41 +335,48 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
             // Only execute tools that are not provider-executed:
             if (tool.execute != null && toolCall.providerExecuted !== true) {
-              const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
-              outstandingToolResults.add(toolExecutionId);
+              if (deferToolExecution) {
+                // Buffer tool calls for execution after the provider stream finishes.
+                // This is needed for workflow/durable agent compatibility where tool
+                // execution must happen after the LLM response concludes.
+                deferredToolCalls.push({ toolCall, tool });
+              } else {
+                const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
+                outstandingToolResults.add(toolExecutionId);
 
-              // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
-              // because we want to process the next chunk as soon as possible.
-              // This is important for the case where the tool execution takes a long time.
-              executeToolCall({
-                toolCall,
-                tools,
-                tracer,
-                telemetry,
-                messages,
-                abortSignal,
-                experimental_context,
-                stepNumber,
-                model,
-                onToolCallStart,
-                onToolCallFinish,
-                onPreliminaryToolResult: result => {
-                  toolResultsStreamController!.enqueue(result);
-                },
-              })
-                .then(result => {
-                  toolResultsStreamController!.enqueue(result);
+                // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
+                // because we want to process the next chunk as soon as possible.
+                // This is important for the case where the tool execution takes a long time.
+                executeToolCall({
+                  toolCall,
+                  tools,
+                  tracer,
+                  telemetry,
+                  messages,
+                  abortSignal,
+                  experimental_context,
+                  stepNumber,
+                  model,
+                  onToolCallStart,
+                  onToolCallFinish,
+                  onPreliminaryToolResult: result => {
+                    toolResultsStreamController!.enqueue(result);
+                  },
                 })
-                .catch(error => {
-                  toolResultsStreamController!.enqueue({
-                    type: 'error',
-                    error,
+                  .then(result => {
+                    toolResultsStreamController!.enqueue(result);
+                  })
+                  .catch(error => {
+                    toolResultsStreamController!.enqueue({
+                      type: 'error',
+                      error,
+                    });
+                  })
+                  .finally(() => {
+                    outstandingToolResults.delete(toolExecutionId);
+                    attemptClose();
                   });
-                })
-                .finally(() => {
-                  outstandingToolResults.delete(toolExecutionId);
-                  attemptClose();
-                });
+              }
             }
           } catch (error) {
             toolResultsStreamController!.enqueue({ type: 'error', error });
@@ -411,6 +426,42 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
     },
 
     flush() {
+      // Execute deferred tool calls now that the provider stream has finished:
+      for (const { toolCall } of deferredToolCalls) {
+        const toolExecutionId = generateId();
+        outstandingToolResults.add(toolExecutionId);
+
+        executeToolCall({
+          toolCall,
+          tools,
+          tracer,
+          telemetry,
+          messages,
+          abortSignal,
+          experimental_context,
+          stepNumber,
+          model,
+          onToolCallStart,
+          onToolCallFinish,
+          onPreliminaryToolResult: result => {
+            toolResultsStreamController!.enqueue(result);
+          },
+        })
+          .then(result => {
+            toolResultsStreamController!.enqueue(result);
+          })
+          .catch(error => {
+            toolResultsStreamController!.enqueue({
+              type: 'error',
+              error,
+            });
+          })
+          .finally(() => {
+            outstandingToolResults.delete(toolExecutionId);
+            attemptClose();
+          });
+      }
+
       canClose = true;
       attemptClose();
     },

@@ -317,6 +317,7 @@ export function streamText<
   experimental_transform: transform,
   experimental_download: download,
   includeRawChunks = false,
+  deferToolExecution = false,
   onChunk,
   onError = ({ error }) => {
     console.error(error);
@@ -435,6 +436,15 @@ export function streamText<
      * Defaults to false.
      */
     includeRawChunks?: boolean;
+
+    /**
+     * When true, tool calls are collected during the provider stream but
+     * their execution is deferred until after the stream finishes.
+     * This is needed for workflow/durable agent compatibility where tool
+     * execution must happen after the LLM response concludes.
+     * Defaults to false (tools execute immediately as their chunks arrive).
+     */
+    deferToolExecution?: boolean;
 
     /**
      * Callback that is called for each chunk of the stream.
@@ -562,6 +572,7 @@ export function streamText<
     providerOptions,
     prepareStep,
     includeRawChunks,
+    deferToolExecution,
     timeout,
     stopWhen,
     originalAbortSignal: abortSignal,
@@ -740,6 +751,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     providerOptions,
     prepareStep,
     includeRawChunks,
+    deferToolExecution,
     now,
     generateId,
     timeout,
@@ -781,6 +793,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     providerOptions: ProviderOptions | undefined;
     prepareStep: PrepareStepFunction<NoInfer<TOOLS>> | undefined;
     includeRawChunks: boolean;
+    deferToolExecution: boolean;
     now: () => number;
     generateId: () => string;
     timeout: TimeoutConfiguration | undefined;
@@ -1716,6 +1729,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 onToolCallFinish,
                 globalTelemetry.onToolCallFinish,
               ],
+              deferToolExecution,
             });
 
             // Conditionally include request.body based on include settings.

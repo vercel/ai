@@ -1679,4 +1679,187 @@ describe('runToolsTransformation', () => {
       });
     });
   });
+
+  describe('deferToolExecution', () => {
+    it('should defer tool execution until after the provider stream finishes', async () => {
+      const executionOrder: string[] = [];
+
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'myTool',
+            input: `{ "value": "test" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]);
+
+      // Use a custom stream to track when chunks arrive from the provider
+      const trackingStream = inputStream.pipeThrough(
+        new TransformStream({
+          transform(chunk, controller) {
+            executionOrder.push(`stream-chunk:${chunk.type}`);
+            controller.enqueue(chunk);
+          },
+          flush() {
+            executionOrder.push('stream-flush');
+          },
+        }),
+      );
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          myTool: {
+            title: 'My Tool',
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              executionOrder.push('tool-execute');
+              return `${value}-result`;
+            },
+          },
+        },
+        generatorStream: trackingStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+        deferToolExecution: true,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      // Verify tool execution happened after the stream flushed
+      const flushIndex = executionOrder.indexOf('stream-flush');
+      const executeIndex = executionOrder.indexOf('tool-execute');
+      expect(flushIndex).toBeLessThan(executeIndex);
+
+      // Verify the output still contains all expected parts
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "value": "test",
+            },
+            "providerExecuted": undefined,
+            "providerMetadata": undefined,
+            "title": "My Tool",
+            "toolCallId": "call-1",
+            "toolName": "myTool",
+            "type": "tool-call",
+          },
+          {
+            "dynamic": false,
+            "input": {
+              "value": "test",
+            },
+            "output": "test-result",
+            "toolCallId": "call-1",
+            "toolName": "myTool",
+            "type": "tool-result",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should execute multiple deferred tool calls in parallel after stream finishes', async () => {
+      const executionOrder: string[] = [];
+
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'myTool',
+            input: `{ "value": "first" }`,
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-2',
+            toolName: 'myTool',
+            input: `{ "value": "second" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]);
+
+      const trackingStream = inputStream.pipeThrough(
+        new TransformStream({
+          flush() {
+            executionOrder.push('stream-flush');
+          },
+        }),
+      );
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          myTool: {
+            title: 'My Tool',
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              executionOrder.push(`tool-execute:${value}`);
+              return `${value}-result`;
+            },
+          },
+        },
+        generatorStream: trackingStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+        deferToolExecution: true,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      // Both tool executions should happen after the stream flushed
+      const flushIndex = executionOrder.indexOf('stream-flush');
+      expect(flushIndex).toBe(0);
+      expect(
+        executionOrder.filter(e => e.startsWith('tool-execute')),
+      ).toHaveLength(2);
+
+      // Verify both tool results are in the output
+      const toolResults = result.filter(r => r.type === 'tool-result');
+      expect(toolResults).toHaveLength(2);
+    });
+  });
 });
