@@ -1,5 +1,11 @@
 # @ai-sdk/alibaba
 
+## 2.0.0-beta.3
+
+### Patch Changes
+
+- 4ab27b9: chore(alibaba): update v3 specs to v4
+
 ## 2.0.0-beta.2
 
 ### Patch Changes
