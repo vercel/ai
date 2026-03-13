@@ -299,6 +299,99 @@ These are guidelines, not rigid rules. Adjust based on:
 
 When uncertain about expected artifacts, ask for clarification.
 
+## Vercel Status Monitoring
+
+When debugging sudden server errors that occur without code changes, check the [Vercel Status Page](https://www.vercel-status.com/) to determine if there's an infrastructure incident.
+
+### Retrieving Status via API
+
+The Vercel Status Page provides a public JSON API (no authentication required) for checking system status:
+
+```
+https://www.vercel-status.com/api/v2/status.json      # Overall page status
+https://www.vercel-status.com/api/v2/components.json  # Individual component statuses
+https://www.vercel-status.com/api/v2/incidents.json   # Incident history and active incidents
+```
+
+#### API Response Structure
+
+**Status API** returns overall system status:
+```json
+{
+  "page": { "id": "lvglq8h0mdyh", "name": "Vercel", "url": "..." },
+  "status": {
+    "indicator": "none|minor|major|critical",
+    "description": "All Systems Operational|Partial System Outage|Major System Outage"
+  }
+}
+```
+
+**Components API** lists all Vercel components with their individual statuses. Example Gateway component:
+```json
+{
+  "id": "rsp3h37vv009",
+  "name": "AI Gateway",
+  "status": "operational|degraded_performance|partial_outage|major_outage",
+  "updated_at": "2026-03-12T17:43:48.060Z"
+}
+```
+
+**Incidents API** provides active and historical incidents with updates. Each incident has:
+- `name`: Description of the incident
+- `status`: investigating|identified|monitoring|resolved
+- `impact`: none|minor|major|critical
+- `components`: Affected components with status changes
+- `incident_updates`: Chronological list of updates
+
+#### Checking for Gateway Outages
+
+To check if the Gateway is experiencing issues:
+
+```typescript
+const componentName = 'AI Gateway'; // or search for 'Gateway' in name
+const gatewayComponent = components.find(c => c.name.includes('Gateway'));
+
+if (gatewayComponent && gatewayComponent.status !== 'operational') {
+  // Check for active incidents involving the Gateway
+  const activeIncidents = incidents.filter(
+    incident => incident.status !== 'resolved' &&
+    incident.components.some(c => c.id === gatewayComponent.id)
+  );
+  
+  if (activeIncidents.length > 0) {
+    // There's a confirmed outage
+    // See section below on handling Gateway outages
+  }
+}
+```
+
+### Handling Gateway Outages
+
+When a **confirmed Gateway outage** is detected:
+
+1. **Create an Issue** on the repository to notify users:
+   - Title: `[Service Alert] Vercel Gateway Outage`
+   - Body: Include the incident name, status, and current update from the status page
+   - Labels: `infrastructure`, `gateway`, `outage`
+
+2. **Pin the Issue** to make it visible in the repository's pinned issues section
+
+3. **Update the Issue** as the incident progresses:
+   - Edit with latest status from `/api/v2/incidents.json`
+   - Reflect status transitions (investigating → identified → monitoring → resolved)
+   - Include recent updates from the incident timeline
+
+4. **Close and Unpin** when the incident is resolved:
+   - Update final status from the API
+   - Mark issue as closed (status: resolved on the API)
+   - Unpin from the repository
+
+### References
+
+- **Vercel Status Page**: https://www.vercel-status.com/
+- **Status Page API Docs**: Built using Atlassian Statuspage (Incident.io)
+- **RSS Feed**: https://www.vercel-status.com/history.rss (alternative for monitoring)
+
 ## Do Not
 
 - Add minor/major changesets
