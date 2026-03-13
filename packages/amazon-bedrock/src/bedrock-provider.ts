@@ -1,10 +1,10 @@
 import { anthropicTools } from '@ai-sdk/anthropic/internal';
 import {
-  EmbeddingModelV3,
-  ImageModelV3,
-  LanguageModelV3,
-  ProviderV3,
-  RerankingModelV3,
+  EmbeddingModelV4,
+  ImageModelV4,
+  LanguageModelV4,
+  ProviderV4,
+  RerankingModelV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -107,50 +107,50 @@ export interface AmazonBedrockProviderSettings {
   generateId?: () => string;
 }
 
-export interface AmazonBedrockProvider extends ProviderV3 {
-  (modelId: BedrockChatModelId): LanguageModelV3;
+export interface AmazonBedrockProvider extends ProviderV4 {
+  (modelId: BedrockChatModelId): LanguageModelV4;
 
-  languageModel(modelId: BedrockChatModelId): LanguageModelV3;
-
-  /**
-   * Creates a model for text embeddings.
-   */
-  embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+  languageModel(modelId: BedrockChatModelId): LanguageModelV4;
 
   /**
    * Creates a model for text embeddings.
    */
-  embeddingModel(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+  embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV4;
+
+  /**
+   * Creates a model for text embeddings.
+   */
+  embeddingModel(modelId: BedrockEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embedding` instead.
    */
-  textEmbedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+  textEmbedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+  textEmbeddingModel(modelId: BedrockEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * Creates a model for image generation.
    */
-  image(modelId: BedrockImageModelId): ImageModelV3;
+  image(modelId: BedrockImageModelId): ImageModelV4;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: BedrockImageModelId): ImageModelV3;
+  imageModel(modelId: BedrockImageModelId): ImageModelV4;
 
   /**
    * Creates a model for reranking documents.
    */
-  reranking(modelId: BedrockRerankingModelId): RerankingModelV3;
+  reranking(modelId: BedrockRerankingModelId): RerankingModelV4;
 
   /**
    * Creates a model for reranking documents.
    */
-  rerankingModel(modelId: BedrockRerankingModelId): RerankingModelV3;
+  rerankingModel(modelId: BedrockRerankingModelId): RerankingModelV4;
 
   /**
    * Anthropic-specific tools that can be used with Anthropic models on Bedrock.
@@ -330,7 +330,7 @@ export function createAmazonBedrock(
       fetch: fetchFunction,
     });
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
