@@ -2,7 +2,7 @@
 '@ai-sdk/google': patch
 ---
 
-Add multimodal tool-result support for Google function responses.
+feat(provider/google): Add multimodal tool-result support for Google function responses.
 
 Tool results with `output.type = 'content'` now map media parts into
 `functionResponse.parts` for Google models, including `image-data`,
