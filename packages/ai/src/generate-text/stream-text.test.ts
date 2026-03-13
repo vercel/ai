@@ -4388,6 +4388,118 @@ describe('streamText', () => {
         ]
       `);
     });
+
+    it('should preserve and normalize reasoningEncryptedContent across split reasoning parts with the same itemId', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'reasoning-start',
+                id: 'rs_123:0',
+                providerMetadata: {
+                  openai: {
+                    itemId: 'rs_123',
+                    reasoningEncryptedContent: 'encrypted-start-payload',
+                  },
+                },
+              },
+              {
+                type: 'reasoning-delta',
+                id: 'rs_123:0',
+                delta: 'first chunk',
+                providerMetadata: {
+                  openai: {
+                    itemId: 'rs_123',
+                  },
+                },
+              },
+              {
+                type: 'reasoning-end',
+                id: 'rs_123:0',
+                providerMetadata: {
+                  openai: {
+                    itemId: 'rs_123',
+                  },
+                },
+              },
+              {
+                type: 'reasoning-start',
+                id: 'rs_123:1',
+                providerMetadata: {
+                  openai: {
+                    itemId: 'rs_123',
+                    reasoningEncryptedContent: 'encrypted-start-payload',
+                  },
+                },
+              },
+              {
+                type: 'reasoning-delta',
+                id: 'rs_123:1',
+                delta: 'second chunk',
+                providerMetadata: {
+                  openai: {
+                    itemId: 'rs_123',
+                  },
+                },
+              },
+              {
+                type: 'reasoning-end',
+                id: 'rs_123:1',
+                providerMetadata: {
+                  openai: {
+                    itemId: 'rs_123',
+                    reasoningEncryptedContent: 'encrypted-final-payload',
+                  },
+                },
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        ...defaultSettings(),
+      });
+
+      expect((await result.response).messages).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "providerOptions": {
+                  "openai": {
+                    "itemId": "rs_123",
+                    "reasoningEncryptedContent": "encrypted-final-payload",
+                  },
+                },
+                "text": "first chunk",
+                "type": "reasoning",
+              },
+              {
+                "providerOptions": {
+                  "openai": {
+                    "itemId": "rs_123",
+                    "reasoningEncryptedContent": "encrypted-final-payload",
+                  },
+                },
+                "text": "second chunk",
+                "type": "reasoning",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
   });
 
   describe('result.request', () => {

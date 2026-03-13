@@ -129,6 +129,105 @@ const originalGenerateId = createIdGenerator({
   size: 24,
 });
 
+function normalizeSplitReasoningProviderMetadata<TOOLS extends ToolSet>({
+  content,
+}: {
+  content: Array<ContentPart<TOOLS>>;
+}): Array<ContentPart<TOOLS>> {
+  const normalizedContent = [...content];
+
+  for (let index = 0; index < normalizedContent.length; ) {
+    if (normalizedContent[index].type !== 'reasoning') {
+      index++;
+      continue;
+    }
+
+    let runEnd = index + 1;
+    while (
+      runEnd < normalizedContent.length &&
+      normalizedContent[runEnd].type === 'reasoning'
+    ) {
+      runEnd++;
+    }
+
+    const encryptedMetadataByItemId = new Map<string, ProviderMetadata>();
+
+    for (let runIndex = index; runIndex < runEnd; runIndex++) {
+      const part = normalizedContent[runIndex];
+
+      if (part.type !== 'reasoning' || part.providerMetadata == null) {
+        continue;
+      }
+
+      for (const [providerName, metadata] of Object.entries(
+        part.providerMetadata,
+      )) {
+        const itemId = metadata.itemId;
+
+        if (
+          typeof itemId === 'string' &&
+          Object.prototype.hasOwnProperty.call(
+            metadata,
+            'reasoningEncryptedContent',
+          )
+        ) {
+          encryptedMetadataByItemId.set(`${providerName}:${itemId}`, {
+            [providerName]: {
+              reasoningEncryptedContent: metadata.reasoningEncryptedContent,
+            },
+          });
+        }
+      }
+    }
+
+    for (let runIndex = index; runIndex < runEnd; runIndex++) {
+      const part = normalizedContent[runIndex];
+
+      if (part.type !== 'reasoning' || part.providerMetadata == null) {
+        continue;
+      }
+
+      let mergedProviderMetadata = part.providerMetadata;
+
+      for (const [providerName, metadata] of Object.entries(
+        part.providerMetadata,
+      )) {
+        const itemId = metadata.itemId;
+
+        if (typeof itemId !== 'string') {
+          continue;
+        }
+
+        const encryptedMetadata = encryptedMetadataByItemId.get(
+          `${providerName}:${itemId}`,
+        );
+
+        if (encryptedMetadata != null) {
+          const nextProviderMetadata = mergeObjects(
+            mergedProviderMetadata,
+            encryptedMetadata,
+          );
+
+          if (nextProviderMetadata != null) {
+            mergedProviderMetadata = nextProviderMetadata;
+          }
+        }
+      }
+
+      if (mergedProviderMetadata !== part.providerMetadata) {
+        normalizedContent[runIndex] = {
+          ...part,
+          providerMetadata: mergedProviderMetadata,
+        };
+      }
+    }
+
+    index = runEnd;
+  }
+
+  return normalizedContent;
+}
+
 /**
  * A transformation that is applied to the stream.
  *
@@ -904,8 +1003,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           }
 
           activeText.text += part.text;
-          activeText.providerMetadata =
-            part.providerMetadata ?? activeText.providerMetadata;
+          activeText.providerMetadata = mergeObjects(
+            activeText.providerMetadata,
+            part.providerMetadata,
+          );
         }
 
         if (part.type === 'text-end') {
@@ -922,8 +1023,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             return;
           }
 
-          activeText.providerMetadata =
-            part.providerMetadata ?? activeText.providerMetadata;
+          activeText.providerMetadata = mergeObjects(
+            activeText.providerMetadata,
+            part.providerMetadata,
+          );
 
           delete activeTextContent[part.id];
         }
@@ -953,8 +1056,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           }
 
           activeReasoning.text += part.text;
-          activeReasoning.providerMetadata =
-            part.providerMetadata ?? activeReasoning.providerMetadata;
+          activeReasoning.providerMetadata = mergeObjects(
+            activeReasoning.providerMetadata,
+            part.providerMetadata,
+          );
         }
 
         if (part.type === 'reasoning-end') {
@@ -971,8 +1076,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             return;
           }
 
-          activeReasoning.providerMetadata =
-            part.providerMetadata ?? activeReasoning.providerMetadata;
+          activeReasoning.providerMetadata = mergeObjects(
+            activeReasoning.providerMetadata,
+            part.providerMetadata,
+          );
 
           delete activeReasoningContent[part.id];
         }
@@ -1018,8 +1125,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         }
 
         if (part.type === 'finish-step') {
+          const normalizedRecordedContent =
+            normalizeSplitReasoningProviderMetadata({
+              content: recordedContent,
+            });
+
           const stepMessages = await toResponseMessages({
-            content: recordedContent,
+            content: normalizedRecordedContent,
             tools,
           });
 
@@ -1029,7 +1141,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             model: modelInfo,
             ...callbackTelemetryProps,
             experimental_context,
-            content: recordedContent,
+            content: normalizedRecordedContent,
             finishReason: part.finishReason,
             rawFinishReason: part.rawFinishReason,
             usage: part.usage,

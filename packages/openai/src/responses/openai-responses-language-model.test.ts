@@ -6845,6 +6845,81 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
 
+      it('should stream the captured gpt-5.4 split reasoning shape', async () => {
+        prepareChunksFixtureResponse(
+          'openai-reasoning-encrypted-content-gpt-5-4-split.1',
+        );
+
+        const { stream } = await createModel('gpt-5.4').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'xhigh',
+              reasoningSummary: 'auto',
+              store: false,
+              include: ['reasoning.encrypted_content'],
+            },
+          },
+          includeRawChunks: false,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+        const reasoningStarts = events.filter(
+          event => event.type === 'reasoning-start',
+        );
+        const reasoningEnds = events.filter(
+          event => event.type === 'reasoning-end',
+        );
+
+        expect(reasoningStarts.length).toBeGreaterThan(1);
+        expect(
+          reasoningStarts.every(
+            event =>
+              event.providerMetadata?.openai?.itemId ===
+              reasoningStarts[0]?.providerMetadata?.openai?.itemId,
+          ),
+        ).toBe(true);
+        expect(
+          reasoningStarts.every(
+            event =>
+              typeof event.providerMetadata?.openai
+                ?.reasoningEncryptedContent === 'string',
+          ),
+        ).toBe(true);
+
+        expect(reasoningEnds.length).toBe(reasoningStarts.length);
+        for (const reasoningEnd of reasoningEnds.slice(0, -1)) {
+          expect(reasoningEnd.providerMetadata?.openai?.itemId).toBe(
+            reasoningStarts[0]?.providerMetadata?.openai?.itemId,
+          );
+          expect(
+            reasoningEnd.providerMetadata?.openai?.reasoningEncryptedContent,
+          ).toBeUndefined();
+        }
+        expect(reasoningEnds.at(-1)).toMatchObject({
+          providerMetadata: {
+            openai: {
+              itemId: reasoningStarts[0]?.providerMetadata?.openai?.itemId,
+            },
+          },
+        });
+        expect(
+          typeof reasoningEnds.at(-1)?.providerMetadata?.openai
+            ?.reasoningEncryptedContent,
+        ).toBe('string');
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: 'gpt-5.4',
+          reasoning: {
+            effort: 'xhigh',
+            summary: 'auto',
+          },
+          store: false,
+          include: ['reasoning.encrypted_content'],
+          stream: true,
+        });
+      });
+
       it('should stream with encrypted content include reasoning-delta part', async () => {
         prepareChunksFixtureResponse('openai-reasoning-encrypted-content.1');
         const { stream } = await createModel('gpt-5.1-codex-max').doStream({
