@@ -9,10 +9,6 @@ export { prepareCallSettings } from '../src/prompt/prepare-call-settings';
 export { prepareRetries } from '../src/util/prepare-retries';
 export { asLanguageModelUsage } from '../src/types/usage';
 export {
-  createProviderStreamToUIChunkTransform,
-  type ProviderStreamToUIChunkTransformOptions,
-} from '../src/ui-message-stream/create-provider-stream-to-ui-chunk-transform';
-export {
   mapStreamPartToUIChunks,
   type MappableStreamPart,
   type MapStreamPartToUIChunksOptions,

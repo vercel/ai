@@ -16,7 +16,7 @@ import {
   type ToolSet,
   type UIMessageChunk,
 } from 'ai';
-import { createProviderStreamToUIChunkTransform } from 'ai/internal';
+import { createProviderStreamToUIChunkTransform } from './create-provider-stream-to-ui-chunk-transform.js';
 import type {
   ProviderOptions,
   StreamTextTransform,
