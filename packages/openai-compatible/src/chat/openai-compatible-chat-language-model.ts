@@ -434,9 +434,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               return;
             }
 
-            // TODO we lost type safety on Chunk, most likely due to the error schema. MUST FIX
-            // remove this workaround when the issue is fixed
-            const value = chunk.value as z.infer<typeof chunkBaseSchema>;
+            // Ensure type safety for non-error chunks.
+            // `this.chunkSchema` is constructed from a runtime-provided error schema,
+            // which makes it hard for TS to infer a precise union type here.
+            // Re-validate against the base schema to get a strongly-typed value.
+            const baseChunk = chunkBaseSchema.safeParse(chunk.value);
+            if (!baseChunk.success) {
+              finishReason = { unified: 'error', raw: undefined };
+              controller.enqueue({ type: 'error', error: baseChunk.error });
+              return;
+            }
+
+            const value = baseChunk.data;
 
             if (isFirstChunk) {
               isFirstChunk = false;
