@@ -8,6 +8,7 @@ export { standardizePrompt } from '../src/prompt/standardize-prompt';
 export { prepareCallSettings } from '../src/prompt/prepare-call-settings';
 export { prepareRetries } from '../src/util/prepare-retries';
 export { asLanguageModelUsage } from '../src/types/usage';
+export { toLanguageModelToolChoice } from '../src/prompt/to-language-model-tool-choice';
 export {
   mapStreamPartToUIChunks,
   type MappableStreamPart,

@@ -1,4 +1,5 @@
 import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import type { UIMessageChunk } from 'ai';
 import { mapStreamPartToUIChunks, type MappableStreamPart } from 'ai/internal';
 
@@ -22,18 +23,6 @@ export interface ProviderStreamToUIChunkTransformOptions {
 }
 
 /**
- * Convert a Uint8Array to a base64 string safely.
- * Uses a loop instead of spread operator to avoid stack overflow on large arrays.
- */
-function uint8ArrayToBase64(data: Uint8Array): string {
-  let binary = '';
-  for (let i = 0; i < data.length; i++) {
-    binary += String.fromCharCode(data[i]);
-  }
-  return btoa(binary);
-}
-
-/**
  * Normalize a LanguageModelV4StreamPart to the MappableStreamPart interface
  * so it can be processed by the shared mapStreamPartToUIChunks function.
 
@@ -51,7 +40,7 @@ function normalizeV4Part(
       let url: string;
       const fileData = part.data;
       if (fileData instanceof Uint8Array) {
-        const base64 = uint8ArrayToBase64(fileData);
+        const base64 = convertUint8ArrayToBase64(fileData);
         url = `data:${part.mediaType};base64,${base64}`;
       } else if (
         typeof fileData === 'string' && (
