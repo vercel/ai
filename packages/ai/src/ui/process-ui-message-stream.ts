@@ -758,7 +758,20 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 state.finishReason = chunk.finishReason;
               }
               await updateMessageMetadata(chunk.messageMetadata);
-              if (chunk.messageMetadata != null) {
+
+              // Remove trailing step-start parts that have no content
+              // following them (e.g. from transient-only data streams)
+              let cleanedUpOrphanedSteps = false;
+              while (
+                state.message.parts.length > 0 &&
+                state.message.parts[state.message.parts.length - 1].type ===
+                  'step-start'
+              ) {
+                state.message.parts.pop();
+                cleanedUpOrphanedSteps = true;
+              }
+
+              if (chunk.messageMetadata != null || cleanedUpOrphanedSteps) {
                 write();
               }
               break;

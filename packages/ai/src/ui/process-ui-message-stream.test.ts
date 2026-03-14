@@ -4678,6 +4678,14 @@ describe('processUIMessageStream', () => {
               "role": "assistant",
             },
           },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [],
+              "role": "assistant",
+            },
+          },
         ]
       `);
     });
@@ -4687,11 +4695,7 @@ describe('processUIMessageStream', () => {
         {
           "id": "msg-123",
           "metadata": undefined,
-          "parts": [
-            {
-              "type": "step-start",
-            },
-          ],
+          "parts": [],
           "role": "assistant",
         }
       `);
@@ -4702,6 +4706,77 @@ describe('processUIMessageStream', () => {
         [
           {
             "data": "example-data-can-be-anything",
+            "transient": true,
+            "type": "data-test",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('data ui parts (transient part does not leak into multi-step message)', () => {
+    let dataCalls: InferUIMessageData<UIMessage>[] = [];
+
+    beforeEach(async () => {
+      dataCalls = [];
+
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'finish-step' },
+        { type: 'start-step' },
+        {
+          type: 'data-test',
+          data: 'transient-only-step',
+          transient: true,
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+          onData: data => {
+            dataCalls.push(data);
+          },
+        }),
+      });
+    });
+
+    it('should strip orphaned trailing step-start from the final message', async () => {
+      expect(state!.message.parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "step-start",
+          },
+          {
+            "providerMetadata": undefined,
+            "state": "done",
+            "text": "Hello",
+            "type": "text",
+          },
+        ]
+      `);
+    });
+
+    it('should still call the onData callback with the transient part', async () => {
+      expect(dataCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "data": "transient-only-step",
             "transient": true,
             "type": "data-test",
           },
