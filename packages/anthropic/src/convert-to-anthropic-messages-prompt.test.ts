@@ -3105,11 +3105,23 @@ describe('citations', () => {
   });
 
   it('should reorder assistant content so server_tool_use+web_search_tool_result come before tool_use', async () => {
-    // When the model calls both a provider-executed tool (web_search) and a
-    // regular tool in the same turn, the resulting anthropicContent array may
-    // have server_tool_use / web_search_tool_result interspersed after tool_use.
-    // The Anthropic API requires tool_use to be last; this test verifies the
-    // reordering.
+    // Regression test for https://github.com/vercel/ai/issues/13013.
+    //
+    // The Anthropic API can return a response in which a regular tool_use
+    // block appears at an earlier index than server_tool_use /
+    // web_search_tool_result in the same turn.  The raw streaming format that
+    // triggers this is captured in:
+    //   packages/anthropic/src/__fixtures__/anthropic-web-search-with-tool.1.chunks.txt
+    //
+    // When parsed, the AI SDK represents the response as the `role: 'assistant'`
+    // content below (tool-call for save_results at index 1, server tool-call
+    // and tool-result for web_search at indices 2-3).  This prompt is what
+    // `convertToAnthropicMessagesPrompt` receives when building the next turn.
+    //
+    // The Anthropic API then rejects the request with
+    // "tool_use ids were found without tool_result blocks immediately after"
+    // unless tool_use appears LAST in the assistant message content.
+    // This test verifies the reordering fix.
     const warnings: SharedV3Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
