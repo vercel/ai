@@ -1678,4 +1678,84 @@ describe('runToolsTransformation', () => {
       });
     });
   });
+
+  it('should not crash when generator stream errors while tools are executing', async () => {
+    // Regression test for https://github.com/vercel/ai/issues/12874
+    // When the LLM stream errors mid-flight while tools are still executing,
+    // the toolResultsStreamController may be closed before pending tool
+    // callbacks fire. Without guards, this causes:
+    // TypeError: Controller is already closed
+
+    let rejectStream: (error: Error) => void;
+
+    const inputStream = new ReadableStream<LanguageModelV3StreamPart>({
+      start(controller) {
+        // Emit tool calls
+        controller.enqueue({
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'slowTool',
+          input: '{ "value": "a" }',
+        });
+        controller.enqueue({
+          type: 'tool-call',
+          toolCallId: 'call-2',
+          toolName: 'slowTool',
+          input: '{ "value": "b" }',
+        });
+
+        // Error the stream shortly after, while tools are still running
+        rejectStream = (error: Error) => controller.error(error);
+      },
+    });
+
+    const transformedStream = runToolsTransformation({
+      generateId: mockId({ prefix: 'id' }),
+      tools: {
+        slowTool: {
+          title: 'Slow Tool',
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => {
+            await delay(200);
+            return `${value}-result`;
+          },
+        },
+      },
+      generatorStream: inputStream,
+      tracer: new MockTracer(),
+      telemetry: undefined,
+      messages: [],
+      system: undefined,
+      abortSignal: undefined,
+      repairToolCall: undefined,
+      experimental_context: undefined,
+    });
+
+    // Error the stream after a short delay (tools still running)
+    setTimeout(() => {
+      rejectStream(new Error('simulated LLM stream error'));
+    }, 50);
+
+    // Consume the stream — it should reject but NOT throw
+    // "Controller is already closed"
+    const reader = transformedStream.getReader();
+    const chunks: unknown[] = [];
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+    } catch {
+      // Stream error is expected — the important thing is no unhandled crash
+    }
+
+    // Wait for the slow tools to finish their async callbacks
+    await delay(500);
+
+    // If we reach here without an unhandled rejection, the fix works.
+    // The tool-call chunks should have been emitted before the error.
+    expect(chunks.some((c: any) => c.type === 'tool-call')).toBe(true);
+  });
+
 });
