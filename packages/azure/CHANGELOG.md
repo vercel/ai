@@ -1,5 +1,35 @@
 # @ai-sdk/azure
 
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- 83f9d04: feat(openai): upgrade v3 specs to v4
+- Updated dependencies [83f9d04]
+  - @ai-sdk/openai@4.0.0-beta.6
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [ac18f89]
+  - @ai-sdk/openai@4.0.0-beta.5
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [a71d345]
+  - @ai-sdk/openai@4.0.0-beta.4
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [45b3d76]
+- Updated dependencies [f7295cb]
+  - @ai-sdk/openai@4.0.0-beta.3
+
 ## 4.0.0-beta.2
 
 ### Patch Changes

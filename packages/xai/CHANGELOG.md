@@ -1,5 +1,50 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 4799fa5: chore(provider/xai): update provider to use v4 types
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- 0f11f10: add reasoningSummary to responses API provider options
+- 12115e9: fix reasoning text extraction from content in responses doGenerate
+
+## 4.0.0-beta.6
+
+### Major Changes
+
+- f62681f: feat(provider/xai): make responses api the default
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- aa5a583: chore(provider/xai): remove obsolete Grok 2 models now that they are shut down in their API
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- 25f1837: feat(xai): add b64_json response format, usage cost tracking, and quality/user parameters for image models
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- f5181ad: feat(provider/xai): support multiple input images for image editing
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [45b3d76]
+- Updated dependencies [f7295cb]
+  - @ai-sdk/openai-compatible@3.0.0-beta.2
+
 ## 4.0.0-beta.1
 
 ### Patch Changes

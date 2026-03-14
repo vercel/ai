@@ -22,7 +22,7 @@ run(async () => {
 
   const result = await generateText({
     model: anthropic('claude-sonnet-4-5-20250929'),
-    prompt: 'How many "r"s are in the word "strawberry?',
+    prompt: 'what is the weather in Tokyo?',
     tools: {
       getWeather: {
         description: 'Get the weather for a given city',

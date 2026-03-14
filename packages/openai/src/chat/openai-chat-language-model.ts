@@ -1,14 +1,14 @@
 import {
   InvalidResponseDataError,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -17,6 +17,7 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  isParsableJson,
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -47,8 +48,8 @@ type OpenAIChatConfig = {
   fetch?: FetchFunction;
 };
 
-export class OpenAIChatLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class OpenAIChatLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: OpenAIChatModelId;
 
@@ -81,8 +82,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     providerOptions,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const openaiOptions =
@@ -313,8 +314,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args: body, warnings } = await this.getArgs(options);
 
     const {
@@ -337,7 +338,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // text content:
     const text = choice.message.content;
@@ -369,7 +370,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     // provider metadata:
     const completionTokenDetails = response.usage?.completion_tokens_details;
     const promptTokenDetails = response.usage?.prompt_tokens_details;
-    const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
     if (completionTokenDetails?.accepted_prediction_tokens != null) {
       providerMetadata.openai.acceptedPredictionTokens =
         completionTokenDetails?.accepted_prediction_tokens;
@@ -401,8 +402,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -438,7 +439,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       hasFinished: boolean;
     }> = [];
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -446,13 +447,13 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     let metadataExtracted = false;
     let isActiveText = false;
 
-    const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
 
     return {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<OpenAIChatChunk>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -604,6 +605,23 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
                         delta: toolCall.function.arguments,
                       });
                     }
+
+                    // check if tool call is complete
+                    // (some providers send the full tool call in one chunk):
+                    if (isParsableJson(toolCall.function.arguments)) {
+                      controller.enqueue({
+                        type: 'tool-input-end',
+                        id: toolCall.id,
+                      });
+
+                      controller.enqueue({
+                        type: 'tool-call',
+                        toolCallId: toolCall.id ?? generateId(),
+                        toolName: toolCall.function.name,
+                        input: toolCall.function.arguments,
+                      });
+                      toolCall.hasFinished = true;
+                    }
                   }
 
                   continue;
@@ -627,6 +645,26 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
                   id: toolCall.id,
                   delta: toolCallDelta.function.arguments ?? '',
                 });
+
+                // check if tool call is complete
+                if (
+                  toolCall.function?.name != null &&
+                  toolCall.function?.arguments != null &&
+                  isParsableJson(toolCall.function.arguments)
+                ) {
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: toolCall.id,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: toolCall.id ?? generateId(),
+                    toolName: toolCall.function.name,
+                    input: toolCall.function.arguments,
+                  });
+                  toolCall.hasFinished = true;
+                }
               }
             }
 
@@ -647,26 +685,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
           flush(controller) {
             if (isActiveText) {
               controller.enqueue({ type: 'text-end', id: '0' });
-            }
-
-            // Finalize any unfinished tool calls. Tool calls are only
-            // finalized here (on stream end) to prevent premature
-            // execution when partial JSON is coincidentally parsable.
-            for (const toolCall of toolCalls) {
-              if (!toolCall.hasFinished) {
-                controller.enqueue({
-                  type: 'tool-input-end',
-                  id: toolCall.id,
-                });
-
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: toolCall.id ?? generateId(),
-                  toolName: toolCall.function.name,
-                  input: toolCall.function.arguments,
-                });
-                toolCall.hasFinished = true;
-              }
             }
 
             controller.enqueue({

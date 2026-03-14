@@ -1,5 +1,17 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- e748b35: chore: update v3 specs to v4
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- 1fe058b: fix(anthropic): preserve the error code returned by model
+
 ## 4.0.0-beta.1
 
 ### Patch Changes

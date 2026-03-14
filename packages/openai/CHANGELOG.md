@@ -1,5 +1,33 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- 83f9d04: feat(openai): upgrade v3 specs to v4
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- ac18f89: feat(provider/openai): add `gpt-5.3-chat-latest`
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- a71d345: fix(provider/openai): drop reasoning parts without encrypted content when store: false
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- 45b3d76: fix(security): prevent streaming tool calls from finalizing on parsable partial JSON
+
+  Streaming tool call arguments were finalized using `isParsableJson()` as a heuristic for completion. If partial accumulated JSON happened to be valid JSON before all chunks arrived, the tool call would be executed with incomplete arguments. Tool call finalization now only occurs in `flush()` after the stream is fully consumed.
+
+- f7295cb: revert incorrect fix https://github.com/vercel/ai/pull/13172
+
 ## 4.0.0-beta.2
 
 ### Patch Changes
