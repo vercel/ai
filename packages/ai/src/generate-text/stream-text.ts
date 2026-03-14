@@ -132,122 +132,6 @@ const originalGenerateCallId = createIdGenerator({
 });
 
 /**
- * Normalize a TextStreamPart to MappableStreamPart for the shared
- * mapStreamPartToUIChunks function. Handles field-name differences
- * between the SDK-level TextStreamPart and the normalized interface.
- *
- * Returns null for lifecycle events (start, finish, abort) which
- * are handled separately by toUIMessageStream.
- */
-function normalizeTextStreamPart<TOOLS extends ToolSet>(
-  part: TextStreamPart<TOOLS>,
-): MappableStreamPart | null {
-  switch (part.type) {
-    case 'text-delta':
-      // TextStreamPart uses .text; MappableStreamPart uses .delta
-      return {
-        type: 'text-delta',
-        id: part.id,
-        delta: part.text,
-        providerMetadata: part.providerMetadata,
-      };
-
-    case 'reasoning-delta':
-      // TextStreamPart uses .text; MappableStreamPart uses .delta
-      return {
-        type: 'reasoning-delta',
-        id: part.id,
-        delta: part.text,
-        providerMetadata: part.providerMetadata,
-      };
-
-    case 'file':
-      // TextStreamPart wraps in GeneratedFile; normalize to url
-      return {
-        type: 'file',
-        url: `data:${part.file.mediaType};base64,${part.file.base64}`,
-        mediaType: part.file.mediaType,
-        providerMetadata: part.providerMetadata,
-      };
-
-    case 'tool-call':
-      // TextStreamPart has parsed input (object); pass through
-      return {
-        type: 'tool-call',
-        toolCallId: part.toolCallId,
-        toolName: part.toolName,
-        input: part.input,
-        providerExecuted: part.providerExecuted,
-        providerMetadata: part.providerMetadata,
-        dynamic: part.dynamic,
-        title: part.title,
-        invalid: part.invalid,
-        error: part.error,
-      };
-
-    case 'tool-result':
-      // TextStreamPart uses .output; MappableStreamPart uses .output
-      return {
-        type: 'tool-result',
-        toolCallId: part.toolCallId,
-        output: part.output,
-        providerExecuted: part.providerExecuted,
-        providerMetadata: part.providerMetadata,
-        dynamic: part.dynamic || undefined,
-        preliminary: part.preliminary,
-      };
-
-    case 'tool-approval-request':
-      // TextStreamPart nests toolCallId in .toolCall; normalize
-      return {
-        type: 'tool-approval-request',
-        approvalId: part.approvalId,
-        toolCallId: part.toolCall.toolCallId,
-      };
-
-    case 'tool-error':
-      return {
-        type: 'tool-error',
-        toolCallId: part.toolCallId,
-        toolName: part.toolName,
-        error: part.error,
-        providerExecuted: part.providerExecuted,
-        providerMetadata: part.providerMetadata,
-      };
-
-    case 'tool-output-denied':
-      return {
-        type: 'tool-output-denied',
-        toolCallId: part.toolCallId,
-      };
-
-    // These types are structurally compatible — pass through
-    case 'text-start':
-    case 'text-end':
-    case 'reasoning-start':
-    case 'reasoning-end':
-    case 'source':
-    case 'tool-input-start':
-    case 'tool-input-delta':
-    case 'tool-input-end':
-    case 'error':
-    case 'start-step':
-    case 'finish-step':
-      return part as unknown as MappableStreamPart;
-
-    // Lifecycle events handled separately, skip
-    case 'start':
-    case 'finish':
-    case 'abort':
-    case 'raw':
-      return null;
-
-    default:
-      return null;
-  }
-}
-
-/**
  * A transformation that is applied to the stream.
  *
  * @param stopStream - A function that stops the source stream.
@@ -2418,9 +2302,50 @@ case 'start': {
             }
 
             default: {
-              // Normalize TextStreamPart to MappableStreamPart and
-              // delegate to the shared mapping function
-              const normalized = normalizeTextStreamPart(part);
+              // Normalize TextStreamPart field names to MappableStreamPart
+              // and delegate to the shared mapping function.
+              // Only types that differ from MappableStreamPart need normalization;
+              // structurally compatible types are cast directly.
+              let normalized: MappableStreamPart | null;
+              switch (partType) {
+                case 'text-delta':
+                  normalized = { ...part, delta: part.text };
+                  break;
+                case 'reasoning-delta':
+                  normalized = { ...part, delta: part.text };
+                  break;
+                case 'file':
+                  normalized = {
+                    type: 'file',
+                    url: `data:${part.file.mediaType};base64,${part.file.base64}`,
+                    mediaType: part.file.mediaType,
+                    providerMetadata: part.providerMetadata,
+                  };
+                  break;
+                case 'tool-result':
+                  normalized = {
+                    ...part,
+                    dynamic: part.dynamic || undefined,
+                  };
+                  break;
+                case 'tool-approval-request':
+                  normalized = {
+                    type: 'tool-approval-request',
+                    approvalId: part.approvalId,
+                    toolCallId: part.toolCall.toolCallId,
+                  };
+                  break;
+                case 'raw':
+                  normalized = null;
+                  break;
+                default:
+                  // text-start, text-end, reasoning-start, reasoning-end,
+                  // source, tool-input-start, tool-input-delta, tool-input-end,
+                  // tool-call, tool-error, tool-output-denied, error,
+                  // start-step, finish-step are structurally compatible
+                  normalized = part as unknown as MappableStreamPart;
+              }
+
               if (normalized != null) {
                 const chunks = mapStreamPartToUIChunks(normalized, mapOptions);
                 for (const chunk of chunks) {
