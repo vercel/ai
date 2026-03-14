@@ -60,6 +60,10 @@ import {
 } from '../ui-message-stream/ui-message-chunks';
 import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
 import { InferUIMessageData, InferUIMessageMetadata } from '../ui/ui-messages';
+import {
+  mapStreamPartToUIChunks,
+  type MappableStreamPart,
+} from '../ui-message-stream/map-stream-part-to-ui-chunks';
 import { asArray } from '../util/as-array';
 import {
   AsyncIterableStream,
@@ -126,6 +130,122 @@ const originalGenerateCallId = createIdGenerator({
   prefix: 'call',
   size: 24,
 });
+
+/**
+ * Normalize a TextStreamPart to MappableStreamPart for the shared
+ * mapStreamPartToUIChunks function. Handles field-name differences
+ * between the SDK-level TextStreamPart and the normalized interface.
+ *
+ * Returns null for lifecycle events (start, finish, abort) which
+ * are handled separately by toUIMessageStream.
+ */
+function normalizeTextStreamPart<TOOLS extends ToolSet>(
+  part: TextStreamPart<TOOLS>,
+): MappableStreamPart | null {
+  switch (part.type) {
+    case 'text-delta':
+      // TextStreamPart uses .text; MappableStreamPart uses .delta
+      return {
+        type: 'text-delta',
+        id: part.id,
+        delta: part.text,
+        providerMetadata: part.providerMetadata,
+      };
+
+    case 'reasoning-delta':
+      // TextStreamPart uses .text; MappableStreamPart uses .delta
+      return {
+        type: 'reasoning-delta',
+        id: part.id,
+        delta: part.text,
+        providerMetadata: part.providerMetadata,
+      };
+
+    case 'file':
+      // TextStreamPart wraps in GeneratedFile; normalize to url
+      return {
+        type: 'file',
+        url: `data:${part.file.mediaType};base64,${part.file.base64}`,
+        mediaType: part.file.mediaType,
+        providerMetadata: part.providerMetadata,
+      };
+
+    case 'tool-call':
+      // TextStreamPart has parsed input (object); pass through
+      return {
+        type: 'tool-call',
+        toolCallId: part.toolCallId,
+        toolName: part.toolName,
+        input: part.input,
+        providerExecuted: part.providerExecuted,
+        providerMetadata: part.providerMetadata,
+        dynamic: part.dynamic,
+        title: part.title,
+        invalid: part.invalid,
+        error: part.error,
+      };
+
+    case 'tool-result':
+      // TextStreamPart uses .output; MappableStreamPart uses .output
+      return {
+        type: 'tool-result',
+        toolCallId: part.toolCallId,
+        output: part.output,
+        providerExecuted: part.providerExecuted,
+        providerMetadata: part.providerMetadata,
+        dynamic: part.dynamic || undefined,
+        preliminary: part.preliminary,
+      };
+
+    case 'tool-approval-request':
+      // TextStreamPart nests toolCallId in .toolCall; normalize
+      return {
+        type: 'tool-approval-request',
+        approvalId: part.approvalId,
+        toolCallId: part.toolCall.toolCallId,
+      };
+
+    case 'tool-error':
+      return {
+        type: 'tool-error',
+        toolCallId: part.toolCallId,
+        toolName: part.toolName,
+        error: part.error,
+        providerExecuted: part.providerExecuted,
+        providerMetadata: part.providerMetadata,
+      };
+
+    case 'tool-output-denied':
+      return {
+        type: 'tool-output-denied',
+        toolCallId: part.toolCallId,
+      };
+
+    // These types are structurally compatible — pass through
+    case 'text-start':
+    case 'text-end':
+    case 'reasoning-start':
+    case 'reasoning-end':
+    case 'source':
+    case 'tool-input-start':
+    case 'tool-input-delta':
+    case 'tool-input-end':
+    case 'error':
+    case 'start-step':
+    case 'finish-step':
+      return part as unknown as MappableStreamPart;
+
+    // Lifecycle events handled separately, skip
+    case 'start':
+    case 'finish':
+    case 'abort':
+    case 'raw':
+      return null;
+
+    default:
+      return null;
+  }
+}
 
 /**
  * A transformation that is applied to the stream.
@@ -2241,6 +2361,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
       return tool?.type === 'dynamic' ? true : undefined;
     };
 
+    const mapOptions = {
+      sendReasoning,
+      sendSources,
+      isDynamic,
+      onError,
+    };
+
     const baseStream = this.fullStream.pipeThrough(
       new TransformStream<
         TextStreamPart<TOOLS>,
@@ -2253,266 +2380,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           const messageMetadataValue = messageMetadata?.({ part });
 
           const partType = part.type;
+
+          // Handle lifecycle events that need messageMetadata/messageId
+          // (not covered by the shared mapper)
           switch (partType) {
-            case 'text-start': {
-              controller.enqueue({
-                type: 'text-start',
-                id: part.id,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
-              break;
-            }
-
-            case 'text-delta': {
-              controller.enqueue({
-                type: 'text-delta',
-                id: part.id,
-                delta: part.text,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
-              break;
-            }
-
-            case 'text-end': {
-              controller.enqueue({
-                type: 'text-end',
-                id: part.id,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
-              break;
-            }
-
-            case 'reasoning-start': {
-              controller.enqueue({
-                type: 'reasoning-start',
-                id: part.id,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
-              break;
-            }
-
-            case 'reasoning-delta': {
-              if (sendReasoning) {
-                controller.enqueue({
-                  type: 'reasoning-delta',
-                  id: part.id,
-                  delta: part.text,
-                  ...(part.providerMetadata != null
-                    ? { providerMetadata: part.providerMetadata }
-                    : {}),
-                });
-              }
-              break;
-            }
-
-            case 'reasoning-end': {
-              controller.enqueue({
-                type: 'reasoning-end',
-                id: part.id,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
-              break;
-            }
-
-            case 'file':
-            case 'reasoning-file': {
-              if (partType !== 'reasoning-file' || sendReasoning) {
-                controller.enqueue({
-                  type: part.type,
-                  mediaType: part.file.mediaType,
-                  url: `data:${part.file.mediaType};base64,${part.file.base64}`,
-                  ...(part.providerMetadata != null
-                    ? { providerMetadata: part.providerMetadata }
-                    : {}),
-                });
-              }
-              break;
-            }
-
-            case 'source': {
-              if (sendSources && part.sourceType === 'url') {
-                controller.enqueue({
-                  type: 'source-url',
-                  sourceId: part.id,
-                  url: part.url,
-                  title: part.title,
-                  ...(part.providerMetadata != null
-                    ? { providerMetadata: part.providerMetadata }
-                    : {}),
-                });
-              }
-
-              if (sendSources && part.sourceType === 'document') {
-                controller.enqueue({
-                  type: 'source-document',
-                  sourceId: part.id,
-                  mediaType: part.mediaType,
-                  title: part.title,
-                  filename: part.filename,
-                  ...(part.providerMetadata != null
-                    ? { providerMetadata: part.providerMetadata }
-                    : {}),
-                });
-              }
-              break;
-            }
-
-            case 'tool-input-start': {
-              const dynamic = isDynamic(part);
-
-              controller.enqueue({
-                type: 'tool-input-start',
-                toolCallId: part.id,
-                toolName: part.toolName,
-                ...(part.providerExecuted != null
-                  ? { providerExecuted: part.providerExecuted }
-                  : {}),
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-                ...(dynamic != null ? { dynamic } : {}),
-                ...(part.title != null ? { title: part.title } : {}),
-              });
-              break;
-            }
-
-            case 'tool-input-delta': {
-              controller.enqueue({
-                type: 'tool-input-delta',
-                toolCallId: part.id,
-                inputTextDelta: part.delta,
-              });
-              break;
-            }
-
-            case 'tool-call': {
-              const dynamic = isDynamic(part);
-
-              if (part.invalid) {
-                controller.enqueue({
-                  type: 'tool-input-error',
-                  toolCallId: part.toolCallId,
-                  toolName: part.toolName,
-                  input: part.input,
-                  ...(part.providerExecuted != null
-                    ? { providerExecuted: part.providerExecuted }
-                    : {}),
-                  ...(part.providerMetadata != null
-                    ? { providerMetadata: part.providerMetadata }
-                    : {}),
-                  ...(dynamic != null ? { dynamic } : {}),
-                  errorText: onError(part.error),
-                  ...(part.title != null ? { title: part.title } : {}),
-                });
-              } else {
-                controller.enqueue({
-                  type: 'tool-input-available',
-                  toolCallId: part.toolCallId,
-                  toolName: part.toolName,
-                  input: part.input,
-                  ...(part.providerExecuted != null
-                    ? { providerExecuted: part.providerExecuted }
-                    : {}),
-                  ...(part.providerMetadata != null
-                    ? { providerMetadata: part.providerMetadata }
-                    : {}),
-                  ...(dynamic != null ? { dynamic } : {}),
-                  ...(part.title != null ? { title: part.title } : {}),
-                });
-              }
-
-              break;
-            }
-
-            case 'tool-approval-request': {
-              controller.enqueue({
-                type: 'tool-approval-request',
-                approvalId: part.approvalId,
-                toolCallId: part.toolCall.toolCallId,
-              });
-              break;
-            }
-
-            case 'tool-result': {
-              const dynamic = isDynamic(part);
-
-              controller.enqueue({
-                type: 'tool-output-available',
-                toolCallId: part.toolCallId,
-                output: part.output,
-                ...(part.providerExecuted != null
-                  ? { providerExecuted: part.providerExecuted }
-                  : {}),
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-                ...(part.preliminary != null
-                  ? { preliminary: part.preliminary }
-                  : {}),
-                ...(dynamic != null ? { dynamic } : {}),
-              });
-              break;
-            }
-
-            case 'tool-error': {
-              const dynamic = isDynamic(part);
-
-              controller.enqueue({
-                type: 'tool-output-error',
-                toolCallId: part.toolCallId,
-                errorText: part.providerExecuted
-                  ? typeof part.error === 'string'
-                    ? part.error
-                    : JSON.stringify(part.error)
-                  : onError(part.error),
-                ...(part.providerExecuted != null
-                  ? { providerExecuted: part.providerExecuted }
-                  : {}),
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-                ...(dynamic != null ? { dynamic } : {}),
-              });
-              break;
-            }
-
-            case 'tool-output-denied': {
-              controller.enqueue({
-                type: 'tool-output-denied',
-                toolCallId: part.toolCallId,
-              });
-              break;
-            }
-
-            case 'error': {
-              controller.enqueue({
-                type: 'error',
-                errorText: onError(part.error),
-              });
-              break;
-            }
-
-            case 'start-step': {
-              controller.enqueue({ type: 'start-step' });
-              break;
-            }
-
-            case 'finish-step': {
-              controller.enqueue({ type: 'finish-step' });
-              break;
-            }
-
-            case 'start': {
+case 'start': {
               if (sendStart) {
                 controller.enqueue({
                   type: 'start',
@@ -2545,19 +2417,22 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               break;
             }
 
-            case 'tool-input-end': {
-              break;
-            }
-
-            case 'raw': {
-              // Raw chunks are not included in UI message streams
-              // as they contain provider-specific data for developer use
-              break;
-            }
-
             default: {
-              const exhaustiveCheck: never = partType;
-              throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
+              // Normalize TextStreamPart to MappableStreamPart and
+              // delegate to the shared mapping function
+              const normalized = normalizeTextStreamPart(part);
+              if (normalized != null) {
+                const chunks = mapStreamPartToUIChunks(normalized, mapOptions);
+                for (const chunk of chunks) {
+                  controller.enqueue(
+                    chunk as UIMessageChunk<
+                      InferUIMessageMetadata<UI_MESSAGE>,
+                      InferUIMessageData<UI_MESSAGE>
+                    >,
+                  );
+                }
+              }
+              break;
             }
           }
 

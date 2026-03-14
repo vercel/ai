@@ -12,3 +12,8 @@ export {
   createProviderStreamToUIChunkTransform,
   type ProviderStreamToUIChunkTransformOptions,
 } from '../src/ui-message-stream/create-provider-stream-to-ui-chunk-transform';
+export {
+  mapStreamPartToUIChunks,
+  type MappableStreamPart,
+  type MapStreamPartToUIChunksOptions,
+} from '../src/ui-message-stream/map-stream-part-to-ui-chunks';
