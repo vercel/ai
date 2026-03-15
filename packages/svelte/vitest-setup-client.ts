@@ -1,7 +1,7 @@
-import { expect } from 'vitest';
+/// <reference types="@testing-library/jest-dom/vitest" />
+import { expect, vi } from 'vitest';
 import * as matchers from '@testing-library/jest-dom/matchers';
 expect.extend(matchers);
-import { vi } from 'vitest';
 
 // required for svelte5 + jsdom as jsdom does not support matchMedia
 Object.defineProperty(window, 'matchMedia', {
