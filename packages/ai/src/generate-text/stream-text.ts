@@ -1589,8 +1589,19 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             }),
           );
 
+          // Filter tools to only include active tools, so that tool calls
+          // for disabled tools are rejected instead of being executed.
+          const effectiveTools =
+            stepActiveTools != null && tools != null
+              ? (Object.fromEntries(
+                  Object.entries(tools).filter(([name]) =>
+                    (stepActiveTools as string[]).includes(name),
+                  ),
+                ) as TOOLS)
+              : tools;
+
           const streamWithToolResults = runToolsTransformation({
-            tools,
+            tools: effectiveTools,
             generatorStream: stream,
             telemetry,
             callId,
