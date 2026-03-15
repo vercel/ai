@@ -24,7 +24,7 @@ describe('OpenResponsesLanguageModel', () => {
 
   function createModel(modelId: string = 'gemma-7b-it') {
     return new OpenResponsesLanguageModel(modelId, {
-      provider: 'lmstudio',
+      provider: 'lmstudio.responses',
       url: URL,
       headers: () => ({}),
       generateId: mockId(),
@@ -255,6 +255,78 @@ describe('OpenResponsesLanguageModel', () => {
         });
 
         expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
+      });
+    });
+
+    describe('reasoning parameters', () => {
+      it('should send reasoningEffort in reasoning field', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            lmstudio: { reasoningEffort: 'low' },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          reasoning: { effort: 'low' },
+        });
+      });
+
+      it('should send reasoningSummary in reasoning field', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            lmstudio: { reasoningSummary: 'detailed' },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          reasoning: { summary: 'detailed' },
+        });
+      });
+
+      it('should send both reasoningEffort and reasoningSummary together', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            lmstudio: { reasoningEffort: 'high', reasoningSummary: 'concise' },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          reasoning: { effort: 'high', summary: 'concise' },
+        });
+      });
+
+      it('should not include reasoning field when no reasoning options are set', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body).not.toHaveProperty('reasoning');
+      });
+
+      it('should ignore reasoning options under a different provider key', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: { reasoningEffort: 'low', reasoningSummary: 'detailed' },
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body).not.toHaveProperty('reasoning');
       });
     });
 
