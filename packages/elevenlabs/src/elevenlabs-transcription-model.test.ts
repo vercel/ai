@@ -376,6 +376,10 @@ describe('doGenerate', () => {
           Symbol(kHandle): Blob {},
           Symbol(kLength): 40169,
           Symbol(kType): "audio/wav",
+          Symbol(state): FileState {
+            "lastModified": 1773550935253,
+            "name": "audio.wav",
+          },
         },
         "file_format": "pcm_s16le_16",
         "language_code": "en",
