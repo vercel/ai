@@ -210,6 +210,10 @@ describe('doGenerate', () => {
           Symbol(kHandle): Blob {},
           Symbol(kLength): 40169,
           Symbol(kType): "audio/wav",
+          Symbol(state): FileState {
+            "lastModified": 1773550969266,
+            "name": "audio.wav",
+          },
         },
         "model": "whisper-1",
         "response_format": "verbose_json",
@@ -239,6 +243,10 @@ describe('doGenerate', () => {
           Symbol(kHandle): Blob {},
           Symbol(kLength): 40169,
           Symbol(kType): "audio/wav",
+          Symbol(state): FileState {
+            "lastModified": 1773550969269,
+            "name": "audio.wav",
+          },
         },
         "model": "gpt-4o-transcribe",
         "response_format": "json",
@@ -267,6 +275,10 @@ describe('doGenerate', () => {
           Symbol(kHandle): Blob {},
           Symbol(kLength): 40169,
           Symbol(kType): "audio/wav",
+          Symbol(state): FileState {
+            "lastModified": 1773550969270,
+            "name": "audio.wav",
+          },
         },
         "model": "whisper-1",
         "response_format": "verbose_json",
