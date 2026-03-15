@@ -3,3 +3,8 @@ packages:
   - 'tools/*'
   - 'examples/*'
   - 'packages/rsc/tests/e2e/next-server'
+
+packageExtensions:
+  '@testing-library/jest-dom':
+    peerDependencies:
+      vitest: '*'
