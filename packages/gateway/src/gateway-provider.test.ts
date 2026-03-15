@@ -26,10 +26,7 @@ vi.mock('./gateway-language-model', () => ({
 const mockGetAvailableModels = vi.fn();
 const mockGetCredits = vi.fn();
 vi.mock('./gateway-fetch-metadata', () => {
-  const MockGatewayFetchMetadata = vi.fn(function (
-    this: any,
-    config: any,
-  ) {
+  const MockGatewayFetchMetadata = vi.fn(function (this: any, config: any) {
     this.getAvailableModels = async () => {
       if (config.headers && typeof config.headers === 'function') {
         await config.headers();
