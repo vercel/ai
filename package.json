@@ -84,9 +84,6 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild"
-    ],
-    "overrides": {
-      "tinyexec": "1.0.2"
-    }
+    ]
   }
 }
