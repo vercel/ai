@@ -78,7 +78,9 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
     const warnings: SharedV3Warning[] = [];
 
     const openResponsesOptions = await parseProviderOptions({
-      provider: this.provider,
+      provider: this.provider.endsWith('.responses')
+        ? this.provider.slice(0, -'.responses'.length)
+        : this.provider,
       providerOptions,
       schema: openResponsesProviderOptionsSchema,
     });

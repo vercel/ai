@@ -24,7 +24,7 @@ describe('OpenResponsesLanguageModel', () => {
 
   function createModel(modelId: string = 'gemma-7b-it') {
     return new OpenResponsesLanguageModel(modelId, {
-      provider: 'lmstudio',
+      provider: 'lmstudio.responses',
       url: URL,
       headers: () => ({}),
       generateId: mockId(),
