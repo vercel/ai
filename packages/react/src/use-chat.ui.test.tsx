@@ -5,7 +5,9 @@ import {
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
 import { mockId } from '@ai-sdk/provider-utils/test';
-import '@testing-library/jest-dom/vitest';
+import { expect } from 'vitest';
+import * as matchers from '@testing-library/jest-dom/matchers';
+expect.extend(matchers);
 import { screen, waitFor, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
