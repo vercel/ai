@@ -9,13 +9,16 @@ import type {
 import {
   type FinishReason,
   generateId,
-  type StepResult,
   type StopCondition,
   type ToolChoice,
   type ToolSet,
   type UIMessageChunk,
 } from 'ai';
-import { resolveLanguageModel } from 'ai/internal';
+import {
+  chunksToStepResult,
+  resolveLanguageModel,
+  type StreamFinishPart,
+} from 'ai/internal';
 import type {
   ProviderOptions,
   StreamTextTransform,
@@ -24,7 +27,7 @@ import type {
 import { recordSpan } from './telemetry.js';
 import type { CompatibleLanguageModel } from './types.js';
 
-export type FinishPart = Extract<LanguageModelV4StreamPart, { type: 'finish' }>;
+export type { StreamFinishPart as FinishPart };
 
 export type ModelStopCondition = StopCondition<NoInfer<ToolSet>>;
 
@@ -514,7 +517,12 @@ export async function doStreamStep(
     )
     .pipeTo(writable, { preventClose: true });
 
-  const step = chunksToStep(chunks, toolCalls, conversationPrompt, finish);
+  const step = chunksToStepResult({
+    chunks,
+    toolCalls,
+    prompt: conversationPrompt,
+    finish,
+  });
   return {
     toolCalls,
     finish,
