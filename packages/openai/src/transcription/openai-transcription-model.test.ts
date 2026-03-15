@@ -213,9 +213,9 @@ describe('doGenerate', () => {
         'timestamp_granularities[]': 'word',
       }),
     );
-    expect(multipart1.file).toBeInstanceOf(File);
-    expect(multipart1.file.type).toBe('audio/wav');
-    expect(multipart1.file.size).toBe(40169);
+    expect(multipart1!.file).toBeInstanceOf(File);
+    expect(multipart1!.file.type).toBe('audio/wav');
+    expect(multipart1!.file.size).toBe(40169);
   });
 
   it('should not set pass response_format to "verbose_json" when model is "gpt-4o-transcribe"', async () => {
@@ -241,9 +241,9 @@ describe('doGenerate', () => {
         'timestamp_granularities[]': 'word',
       }),
     );
-    expect(multipart2.file).toBeInstanceOf(File);
-    expect(multipart2.file.type).toBe('audio/wav');
-    expect(multipart2.file.size).toBe(40169);
+    expect(multipart2!.file).toBeInstanceOf(File);
+    expect(multipart2!.file.type).toBe('audio/wav');
+    expect(multipart2!.file.size).toBe(40169);
   });
 
   it('should pass timestamp_granularities when specified', async () => {
@@ -268,9 +268,9 @@ describe('doGenerate', () => {
         'timestamp_granularities[]': 'segment',
       }),
     );
-    expect(multipart3.file).toBeInstanceOf(File);
-    expect(multipart3.file.type).toBe('audio/wav');
-    expect(multipart3.file.size).toBe(40169);
+    expect(multipart3!.file).toBeInstanceOf(File);
+    expect(multipart3!.file.type).toBe('audio/wav');
+    expect(multipart3!.file.size).toBe(40169);
   });
 
   it('should work when no words, language, or duration are returned', async () => {
