@@ -53,6 +53,7 @@ export {
   type SourceUrlUIPart,
   type StepStartUIPart,
   type TextUIPart,
+  type ToolCallState,
   type ToolUIPart,
   type UIDataTypes,
   type UIMessage,
