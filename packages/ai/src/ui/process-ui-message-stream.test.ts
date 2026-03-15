@@ -3158,6 +3158,80 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('freeform text tool input streaming', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'tool-call-0',
+          toolName: 'text-tool',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-0',
+          inputTextDelta: 'SELECT * ',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-0',
+          inputTextDelta: 'FROM users',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'text-tool',
+          input: 'SELECT * FROM users',
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should show raw text input during streaming when JSON parse fails', async () => {
+      // First delta: input should be the raw text (not undefined)
+      const firstDelta = writeCalls[2]; // after start and tool-input-start
+      expect(firstDelta.message.parts[1]).toMatchObject({
+        state: 'input-streaming',
+        input: 'SELECT * ',
+        toolCallId: 'tool-call-0',
+      });
+
+      // Second delta: input should be the accumulated raw text
+      const secondDelta = writeCalls[3];
+      expect(secondDelta.message.parts[1]).toMatchObject({
+        state: 'input-streaming',
+        input: 'SELECT * FROM users',
+        toolCallId: 'tool-call-0',
+      });
+    });
+
+    it('should have the correct final message state', async () => {
+      expect(state!.message.parts[1]).toMatchObject({
+        state: 'input-available',
+        input: 'SELECT * FROM users',
+        toolCallId: 'tool-call-0',
+        type: 'tool-text-tool',
+      });
+    });
+  });
+
   describe('start with message id', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
