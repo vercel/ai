@@ -32,6 +32,7 @@
     { "path": "packages/llamaindex" },
     { "path": "packages/lmnt" },
     { "path": "packages/luma" },
+    { "path": "packages/minimax" },
     { "path": "packages/mistral" },
     { "path": "packages/moonshotai" },
     { "path": "packages/openai" },
