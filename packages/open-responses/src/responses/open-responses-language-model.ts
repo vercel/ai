@@ -78,7 +78,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
     const warnings: SharedV3Warning[] = [];
 
     const openResponsesOptions = await parseProviderOptions({
-      provider: 'openai',
+      provider: this.provider,
       providerOptions,
       schema: openResponsesProviderOptionsSchema,
     });

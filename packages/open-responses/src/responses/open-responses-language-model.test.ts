@@ -265,7 +265,7 @@ describe('OpenResponsesLanguageModel', () => {
         await createModel().doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
-            openai: { reasoningEffort: 'low' },
+            lmstudio: { reasoningEffort: 'low' },
           },
         });
 
@@ -280,7 +280,7 @@ describe('OpenResponsesLanguageModel', () => {
         await createModel().doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
-            openai: { reasoningSummary: 'detailed' },
+            lmstudio: { reasoningSummary: 'detailed' },
           },
         });
 
@@ -295,7 +295,7 @@ describe('OpenResponsesLanguageModel', () => {
         await createModel().doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
-            openai: { reasoningEffort: 'high', reasoningSummary: 'concise' },
+            lmstudio: { reasoningEffort: 'high', reasoningSummary: 'concise' },
           },
         });
 
@@ -309,6 +309,20 @@ describe('OpenResponsesLanguageModel', () => {
 
         await createModel().doGenerate({
           prompt: TEST_PROMPT,
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body).not.toHaveProperty('reasoning');
+      });
+
+      it('should ignore reasoning options under a different provider key', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: { reasoningEffort: 'low', reasoningSummary: 'detailed' },
+          },
         });
 
         const body = await server.calls[0].requestBodyJson;
