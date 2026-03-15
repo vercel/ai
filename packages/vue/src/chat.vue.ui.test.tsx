@@ -2,9 +2,6 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
-import { expect } from 'vitest';
-import * as matchers from '@testing-library/jest-dom/matchers';
-expect.extend(matchers);
 import userEvent from '@testing-library/user-event';
 import { screen, waitFor } from '@testing-library/vue';
 import { UIMessageChunk } from 'ai';
