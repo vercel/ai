@@ -1,4 +1,4 @@
-import type { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
@@ -32,8 +32,8 @@ interface ReplicateImageModelConfig {
 const FLUX_2_MODEL_PATTERN = /^black-forest-labs\/flux-2-/;
 const MAX_FLUX_2_INPUT_IMAGES = 8;
 
-export class ReplicateImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class ReplicateImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
 
   get maxImagesPerCall(): number {
     // Flux-2 models support up to 8 input images
@@ -64,10 +64,10 @@ export class ReplicateImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     const [modelId, version] = this.modelId.split(':');
 
