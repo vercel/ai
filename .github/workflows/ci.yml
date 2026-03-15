@@ -172,7 +172,7 @@ jobs:
         run: pnpm exec playwright install --with-deps
 
       - name: Run tests
-        run: pnpm test ${{ matrix.node-version == 24 && '--filter=!@ai-sdk/codemod' || '' }}
+        run: pnpm test --filter=!@ai-sdk/codemod
 
   # separate "test" job to set as required in branch protections,
   # as the matrix build names above change each time Node versions change
