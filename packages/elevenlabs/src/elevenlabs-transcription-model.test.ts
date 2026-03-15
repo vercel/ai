@@ -114,9 +114,9 @@ describe('doGenerate', () => {
           timestamps_granularity: 'character',
         }),
       );
-      expect(multipart.file).toBeInstanceOf(File);
-      expect(multipart.file.type).toBe('audio/wav');
-      expect(multipart.file.size).toBe(40169);
+      expect(multipart!.file).toBeInstanceOf(File);
+      expect(multipart!.file.type).toBe('audio/wav');
+      expect(multipart!.file.size).toBe(40169);
     });
   });
 
