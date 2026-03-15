@@ -258,6 +258,64 @@ describe('OpenResponsesLanguageModel', () => {
       });
     });
 
+    describe('reasoning parameters', () => {
+      it('should send reasoningEffort in reasoning field', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: { reasoningEffort: 'low' },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          reasoning: { effort: 'low' },
+        });
+      });
+
+      it('should send reasoningSummary in reasoning field', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: { reasoningSummary: 'detailed' },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          reasoning: { summary: 'detailed' },
+        });
+      });
+
+      it('should send both reasoningEffort and reasoningSummary together', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: { reasoningEffort: 'high', reasoningSummary: 'concise' },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          reasoning: { effort: 'high', summary: 'concise' },
+        });
+      });
+
+      it('should not include reasoning field when no reasoning options are set', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body).not.toHaveProperty('reasoning');
+      });
+    });
+
     describe('system messages', () => {
       it('should send instructions from system message', async () => {
         prepareJsonFixtureResponse('lmstudio-basic.1');

@@ -16,6 +16,7 @@ import {
   createJsonResponseHandler,
   jsonSchema,
   ParseResult,
+  parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -30,6 +31,11 @@ import {
 } from './open-responses-api';
 import { mapOpenResponsesFinishReason } from './map-open-responses-finish-reason';
 import { OpenResponsesConfig } from './open-responses-config';
+
+const openResponsesProviderOptionsSchema = z.object({
+  reasoningEffort: z.string().nullish(),
+  reasoningSummary: z.string().nullish(),
+});
 
 export class OpenResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -70,6 +76,12 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
     warnings: SharedV3Warning[];
   }> {
     const warnings: SharedV3Warning[] = [];
+
+    const openResponsesOptions = await parseProviderOptions({
+      provider: 'openai',
+      providerOptions,
+      schema: openResponsesProviderOptionsSchema,
+    });
 
     if (stopSequences != null) {
       warnings.push({ type: 'unsupported', feature: 'stopSequences' });
@@ -140,6 +152,17 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
         tools: functionTools?.length ? functionTools : undefined,
         tool_choice: convertedToolChoice,
         ...(textFormat != null && { text: { format: textFormat } }),
+        ...((openResponsesOptions?.reasoningEffort != null ||
+          openResponsesOptions?.reasoningSummary != null) && {
+          reasoning: {
+            ...(openResponsesOptions.reasoningEffort != null && {
+              effort: openResponsesOptions.reasoningEffort,
+            }),
+            ...(openResponsesOptions.reasoningSummary != null && {
+              summary: openResponsesOptions.reasoningSummary,
+            }),
+          },
+        }),
       },
       warnings,
     };
