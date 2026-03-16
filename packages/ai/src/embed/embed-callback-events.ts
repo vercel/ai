@@ -6,22 +6,22 @@ import type { EmbeddingModelUsage } from '../types/usage';
 import type { Warning } from '../types/warning';
 
 /**
- * Event passed to the `onStart` callback for embed operations.
+ * Event passed to the `onStart` callback for embed and embedMany operations.
  *
- * Called when the embed operation begins, before the embedding model is called.
+ * Called when the operation begins, before the embedding model is called.
  */
 export interface EmbedOnStartEvent {
   /** Unique identifier for this embed call, used to correlate events. */
   readonly callId: string;
 
-  /** Identifies the operation type. */
-  readonly operationId: 'ai.embed';
+  /** Identifies the operation type (e.g. 'ai.embed' or 'ai.embedMany'). */
+  readonly operationId: string;
 
   /** The embedding model being used. */
   readonly model: CallbackModelInfo;
 
-  /** The value being embedded. */
-  readonly value: string;
+  /** The value(s) being embedded. A string for embed, an array for embedMany. */
+  readonly value: string | Array<string>;
 
   /** Maximum number of retries for failed requests. */
   readonly maxRetries: number;
@@ -52,25 +52,25 @@ export interface EmbedOnStartEvent {
 }
 
 /**
- * Event passed to the `onFinish` callback for embed operations.
+ * Event passed to the `onFinish` callback for embed and embedMany operations.
  *
- * Called when the embed operation completes, after the embedding model returns.
+ * Called when the operation completes, after the embedding model returns.
  */
 export interface EmbedOnFinishEvent {
   /** Unique identifier for this embed call, used to correlate events. */
   readonly callId: string;
 
-  /** Identifies the operation type. */
-  readonly operationId: 'ai.embed';
+  /** Identifies the operation type (e.g. 'ai.embed' or 'ai.embedMany'). */
+  readonly operationId: string;
 
   /** The embedding model that was used. */
   readonly model: CallbackModelInfo;
 
-  /** The value that was embedded. */
-  readonly value: string;
+  /** The value(s) that were embedded. A string for embed, an array for embedMany. */
+  readonly value: string | Array<string>;
 
-  /** The resulting embedding vector. */
-  readonly embedding: Embedding;
+  /** The resulting embedding(s). A single vector for embed, an array for embedMany. */
+  readonly embedding: Embedding | Array<Embedding>;
 
   /** Token usage for the embedding operation. */
   readonly usage: EmbeddingModelUsage;
@@ -81,9 +81,10 @@ export interface EmbedOnFinishEvent {
   /** Optional provider-specific metadata. */
   readonly providerMetadata: ProviderMetadata | undefined;
 
-  /** Optional response data including headers and body. */
+  /** Response data including headers and body. A single response for embed, an array for embedMany. */
   readonly response:
     | { headers?: Record<string, string>; body?: unknown }
+    | Array<{ headers?: Record<string, string>; body?: unknown } | undefined>
     | undefined;
 
   /** Whether telemetry is enabled. */

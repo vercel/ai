@@ -158,7 +158,7 @@ export async function embed({
   await notify({
     event: {
       callId,
-      operationId: 'ai.embed' as const,
+      operationId: 'ai.embed',
       model: modelInfo,
       value,
       maxRetries,
@@ -265,7 +265,7 @@ export async function embed({
       await notify({
         event: {
           callId,
-          operationId: 'ai.embed' as const,
+          operationId: 'ai.embed',
           model: modelInfo,
           value,
           embedding,
