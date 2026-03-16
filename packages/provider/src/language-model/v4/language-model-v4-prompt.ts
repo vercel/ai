@@ -1,5 +1,5 @@
 import { JSONValue } from '../../json-value/json-value';
-import { SharedV3ProviderOptions } from '../../shared/v3/shared-v3-provider-options';
+import { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider-options';
 import { LanguageModelV4DataContent } from './language-model-v4-data-content';
 
 /**
@@ -50,7 +50,7 @@ export type LanguageModelV4Message =
      * to the provider from the AI SDK and enable provider-specific
      * functionality that can be fully encapsulated in the provider.
      */
-    providerOptions?: SharedV3ProviderOptions;
+    providerOptions?: SharedV4ProviderOptions;
   };
 
 /**
@@ -69,7 +69,7 @@ export interface LanguageModelV4TextPart {
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV3ProviderOptions;
+  providerOptions?: SharedV4ProviderOptions;
 }
 
 /**
@@ -88,7 +88,7 @@ export interface LanguageModelV4ReasoningPart {
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV3ProviderOptions;
+  providerOptions?: SharedV4ProviderOptions;
 }
 
 /**
@@ -147,7 +147,7 @@ export interface LanguageModelV4FilePart {
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV3ProviderOptions;
+  providerOptions?: SharedV4ProviderOptions;
 }
 
 /**
@@ -182,7 +182,7 @@ export interface LanguageModelV4ToolCallPart {
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV3ProviderOptions;
+  providerOptions?: SharedV4ProviderOptions;
 }
 
 /**
@@ -211,7 +211,7 @@ export interface LanguageModelV4ToolResultPart {
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV3ProviderOptions;
+  providerOptions?: SharedV4ProviderOptions;
 }
 
 /**
@@ -241,7 +241,7 @@ export interface LanguageModelV4ToolApprovalResponsePart {
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV3ProviderOptions;
+  providerOptions?: SharedV4ProviderOptions;
 }
 
 /**
@@ -258,7 +258,7 @@ export type LanguageModelV4ToolResultOutput =
       /**
        * Provider-specific options.
        */
-      providerOptions?: SharedV3ProviderOptions;
+      providerOptions?: SharedV4ProviderOptions;
     }
   | {
       type: 'json';
@@ -267,7 +267,7 @@ export type LanguageModelV4ToolResultOutput =
       /**
        * Provider-specific options.
        */
-      providerOptions?: SharedV3ProviderOptions;
+      providerOptions?: SharedV4ProviderOptions;
     }
   | {
       /**
@@ -283,7 +283,7 @@ export type LanguageModelV4ToolResultOutput =
       /**
        * Provider-specific options.
        */
-      providerOptions?: SharedV3ProviderOptions;
+      providerOptions?: SharedV4ProviderOptions;
     }
   | {
       type: 'error-text';
@@ -292,7 +292,7 @@ export type LanguageModelV4ToolResultOutput =
       /**
        * Provider-specific options.
        */
-      providerOptions?: SharedV3ProviderOptions;
+      providerOptions?: SharedV4ProviderOptions;
     }
   | {
       type: 'error-json';
@@ -301,7 +301,7 @@ export type LanguageModelV4ToolResultOutput =
       /**
        * Provider-specific options.
        */
-      providerOptions?: SharedV3ProviderOptions;
+      providerOptions?: SharedV4ProviderOptions;
     }
   | {
       type: 'content';
@@ -317,7 +317,7 @@ export type LanguageModelV4ToolResultOutput =
             /**
              * Provider-specific options.
              */
-            providerOptions?: SharedV3ProviderOptions;
+            providerOptions?: SharedV4ProviderOptions;
           }
         | {
             type: 'file-data';
@@ -341,7 +341,7 @@ export type LanguageModelV4ToolResultOutput =
             /**
              * Provider-specific options.
              */
-            providerOptions?: SharedV3ProviderOptions;
+            providerOptions?: SharedV4ProviderOptions;
           }
         | {
             type: 'file-url';
@@ -354,7 +354,7 @@ export type LanguageModelV4ToolResultOutput =
             /**
              * Provider-specific options.
              */
-            providerOptions?: SharedV3ProviderOptions;
+            providerOptions?: SharedV4ProviderOptions;
           }
         | {
             type: 'file-id';
@@ -372,7 +372,7 @@ export type LanguageModelV4ToolResultOutput =
             /**
              * Provider-specific options.
              */
-            providerOptions?: SharedV3ProviderOptions;
+            providerOptions?: SharedV4ProviderOptions;
           }
         | {
             /**
@@ -394,7 +394,7 @@ export type LanguageModelV4ToolResultOutput =
             /**
              * Provider-specific options.
              */
-            providerOptions?: SharedV3ProviderOptions;
+            providerOptions?: SharedV4ProviderOptions;
           }
         | {
             /**
@@ -410,7 +410,7 @@ export type LanguageModelV4ToolResultOutput =
             /**
              * Provider-specific options.
              */
-            providerOptions?: SharedV3ProviderOptions;
+            providerOptions?: SharedV4ProviderOptions;
           }
         | {
             /**
@@ -431,7 +431,7 @@ export type LanguageModelV4ToolResultOutput =
             /**
              * Provider-specific options.
              */
-            providerOptions?: SharedV3ProviderOptions;
+            providerOptions?: SharedV4ProviderOptions;
           }
         | {
             /**
@@ -443,7 +443,7 @@ export type LanguageModelV4ToolResultOutput =
             /**
              * Provider-specific options.
              */
-            providerOptions?: SharedV3ProviderOptions;
+            providerOptions?: SharedV4ProviderOptions;
           }
       >;
     };

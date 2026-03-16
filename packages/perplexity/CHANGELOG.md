@@ -1,5 +1,19 @@
 # @ai-sdk/perplexity
 
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- 803852f: chore(provider/perplexity): update provider to use v4 types
+
 ## 4.0.0-beta.1
 
 ### Patch Changes
