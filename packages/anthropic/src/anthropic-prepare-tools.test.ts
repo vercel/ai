@@ -861,9 +861,7 @@ describe('prepareTools', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "betas": Set {
-            "advanced-tool-use-2025-11-20",
-          },
+          "betas": Set {},
           "toolChoice": undefined,
           "toolWarnings": [],
           "tools": [
@@ -923,9 +921,7 @@ describe('prepareTools', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "betas": Set {
-            "advanced-tool-use-2025-11-20",
-          },
+          "betas": Set {},
           "toolChoice": undefined,
           "toolWarnings": [],
           "tools": [

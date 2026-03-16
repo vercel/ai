@@ -322,7 +322,6 @@ export async function prepareTools({
           }
 
           case 'anthropic.tool_search_regex_20251119': {
-            betas.add('advanced-tool-use-2025-11-20');
             anthropicTools.push({
               type: 'tool_search_tool_regex_20251119',
               name: 'tool_search_tool_regex',
@@ -331,7 +330,6 @@ export async function prepareTools({
           }
 
           case 'anthropic.tool_search_bm25_20251119': {
-            betas.add('advanced-tool-use-2025-11-20');
             anthropicTools.push({
               type: 'tool_search_tool_bm25_20251119',
               name: 'tool_search_tool_bm25',
