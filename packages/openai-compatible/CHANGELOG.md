@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.0-beta.3
+
+### Patch Changes
+
+- 8f3e1da: chore(openai-compat): update v3 specs to v4
+
 ## 3.0.0-beta.2
 
 ### Patch Changes

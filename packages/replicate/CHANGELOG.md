@@ -1,5 +1,11 @@
 # @ai-sdk/replicate
 
+## 3.0.0-beta.2
+
+### Patch Changes
+
+- c434fd2: chore(provider/replicate): update provider to use v4 types
+
 ## 3.0.0-beta.1
 
 ### Patch Changes

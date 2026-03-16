@@ -1,5 +1,11 @@
 # @ai-sdk/assemblyai
 
+## 3.0.0-beta.2
+
+### Patch Changes
+
+- f6d2127: chore(assembly-ai): update v3 specs to v4
+
 ## 3.0.0-beta.1
 
 ### Patch Changes

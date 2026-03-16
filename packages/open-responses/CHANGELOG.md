@@ -1,5 +1,11 @@
 # @ai-sdk/open-responses
 
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- 8831e80: chore(provider/open-responses): update provider to use v4 types
+
 ## 2.0.0-beta.1
 
 ### Patch Changes
