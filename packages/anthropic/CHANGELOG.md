@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.61
+
+### Patch Changes
+
+- 2381567: fix(vertex): throw warning when strict: true for vertexAnthropic
+
 ## 3.0.60
 
 ### Patch Changes
