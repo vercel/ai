@@ -52,6 +52,7 @@ import {
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
+import { sanitizeJsonSchema } from './sanitize-json-schema';
 
 function createCitationSource(
   citation: Citation,
@@ -294,7 +295,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
             type: 'function',
             name: 'json',
             description: 'Respond with a JSON object.',
-            inputSchema: responseFormat.schema,
+            inputSchema: sanitizeJsonSchema(responseFormat.schema),
           }
         : undefined;
 
@@ -377,7 +378,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
             responseFormat.schema != null && {
               format: {
                 type: 'json_schema',
-                schema: responseFormat.schema,
+                schema: sanitizeJsonSchema(responseFormat.schema),
               },
             }),
         },
