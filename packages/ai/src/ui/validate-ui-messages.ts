@@ -10,6 +10,7 @@ import {
 import { z } from 'zod/v4';
 import { InvalidArgumentError } from '../error';
 import { providerMetadataSchema } from '../types/provider-metadata';
+import { getToolInputSchema } from '../util/get-tool-input-schema';
 import {
   DataUIPart,
   InferUIMessageData,
@@ -428,9 +429,26 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
               (toolPart.state === 'output-error' &&
                 toolPart.input !== undefined)
             ) {
+              const inputSchema = getToolInputSchema(tool);
+
+              if (!inputSchema) {
+                return {
+                  success: false,
+                  error: new TypeValidationError({
+                    value: toolPart.input,
+                    cause: `No tool schema found for tool part ${toolName}`,
+                    context: {
+                      field: `messages[${msgIdx}].parts[${partIdx}].input`,
+                      entityName: toolName,
+                      entityId: toolPart.toolCallId,
+                    },
+                  }),
+                };
+              }
+
               await validateTypes({
                 value: toolPart.input,
-                schema: tool.inputSchema,
+                schema: inputSchema,
                 context: {
                   field: `messages[${msgIdx}].parts[${partIdx}].input`,
                   entityName: toolName,
