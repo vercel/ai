@@ -9,6 +9,8 @@ on:
     branches:
       - main
       - release-v*
+      # TODO: remove before merging #12165
+      - gr2m/durable-agent
 
 jobs:
   build-examples:
