@@ -1,7 +1,11 @@
 import { RerankingModelV3CallOptions } from '@ai-sdk/provider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
-import { rerank } from './rerank';
+import {
+  rerank,
+  RerankOnStartCallback,
+  RerankOnFinishCallback,
+} from './rerank';
 import { RerankResult } from './rerank-result';
 import { MockTracer } from '../test/mock-tracer';
 
@@ -511,6 +515,497 @@ describe('rerank', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('options.experimental_onStart', () => {
+    const mockModel = new MockRerankingModelV3({
+      doRerank: async () => ({
+        ranking: [
+          { index: 2, relevanceScore: 0.9 },
+          { index: 0, relevanceScore: 0.8 },
+          { index: 1, relevanceScore: 0.7 },
+        ],
+        response: {
+          headers: { 'content-type': 'application/json' },
+          body: { id: '123' },
+          modelId: 'mock-response-model-id',
+          id: 'mock-response-id',
+        },
+      }),
+    });
+
+    it('should send correct event information', async () => {
+      let startEvent!: Parameters<RerankOnStartCallback>[0];
+
+      await rerank({
+        model: mockModel,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        topN: 3,
+        experimental_telemetry: {
+          functionId: 'test-function',
+          metadata: { customKey: 'customValue' },
+        },
+        _internal: {
+          generateCallId: () => 'test-call-id',
+        },
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+      });
+
+      expect(startEvent).toMatchSnapshot();
+    });
+
+    it('should include telemetry fields', async () => {
+      let startEvent!: Parameters<RerankOnStartCallback>[0];
+
+      await rerank({
+        model: mockModel,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        experimental_telemetry: {
+          isEnabled: true,
+          recordInputs: false,
+          recordOutputs: true,
+          functionId: 'rerank-fn',
+          metadata: { key: 'val' },
+        },
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+      });
+
+      expect(startEvent.isEnabled).toBe(true);
+      expect(startEvent.recordInputs).toBe(false);
+      expect(startEvent.recordOutputs).toBe(true);
+      expect(startEvent.functionId).toBe('rerank-fn');
+      expect(startEvent.metadata).toEqual({ key: 'val' });
+    });
+
+    it('should include model information', async () => {
+      let startEvent!: Parameters<RerankOnStartCallback>[0];
+
+      await rerank({
+        model: mockModel,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+      });
+
+      expect(startEvent.model).toEqual({
+        provider: 'mock-provider',
+        modelId: 'mock-model-id',
+      });
+      expect(startEvent.operationId).toBe('ai.rerank');
+    });
+
+    it('should be called before doRerank', async () => {
+      const callOrder: string[] = [];
+
+      await rerank({
+        model: new MockRerankingModelV3({
+          doRerank: async () => {
+            callOrder.push('doRerank');
+            return {
+              ranking: [{ index: 0, relevanceScore: 0.9 }],
+            };
+          },
+        }),
+        documents: ['test document'],
+        query: 'test query',
+        experimental_onStart: async () => {
+          callOrder.push('onStart');
+        },
+      });
+
+      expect(callOrder).toEqual(['onStart', 'doRerank']);
+    });
+
+    it('should not break reranking when callback throws', async () => {
+      const result = await rerank({
+        model: mockModel,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        experimental_onStart: async () => {
+          throw new Error('callback error');
+        },
+      });
+
+      expect(result.ranking).toHaveLength(3);
+      expect(result.ranking[0].score).toBe(0.9);
+    });
+
+    it('should include providerOptions, headers, documents, and query', async () => {
+      let startEvent!: Parameters<RerankOnStartCallback>[0];
+
+      await rerank({
+        model: mockModel,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        topN: 2,
+        headers: { 'x-custom': 'header-value' },
+        providerOptions: { myProvider: { key: 'value' } },
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+      });
+
+      expect(startEvent.headers).toEqual({ 'x-custom': 'header-value' });
+      expect(startEvent.providerOptions).toEqual({
+        myProvider: { key: 'value' },
+      });
+      expect(startEvent.documents).toEqual([
+        'sunny day at the beach',
+        'rainy day in the city',
+        'cloudy day in the mountains',
+      ]);
+      expect(startEvent.query).toBe('rainy day');
+      expect(startEvent.topN).toBe(2);
+    });
+  });
+
+  describe('options.experimental_onFinish', () => {
+    const mockModel = new MockRerankingModelV3({
+      doRerank: async () => ({
+        ranking: [
+          { index: 2, relevanceScore: 0.9 },
+          { index: 0, relevanceScore: 0.8 },
+          { index: 1, relevanceScore: 0.7 },
+        ],
+        providerMetadata: {
+          aProvider: { someResponseKey: 'someResponseValue' },
+        },
+        warnings: [{ type: 'other' as const, message: 'test warning' }],
+        response: {
+          headers: { 'content-type': 'application/json' },
+          body: { id: '123' },
+          modelId: 'mock-response-model-id',
+          id: 'mock-response-id',
+          timestamp: new Date('2025-06-01T00:00:00Z'),
+        },
+      }),
+    });
+
+    it('should send correct event information', async () => {
+      let finishEvent!: Parameters<RerankOnFinishCallback>[0];
+
+      await rerank({
+        model: mockModel,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        topN: 3,
+        experimental_telemetry: {
+          functionId: 'test-function',
+          metadata: { customKey: 'customValue' },
+        },
+        _internal: {
+          generateCallId: () => 'test-call-id',
+        },
+        experimental_onFinish: async event => {
+          finishEvent = event;
+        },
+      });
+
+      expect(finishEvent).toMatchSnapshot();
+    });
+
+    it('should include ranking and documents in event', async () => {
+      let finishEvent!: Parameters<RerankOnFinishCallback>[0];
+
+      await rerank({
+        model: mockModel,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        experimental_onFinish: async event => {
+          finishEvent = event;
+        },
+      });
+
+      expect(finishEvent.documents).toEqual([
+        'sunny day at the beach',
+        'rainy day in the city',
+        'cloudy day in the mountains',
+      ]);
+      expect(finishEvent.query).toBe('rainy day');
+      expect(finishEvent.ranking).toEqual([
+        {
+          originalIndex: 2,
+          score: 0.9,
+          document: 'cloudy day in the mountains',
+        },
+        {
+          originalIndex: 0,
+          score: 0.8,
+          document: 'sunny day at the beach',
+        },
+        {
+          originalIndex: 1,
+          score: 0.7,
+          document: 'rainy day in the city',
+        },
+      ]);
+    });
+
+    it('should include model information', async () => {
+      let finishEvent!: Parameters<RerankOnFinishCallback>[0];
+
+      await rerank({
+        model: mockModel,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        experimental_onFinish: async event => {
+          finishEvent = event;
+        },
+      });
+
+      expect(finishEvent.model).toEqual({
+        provider: 'mock-provider',
+        modelId: 'mock-model-id',
+      });
+      expect(finishEvent.operationId).toBe('ai.rerank');
+    });
+
+    it('should include warnings and providerMetadata', async () => {
+      let finishEvent!: Parameters<RerankOnFinishCallback>[0];
+
+      await rerank({
+        model: mockModel,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        experimental_onFinish: async event => {
+          finishEvent = event;
+        },
+      });
+
+      expect(finishEvent.warnings).toEqual([
+        { type: 'other', message: 'test warning' },
+      ]);
+      expect(finishEvent.providerMetadata).toEqual({
+        aProvider: { someResponseKey: 'someResponseValue' },
+      });
+    });
+
+    it('should include response data', async () => {
+      let finishEvent!: Parameters<RerankOnFinishCallback>[0];
+
+      await rerank({
+        model: mockModel,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        experimental_onFinish: async event => {
+          finishEvent = event;
+        },
+      });
+
+      expect(finishEvent.response).toEqual({
+        id: 'mock-response-id',
+        timestamp: new Date('2025-06-01T00:00:00Z'),
+        modelId: 'mock-response-model-id',
+        headers: { 'content-type': 'application/json' },
+        body: { id: '123' },
+      });
+    });
+
+    it('should be called after doRerank', async () => {
+      const callOrder: string[] = [];
+
+      await rerank({
+        model: new MockRerankingModelV3({
+          doRerank: async () => {
+            callOrder.push('doRerank');
+            return {
+              ranking: [{ index: 0, relevanceScore: 0.9 }],
+            };
+          },
+        }),
+        documents: ['test document'],
+        query: 'test query',
+        experimental_onFinish: async () => {
+          callOrder.push('onFinish');
+        },
+      });
+
+      expect(callOrder).toEqual(['doRerank', 'onFinish']);
+    });
+
+    it('should not break reranking when callback throws', async () => {
+      const result = await rerank({
+        model: mockModel,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        experimental_onFinish: async () => {
+          throw new Error('callback error');
+        },
+      });
+
+      expect(result.ranking).toHaveLength(3);
+      expect(result.ranking[0].score).toBe(0.9);
+    });
+  });
+
+  describe('options.experimental_onStart and experimental_onFinish together', () => {
+    const mockModel = new MockRerankingModelV3({
+      doRerank: async () => ({
+        ranking: [
+          { index: 2, relevanceScore: 0.9 },
+          { index: 0, relevanceScore: 0.8 },
+          { index: 1, relevanceScore: 0.7 },
+        ],
+        response: {
+          headers: { 'content-type': 'application/json' },
+          body: { id: '123' },
+        },
+      }),
+    });
+
+    it('should have consistent callId across both events', async () => {
+      let startEvent!: Parameters<RerankOnStartCallback>[0];
+      let finishEvent!: Parameters<RerankOnFinishCallback>[0];
+
+      await rerank({
+        model: mockModel,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        _internal: {
+          generateCallId: () => 'consistent-call-id',
+        },
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+        experimental_onFinish: async event => {
+          finishEvent = event;
+        },
+      });
+
+      expect(startEvent.callId).toBe('consistent-call-id');
+      expect(finishEvent.callId).toBe('consistent-call-id');
+      expect(startEvent.callId).toBe(finishEvent.callId);
+    });
+
+    it('should call onStart before doRerank and onFinish after', async () => {
+      const callOrder: string[] = [];
+
+      await rerank({
+        model: new MockRerankingModelV3({
+          doRerank: async () => {
+            callOrder.push('doRerank');
+            return {
+              ranking: [{ index: 0, relevanceScore: 0.9 }],
+            };
+          },
+        }),
+        documents: ['test document'],
+        query: 'test query',
+        experimental_onStart: async () => {
+          callOrder.push('onStart');
+        },
+        experimental_onFinish: async () => {
+          callOrder.push('onFinish');
+        },
+      });
+
+      expect(callOrder).toEqual(['onStart', 'doRerank', 'onFinish']);
+    });
+
+    it('should still call onFinish when onStart throws', async () => {
+      let finishCalled = false;
+
+      const result = await rerank({
+        model: mockModel,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        experimental_onStart: async () => {
+          throw new Error('onStart error');
+        },
+        experimental_onFinish: async () => {
+          finishCalled = true;
+        },
+      });
+
+      expect(finishCalled).toBe(true);
+      expect(result.ranking).toHaveLength(3);
+    });
+
+    it('should fire callbacks for empty documents', async () => {
+      let startEvent!: Parameters<RerankOnStartCallback>[0];
+      let finishEvent!: Parameters<RerankOnFinishCallback>[0];
+
+      await rerank({
+        model: mockModel,
+        documents: [] as string[],
+        query: 'rainy day',
+        _internal: {
+          generateCallId: () => 'empty-call-id',
+        },
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+        experimental_onFinish: async event => {
+          finishEvent = event;
+        },
+      });
+
+      expect(startEvent.callId).toBe('empty-call-id');
+      expect(startEvent.documents).toEqual([]);
+      expect(finishEvent.callId).toBe('empty-call-id');
+      expect(finishEvent.ranking).toEqual([]);
+      expect(finishEvent.documents).toEqual([]);
     });
   });
 });
