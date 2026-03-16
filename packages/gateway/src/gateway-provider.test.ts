@@ -25,24 +25,23 @@ vi.mock('./gateway-language-model', () => ({
 // We'll create a more flexible mock that can simulate auth failures
 const mockGetAvailableModels = vi.fn();
 const mockGetCredits = vi.fn();
-vi.mock('./gateway-fetch-metadata', () => ({
-  GatewayFetchMetadata: vi.fn().mockImplementation((config: any) => ({
-    getAvailableModels: async () => {
-      // Call the headers function to trigger authentication logic
+vi.mock('./gateway-fetch-metadata', () => {
+  const MockGatewayFetchMetadata = vi.fn(function (this: any, config: any) {
+    this.getAvailableModels = async () => {
       if (config.headers && typeof config.headers === 'function') {
         await config.headers();
       }
       return mockGetAvailableModels();
-    },
-    getCredits: async () => {
-      // Call the headers function to trigger authentication logic
+    };
+    this.getCredits = async () => {
       if (config.headers && typeof config.headers === 'function') {
         await config.headers();
       }
       return mockGetCredits();
-    },
-  })),
-}));
+    };
+  });
+  return { GatewayFetchMetadata: MockGatewayFetchMetadata };
+});
 
 vi.mock('./vercel-environment', () => ({
   getVercelOidcToken: vi.fn(),
