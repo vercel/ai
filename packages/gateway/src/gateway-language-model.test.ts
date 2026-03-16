@@ -638,6 +638,7 @@ describe('GatewayLanguageModel', () => {
         'ai-language-model-specification-version': '3',
         'ai-language-model-id': 'test-model',
         'ai-language-model-streaming': 'true',
+        accept: 'text/event-stream',
       });
     });
 
