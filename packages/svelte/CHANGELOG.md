@@ -1,5 +1,24 @@
 # @ai-sdk/svelte
 
+## 5.0.0-beta.17
+
+### Patch Changes
+
+- ai@7.0.0-beta.17
+
+## 5.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [5b8c58f]
+  - ai@7.0.0-beta.16
+
+## 5.0.0-beta.15
+
+### Patch Changes
+
+- ai@7.0.0-beta.15
+
 ## 5.0.0-beta.14
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 import {
-  LanguageModelV3CallOptions,
-  SharedV3Warning,
+  LanguageModelV4CallOptions,
+  SharedV4Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-messages-api';
@@ -28,8 +28,8 @@ export async function prepareTools({
   supportsStructuredOutput,
   supportsStrictTools,
 }: {
-  tools: LanguageModelV3CallOptions['tools'];
-  toolChoice: LanguageModelV3CallOptions['toolChoice'] | undefined;
+  tools: LanguageModelV4CallOptions['tools'];
+  toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
   disableParallelToolUse?: boolean;
   cacheControlValidator?: CacheControlValidator;
 
@@ -45,13 +45,13 @@ export async function prepareTools({
 }): Promise<{
   tools: Array<AnthropicTool> | undefined;
   toolChoice: AnthropicToolChoice | undefined;
-  toolWarnings: SharedV3Warning[];
+  toolWarnings: SharedV4Warning[];
   betas: Set<string>;
 }> {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: SharedV3Warning[] = [];
+  const toolWarnings: SharedV4Warning[] = [];
   const betas = new Set<string>();
   const validator = cacheControlValidator || new CacheControlValidator();
 

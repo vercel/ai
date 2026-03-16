@@ -1,19 +1,19 @@
 import {
   APICallError,
   JSONObject,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3FunctionTool,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3Prompt,
-  LanguageModelV3Source,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  LanguageModelV3ToolCall,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4FunctionTool,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4Prompt,
+  LanguageModelV4Source,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  LanguageModelV4ToolCall,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -61,7 +61,7 @@ function createCitationSource(
     mediaType: string;
   }>,
   generateId: () => string,
-): LanguageModelV3Source | undefined {
+): LanguageModelV4Source | undefined {
   if (citation.type === 'web_search_result_location') {
     return {
       type: 'source' as const,
@@ -74,7 +74,7 @@ function createCitationSource(
           citedText: citation.cited_text,
           encryptedIndex: citation.encrypted_index,
         },
-      } satisfies SharedV3ProviderMetadata,
+      } satisfies SharedV4ProviderMetadata,
     };
   }
 
@@ -108,7 +108,7 @@ function createCitationSource(
               startCharIndex: citation.start_char_index,
               endCharIndex: citation.end_char_index,
             },
-    } satisfies SharedV3ProviderMetadata,
+    } satisfies SharedV4ProviderMetadata,
   };
 }
 
@@ -122,7 +122,7 @@ type AnthropicMessagesConfig = {
     args: Record<string, any>,
     betas: Set<string>,
   ) => Record<string, any>;
-  supportedUrls?: () => LanguageModelV3['supportedUrls'];
+  supportedUrls?: () => LanguageModelV4['supportedUrls'];
   generateId?: () => string;
 
   /**
@@ -137,8 +137,8 @@ type AnthropicMessagesConfig = {
   supportsStrictTools?: boolean;
 };
 
-export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: AnthropicMessagesModelId;
 
@@ -192,11 +192,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     toolChoice,
     providerOptions,
     stream,
-  }: LanguageModelV3CallOptions & {
+  }: LanguageModelV4CallOptions & {
     stream: boolean;
     userSuppliedBetas: Set<string>;
   }) {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
 
     if (frequencyPenalty != null) {
       warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
@@ -286,7 +286,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       structureOutputMode === 'outputFormat' ||
       (structureOutputMode === 'auto' && supportsStructuredOutput);
 
-    const jsonResponseTool: LanguageModelV3FunctionTool | undefined =
+    const jsonResponseTool: LanguageModelV4FunctionTool | undefined =
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       !useStructuredOutput
@@ -706,7 +706,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     return this.config.transformRequestBody?.(args, betas) ?? args;
   }
 
-  private extractCitationDocuments(prompt: LanguageModelV3Prompt): Array<{
+  private extractCitationDocuments(prompt: LanguageModelV4Prompt): Array<{
     title: string;
     filename?: string;
     mediaType: string;
@@ -750,8 +750,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const {
       args,
       warnings,
@@ -791,8 +791,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const content: Array<LanguageModelV3Content> = [];
-    const mcpToolCalls: Record<string, LanguageModelV3ToolCall> = {};
+    const content: Array<LanguageModelV4Content> = [];
+    const mcpToolCalls: Record<string, LanguageModelV4ToolCall> = {};
     const serverToolCalls: Record<string, string> = {}; // tool_use_id -> provider tool name
     let isJsonResponseFromTool = false;
 
@@ -1217,7 +1217,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             ) ?? null,
         } satisfies AnthropicMessageMetadata;
 
-        const providerMetadata: SharedV3ProviderMetadata = {
+        const providerMetadata: SharedV4ProviderMetadata = {
           anthropic: anthropicMetadata,
         };
 
@@ -1231,8 +1231,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const {
       args: body,
       warnings,
@@ -1269,7 +1269,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -1301,7 +1301,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         }
       | { type: 'text' | 'reasoning' }
     > = {};
-    const mcpToolCalls: Record<string, LanguageModelV3ToolCall> = {};
+    const mcpToolCalls: Record<string, LanguageModelV4ToolCall> = {};
     const serverToolCalls: Record<string, string> = {}; // tool_use_id -> provider tool name
 
     let contextManagement:
@@ -1335,7 +1335,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     const transformedStream = response.pipeThrough(
       new TransformStream<
         ParseResult<InferSchema<typeof anthropicMessagesChunkSchema>>,
-        LanguageModelV3StreamPart
+        LanguageModelV4StreamPart
       >({
         start(controller) {
           controller.enqueue({ type: 'stream-start', warnings });
@@ -2188,7 +2188,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 contextManagement,
               } satisfies AnthropicMessageMetadata;
 
-              const providerMetadata: SharedV3ProviderMetadata = {
+              const providerMetadata: SharedV4ProviderMetadata = {
                 anthropic: anthropicMetadata,
               };
 

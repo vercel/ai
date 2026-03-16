@@ -1,5 +1,11 @@
 # @ai-sdk/prodia
 
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- 77600ba: chore(provider/prodia): update provider to use v4 types
+
 ## 2.0.0-beta.1
 
 ### Patch Changes
