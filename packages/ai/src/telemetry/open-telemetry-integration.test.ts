@@ -624,6 +624,39 @@ describe('OpenTelemetryIntegration', () => {
       expect(setAttrsCall['gen_ai.usage.output_tokens']).toBe(20);
     });
 
+    it('omits non-finite usage attributes', () => {
+      otelIntegration.onStart!(makeOnStartEvent());
+      otelIntegration.onStepStart!(makeStepStartEvent());
+      otelIntegration.onStepFinish!(
+        makeStepFinishEvent({
+          usage: {
+            inputTokens: Number.NaN,
+            outputTokens: Number.POSITIVE_INFINITY,
+            totalTokens: Number.NaN,
+            reasoningTokens: undefined,
+            cachedInputTokens: undefined,
+            inputTokenDetails: {
+              noCacheTokens: undefined,
+              cacheReadTokens: undefined,
+              cacheWriteTokens: undefined,
+            },
+            outputTokenDetails: {
+              textTokens: undefined,
+              reasoningTokens: undefined,
+            },
+          },
+        }),
+      );
+
+      const stepSpan = tracer.spans[1];
+      const setAttrsCall = getSetAttributesArg(stepSpan);
+      expect(setAttrsCall['ai.usage.inputTokens']).toBeUndefined();
+      expect(setAttrsCall['ai.usage.outputTokens']).toBeUndefined();
+      expect(setAttrsCall['ai.usage.totalTokens']).toBeUndefined();
+      expect(setAttrsCall['gen_ai.usage.input_tokens']).toBeUndefined();
+      expect(setAttrsCall['gen_ai.usage.output_tokens']).toBeUndefined();
+    });
+
     it('includes text in output attributes', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
