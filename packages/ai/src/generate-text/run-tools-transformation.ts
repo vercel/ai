@@ -110,6 +110,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
 
 export function runToolsTransformation<TOOLS extends ToolSet>({
   tools,
+  activeTools,
   generatorStream,
   telemetry,
   callId,
@@ -126,6 +127,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   executeToolInTelemetryContext,
 }: {
   tools: TOOLS | undefined;
+  activeTools: Array<keyof TOOLS> | undefined;
   generatorStream: ReadableStream<LanguageModelV4StreamPart>;
   telemetry: TelemetrySettings | undefined;
   callId: string;
@@ -296,6 +298,14 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             if (tool == null) {
               // ignore tool calls for tools that are not available,
               // e.g. provider-executed dynamic tools
+              break;
+            }
+
+            // skip tool calls for tools that are not active
+            if (
+              activeTools != null &&
+              !activeTools.includes(toolCall.toolName as keyof TOOLS)
+            ) {
               break;
             }
 

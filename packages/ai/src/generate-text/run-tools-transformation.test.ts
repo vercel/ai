@@ -42,6 +42,7 @@ describe('runToolsTransformation', () => {
       ]);
 
     const transformedStream = runToolsTransformation({
+      activeTools: undefined,
       generateId: mockId({ prefix: 'id' }),
       tools: undefined,
       generatorStream: inputStream,
@@ -114,6 +115,7 @@ describe('runToolsTransformation', () => {
       ]);
 
     const transformedStream = runToolsTransformation({
+      activeTools: undefined,
       generateId: mockId({ prefix: 'id' }),
       tools: undefined,
       generatorStream: inputStream,
@@ -185,6 +187,7 @@ describe('runToolsTransformation', () => {
       ]);
 
     const transformedStream = runToolsTransformation({
+      activeTools: undefined,
       generateId: mockId({ prefix: 'id' }),
       tools: undefined,
       generatorStream: inputStream,
@@ -259,6 +262,7 @@ describe('runToolsTransformation', () => {
       ]);
 
     const transformedStream = runToolsTransformation({
+      activeTools: undefined,
       generateId: mockId({ prefix: 'id' }),
       tools: {
         syncTool: {
@@ -345,6 +349,7 @@ describe('runToolsTransformation', () => {
       ]);
 
     const transformedStream = runToolsTransformation({
+      activeTools: undefined,
       generateId: mockId({ prefix: 'id' }),
       tools: {
         syncTool: {
@@ -431,6 +436,7 @@ describe('runToolsTransformation', () => {
       ]);
 
     const transformedStream = runToolsTransformation({
+      activeTools: undefined,
       generateId: mockId({ prefix: 'id' }),
       tools: {
         delayedTool: {
@@ -521,6 +527,7 @@ describe('runToolsTransformation', () => {
       ]);
 
     const transformedStream = runToolsTransformation({
+      activeTools: undefined,
       generateId: mockId({ prefix: 'id' }),
       generatorStream: inputStream,
       telemetry: undefined,
@@ -626,6 +633,7 @@ describe('runToolsTransformation', () => {
       ]);
 
     const transformedStream = runToolsTransformation({
+      activeTools: undefined,
       generateId: mockId({ prefix: 'id' }),
       tools: {
         providerTool: {
@@ -675,6 +683,7 @@ describe('runToolsTransformation', () => {
         ]);
 
       const transformedStream = runToolsTransformation({
+        activeTools: undefined,
         generateId: mockId({ prefix: 'id' }),
         tools: {
           mcp_tool: {
@@ -768,6 +777,7 @@ describe('runToolsTransformation', () => {
         ]);
 
       const transformedStream = runToolsTransformation({
+        activeTools: undefined,
         generateId: mockId({ prefix: 'id' }),
         tools: undefined,
         generatorStream: inputStream,
@@ -850,6 +860,7 @@ describe('runToolsTransformation', () => {
         ]);
 
       const transformedStream = runToolsTransformation({
+        activeTools: undefined,
         generateId: mockId({ prefix: 'id' }),
         tools: {
           mcp_search: {
@@ -978,6 +989,7 @@ describe('runToolsTransformation', () => {
         ]);
 
       const transformedStream = runToolsTransformation({
+        activeTools: undefined,
         generateId: mockId({ prefix: 'id' }),
         tools: {
           onInputAvailableTool: tool({
@@ -1069,6 +1081,7 @@ describe('runToolsTransformation', () => {
         ]);
 
       const transformedStream = runToolsTransformation({
+        activeTools: undefined,
         generateId: mockId({ prefix: 'id' }),
         tools: {
           onInputAvailableTool: tool({
@@ -1179,6 +1192,7 @@ describe('runToolsTransformation', () => {
         ]);
 
       const transformedStream = runToolsTransformation({
+        activeTools: undefined,
         generateId: mockId({ prefix: 'id' }),
         tools: {
           testTool: {
@@ -1234,6 +1248,7 @@ describe('runToolsTransformation', () => {
         ]);
 
       const transformedStream = runToolsTransformation({
+        activeTools: undefined,
         generateId: mockId({ prefix: 'id' }),
         tools: {
           testTool: {
@@ -1304,6 +1319,7 @@ describe('runToolsTransformation', () => {
         ]);
 
       const transformedStream = runToolsTransformation({
+        activeTools: undefined,
         generateId: mockId({ prefix: 'id' }),
         tools: {
           testTool: {
@@ -1358,6 +1374,7 @@ describe('runToolsTransformation', () => {
         ]);
 
       const transformedStream = runToolsTransformation({
+        activeTools: undefined,
         generateId: mockId({ prefix: 'id' }),
         tools: {
           failingTool: {
@@ -1413,6 +1430,7 @@ describe('runToolsTransformation', () => {
         ]);
 
       const transformedStream = runToolsTransformation({
+        activeTools: undefined,
         generateId: mockId({ prefix: 'id' }),
         tools: {
           noExecuteTool: {
@@ -1467,6 +1485,7 @@ describe('runToolsTransformation', () => {
         ]);
 
       const transformedStream = runToolsTransformation({
+        activeTools: undefined,
         generateId: mockId({ prefix: 'id' }),
         tools: {
           testTool: {
@@ -1524,6 +1543,7 @@ describe('runToolsTransformation', () => {
         ]);
 
       const transformedStream = runToolsTransformation({
+        activeTools: undefined,
         generateId: mockId({ prefix: 'id' }),
         tools: {
           providerTool: {
@@ -1574,6 +1594,7 @@ describe('runToolsTransformation', () => {
       const toolError = new Error('Tool execution failed!');
 
       const transformedStream = runToolsTransformation({
+        activeTools: undefined,
         generateId: mockId({ prefix: 'id' }),
         tools: {
           failingTool: {
@@ -1640,6 +1661,7 @@ describe('runToolsTransformation', () => {
       const toolError = new Error('Sync tool failed!');
 
       const transformedStream = runToolsTransformation({
+        activeTools: undefined,
         generateId: mockId({ prefix: 'id' }),
         tools: {
           failingTool: {
