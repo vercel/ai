@@ -1,4 +1,4 @@
-import { gateway, generateText } from 'ai';
+import { gatewayTools, generateText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
@@ -7,7 +7,7 @@ async function main() {
     prompt:
       'Use the perplexitySearch tool to find current news about AI regulations in January 2025. You must search the web first before answering.',
     tools: {
-      perplexity_search: gateway.tools.perplexitySearch(),
+      perplexity_search: gatewayTools.perplexitySearch(),
     },
   });
 
