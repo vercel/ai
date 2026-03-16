@@ -1710,24 +1710,29 @@ describe('responses', () => {
     });
 
     describe('image generation tool', () => {
-      it('should stream image generation tool results include', async () => {
-        prepareChunksFixtureResponse('azure-image-generation-tool.1');
-        const result = await createModel('test-deployment').doStream({
-          prompt: TEST_PROMPT,
-          tools: [
-            {
-              type: 'provider',
-              id: 'openai.image_generation',
-              name: 'image_generation',
-              args: {},
-            },
-          ],
-        });
+      // Parsing the large fixture can sometimes exceed the default 5s timeout.
+      it(
+        'should stream image generation tool results include',
+        { timeout: 6000 },
+        async () => {
+          prepareChunksFixtureResponse('azure-image-generation-tool.1');
+          const result = await createModel('test-deployment').doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider',
+                id: 'openai.image_generation',
+                name: 'image_generation',
+                args: {},
+              },
+            ],
+          });
 
-        expect(
-          await convertReadableStreamToArray(result.stream),
-        ).toMatchSnapshot();
-      });
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        },
+      );
     });
   });
 });
