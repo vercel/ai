@@ -1,4 +1,4 @@
-import type { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import type { InferSchema } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
@@ -19,8 +19,8 @@ import {
 import type { ProdiaJobResult } from './prodia-api';
 import type { ProdiaImageModelId } from './prodia-image-settings';
 
-export class ProdiaImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class ProdiaImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
   get provider(): string {
@@ -37,8 +37,8 @@ export class ProdiaImageModel implements ImageModelV3 {
     size,
     seed,
     providerOptions,
-  }: Parameters<ImageModelV3['doGenerate']>[0]) {
-    const warnings: Array<SharedV3Warning> = [];
+  }: Parameters<ImageModelV4['doGenerate']>[0]) {
+    const warnings: Array<SharedV4Warning> = [];
 
     const prodiaOptions = await parseProviderOptions({
       provider: 'prodia',
@@ -109,8 +109,8 @@ export class ProdiaImageModel implements ImageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<ImageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<ImageModelV3['doGenerate']>>> {
+    options: Parameters<ImageModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
     const { body, warnings } = await this.getArgs(options);
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();

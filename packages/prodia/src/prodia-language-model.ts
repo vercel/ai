@@ -1,9 +1,9 @@
 import type {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3StreamPart,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4StreamPart,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import type { InferSchema } from '@ai-sdk/provider-utils';
 import {
@@ -26,8 +26,8 @@ import {
 import type { ProdiaJobResult } from './prodia-api';
 import type { ProdiaLanguageModelId } from './prodia-language-model-settings';
 
-export class ProdiaLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class ProdiaLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly supportedUrls = {};
 
   get provider(): string {
@@ -39,8 +39,8 @@ export class ProdiaLanguageModel implements LanguageModelV3 {
     private readonly config: ProdiaModelConfig,
   ) {}
 
-  async doGenerate(options: LanguageModelV3CallOptions) {
-    const warnings: Array<SharedV3Warning> = [];
+  async doGenerate(options: LanguageModelV4CallOptions) {
+    const warnings: Array<SharedV4Warning> = [];
 
     // Warn about unsupported LLM features
     if (options.temperature !== undefined) {
@@ -195,7 +195,7 @@ export class ProdiaLanguageModel implements LanguageModelV3 {
 
     const { jobResult, textContent, fileContent } = multipartResult;
 
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
     if (textContent !== undefined) {
       content.push({ type: 'text', text: textContent });
     }
@@ -235,10 +235,10 @@ export class ProdiaLanguageModel implements LanguageModelV3 {
     };
   }
 
-  async doStream(options: LanguageModelV3CallOptions) {
+  async doStream(options: LanguageModelV4CallOptions) {
     const result = await this.doGenerate(options);
 
-    const stream = new ReadableStream<LanguageModelV3StreamPart>({
+    const stream = new ReadableStream<LanguageModelV4StreamPart>({
       start(controller) {
         controller.enqueue({
           type: 'stream-start',

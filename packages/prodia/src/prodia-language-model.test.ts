@@ -118,7 +118,7 @@ describe('ProdiaLanguageModel', () => {
 
       expect(model.provider).toBe('prodia.language');
       expect(model.modelId).toBe('inference.nano-banana.img2img.v2');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.supportedUrls).toStrictEqual({});
     });
   });

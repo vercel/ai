@@ -1,9 +1,9 @@
 import {
-  type Experimental_VideoModelV3,
-  type ImageModelV3,
-  type LanguageModelV3,
+  type Experimental_VideoModelV4,
+  type ImageModelV4,
+  type LanguageModelV4,
   NoSuchModelError,
-  type ProviderV3,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
@@ -42,31 +42,31 @@ export interface ProdiaProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface ProdiaProvider extends ProviderV3 {
+export interface ProdiaProvider extends ProviderV4 {
   /**
    * Creates a language model for multimodal generation (img2img with text+image output).
    */
-  languageModel(modelId: ProdiaLanguageModelId): LanguageModelV3;
+  languageModel(modelId: ProdiaLanguageModelId): LanguageModelV4;
 
   /**
    * Creates a model for image generation.
    */
-  image(modelId: ProdiaImageModelId): ImageModelV3;
+  image(modelId: ProdiaImageModelId): ImageModelV4;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: ProdiaImageModelId): ImageModelV3;
+  imageModel(modelId: ProdiaImageModelId): ImageModelV4;
 
   /**
    * Creates a model for video generation.
    */
-  video(modelId: ProdiaVideoModelId): Experimental_VideoModelV3;
+  video(modelId: ProdiaVideoModelId): Experimental_VideoModelV4;
 
   /**
    * Creates a model for video generation.
    */
-  videoModel(modelId: ProdiaVideoModelId): Experimental_VideoModelV3;
+  videoModel(modelId: ProdiaVideoModelId): Experimental_VideoModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -125,7 +125,7 @@ export function createProdia(
   };
 
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     languageModel: createLanguageModel,
     imageModel: createImageModel,
     image: createImageModel,

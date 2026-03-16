@@ -1,7 +1,7 @@
 import {
-  LanguageModelV3,
+  LanguageModelV4,
   NoSuchModelError,
-  ProviderV3,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -14,16 +14,16 @@ import { PerplexityLanguageModel } from './perplexity-language-model';
 import { PerplexityLanguageModelId } from './perplexity-language-model-options';
 import { VERSION } from './version';
 
-export interface PerplexityProvider extends ProviderV3 {
+export interface PerplexityProvider extends ProviderV4 {
   /**
    * Creates an Perplexity chat model for text generation.
    */
-  (modelId: PerplexityLanguageModelId): LanguageModelV3;
+  (modelId: PerplexityLanguageModelId): LanguageModelV4;
 
   /**
    * Creates an Perplexity language model for text generation.
    */
-  languageModel(modelId: PerplexityLanguageModelId): LanguageModelV3;
+  languageModel(modelId: PerplexityLanguageModelId): LanguageModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -84,7 +84,7 @@ export function createPerplexity(
   const provider = (modelId: PerplexityLanguageModelId) =>
     createLanguageModel(modelId);
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createLanguageModel;
 
   provider.embeddingModel = (modelId: string) => {
