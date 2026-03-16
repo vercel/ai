@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.62
+
+### Patch Changes
+
+- 41c6a56: fix(anthropic): skip passing beta header for tool search tools
+
 ## 3.0.61
 
 ### Patch Changes
