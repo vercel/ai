@@ -6911,9 +6911,22 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "error",
               },
               {
+                "error": {
+                  "response": {
+                    "error": {
+                      "code": "insufficient_quota",
+                      "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.",
+                    },
+                    "usage": null,
+                  },
+                  "type": "response.failed",
+                },
+                "type": "error",
+              },
+              {
                 "finishReason": {
-                  "raw": undefined,
-                  "unified": "other",
+                  "raw": "response.failed",
+                  "unified": "error",
                 },
                 "providerMetadata": {
                   "openai": {

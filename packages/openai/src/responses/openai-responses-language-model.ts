@@ -2070,7 +2070,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   },
                 });
               }
+            } else if (isResponseFailedChunk(value)) {
+              finishReason = { unified: 'error', raw: 'response.failed' };
+              if (value.response.usage) {
+                usage = value.response.usage;
+              }
+              controller.enqueue({ type: 'error', error: value });
             } else if (isErrorChunk(value)) {
+              finishReason = { unified: 'error', raw: 'error' };
               controller.enqueue({ type: 'error', error: value });
             }
           },
@@ -2191,6 +2198,12 @@ function isResponseAnnotationAddedChunk(
   type: 'response.output_text.annotation.added';
 } {
   return chunk.type === 'response.output_text.annotation.added';
+}
+
+function isResponseFailedChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.failed' } {
+  return chunk.type === 'response.failed';
 }
 
 function isErrorChunk(
