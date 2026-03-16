@@ -1,6 +1,7 @@
 import {
   AbstractChat,
   ChatInit,
+  type ChatTransport,
   type CreateUIMessage,
   type UIMessage,
 } from 'ai';
@@ -84,9 +85,47 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     };
   }
 
+  // Keep transport ref updated on each render to avoid stale closures.
+  // This mirrors the callbacksRef pattern: the Chat instance is created once,
+  // but the transport it delegates to is always the latest one from the render.
+  const transportRef = useRef<ChatTransport<UI_MESSAGE> | undefined>(
+    !('chat' in options) ? options.transport : undefined,
+  );
+
+  if (!('chat' in options)) {
+    transportRef.current = options.transport;
+  }
+
+  // Create a stable proxy transport (once) that always delegates to the current
+  // transport. This prevents stale body/headers/api when the user recreates the
+  // transport object on each render (e.g. passing a new DefaultChatTransport
+  // with updated body state).
+  const proxyTransportRef = useRef<ChatTransport<UI_MESSAGE> | undefined>(
+    !('chat' in options) && options.transport !== undefined
+      ? {
+          sendMessages: opts => transportRef.current!.sendMessages(opts),
+          reconnectToStream: opts =>
+            transportRef.current!.reconnectToStream(opts),
+        }
+      : undefined,
+  );
+
+  // Handle the edge case where transport transitions from undefined to defined.
+  if (
+    !('chat' in options) &&
+    options.transport !== undefined &&
+    proxyTransportRef.current === undefined
+  ) {
+    proxyTransportRef.current = {
+      sendMessages: opts => transportRef.current!.sendMessages(opts),
+      reconnectToStream: opts => transportRef.current!.reconnectToStream(opts),
+    };
+  }
+
   // Ensure the Chat instance has the latest callbacks
   const optionsWithCallbacks: typeof options = {
     ...options,
+    transport: proxyTransportRef.current,
     onToolCall: arg => callbacksRef.current.onToolCall?.(arg),
     onData: arg => callbacksRef.current.onData?.(arg),
     onFinish: arg => callbacksRef.current.onFinish?.(arg),
