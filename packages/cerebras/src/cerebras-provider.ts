@@ -1,8 +1,8 @@
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
-  LanguageModelV3,
+  LanguageModelV4,
   NoSuchModelError,
-  ProviderV3,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -50,21 +50,21 @@ export interface CerebrasProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface CerebrasProvider extends ProviderV3 {
+export interface CerebrasProvider extends ProviderV4 {
   /**
    * Creates a Cerebras model for text generation.
    */
-  (modelId: CerebrasChatModelId): LanguageModelV3;
+  (modelId: CerebrasChatModelId): LanguageModelV4;
 
   /**
    * Creates a Cerebras model for text generation.
    */
-  languageModel(modelId: CerebrasChatModelId): LanguageModelV3;
+  languageModel(modelId: CerebrasChatModelId): LanguageModelV4;
 
   /**
    * Creates a Cerebras chat model for text generation.
    */
-  chat(modelId: CerebrasChatModelId): LanguageModelV3;
+  chat(modelId: CerebrasChatModelId): LanguageModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -105,7 +105,7 @@ export function createCerebras(
   const provider = (modelId: CerebrasChatModelId) =>
     createLanguageModel(modelId);
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;
 
