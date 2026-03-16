@@ -501,8 +501,11 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
 
     const attributes = Object.fromEntries(
       Object.entries(
-        (chunk.attributes as Record<string, unknown>) ?? {},
-      ).filter(([, value]) => value != null),
+        (chunk.attributes as Record<string, AttributeValue>) ?? {},
+      ).flatMap(([key, value]) => {
+        const sanitizedValue = sanitizeTelemetryAttributeValue(value);
+        return sanitizedValue == null ? [] : [[key, sanitizedValue]];
+      }),
     ) as Attributes;
 
     state.stepSpan.addEvent(chunk.type, attributes);

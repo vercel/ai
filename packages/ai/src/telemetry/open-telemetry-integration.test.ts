@@ -852,6 +852,32 @@ describe('OpenTelemetryIntegration', () => {
       );
     });
 
+    it('omits non-finite chunk attributes', () => {
+      otelIntegration.onStart!(makeOnStartEvent());
+      otelIntegration.onStepStart!(makeStepStartEvent());
+
+      otelIntegration.onChunk!(
+        makeChunkEvent({
+          type: 'ai.stream.firstChunk',
+          callId,
+          stepNumber: 0,
+          attributes: {
+            'ai.stream.msToFirstChunk': Number.NaN,
+            'ai.stream.msToFinish': Number.POSITIVE_INFINITY,
+            'ai.stream.valid': 42,
+          },
+        }),
+      );
+
+      const stepSpan = tracer.spans[1];
+      expect(stepSpan.addEvent).toHaveBeenCalledWith('ai.stream.firstChunk', {
+        'ai.stream.valid': 42,
+      });
+      expect(stepSpan.setAttributes).toHaveBeenCalledWith({
+        'ai.stream.valid': 42,
+      });
+    });
+
     it('ignores chunks without callId in the chunk body', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
