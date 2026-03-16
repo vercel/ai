@@ -110,6 +110,8 @@ export interface ReasoningPart {
 export interface CustomPart {
   type: 'custom-part';
 
+  provider?: string;
+
   /**
    * Additional provider-specific metadata. They are passed through
    * to the provider from the AI SDK and enable provider-specific

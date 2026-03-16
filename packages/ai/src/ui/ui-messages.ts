@@ -117,6 +117,11 @@ export type CustomContentUIPart = {
   type: 'custom-content';
 
   /**
+   * The provider that created this content.
+   */
+  provider?: string;
+
+  /**
    * The provider metadata.
    */
   providerMetadata?: ProviderMetadata;

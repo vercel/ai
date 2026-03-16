@@ -166,6 +166,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               } else if (isCustomContentUIPart(part)) {
                 content.push({
                   type: 'custom-part' as const,
+                  ...(part.provider != null ? { provider: part.provider } : {}),
                   ...(part.providerMetadata != null
                     ? { providerOptions: part.providerMetadata }
                     : {}),

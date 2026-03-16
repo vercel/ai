@@ -249,6 +249,7 @@ export function convertToLanguageModelMessage({
               case 'custom-part': {
                 return {
                   type: 'custom-part' as const,
+                  provider: part.provider,
                   providerOptions,
                 };
               }

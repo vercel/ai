@@ -125,6 +125,8 @@ export interface LanguageModelV4ReasoningFilePart {
 export interface LanguageModelV4CustomPart {
   type: 'custom-part';
 
+  provider?: string;
+
   /**
    * Additional provider-specific options. They are passed through
    * to the provider from the AI SDK and enable provider-specific

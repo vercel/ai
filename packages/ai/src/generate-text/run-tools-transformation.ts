@@ -64,6 +64,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
     }
   | {
       type: 'custom-content';
+      provider?: string;
       providerMetadata?: ProviderMetadata;
     }
 
@@ -216,7 +217,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'reasoning-start':
         case 'reasoning-delta':
         case 'reasoning-end':
-        case 'custom-content':
         case 'tool-input-start':
         case 'tool-input-delta':
         case 'tool-input-end':
@@ -225,6 +225,14 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'error':
         case 'raw': {
           controller.enqueue(chunk);
+          break;
+        }
+
+        case 'custom-content': {
+          controller.enqueue({
+            ...chunk,
+            provider: model?.provider,
+          });
           break;
         }
 

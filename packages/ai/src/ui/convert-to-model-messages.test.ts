@@ -292,6 +292,7 @@ describe('convertToModelMessages', () => {
           parts: [
             {
               type: 'custom-content',
+              provider: 'test-provider',
               providerMetadata: {
                 openai: {
                   itemId: 'cmp_123',
@@ -308,6 +309,7 @@ describe('convertToModelMessages', () => {
           content: [
             {
               type: 'custom-part',
+              provider: 'test-provider',
               providerOptions: {
                 openai: {
                   itemId: 'cmp_123',

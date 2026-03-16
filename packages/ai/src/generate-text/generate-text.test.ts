@@ -294,12 +294,14 @@ describe('generateText', () => {
         { type: 'text', text: 'Hello' },
         {
           type: 'custom-content',
+          provider: 'mock-provider',
           providerMetadata: {
             openai: { itemId: 'cmp_123' },
           },
         },
         {
           type: 'custom-content',
+          provider: 'mock-provider',
         },
       ]);
     });

@@ -1197,6 +1197,7 @@ describe('convertToLanguageModelMessage', () => {
           content: [
             {
               type: 'custom-part',
+              provider: 'test-provider',
               providerOptions: {
                 openai: {
                   itemId: 'cmp_123',
@@ -1213,6 +1214,7 @@ describe('convertToLanguageModelMessage', () => {
         content: [
           {
             type: 'custom-part',
+            provider: 'test-provider',
             providerOptions: {
               openai: {
                 itemId: 'cmp_123',

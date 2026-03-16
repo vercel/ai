@@ -36,6 +36,7 @@ describe('isCustomContentUIPart', () => {
     expect(
       isCustomContentUIPart({
         type: 'custom-content',
+        provider: 'test-provider',
         providerMetadata: {
           openai: { itemId: 'cmp_123' },
         },
@@ -43,7 +44,7 @@ describe('isCustomContentUIPart', () => {
     ).toBe(true);
   });
 
-  it('should return true for a custom part without providerMetadata', () => {
+  it('should return true for a custom part without provider or providerMetadata', () => {
     expect(
       isCustomContentUIPart({
         type: 'custom-content',

@@ -8650,6 +8650,7 @@ describe('processUIMessageStream', () => {
         { type: 'start', messageId: 'msg-123' },
         {
           type: 'custom-content',
+          provider: 'test-provider',
           providerMetadata: { openai: { itemId: 'cmp_123' } },
         },
         { type: 'finish' },
@@ -8675,6 +8676,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message.parts).toEqual([
         {
           type: 'custom-content',
+          provider: 'test-provider',
           providerMetadata: {
             openai: {
               itemId: 'cmp_123',

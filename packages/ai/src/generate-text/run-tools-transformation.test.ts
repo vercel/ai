@@ -59,6 +59,7 @@ describe('runToolsTransformation', () => {
       abortSignal: undefined,
       repairToolCall: undefined,
       experimental_context: undefined,
+      model: { provider: 'mock-provider', modelId: 'mock-model-id' },
     });
 
     const result = await convertReadableStreamToArray(transformedStream);
@@ -66,6 +67,7 @@ describe('runToolsTransformation', () => {
     expect(result).toMatchInlineSnapshot(`
       [
         {
+          "provider": "mock-provider",
           "providerMetadata": {
             "openai": {
               "itemId": "cmp_123",

@@ -1039,6 +1039,7 @@ describe('streamText', () => {
               "type": "text-end",
             },
             {
+              "provider": "mock-provider",
               "providerMetadata": {
                 "openai": {
                   "itemId": "cmp_123",
@@ -3554,6 +3555,7 @@ describe('streamText', () => {
               "type": "text-end",
             },
             {
+              "provider": "mock-provider",
               "providerMetadata": {
                 "openai": {
                   "itemId": "cmp_123",
@@ -7009,6 +7011,7 @@ describe('streamText', () => {
           type: 'text-delta',
         },
         {
+          provider: 'mock-provider',
           providerMetadata: {
             openai: { itemId: 'cmp_123' },
           },
@@ -7645,6 +7648,7 @@ describe('streamText', () => {
           type: 'text',
         },
         {
+          provider: 'mock-provider',
           providerMetadata: {
             openai: { itemId: 'cmp_123' },
           },
