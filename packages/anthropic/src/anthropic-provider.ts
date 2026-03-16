@@ -1,8 +1,8 @@
 import {
   InvalidArgumentError,
-  LanguageModelV3,
+  LanguageModelV4,
   NoSuchModelError,
-  ProviderV3,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -17,20 +17,20 @@ import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-mo
 import { AnthropicMessagesModelId } from './anthropic-messages-options';
 import { anthropicTools } from './anthropic-tools';
 
-export interface AnthropicProvider extends ProviderV3 {
+export interface AnthropicProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: AnthropicMessagesModelId): LanguageModelV3;
+  (modelId: AnthropicMessagesModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: AnthropicMessagesModelId): LanguageModelV3;
+  languageModel(modelId: AnthropicMessagesModelId): LanguageModelV4;
 
-  chat(modelId: AnthropicMessagesModelId): LanguageModelV3;
+  chat(modelId: AnthropicMessagesModelId): LanguageModelV4;
 
-  messages(modelId: AnthropicMessagesModelId): LanguageModelV3;
+  messages(modelId: AnthropicMessagesModelId): LanguageModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -153,7 +153,7 @@ export function createAnthropic(
     return createChatModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;

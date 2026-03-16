@@ -5,20 +5,21 @@ import {
 } from '@ai-sdk/openai-compatible/internal';
 import {
   InvalidResponseDataError,
-  type LanguageModelV3,
-  type LanguageModelV3CallOptions,
-  type LanguageModelV3Content,
-  type LanguageModelV3FinishReason,
-  type LanguageModelV3GenerateResult,
-  type LanguageModelV3StreamPart,
-  type LanguageModelV3StreamResult,
-  type SharedV3Warning,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  isParsableJson,
   parseProviderOptions,
   postJsonToApi,
   type ParseResult,
@@ -37,14 +38,14 @@ import { CacheControlValidator } from './get-cache-control';
 /**
  * Alibaba language model implementation.
  *
- * Implements LanguageModelV3 interface for Alibaba Cloud's Qwen models.
+ * Implements LanguageModelV4 interface for Alibaba Cloud's Qwen models.
  * Supports OpenAI-compatible chat completions API with Alibaba-specific features:
  * - Reasoning/thinking mode (enable_thinking, reasoning_content)
  * - Thinking budget control (thinking_budget)
  * - Prompt caching (cached_tokens tracking)
  */
-export class AlibabaLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class AlibabaLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly modelId: AlibabaChatModelId;
 
   private readonly config: AlibabaConfig;
@@ -80,8 +81,8 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
     providerOptions,
     tools,
     toolChoice,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     const cacheControlValidator = new CacheControlValidator();
 
@@ -159,8 +160,8 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const {
@@ -180,7 +181,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // text content:
     const text = choice.message.content;
@@ -227,8 +228,8 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
     const body = {
       ...args,
@@ -251,7 +252,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
     });
 
     // Track state across chunks
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -273,7 +274,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof alibabaChatChunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -425,6 +426,23 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
                     });
                   }
 
+                  // Check if already complete (some providers send full tool call at once)
+                  if (isParsableJson(toolCall.function.arguments)) {
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: toolCall.id,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallId: toolCall.id,
+                      toolName: toolCall.function.name,
+                      input: toolCall.function.arguments,
+                    });
+
+                    toolCall.hasFinished = true;
+                  }
+
                   continue;
                 }
 
@@ -445,6 +463,23 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
                     id: toolCall.id,
                     delta: toolCallDelta.function.arguments,
                   });
+                }
+
+                // Check if tool call is now complete
+                if (isParsableJson(toolCall.function.arguments)) {
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: toolCall.id,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: toolCall.id,
+                    toolName: toolCall.function.name,
+                    input: toolCall.function.arguments,
+                  });
+
+                  toolCall.hasFinished = true;
                 }
               }
             }
@@ -468,25 +503,6 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
 
             if (activeText) {
               controller.enqueue({ type: 'text-end', id: '0' });
-            }
-
-            // Finalize any unfinished tool calls on stream end to
-            // prevent premature execution from parsable partial JSON.
-            for (const toolCall of toolCalls) {
-              if (!toolCall.hasFinished) {
-                controller.enqueue({
-                  type: 'tool-input-end',
-                  id: toolCall.id,
-                });
-
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: toolCall.id,
-                  toolName: toolCall.function.name,
-                  input: toolCall.function.arguments,
-                });
-                toolCall.hasFinished = true;
-              }
             }
 
             controller.enqueue({

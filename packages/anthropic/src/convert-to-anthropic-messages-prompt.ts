@@ -1,9 +1,9 @@
 import {
-  SharedV3Warning,
-  LanguageModelV3DataContent,
-  LanguageModelV3Message,
-  LanguageModelV3Prompt,
-  SharedV3ProviderMetadata,
+  SharedV4Warning,
+  LanguageModelV4DataContent,
+  LanguageModelV4Message,
+  LanguageModelV4Prompt,
+  SharedV4ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -31,7 +31,7 @@ import { toolSearchRegex_20251119OutputSchema as toolSearchOutputSchema } from '
 import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
 import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 
-function convertToString(data: LanguageModelV3DataContent): string {
+function convertToString(data: LanguageModelV4DataContent): string {
   if (typeof data === 'string') {
     return new TextDecoder().decode(convertBase64ToUint8Array(data));
   }
@@ -55,16 +55,16 @@ function convertToString(data: LanguageModelV3DataContent): string {
  * Checks if data is a URL (either a URL object or a URL string).
  */
 function isUrlData(
-  data: LanguageModelV3DataContent,
+  data: LanguageModelV4DataContent,
 ): data is URL | (string & { __brand: 'url-string' }) {
   return data instanceof URL || isUrlString(data);
 }
 
-function isUrlString(data: LanguageModelV3DataContent): boolean {
+function isUrlString(data: LanguageModelV4DataContent): boolean {
   return typeof data === 'string' && /^https?:\/\//i.test(data);
 }
 
-function getUrlString(data: LanguageModelV3DataContent): string {
+function getUrlString(data: LanguageModelV4DataContent): string {
   return data instanceof URL ? data.toString() : (data as string);
 }
 
@@ -75,9 +75,9 @@ export async function convertToAnthropicMessagesPrompt({
   cacheControlValidator,
   toolNameMapping,
 }: {
-  prompt: LanguageModelV3Prompt;
+  prompt: LanguageModelV4Prompt;
   sendReasoning: boolean;
-  warnings: SharedV3Warning[];
+  warnings: SharedV4Warning[];
   cacheControlValidator?: CacheControlValidator;
   toolNameMapping: ToolNameMapping;
 }): Promise<{
@@ -92,7 +92,7 @@ export async function convertToAnthropicMessagesPrompt({
   const messages: AnthropicMessagesPrompt['messages'] = [];
 
   async function shouldEnableCitations(
-    providerMetadata: SharedV3ProviderMetadata | undefined,
+    providerMetadata: SharedV4ProviderMetadata | undefined,
   ): Promise<boolean> {
     const anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',
@@ -104,7 +104,7 @@ export async function convertToAnthropicMessagesPrompt({
   }
 
   async function getDocumentMetadata(
-    providerMetadata: SharedV3ProviderMetadata | undefined,
+    providerMetadata: SharedV4ProviderMetadata | undefined,
   ): Promise<{ title?: string; context?: string }> {
     const anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',
@@ -884,7 +884,7 @@ export async function convertToAnthropicMessagesPrompt({
                         errorCode:
                           typeof extractedErrorCode === 'string'
                             ? extractedErrorCode
-                            : 'unknown',
+                            : 'unavailable',
                       };
                     }
 
@@ -893,7 +893,7 @@ export async function convertToAnthropicMessagesPrompt({
                       tool_use_id: part.toolCallId,
                       content: {
                         type: 'web_fetch_tool_result_error',
-                        error_code: errorValue.errorCode ?? 'unknown',
+                        error_code: errorValue.errorCode ?? 'unavailable',
                       },
                       cache_control: cacheControl,
                     });
@@ -1051,19 +1051,19 @@ export async function convertToAnthropicMessagesPrompt({
 
 type SystemBlock = {
   type: 'system';
-  messages: Array<LanguageModelV3Message & { role: 'system' }>;
+  messages: Array<LanguageModelV4Message & { role: 'system' }>;
 };
 type AssistantBlock = {
   type: 'assistant';
-  messages: Array<LanguageModelV3Message & { role: 'assistant' }>;
+  messages: Array<LanguageModelV4Message & { role: 'assistant' }>;
 };
 type UserBlock = {
   type: 'user';
-  messages: Array<LanguageModelV3Message & { role: 'user' | 'tool' }>;
+  messages: Array<LanguageModelV4Message & { role: 'user' | 'tool' }>;
 };
 
 function groupIntoBlocks(
-  prompt: LanguageModelV3Prompt,
+  prompt: LanguageModelV4Prompt,
 ): Array<SystemBlock | AssistantBlock | UserBlock> {
   const blocks: Array<SystemBlock | AssistantBlock | UserBlock> = [];
   let currentBlock: SystemBlock | AssistantBlock | UserBlock | undefined =

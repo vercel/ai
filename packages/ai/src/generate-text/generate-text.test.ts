@@ -42,6 +42,7 @@ import {
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
+import { OpenTelemetryIntegration } from '../telemetry/open-telemetry-integration';
 
 vi.mock('../version', () => {
   return {
@@ -326,6 +327,7 @@ describe('generateText', () => {
         prompt: 'prompt',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -338,6 +340,7 @@ describe('generateText', () => {
         prompt: 'prompt',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -350,6 +353,7 @@ describe('generateText', () => {
         prompt: 'prompt',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -705,6 +709,10 @@ describe('generateText', () => {
         experimental_telemetry: {
           functionId: 'test-function',
           metadata: { customKey: 'customValue' },
+        },
+        _internal: {
+          generateId: () => 'test-call-id',
+          generateCallId: () => 'test-telemetry-call-id',
         },
         experimental_onStart: async event => {
           startEvent = event;
@@ -1410,6 +1418,10 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
+        _internal: {
+          generateId: () => 'test-call-id',
+          generateCallId: () => 'test-telemetry-call-id',
+        },
         experimental_onToolCallStart: async event => {
           toolCallStartEvents.push(event);
         },
@@ -2092,6 +2104,10 @@ describe('generateText', () => {
             execute: async ({ value }) => `${value}-result`,
           },
         },
+        _internal: {
+          generateId: () => 'test-call-id',
+          generateCallId: () => 'test-telemetry-call-id',
+        },
         onFinish: async event => {
           result = event as unknown as typeof result;
         },
@@ -2100,6 +2116,7 @@ describe('generateText', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
+          "callId": "test-telemetry-call-id",
           "content": [
             {
               "text": "Hello, World!",
@@ -2217,6 +2234,7 @@ describe('generateText', () => {
           "stepNumber": 0,
           "steps": [
             DefaultStepResult {
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "text": "Hello, World!",
@@ -2496,6 +2514,10 @@ describe('generateText', () => {
             }),
           },
           prompt: 'test-input',
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
+          },
           onFinish: async event => {
             onFinishResult = event as unknown as typeof onFinishResult;
           },
@@ -2671,6 +2693,10 @@ describe('generateText', () => {
           },
           experimental_context: { context: 'state1' },
           prompt: 'test-input',
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
+          },
           stopWhen: stepCountIs(3),
           onStepFinish: async event => {
             onStepFinishResults.push(event);
@@ -2740,6 +2766,7 @@ describe('generateText', () => {
               "stepNumber": 0,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "input": {
@@ -2835,6 +2862,7 @@ describe('generateText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "text": "Hello, world!",
@@ -2969,6 +2997,7 @@ describe('generateText', () => {
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "input": {
@@ -3064,6 +3093,7 @@ describe('generateText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "text": "Hello, world!",
@@ -3409,6 +3439,10 @@ describe('generateText', () => {
             }),
           },
           prompt: 'test-input',
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
+          },
           stopWhen: [
             ({ steps }) => {
               stopConditionCalls.push({ number: 0, steps });
@@ -3433,6 +3467,7 @@ describe('generateText', () => {
               "number": 0,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "input": {
@@ -3531,6 +3566,7 @@ describe('generateText', () => {
               "number": 1,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "input": {
@@ -4089,7 +4125,9 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'prompt',
-        experimental_telemetry: { tracer },
+        experimental_telemetry: {
+          integrations: new OpenTelemetryIntegration({ tracer }),
+        },
       });
 
       expect(tracer.jsonSpans).toMatchSnapshot();
@@ -4131,7 +4169,7 @@ describe('generateText', () => {
             test1: 'value1',
             test2: false,
           },
-          tracer,
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
       });
 
@@ -4163,10 +4201,11 @@ describe('generateText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           isEnabled: true,
-          tracer,
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
         _internal: {
           generateId: () => 'test-id',
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -4180,7 +4219,8 @@ describe('generateText', () => {
               "ai.prompt": "{"prompt":"test-input"}",
               "ai.request.headers.user-agent": "ai/0.0.0-test",
               "ai.response.finishReason": "stop",
-              "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
+              "ai.response.text": "",
+              "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
               "ai.settings.maxRetries": 2,
               "ai.usage.inputTokenDetails.noCacheTokens": 3,
               "ai.usage.inputTokens": 3,
@@ -4206,8 +4246,9 @@ describe('generateText', () => {
               "ai.response.finishReason": "stop",
               "ai.response.id": "test-id",
               "ai.response.model": "mock-model-id",
+              "ai.response.text": "",
               "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-              "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
+              "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
               "ai.settings.maxRetries": 2,
               "ai.usage.inputTokenDetails.noCacheTokens": 3,
               "ai.usage.inputTokens": 3,
@@ -4271,10 +4312,11 @@ describe('generateText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           isEnabled: true,
-          tracer,
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
         _internal: {
           generateId: () => 'test-id',
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -4332,10 +4374,11 @@ describe('generateText', () => {
           isEnabled: true,
           recordInputs: false,
           recordOutputs: false,
-          tracer,
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
         _internal: {
           generateId: () => 'test-id',
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -4348,7 +4391,7 @@ describe('generateText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           isEnabled: true,
-          tracer,
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
       });
 
@@ -4440,7 +4483,7 @@ describe('generateText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           isEnabled: true,
-          tracer,
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
       });
 
@@ -4451,6 +4494,99 @@ describe('generateText', () => {
       expect(rootSpan?.attributes['ai.usage.inputTokens']).toBe(15);
       expect(rootSpan?.attributes['ai.usage.outputTokens']).toBe(35);
       expect(rootSpan?.attributes['ai.usage.totalTokens']).toBe(50);
+    });
+
+    it('should execute subagent generateText inside executeToolCall context', async () => {
+      let activeContext: string | undefined;
+      let capturedContext: string | undefined;
+      const otelIntegration = new OpenTelemetryIntegration({ tracer });
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'researchTool',
+                input: '{ "city": "Tokyo" }',
+              },
+            ],
+          }),
+        }),
+        tools: {
+          researchTool: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async ({ city }) => {
+              capturedContext = activeContext;
+
+              const subResult = await generateText({
+                model: new MockLanguageModelV3({
+                  doGenerate: async () => ({
+                    ...dummyResponseValues,
+                    content: [
+                      { type: 'text', text: `Weather in ${city}: sunny` },
+                    ],
+                  }),
+                }),
+                prompt: `Weather for ${city}`,
+                experimental_telemetry: {
+                  isEnabled: true,
+                  functionId: `sub-agent-${city.toLowerCase()}`,
+                  integrations: otelIntegration,
+                },
+              });
+              return subResult.text;
+            },
+          }),
+        },
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: 'weather-agent',
+          integrations: [
+            otelIntegration,
+            {
+              executeTool: async ({ callId, toolCallId, execute }) => {
+                activeContext = `${callId}:${toolCallId}`;
+                try {
+                  return await execute();
+                } finally {
+                  activeContext = undefined;
+                }
+              },
+            },
+          ],
+        },
+        _internal: {
+          generateId: () => 'outer-test-id',
+          generateCallId: () => 'outer-test-call-id',
+        },
+      });
+
+      expect(capturedContext).toBe('outer-test-call-id:call-1');
+
+      expect(tracer.spans.map(s => s.name)).toEqual([
+        'ai.generateText',
+        'ai.generateText.doGenerate',
+        'ai.toolCall',
+        'ai.generateText',
+        'ai.generateText.doGenerate',
+      ]);
+
+      const toolCallSpan = tracer.spans[2];
+      expect(toolCallSpan.attributes['ai.toolCall.name']).toBe('researchTool');
+
+      const innerRootSpan = tracer.spans[3];
+      expect(innerRootSpan.attributes['ai.telemetry.functionId']).toBe(
+        'sub-agent-tokyo',
+      );
+
+      const innerStepSpan = tracer.spans[4];
+      expect(innerStepSpan.attributes['ai.response.text']).toBe(
+        'Weather in Tokyo: sunny',
+      );
     });
   });
 
@@ -4601,6 +4737,7 @@ describe('generateText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: () => 'test-id',
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -4652,6 +4789,9 @@ describe('generateText', () => {
                   toolCallId: 'call-1',
                   toolName: 'web_search',
                   result: `{ "value": "result1" }`,
+                  providerMetadata: {
+                    openai: { itemId: 'tool-result-1' },
+                  },
                 },
                 {
                   type: 'tool-call',
@@ -4667,6 +4807,9 @@ describe('generateText', () => {
                   result: 'ERROR',
                   isError: true,
                   providerExecuted: true,
+                  providerMetadata: {
+                    openai: { itemId: 'tool-result-2' },
+                  },
                 },
               ],
             }),
@@ -4706,6 +4849,11 @@ describe('generateText', () => {
               },
               "output": "{ "value": "result1" }",
               "providerExecuted": true,
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "tool-result-1",
+                },
+              },
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-result",
@@ -4728,6 +4876,11 @@ describe('generateText', () => {
                 "value": "value",
               },
               "providerExecuted": true,
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "tool-result-2",
+                },
+              },
               "toolCallId": "call-2",
               "toolName": "web_search",
               "type": "tool-error",
@@ -4775,6 +4928,11 @@ describe('generateText', () => {
               },
               "output": "{ "value": "result1" }",
               "providerExecuted": true,
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "tool-result-1",
+                },
+              },
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-result",
@@ -6905,6 +7063,7 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: () => 'test-id',
+            generateCallId: () => 'test-telemetry-call-id',
           },
           tools: {
             cityAttractions: tool({
@@ -6962,6 +7121,7 @@ describe('generateText', () => {
         expect(result.steps).toMatchInlineSnapshot(`
           [
             DefaultStepResult {
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "input": {
@@ -7219,6 +7379,7 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
         });
       });
@@ -7335,6 +7496,7 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
         });
       });
@@ -7524,6 +7686,7 @@ describe('generateText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -7803,6 +7966,7 @@ describe('generateText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -7961,6 +8125,7 @@ describe('generateText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -8168,6 +8333,7 @@ describe('generateText', () => {
             prompt: 'test-input',
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-telemetry-call-id',
             },
           });
         });
@@ -8300,6 +8466,7 @@ describe('generateText', () => {
             stopWhen: stepCountIs(3),
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-telemetry-call-id',
             },
             messages: [
               {
@@ -8459,6 +8626,7 @@ describe('generateText', () => {
             stopWhen: stepCountIs(3),
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-telemetry-call-id',
             },
             messages: [
               {

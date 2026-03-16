@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: 'xai/grok-2-vision',
+    model: 'xai/grok-3',
     messages: [
       {
         role: 'user',
