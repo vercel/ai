@@ -1,6 +1,6 @@
 import {
-  LanguageModelV3GenerateResult,
-  LanguageModelV3Prompt,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -12,7 +12,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { OpenResponsesLanguageModel } from './open-responses-language-model';
 
 describe('OpenResponsesLanguageModel', () => {
-  const TEST_PROMPT: LanguageModelV3Prompt = [
+  const TEST_PROMPT: LanguageModelV4Prompt = [
     { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
   ];
 
@@ -46,7 +46,7 @@ describe('OpenResponsesLanguageModel', () => {
     }
 
     describe('basic generation', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('lmstudio-basic.1');
@@ -70,7 +70,7 @@ describe('OpenResponsesLanguageModel', () => {
     });
 
     describe('request parameters', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('lmstudio-basic.1');
@@ -103,7 +103,7 @@ describe('OpenResponsesLanguageModel', () => {
     });
 
     describe('tools', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('lmstudio-basic.1');
@@ -151,7 +151,7 @@ describe('OpenResponsesLanguageModel', () => {
     });
 
     describe('tool call parsing', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('lmstudio-tool-call.1');
@@ -300,7 +300,7 @@ describe('OpenResponsesLanguageModel', () => {
       it('should send correct request body with user, assistant tool-call, and tool result', async () => {
         prepareJsonFixtureResponse('lmstudio-basic.1');
 
-        const toolConversationPrompt: LanguageModelV3Prompt = [
+        const toolConversationPrompt: LanguageModelV4Prompt = [
           {
             role: 'user',
             content: [{ type: 'text', text: 'What is the weather in Tokyo?' }],

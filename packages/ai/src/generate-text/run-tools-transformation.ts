@@ -5,8 +5,8 @@ import {
   ModelMessage,
   SystemModelMessage,
 } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
+import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
@@ -91,7 +91,12 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
 
   // Other types:
   | ({ type: 'source' } & Source)
-  | { type: 'file'; file: GeneratedFile; providerMetadata?: ProviderMetadata } // different because of GeneratedFile object
+  | { type: 'file'; file: GeneratedFile; providerMetadata?: ProviderMetadata }
+  | {
+      type: 'reasoning-file';
+      file: GeneratedFile;
+      providerMetadata?: ProviderMetadata;
+    }
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
   | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
   | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
@@ -115,8 +120,8 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
 export function runToolsTransformation<TOOLS extends ToolSet>({
   tools,
   generatorStream,
-  tracer,
   telemetry,
+  callId,
   system,
   messages,
   abortSignal,
@@ -127,11 +132,12 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   model,
   onToolCallStart,
   onToolCallFinish,
+  executeToolInTelemetryContext,
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV4StreamPart>;
-  tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
+  callId: string;
   system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
@@ -146,6 +152,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   onToolCallFinish?:
     | StreamTextOnToolCallFinishCallback<TOOLS>
     | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
+  executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
@@ -221,9 +228,10 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           break;
         }
 
-        case 'file': {
+        case 'file':
+        case 'reasoning-file': {
           controller.enqueue({
-            type: 'file',
+            type: chunk.type,
             file: new DefaultGeneratedFileWithType({
               data: chunk.data,
               mediaType: chunk.mediaType,
@@ -341,8 +349,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               executeToolCall({
                 toolCall,
                 tools,
-                tracer,
                 telemetry,
+                callId,
                 messages,
                 abortSignal,
                 experimental_context,
@@ -350,6 +358,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 model,
                 onToolCallStart,
                 onToolCallFinish,
+                executeToolInTelemetryContext,
                 onPreliminaryToolResult: result => {
                   toolResultsStreamController!.enqueue(result);
                 },

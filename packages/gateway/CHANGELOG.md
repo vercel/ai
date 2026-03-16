@@ -1,5 +1,34 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+
+## 4.0.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- 4d6ab9a: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- 980f777: chore(provider/gateway): update gateway model settings files
+- 7185ba2: bump `@vercel/oidc` dependency to 3.2.0
+
 ## 4.0.0-beta.8
 
 ### Patch Changes

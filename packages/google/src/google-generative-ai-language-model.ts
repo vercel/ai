@@ -1,14 +1,14 @@
 import {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3Source,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4Source,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -55,11 +55,11 @@ type GoogleGenerativeAIConfig = {
   /**
    * The supported URLs for the model.
    */
-  supportedUrls?: () => LanguageModelV3['supportedUrls'];
+  supportedUrls?: () => LanguageModelV4['supportedUrls'];
 };
 
-export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: GoogleGenerativeAIModelId;
 
@@ -97,8 +97,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     providerOptions,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     const providerOptionsName = this.config.provider.includes('vertex')
       ? 'vertex'
@@ -209,8 +209,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings, providerOptionsName } = await this.getArgs(options);
 
     const mergedHeaders = combineHeaders(
@@ -235,7 +235,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     });
 
     const candidate = response.candidates[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // map ordered parts to content:
     const parts = candidate.content?.parts ?? [];
@@ -310,20 +310,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         const hasThought = part.thought === true;
         const hasThoughtSignature = !!part.thoughtSignature;
         content.push({
-          type: 'file' as const,
+          type: hasThought ? 'reasoning-file' : 'file',
           data: part.inlineData.data,
           mediaType: part.inlineData.mimeType,
-          providerMetadata:
-            hasThought || hasThoughtSignature
-              ? {
-                  [providerOptionsName]: {
-                    ...(hasThought ? { thought: true } : {}),
-                    ...(hasThoughtSignature
-                      ? { thoughtSignature: part.thoughtSignature }
-                      : {}),
-                  },
-                }
-              : undefined,
+          providerMetadata: hasThoughtSignature
+            ? {
+                [providerOptionsName]: {
+                  thoughtSignature: part.thoughtSignature,
+                },
+              }
+            : undefined,
         });
       }
     }
@@ -371,8 +367,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings, providerOptionsName } = await this.getArgs(options);
 
     const headers = combineHeaders(
@@ -392,12 +388,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
     let usage: GoogleGenerativeAIUsageMetadata | undefined = undefined;
-    let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
+    let providerMetadata: SharedV4ProviderMetadata | undefined = undefined;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
 
@@ -418,7 +414,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<ChunkSchema>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -602,19 +598,15 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
                   const hasThought = part.thought === true;
                   const hasThoughtSignature = !!part.thoughtSignature;
-                  const fileMeta =
-                    hasThought || hasThoughtSignature
-                      ? {
-                          [providerOptionsName]: {
-                            ...(hasThought ? { thought: true } : {}),
-                            ...(hasThoughtSignature
-                              ? { thoughtSignature: part.thoughtSignature }
-                              : {}),
-                          },
-                        }
-                      : undefined;
+                  const fileMeta = hasThoughtSignature
+                    ? {
+                        [providerOptionsName]: {
+                          thoughtSignature: part.thoughtSignature,
+                        },
+                      }
+                    : undefined;
                   controller.enqueue({
-                    type: 'file',
+                    type: hasThought ? 'reasoning-file' : 'file',
                     mediaType: part.inlineData.mimeType,
                     data: part.inlineData.data,
                     providerMetadata: fileMeta,
@@ -755,12 +747,12 @@ function extractSources({
 }: {
   groundingMetadata: GroundingMetadataSchema | undefined | null;
   generateId: () => string;
-}): undefined | LanguageModelV3Source[] {
+}): undefined | LanguageModelV4Source[] {
   if (!groundingMetadata?.groundingChunks) {
     return undefined;
   }
 
-  const sources: LanguageModelV3Source[] = [];
+  const sources: LanguageModelV4Source[] = [];
 
   for (const chunk of groundingMetadata.groundingChunks) {
     if (chunk.web != null) {

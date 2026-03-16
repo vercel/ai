@@ -927,16 +927,11 @@ describe('exchangeAuthorization', () => {
     });
 
     expect(tokens).toEqual(validTokens);
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.objectContaining({
-        href: 'https://auth.example.com/token',
-      }),
-      expect.objectContaining({
-        method: 'POST',
-        headers: new Headers({
-          'Content-Type': 'application/x-www-form-urlencoded',
-        }),
-      }),
+    const [fetchUrl, fetchOptions] = mockFetch.mock.calls[0];
+    expect(fetchUrl.href).toBe('https://auth.example.com/token');
+    expect(fetchOptions.method).toBe('POST');
+    expect(fetchOptions.headers.get('Content-Type')).toBe(
+      'application/x-www-form-urlencoded',
     );
 
     const body = mockFetch.mock.calls[0][1].body as URLSearchParams;
@@ -2141,5 +2136,166 @@ describe('auth function', () => {
     expect(customFetch.mock.calls[1][0].toString()).toBe(
       'https://auth.example.com/.well-known/oauth-authorization-server',
     );
+  });
+});
+
+describe('OAuth state validation', () => {
+  const validTokens = {
+    access_token: 'access123',
+    token_type: 'Bearer',
+    expires_in: 3600,
+    refresh_token: 'refresh123',
+  };
+
+  function createMockProvider(
+    overrides?: Partial<OAuthClientProvider>,
+  ): OAuthClientProvider {
+    return {
+      get redirectUrl() {
+        return 'http://localhost:3000/callback';
+      },
+      get clientMetadata() {
+        return {
+          redirect_uris: ['http://localhost:3000/callback'],
+          client_name: 'Test Client',
+        };
+      },
+      clientInformation: vi.fn().mockResolvedValue({
+        client_id: 'test-client',
+        client_secret: 'test-secret',
+      }),
+      tokens: vi.fn().mockResolvedValue(undefined),
+      saveTokens: vi.fn(),
+      redirectToAuthorization: vi.fn(),
+      saveCodeVerifier: vi.fn(),
+      codeVerifier: vi.fn().mockResolvedValue('test-verifier'),
+      ...overrides,
+    };
+  }
+
+  function mockMetadataAndTokenFetch() {
+    mockFetch.mockImplementation(url => {
+      const urlString = url.toString();
+      if (urlString.includes('/.well-known/oauth-protected-resource')) {
+        return Promise.resolve({ ok: false, status: 404 });
+      } else if (
+        urlString.includes('/.well-known/oauth-authorization-server')
+      ) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            issuer: 'https://auth.example.com',
+            authorization_endpoint: 'https://auth.example.com/authorize',
+            token_endpoint: 'https://auth.example.com/token',
+            response_types_supported: ['code'],
+            code_challenge_methods_supported: ['S256'],
+          }),
+        });
+      } else if (urlString.includes('/token')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => validTokens,
+        });
+      }
+      return Promise.resolve({ ok: false, status: 404 });
+    });
+  }
+
+  function mockMetadataWithRegistration() {
+    mockFetch.mockImplementation(url => {
+      const urlString = url.toString();
+      if (urlString.includes('/.well-known/oauth-protected-resource')) {
+        return Promise.resolve({ ok: false, status: 404 });
+      } else if (
+        urlString.includes('/.well-known/oauth-authorization-server')
+      ) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            issuer: 'https://auth.example.com',
+            authorization_endpoint: 'https://auth.example.com/authorize',
+            token_endpoint: 'https://auth.example.com/token',
+            registration_endpoint: 'https://auth.example.com/register',
+            response_types_supported: ['code'],
+            code_challenge_methods_supported: ['S256'],
+          }),
+        });
+      } else if (urlString.includes('/register')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            client_id: 'new-client',
+            client_secret: 'new-secret',
+            client_id_issued_at: 1612137600,
+            client_secret_expires_at: 1612224000,
+            redirect_uris: ['http://localhost:3000/callback'],
+            client_name: 'Test Client',
+          }),
+        });
+      }
+      return Promise.resolve({ ok: false, status: 404 });
+    });
+  }
+
+  it('should reject token exchange when callback state does not match stored state', async () => {
+    mockMetadataAndTokenFetch();
+
+    const provider = createMockProvider({
+      state: vi.fn().mockResolvedValue('LEGITIMATE_STATE'),
+      saveState: vi.fn(),
+      storedState: vi.fn().mockResolvedValue('LEGITIMATE_STATE'),
+    });
+
+    await expect(
+      auth(provider, {
+        serverUrl: 'https://resource.example.com',
+        authorizationCode: 'auth-code-from-attacker-flow',
+        callbackState: 'ATTACKER_STATE',
+      }),
+    ).rejects.toThrow(/state/i);
+
+    expect(provider.saveTokens).not.toHaveBeenCalled();
+  });
+
+  it('should allow token exchange when callback state matches stored state', async () => {
+    mockMetadataAndTokenFetch();
+
+    const provider = createMockProvider({
+      state: vi.fn().mockResolvedValue('CORRECT_STATE'),
+      saveState: vi.fn(),
+      storedState: vi.fn().mockResolvedValue('CORRECT_STATE'),
+    });
+
+    const result = await auth(provider, {
+      serverUrl: 'https://resource.example.com',
+      authorizationCode: 'valid-auth-code',
+      callbackState: 'CORRECT_STATE',
+    });
+
+    expect(result).toBe('AUTHORIZED');
+    expect(provider.saveTokens).toHaveBeenCalledWith(validTokens);
+  });
+
+  it('should save state when starting a new authorization flow', async () => {
+    mockMetadataWithRegistration();
+
+    const saveState = vi.fn();
+    const provider = createMockProvider({
+      clientInformation: vi.fn().mockResolvedValue(undefined),
+      saveClientInformation: vi.fn(),
+      state: vi.fn().mockResolvedValue('MY_STATE_VALUE'),
+      saveState,
+    });
+
+    const result = await auth(provider, {
+      serverUrl: 'https://resource.example.com',
+    });
+
+    expect(result).toBe('REDIRECT');
+    expect(saveState).toHaveBeenCalledWith('MY_STATE_VALUE');
   });
 });

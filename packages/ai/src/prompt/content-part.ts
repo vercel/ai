@@ -3,6 +3,7 @@ import {
   FilePart,
   ImagePart,
   ProviderOptions,
+  ReasoningFilePart,
   ReasoningPart,
   TextPart,
   ToolApprovalRequest,
@@ -59,6 +60,16 @@ export const reasoningPartSchema: z.ZodType<ReasoningPart> = z.object({
  */
 export const customPartSchema: z.ZodType<CustomPart> = z.object({
   type: z.literal('custom'),
+  providerOptions: providerMetadataSchema.optional(),
+});
+
+/**
+ * @internal
+ */
+export const reasoningFilePartSchema: z.ZodType<ReasoningFilePart> = z.object({
+  type: z.literal('reasoning-file'),
+  data: z.union([dataContentSchema, z.instanceof(URL)]),
+  mediaType: z.string(),
   providerOptions: providerMetadataSchema.optional(),
 });
 

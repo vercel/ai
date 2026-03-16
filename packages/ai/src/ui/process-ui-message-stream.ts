@@ -462,9 +462,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               break;
             }
 
-            case 'file': {
+            case 'file':
+            case 'reasoning-file': {
               state.message.parts.push({
-                type: 'file',
+                type: chunk.type,
                 mediaType: chunk.mediaType,
                 url: chunk.url,
                 ...(chunk.providerMetadata != null

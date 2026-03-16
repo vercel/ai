@@ -194,6 +194,17 @@ export class MyError extends AISDKError {
 }
 ```
 
+## Architecture Decision Records (ADRs)
+
+This repo uses ADRs in `contributing/decisions/` to capture important architecture decisions. Before making changes that touch architecture (new dependencies, new patterns, API design, infrastructure), check existing ADRs:
+
+1. Read `contributing/decisions/README.md` for the index of decisions.
+2. Read any accepted ADRs relevant to your area of work. Follow the decisions and implementation patterns they specify.
+3. If you encounter a pattern in the code and wonder "why is it done this way?", check whether an ADR explains it.
+4. If your work would contradict an existing accepted ADR, stop and discuss with the human before proceeding.
+
+To propose or create a new ADR, use the ADR skill.
+
 ## Project Philosophies
 
 For an overview of the project's key philosophies that guide decision making, see `contributing/project-philosophies.md`.

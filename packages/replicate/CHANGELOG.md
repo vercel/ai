@@ -1,5 +1,27 @@
 # @ai-sdk/replicate
 
+## 3.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+
+## 3.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 3.0.0-beta.2
+
+### Patch Changes
+
+- c434fd2: chore(provider/replicate): update provider to use v4 types
+
 ## 3.0.0-beta.1
 
 ### Patch Changes

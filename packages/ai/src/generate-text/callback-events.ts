@@ -1,4 +1,4 @@
-import type { LanguageModelV4ToolChoice } from '@ai-sdk/provider';
+import type { JSONValue, LanguageModelV4ToolChoice } from '@ai-sdk/provider';
 import type {
   ModelMessage,
   ProviderOptions,
@@ -12,6 +12,7 @@ import type { StepResult } from './step-result';
 import type { StopCondition } from './stop-condition';
 import type { TypedToolCall } from './tool-call';
 import type { ToolSet } from './tool-set';
+import { TextStreamPart } from './stream-text-result';
 
 /**
  * Common model information used across callback events.
@@ -33,6 +34,12 @@ export interface OnStartEvent<
   OUTPUT extends Output = Output,
   INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
+  /** Unique identifier for this generation call, used to correlate events. */
+  readonly callId: string;
+
+  /** Identifies the operation type (e.g. 'ai.generateText' or 'ai.streamText'). */
+  readonly operationId: string;
+
   /** The model being used for generation. */
   readonly model: CallbackModelInfo;
 
@@ -109,11 +116,20 @@ export interface OnStartEvent<
    */
   readonly include: INCLUDE | undefined;
 
+  /** Whether telemetry is enabled. */
+  readonly isEnabled: boolean | undefined;
+
+  /** Whether to record inputs in telemetry. Enabled by default. */
+  readonly recordInputs: boolean | undefined;
+
+  /** Whether to record outputs in telemetry. Enabled by default. */
+  readonly recordOutputs: boolean | undefined;
+
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
 
-  /** Additional metadata passed to the generation. */
-  readonly metadata: Record<string, unknown> | undefined;
+  /** Additional metadata from telemetry settings. */
+  readonly metadata: Record<string, JSONValue> | undefined;
 
   /**
    * User-defined context object that flows through the entire generation lifecycle.
@@ -133,6 +149,9 @@ export interface OnStepStartEvent<
   OUTPUT extends Output = Output,
   INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
+  /** Unique identifier for this generation call, used to correlate events. */
+  readonly callId: string;
+
   /** Zero-based index of the current step. */
   readonly stepNumber: number;
 
@@ -217,6 +236,9 @@ export interface OnStepStartEvent<
  * Called when a tool execution begins, before the tool's `execute` function is invoked.
  */
 export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
+  /** Unique identifier for this generation call, used to correlate events. */
+  readonly callId: string;
+
   /** Zero-based index of the current step where this tool call occurs. */
   readonly stepNumber: number | undefined;
 
@@ -249,6 +271,9 @@ export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
  * Uses a discriminated union on the `success` field.
  */
 export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
+  /** Unique identifier for this generation call, used to correlate events. */
+  readonly callId: string;
+
   /** Zero-based index of the current step where this tool call occurred. */
   readonly stepNumber: number | undefined;
 
@@ -293,10 +318,41 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
 );
 
 /**
+ * Event passed to the `onChunk` callback.
+ *
+ * Called for each chunk received during streaming (`streamText` only).
+ * The chunk is either a content part (text-delta, tool-call, etc.) or
+ * a stream lifecycle marker (`ai.stream.firstChunk` / `ai.stream.finish`).
+ */
+export interface OnChunkEvent<TOOLS extends ToolSet = ToolSet> {
+  readonly chunk:
+    | Extract<
+        TextStreamPart<TOOLS>,
+        {
+          type:
+            | 'text-delta'
+            | 'reasoning-delta'
+            | 'source'
+            | 'tool-call'
+            | 'tool-input-start'
+            | 'tool-input-delta'
+            | 'tool-result'
+            | 'raw';
+        }
+      >
+    | {
+        readonly type: 'ai.stream.firstChunk' | 'ai.stream.finish';
+        readonly callId: string;
+        readonly stepNumber: number;
+        readonly attributes?: Record<string, unknown>;
+      };
+}
+
+/**
  * Event passed to the `onStepFinish` callback.
  *
  * Called when a step (LLM call) completes.
- * This is simply the StepResult for that step.
+ * Includes the StepResult for that step along with the call identifier.
  */
 export type OnStepFinishEvent<TOOLS extends ToolSet = ToolSet> =
   StepResult<TOOLS>;

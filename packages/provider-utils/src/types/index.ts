@@ -6,6 +6,7 @@ export type {
   CustomPart,
   FilePart,
   ImagePart,
+  ReasoningFilePart,
   ReasoningPart,
   TextPart,
   ToolCallPart,

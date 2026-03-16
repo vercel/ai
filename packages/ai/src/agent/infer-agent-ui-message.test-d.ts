@@ -4,6 +4,7 @@ import {
   DataUIPart,
   DynamicToolUIPart,
   FileUIPart,
+  ReasoningFileUIPart,
   ReasoningUIPart,
   SourceDocumentUIPart,
   SourceUrlUIPart,
@@ -36,6 +37,7 @@ describe('InferAgentUIMessage', () => {
       | SourceUrlUIPart
       | SourceDocumentUIPart
       | FileUIPart
+      | ReasoningFileUIPart
       | DataUIPart<never>
       | StepStartUIPart
     >();

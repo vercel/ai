@@ -12,6 +12,7 @@ import {
   ImagePart,
   isUrlSupported,
   ModelMessage,
+  ReasoningFilePart,
   ReasoningPart,
   TextPart,
   ToolCallPart,
@@ -237,6 +238,7 @@ export function convertToLanguageModelMessage({
               | TextPart
               | FilePart
               | ReasoningPart
+              | ReasoningFilePart
               | ToolCallPart
               | ToolResultPart => part.type !== 'tool-approval-request',
           )
@@ -266,6 +268,17 @@ export function convertToLanguageModelMessage({
                 return {
                   type: 'reasoning',
                   text: part.text,
+                  providerOptions,
+                };
+              }
+              case 'reasoning-file': {
+                const { data, mediaType } = convertToLanguageModelV4DataContent(
+                  part.data,
+                );
+                return {
+                  type: 'reasoning-file' as const,
+                  data,
+                  mediaType: mediaType ?? part.mediaType,
                   providerOptions,
                 };
               }

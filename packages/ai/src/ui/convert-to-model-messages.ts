@@ -22,7 +22,9 @@ import {
   isCustomUIPart,
   isDataUIPart,
   isFileUIPart,
+  isReasoningFileUIPart,
   isReasoningUIPart,
+  ReasoningFileUIPart,
   isTextUIPart,
   isToolUIPart,
   ReasoningUIPart,
@@ -140,6 +142,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
             | ToolUIPart<InferUIMessageTools<UI_MESSAGE>>
             | ReasoningUIPart
             | FileUIPart
+            | ReasoningFileUIPart
             | DynamicToolUIPart
             | DataUIPart<InferUIMessageData<UI_MESSAGE>>
           > = [];
@@ -176,6 +179,13 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   ...(part.providerMetadata != null
                     ? { providerOptions: part.providerMetadata }
                     : {}),
+                });
+              } else if (isReasoningFileUIPart(part)) {
+                content.push({
+                  type: 'reasoning-file' as const,
+                  data: part.url,
+                  mediaType: part.mediaType,
+                  providerOptions: part.providerMetadata,
                 });
               } else if (isReasoningUIPart(part)) {
                 content.push({
@@ -359,6 +369,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               isCustomUIPart(part) ||
               isTextUIPart(part) ||
               isReasoningUIPart(part) ||
+              isReasoningFileUIPart(part) ||
               isFileUIPart(part) ||
               isToolUIPart(part) ||
               isDataUIPart(part)
