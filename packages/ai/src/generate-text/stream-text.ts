@@ -93,6 +93,7 @@ import {
   InferPartialOutput,
 } from './output-utils';
 import { PrepareStepFunction } from './prepare-step';
+import { convertToReasoningOutputs } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import {
   runToolsTransformation,
@@ -983,9 +984,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           delete activeReasoningContent[part.id];
         }
 
-        if (part.type === 'file') {
+        if (part.type === 'file' || part.type === 'reasoning-file') {
           recordedContent.push({
-            type: 'file',
+            type: part.type,
             file: part.file,
             ...(part.providerMetadata != null
               ? { providerMetadata: part.providerMetadata }
@@ -1770,7 +1771,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                       break;
                     }
 
-                    case 'file': {
+                    case 'file':
+                    case 'reasoning-file': {
                       controller.enqueue(chunk);
                       break;
                     }
@@ -2024,7 +2026,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
   }
 
   get reasoning() {
-    return this.finalStep.then(step => step.reasoning);
+    return this.finalStep.then(step =>
+      convertToReasoningOutputs(step.reasoning),
+    );
   }
 
   get sources() {
@@ -2317,15 +2321,18 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               break;
             }
 
-            case 'file': {
-              controller.enqueue({
-                type: 'file',
-                mediaType: part.file.mediaType,
-                url: `data:${part.file.mediaType};base64,${part.file.base64}`,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
+            case 'file':
+            case 'reasoning-file': {
+              if (partType !== 'reasoning-file' || sendReasoning) {
+                controller.enqueue({
+                  type: part.type,
+                  mediaType: part.file.mediaType,
+                  url: `data:${part.file.mediaType};base64,${part.file.base64}`,
+                  ...(part.providerMetadata != null
+                    ? { providerMetadata: part.providerMetadata }
+                    : {}),
+                });
+              }
               break;
             }
 

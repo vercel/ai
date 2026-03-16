@@ -87,7 +87,12 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
 
   // Other types:
   | ({ type: 'source' } & Source)
-  | { type: 'file'; file: GeneratedFile; providerMetadata?: ProviderMetadata } // different because of GeneratedFile object
+  | { type: 'file'; file: GeneratedFile; providerMetadata?: ProviderMetadata }
+  | {
+      type: 'reasoning-file';
+      file: GeneratedFile;
+      providerMetadata?: ProviderMetadata;
+    }
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
   | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
   | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
@@ -218,9 +223,10 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           break;
         }
 
-        case 'file': {
+        case 'file':
+        case 'reasoning-file': {
           controller.enqueue({
-            type: 'file',
+            type: chunk.type,
             file: new DefaultGeneratedFileWithType({
               data: chunk.data,
               mediaType: chunk.mediaType,

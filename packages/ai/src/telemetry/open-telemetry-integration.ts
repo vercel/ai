@@ -363,7 +363,10 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
         'ai.response.reasoning': {
           output: () =>
             event.reasoning.length > 0
-              ? event.reasoning.map(part => part.text).join('\n')
+              ? event.reasoning
+                  .filter(part => 'text' in part)
+                  .map(part => part.text)
+                  .join('\n')
               : undefined,
         },
         'ai.response.toolCalls': {
@@ -429,7 +432,10 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
         'ai.response.reasoning': {
           output: () =>
             event.reasoning.length > 0
-              ? event.reasoning.map(part => part.text).join('\n')
+              ? event.reasoning
+                  .filter(part => 'text' in part)
+                  .map(part => part.text)
+                  .join('\n')
               : undefined,
         },
         'ai.response.toolCalls': {

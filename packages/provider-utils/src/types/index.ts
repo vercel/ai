@@ -5,6 +5,7 @@ export type {
 export type {
   FilePart,
   ImagePart,
+  ReasoningFilePart,
   ReasoningPart,
   TextPart,
   ToolCallPart,
