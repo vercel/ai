@@ -1589,8 +1589,20 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             }),
           );
 
+          // When activeTools is set, restrict tool lookup to the active subset
+          // so that tool calls for inactive tools become NoSuchToolError
+          // (invalid) rather than being executed silently.
+          const toolsForParsing =
+            stepActiveTools != null && tools != null
+              ? (Object.fromEntries(
+                  Object.entries(tools).filter(([name]) =>
+                    stepActiveTools.includes(name as keyof TOOLS),
+                  ),
+                ) as TOOLS)
+              : tools;
+
           const streamWithToolResults = runToolsTransformation({
-            tools,
+            tools: toolsForParsing,
             generatorStream: stream,
             telemetry,
             callId,
