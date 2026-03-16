@@ -114,7 +114,7 @@ export interface LanguageModelV4ReasoningFilePart {
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV3ProviderOptions;
+  providerOptions?: SharedV4ProviderOptions;
 }
 
 /**
