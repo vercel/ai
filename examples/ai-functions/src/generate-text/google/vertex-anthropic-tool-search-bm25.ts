@@ -6,17 +6,17 @@ import { run } from '../../lib/run';
 run(async () => {
   const result = await generateText({
     model: vertexAnthropic('claude-sonnet-4-5'),
-    prompt: 'Find out weather data in SF',
+    prompt: 'What is the weather in San Francisco?',
     stopWhen: stepCountIs(10),
     onStepFinish: step => {
       console.log(`\n=== Step Response ===`);
       console.dir(step.response.body, { depth: Infinity });
     },
     tools: {
-      toolSearch: vertexAnthropic.tools.toolSearchRegex_20251119(),
+      toolSearch: vertexAnthropic.tools.toolSearchBm25_20251119(),
 
-      get_temp_data: tool({
-        description: 'For a location',
+      get_weather: tool({
+        description: 'Get the current weather at a specific location',
         inputSchema: z.object({
           location: z
             .string()

@@ -1,22 +1,18 @@
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { generateText, tool, stepCountIs } from 'ai';
+import { streamText, tool, stepCountIs } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const result = await generateText({
+  const result = streamText({
     model: vertexAnthropic('claude-sonnet-4-5'),
-    prompt: 'Find out weather data in SF',
+    prompt: 'What is the weather in San Francisco?',
     stopWhen: stepCountIs(10),
-    onStepFinish: step => {
-      console.log(`\n=== Step Response ===`);
-      console.dir(step.response.body, { depth: Infinity });
-    },
     tools: {
-      toolSearch: vertexAnthropic.tools.toolSearchRegex_20251119(),
+      toolSearch: vertexAnthropic.tools.toolSearchBm25_20251119(),
 
-      get_temp_data: tool({
-        description: 'For a location',
+      get_weather: tool({
+        description: 'Get the current weather at a specific location',
         inputSchema: z.object({
           location: z
             .string()
@@ -72,6 +68,34 @@ run(async () => {
     },
   });
 
-  console.log('\n=== Final Result ===');
-  console.log('Text:', result.text);
+  for await (const chunk of result.fullStream) {
+    switch (chunk.type) {
+      case 'text-delta': {
+        process.stdout.write(chunk.text);
+        break;
+      }
+
+      case 'tool-call': {
+        console.log(
+          `\n\x1b[32m\x1b[1mTool call:\x1b[22m ${chunk.toolName}\x1b[0m`,
+        );
+        console.log(JSON.stringify(chunk.input, null, 2));
+        break;
+      }
+
+      case 'tool-result': {
+        console.log(
+          `\x1b[32m\x1b[1mTool result:\x1b[22m ${chunk.toolName}\x1b[0m`,
+        );
+        console.log(JSON.stringify(chunk.output, null, 2));
+        break;
+      }
+
+      case 'error':
+        console.error('Error:', chunk.error);
+        break;
+    }
+  }
+
+  console.log('\n');
 });
