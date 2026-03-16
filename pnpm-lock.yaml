@@ -83,7 +83,7 @@ importers:
         specifier: 3.0.0-beta.2
         version: link:../../packages/deepseek
       '@ai-sdk/fireworks':
-        specifier: 3.0.0-beta.2
+        specifier: 3.0.0-beta.3
         version: link:../../packages/fireworks
       '@ai-sdk/google':
         specifier: 4.0.0-beta.9
@@ -104,7 +104,7 @@ importers:
         specifier: 4.0.0-beta.6
         version: link:../../packages/openai
       '@ai-sdk/perplexity':
-        specifier: 4.0.0-beta.1
+        specifier: 4.0.0-beta.2
         version: link:../../packages/perplexity
       '@ai-sdk/provider-utils':
         specifier: 5.0.0-beta.1
@@ -119,7 +119,7 @@ importers:
         specifier: 3.0.0-beta.1
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 4.0.0-beta.8
+        specifier: 4.0.0-beta.9
         version: link:../../packages/xai
       '@modelcontextprotocol/sdk':
         specifier: ^1.26.0
