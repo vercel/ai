@@ -82,6 +82,7 @@ export async function prepareTools({
       tools: ProviderTools,
       toolChoice,
       supportsStructuredOutput: false,
+      supportsStrictTools: false,
     });
 
     toolWarnings.push(...anthropicToolWarnings);
