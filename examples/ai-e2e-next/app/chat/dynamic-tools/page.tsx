@@ -12,8 +12,13 @@ export default function Chat() {
 
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
+      <div className="mb-6 text-sm text-gray-600">
+        Try asking for your location, then send a follow-up question after the
+        tool result. Dynamic tool metadata is rendered below when available.
+      </div>
+
       {messages?.map(message => (
-        <div key={message.id} className="whitespace-pre-wrap">
+        <div key={message.id} className="mb-4 whitespace-pre-wrap">
           <strong>{`${message.role}: `}</strong>
           {message.parts.map((part, index) => {
             switch (part.type) {
@@ -33,7 +38,47 @@ export default function Chat() {
                   case 'input-available':
                   case 'output-available':
                     return (
-                      <pre key={index}>{JSON.stringify(part, null, 2)}</pre>
+                      <div
+                        key={index}
+                        className="my-3 rounded-lg border border-gray-200 bg-gray-50 p-4"
+                      >
+                        <div className="mb-2 text-sm font-semibold text-gray-900">
+                          {part.title ?? part.toolName}
+                        </div>
+                        <div className="mb-2 text-xs uppercase tracking-wide text-gray-500">
+                          State: {part.state}
+                        </div>
+                        {part._meta && (
+                          <div className="mb-3">
+                            <div className="mb-1 text-xs font-semibold text-gray-600">
+                              Tool Metadata
+                            </div>
+                            <pre className="overflow-x-auto rounded bg-white p-2 text-xs">
+                              {JSON.stringify(part._meta, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                        {'input' in part && part.input !== undefined && (
+                          <div className="mb-3">
+                            <div className="mb-1 text-xs font-semibold text-gray-600">
+                              Input
+                            </div>
+                            <pre className="overflow-x-auto rounded bg-white p-2 text-xs">
+                              {JSON.stringify(part.input, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                        {'output' in part && part.output !== undefined && (
+                          <div>
+                            <div className="mb-1 text-xs font-semibold text-gray-600">
+                              Output
+                            </div>
+                            <pre className="overflow-x-auto rounded bg-white p-2 text-xs">
+                              {JSON.stringify(part.output, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
                     );
                   case 'output-error':
                     return (

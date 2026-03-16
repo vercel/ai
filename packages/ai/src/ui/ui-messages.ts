@@ -334,6 +334,15 @@ export type DynamicToolUIPart = {
    * Whether the tool call was executed by the provider.
    */
   providerExecuted?: boolean;
+
+  /**
+   * Optional metadata from the tool definition.
+   *
+   * For MCP tools, this corresponds to the `_meta` field from the tool definition,
+   * which can include UI hints such as `resourceUri` for rendering tool-specific
+   * app interfaces.
+   */
+  _meta?: Record<string, unknown>;
 } & (
   | {
       state: 'input-streaming';

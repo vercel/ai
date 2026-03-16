@@ -291,10 +291,13 @@ Indicates the beginning of tool input streaming.
 
 Format: Server-Sent Event with JSON object
 
+Optional fields such as `title`, `dynamic`, `providerMetadata`, and `_meta`
+can also be included.
+
 Example:
 
 ```
-data: {"type":"tool-input-start","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","toolName":"getWeatherInformation"}
+data: {"type":"tool-input-start","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","toolName":"getWeatherInformation","_meta":{"ui":{"resourceUri":"https://example.com/tools/weather"}}}
 
 ```
 
@@ -317,10 +320,13 @@ Indicates that tool input is complete and ready for execution.
 
 Format: Server-Sent Event with JSON object
 
+Optional fields such as `title`, `dynamic`, `providerMetadata`, and `_meta`
+can also be included.
+
 Example:
 
 ```
-data: {"type":"tool-input-available","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","toolName":"getWeatherInformation","input":{"city":"San Francisco"}}
+data: {"type":"tool-input-available","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","toolName":"getWeatherInformation","input":{"city":"San Francisco"},"_meta":{"ui":{"resourceUri":"https://example.com/tools/weather"}}}
 
 ```
 

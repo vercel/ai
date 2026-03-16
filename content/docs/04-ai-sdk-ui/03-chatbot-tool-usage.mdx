@@ -493,6 +493,9 @@ When using dynamic tools (tools with unknown types at compile time), the UI part
         return (
           <div key={index}>
             <h4>Tool: {part.toolName}</h4>
+            {part._meta?.ui?.resourceUri && (
+              <div>Resource URI: {part._meta.ui.resourceUri}</div>
+            )}
             {part.state === 'input-streaming' && (
               <pre>{JSON.stringify(part.input, null, 2)}</pre>
             )}
@@ -514,6 +517,10 @@ Dynamic tools are useful when integrating with:
 - MCP (Model Context Protocol) tools without schemas
 - User-defined functions loaded at runtime
 - External tool providers
+
+When present on the tool definition, metadata is available on
+`dynamic-tool` parts as `_meta`. This is especially useful for MCP tools that
+provide UI hints such as `resourceUri`.
 
 ## Tool call streaming
 

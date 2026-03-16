@@ -44,6 +44,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         providerMetadata: providerMetadataSchema.optional(),
         dynamic: z.boolean().optional(),
         title: z.string().optional(),
+        _meta: z.record(z.string(), z.unknown()).optional(),
       }),
       z.strictObject({
         type: z.literal('tool-input-delta'),
@@ -59,6 +60,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         providerMetadata: providerMetadataSchema.optional(),
         dynamic: z.boolean().optional(),
         title: z.string().optional(),
+        _meta: z.record(z.string(), z.unknown()).optional(),
       }),
       z.strictObject({
         type: z.literal('tool-input-error'),
@@ -239,6 +241,7 @@ export type UIMessageChunk<
       providerMetadata?: ProviderMetadata;
       dynamic?: boolean;
       title?: string;
+      _meta?: Record<string, unknown>;
     }
   | {
       type: 'tool-input-error';
@@ -285,6 +288,7 @@ export type UIMessageChunk<
       providerMetadata?: ProviderMetadata;
       dynamic?: boolean;
       title?: string;
+      _meta?: Record<string, unknown>;
     }
   | {
       type: 'tool-input-delta';
