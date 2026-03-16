@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 4.0.90
+
+### Patch Changes
+
+- 2381567: fix(vertex): throw warning when strict: true for vertexAnthropic
+- Updated dependencies [2381567]
+  - @ai-sdk/anthropic@3.0.61
+
 ## 4.0.89
 
 ### Patch Changes
