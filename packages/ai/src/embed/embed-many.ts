@@ -451,8 +451,6 @@ export async function embedMany({
         model: model.modelId,
       });
 
-      const usage = { tokens };
-
       await notify({
         event: {
           callId,
@@ -460,7 +458,7 @@ export async function embedMany({
           model: modelInfo,
           value: values,
           embedding: embeddings,
-          usage,
+          usage: { tokens },
           warnings,
           providerMetadata,
           response: responses,
@@ -476,7 +474,7 @@ export async function embedMany({
       return new DefaultEmbedManyResult({
         values,
         embeddings,
-        usage,
+        usage: { tokens },
         warnings,
         providerMetadata: providerMetadata,
         responses,
