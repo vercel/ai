@@ -1,5 +1,13 @@
 # @ai-sdk/deepinfra
 
+## 3.0.0-beta.3
+
+### Patch Changes
+
+- 8f3e1da: chore(openai-compat): update v3 specs to v4
+- Updated dependencies [8f3e1da]
+  - @ai-sdk/openai-compatible@3.0.0-beta.3
+
 ## 3.0.0-beta.2
 
 ### Patch Changes
