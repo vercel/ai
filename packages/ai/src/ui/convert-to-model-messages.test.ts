@@ -291,7 +291,7 @@ describe('convertToModelMessages', () => {
           role: 'assistant',
           parts: [
             {
-              type: 'custom',
+              type: 'custom-content',
               providerMetadata: {
                 openai: {
                   itemId: 'cmp_123',
@@ -307,7 +307,7 @@ describe('convertToModelMessages', () => {
           role: 'assistant',
           content: [
             {
-              type: 'custom',
+              type: 'custom-part',
               providerOptions: {
                 openai: {
                   itemId: 'cmp_123',

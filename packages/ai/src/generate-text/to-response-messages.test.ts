@@ -126,7 +126,7 @@ describe('toResponseMessages', () => {
     const result = await toResponseMessages({
       content: [
         {
-          type: 'custom',
+          type: 'custom-content',
           providerMetadata: {
             openai: {
               itemId: 'cmp_123',
@@ -142,7 +142,7 @@ describe('toResponseMessages', () => {
         role: 'assistant',
         content: [
           {
-            type: 'custom',
+            type: 'custom-part',
             providerOptions: {
               openai: {
                 itemId: 'cmp_123',

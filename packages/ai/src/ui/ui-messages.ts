@@ -77,7 +77,7 @@ export type UIMessagePart<
   TOOLS extends UITools,
 > =
   | TextUIPart
-  | CustomUIPart
+  | CustomContentUIPart
   | ReasoningUIPart
   | ToolUIPart<TOOLS>
   | DynamicToolUIPart
@@ -113,8 +113,8 @@ export type TextUIPart = {
 /**
  * A provider-specific part of a message.
  */
-export type CustomUIPart = {
-  type: 'custom';
+export type CustomContentUIPart = {
+  type: 'custom-content';
 
   /**
    * The provider metadata.
@@ -467,10 +467,10 @@ export function isTextUIPart(
 /**
  * Type guard to check if a message part is a custom part.
  */
-export function isCustomUIPart(
+export function isCustomContentUIPart(
   part: UIMessagePart<UIDataTypes, UITools>,
-): part is CustomUIPart {
-  return part.type === 'custom';
+): part is CustomContentUIPart {
+  return part.type === 'custom-content';
 }
 
 /**

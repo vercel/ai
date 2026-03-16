@@ -246,9 +246,9 @@ export function convertToLanguageModelMessage({
             const providerOptions = part.providerOptions;
 
             switch (part.type) {
-              case 'custom': {
+              case 'custom-part': {
                 return {
-                  type: 'custom' as const,
+                  type: 'custom-part' as const,
                   providerOptions,
                 };
               }

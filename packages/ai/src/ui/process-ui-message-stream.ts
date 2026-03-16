@@ -14,7 +14,7 @@ import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { UIDataTypesToSchemas } from './chat';
 import {
-  CustomUIPart,
+  CustomContentUIPart,
   DataUIPart,
   DynamicToolUIPart,
   getStaticToolName,
@@ -401,9 +401,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               break;
             }
 
-            case 'custom': {
-              const customPart: CustomUIPart = {
-                type: 'custom',
+            case 'custom-content': {
+              const customPart: CustomContentUIPart = {
+                type: 'custom-content',
                 providerMetadata: chunk.providerMetadata,
               };
               state.message.parts.push(customPart);

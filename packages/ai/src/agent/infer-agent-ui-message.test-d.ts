@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import {
-  CustomUIPart,
+  CustomContentUIPart,
   DataUIPart,
   DynamicToolUIPart,
   FileUIPart,
@@ -30,7 +30,7 @@ describe('InferAgentUIMessage', () => {
 
     expectTypeOf<MessagePart>().toMatchTypeOf<
       | TextUIPart
-      | CustomUIPart
+      | CustomContentUIPart
       | ReasoningUIPart
       // No static tools, so no ToolUIPart
       | DynamicToolUIPart

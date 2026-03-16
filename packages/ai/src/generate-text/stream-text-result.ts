@@ -401,7 +401,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       text: string;
     }
   | {
-      type: 'custom';
+      type: 'custom-content';
       providerMetadata?: ProviderMetadata;
     }
   | {

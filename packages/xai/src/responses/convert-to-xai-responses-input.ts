@@ -125,7 +125,7 @@ export async function convertToXaiResponsesInput({
 
             case 'reasoning':
             case 'reasoning-file':
-            case 'custom':
+            case 'custom-part':
             case 'file': {
               inputWarnings.push({
                 type: 'other',

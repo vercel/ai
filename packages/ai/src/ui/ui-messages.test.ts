@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { getStaticToolName, isCustomUIPart, isDataUIPart } from './ui-messages';
+import {
+  getStaticToolName,
+  isCustomContentUIPart,
+  isDataUIPart,
+} from './ui-messages';
 
 describe('getStaticToolName', () => {
   it('should return the tool name after the "tool-" prefix', () => {
@@ -27,11 +31,11 @@ describe('getStaticToolName', () => {
   });
 });
 
-describe('isCustomUIPart', () => {
+describe('isCustomContentUIPart', () => {
   it('should return true for a custom part', () => {
     expect(
-      isCustomUIPart({
-        type: 'custom',
+      isCustomContentUIPart({
+        type: 'custom-content',
         providerMetadata: {
           openai: { itemId: 'cmp_123' },
         },
@@ -41,15 +45,15 @@ describe('isCustomUIPart', () => {
 
   it('should return true for a custom part without providerMetadata', () => {
     expect(
-      isCustomUIPart({
-        type: 'custom',
+      isCustomContentUIPart({
+        type: 'custom-content',
       }),
     ).toBe(true);
   });
 
   it('should return false for a text part', () => {
     expect(
-      isCustomUIPart({
+      isCustomContentUIPart({
         type: 'text',
         text: 'some text',
       }),

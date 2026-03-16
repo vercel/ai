@@ -42,7 +42,7 @@ const uiMessagesSchema = lazySchema(() =>
                   providerMetadata: providerMetadataSchema.optional(),
                 }),
                 z.object({
-                  type: z.literal('custom'),
+                  type: z.literal('custom-content'),
                   providerMetadata: providerMetadataSchema.optional(),
                 }),
                 z.object({

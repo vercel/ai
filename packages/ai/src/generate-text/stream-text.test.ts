@@ -179,7 +179,7 @@ const modelWithCustom = new MockLanguageModelV4({
       { type: 'text-delta', id: '1', delta: 'Hello!' },
       { type: 'text-end', id: '1' },
       {
-        type: 'custom',
+        type: 'custom-content',
         providerMetadata: {
           openai: { itemId: 'cmp_123' },
         },
@@ -1044,7 +1044,7 @@ describe('streamText', () => {
                   "itemId": "cmp_123",
                 },
               },
-              "type": "custom",
+              "type": "custom-content",
             },
             {
               "finishReason": "stop",
@@ -3559,7 +3559,7 @@ describe('streamText', () => {
                   "itemId": "cmp_123",
                 },
               },
-              "type": "custom",
+              "type": "custom-content",
             },
             {
               "type": "finish-step",
@@ -6831,7 +6831,7 @@ describe('streamText', () => {
           type:
             | 'text-delta'
             | 'reasoning-delta'
-            | 'custom'
+            | 'custom-content'
             | 'source'
             | 'tool-call'
             | 'tool-input-start'
@@ -7012,7 +7012,7 @@ describe('streamText', () => {
           providerMetadata: {
             openai: { itemId: 'cmp_123' },
           },
-          type: 'custom',
+          type: 'custom-content',
         },
       ]);
     });
@@ -7648,7 +7648,7 @@ describe('streamText', () => {
           providerMetadata: {
             openai: { itemId: 'cmp_123' },
           },
-          type: 'custom',
+          type: 'custom-content',
         },
       ]);
     });
@@ -15356,7 +15356,7 @@ describe('streamText', () => {
               type:
                 | 'text-delta'
                 | 'reasoning-delta'
-                | 'custom'
+                | 'custom-content'
                 | 'source'
                 | 'tool-call'
                 | 'tool-input-start'

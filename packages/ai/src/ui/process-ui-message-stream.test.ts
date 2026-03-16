@@ -8648,7 +8648,10 @@ describe('processUIMessageStream', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
-        { type: 'custom', providerMetadata: { openai: { itemId: 'cmp_123' } } },
+        {
+          type: 'custom-content',
+          providerMetadata: { openai: { itemId: 'cmp_123' } },
+        },
         { type: 'finish' },
       ]);
 
@@ -8671,7 +8674,7 @@ describe('processUIMessageStream', () => {
     it('should append custom parts to the message', async () => {
       expect(state!.message.parts).toEqual([
         {
-          type: 'custom',
+          type: 'custom-content',
           providerMetadata: {
             openai: {
               itemId: 'cmp_123',

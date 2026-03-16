@@ -1196,7 +1196,7 @@ describe('convertToLanguageModelMessage', () => {
           role: 'assistant',
           content: [
             {
-              type: 'custom',
+              type: 'custom-part',
               providerOptions: {
                 openai: {
                   itemId: 'cmp_123',
@@ -1212,7 +1212,7 @@ describe('convertToLanguageModelMessage', () => {
         role: 'assistant',
         content: [
           {
-            type: 'custom',
+            type: 'custom-part',
             providerOptions: {
               openai: {
                 itemId: 'cmp_123',

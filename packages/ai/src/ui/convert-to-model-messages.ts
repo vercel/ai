@@ -12,14 +12,14 @@ import { ToolSet } from '../generate-text/tool-set';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { MessageConversionError } from '../prompt/message-conversion-error';
 import {
-  CustomUIPart,
+  CustomContentUIPart,
   DataUIPart,
   DynamicToolUIPart,
   FileUIPart,
   getToolName,
   InferUIMessageData,
   InferUIMessageTools,
-  isCustomUIPart,
+  isCustomContentUIPart,
   isDataUIPart,
   isFileUIPart,
   isReasoningFileUIPart,
@@ -137,7 +137,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
       case 'assistant': {
         if (message.parts != null) {
           let block: Array<
-            | CustomUIPart
+            | CustomContentUIPart
             | TextUIPart
             | ToolUIPart<InferUIMessageTools<UI_MESSAGE>>
             | ReasoningUIPart
@@ -163,9 +163,9 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     ? { providerOptions: part.providerMetadata }
                     : {}),
                 });
-              } else if (isCustomUIPart(part)) {
+              } else if (isCustomContentUIPart(part)) {
                 content.push({
-                  type: 'custom' as const,
+                  type: 'custom-part' as const,
                   ...(part.providerMetadata != null
                     ? { providerOptions: part.providerMetadata }
                     : {}),
@@ -366,7 +366,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 
           for (const part of message.parts) {
             if (
-              isCustomUIPart(part) ||
+              isCustomContentUIPart(part) ||
               isTextUIPart(part) ||
               isReasoningUIPart(part) ||
               isReasoningFileUIPart(part) ||

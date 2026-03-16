@@ -271,7 +271,7 @@ describe('validateUIMessages', () => {
             role: 'assistant',
             parts: [
               {
-                type: 'custom',
+                type: 'custom-content',
                 providerMetadata: {
                   openai: { itemId: 'cmp_123' },
                 },
@@ -294,7 +294,7 @@ describe('validateUIMessages', () => {
                     "itemId": "cmp_123",
                   },
                 },
-                "type": "custom",
+                "type": "custom-content",
               },
             ],
             "role": "assistant",
@@ -309,7 +309,7 @@ describe('validateUIMessages', () => {
           {
             id: '1',
             role: 'assistant',
-            parts: [{ type: 'custom' }],
+            parts: [{ type: 'custom-content' }],
           },
         ],
       });
@@ -322,7 +322,7 @@ describe('validateUIMessages', () => {
             "id": "1",
             "parts": [
               {
-                "type": "custom",
+                "type": "custom-content",
               },
             ],
             "role": "assistant",

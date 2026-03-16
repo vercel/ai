@@ -63,7 +63,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       providerMetadata?: ProviderMetadata;
     }
   | {
-      type: 'custom';
+      type: 'custom-content';
       providerMetadata?: ProviderMetadata;
     }
 
@@ -216,7 +216,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'reasoning-start':
         case 'reasoning-delta':
         case 'reasoning-end':
-        case 'custom':
+        case 'custom-content':
         case 'tool-input-start':
         case 'tool-input-delta':
         case 'tool-input-end':

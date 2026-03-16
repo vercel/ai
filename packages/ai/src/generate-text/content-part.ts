@@ -10,7 +10,7 @@ import { ToolSet } from './tool-set';
 
 export type ContentPart<TOOLS extends ToolSet> =
   | { type: 'text'; text: string; providerMetadata?: ProviderMetadata }
-  | { type: 'custom'; providerMetadata?: ProviderMetadata }
+  | { type: 'custom-content'; providerMetadata?: ProviderMetadata }
   | ReasoningOutput
   | ReasoningFileOutput
   | ({ type: 'source' } & Source)
