@@ -1,5 +1,13 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+
 ## 4.0.0-beta.6
 
 ### Patch Changes
