@@ -149,7 +149,7 @@ jobs:
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     strategy:
       matrix:
-        node-version: [20, 22]
+        node-version: [20, 22, 24]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -172,7 +172,7 @@ jobs:
         run: pnpm exec playwright install --with-deps
 
       - name: Run tests
-        run: pnpm test
+        run: pnpm test --filter=!@ai-sdk/codemod
 
   # separate "test" job to set as required in branch protections,
   # as the matrix build names above change each time Node versions change

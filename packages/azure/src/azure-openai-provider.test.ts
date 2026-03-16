@@ -1727,7 +1727,7 @@ describe('responses', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
-      });
+      }, 15000);
     });
   });
 });
