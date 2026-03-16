@@ -1,4 +1,4 @@
-import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
+import { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
 
 /**
  * A provider-specific content block that does not map to another standardized
@@ -6,5 +6,5 @@ import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-met
  */
 export type LanguageModelV4Custom = {
   type: 'custom';
-  providerMetadata?: SharedV3ProviderMetadata;
+  providerMetadata?: SharedV4ProviderMetadata;
 };
