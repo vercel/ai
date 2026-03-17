@@ -214,6 +214,19 @@ data: {"type":"reasoning-end","id":"reasoning_123"}
 
 ```
 
+### Reasoning File Part
+
+Reasoning file parts contain references to files generated as part of reasoning, such as images produced during the reasoning process.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"reasoning-file","url":"data:image/png;base64,iVBOR...","mediaType":"image/png"}
+
+```
+
 ### Source Parts
 
 Source parts provide references to external content sources.

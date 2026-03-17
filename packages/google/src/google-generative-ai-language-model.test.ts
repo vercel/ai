@@ -1,6 +1,6 @@
 import {
-  LanguageModelV3Prompt,
-  LanguageModelV3ProviderTool,
+  LanguageModelV4Prompt,
+  LanguageModelV4ProviderTool,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -22,7 +22,7 @@ vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -2392,11 +2392,10 @@ describe('doGenerate', () => {
           "mediaType": "image/png",
           "providerMetadata": {
             "google": {
-              "thought": true,
               "thoughtSignature": "img_sig1",
             },
           },
-          "type": "file",
+          "type": "reasoning-file",
         },
         {
           "data": "regularimagedata",
@@ -4426,7 +4425,9 @@ describe('doStream', () => {
 
     const events = await convertReadableStreamToArray(stream);
 
-    const fileEvents = events.filter(e => e.type === 'file');
+    const fileEvents = events.filter(
+      e => e.type === 'file' || e.type === 'reasoning-file',
+    );
     expect(fileEvents).toMatchInlineSnapshot(`
       [
         {
@@ -4434,11 +4435,10 @@ describe('doStream', () => {
           "mediaType": "image/png",
           "providerMetadata": {
             "google": {
-              "thought": true,
               "thoughtSignature": "stream_sig",
             },
           },
-          "type": "file",
+          "type": "reasoning-file",
         },
         {
           "data": "regularimg",
@@ -5194,7 +5194,7 @@ describe('doStream', () => {
 });
 
 describe('GEMMA Model System Instruction Fix', () => {
-  const TEST_PROMPT_WITH_SYSTEM: LanguageModelV3Prompt = [
+  const TEST_PROMPT_WITH_SYSTEM: LanguageModelV4Prompt = [
     { role: 'system', content: 'You are a helpful assistant.' },
     { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
   ];
@@ -5332,7 +5332,7 @@ describe('GEMMA Model System Instruction Fix', () => {
       generateId: () => 'test-id',
     });
 
-    const TEST_PROMPT_WITHOUT_SYSTEM: LanguageModelV3Prompt = [
+    const TEST_PROMPT_WITHOUT_SYSTEM: LanguageModelV4Prompt = [
       { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
     ];
 

@@ -1,5 +1,17 @@
 # @ai-sdk/provider
 
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- f7d4f01: feat(provider): add support for `reasoning-file` type for files that are part of reasoning
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- 5c2a5a2: fix(provider): fix v4 spec to not use shared v3 types
+
 ## 4.0.0-beta.0
 
 ### Major Changes
