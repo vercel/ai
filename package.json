@@ -45,10 +45,10 @@
     "turbo": "2.4.4",
     "typescript": "5.8.3",
     "update-ts-references": "^3.6.0",
-    "vitest": "2.1.4"
+    "vitest": "4.1.0"
   },
   "engines": {
-    "node": "^18.0.0 || ^20.0.0 || ^22.0.0"
+    "node": "^18.0.0 || ^20.0.0 || ^22.0.0 || ^24.0.0"
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
@@ -84,6 +84,9 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild"
-    ]
+    ],
+    "overrides": {
+      "tinyexec": "1.0.2"
+    }
   }
 }
