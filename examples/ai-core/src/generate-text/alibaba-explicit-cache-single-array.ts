@@ -1,16 +1,16 @@
-import { alibaba, AlibabaUsage } from '@ai-sdk/alibaba';
+import { alibaba } from '@ai-sdk/alibaba';
 import { generateText } from 'ai';
+import 'dotenv/config';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { run } from '../../lib/run';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-run(async () => {
+async function main() {
   const longUserContent = readFileSync(
-    join(__dirname, '../../../data/anthropic-compaction-data.txt'),
+    join(__dirname, '../../data/anthropic-compaction-data.txt'),
     'utf-8',
   );
 
@@ -31,7 +31,7 @@ run(async () => {
             text: longUserContent + '\n\nSummarize the above in one sentence.',
             providerOptions: {
               alibaba: {
-                cache_control: { type: 'ephemeral' },
+                cacheControl: { type: 'ephemeral' },
               },
             },
           },
@@ -43,10 +43,12 @@ run(async () => {
   console.log('Text:', result.text.substring(0, 50) + '...');
   console.log('Usage:', result.usage);
 
-  const raw = result.usage.raw as AlibabaUsage;
-  const cacheCreated =
-    raw.prompt_tokens_details?.cache_creation_input_tokens || 0;
-  const cacheHit = raw.prompt_tokens_details?.cached_tokens || 0;
+  const cacheCreated = (result.providerMetadata?.alibaba
+    ?.cacheCreationInputTokens ?? 0) as number;
+  const cacheHit = result.usage.cachedInputTokens ?? 0;
+
+  console.log(`Cache created: ${cacheCreated}`);
+  console.log(`Cache hit: ${cacheHit}`);
 
   console.log();
   if (cacheCreated > 0 || cacheHit > 0) {
@@ -58,4 +60,6 @@ run(async () => {
       'FAILED: Part-level cache_control was not applied - cache_control likely dropped by shortcut path',
     );
   }
-});
+}
+
+main().catch(console.error);

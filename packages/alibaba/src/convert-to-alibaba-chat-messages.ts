@@ -147,30 +147,15 @@ export function convertToAlibabaChatMessages({
       }
 
       case 'tool': {
-        const isSinglePart = content.length === 1;
-
-<<<<<<< HEAD
         for (let i = 0; i < content.length; i++) {
           const toolResponse = content[i];
-=======
-        for (let i = 0; i < toolResponses.length; i++) {
-          const toolResponse = toolResponses[i];
->>>>>>> 4ed55cb7a (Backport: fix(provider/alibaba): single-item array cache control edge case (#13547))
           const output = toolResponse.output;
-          const isLastPart = i === toolResponses.length - 1;
+          const isLastPart = i === content.length - 1;
 
-<<<<<<< HEAD
-          const partCacheControl = isSinglePart
-            ? messageCacheControl
-            : cacheControlValidator?.getCacheControl(
-                toolResponse.providerOptions,
-              );
-=======
           const partCacheControl =
             cacheControlValidator?.getCacheControl(
               toolResponse.providerOptions,
             ) ?? (isLastPart ? messageCacheControl : undefined);
->>>>>>> 4ed55cb7a (Backport: fix(provider/alibaba): single-item array cache control edge case (#13547))
 
           let contentValue: string;
           switch (output.type) {
