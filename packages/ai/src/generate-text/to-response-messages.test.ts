@@ -126,7 +126,7 @@ describe('toResponseMessages', () => {
     const result = await toResponseMessages({
       content: [
         {
-          type: 'custom-content',
+          type: 'custom',
           provider: 'mock-provider',
           providerMetadata: {
             openai: {
@@ -143,7 +143,7 @@ describe('toResponseMessages', () => {
         role: 'assistant',
         content: [
           {
-            type: 'custom-part',
+            type: 'custom',
             provider: 'mock-provider',
             providerOptions: {
               openai: {

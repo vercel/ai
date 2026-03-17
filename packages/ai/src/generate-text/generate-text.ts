@@ -1282,7 +1282,7 @@ function asContent<TOOLS extends ToolSet>({
         contentParts.push(part);
         break;
 
-      case 'custom-content':
+      case 'custom':
         contentParts.push({ ...part, provider });
         break;
 

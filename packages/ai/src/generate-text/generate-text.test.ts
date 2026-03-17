@@ -276,13 +276,13 @@ describe('generateText', () => {
             content: [
               { type: 'text', text: 'Hello' },
               {
-                type: 'custom-content',
+                type: 'custom',
                 providerMetadata: {
                   openai: { itemId: 'cmp_123' },
                 },
               },
               {
-                type: 'custom-content',
+                type: 'custom',
               },
             ],
           },
@@ -293,14 +293,14 @@ describe('generateText', () => {
       expect(result.content).toStrictEqual([
         { type: 'text', text: 'Hello' },
         {
-          type: 'custom-content',
+          type: 'custom',
           provider: 'mock-provider',
           providerMetadata: {
             openai: { itemId: 'cmp_123' },
           },
         },
         {
-          type: 'custom-content',
+          type: 'custom',
           provider: 'mock-provider',
         },
       ]);

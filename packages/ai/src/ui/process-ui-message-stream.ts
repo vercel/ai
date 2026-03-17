@@ -401,9 +401,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               break;
             }
 
-            case 'custom-content': {
+            case 'custom': {
               const customPart: CustomContentUIPart = {
-                type: 'custom-content',
+                type: 'custom',
                 provider: chunk.provider,
                 providerMetadata: chunk.providerMetadata,
               };

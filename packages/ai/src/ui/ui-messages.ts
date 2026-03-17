@@ -114,7 +114,7 @@ export type TextUIPart = {
  * A provider-specific part of a message.
  */
 export type CustomContentUIPart = {
-  type: 'custom-content';
+  type: 'custom';
 
   /**
    * The provider that created this content.
@@ -475,7 +475,7 @@ export function isTextUIPart(
 export function isCustomContentUIPart(
   part: UIMessagePart<UIDataTypes, UITools>,
 ): part is CustomContentUIPart {
-  return part.type === 'custom-content';
+  return part.type === 'custom';
 }
 
 /**

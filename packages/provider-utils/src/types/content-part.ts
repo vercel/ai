@@ -108,7 +108,7 @@ export interface ReasoningPart {
  * provider-specific options.
  */
 export interface CustomPart {
-  type: 'custom-part';
+  type: 'custom';
 
   provider?: string;
 

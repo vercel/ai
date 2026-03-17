@@ -63,7 +63,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       providerMetadata?: ProviderMetadata;
     }
   | {
-      type: 'custom-content';
+      type: 'custom';
       provider?: string;
       providerMetadata?: ProviderMetadata;
     }
@@ -228,7 +228,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           break;
         }
 
-        case 'custom-content': {
+        case 'custom': {
           controller.enqueue({
             ...chunk,
             provider: model?.provider,

@@ -33,7 +33,7 @@ describe('runToolsTransformation', () => {
     const inputStream: ReadableStream<LanguageModelV4StreamPart> =
       convertArrayToReadableStream([
         {
-          type: 'custom-content',
+          type: 'custom',
           providerMetadata: {
             openai: { itemId: 'cmp_123' },
           },
@@ -73,7 +73,7 @@ describe('runToolsTransformation', () => {
               "itemId": "cmp_123",
             },
           },
-          "type": "custom-content",
+          "type": "custom",
         },
         {
           "id": "1",

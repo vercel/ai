@@ -169,7 +169,7 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
       type:
         | 'text-delta'
         | 'reasoning-delta'
-        | 'custom-content'
+        | 'custom'
         | 'source'
         | 'tool-call'
         | 'tool-input-start'
@@ -873,7 +873,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         if (
           part.type === 'text-delta' ||
           part.type === 'reasoning-delta' ||
-          part.type === 'custom-content' ||
+          part.type === 'custom' ||
           part.type === 'source' ||
           part.type === 'tool-call' ||
           part.type === 'tool-result' ||
@@ -996,7 +996,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           });
         }
 
-        if (part.type === 'custom-content') {
+        if (part.type === 'custom') {
           recordedContent.push(part);
         }
 
@@ -1710,7 +1710,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                       break;
                     }
 
-                    case 'custom-content': {
+                    case 'custom': {
                       controller.enqueue(chunk);
                       break;
                     }
@@ -2375,9 +2375,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               break;
             }
 
-            case 'custom-content': {
+            case 'custom': {
               controller.enqueue({
-                type: 'custom-content',
+                type: 'custom',
                 ...(part.provider != null ? { provider: part.provider } : {}),
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }

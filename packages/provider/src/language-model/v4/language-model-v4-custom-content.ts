@@ -5,7 +5,7 @@ import { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-met
  * content part type.
  */
 export type LanguageModelV4CustomContent = {
-  type: 'custom-content';
+  type: 'custom';
   provider?: string;
   providerMetadata?: SharedV4ProviderMetadata;
 };

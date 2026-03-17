@@ -48,9 +48,9 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           providerOptions: part.providerMetadata,
         });
         break;
-      case 'custom-content':
+      case 'custom':
         content.push({
-          type: 'custom-part',
+          type: 'custom',
           provider: part.provider,
           providerOptions: part.providerMetadata,
         });

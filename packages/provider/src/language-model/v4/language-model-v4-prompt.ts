@@ -123,7 +123,7 @@ export interface LanguageModelV4ReasoningFilePart {
  * payload beyond provider-specific options.
  */
 export interface LanguageModelV4CustomPart {
-  type: 'custom-part';
+  type: 'custom';
 
   provider?: string;
 

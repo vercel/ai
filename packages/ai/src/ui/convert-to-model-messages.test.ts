@@ -291,7 +291,7 @@ describe('convertToModelMessages', () => {
           role: 'assistant',
           parts: [
             {
-              type: 'custom-content',
+              type: 'custom',
               provider: 'test-provider',
               providerMetadata: {
                 openai: {
@@ -308,7 +308,7 @@ describe('convertToModelMessages', () => {
           role: 'assistant',
           content: [
             {
-              type: 'custom-part',
+              type: 'custom',
               provider: 'test-provider',
               providerOptions: {
                 openai: {

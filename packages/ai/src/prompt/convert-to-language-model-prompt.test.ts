@@ -1196,7 +1196,7 @@ describe('convertToLanguageModelMessage', () => {
           role: 'assistant',
           content: [
             {
-              type: 'custom-part',
+              type: 'custom',
               provider: 'test-provider',
               providerOptions: {
                 openai: {
@@ -1213,7 +1213,7 @@ describe('convertToLanguageModelMessage', () => {
         role: 'assistant',
         content: [
           {
-            type: 'custom-part',
+            type: 'custom',
             provider: 'test-provider',
             providerOptions: {
               openai: {
