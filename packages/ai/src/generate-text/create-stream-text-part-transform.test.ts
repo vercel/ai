@@ -1,5 +1,5 @@
 import {
-  LanguageModelV3Usage,
+  LanguageModelV4Usage,
   LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import {
@@ -9,7 +9,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import { createStreamTextPartTransform } from './create-stream-text-part-transform';
 
-const testUsage: LanguageModelV3Usage = {
+const testUsage: LanguageModelV4Usage = {
   inputTokens: {
     total: 3,
     noCache: 3,
