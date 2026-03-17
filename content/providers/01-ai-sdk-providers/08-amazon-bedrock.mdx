@@ -546,6 +546,11 @@ Via Anthropic, Amazon Bedrock provides three provider-defined tools that can be 
 
 They are available via the `tools` property of the provider instance.
 
+<Note>
+  Amazon Bedrock does not support strict mode on tool definitions. Setting
+  `strict: true` on a tool will be ignored and a warning will be emitted.
+</Note>
+
 ### Bash Tool
 
 The Bash Tool allows running bash commands. Here's how to create and use it:

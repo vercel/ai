@@ -1,5 +1,23 @@
 # ai
 
+## 7.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+  - @ai-sdk/gateway@4.0.0-beta.12
+
+## 7.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/gateway@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
 ## 7.0.0-beta.17
 
 ### Patch Changes
