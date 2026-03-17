@@ -82,6 +82,7 @@ import type {
 } from './callback-events';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
+import { createStreamTextPartTransform } from './create-stream-text-part-transform';
 import { executeToolCall } from './execute-tool-call';
 import { Output, text } from './output';
 import {
@@ -1573,7 +1574,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           });
 
           const stepStartTimestampMs = now();
-          const { stream, response, request } = await retry(async () =>
+          const {
+            stream: languageModelStream,
+            response,
+            request,
+          } = await retry(async () =>
             stepModel.doStream({
               ...callSettings,
               tools: stepTools,
@@ -1585,6 +1590,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               headers,
               includeRawChunks,
             }),
+          );
+
+          const stream = languageModelStream.pipeThrough(
+            createStreamTextPartTransform(),
           );
 
           const streamWithToolResults = runToolsTransformation({
