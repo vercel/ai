@@ -3,7 +3,7 @@ import { convertToAlibabaChatMessages } from './convert-to-alibaba-chat-messages
 import { CacheControlValidator } from './get-cache-control';
 
 describe('convertToAlibabaChatMessages', () => {
-  it('should use string format for single text user message', () => {
+  it('should use array format for single text user message', () => {
     const result = convertToAlibabaChatMessages({
       prompt: [
         {
@@ -16,7 +16,12 @@ describe('convertToAlibabaChatMessages', () => {
     expect(result).toMatchInlineSnapshot(`
       [
         {
-          "content": "Hello",
+          "content": [
+            {
+              "text": "Hello",
+              "type": "text",
+            },
+          ],
           "role": "user",
         },
       ]
@@ -201,6 +206,93 @@ describe('convertToAlibabaChatMessages', () => {
     `);
   });
 
+  it('should use part-level cache control for single-part user message', () => {
+    const validator = new CacheControlValidator();
+
+    const result = convertToAlibabaChatMessages({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Hello',
+              providerOptions: {
+                alibaba: {
+                  cacheControl: { type: 'ephemeral' },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      cacheControlValidator: validator,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "cache_control": {
+                "type": "ephemeral",
+              },
+              "text": "Hello",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
+  it('should prefer part-level over message-level cache control for single-part user message', () => {
+    const validator = new CacheControlValidator();
+
+    const result = convertToAlibabaChatMessages({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Hello',
+              providerOptions: {
+                alibaba: {
+                  cacheControl: { type: 'ephemeral' },
+                },
+              },
+            },
+          ],
+          providerOptions: {
+            alibaba: {
+              cacheControl: { type: 'should-not-use' },
+            },
+          },
+        },
+      ],
+      cacheControlValidator: validator,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "cache_control": {
+                "type": "ephemeral",
+              },
+              "text": "Hello",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
   it('should use part-level cache control for multi-part user message', () => {
     const validator = new CacheControlValidator();
 
@@ -308,6 +400,105 @@ describe('convertToAlibabaChatMessages', () => {
           providerOptions: {
             alibaba: {
               cacheControl: { type: 'ephemeral' },
+            },
+          },
+        },
+      ],
+      cacheControlValidator: validator,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "cache_control": {
+                "type": "ephemeral",
+              },
+              "text": "{"temperature":72,"condition":"sunny"}",
+              "type": "text",
+            },
+          ],
+          "role": "tool",
+          "tool_call_id": "call-1",
+        },
+      ]
+    `);
+  });
+
+  it('should use part-level cache control for single-part tool message', () => {
+    const validator = new CacheControlValidator();
+
+    const result = convertToAlibabaChatMessages({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'get_weather',
+              output: {
+                type: 'json',
+                value: { temperature: 72, condition: 'sunny' },
+              },
+              providerOptions: {
+                alibaba: {
+                  cacheControl: { type: 'ephemeral' },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      cacheControlValidator: validator,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "cache_control": {
+                "type": "ephemeral",
+              },
+              "text": "{"temperature":72,"condition":"sunny"}",
+              "type": "text",
+            },
+          ],
+          "role": "tool",
+          "tool_call_id": "call-1",
+        },
+      ]
+    `);
+  });
+
+  it('should prefer part-level over message-level cache control for single-part tool message', () => {
+    const validator = new CacheControlValidator();
+
+    const result = convertToAlibabaChatMessages({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'get_weather',
+              output: {
+                type: 'json',
+                value: { temperature: 72, condition: 'sunny' },
+              },
+              providerOptions: {
+                alibaba: {
+                  cacheControl: { type: 'ephemeral' },
+                },
+              },
+            },
+          ],
+          providerOptions: {
+            alibaba: {
+              cacheControl: { type: 'should-not-use' },
             },
           },
         },
