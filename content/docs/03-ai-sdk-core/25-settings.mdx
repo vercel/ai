@@ -84,6 +84,26 @@ Providers may have limits on the number of stop sequences.
 It is the seed (integer) to use for random sampling.
 If set and supported by the model, calls will generate deterministic results.
 
+### `reasoning`
+
+Controls how much reasoning the model performs before generating a response.
+
+| Value                | Behavior                                                                    |
+| -------------------- | --------------------------------------------------------------------------- |
+| `'provider-default'` | Explicitly use the provider's default reasoning behavior (same as omitting) |
+| `'none'`             | Disable reasoning                                                           |
+| `'minimal'`          | Bare-minimum reasoning                                                      |
+| `'low'`              | Fast, concise reasoning                                                     |
+| `'medium'`           | Balanced reasoning                                                          |
+| `'high'`             | Thorough reasoning                                                          |
+| `'xhigh'`            | Maximum reasoning                                                           |
+
+When omitted, the provider's default behavior is used. Each provider maps these values to its native reasoning mechanism. Providers that do not support reasoning will emit a warning and ignore the parameter.
+
+If you also set reasoning-related options in `providerOptions` (e.g. `openai.reasoningEffort` or `anthropic.thinking`), the provider-specific options take precedence and the top-level `reasoning` parameter is ignored.
+
+See the [reasoning guide](/docs/ai-sdk-core/reasoning) for details on per-provider mapping and migration from `providerOptions`.
+
 ### `maxRetries`
 
 Maximum number of retries. Set to 0 to disable retries. Default: `2`.
