@@ -112,7 +112,30 @@ export function jsonSchema<OBJECT = unknown>(
       if (typeof jsonSchema === 'function') {
         jsonSchema = jsonSchema(); // cache the function results
       }
-      return jsonSchema;
+
+      const fixSchema = (schema: JSONSchema7): JSONSchema7 => {
+        // Ensure 'type: object' is present when properties are present (required by some providers):
+        if (
+          typeof schema === 'object' &&
+          schema !== null &&
+          'properties' in schema &&
+          !('type' in schema)
+        ) {
+          return { ...schema, type: 'object' as const };
+        }
+        return schema;
+      };
+
+      if (
+        typeof jsonSchema === 'object' &&
+        jsonSchema !== null &&
+        'then' in jsonSchema &&
+        typeof (jsonSchema as any).then === 'function'
+      ) {
+        return (jsonSchema as PromiseLike<JSONSchema7>).then(fixSchema);
+      }
+
+      return fixSchema(jsonSchema as JSONSchema7);
     },
     validate,
   };
@@ -133,7 +156,11 @@ export function asSchema<OBJECT>(
   schema: FlexibleSchema<OBJECT> | undefined,
 ): Schema<OBJECT> {
   return schema == null
-    ? jsonSchema({ properties: {}, additionalProperties: false })
+    ? jsonSchema({
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      })
     : isSchema(schema)
       ? schema
       : '~standard' in schema
