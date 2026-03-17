@@ -23,6 +23,8 @@ import {
   FetchFunction,
   generateId,
   InferSchema,
+  mapReasoningToProviderBudget,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
@@ -190,6 +192,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
     seed,
     tools,
     toolChoice,
+    reasoning,
     providerOptions,
     stream,
   }: LanguageModelV4CallOptions & {
@@ -269,6 +272,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
     const {
       maxOutputTokens: maxOutputTokensForModel,
       supportsStructuredOutput: modelSupportsStructuredOutput,
+      supportsAdaptiveThinking,
       isKnownModel,
     } = getModelCapabilities(this.modelId);
 
@@ -335,6 +339,29 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
         cacheControlValidator,
         toolNameMapping,
       });
+
+    /*
+     * Map top-level `reasoning` to Anthropic thinking/effort when provider
+     * options don't already specify them. Provider options always take precedence.
+     */
+    if (
+      reasoning != null &&
+      anthropicOptions?.thinking == null &&
+      anthropicOptions?.effort == null
+    ) {
+      const reasoningConfig = resolveAnthropicReasoningConfig({
+        reasoning,
+        supportsAdaptiveThinking,
+        maxOutputTokensForModel,
+        warnings,
+      });
+      if (reasoningConfig != null) {
+        anthropicOptions.thinking = reasoningConfig.thinking;
+        if (reasoningConfig.effort != null) {
+          anthropicOptions.effort = reasoningConfig.effort;
+        }
+      }
+    }
 
     const thinkingType = anthropicOptions?.thinking?.type;
     const isThinking =
@@ -2271,9 +2298,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
  * @see https://docs.claude.com/en/docs/about-claude/models/overview#model-comparison-table
  * @see https://platform.claude.com/docs/en/build-with-claude/structured-outputs
  */
-function getModelCapabilities(modelId: string): {
+export function getModelCapabilities(modelId: string): {
   maxOutputTokens: number;
   supportsStructuredOutput: boolean;
+  supportsAdaptiveThinking: boolean;
   isKnownModel: boolean;
 } {
   if (
@@ -2283,6 +2311,7 @@ function getModelCapabilities(modelId: string): {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
+      supportsAdaptiveThinking: true,
       isKnownModel: true,
     };
   } else if (
@@ -2293,36 +2322,42 @@ function getModelCapabilities(modelId: string): {
     return {
       maxOutputTokens: 64000,
       supportsStructuredOutput: true,
+      supportsAdaptiveThinking: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-1')) {
     return {
       maxOutputTokens: 32000,
       supportsStructuredOutput: true,
+      supportsAdaptiveThinking: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-sonnet-4-')) {
     return {
       maxOutputTokens: 64000,
       supportsStructuredOutput: false,
+      supportsAdaptiveThinking: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-')) {
     return {
       maxOutputTokens: 32000,
       supportsStructuredOutput: false,
+      supportsAdaptiveThinking: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-3-haiku')) {
     return {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
+      supportsAdaptiveThinking: false,
       isKnownModel: true,
     };
   } else {
     return {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
+      supportsAdaptiveThinking: false,
       isKnownModel: false,
     };
   }
@@ -2351,6 +2386,60 @@ function hasWebTool20260209WithoutCodeExecution(
     }
   }
   return hasWebTool20260209 && !hasCodeExecutionTool;
+}
+
+function resolveAnthropicReasoningConfig({
+  reasoning,
+  supportsAdaptiveThinking,
+  maxOutputTokensForModel,
+  warnings,
+}: {
+  reasoning: LanguageModelV4CallOptions['reasoning'];
+  supportsAdaptiveThinking: boolean;
+  maxOutputTokensForModel: number;
+  warnings: SharedV4Warning[];
+}):
+  | {
+      thinking: {
+        type: 'disabled' | 'enabled' | 'adaptive';
+        budgetTokens?: number;
+      };
+      effort?: 'low' | 'medium' | 'high' | 'max';
+    }
+  | undefined {
+  if (reasoning == null) {
+    return undefined;
+  }
+
+  if (reasoning === 'none') {
+    return { thinking: { type: 'disabled' } };
+  }
+
+  if (supportsAdaptiveThinking) {
+    const effort = mapReasoningToProviderEffort({
+      reasoning,
+      effortMap: {
+        minimal: 'low' as const,
+        low: 'low' as const,
+        medium: 'medium' as const,
+        high: 'high' as const,
+        xhigh: 'max' as const,
+      },
+      warnings,
+    });
+    return { thinking: { type: 'adaptive' }, effort };
+  }
+
+  const budgetTokens = mapReasoningToProviderBudget({
+    reasoning,
+    maxOutputTokens: maxOutputTokensForModel,
+    maxReasoningBudget: maxOutputTokensForModel,
+    warnings,
+  });
+  if (budgetTokens == null) {
+    return undefined;
+  }
+  return { thinking: { type: 'enabled', budgetTokens } };
 }
 
 function mapAnthropicResponseContextManagement(

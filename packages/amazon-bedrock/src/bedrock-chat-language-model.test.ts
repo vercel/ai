@@ -88,6 +88,11 @@ const openaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   openaiModelId,
 )}/converse`;
 
+const newerAnthropicModelId = 'anthropic.claude-sonnet-4-6-v1';
+const newerAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  newerAnthropicModelId,
+)}/converse`;
+
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -100,6 +105,7 @@ const server = createTestServer({
   [anthropicGenerateUrl]: {},
   [novaGenerateUrl]: {},
   [openaiGenerateUrl]: {},
+  [newerAnthropicGenerateUrl]: {},
 });
 
 function prepareJsonFixtureResponse(
@@ -166,6 +172,16 @@ const openaiModel = new BedrockChatLanguageModel(openaiModelId, {
   fetch: fakeFetchWithAuth,
   generateId: () => 'test-id',
 });
+
+const newerAnthropicModel = new BedrockChatLanguageModel(
+  newerAnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
 
 let mockOptions: { success: boolean; errorValue?: any } = { success: true };
 
@@ -5446,5 +5462,220 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  describe('top-level reasoning parameter', () => {
+    const simpleResponse = {
+      type: 'json-value' as const,
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    it('should map reasoning to adaptive thinking with effort for newer Anthropic models', async () => {
+      server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
+
+      await newerAnthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'adaptive',
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.effort,
+      ).toBe('high');
+    });
+
+    it('should map reasoning "xhigh" to effort "max" for newer Anthropic models', async () => {
+      server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
+
+      await newerAnthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'xhigh',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'adaptive',
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.effort,
+      ).toBe('max');
+    });
+
+    it('should warn when reasoning "minimal" is mapped for newer Anthropic models', async () => {
+      server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
+
+      const result = await newerAnthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'minimal',
+      });
+
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "minimal" is not directly supported by this model. mapped to effort "low".',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.effort,
+      ).toBe('low');
+    });
+
+    it('should map reasoning to budget-based thinking for older Anthropic models', async () => {
+      prepareJsonFixtureResponse('bedrock-text');
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'enabled',
+        budget_tokens: Math.max(1024, Math.round(4096 * 0.6)),
+      });
+    });
+
+    it('should map reasoning to budget with minimum of 1024 tokens for older Anthropic models', async () => {
+      prepareJsonFixtureResponse('bedrock-text');
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'minimal',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.additionalModelRequestFields?.thinking?.budget_tokens,
+      ).toBe(1024);
+    });
+
+    it('should map reasoning directly to reasoning_effort for OpenAI models', async () => {
+      server.urls[openaiGenerateUrl].response = simpleResponse;
+
+      await openaiModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.reasoning_effort).toBe(
+        'medium',
+      );
+      expect(
+        requestBody.additionalModelRequestFields?.thinking,
+      ).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.reasoningConfig,
+      ).toBeUndefined();
+    });
+
+    it('should map reasoning to reasoningConfig.maxReasoningEffort for other models', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.additionalModelRequestFields?.reasoningConfig
+          ?.maxReasoningEffort,
+      ).toBe('high');
+    });
+
+    it('should let providerOptions.bedrock.reasoningConfig take precedence over top-level reasoning', async () => {
+      prepareJsonFixtureResponse('bedrock-text');
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: {
+              type: 'enabled',
+              budgetTokens: 5000,
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'enabled',
+        budget_tokens: 5000,
+      });
+    });
+
+    it('should strip temperature, topP, topK for Anthropic models when reasoning enables thinking', async () => {
+      prepareJsonFixtureResponse('bedrock-text');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+        temperature: 0.7,
+        topP: 0.9,
+        topK: 5,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.inferenceConfig?.temperature).toBeUndefined();
+      expect(requestBody.inferenceConfig?.topP).toBeUndefined();
+      expect(requestBody.inferenceConfig?.topK).toBeUndefined();
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'temperature',
+        details: 'temperature is not supported when thinking is enabled',
+      });
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'topP',
+        details: 'topP is not supported when thinking is enabled',
+      });
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'topK',
+        details: 'topK is not supported when thinking is enabled',
+      });
+    });
+
+    it('should handle reasoning "none" for Anthropic models', async () => {
+      prepareJsonFixtureResponse('bedrock-text');
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.additionalModelRequestFields?.thinking,
+      ).toBeUndefined();
+    });
+
+    it('should handle reasoning "none" for OpenAI models', async () => {
+      server.urls[openaiGenerateUrl].response = simpleResponse;
+
+      await openaiModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.additionalModelRequestFields?.reasoning_effort,
+      ).toBeUndefined();
+    });
   });
 });

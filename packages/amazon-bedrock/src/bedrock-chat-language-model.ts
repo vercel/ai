@@ -19,10 +19,13 @@ import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  mapReasoningToProviderBudget,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
+import { getModelCapabilities } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
 import {
   BEDROCK_STOP_REASONS,
@@ -30,6 +33,7 @@ import {
   BedrockStopReason,
 } from './bedrock-api-types';
 import {
+  AmazonBedrockLanguageModelOptions,
   BedrockChatModelId,
   amazonBedrockLanguageModelOptions,
 } from './bedrock-chat-options';
@@ -70,6 +74,7 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
     seed,
     tools,
     toolChoice,
+    reasoning,
     providerOptions,
   }: LanguageModelV4CallOptions): Promise<{
     command: BedrockConverseInput;
@@ -78,7 +83,7 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
     betas: Set<string>;
   }> {
     // Parse provider options
-    const bedrockOptions =
+    let bedrockOptions =
       (await parseProviderOptions({
         provider: 'bedrock',
         providerOptions,
@@ -137,6 +142,16 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
     }
 
     const isAnthropicModel = this.modelId.includes('anthropic');
+    const isOpenAIModel = this.modelId.startsWith('openai.');
+
+    bedrockOptions = resolveBedrockReasoningConfig({
+      reasoning,
+      bedrockOptions,
+      warnings,
+      isAnthropicModel,
+      modelId: this.modelId,
+    });
+
     const isThinkingEnabled =
       bedrockOptions.reasoningConfig?.type === 'enabled' ||
       bedrockOptions.reasoningConfig?.type === 'adaptive';
@@ -247,7 +262,6 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
 
     const maxReasoningEffort =
       bedrockOptions.reasoningConfig?.maxReasoningEffort;
-    const isOpenAIModel = this.modelId.startsWith('openai.');
 
     if (maxReasoningEffort != null) {
       if (isAnthropicModel) {
@@ -1122,3 +1136,73 @@ export const bedrockReasoningMetadataSchema = z.object({
 export type BedrockReasoningMetadata = z.infer<
   typeof bedrockReasoningMetadataSchema
 >;
+
+const bedrockReasoningEffortMap: Partial<
+  Record<string, 'low' | 'medium' | 'high' | 'max'>
+> = {
+  minimal: 'low',
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  xhigh: 'max',
+};
+
+function resolveBedrockReasoningConfig({
+  reasoning,
+  bedrockOptions,
+  warnings,
+  isAnthropicModel,
+  modelId,
+}: {
+  reasoning: LanguageModelV4CallOptions['reasoning'];
+  bedrockOptions: AmazonBedrockLanguageModelOptions;
+  warnings: SharedV4Warning[];
+  isAnthropicModel: boolean;
+  modelId: string;
+}): AmazonBedrockLanguageModelOptions {
+  if (reasoning == null || bedrockOptions.reasoningConfig != null) {
+    return bedrockOptions;
+  }
+
+  const result = { ...bedrockOptions };
+
+  if (isAnthropicModel) {
+    const capabilities = getModelCapabilities(modelId);
+
+    if (reasoning === 'none') {
+      result.reasoningConfig = { type: 'disabled' };
+    } else if (capabilities.supportsAdaptiveThinking) {
+      const effort = mapReasoningToProviderEffort({
+        reasoning,
+        effortMap: bedrockReasoningEffortMap,
+        warnings,
+      });
+      result.reasoningConfig = {
+        type: 'adaptive',
+        maxReasoningEffort: effort,
+      };
+    } else {
+      const budgetTokens = mapReasoningToProviderBudget({
+        reasoning,
+        maxOutputTokens: capabilities.maxOutputTokens,
+        maxReasoningBudget: capabilities.maxOutputTokens,
+        warnings,
+      });
+      if (budgetTokens != null) {
+        result.reasoningConfig = {
+          type: 'enabled',
+          budgetTokens,
+        };
+      }
+    }
+  } else if (reasoning !== 'none') {
+    const effort = mapReasoningToProviderEffort({
+      reasoning,
+      effortMap: bedrockReasoningEffortMap,
+      warnings,
+    });
+    result.reasoningConfig = { maxReasoningEffort: effort };
+  }
+
+  return result;
+}
