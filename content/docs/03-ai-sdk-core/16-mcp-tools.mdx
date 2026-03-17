@@ -43,8 +43,8 @@ const mcpClient = await createMCPClient({
     // optional: provide an OAuth client provider for automatic authorization
     authProvider: myOAuthClientProvider,
 
-    // optional: reject redirect responses to prevent SSRF
-    redirect: 'error',
+    // optional: allow redirect responses (default is 'error' to prevent SSRF)
+    redirect: 'follow',
   },
 });
 ```
@@ -81,8 +81,8 @@ const mcpClient = await createMCPClient({
     // optional: provide an OAuth client provider for automatic authorization
     authProvider: myOAuthClientProvider,
 
-    // optional: reject redirect responses to prevent SSRF
-    redirect: 'error',
+    // optional: allow redirect responses (default is 'error' to prevent SSRF)
+    redirect: 'follow',
   },
 });
 ```
