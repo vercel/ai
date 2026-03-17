@@ -2137,6 +2137,41 @@ describe('doStream', () => {
     });
   });
 
+  it('should pass serviceTier provider option in stream requests', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+      providerOptions: {
+        bedrock: {
+          serviceTier: 'priority',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody).toMatchObject({
+      serviceTier: {
+        type: 'priority',
+      },
+    });
+    expect(
+      requestBody.additionalModelRequestFields?.serviceTier,
+    ).toBeUndefined();
+  });
+
   it('should handle JSON response format in streaming', async () => {
     setupMockEventStreamHandler();
     prepareChunksFixtureResponse('bedrock-json-tool.1');
@@ -4229,6 +4264,30 @@ describe('doGenerate', () => {
       custom: 42,
       thinking: { type: 'enabled', budget_tokens: 1234 },
     });
+  });
+
+  it('should pass serviceTier provider option in generate requests', async () => {
+    prepareJsonFixtureResponse('bedrock-text');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          serviceTier: 'priority',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody).toMatchObject({
+      serviceTier: {
+        type: 'priority',
+      },
+    });
+    expect(
+      requestBody.additionalModelRequestFields?.serviceTier,
+    ).toBeUndefined();
   });
 
   it('maps maxReasoningEffort for Nova without thinking (generate)', async () => {
