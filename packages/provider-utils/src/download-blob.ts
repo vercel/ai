@@ -20,7 +20,7 @@ export async function downloadBlob(
   url: string,
   options?: { maxBytes?: number; abortSignal?: AbortSignal },
 ): Promise<Blob> {
-  validateDownloadUrl(url);
+  await validateDownloadUrl(url);
   try {
     const response = await fetch(url, {
       signal: options?.abortSignal,
@@ -28,7 +28,7 @@ export async function downloadBlob(
 
     // Validate final URL after redirects to prevent SSRF via open redirect
     if (response.redirected) {
-      validateDownloadUrl(response.url);
+      await validateDownloadUrl(response.url);
     }
 
     if (!response.ok) {

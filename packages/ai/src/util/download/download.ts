@@ -30,7 +30,7 @@ export const download = async ({
   abortSignal?: AbortSignal;
 }) => {
   const urlText = url.toString();
-  validateDownloadUrl(urlText);
+  await validateDownloadUrl(urlText);
   try {
     const response = await fetch(urlText, {
       headers: withUserAgentSuffix(
@@ -43,7 +43,7 @@ export const download = async ({
 
     // Validate final URL after redirects to prevent SSRF via open redirect
     if (response.redirected) {
-      validateDownloadUrl(response.url);
+      await validateDownloadUrl(response.url);
     }
 
     if (!response.ok) {

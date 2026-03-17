@@ -1,13 +1,14 @@
+import dns from 'node:dns';
 import { DownloadError } from './download-error';
 
 /**
  * Validates that a URL is safe to download from, blocking private/internal addresses
- * to prevent SSRF attacks.
+ * to prevent SSRF attacks. Resolves DNS to prevent DNS rebinding bypasses.
  *
  * @param url - The URL string to validate.
- * @throws DownloadError if the URL is unsafe.
+ * @throws DownloadError if the URL is unsafe or resolves to a private IP.
  */
-export function validateDownloadUrl(url: string): void {
+export async function validateDownloadUrl(url: string): Promise<void> {
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -70,6 +71,42 @@ export function validateDownloadUrl(url: string): void {
     }
     return;
   }
+
+  // Resolve DNS and validate resolved IPs to prevent DNS rebinding attacks
+  await validateDnsResolution(hostname, url);
+}
+
+async function validateDnsResolution(
+  hostname: string,
+  url: string,
+): Promise<void> {
+  let addresses: dns.LookupAddress[];
+  try {
+    addresses = await dns.promises.lookup(hostname, { all: true });
+  } catch {
+    throw new DownloadError({
+      url,
+      message: `Failed to resolve hostname: ${hostname}`,
+    });
+  }
+
+  for (const { address, family } of addresses) {
+    if (family === 4) {
+      if (isPrivateIPv4(address)) {
+        throw new DownloadError({
+          url,
+          message: `URL hostname ${hostname} resolves to private IPv4 address ${address}`,
+        });
+      }
+    } else if (family === 6) {
+      if (isPrivateIPv6(address)) {
+        throw new DownloadError({
+          url,
+          message: `URL hostname ${hostname} resolves to private IPv6 address ${address}`,
+        });
+      }
+    }
+  }
 }
 
 function isIPv4(hostname: string): boolean {
@@ -91,6 +128,8 @@ function isPrivateIPv4(ip: string): boolean {
   if (a === 0) return true;
   // 10.0.0.0/8
   if (a === 10) return true;
+  // 100.64.0.0/10 (Carrier-Grade NAT, RFC 6598)
+  if (a === 100 && b >= 64 && b <= 127) return true;
   // 127.0.0.0/8
   if (a === 127) return true;
   // 169.254.0.0/16
@@ -99,6 +138,10 @@ function isPrivateIPv4(ip: string): boolean {
   if (a === 172 && b >= 16 && b <= 31) return true;
   // 192.168.0.0/16
   if (a === 192 && b === 168) return true;
+  // 198.18.0.0/15 (Benchmarking, RFC 2544)
+  if (a === 198 && (b === 18 || b === 19)) return true;
+  // 240.0.0.0/4 (Reserved)
+  if (a >= 240) return true;
 
   return false;
 }
