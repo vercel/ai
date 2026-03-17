@@ -772,6 +772,19 @@ export async function generateText<
         });
 
         // parse tool calls:
+        // Filter tools to only include active tools, so that tool calls
+        // for disabled tools are rejected as NoSuchToolError instead of
+        // being parsed and executed. When no activeTools filter is set,
+        // all tools are available.
+        const effectiveTools =
+          stepActiveTools != null && tools != null
+            ? (Object.fromEntries(
+                Object.entries(tools).filter(([name]) =>
+                  (stepActiveTools as string[]).includes(name),
+                ),
+              ) as TOOLS)
+            : tools;
+
         const stepToolCalls: TypedToolCall<TOOLS>[] = await Promise.all(
           currentModelResponse.content
             .filter(
@@ -781,7 +794,7 @@ export async function generateText<
             .map(toolCall =>
               parseToolCall({
                 toolCall,
-                tools,
+                tools: effectiveTools,
                 repairToolCall,
                 system,
                 messages: stepInputMessages,
