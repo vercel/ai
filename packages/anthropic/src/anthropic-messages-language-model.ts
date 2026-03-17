@@ -44,6 +44,7 @@ import {
 } from './anthropic-messages-api';
 import {
   AnthropicMessagesModelId,
+  AnthropicLanguageModelOptions,
   anthropicLanguageModelOptions,
 } from './anthropic-messages-options';
 import { prepareTools } from './anthropic-prepare-tools';
@@ -2398,15 +2399,7 @@ function resolveAnthropicReasoningConfig({
   supportsAdaptiveThinking: boolean;
   maxOutputTokensForModel: number;
   warnings: SharedV4Warning[];
-}):
-  | {
-      thinking: {
-        type: 'disabled' | 'enabled' | 'adaptive';
-        budgetTokens?: number;
-      };
-      effort?: 'low' | 'medium' | 'high' | 'max';
-    }
-  | undefined {
+}): Pick<AnthropicLanguageModelOptions, 'thinking' | 'effort'> | undefined {
   if (reasoning == null) {
     return undefined;
   }
