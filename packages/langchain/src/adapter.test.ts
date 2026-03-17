@@ -2042,6 +2042,185 @@ describe('toUIMessageStream with LangGraph HITL fixture', () => {
   });
 });
 
+describe('toUIMessageStream HITL interrupt key matching with dual streamMode', () => {
+  beforeEach(() => {
+    vi.spyOn(Date, 'now').mockReturnValue(1234567890);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should match interrupt to tool call emitted via messages mode', async () => {
+    // This test verifies the fix for HITL interrupt key matching when using
+    // streamMode: ["messages", "values"]. The tool call is first emitted via
+    // messages mode, then the values event contains the same tool call plus
+    // an __interrupt__. The interrupt handler must find the original tool call ID.
+    const originalToolCallId = 'call_abc123';
+
+    const inputStream = convertArrayToReadableStream([
+      // 1. messages mode: AI streams a tool call
+      [
+        'messages',
+        [
+          {
+            lc: 1,
+            type: 'constructor',
+            id: ['langchain_core', 'messages', 'AIMessageChunk'],
+            kwargs: {
+              id: 'ai-msg-1',
+              content: [],
+              tool_call_chunks: [
+                {
+                  id: originalToolCallId,
+                  name: 'delete_file',
+                  args: '{"filename":"report.pdf"}',
+                  index: 0,
+                },
+              ],
+              tool_calls: [],
+            },
+          },
+          {
+            tags: [],
+            langgraph_step: 1,
+            langgraph_node: 'agent',
+          },
+        ],
+      ],
+      // 2. values mode: full state with same tool call + __interrupt__
+      [
+        'values',
+        {
+          messages: [
+            {
+              type: 'constructor',
+              id: ['langchain_core', 'messages', 'HumanMessage'],
+              kwargs: { id: 'human-1', content: 'Delete report.pdf' },
+            },
+            {
+              type: 'constructor',
+              id: ['langchain_core', 'messages', 'AIMessage'],
+              kwargs: {
+                id: 'ai-msg-1',
+                content: '',
+                tool_calls: [
+                  {
+                    id: originalToolCallId,
+                    name: 'delete_file',
+                    args: { filename: 'report.pdf' },
+                    type: 'tool_call',
+                  },
+                ],
+              },
+            },
+          ],
+          __interrupt__: [
+            {
+              value: {
+                actionRequests: [
+                  {
+                    name: 'delete_file',
+                    args: { filename: 'report.pdf' },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // Find the tool-approval-request event
+    const approvalEvents = result.filter(
+      (e: { type: string }) => e.type === 'tool-approval-request',
+    );
+
+    expect(approvalEvents).toHaveLength(1);
+    // The approval must reference the ORIGINAL tool call ID from messages mode,
+    // not a fallback-generated ID like "hitl-delete_file-1234567890"
+    expect(approvalEvents[0]).toMatchObject({
+      type: 'tool-approval-request',
+      approvalId: originalToolCallId,
+      toolCallId: originalToolCallId,
+    });
+
+    // The interrupt handler should NOT emit duplicate tool-input-start/available
+    // since the tool call was already emitted via messages mode
+    const toolInputStartEvents = result.filter(
+      (e: { type: string; toolCallId?: string }) =>
+        e.type === 'tool-input-start' && e.toolCallId !== originalToolCallId,
+    );
+    expect(toolInputStartEvents).toHaveLength(0);
+  });
+
+  it('should handle interrupt for tool call only emitted via values mode', async () => {
+    // When there's no prior messages event, the values handler should
+    // still register the key mapping correctly
+    const toolCallId = 'call_values_only';
+
+    const inputStream = convertArrayToReadableStream([
+      [
+        'values',
+        {
+          messages: [
+            {
+              type: 'constructor',
+              id: ['langchain_core', 'messages', 'HumanMessage'],
+              kwargs: { id: 'human-1', content: 'Delete report.pdf' },
+            },
+            {
+              type: 'constructor',
+              id: ['langchain_core', 'messages', 'AIMessage'],
+              kwargs: {
+                id: 'ai-msg-1',
+                content: '',
+                tool_calls: [
+                  {
+                    id: toolCallId,
+                    name: 'delete_file',
+                    args: { filename: 'report.pdf' },
+                    type: 'tool_call',
+                  },
+                ],
+              },
+            },
+          ],
+          __interrupt__: [
+            {
+              value: {
+                actionRequests: [
+                  {
+                    name: 'delete_file',
+                    args: { filename: 'report.pdf' },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    const approvalEvents = result.filter(
+      (e: { type: string }) => e.type === 'tool-approval-request',
+    );
+
+    expect(approvalEvents).toHaveLength(1);
+    expect(approvalEvents[0]).toMatchObject({
+      toolCallId: toolCallId,
+    });
+  });
+});
+
 describe('toUIMessageStream callbacks', () => {
   it('should call onFinish with final state for LangGraph streams', async () => {
     const onFinish = vi.fn();
