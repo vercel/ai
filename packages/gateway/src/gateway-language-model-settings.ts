@@ -51,8 +51,6 @@ export type GatewayModelId =
   | 'google/gemini-2.5-flash'
   | 'google/gemini-2.5-flash-image'
   | 'google/gemini-2.5-flash-lite'
-  | 'google/gemini-2.5-flash-lite-preview-09-2025'
-  | 'google/gemini-2.5-flash-preview-09-2025'
   | 'google/gemini-2.5-pro'
   | 'google/gemini-3-flash'
   | 'google/gemini-3-pro-image'
@@ -149,8 +147,6 @@ export type GatewayModelId =
   | 'perplexity/sonar-reasoning'
   | 'perplexity/sonar-reasoning-pro'
   | 'prime-intellect/intellect-3'
-  | 'vercel/v0-1.0-md'
-  | 'vercel/v0-1.5-md'
   | 'xai/grok-2-vision'
   | 'xai/grok-3'
   | 'xai/grok-3-fast'
@@ -176,4 +172,5 @@ export type GatewayModelId =
   | 'zai/glm-4.7-flash'
   | 'zai/glm-4.7-flashx'
   | 'zai/glm-5'
+  | 'zai/glm-5-turbo'
   | (string & {});
