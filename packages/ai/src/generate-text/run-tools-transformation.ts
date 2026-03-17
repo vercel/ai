@@ -1,4 +1,4 @@
-import { LanguageModelV4StreamPart, SharedV4Warning } from '@ai-sdk/provider';
+import { SharedV4Warning } from '@ai-sdk/provider';
 import {
   getErrorMessage,
   IdGenerator,
@@ -11,14 +11,15 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { asLanguageModelUsage } from '../types/usage';
+import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
 import { executeToolCall } from './execute-tool-call';
+import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
+import { isApprovalNeeded } from './is-approval-needed';
+import { parseToolCall } from './parse-tool-call';
 import {
   StreamTextOnToolCallFinishCallback,
   StreamTextOnToolCallStartCallback,
 } from './stream-text';
-import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
-import { isApprovalNeeded } from './is-approval-needed';
-import { parseToolCall } from './parse-tool-call';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
@@ -37,7 +38,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       type: 'text-delta';
       id: string;
       providerMetadata?: ProviderMetadata;
-      delta: string;
+      text: string;
     }
   | {
       type: 'text-end';
@@ -55,7 +56,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       type: 'reasoning-delta';
       id: string;
       providerMetadata?: ProviderMetadata;
-      delta: string;
+      text: string;
     }
   | {
       type: 'reasoning-end';
@@ -87,7 +88,12 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
 
   // Other types:
   | ({ type: 'source' } & Source)
-  | { type: 'file'; file: GeneratedFile; providerMetadata?: ProviderMetadata } // different because of GeneratedFile object
+  | { type: 'file'; file: GeneratedFile; providerMetadata?: ProviderMetadata }
+  | {
+      type: 'reasoning-file';
+      file: GeneratedFile;
+      providerMetadata?: ProviderMetadata;
+    }
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
   | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
   | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
@@ -117,6 +123,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   repairToolCall,
+  toolTimeoutMs,
   experimental_context,
   generateId,
   stepNumber,
@@ -126,13 +133,14 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   executeToolInTelemetryContext,
 }: {
   tools: TOOLS | undefined;
-  generatorStream: ReadableStream<LanguageModelV4StreamPart>;
+  generatorStream: ReadableStream<UglyTransformedStreamTextPart>;
   telemetry: TelemetrySettings | undefined;
   callId: string;
   system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
+  toolTimeoutMs?: number | undefined;
   experimental_context: unknown;
   generateId: IdGenerator;
   stepNumber?: number;
@@ -187,11 +195,11 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
   // forward stream
   const forwardStream = new TransformStream<
-    LanguageModelV4StreamPart,
+    UglyTransformedStreamTextPart,
     SingleRequestTextStreamPart<TOOLS>
   >({
     async transform(
-      chunk: LanguageModelV4StreamPart,
+      chunk: UglyTransformedStreamTextPart,
       controller: TransformStreamDefaultController<
         SingleRequestTextStreamPart<TOOLS>
       >,
@@ -205,7 +213,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'text-delta':
         case 'text-end':
         case 'reasoning-start':
-        case 'reasoning-delta':
         case 'reasoning-end':
         case 'tool-input-start':
         case 'tool-input-delta':
@@ -218,9 +225,19 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           break;
         }
 
-        case 'file': {
+        case 'reasoning-delta':
           controller.enqueue({
-            type: 'file',
+            type: 'reasoning-delta',
+            id: chunk.id,
+            text: chunk.delta,
+            providerMetadata: chunk.providerMetadata,
+          });
+          break;
+
+        case 'file':
+        case 'reasoning-file': {
+          controller.enqueue({
+            type: chunk.type,
             file: new DefaultGeneratedFileWithType({
               data: chunk.data,
               mediaType: chunk.mediaType,
@@ -342,6 +359,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 callId,
                 messages,
                 abortSignal,
+                toolTimeoutMs,
                 experimental_context,
                 stepNumber,
                 model,
