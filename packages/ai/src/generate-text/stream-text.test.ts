@@ -9270,6 +9270,7 @@ describe('streamText', () => {
                 },
               ],
               "providerOptions": undefined,
+              "reasoning": undefined,
               "responseFormat": undefined,
               "seed": undefined,
               "stopSequences": undefined,
@@ -9358,6 +9359,7 @@ describe('streamText', () => {
                 },
               ],
               "providerOptions": undefined,
+              "reasoning": undefined,
               "responseFormat": undefined,
               "seed": undefined,
               "stopSequences": undefined,
@@ -12429,6 +12431,62 @@ describe('streamText', () => {
         await convertAsyncIterableToArray(result.textStream),
         ['provider metadata test'],
       );
+    });
+  });
+
+  describe('options.reasoning', () => {
+    it('should pass reasoning to model doStream call', async () => {
+      const model = new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'test' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'test-input',
+        reasoning: 'high',
+      });
+
+      await result.text;
+
+      expect(model.doStreamCalls[0].reasoning).toBe('high');
+    });
+
+    it('should filter provider-default to undefined', async () => {
+      const model = new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'test' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'test-input',
+        reasoning: 'provider-default',
+      });
+
+      await result.text;
+
+      expect(model.doStreamCalls[0].reasoning).toBeUndefined();
     });
   });
 
@@ -15706,6 +15764,7 @@ describe('streamText', () => {
               },
             ],
             "providerOptions": undefined,
+            "reasoning": undefined,
             "responseFormat": {
               "schema": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
@@ -23122,6 +23181,7 @@ describe('streamText', () => {
               },
             ],
             "providerOptions": undefined,
+            "reasoning": undefined,
             "responseFormat": undefined,
             "seed": undefined,
             "stopSequences": undefined,

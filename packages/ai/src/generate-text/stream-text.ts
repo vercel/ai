@@ -1276,6 +1276,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           frequencyPenalty: callSettings.frequencyPenalty,
           stopSequences: callSettings.stopSequences,
           seed: callSettings.seed,
+          reasoning: callSettings.reasoning,
           maxRetries,
           timeout,
           headers,

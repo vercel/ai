@@ -1,3 +1,4 @@
+import { LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { CallSettings } from './call-settings';
 
@@ -13,10 +14,13 @@ export function prepareCallSettings({
   frequencyPenalty,
   seed,
   stopSequences,
+  reasoning,
 }: Omit<CallSettings, 'abortSignal' | 'headers' | 'maxRetries'>): Omit<
   CallSettings,
-  'abortSignal' | 'headers' | 'maxRetries'
-> {
+  'abortSignal' | 'headers' | 'maxRetries' | 'reasoning'
+> & {
+  reasoning?: LanguageModelV4CallOptions['reasoning'];
+} {
   if (maxOutputTokens != null) {
     if (!Number.isInteger(maxOutputTokens)) {
       throw new InvalidArgumentError({
@@ -95,6 +99,24 @@ export function prepareCallSettings({
     }
   }
 
+  const validReasoningValues = [
+    'provider-default',
+    'none',
+    'minimal',
+    'low',
+    'medium',
+    'high',
+    'xhigh',
+  ] as const;
+
+  if (reasoning != null && !validReasoningValues.includes(reasoning)) {
+    throw new InvalidArgumentError({
+      parameter: 'reasoning',
+      value: reasoning,
+      message: `reasoning must be one of: ${validReasoningValues.join(', ')}`,
+    });
+  }
+
   return {
     maxOutputTokens,
     temperature,
@@ -104,5 +126,6 @@ export function prepareCallSettings({
     frequencyPenalty,
     stopSequences,
     seed,
+    reasoning: reasoning === 'provider-default' ? undefined : reasoning,
   };
 }

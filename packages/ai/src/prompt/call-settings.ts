@@ -1,3 +1,5 @@
+import { LanguageModelV4CallOptions } from '@ai-sdk/provider';
+
 /**
  * Timeout configuration for API calls. Can be specified as:
  * - A number representing milliseconds
@@ -119,6 +121,16 @@ export type CallSettings = {
    * by the model, calls will generate deterministic results.
    */
   seed?: number;
+
+  /**
+   * Reasoning effort level for the model. Controls how much reasoning
+   * the model performs before generating a response.
+   *
+   * Use `'provider-default'` to use the provider's default reasoning level.
+   */
+  reasoning?:
+    | 'provider-default'
+    | NonNullable<LanguageModelV4CallOptions['reasoning']>;
 
   /**
    * Maximum number of retries. Set to 0 to disable retries.

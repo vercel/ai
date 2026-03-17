@@ -501,6 +501,7 @@ export async function generateText<
       frequencyPenalty: callSettings.frequencyPenalty,
       stopSequences: callSettings.stopSequences,
       seed: callSettings.seed,
+      reasoning: callSettings.reasoning,
       maxRetries,
       timeout,
       headers: headersWithUserAgent,

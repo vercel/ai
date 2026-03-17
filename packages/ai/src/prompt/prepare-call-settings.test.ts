@@ -134,6 +134,47 @@ describe('prepareCallSettings', () => {
         );
       });
     });
+
+    describe('reasoning', () => {
+      it('should throw InvalidArgumentError if reasoning is not a valid value', () => {
+        expect(() =>
+          prepareCallSettings({ reasoning: 'invalid' as any }),
+        ).toThrow(
+          new InvalidArgumentError({
+            parameter: 'reasoning',
+            value: 'invalid',
+            message:
+              'reasoning must be one of: provider-default, none, minimal, low, medium, high, xhigh',
+          }),
+        );
+      });
+    });
+  });
+
+  describe('reasoning', () => {
+    it('should pass through valid reasoning values', () => {
+      for (const value of [
+        'none',
+        'minimal',
+        'low',
+        'medium',
+        'high',
+        'xhigh',
+      ] as const) {
+        const settings = prepareCallSettings({ reasoning: value });
+        expect(settings.reasoning).toBe(value);
+      }
+    });
+
+    it('should filter provider-default to undefined', () => {
+      const settings = prepareCallSettings({ reasoning: 'provider-default' });
+      expect(settings.reasoning).toBeUndefined();
+    });
+
+    it('should pass through undefined', () => {
+      const settings = prepareCallSettings({});
+      expect(settings.reasoning).toBeUndefined();
+    });
   });
 
   it('should return a new object with limited values', () => {
@@ -148,6 +189,7 @@ describe('prepareCallSettings', () => {
         "frequencyPenalty": undefined,
         "maxOutputTokens": 100,
         "presencePenalty": undefined,
+        "reasoning": undefined,
         "seed": undefined,
         "stopSequences": undefined,
         "temperature": 0.7,
