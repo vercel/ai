@@ -17,6 +17,7 @@
     "**/tsconfig*.json",
     "**/turbo.json",
     "tools/tsconfig/**",
+    "packages/codemod/src/test/__testfixtures__/import-LanguageModelV2-from-provider-package.output.ts",
   ],
   "jsxSingleQuote": false,
   "printWidth": 80,

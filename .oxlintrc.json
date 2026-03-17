@@ -227,5 +227,18 @@
     "typescript/prefer-for-of": "off",
     "typescript/prefer-ts-expect-error": "off",
     "typescript/unified-signatures": "off"
-  }
+  },
+  "ignorePatterns": [
+    "**/*.html",
+    "**/*.md",
+    "**/*.mdx",
+    "**/*.mjs",
+    "**/__fixtures__/**",
+    "**/__snapshots__/**",
+    "**/__testfixtures__/**",
+    "**/tsconfig*.json",
+    "**/turbo.json",
+    "tools/tsconfig/**",
+    "packages/codemod/src/test/__testfixtures__/import-LanguageModelV2-from-provider-package.output.ts"
+  ]
 }
