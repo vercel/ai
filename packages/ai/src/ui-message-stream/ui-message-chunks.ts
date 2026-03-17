@@ -135,6 +135,12 @@ export const uiMessageChunkSchema = lazySchema(() =>
         providerMetadata: providerMetadataSchema.optional(),
       }),
       z.strictObject({
+        type: z.literal('reasoning-file'),
+        url: z.string(),
+        mediaType: z.string(),
+        providerMetadata: providerMetadataSchema.optional(),
+      }),
+      z.strictObject({
         type: z.custom<`data-${string}`>(
           (value): value is `data-${string}` =>
             typeof value === 'string' && value.startsWith('data-'),
@@ -308,6 +314,12 @@ export type UIMessageChunk<
     }
   | {
       type: 'file';
+      url: string;
+      mediaType: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'reasoning-file';
       url: string;
       mediaType: string;
       providerMetadata?: ProviderMetadata;

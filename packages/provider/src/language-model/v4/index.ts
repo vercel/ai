@@ -9,6 +9,7 @@ export * from './language-model-v4-generate-result';
 export * from './language-model-v4-prompt';
 export * from './language-model-v4-provider-tool';
 export * from './language-model-v4-reasoning';
+export * from './language-model-v4-reasoning-file';
 export * from './language-model-v4-response-metadata';
 export * from './language-model-v4-source';
 export * from './language-model-v4-stream-part';

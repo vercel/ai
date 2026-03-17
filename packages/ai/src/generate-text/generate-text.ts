@@ -21,6 +21,7 @@ import { ModelMessage } from '../prompt';
 import {
   CallSettings,
   getStepTimeoutMs,
+  getToolTimeoutMs,
   getTotalTimeoutMs,
   TimeoutConfiguration,
 } from '../prompt/call-settings';
@@ -63,6 +64,7 @@ import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
+import { convertToReasoningOutputs } from './reasoning-output';
 import { isApprovalNeeded } from './is-approval-needed';
 import { Output, text } from './output';
 import { InferCompleteOutput } from './output-utils';
@@ -448,6 +450,7 @@ export async function generateText<
 
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
+  const toolTimeoutMs = getToolTimeoutMs(timeout);
   const stepAbortController =
     stepTimeoutMs != null ? new AbortController() : undefined;
   const mergedAbortSignal = mergeAbortSignals(
@@ -547,6 +550,7 @@ export async function generateText<
         callId,
         messages: initialMessages,
         abortSignal: mergedAbortSignal,
+        toolTimeoutMs,
         experimental_context,
         stepNumber: 0,
         model: modelInfo,
@@ -869,6 +873,7 @@ export async function generateText<
               callId,
               messages: stepInputMessages,
               abortSignal: mergedAbortSignal,
+              toolTimeoutMs,
               experimental_context,
               stepNumber: steps.length,
               model: stepModelInfo,
@@ -1101,6 +1106,7 @@ async function executeTools<TOOLS extends ToolSet>({
   callId,
   messages,
   abortSignal,
+  toolTimeoutMs,
   experimental_context,
   stepNumber,
   model,
@@ -1114,6 +1120,7 @@ async function executeTools<TOOLS extends ToolSet>({
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
+  toolTimeoutMs?: number | undefined;
   experimental_context: unknown;
   stepNumber: number;
   model: { provider: string; modelId: string };
@@ -1130,6 +1137,7 @@ async function executeTools<TOOLS extends ToolSet>({
         callId,
         messages,
         abortSignal,
+        toolTimeoutMs,
         experimental_context,
         stepNumber,
         model,
@@ -1183,7 +1191,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
   }
 
   get reasoning() {
-    return this.finalStep.reasoning;
+    return convertToReasoningOutputs(this.finalStep.reasoning);
   }
 
   get toolCalls() {
@@ -1278,9 +1286,10 @@ function asContent<TOOLS extends ToolSet>({
         contentParts.push(part);
         break;
 
-      case 'file': {
+      case 'file':
+      case 'reasoning-file': {
         contentParts.push({
-          type: 'file' as const,
+          type: part.type as 'file' | 'reasoning-file',
           file: new DefaultGeneratedFile(part),
           ...(part.providerMetadata != null
             ? { providerMetadata: part.providerMetadata }

@@ -1,6 +1,17 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
+import { JSONObject, JSONSchema7, JSONValue } from '@ai-sdk/provider';
 import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+
+const jsonValueSchema: z.ZodType<JSONValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(jsonValueSchema),
+    z.record(z.string(), jsonValueSchema.optional()),
+  ]),
+);
 
 export type OpenAIResponsesInput = Array<OpenAIResponsesInputItem>;
 
@@ -20,6 +31,8 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesShellCallOutput
   | OpenAIResponsesApplyPatchCall
   | OpenAIResponsesApplyPatchCallOutput
+  | OpenAIResponsesToolSearchCall
+  | OpenAIResponsesToolSearchOutput
   | OpenAIResponsesReasoning
   | OpenAIResponsesItemReference;
 
@@ -199,6 +212,24 @@ export type OpenAIResponsesApplyPatchCallOutput = {
   output?: string;
 };
 
+export type OpenAIResponsesToolSearchCall = {
+  type: 'tool_search_call';
+  id: string;
+  execution: 'server' | 'client';
+  call_id: string | null;
+  status: 'in_progress' | 'completed' | 'incomplete';
+  arguments: unknown;
+};
+
+export type OpenAIResponsesToolSearchOutput = {
+  type: 'tool_search_output';
+  id?: string;
+  execution: 'server' | 'client';
+  call_id: string | null;
+  status: 'in_progress' | 'completed' | 'incomplete';
+  tools: Array<JSONObject>;
+};
+
 export type OpenAIResponsesItemReference = {
   type: 'item_reference';
   id: string;
@@ -249,6 +280,7 @@ export type OpenAIResponsesTool =
       description: string | undefined;
       parameters: JSONSchema7;
       strict?: boolean;
+      defer_loading?: boolean;
     }
   | {
       type: 'apply_patch';
@@ -407,6 +439,12 @@ export type OpenAIResponsesTool =
               path: string;
             }>;
           };
+    }
+  | {
+      type: 'tool_search';
+      execution?: 'server' | 'client';
+      description?: string;
+      parameters?: Record<string, unknown>;
     };
 
 export type OpenAIResponsesReasoning = {
@@ -591,6 +629,22 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
                 ]),
               }),
             ),
+          }),
+          z.object({
+            type: z.literal('tool_search_call'),
+            id: z.string(),
+            execution: z.enum(['server', 'client']),
+            call_id: z.string().nullable(),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
+            arguments: z.unknown(),
+          }),
+          z.object({
+            type: z.literal('tool_search_output'),
+            id: z.string(),
+            execution: z.enum(['server', 'client']),
+            call_id: z.string().nullable(),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
+            tools: z.array(z.record(z.string(), jsonValueSchema.optional())),
           }),
         ]),
       }),
@@ -814,6 +868,22 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
                 ]),
               }),
             ),
+          }),
+          z.object({
+            type: z.literal('tool_search_call'),
+            id: z.string(),
+            execution: z.enum(['server', 'client']),
+            call_id: z.string().nullable(),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
+            arguments: z.unknown(),
+          }),
+          z.object({
+            type: z.literal('tool_search_output'),
+            id: z.string(),
+            execution: z.enum(['server', 'client']),
+            call_id: z.string().nullable(),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
+            tools: z.array(z.record(z.string(), jsonValueSchema.optional())),
           }),
         ]),
       }),
@@ -1237,6 +1307,22 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
                   ]),
                 }),
               ),
+            }),
+            z.object({
+              type: z.literal('tool_search_call'),
+              id: z.string(),
+              execution: z.enum(['server', 'client']),
+              call_id: z.string().nullable(),
+              status: z.enum(['in_progress', 'completed', 'incomplete']),
+              arguments: z.unknown(),
+            }),
+            z.object({
+              type: z.literal('tool_search_output'),
+              id: z.string(),
+              execution: z.enum(['server', 'client']),
+              call_id: z.string().nullable(),
+              status: z.enum(['in_progress', 'completed', 'incomplete']),
+              tools: z.array(z.record(z.string(), jsonValueSchema.optional())),
             }),
           ]),
         )
