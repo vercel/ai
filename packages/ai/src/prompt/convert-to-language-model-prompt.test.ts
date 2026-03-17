@@ -555,6 +555,79 @@ describe('convertToLanguageModelPrompt', () => {
         ]);
       });
 
+      it('should not attempt to download data: URLs for file parts', async () => {
+        const downloadFn = vi.fn().mockResolvedValue([]);
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    data: 'data:image/png;base64,iVBORw0KGgo=',
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            ],
+          },
+          supportedUrls: {},
+          download: downloadFn,
+        });
+
+        // download is called with an empty array (no planned downloads for data: URLs)
+        expect(downloadFn).toHaveBeenCalledWith([]);
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: 'iVBORw0KGgo=',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should not attempt to download data: URLs for image parts', async () => {
+        const downloadFn = vi.fn().mockResolvedValue([]);
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'image',
+                    image: 'data:image/png;base64,iVBORw0KGgo=',
+                  },
+                ],
+              },
+            ],
+          },
+          supportedUrls: {},
+          download: downloadFn,
+        });
+
+        // download is called with an empty array (no planned downloads for data: URLs)
+        expect(downloadFn).toHaveBeenCalledWith([]);
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: 'iVBORw0KGgo=',
+              },
+            ],
+          },
+        ]);
+      });
+
       it('should handle file parts with filename', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
