@@ -37,7 +37,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       type: 'text-delta';
       id: string;
       providerMetadata?: ProviderMetadata;
-      delta: string;
+      text: string;
     }
   | {
       type: 'text-end';
@@ -55,7 +55,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       type: 'reasoning-delta';
       id: string;
       providerMetadata?: ProviderMetadata;
-      delta: string;
+      text: string;
     }
   | {
       type: 'reasoning-end';
@@ -207,10 +207,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         // forward:
         case 'stream-start':
         case 'text-start':
-        case 'text-delta':
         case 'text-end':
         case 'reasoning-start':
-        case 'reasoning-delta':
         case 'reasoning-end':
         case 'tool-input-start':
         case 'tool-input-delta':
@@ -222,6 +220,24 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           controller.enqueue(chunk);
           break;
         }
+
+        case 'text-delta':
+          controller.enqueue({
+            type: 'text-delta',
+            id: chunk.id,
+            text: chunk.delta,
+            providerMetadata: chunk.providerMetadata,
+          });
+          break;
+
+        case 'reasoning-delta':
+          controller.enqueue({
+            type: 'reasoning-delta',
+            id: chunk.id,
+            text: chunk.delta,
+            providerMetadata: chunk.providerMetadata,
+          });
+          break;
 
         case 'file':
         case 'reasoning-file': {
