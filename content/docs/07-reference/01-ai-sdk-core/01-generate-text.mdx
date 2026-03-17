@@ -458,17 +458,10 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'timeout',
-      type: 'number | { totalMs?: number; stepMs?: number; toolMs?: number }',
+      type: 'number | { totalMs?: number; stepMs?: number; toolMs?: number; tools?: Partial<Record<keyof TOOLS, number>> }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, and/or toolMs properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call). toolMs sets the timeout for each tool execution - if a tool takes longer, it aborts and returns a tool-error so the model can respond or retry. Can be used alongside abortSignal.',
-    },
-    {
-      name: 'toolTimeouts',
-      type: 'Partial<Record<keyof TOOLS, number>>',
-      isOptional: true,
-      description:
-        'Per-tool timeout overrides in milliseconds. Takes precedence over the generic timeout.toolMs value. Tool names are type-checked for autocomplete.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, toolMs, and/or tools properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call). toolMs sets the default timeout for all tool executions. tools sets per-tool timeout overrides that take precedence over toolMs - tool names are type-checked for autocomplete. If a tool takes longer than its timeout, it aborts and returns a tool-error so the model can respond or retry. Can be used alongside abortSignal.',
     },
     {
       name: 'headers',

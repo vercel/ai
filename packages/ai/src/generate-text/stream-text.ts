@@ -22,6 +22,7 @@ import {
   getChunkTimeoutMs,
   getStepTimeoutMs,
   getToolTimeoutMs,
+  getToolTimeouts,
   getTotalTimeoutMs,
   TimeoutConfiguration,
 } from '../prompt/call-settings';
@@ -311,7 +312,6 @@ export function streamText<
   providerOptions,
   experimental_activeTools,
   activeTools = experimental_activeTools,
-  toolTimeouts,
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
   experimental_download: download,
@@ -335,12 +335,17 @@ export function streamText<
     generateCallId = originalGenerateCallId,
   } = {},
   ...settings
-}: CallSettings &
+}: Omit<CallSettings, 'timeout'> &
   Prompt & {
     /**
      * The language model to use.
      */
     model: LanguageModel;
+
+    /**
+     * Timeout configuration with optional per-tool overrides.
+     */
+    timeout?: TimeoutConfiguration<NoInfer<TOOLS>>;
 
     /**
      * The tools that the model can call. The model needs to support calling tools.
@@ -384,12 +389,6 @@ export function streamText<
      * changing the tool call and result types in the result.
      */
     activeTools?: Array<keyof NoInfer<TOOLS>>;
-
-    /**
-     * Per-tool timeout overrides in milliseconds.
-     * Takes precedence over the generic `timeout.toolMs` value.
-     */
-    toolTimeouts?: Partial<Record<keyof NoInfer<TOOLS>, number>>;
 
     /**
      * Optional specification for parsing structured outputs from the LLM response.
@@ -540,6 +539,7 @@ export function streamText<
   const stepTimeoutMs = getStepTimeoutMs(timeout);
   const chunkTimeoutMs = getChunkTimeoutMs(timeout);
   const toolTimeoutMs = getToolTimeoutMs(timeout);
+  const toolTimeouts = getToolTimeouts(timeout);
   const stepAbortController =
     stepTimeoutMs != null ? new AbortController() : undefined;
   const chunkAbortController =
@@ -561,7 +561,7 @@ export function streamText<
     chunkTimeoutMs,
     chunkAbortController,
     toolTimeoutMs,
-    toolTimeouts: toolTimeouts as Record<string, number> | undefined,
+    toolTimeouts,
     system,
     prompt,
     messages,

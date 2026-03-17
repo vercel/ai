@@ -22,6 +22,7 @@ import {
   CallSettings,
   getStepTimeoutMs,
   getToolTimeoutMs,
+  getToolTimeouts,
   getTotalTimeoutMs,
   TimeoutConfiguration,
 } from '../prompt/call-settings';
@@ -267,7 +268,6 @@ export async function generateText<
   activeTools = experimental_activeTools,
   experimental_prepareStep,
   prepareStep = experimental_prepareStep,
-  toolTimeouts,
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
   experimental_context,
@@ -283,12 +283,17 @@ export async function generateText<
   onStepFinish,
   onFinish,
   ...settings
-}: CallSettings &
+}: Omit<CallSettings, 'timeout'> &
   Prompt & {
     /**
      * The language model to use.
      */
     model: LanguageModel;
+
+    /**
+     * Timeout configuration with optional per-tool overrides.
+     */
+    timeout?: TimeoutConfiguration<NoInfer<TOOLS>>;
 
     /**
      * The tools that the model can call. The model needs to support calling tools.
@@ -332,12 +337,6 @@ export async function generateText<
      * changing the tool call and result types in the result.
      */
     activeTools?: Array<keyof NoInfer<TOOLS>>;
-
-    /**
-     * Per-tool timeout overrides in milliseconds.
-     * Takes precedence over the generic `timeout.toolMs` value.
-     */
-    toolTimeouts?: Partial<Record<keyof NoInfer<TOOLS>, number>>;
 
     /**
      * Optional specification for parsing structured outputs from the LLM response.
@@ -458,6 +457,7 @@ export async function generateText<
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
   const toolTimeoutMs = getToolTimeoutMs(timeout);
+  const toolTimeouts = getToolTimeouts(timeout);
   const stepAbortController =
     stepTimeoutMs != null ? new AbortController() : undefined;
   const mergedAbortSignal = mergeAbortSignals(
@@ -558,7 +558,7 @@ export async function generateText<
         messages: initialMessages,
         abortSignal: mergedAbortSignal,
         toolTimeoutMs,
-        toolTimeouts: toolTimeouts as Record<string, number> | undefined,
+        toolTimeouts,
         experimental_context,
         stepNumber: 0,
         model: modelInfo,
@@ -882,7 +882,7 @@ export async function generateText<
               messages: stepInputMessages,
               abortSignal: mergedAbortSignal,
               toolTimeoutMs,
-              toolTimeouts: toolTimeouts as Record<string, number> | undefined,
+              toolTimeouts,
               experimental_context,
               stepNumber: steps.length,
               model: stepModelInfo,

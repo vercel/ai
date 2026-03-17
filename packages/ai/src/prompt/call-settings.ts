@@ -5,9 +5,17 @@
  * - An object with `stepMs` property for the timeout of each step in milliseconds
  * - An object with `chunkMs` property for the timeout between stream chunks (streaming only)
  */
-export type TimeoutConfiguration =
+export type TimeoutConfiguration<
+  TOOLS extends Record<string, unknown> = Record<string, unknown>,
+> =
   | number
-  | { totalMs?: number; stepMs?: number; chunkMs?: number; toolMs?: number };
+  | {
+      totalMs?: number;
+      stepMs?: number;
+      chunkMs?: number;
+      toolMs?: number;
+      tools?: Partial<Record<keyof TOOLS, number>>;
+    };
 
 /**
  * Extracts the total timeout value in milliseconds from a TimeoutConfiguration.
@@ -65,6 +73,15 @@ export function getToolTimeoutMs(
     return undefined;
   }
   return timeout.toolMs;
+}
+
+export function getToolTimeouts(
+  timeout: TimeoutConfiguration | undefined,
+): Record<string, number> | undefined {
+  if (timeout == null || typeof timeout === 'number') {
+    return undefined;
+  }
+  return timeout.tools as Record<string, number> | undefined;
 }
 
 export type CallSettings = {

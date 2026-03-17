@@ -26,10 +26,10 @@ run(async () => {
     },
     timeout: {
       toolMs: 5000,
-    },
-    toolTimeouts: {
-      weather: 3000,
-      slowApi: 1000,
+      tools: {
+        weather: 3000,
+        slowApi: 1000,
+      },
     },
     stopWhen: stepCountIs(2),
     prompt: 'What is the weather in San Francisco?',

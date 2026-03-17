@@ -38,10 +38,10 @@ run(async () => {
     },
     timeout: {
       toolMs: 5000,
-    },
-    toolTimeouts: {
-      fastApi: 2000,
-      slowApi: 1000,
+      tools: {
+        fastApi: 2000,
+        slowApi: 1000,
+      },
     },
     stopWhen: stepCountIs(3),
     prompt: 'Search for "hello" using both the fast API and slow API',
