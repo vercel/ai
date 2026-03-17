@@ -112,3 +112,39 @@ it('should handle mixed attribute types correctly', async () => {
     output: 'output value',
   });
 });
+
+it('should omit non-finite numeric attributes', async () => {
+  const result = await selectTelemetryAttributes({
+    telemetry: { isEnabled: true },
+    attributes: {
+      valid: 1,
+      nan: Number.NaN,
+      positiveInfinity: Number.POSITIVE_INFINITY,
+      negativeInfinity: Number.NEGATIVE_INFINITY,
+      validArray: [1, 2, 3],
+      invalidArray: [1, Number.NaN, 3],
+    },
+  });
+
+  expect(result).toEqual({
+    valid: 1,
+    validArray: [1, 2, 3],
+  });
+});
+
+it('should omit non-finite numeric values from input and output resolvers', async () => {
+  const result = await selectTelemetryAttributes({
+    telemetry: { isEnabled: true },
+    attributes: {
+      validInput: { input: () => 1 },
+      invalidInput: { input: () => Number.NaN },
+      validOutput: { output: () => [1, 2, 3] },
+      invalidOutput: { output: () => [1, Number.POSITIVE_INFINITY, 3] },
+    },
+  });
+
+  expect(result).toEqual({
+    validInput: 1,
+    validOutput: [1, 2, 3],
+  });
+});
