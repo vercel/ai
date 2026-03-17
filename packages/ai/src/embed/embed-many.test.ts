@@ -14,11 +14,8 @@ import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockTracer } from '../test/mock-tracer';
 import { Embedding, EmbeddingModelUsage, Warning } from '../types';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
-import {
-  embedMany,
-  EmbedManyOnStartCallback,
-  EmbedManyOnFinishCallback,
-} from './embed-many';
+import { embedMany } from './embed-many';
+import type { EmbedOnStartEvent, EmbedOnFinishEvent } from './embed-events';
 
 vi.mock('../version', () => {
   return {
@@ -652,7 +649,7 @@ describe('logWarnings', () => {
 
 describe('options.experimental_onStart', () => {
   it('should send correct event information', async () => {
-    let startEvent!: Parameters<EmbedManyOnStartCallback>[0];
+    let startEvent!: EmbedOnStartEvent;
 
     await embedMany({
       model: new MockEmbeddingModelV3({
@@ -676,7 +673,7 @@ describe('options.experimental_onStart', () => {
   });
 
   it('should include telemetry fields', async () => {
-    let startEvent!: Parameters<EmbedManyOnStartCallback>[0];
+    let startEvent!: EmbedOnStartEvent;
 
     await embedMany({
       model: new MockEmbeddingModelV3({
@@ -704,7 +701,7 @@ describe('options.experimental_onStart', () => {
   });
 
   it('should include model information', async () => {
-    let startEvent!: Parameters<EmbedManyOnStartCallback>[0];
+    let startEvent!: EmbedOnStartEvent;
 
     await embedMany({
       model: new MockEmbeddingModelV3({
@@ -760,7 +757,7 @@ describe('options.experimental_onStart', () => {
   });
 
   it('should include providerOptions and headers', async () => {
-    let startEvent!: Parameters<EmbedManyOnStartCallback>[0];
+    let startEvent!: EmbedOnStartEvent;
 
     await embedMany({
       model: new MockEmbeddingModelV3({
@@ -787,7 +784,7 @@ describe('options.experimental_onStart', () => {
 
 describe('options.experimental_onFinish', () => {
   it('should send correct event information (single call path)', async () => {
-    let finishEvent!: Parameters<EmbedManyOnFinishCallback>[0];
+    let finishEvent!: EmbedOnFinishEvent;
 
     await embedMany({
       model: new MockEmbeddingModelV3({
@@ -811,7 +808,7 @@ describe('options.experimental_onFinish', () => {
   });
 
   it('should send correct event information (chunked path)', async () => {
-    let finishEvent!: Parameters<EmbedManyOnFinishCallback>[0];
+    let finishEvent!: EmbedOnFinishEvent;
     let callCount = 0;
 
     await embedMany({
@@ -856,7 +853,7 @@ describe('options.experimental_onFinish', () => {
   });
 
   it('should include embeddings and usage in event', async () => {
-    let finishEvent!: Parameters<EmbedManyOnFinishCallback>[0];
+    let finishEvent!: EmbedOnFinishEvent;
 
     await embedMany({
       model: new MockEmbeddingModelV3({
@@ -875,7 +872,7 @@ describe('options.experimental_onFinish', () => {
   });
 
   it('should include model information', async () => {
-    let finishEvent!: Parameters<EmbedManyOnFinishCallback>[0];
+    let finishEvent!: EmbedOnFinishEvent;
 
     await embedMany({
       model: new MockEmbeddingModelV3({
@@ -896,7 +893,7 @@ describe('options.experimental_onFinish', () => {
   });
 
   it('should include responses data', async () => {
-    let finishEvent!: Parameters<EmbedManyOnFinishCallback>[0];
+    let finishEvent!: EmbedOnFinishEvent;
 
     await embedMany({
       model: new MockEmbeddingModelV3({
@@ -958,8 +955,8 @@ describe('options.experimental_onFinish', () => {
 
 describe('options.experimental_onStart and experimental_onFinish together', () => {
   it('should have consistent callId across both events', async () => {
-    let startEvent!: Parameters<EmbedManyOnStartCallback>[0];
-    let finishEvent!: Parameters<EmbedManyOnFinishCallback>[0];
+    let startEvent!: EmbedOnStartEvent;
+    let finishEvent!: EmbedOnFinishEvent;
 
     await embedMany({
       model: new MockEmbeddingModelV3({

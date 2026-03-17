@@ -5,7 +5,8 @@ import * as logWarningsModule from '../logger/log-warnings';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockTracer } from '../test/mock-tracer';
 import { Embedding, EmbeddingModelUsage, Warning } from '../types';
-import { embed, EmbedOnStartCallback, EmbedOnFinishCallback } from './embed';
+import { embed } from './embed';
+import type { EmbedOnStartEvent, EmbedOnFinishEvent } from './embed-events';
 
 const dummyEmbedding = [0.1, 0.2, 0.3];
 const testValue = 'sunny day at the beach';
@@ -281,7 +282,7 @@ describe('telemetry', () => {
 
 describe('options.experimental_onStart', () => {
   it('should send correct event information', async () => {
-    let startEvent!: Parameters<EmbedOnStartCallback>[0];
+    let startEvent!: EmbedOnStartEvent;
 
     await embed({
       model: new MockEmbeddingModelV3({
@@ -304,7 +305,7 @@ describe('options.experimental_onStart', () => {
   });
 
   it('should include telemetry fields', async () => {
-    let startEvent!: Parameters<EmbedOnStartCallback>[0];
+    let startEvent!: EmbedOnStartEvent;
 
     await embed({
       model: new MockEmbeddingModelV3({
@@ -331,7 +332,7 @@ describe('options.experimental_onStart', () => {
   });
 
   it('should include model information', async () => {
-    let startEvent!: Parameters<EmbedOnStartCallback>[0];
+    let startEvent!: EmbedOnStartEvent;
 
     await embed({
       model: new MockEmbeddingModelV3({
@@ -384,7 +385,7 @@ describe('options.experimental_onStart', () => {
   });
 
   it('should include providerOptions and headers', async () => {
-    let startEvent!: Parameters<EmbedOnStartCallback>[0];
+    let startEvent!: EmbedOnStartEvent;
 
     await embed({
       model: new MockEmbeddingModelV3({
@@ -410,7 +411,7 @@ describe('options.experimental_onStart', () => {
 
 describe('options.experimental_onFinish', () => {
   it('should send correct event information', async () => {
-    let finishEvent!: Parameters<EmbedOnFinishCallback>[0];
+    let finishEvent!: EmbedOnFinishEvent;
 
     await embed({
       model: new MockEmbeddingModelV3({
@@ -433,7 +434,7 @@ describe('options.experimental_onFinish', () => {
   });
 
   it('should include embedding and usage in event', async () => {
-    let finishEvent!: Parameters<EmbedOnFinishCallback>[0];
+    let finishEvent!: EmbedOnFinishEvent;
 
     await embed({
       model: new MockEmbeddingModelV3({
@@ -451,7 +452,7 @@ describe('options.experimental_onFinish', () => {
   });
 
   it('should include model information', async () => {
-    let finishEvent!: Parameters<EmbedOnFinishCallback>[0];
+    let finishEvent!: EmbedOnFinishEvent;
 
     await embed({
       model: new MockEmbeddingModelV3({
@@ -471,7 +472,7 @@ describe('options.experimental_onFinish', () => {
   });
 
   it('should include warnings and providerMetadata', async () => {
-    let finishEvent!: Parameters<EmbedOnFinishCallback>[0];
+    let finishEvent!: EmbedOnFinishEvent;
     const expectedWarnings: Warning[] = [
       { type: 'other', message: 'test warning' },
     ];
@@ -499,7 +500,7 @@ describe('options.experimental_onFinish', () => {
   });
 
   it('should include response data', async () => {
-    let finishEvent!: Parameters<EmbedOnFinishCallback>[0];
+    let finishEvent!: EmbedOnFinishEvent;
 
     await embed({
       model: new MockEmbeddingModelV3({
@@ -556,8 +557,8 @@ describe('options.experimental_onFinish', () => {
 
 describe('options.experimental_onStart and experimental_onFinish together', () => {
   it('should have consistent callId across both events', async () => {
-    let startEvent!: Parameters<EmbedOnStartCallback>[0];
-    let finishEvent!: Parameters<EmbedOnFinishCallback>[0];
+    let startEvent!: EmbedOnStartEvent;
+    let finishEvent!: EmbedOnFinishEvent;
 
     await embed({
       model: new MockEmbeddingModelV3({

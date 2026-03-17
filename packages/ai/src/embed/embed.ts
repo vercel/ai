@@ -14,42 +14,15 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { EmbeddingModel } from '../types';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
-import type {
-  EmbedOnFinishEvent,
-  EmbedOnStartEvent,
-} from './embed-callback-events';
+import type { EmbedOnFinishEvent, EmbedOnStartEvent } from './embed-events';
 import { EmbedResult } from './embed-result';
 import { VERSION } from '../version';
+import type { Listener } from '../util/notify';
 
 const originalGenerateCallId = createIdGenerator({
   prefix: 'call',
   size: 24,
 });
-
-/**
- * Callback that is set using the `experimental_onStart` option.
- *
- * Called when the embed operation begins, before the embedding model is called.
- * Use this callback for logging, analytics, or initializing state at the
- * start of an embedding operation.
- *
- * @param event - The event object containing embed configuration.
- */
-export type EmbedOnStartCallback = (
-  event: EmbedOnStartEvent,
-) => PromiseLike<void> | void;
-
-/**
- * Callback that is set using the `experimental_onFinish` option.
- *
- * Called when the embed operation completes, after the embedding model returns.
- * Use this callback for logging results, analytics, or post-processing.
- *
- * @param event - The event object containing embed results.
- */
-export type EmbedOnFinishCallback = (
-  event: EmbedOnFinishEvent,
-) => PromiseLike<void> | void;
 
 /**
  * Embed a value using an embedding model. The type of the value is defined by the embedding model.
@@ -125,13 +98,13 @@ export async function embed({
    * Callback that is called when the embed operation begins,
    * before the embedding model is called.
    */
-  experimental_onStart?: EmbedOnStartCallback;
+  experimental_onStart?: Listener<EmbedOnStartEvent>;
 
   /**
    * Callback that is called when the embed operation completes,
    * after the embedding model returns.
    */
-  experimental_onFinish?: EmbedOnFinishCallback;
+  experimental_onFinish?: Listener<EmbedOnFinishEvent>;
 
   /**
    * Internal. For test use only. May change without notice.

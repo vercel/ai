@@ -1,6 +1,6 @@
 import type { JSONValue } from '@ai-sdk/provider';
 import type { ProviderOptions } from '@ai-sdk/provider-utils';
-import type { CallbackModelInfo } from '../generate-text/callback-events';
+import type { ModelEventInfo } from '../generate-text/callback-events';
 import type { Embedding, ProviderMetadata } from '../types';
 import type { EmbeddingModelUsage } from '../types/usage';
 import type { Warning } from '../types/warning';
@@ -18,7 +18,7 @@ export interface EmbedOnStartEvent {
   readonly operationId: string;
 
   /** The embedding model being used. */
-  readonly model: CallbackModelInfo;
+  readonly model: ModelEventInfo;
 
   /** The value(s) being embedded. A string for embed, an array for embedMany. */
   readonly value: string | Array<string>;
@@ -64,7 +64,7 @@ export interface EmbedOnFinishEvent {
   readonly operationId: string;
 
   /** The embedding model that was used. */
-  readonly model: CallbackModelInfo;
+  readonly model: ModelEventInfo;
 
   /** The value(s) that were embedded. A string for embed, an array for embedMany. */
   readonly value: string | Array<string>;
