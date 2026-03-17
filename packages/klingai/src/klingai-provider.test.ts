@@ -120,10 +120,10 @@ describe('createKlingAI', () => {
   });
 
   describe('specificationVersion', () => {
-    it('should have specificationVersion v3', () => {
+    it('should have specificationVersion v4', () => {
       const provider = createKlingAI();
 
-      expect(provider.specificationVersion).toBe('v3');
+      expect(provider.specificationVersion).toBe('v4');
     });
   });
 });

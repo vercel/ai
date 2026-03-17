@@ -1,7 +1,7 @@
 import {
-  LanguageModelV3,
+  LanguageModelV4,
   NoSuchModelError,
-  ProviderV3,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -34,21 +34,21 @@ export interface HuggingFaceProviderSettings {
   generateId?: () => string;
 }
 
-export interface HuggingFaceProvider extends ProviderV3 {
+export interface HuggingFaceProvider extends ProviderV4 {
   /**
    * Creates a Hugging Face responses model for text generation.
    */
-  (modelId: HuggingFaceResponsesModelId): LanguageModelV3;
+  (modelId: HuggingFaceResponsesModelId): LanguageModelV4;
 
   /**
    * Creates a Hugging Face responses model for text generation.
    */
-  languageModel(modelId: HuggingFaceResponsesModelId): LanguageModelV3;
+  languageModel(modelId: HuggingFaceResponsesModelId): LanguageModelV4;
 
   /**
    * Creates a Hugging Face responses model for text generation.
    */
-  responses(modelId: HuggingFaceResponsesModelId): LanguageModelV3;
+  responses(modelId: HuggingFaceResponsesModelId): LanguageModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -87,7 +87,7 @@ export function createHuggingFace(
   const provider = (modelId: HuggingFaceResponsesModelId) =>
     createResponsesModel(modelId);
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createResponsesModel;
   provider.responses = createResponsesModel;
 
