@@ -342,6 +342,55 @@ describe('convertToAlibabaChatMessages', () => {
     `);
   });
 
+  it('should apply message-level cache control to last part of multi-part user message', () => {
+    const validator = new CacheControlValidator();
+
+    const result = convertToAlibabaChatMessages({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'What is in this image?' },
+            {
+              type: 'file',
+              data: new Uint8Array([0, 1, 2, 3]),
+              mediaType: 'image/png',
+            },
+          ],
+          providerOptions: {
+            alibaba: {
+              cacheControl: { type: 'ephemeral' },
+            },
+          },
+        },
+      ],
+      cacheControlValidator: validator,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "What is in this image?",
+              "type": "text",
+            },
+            {
+              "cache_control": {
+                "type": "ephemeral",
+              },
+              "image_url": {
+                "url": "data:image/png;base64,AAECAw==",
+              },
+              "type": "image_url",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
   it('should inject cache control into assistant message', () => {
     const validator = new CacheControlValidator();
 
@@ -520,6 +569,67 @@ describe('convertToAlibabaChatMessages', () => {
           ],
           "role": "tool",
           "tool_call_id": "call-1",
+        },
+      ]
+    `);
+  });
+
+  it('should apply message-level cache control to last part of multi-part tool message', () => {
+    const validator = new CacheControlValidator();
+
+    const result = convertToAlibabaChatMessages({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'get_weather',
+              output: {
+                type: 'json',
+                value: { temperature: 72, condition: 'sunny' },
+              },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'call-2',
+              toolName: 'get_time',
+              output: {
+                type: 'text',
+                value: '2:30 PM',
+              },
+            },
+          ],
+          providerOptions: {
+            alibaba: {
+              cacheControl: { type: 'ephemeral' },
+            },
+          },
+        },
+      ],
+      cacheControlValidator: validator,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "{"temperature":72,"condition":"sunny"}",
+          "role": "tool",
+          "tool_call_id": "call-1",
+        },
+        {
+          "content": [
+            {
+              "cache_control": {
+                "type": "ephemeral",
+              },
+              "text": "2:30 PM",
+              "type": "text",
+            },
+          ],
+          "role": "tool",
+          "tool_call_id": "call-2",
         },
       ]
     `);

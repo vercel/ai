@@ -53,14 +53,13 @@ export function convertToAlibabaChatMessages({
       }
 
       case 'user': {
-        const isSinglePart = content.length === 1;
-
         messages.push({
           role: 'user',
-          content: content.map(part => {
+          content: content.map((part, index) => {
+            const isLastPart = index === content.length - 1;
             const partCacheControl =
               cacheControlValidator?.getCacheControl(part.providerOptions) ??
-              (isSinglePart ? messageCacheControl : undefined);
+              (isLastPart ? messageCacheControl : undefined);
 
             switch (part.type) {
               case 'text': {
@@ -151,16 +150,15 @@ export function convertToAlibabaChatMessages({
           r => r.type !== 'tool-approval-response',
         );
 
-        const isSinglePart = toolResponses.length === 1;
-
         for (let i = 0; i < toolResponses.length; i++) {
           const toolResponse = toolResponses[i];
           const output = toolResponse.output;
+          const isLastPart = i === toolResponses.length - 1;
 
           const partCacheControl =
             cacheControlValidator?.getCacheControl(
               toolResponse.providerOptions,
-            ) ?? (isSinglePart ? messageCacheControl : undefined);
+            ) ?? (isLastPart ? messageCacheControl : undefined);
 
           let contentValue: string;
           switch (output.type) {
