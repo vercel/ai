@@ -729,7 +729,7 @@ function getMaxOutputTokensForGemini25Model(): number {
 
 function getMaxThinkingTokensForGemini25Model(modelId: string): number {
   const id = modelId.toLowerCase();
-  if (id.includes('2.5-pro')) {
+  if (id.includes('2.5-pro') || id.includes('gemini-3-pro-image')) {
     return 32768;
   }
   return 24576;
@@ -752,7 +752,7 @@ function resolveThinkingConfig({
     return undefined;
   }
 
-  if (isGemini3Model(modelId)) {
+  if (isGemini3Model(modelId) && !modelId.includes('gemini-3-pro-image')) {
     return resolveGemini3ThinkingConfig({ reasoning, warnings });
   }
 
