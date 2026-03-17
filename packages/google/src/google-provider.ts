@@ -17,6 +17,7 @@ import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embeddi
 import { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embedding-options';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
+import { supportedFileUrlPattern } from './google-supported-file-url';
 import { googleTools } from './google-tools';
 
 import {
@@ -152,16 +153,7 @@ export function createGoogleGenerativeAI(
       headers: getHeaders,
       generateId: options.generateId ?? generateId,
       supportedUrls: () => ({
-        '*': [
-          // Google Generative Language "files" endpoint
-          // e.g. https://generativelanguage.googleapis.com/v1beta/files/...
-          new RegExp(`^${baseURL}/files/.*$`),
-          // YouTube URLs (public or unlisted videos)
-          new RegExp(
-            `^https://(?:www\\.)?youtube\\.com/watch\\?v=[\\w-]+(?:&[\\w=&.-]*)?$`,
-          ),
-          new RegExp(`^https://youtu\\.be/[\\w-]+(?:\\?[\\w=&.-]*)?$`),
-        ],
+        '*': [supportedFileUrlPattern],
       }),
       fetch: options.fetch,
     });

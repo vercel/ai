@@ -197,7 +197,7 @@ describe('google-provider', () => {
     expect(GoogleGenerativeAIEmbeddingModel).toHaveBeenCalledTimes(2);
   });
 
-  it('should include YouTube URLs in supportedUrls', () => {
+  it('should include arbitrary external URLs in supportedUrls', () => {
     const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
     });
@@ -217,18 +217,14 @@ describe('google-provider', () => {
     const testResults = {
       supportedUrls: [
         'https://generativelanguage.googleapis.com/v1beta/files/test123',
+        'https://example.com/signed.pdf?X-Amz-Signature=test',
         'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        'https://youtube.com/watch?v=dQw4w9WgXcQ',
-        'https://youtu.be/dQw4w9WgXcQ',
+        'gs://bucket/path/to/file.pdf',
       ].map(url => ({
         url,
         isSupported: patterns.some((pattern: RegExp) => pattern.test(url)),
       })),
-      unsupportedUrls: [
-        'https://example.com',
-        'https://vimeo.com/123456789',
-        'https://youtube.com/channel/UCdQw4w9WgXcQ',
-      ].map(url => ({
+      unsupportedUrls: ['not-a-url'].map(url => ({
         url,
         isSupported: patterns.some((pattern: RegExp) => pattern.test(url)),
       })),
@@ -243,29 +239,21 @@ describe('google-provider', () => {
           },
           {
             "isSupported": true,
+            "url": "https://example.com/signed.pdf?X-Amz-Signature=test",
+          },
+          {
+            "isSupported": true,
             "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
           },
           {
             "isSupported": true,
-            "url": "https://youtube.com/watch?v=dQw4w9WgXcQ",
-          },
-          {
-            "isSupported": true,
-            "url": "https://youtu.be/dQw4w9WgXcQ",
+            "url": "gs://bucket/path/to/file.pdf",
           },
         ],
         "unsupportedUrls": [
           {
             "isSupported": false,
-            "url": "https://example.com",
-          },
-          {
-            "isSupported": false,
-            "url": "https://vimeo.com/123456789",
-          },
-          {
-            "isSupported": false,
-            "url": "https://youtube.com/channel/UCdQw4w9WgXcQ",
+            "url": "not-a-url",
           },
         ],
       }
