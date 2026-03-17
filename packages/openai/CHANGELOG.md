@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- 156cdf0: feat(openai): add new tool search tool
+
 ## 4.0.0-beta.8
 
 ### Patch Changes

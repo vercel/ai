@@ -115,7 +115,7 @@ pnpm tsx src/stream-text/openai/basic.ts    # Run a specific example
 | Tool/schema utilities (`tool`, `jsonSchema`)  | `ai`                                          |
 | Provider implementations                      | `@ai-sdk/<provider>` (e.g., `@ai-sdk/openai`) |
 | Error classes                                 | `ai` (re-exports from `@ai-sdk/provider`)     |
-| Provider type interfaces (`LanguageModelV3`)  | `@ai-sdk/provider`                            |
+| Provider type interfaces (`LanguageModelV4`)  | `@ai-sdk/provider`                            |
 | Provider implementation utilities             | `@ai-sdk/provider-utils`                      |
 
 ## Coding Standards
@@ -215,7 +215,7 @@ For an overview of the project's key philosophies that guide decision making, se
 
 The SDK uses a layered provider architecture following the adapter pattern:
 
-1. **Specifications** (`@ai-sdk/provider`): Defines interfaces like `LanguageModelV3`
+1. **Specifications** (`@ai-sdk/provider`): Defines interfaces like `LanguageModelV4`
 2. **Utilities** (`@ai-sdk/provider-utils`): Shared code for implementing providers
 3. **Providers** (`@ai-sdk/<provider>`): Concrete implementations for each AI service
 4. **Core** (`ai`): High-level functions like `generateText`, `streamText`, `generateObject`
