@@ -8,8 +8,10 @@ import type {
 import type { InferSchema } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
+  convertBase64ToUint8Array,
   generateId,
   lazySchema,
+  parseJSON,
   parseProviderOptions,
   postFormDataToApi,
   resolve,
@@ -119,11 +121,10 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
               imageBytes = part.data;
             } else if (typeof part.data === 'string') {
               // base64 encoded
-              imageBytes = Uint8Array.from(atob(part.data), c =>
-                c.charCodeAt(0),
-              );
+              imageBytes = convertBase64ToUint8Array(part.data);
             } else if (part.data instanceof URL) {
-              const response = await fetch(part.data.toString());
+              const fetchFn = this.config.fetch ?? globalThis.fetch;
+              const response = await fetchFn(part.data.toString());
               const arrayBuffer = await response.arrayBuffer();
               imageBytes = new Uint8Array(arrayBuffer);
             }
@@ -363,7 +364,10 @@ function createLanguageMultipartResponseHandler() {
 
       if (contentDisposition.includes('name="job"')) {
         const jsonStr = new TextDecoder().decode(part.body);
-        jobResult = prodiaJobResultSchema.parse(JSON.parse(jsonStr));
+        jobResult = await parseJSON({
+          text: jsonStr,
+          schema: zodSchema(prodiaJobResultSchema),
+        });
       } else if (contentDisposition.includes('name="output"')) {
         if (
           partContentType.startsWith('text/') ||

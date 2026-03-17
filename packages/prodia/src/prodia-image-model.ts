@@ -3,6 +3,7 @@ import type { InferSchema } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   lazySchema,
+  parseJSON,
   parseProviderOptions,
   postToApi,
   resolve,
@@ -252,7 +253,10 @@ function createMultipartResponseHandler() {
 
       if (contentDisposition.includes('name="job"')) {
         const jsonStr = new TextDecoder().decode(part.body);
-        jobResult = prodiaJobResultSchema.parse(JSON.parse(jsonStr));
+        jobResult = await parseJSON({
+          text: jsonStr,
+          schema: zodSchema(prodiaJobResultSchema),
+        });
       } else if (contentDisposition.includes('name="output"')) {
         imageBytes = part.body;
       } else if (partContentType.startsWith('image/')) {

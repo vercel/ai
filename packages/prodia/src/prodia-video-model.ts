@@ -3,9 +3,12 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import type { InferSchema } from '@ai-sdk/provider-utils';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
+  convertBase64ToUint8Array,
   lazySchema,
+  parseJSON,
   parseProviderOptions,
   postFormDataToApi,
   postToApi,
@@ -79,7 +82,10 @@ export class ProdiaVideoModel implements Experimental_VideoModelV4 {
 
     if (options.image) {
       // img2vid: multipart form-data request
-      const imageData = await resolveVideoFileData(options.image);
+      const imageData = await resolveVideoFileData(
+        options.image,
+        this.config.fetch,
+      );
       const formData = new FormData();
       formData.append(
         'job',
@@ -214,7 +220,10 @@ function createVideoMultipartResponseHandler() {
 
       if (contentDisposition.includes('name="job"')) {
         const jsonStr = new TextDecoder().decode(part.body);
-        jobResult = prodiaJobResultSchema.parse(JSON.parse(jsonStr));
+        jobResult = await parseJSON({
+          text: jsonStr,
+          schema: zodSchema(prodiaJobResultSchema),
+        });
       } else if (contentDisposition.includes('name="output"')) {
         videoBytes = part.body;
         if (partContentType.startsWith('video/')) {
@@ -244,16 +253,17 @@ async function resolveVideoFileData(
   file: NonNullable<
     Parameters<Experimental_VideoModelV4['doGenerate']>[0]['image']
   >,
+  fetchFunction?: FetchFunction,
 ): Promise<{ bytes: Uint8Array; mediaType: string }> {
   if (file.type === 'file') {
     const data =
       typeof file.data === 'string'
-        ? Uint8Array.from(atob(file.data), c => c.charCodeAt(0))
+        ? convertBase64ToUint8Array(file.data)
         : file.data;
     return { bytes: data, mediaType: file.mediaType };
   }
   // URL type - fetch the data
-  const response = await fetch(file.url);
+  const response = await (fetchFunction ?? globalThis.fetch)(file.url);
   const arrayBuffer = await response.arrayBuffer();
   const mediaType =
     response.headers.get('content-type') ?? 'application/octet-stream';
