@@ -353,7 +353,7 @@ describe('SseMCPTransport', () => {
       fetchSpy.mockRestore();
     });
 
-    it('should default redirect to follow', async () => {
+    it('should default redirect to error', async () => {
       const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
       const controller = new TestResponseController();
@@ -374,7 +374,7 @@ describe('SseMCPTransport', () => {
 
       expect(fetchSpy).toHaveBeenCalledWith(
         'http://localhost:3000/sse',
-        expect.objectContaining({ redirect: 'follow' }),
+        expect.objectContaining({ redirect: 'error' }),
       );
 
       await transport.close();

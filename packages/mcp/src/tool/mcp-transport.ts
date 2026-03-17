@@ -63,7 +63,7 @@ export type MCPTransportConfig = {
    * Controls how HTTP redirects are handled for transport requests.
    * - `'follow'`: Follow redirects automatically (standard fetch behavior).
    * - `'error'`: Reject any redirect response with an error.
-   * @default 'follow'
+   * @default 'error'
    */
   redirect?: 'follow' | 'error';
 };

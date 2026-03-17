@@ -401,7 +401,7 @@ describe('HttpMCPTransport', () => {
       fetchSpy.mockRestore();
     });
 
-    it('should default redirect to follow', async () => {
+    it('should default redirect to error', async () => {
       const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
       transport = new HttpMCPTransport({
@@ -421,7 +421,7 @@ describe('HttpMCPTransport', () => {
 
       expect(fetchSpy).toHaveBeenCalledWith(
         'http://localhost:4000/mcp',
-        expect.objectContaining({ redirect: 'follow', method: 'GET' }),
+        expect.objectContaining({ redirect: 'error', method: 'GET' }),
       );
 
       fetchSpy.mockRestore();

@@ -50,7 +50,7 @@ export class HttpMCPTransport implements MCPTransport {
     url,
     headers,
     authProvider,
-    redirect = 'follow',
+    redirect = 'error',
   }: {
     url: string;
     headers?: Record<string, string>;
