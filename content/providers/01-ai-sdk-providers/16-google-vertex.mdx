@@ -1548,6 +1548,12 @@ Google Vertex Anthropic supports a subset of Anthropic's built-in tools. The fol
   `@ai-sdk/anthropic` provider if you need access to all Anthropic tools.
 </Note>
 
+<Note>
+  Google Vertex Anthropic does not support strict mode on tool definitions.
+  Setting `strict: true` on a tool will be ignored and a warning will be
+  emitted.
+</Note>
+
 For more background on Anthropic tools, see [Anthropic's documentation](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview).
 
 #### Bash Tool
