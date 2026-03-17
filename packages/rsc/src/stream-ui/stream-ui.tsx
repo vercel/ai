@@ -2,7 +2,7 @@ import {
   LanguageModelV4,
   LanguageModelV4StreamResult,
   LanguageModelV4Usage,
-  SharedV3Warning,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   InferSchema,
@@ -187,7 +187,9 @@ export async function streamUI<
     );
   }
   if (tools) {
-    for (const [name, tool] of Object.entries(tools)) {
+    for (const [name, tool] of Object.entries(tools) as Array<
+      [string, RenderTool]
+    >) {
       if ('render' in tool) {
         throw new Error(
           'Tool definition in `streamUI` should not have `render` property. Use `generate` instead. Found in tool: ' +
@@ -296,7 +298,7 @@ export async function streamUI<
     try {
       let content = '';
       let hasToolCall = false;
-      let warnings: SharedV3Warning[] | undefined;
+      let warnings: SharedV4Warning[] | undefined;
 
       const reader = forkedStream.getReader();
       while (true) {
