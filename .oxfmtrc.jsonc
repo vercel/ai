@@ -6,7 +6,12 @@
   "bracketSameLine": false,
   "bracketSpacing": true,
   "endOfLine": "lf",
-  "ignorePatterns": ["**/*.md", "**/*.mdx", "**/__testfixtures__/**", "**/__snapshots__/**"],
+  "ignorePatterns": [
+    "**/*.md",
+    "**/*.mdx",
+    "**/__testfixtures__/**",
+    "**/__snapshots__/**",
+  ],
   "jsxSingleQuote": false,
   "printWidth": 80,
   "quoteProps": "as-needed",
@@ -21,6 +26,7 @@
       "files": ["**/*.json5"],
       "options": {
         "singleQuote": false,
+        "trailingComma": "none",
       },
     },
   ],
