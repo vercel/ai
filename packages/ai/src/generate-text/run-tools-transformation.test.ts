@@ -77,8 +77,8 @@ describe('runToolsTransformation', () => {
           "type": "text-start",
         },
         {
-          "delta": "text",
           "id": "1",
+          "text": "text",
           "type": "text-delta",
         },
         {
