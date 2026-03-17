@@ -29,6 +29,12 @@
   "useTabs": false,
   "overrides": [
     {
+      "files": ["**/*.css"],
+      "options": {
+        "singleQuote": false,
+      },
+    },
+    {
       "files": ["**/*.json5"],
       "options": {
         "singleQuote": false,
