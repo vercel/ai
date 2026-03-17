@@ -838,6 +838,120 @@ describe('OpenAIResponsesLanguageModel', () => {
         },
       );
 
+      describe('top-level reasoning option', () => {
+        it.each(['none', 'minimal', 'low', 'medium', 'high', 'xhigh'] as const)(
+          'should map top-level reasoning=%s to reasoning effort',
+          async reasoningValue => {
+            const { warnings } = await createModel('o3-mini').doGenerate({
+              prompt: TEST_PROMPT,
+              reasoning: reasoningValue,
+            });
+
+            expect(await server.calls[0].requestBodyJson).toStrictEqual({
+              model: 'o3-mini',
+              input: [
+                {
+                  role: 'user',
+                  content: [{ type: 'input_text', text: 'Hello' }],
+                },
+              ],
+              reasoning: {
+                effort: reasoningValue,
+              },
+            });
+
+            if (reasoningValue === 'none') {
+              expect(warnings).toStrictEqual([]);
+            }
+          },
+        );
+
+        it('should let providerOptions.openai.reasoningEffort take precedence over top-level reasoning', async () => {
+          const { warnings } = await createModel('o3-mini').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'low',
+            providerOptions: {
+              openai: {
+                reasoningEffort: 'high',
+              } satisfies OpenAILanguageModelResponsesOptions,
+            },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+            model: 'o3-mini',
+            input: [
+              {
+                role: 'user',
+                content: [{ type: 'input_text', text: 'Hello' }],
+              },
+            ],
+            reasoning: {
+              effort: 'high',
+            },
+          });
+
+          expect(warnings).toStrictEqual([]);
+        });
+
+        it('should strip temperature/topP when top-level reasoning is set to non-none value on reasoning model', async () => {
+          const { warnings } = await createModel('o3-mini').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'medium',
+            temperature: 0.5,
+            topP: 0.7,
+          });
+
+          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+            model: 'o3-mini',
+            input: [
+              {
+                role: 'user',
+                content: [{ type: 'input_text', text: 'Hello' }],
+              },
+            ],
+            reasoning: {
+              effort: 'medium',
+            },
+          });
+
+          expect(warnings).toStrictEqual([
+            {
+              type: 'unsupported',
+              feature: 'temperature',
+              details: 'temperature is not supported for reasoning models',
+            },
+            {
+              type: 'unsupported',
+              feature: 'topP',
+              details: 'topP is not supported for reasoning models',
+            },
+          ]);
+        });
+
+        it('should not strip parameters when top-level reasoning is none', async () => {
+          const { warnings } = await createModel('gpt-4o').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'none',
+            temperature: 0.5,
+            topP: 0.7,
+          });
+
+          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+            model: 'gpt-4o',
+            input: [
+              {
+                role: 'user',
+                content: [{ type: 'input_text', text: 'Hello' }],
+              },
+            ],
+            temperature: 0.5,
+            top_p: 0.7,
+          });
+
+          expect(warnings).toStrictEqual([]);
+        });
+      });
+
       it('should send instructions provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,

@@ -125,6 +125,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     frequencyPenalty,
     seed,
     prompt,
+    reasoning,
     providerOptions,
     tools,
     toolChoice,
@@ -169,6 +170,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         schema: openaiLanguageModelResponsesOptionsSchema,
       });
     }
+
+    const resolvedReasoningEffort = openaiOptions?.reasoningEffort ?? reasoning;
 
     const isReasoningModel =
       openaiOptions?.forceReasoning ?? modelCapabilities.isReasoningModel;
@@ -338,11 +341,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
       // model-specific settings:
       ...(isReasoningModel &&
-        (openaiOptions?.reasoningEffort != null ||
+        (resolvedReasoningEffort != null ||
           openaiOptions?.reasoningSummary != null) && {
           reasoning: {
-            ...(openaiOptions?.reasoningEffort != null && {
-              effort: openaiOptions.reasoningEffort,
+            ...(resolvedReasoningEffort != null && {
+              effort: resolvedReasoningEffort,
             }),
             ...(openaiOptions?.reasoningSummary != null && {
               summary: openaiOptions.reasoningSummary,
@@ -358,7 +361,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
       if (
         !(
-          openaiOptions?.reasoningEffort === 'none' &&
+          resolvedReasoningEffort === 'none' &&
           modelCapabilities.supportsNonReasoningParameters
         )
       ) {
