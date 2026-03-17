@@ -1,5 +1,11 @@
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { prepareCallSettings } from './prepare-call-settings';
+import {
+  getToolTimeoutMs,
+  getTotalTimeoutMs,
+  getStepTimeoutMs,
+  getChunkTimeoutMs,
+} from './call-settings';
 import { describe, it, expect } from 'vitest';
 
 describe('prepareCallSettings', () => {
@@ -174,6 +180,30 @@ describe('prepareCallSettings', () => {
     it('should pass through undefined', () => {
       const settings = prepareCallSettings({});
       expect(settings.reasoning).toBeUndefined();
+    });
+  });
+
+  describe('getToolTimeoutMs', () => {
+    it('should return undefined when timeout is undefined', () => {
+      expect(getToolTimeoutMs(undefined)).toBeUndefined();
+    });
+
+    it('should return undefined when timeout is a number', () => {
+      expect(getToolTimeoutMs(5000)).toBeUndefined();
+    });
+
+    it('should return undefined when toolMs is not set', () => {
+      expect(getToolTimeoutMs({ totalMs: 10000 })).toBeUndefined();
+    });
+
+    it('should return toolMs when set', () => {
+      expect(getToolTimeoutMs({ toolMs: 3000 })).toBe(3000);
+    });
+
+    it('should return toolMs alongside other timeout values', () => {
+      expect(
+        getToolTimeoutMs({ totalMs: 30000, stepMs: 10000, toolMs: 5000 }),
+      ).toBe(5000);
     });
   });
 

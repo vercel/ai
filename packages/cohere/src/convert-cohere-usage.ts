@@ -1,4 +1,4 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import { LanguageModelV4Usage } from '@ai-sdk/provider';
 
 export type CohereUsageTokens = {
   input_tokens: number;
@@ -7,7 +7,7 @@ export type CohereUsageTokens = {
 
 export function convertCohereUsage(
   tokens: CohereUsageTokens | undefined | null,
-): LanguageModelV3Usage {
+): LanguageModelV4Usage {
   if (tokens == null) {
     return {
       inputTokens: {
