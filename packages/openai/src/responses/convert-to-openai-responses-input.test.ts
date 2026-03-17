@@ -1167,7 +1167,6 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            providerOptionsName: 'openai',
             store: false,
           });
 
