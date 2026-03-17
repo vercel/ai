@@ -1,6 +1,6 @@
 import {
-  LanguageModelV3FunctionTool,
-  LanguageModelV3ProviderTool,
+  LanguageModelV4FunctionTool,
+  LanguageModelV4ProviderTool,
 } from '@ai-sdk/provider';
 
 /**
@@ -39,7 +39,7 @@ export function createToolNameMapping({
    * Tools that were passed to the language model.
    */
   tools:
-    | Array<LanguageModelV3FunctionTool | LanguageModelV3ProviderTool>
+    | Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool>
     | undefined;
 
   /**
@@ -52,7 +52,7 @@ export function createToolNameMapping({
    * static id -> name mappings (e.g. dynamic provider names).
    */
   resolveProviderToolName?: (
-    tool: LanguageModelV3ProviderTool,
+    tool: LanguageModelV4ProviderTool,
   ) => string | undefined;
 }): ToolNameMapping {
   const customToolNameToProviderToolName: Record<string, string> = {};
