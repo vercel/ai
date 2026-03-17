@@ -1,4 +1,4 @@
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import {
   context,
   trace,
@@ -99,7 +99,7 @@ interface OtelStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
   OUTPUT extends Output = Output,
 > extends OnStepStartEvent<TOOLS, OUTPUT> {
-  readonly promptMessages?: LanguageModelV3Prompt;
+  readonly promptMessages?: LanguageModelV4Prompt;
   readonly stepTools?: ReadonlyArray<Record<string, unknown>>;
   readonly stepToolChoice?: unknown;
 }
