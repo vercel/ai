@@ -1,18 +1,10 @@
 import {
-<<<<<<< HEAD
   LanguageModelV3Content,
   LanguageModelV3FunctionTool,
   LanguageModelV3GenerateResult,
+  LanguageModelV3ProviderTool,
   LanguageModelV3Prompt,
   LanguageModelV3StreamPart,
-=======
-  LanguageModelV4Content,
-  LanguageModelV4FunctionTool,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4ProviderTool,
-  LanguageModelV4Prompt,
-  LanguageModelV4StreamPart,
->>>>>>> 156cdf060 (feat(openai): add new tool search tool (#13157))
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -56,7 +48,7 @@ const TEST_TOOLS: Array<LanguageModelV3FunctionTool> = [
 ];
 
 const HOSTED_TOOL_SEARCH_TOOLS: Array<
-  LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
+  LanguageModelV3FunctionTool | LanguageModelV3ProviderTool
 > = [
   {
     type: 'provider' as const,
@@ -134,7 +126,7 @@ const HOSTED_TOOL_SEARCH_TOOLS: Array<
 ];
 
 const CLIENT_TOOL_SEARCH_TOOLS: Array<
-  LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
+  LanguageModelV3FunctionTool | LanguageModelV3ProviderTool
 > = [
   {
     type: 'provider' as const,
@@ -2575,7 +2567,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('tool search tool', () => {
-      let result: LanguageModelV4GenerateResult;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-tool-search.1');
@@ -2592,7 +2584,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             (
               part,
             ): part is Extract<
-              LanguageModelV4Content,
+              LanguageModelV3Content,
               { type: 'tool-call' | 'tool-result' }
             > =>
               (part.type === 'tool-call' || part.type === 'tool-result') &&
@@ -2690,7 +2682,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           .filter(
             (
               part,
-            ): part is Extract<LanguageModelV4Content, { type: 'tool-call' }> =>
+            ): part is Extract<LanguageModelV3Content, { type: 'tool-call' }> =>
               part.type === 'tool-call' && part.toolName === 'toolSearch',
           )
           .map(part => ({
@@ -2732,7 +2724,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         const toolCallPart = result.content.find(
           (
             part,
-          ): part is Extract<LanguageModelV4Content, { type: 'tool-call' }> =>
+          ): part is Extract<LanguageModelV3Content, { type: 'tool-call' }> =>
             part.type === 'tool-call' && part.toolName === 'toolSearch',
         );
 
@@ -2751,7 +2743,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         const toolCallPart = result.content.find(
           (
             part,
-          ): part is Extract<LanguageModelV4Content, { type: 'tool-call' }> =>
+          ): part is Extract<LanguageModelV3Content, { type: 'tool-call' }> =>
             part.type === 'tool-call' && part.toolName === 'toolSearch',
         );
 
@@ -6026,7 +6018,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             (
               part,
             ): part is Extract<
-              LanguageModelV4StreamPart,
+              LanguageModelV3StreamPart,
               { type: 'tool-call' | 'tool-result' }
             > =>
               (part.type === 'tool-call' || part.type === 'tool-result') &&
@@ -6260,7 +6252,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             (
               part,
             ): part is Extract<
-              LanguageModelV4StreamPart,
+              LanguageModelV3StreamPart,
               {
                 type:
                   | 'tool-input-start'
@@ -6325,7 +6317,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           (
             part,
           ): part is Extract<
-            LanguageModelV4StreamPart,
+            LanguageModelV3StreamPart,
             { type: 'tool-input-start' }
           > =>
             part.type === 'tool-input-start' && part.toolName === 'toolSearch',
@@ -6334,7 +6326,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           (
             part,
           ): part is Extract<
-            LanguageModelV4StreamPart,
+            LanguageModelV3StreamPart,
             { type: 'tool-call' }
           > => part.type === 'tool-call' && part.toolName === 'toolSearch',
         );
@@ -6357,7 +6349,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           (
             part,
           ): part is Extract<
-            LanguageModelV4StreamPart,
+            LanguageModelV3StreamPart,
             { type: 'tool-call' }
           > => part.type === 'tool-call' && part.toolName === 'toolSearch',
         );
@@ -6383,7 +6375,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           (
             part,
           ): part is Extract<
-            LanguageModelV4StreamPart,
+            LanguageModelV3StreamPart,
             { type: 'tool-call' }
           > => part.type === 'tool-call' && part.toolName === 'get_weather',
         );
