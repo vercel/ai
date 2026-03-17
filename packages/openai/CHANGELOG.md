@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.46
+
+### Patch Changes
+
+- 75fc0e7: feat(openai): add new tool search tool
+
 ## 3.0.45
 
 ### Patch Changes
