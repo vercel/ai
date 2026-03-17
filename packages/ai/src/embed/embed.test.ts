@@ -488,6 +488,7 @@ describe('options.experimental_onFinish', () => {
           undefined,
           { headers: {}, body: {} },
           providerMetadata,
+          expectedWarnings,
         ),
       }),
       value: testValue,
@@ -497,6 +498,7 @@ describe('options.experimental_onFinish', () => {
     });
 
     expect(finishEvent.providerMetadata).toEqual(providerMetadata);
+    expect(finishEvent.warnings).toEqual(expectedWarnings);
   });
 
   it('should include response data', async () => {
@@ -635,9 +637,10 @@ function mockEmbed(
   providerMetadata?: Awaited<
     ReturnType<EmbeddingModelV3['doEmbed']>
   >['providerMetadata'],
+  warnings: Warning[] = [],
 ): EmbeddingModelV3['doEmbed'] {
   return async ({ values }) => {
     assert.deepStrictEqual(expectedValues, values);
-    return { embeddings, usage, response, providerMetadata, warnings: [] };
+    return { embeddings, usage, response, providerMetadata, warnings };
   };
 }
