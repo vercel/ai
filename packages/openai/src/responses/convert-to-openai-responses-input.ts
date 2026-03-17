@@ -46,14 +46,8 @@ export async function convertToOpenAIResponsesInput({
   input: OpenAIResponsesInput;
   warnings: Array<LanguageModelV2CallWarning>;
 }> {
-<<<<<<< HEAD
-  const input: OpenAIResponsesInput = [];
-  const warnings: Array<LanguageModelV2CallWarning> = [];
-=======
   let input: OpenAIResponsesInput = [];
-  const warnings: Array<SharedV3Warning> = [];
-  const processedApprovalIds = new Set<string>();
->>>>>>> f4a734a92 (Backport: fix(provider/openai): drop reasoning parts without encrypted content when store: false (#13239))
+  const warnings: Array<LanguageModelV2CallWarning> = [];
 
   for (const { role, content } of prompt) {
     switch (role) {

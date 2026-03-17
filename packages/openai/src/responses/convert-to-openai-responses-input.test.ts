@@ -1141,7 +1141,6 @@ describe('convertToOpenAIResponsesInput', () => {
 
         it('should drop reasoning parts without encrypted content when store is false', async () => {
           const result = await convertToOpenAIResponsesInput({
-            toolNameMapping: testToolNameMapping,
             prompt: [
               {
                 role: 'assistant',
