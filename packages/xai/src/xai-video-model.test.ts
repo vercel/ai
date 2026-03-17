@@ -82,7 +82,7 @@ describe('XaiVideoModel', () => {
 
       expect(model.provider).toBe('xai.video');
       expect(model.modelId).toBe('grok-imagine-video');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxVideosPerCall).toBe(1);
     });
   });

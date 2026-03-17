@@ -81,6 +81,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         toolCallId: z.string(),
         output: z.unknown(),
         providerExecuted: z.boolean().optional(),
+        providerMetadata: providerMetadataSchema.optional(),
         dynamic: z.boolean().optional(),
         preliminary: z.boolean().optional(),
       }),
@@ -89,6 +90,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         toolCallId: z.string(),
         errorText: z.string(),
         providerExecuted: z.boolean().optional(),
+        providerMetadata: providerMetadataSchema.optional(),
         dynamic: z.boolean().optional(),
       }),
       z.strictObject({
@@ -128,6 +130,12 @@ export const uiMessageChunkSchema = lazySchema(() =>
       }),
       z.strictObject({
         type: z.literal('file'),
+        url: z.string(),
+        mediaType: z.string(),
+        providerMetadata: providerMetadataSchema.optional(),
+      }),
+      z.strictObject({
+        type: z.literal('reasoning-file'),
         url: z.string(),
         mediaType: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
@@ -259,6 +267,7 @@ export type UIMessageChunk<
       toolCallId: string;
       output: unknown;
       providerExecuted?: boolean;
+      providerMetadata?: ProviderMetadata;
       dynamic?: boolean;
       preliminary?: boolean;
     }
@@ -267,6 +276,7 @@ export type UIMessageChunk<
       toolCallId: string;
       errorText: string;
       providerExecuted?: boolean;
+      providerMetadata?: ProviderMetadata;
       dynamic?: boolean;
     }
   | {
@@ -304,6 +314,12 @@ export type UIMessageChunk<
     }
   | {
       type: 'file';
+      url: string;
+      mediaType: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'reasoning-file';
       url: string;
       mediaType: string;
       providerMetadata?: ProviderMetadata;

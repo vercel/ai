@@ -251,10 +251,10 @@ const vertex = createVertex({
 ### Language Models
 
 You can create models that call the Vertex API using the provider instance.
-The first argument is the model id, e.g. `gemini-1.5-pro`.
+The first argument is the model id, e.g. `gemini-2.5-pro`.
 
 ```ts
-const model = vertex('gemini-1.5-pro');
+const model = vertex('gemini-2.5-pro');
 ```
 
 <Note>
@@ -271,7 +271,7 @@ an options argument:
 import { vertex } from '@ai-sdk/google-vertex';
 import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 
-const model = vertex('gemini-1.5-pro');
+const model = vertex('gemini-2.5-pro');
 
 await generateText({
   model,
@@ -351,7 +351,7 @@ import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vertex('gemini-1.5-pro'),
+  model: vertex('gemini-2.5-pro'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -525,7 +525,7 @@ import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vertex('gemini-1.5-pro'),
+  model: vertex('gemini-2.5-pro'),
   messages: [
     {
       role: 'user',
@@ -721,7 +721,7 @@ import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText, Output } from 'ai';
 
 const result = await generateText({
-  model: vertex('gemini-1.5-pro'),
+  model: vertex('gemini-2.5-pro'),
   providerOptions: {
     vertex: {
       structuredOutputs: false,
@@ -760,8 +760,6 @@ The following Zod features are known to not work with Google Vertex:
 | `gemini-2.5-pro`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.5-flash`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.0-flash-001` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-1.5-flash`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-1.5-pro`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [Google Vertex AI
@@ -775,7 +773,7 @@ The following Zod features are known to not work with Google Vertex:
 You can create models that call the Google Vertex AI embeddings API using the `.embeddingModel()` factory method:
 
 ```ts
-const model = vertex.embeddingModel('text-embedding-004');
+const model = vertex.embeddingModel('text-embedding-005');
 ```
 
 Google Vertex AI embedding models support additional settings. You can pass them as an options argument:
@@ -787,7 +785,7 @@ import {
 } from '@ai-sdk/google-vertex';
 import { embed } from 'ai';
 
-const model = vertex.embeddingModel('text-embedding-004');
+const model = vertex.embeddingModel('text-embedding-005');
 
 const { embedding } = await embed({
   model,
@@ -831,9 +829,10 @@ The following optional provider options are available for Google Vertex AI embed
 
 #### Model Capabilities
 
-| Model                | Max Values Per Call | Parallel Calls      |
-| -------------------- | ------------------- | ------------------- |
-| `text-embedding-004` | 2048                | <Check size={18} /> |
+| Model                        | Max Values Per Call | Parallel Calls      | Multimodal          |
+| ---------------------------- | ------------------- | ------------------- | ------------------- |
+| `text-embedding-005`         | 2048                | <Check size={18} /> | <Cross size={18} /> |
+| `gemini-embedding-2-preview` | 2048                | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. You can also pass any available provider
@@ -1093,10 +1092,11 @@ const { image } = await generateImage({
 
 ##### Gemini Image Model Capabilities
 
-| Model                        | Image Generation    | Image Editing       | Aspect Ratios                                       |
-| ---------------------------- | ------------------- | ------------------- | --------------------------------------------------- |
-| `gemini-3-pro-image-preview` | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
-| `gemini-2.5-flash-image`     | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+| Model                            | Image Generation    | Image Editing       | Aspect Ratios                                       |
+| -------------------------------- | ------------------- | ------------------- | --------------------------------------------------- |
+| `gemini-3.1-flash-image-preview` | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+| `gemini-3-pro-image-preview`     | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+| `gemini-2.5-flash-image`         | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
 
 <Note>
   `gemini-3-pro-image-preview` supports additional features including up to 14
@@ -1546,6 +1546,12 @@ Google Vertex Anthropic supports a subset of Anthropic's built-in tools. The fol
   Only a subset of Anthropic tools are supported on Google Vertex. Tools like
   Code Execution, Memory, and Web Fetch are not available. Use the regular
   `@ai-sdk/anthropic` provider if you need access to all Anthropic tools.
+</Note>
+
+<Note>
+  Google Vertex Anthropic does not support strict mode on tool definitions.
+  Setting `strict: true` on a tool will be ignored and a warning will be
+  emitted.
 </Note>
 
 For more background on Anthropic tools, see [Anthropic's documentation](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview).

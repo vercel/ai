@@ -50,6 +50,8 @@ describe('google-vertex-anthropic-provider', () => {
         headers: expect.any(Object),
         buildRequestUrl: expect.any(Function),
         transformRequestBody: expect.any(Function),
+        supportsNativeStructuredOutput: false,
+        supportsStrictTools: false,
       }),
     );
   });
@@ -100,6 +102,7 @@ describe('google-vertex-anthropic-provider', () => {
     expect(provider.tools).toHaveProperty('computer_20241022');
     expect(provider.tools).toHaveProperty('webSearch_20250305');
     expect(provider.tools).not.toHaveProperty('codeExecution_20250825');
+    expect(provider.tools).not.toHaveProperty('codeExecution_20260120');
   });
 
   it('should pass custom headers to the model constructor', () => {

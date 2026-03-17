@@ -1,9 +1,9 @@
 import {
-  LanguageModelV3Content,
-  LanguageModelV3FunctionTool,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3Prompt,
-  LanguageModelV3StreamPart,
+  LanguageModelV4Content,
+  LanguageModelV4FunctionTool,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4Prompt,
+  LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -19,11 +19,11 @@ import {
   openaiResponsesReasoningModelIds,
 } from './openai-responses-options';
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const TEST_TOOLS: Array<LanguageModelV3FunctionTool> = [
+const TEST_TOOLS: Array<LanguageModelV4FunctionTool> = [
   {
     type: 'function',
     name: 'weather',
@@ -2283,7 +2283,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('code interpreter tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-code-interpreter-tool.1');
@@ -2335,7 +2335,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(result.content).toMatchSnapshot();
 
         const sources = result.content.filter(
-          (part): part is Extract<LanguageModelV3Content, { type: 'source' }> =>
+          (part): part is Extract<LanguageModelV4Content, { type: 'source' }> =>
             part.type === 'source',
         );
 
@@ -2360,7 +2360,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('image generation tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-image-generation-tool.1');
@@ -2417,7 +2417,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('local shell tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-local-shell-tool.1');
@@ -2465,7 +2465,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('web search tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-web-search-tool.1');
@@ -2516,7 +2516,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('shell tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-shell-tool.1');
@@ -2564,7 +2564,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('shell tool with container (no skills)', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-shell-container.1');
@@ -2665,9 +2665,9 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('shell tool with container multiturn', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
-      const MULTITURN_PROMPT: LanguageModelV3Prompt = [
+      const MULTITURN_PROMPT: LanguageModelV4Prompt = [
         {
           role: 'user',
           content: [{ type: 'text', text: 'Run uname -a' }],
@@ -2821,9 +2821,9 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('shell tool with local multiturn', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
-      const MULTITURN_PROMPT: LanguageModelV3Prompt = [
+      const MULTITURN_PROMPT: LanguageModelV4Prompt = [
         {
           role: 'user',
           content: [{ type: 'text', text: 'Run uname -a' }],
@@ -2979,7 +2979,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('shell tool with environment', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-shell-skills.1');
@@ -3204,10 +3204,86 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(result.content).toMatchSnapshot();
       });
+
+      it('should accept web_search_call without action', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_missing_web_search_action',
+            object: 'response',
+            created_at: 1741631111,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            instructions: null,
+            max_output_tokens: null,
+            model: 'gpt-4o',
+            output: [
+              {
+                type: 'web_search_call',
+                id: 'ws_missing_action',
+                status: 'completed',
+              },
+              {
+                type: 'message',
+                id: 'msg_done',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'No action payload was returned.',
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+            usage: {
+              input_tokens: 10,
+              output_tokens: 5,
+              total_tokens: 15,
+            },
+            previous_response_id: null,
+            parallel_tool_calls: true,
+            reasoning: { effort: null, summary: null },
+            store: true,
+            temperature: 0,
+            text: { format: { type: 'text' } },
+            tool_choice: 'auto',
+            tools: [{ type: 'web_search', search_context_size: 'medium' }],
+            top_p: 1,
+            truncation: 'disabled',
+            user: null,
+            metadata: {},
+          },
+        };
+
+        const result = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.web_search',
+              name: 'webSearch',
+              args: {},
+            },
+          ],
+        });
+
+        const webSearchResultPart = result.content.find(
+          part => part.type === 'tool-result',
+        );
+
+        expect(webSearchResultPart).toMatchObject({
+          type: 'tool-result',
+          toolName: 'webSearch',
+          result: {},
+        });
+      });
     });
 
     describe('mcp tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-mcp-tool.1');
@@ -3467,7 +3543,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('file search tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       describe('without results include', () => {
         beforeEach(async () => {
@@ -3621,7 +3697,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('apply_patch tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       describe('create_file operation', () => {
         beforeEach(async () => {
@@ -3667,6 +3743,132 @@ describe('OpenAIResponsesLanguageModel', () => {
         it('should include apply_patch tool call and result in content', async () => {
           expect(result.content).toMatchSnapshot();
         });
+      });
+    });
+
+    describe('custom tool', () => {
+      let result: LanguageModelV4GenerateResult;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-custom-tool.1');
+
+        result = await createModel('gpt-5.2-codex').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.custom',
+              name: 'write_sql',
+              args: {
+                name: 'write_sql',
+                description:
+                  'Write a SQL SELECT query to answer the user question.',
+                format: {
+                  type: 'grammar',
+                  syntax: 'regex',
+                  definition: 'SELECT .+',
+                },
+              },
+            },
+          ],
+        });
+      });
+
+      it('should send request body with custom tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5.2-codex",
+            "tools": [
+              {
+                "description": "Write a SQL SELECT query to answer the user question.",
+                "format": {
+                  "definition": "SELECT .+",
+                  "syntax": "regex",
+                  "type": "grammar",
+                },
+                "name": "write_sql",
+                "type": "custom",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should generate custom tool call', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": ""SELECT * FROM users WHERE age > 25"",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "ct_abc123def456",
+                },
+              },
+              "toolCallId": "call_custom_sql_001",
+              "toolName": "write_sql",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should have tool-calls finish reason', async () => {
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": undefined,
+            "unified": "tool-calls",
+          }
+        `);
+      });
+
+      it('should map aliased custom tool names in toolChoice and response parsing', async () => {
+        prepareJsonFixtureResponse('openai-custom-tool.1');
+
+        const aliasedResult = await createModel('gpt-5.2-codex').doGenerate({
+          prompt: TEST_PROMPT,
+          toolChoice: { type: 'tool', toolName: 'alias_name' },
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.custom',
+              name: 'alias_name',
+              args: {
+                name: 'write_sql',
+                description:
+                  'Write a SQL SELECT query to answer the user question.',
+                format: {
+                  type: 'grammar',
+                  syntax: 'regex',
+                  definition: 'SELECT .+',
+                },
+              },
+            },
+          ],
+        });
+
+        expect(
+          (await server.calls.at(-1)!.requestBodyJson).tool_choice,
+        ).toStrictEqual({
+          type: 'custom',
+          name: 'write_sql',
+        });
+
+        const toolCall = aliasedResult.content.find(
+          part => part.type === 'tool-call',
+        );
+        expect(toolCall).toBeDefined();
+        expect((toolCall as { toolName: string }).toolName).toBe('alias_name');
       });
     });
 
@@ -4455,12 +4657,37 @@ describe('OpenAIResponsesLanguageModel', () => {
         const toolCallPart = result.content.find(
           (
             part,
-          ): part is Extract<LanguageModelV3Content, { type: 'tool-call' }> =>
+          ): part is Extract<LanguageModelV4Content, { type: 'tool-call' }> =>
             part.type === 'tool-call',
         );
 
         expect(toolCallPart?.providerMetadata).toHaveProperty('azure');
         expect(toolCallPart?.providerMetadata).not.toHaveProperty('openai');
+      });
+    });
+
+    describe('phase', () => {
+      it('should include phase in provider metadata for message output items', async () => {
+        prepareJsonFixtureResponse('openai-phase.1');
+
+        const result = await createModel('gpt-5.3-codex').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        const textParts = result.content.filter(
+          (part): part is Extract<LanguageModelV4Content, { type: 'text' }> =>
+            part.type === 'text',
+        );
+
+        expect(textParts).toHaveLength(2);
+        expect(textParts[0].providerMetadata?.openai).toMatchObject({
+          itemId: 'msg_0465b6d1ae1f97c500699f883243a481a3b50b985223592984',
+          phase: 'commentary',
+        });
+        expect(textParts[1].providerMetadata?.openai).toMatchObject({
+          itemId: 'msg_0465b6d1ae1f97c500699f8835e09c81a3b91e9d502ff18555',
+          phase: 'final_answer',
+        });
       });
     });
   });
@@ -5190,6 +5417,161 @@ describe('OpenAIResponsesLanguageModel', () => {
       `);
     });
 
+    describe('custom tool', () => {
+      it('should stream custom tool call', async () => {
+        prepareChunksFixtureResponse('openai-custom-tool.1');
+
+        const { stream } = await createModel('gpt-5.2-codex').doStream({
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.custom',
+              name: 'write_sql',
+              args: {
+                name: 'write_sql',
+                description:
+                  'Write a SQL SELECT query to answer the user question.',
+                format: {
+                  type: 'grammar',
+                  syntax: 'regex',
+                  definition: 'SELECT .+',
+                },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+
+        expect(await convertReadableStreamToArray(stream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "resp_custom_tool_test_001",
+                "modelId": "gpt-5.2-codex",
+                "timestamp": 2025-03-06T10:42:10.000Z,
+                "type": "response-metadata",
+              },
+              {
+                "id": "call_custom_sql_001",
+                "toolName": "write_sql",
+                "type": "tool-input-start",
+              },
+              {
+                "delta": "SELECT * ",
+                "id": "call_custom_sql_001",
+                "type": "tool-input-delta",
+              },
+              {
+                "delta": "FROM users ",
+                "id": "call_custom_sql_001",
+                "type": "tool-input-delta",
+              },
+              {
+                "delta": "WHERE age > 25",
+                "id": "call_custom_sql_001",
+                "type": "tool-input-delta",
+              },
+              {
+                "id": "call_custom_sql_001",
+                "type": "tool-input-end",
+              },
+              {
+                "input": ""SELECT * FROM users WHERE age > 25"",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "ct_abc123def456",
+                  },
+                },
+                "toolCallId": "call_custom_sql_001",
+                "toolName": "write_sql",
+                "type": "tool-call",
+              },
+              {
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "tool-calls",
+                },
+                "providerMetadata": {
+                  "openai": {
+                    "responseId": "resp_custom_tool_test_001",
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "inputTokens": {
+                    "cacheRead": 0,
+                    "cacheWrite": undefined,
+                    "noCache": 50,
+                    "total": 50,
+                  },
+                  "outputTokens": {
+                    "reasoning": 0,
+                    "text": 20,
+                    "total": 20,
+                  },
+                  "raw": {
+                    "input_tokens": 50,
+                    "input_tokens_details": {
+                      "cached_tokens": 0,
+                    },
+                    "output_tokens": 20,
+                    "output_tokens_details": {
+                      "reasoning_tokens": 0,
+                    },
+                  },
+                },
+              },
+            ]
+          `);
+      });
+
+      it('should map aliased custom tool names while streaming', async () => {
+        prepareChunksFixtureResponse('openai-custom-tool.1');
+
+        const { stream } = await createModel('gpt-5.2-codex').doStream({
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.custom',
+              name: 'alias_name',
+              args: {
+                name: 'write_sql',
+                description:
+                  'Write a SQL SELECT query to answer the user question.',
+                format: {
+                  type: 'grammar',
+                  syntax: 'regex',
+                  definition: 'SELECT .+',
+                },
+              },
+            },
+          ],
+          toolChoice: { type: 'tool', toolName: 'alias_name' },
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+
+        expect(
+          (await server.calls.at(-1)!.requestBodyJson).tool_choice,
+        ).toStrictEqual({
+          type: 'custom',
+          name: 'write_sql',
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const streamToolCall = parts.find(part => part.type === 'tool-call');
+        expect(streamToolCall).toBeDefined();
+        expect((streamToolCall as { toolName: string }).toolName).toBe(
+          'alias_name',
+        );
+      });
+    });
+
     describe('web search tool', () => {
       it('should stream web search results (sources, tool calls, tool results)', async () => {
         prepareChunksFixtureResponse('openai-web-search-tool.1');
@@ -5243,6 +5625,42 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+      });
+
+      it('should handle streaming web search without action', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","response":{"id":"resp_missing_action","object":"response","created_at":1741630255,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+            `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"web_search_call","id":"ws_missing_action","status":"in_progress"}}\n\n`,
+            `data:{"type":"response.web_search_call.in_progress","output_index":0,"item_id":"ws_missing_action"}\n\n`,
+            `data:{"type":"response.web_search_call.completed","output_index":0,"item_id":"ws_missing_action"}\n\n`,
+            `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"web_search_call","id":"ws_missing_action","status":"completed"}}\n\n`,
+            `data:{"type":"response.completed","response":{"id":"resp_missing_action","object":"response","created_at":1741630255,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"o3-2025-04-16","output":[{"type":"web_search_call","id":"ws_missing_action","status":"completed"}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":"medium","summary":"auto"},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium"}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":10,"input_tokens_details":{"cached_tokens":0},"output_tokens":2,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":12},"user":null,"metadata":{}}}\n\n`,
+            'data: [DONE]\n\n',
+          ],
+        };
+
+        const { stream } = await createModel('gpt-5-nano').doStream({
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.web_search',
+              name: 'webSearch',
+              args: {},
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const toolResultPart = parts.find(part => part.type === 'tool-result');
+
+        expect(toolResultPart).toMatchObject({
+          type: 'tool-result',
+          toolName: 'webSearch',
+          result: {},
+        });
       });
     });
 
@@ -5322,7 +5740,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         const sourceParts = streamParts.filter(
           (
             part,
-          ): part is Extract<LanguageModelV3StreamPart, { type: 'source' }> =>
+          ): part is Extract<LanguageModelV4StreamPart, { type: 'source' }> =>
             part.type === 'source',
         );
 
@@ -5441,7 +5859,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should stream follow-up response after shell tool history', async () => {
         prepareChunksFixtureResponse('openai-shell-container-multiturn.1');
 
-        const multiturnPrompt: LanguageModelV3Prompt = [
+        const multiturnPrompt: LanguageModelV4Prompt = [
           {
             role: 'user',
             content: [{ type: 'text', text: 'Run uname -a' }],
@@ -5526,7 +5944,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should stream follow-up response after local shell tool history', async () => {
         prepareChunksFixtureResponse('openai-shell-local-multiturn.1');
 
-        const multiturnPrompt: LanguageModelV3Prompt = [
+        const multiturnPrompt: LanguageModelV4Prompt = [
           {
             role: 'user',
             content: [{ type: 'text', text: 'Run uname -a' }],
@@ -6927,7 +7345,7 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('fileIdPrefixes configuration', () => {
-    const TEST_PROMPT_WITH_FILE: LanguageModelV3Prompt = [
+    const TEST_PROMPT_WITH_FILE: LanguageModelV4Prompt = [
       {
         role: 'user',
         content: [
@@ -7731,6 +8149,55 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         ]
       `);
+    });
+
+    describe('phase', () => {
+      it('should include phase in provider metadata for streamed message items', async () => {
+        prepareChunksFixtureResponse('openai-phase.1');
+
+        const { stream } = await createModel('gpt-5.3-codex').doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        const textStartParts = parts.filter(
+          (
+            part,
+          ): part is Extract<
+            LanguageModelV4StreamPart,
+            { type: 'text-start' }
+          > => part.type === 'text-start',
+        );
+
+        expect(textStartParts).toHaveLength(2);
+        expect(textStartParts[0].providerMetadata?.openai).toMatchObject({
+          itemId: 'msg_0a63f40a2632b74300699f8819a5e08196ac270722d369af5a',
+          phase: 'commentary',
+        });
+        expect(textStartParts[1].providerMetadata?.openai).toMatchObject({
+          itemId: 'msg_0a63f40a2632b74300699f881bfbc88196aec38f30c3dd24b0',
+          phase: 'final_answer',
+        });
+
+        const textEndParts = parts.filter(
+          (
+            part,
+          ): part is Extract<LanguageModelV4StreamPart, { type: 'text-end' }> =>
+            part.type === 'text-end',
+        );
+
+        expect(textEndParts).toHaveLength(2);
+        expect(textEndParts[0].providerMetadata?.openai).toMatchObject({
+          itemId: 'msg_0a63f40a2632b74300699f8819a5e08196ac270722d369af5a',
+          phase: 'commentary',
+        });
+        expect(textEndParts[1].providerMetadata?.openai).toMatchObject({
+          itemId: 'msg_0a63f40a2632b74300699f881bfbc88196aec38f30c3dd24b0',
+          phase: 'final_answer',
+        });
+      });
     });
   });
 });

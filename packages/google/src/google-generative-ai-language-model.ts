@@ -1,14 +1,14 @@
 import {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3Source,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4Source,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -38,7 +38,10 @@ import {
   GoogleGenerativeAIModelId,
   googleLanguageModelOptions,
 } from './google-generative-ai-options';
-import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
+import {
+  GoogleGenerativeAIContentPart,
+  GoogleGenerativeAIProviderMetadata,
+} from './google-generative-ai-prompt';
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
 
@@ -52,11 +55,11 @@ type GoogleGenerativeAIConfig = {
   /**
    * The supported URLs for the model.
    */
-  supportedUrls?: () => LanguageModelV3['supportedUrls'];
+  supportedUrls?: () => LanguageModelV4['supportedUrls'];
 };
 
-export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: GoogleGenerativeAIModelId;
 
@@ -94,8 +97,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     providerOptions,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     const providerOptionsName = this.config.provider.includes('vertex')
       ? 'vertex'
@@ -206,8 +209,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings, providerOptionsName } = await this.getArgs(options);
 
     const mergedHeaders = combineHeaders(
@@ -232,7 +235,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     });
 
     const candidate = response.candidates[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // map ordered parts to content:
     const parts = candidate.content?.parts ?? [];
@@ -304,11 +307,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             : undefined,
         });
       } else if ('inlineData' in part) {
+        const hasThought = part.thought === true;
+        const hasThoughtSignature = !!part.thoughtSignature;
         content.push({
-          type: 'file' as const,
+          type: hasThought ? 'reasoning-file' : 'file',
           data: part.inlineData.data,
           mediaType: part.inlineData.mimeType,
-          providerMetadata: part.thoughtSignature
+          providerMetadata: hasThoughtSignature
             ? {
                 [providerOptionsName]: {
                   thoughtSignature: part.thoughtSignature,
@@ -349,7 +354,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           urlContextMetadata: candidate.urlContextMetadata ?? null,
           safetyRatings: candidate.safetyRatings ?? null,
           usageMetadata: usageMetadata ?? null,
-        },
+          finishMessage: candidate.finishMessage ?? null,
+        } satisfies GoogleGenerativeAIProviderMetadata,
       },
       request: { body: args },
       response: {
@@ -361,8 +367,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings, providerOptionsName } = await this.getArgs(options);
 
     const headers = combineHeaders(
@@ -382,12 +388,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
     let usage: GoogleGenerativeAIUsageMetadata | undefined = undefined;
-    let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
+    let providerMetadata: SharedV4ProviderMetadata | undefined = undefined;
+    let lastGroundingMetadata: GroundingMetadataSchema | null = null;
+    let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -406,7 +414,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<ChunkSchema>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -438,6 +446,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             }
 
             const content = candidate.content;
+
+            if (candidate.groundingMetadata != null) {
+              lastGroundingMetadata = candidate.groundingMetadata;
+            }
+            if (candidate.urlContextMetadata != null) {
+              lastUrlContextMetadata = candidate.urlContextMetadata;
+            }
 
             const sources = extractSources({
               groundingMetadata: candidate.groundingMetadata,
@@ -564,11 +579,37 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                     });
                   }
                 } else if ('inlineData' in part) {
-                  // Process file parts inline to preserve order with text
+                  // End any active text or reasoning block before starting file output.
+                  // Relevant for multimodal output models.
+                  if (currentTextBlockId !== null) {
+                    controller.enqueue({
+                      type: 'text-end',
+                      id: currentTextBlockId,
+                    });
+                    currentTextBlockId = null;
+                  }
+                  if (currentReasoningBlockId !== null) {
+                    controller.enqueue({
+                      type: 'reasoning-end',
+                      id: currentReasoningBlockId,
+                    });
+                    currentReasoningBlockId = null;
+                  }
+
+                  const hasThought = part.thought === true;
+                  const hasThoughtSignature = !!part.thoughtSignature;
+                  const fileMeta = hasThoughtSignature
+                    ? {
+                        [providerOptionsName]: {
+                          thoughtSignature: part.thoughtSignature,
+                        },
+                      }
+                    : undefined;
                   controller.enqueue({
-                    type: 'file',
+                    type: hasThought ? 'reasoning-file' : 'file',
                     mediaType: part.inlineData.mimeType,
                     data: part.inlineData.data,
+                    providerMetadata: fileMeta,
                   });
                 }
               }
@@ -626,19 +667,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
               providerMetadata = {
                 [providerOptionsName]: {
                   promptFeedback: value.promptFeedback ?? null,
-                  groundingMetadata: candidate.groundingMetadata ?? null,
-                  urlContextMetadata: candidate.urlContextMetadata ?? null,
+                  groundingMetadata: lastGroundingMetadata,
+                  urlContextMetadata: lastUrlContextMetadata,
                   safetyRatings: candidate.safetyRatings ?? null,
-                },
+                  usageMetadata: usageMetadata ?? null,
+                  finishMessage: candidate.finishMessage ?? null,
+                } satisfies GoogleGenerativeAIProviderMetadata,
               };
-              if (usageMetadata != null) {
-                (
-                  providerMetadata[providerOptionsName] as Record<
-                    string,
-                    unknown
-                  >
-                ).usageMetadata = usageMetadata;
-              }
             }
           },
 
@@ -712,12 +747,12 @@ function extractSources({
 }: {
   groundingMetadata: GroundingMetadataSchema | undefined | null;
   generateId: () => string;
-}): undefined | LanguageModelV3Source[] {
+}): undefined | LanguageModelV4Source[] {
   if (!groundingMetadata?.groundingChunks) {
     return undefined;
   }
 
-  const sources: LanguageModelV3Source[] = [];
+  const sources: LanguageModelV4Source[] = [];
 
   for (const chunk of groundingMetadata.groundingChunks) {
     if (chunk.web != null) {
@@ -728,6 +763,17 @@ function extractSources({
         id: generateId(),
         url: chunk.web.uri,
         title: chunk.web.title ?? undefined,
+      });
+    } else if (chunk.image != null) {
+      // Handle image chunks as image sources
+      sources.push({
+        type: 'source',
+        sourceType: 'url',
+        id: generateId(),
+        // Google requires attribution to the source URI, not the actual image URI.
+        // TODO: add another type in v7 to allow both the image and source URL to be included separately
+        url: chunk.image.sourceUri,
+        title: chunk.image.title ?? undefined,
       });
     } else if (chunk.retrievedContext != null) {
       // Handle retrievedContext chunks from RAG operations
@@ -808,6 +854,7 @@ function extractSources({
 export const getGroundingMetadataSchema = () =>
   z.object({
     webSearchQueries: z.array(z.string()).nullish(),
+    imageSearchQueries: z.array(z.string()).nullish(),
     retrievalQueries: z.array(z.string()).nullish(),
     searchEntryPoint: z.object({ renderedContent: z.string() }).nullish(),
     groundingChunks: z
@@ -815,6 +862,14 @@ export const getGroundingMetadataSchema = () =>
         z.object({
           web: z
             .object({ uri: z.string(), title: z.string().nullish() })
+            .nullish(),
+          image: z
+            .object({
+              sourceUri: z.string(),
+              imageUri: z.string(),
+              title: z.string().nullish(),
+              domain: z.string().nullish(),
+            })
             .nullish(),
           retrievedContext: z
             .object({
@@ -881,6 +936,7 @@ const getContentSchema = () =>
               mimeType: z.string(),
               data: z.string(),
             }),
+            thought: z.boolean().nullish(),
             thoughtSignature: z.string().nullish(),
           }),
           z.object({
@@ -929,12 +985,14 @@ const usageSchema = z.object({
 // https://ai.google.dev/api/generate-content#UrlRetrievalMetadata
 export const getUrlContextMetadataSchema = () =>
   z.object({
-    urlMetadata: z.array(
-      z.object({
-        retrievedUrl: z.string(),
-        urlRetrievalStatus: z.string(),
-      }),
-    ),
+    urlMetadata: z
+      .array(
+        z.object({
+          retrievedUrl: z.string(),
+          urlRetrievalStatus: z.string(),
+        }),
+      )
+      .nullish(),
   });
 
 const responseSchema = lazySchema(() =>
@@ -944,6 +1002,7 @@ const responseSchema = lazySchema(() =>
         z.object({
           content: getContentSchema().nullish().or(z.object({}).strict()),
           finishReason: z.string().nullish(),
+          finishMessage: z.string().nullish(),
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
           groundingMetadata: getGroundingMetadataSchema().nullish(),
           urlContextMetadata: getUrlContextMetadataSchema().nullish(),
@@ -979,6 +1038,14 @@ export type SafetyRatingSchema = NonNullable<
   InferSchema<typeof responseSchema>['candidates'][number]['safetyRatings']
 >[number];
 
+export type PromptFeedbackSchema = NonNullable<
+  InferSchema<typeof responseSchema>['promptFeedback']
+>;
+
+export type UsageMetadataSchema = NonNullable<
+  InferSchema<typeof responseSchema>['usageMetadata']
+>;
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const chunkSchema = lazySchema(() =>
@@ -989,6 +1056,7 @@ const chunkSchema = lazySchema(() =>
           z.object({
             content: getContentSchema().nullish(),
             finishReason: z.string().nullish(),
+            finishMessage: z.string().nullish(),
             safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
             groundingMetadata: getGroundingMetadataSchema().nullish(),
             urlContextMetadata: getUrlContextMetadataSchema().nullish(),

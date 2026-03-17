@@ -64,6 +64,12 @@ const uiMessagesSchema = lazySchema(() =>
                   providerMetadata: providerMetadataSchema.optional(),
                 }),
                 z.object({
+                  type: z.literal('reasoning-file'),
+                  mediaType: z.string(),
+                  url: z.string(),
+                  providerMetadata: providerMetadataSchema.optional(),
+                }),
+                z.object({
                   type: z.literal('step-start'),
                 }),
                 z.object({
@@ -137,6 +143,7 @@ const uiMessagesSchema = lazySchema(() =>
                   output: z.unknown(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
+                  resultProviderMetadata: providerMetadataSchema.optional(),
                   preliminary: z.boolean().optional(),
                   approval: z
                     .object({
@@ -157,6 +164,7 @@ const uiMessagesSchema = lazySchema(() =>
                   output: z.never().optional(),
                   errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
+                  resultProviderMetadata: providerMetadataSchema.optional(),
                   approval: z
                     .object({
                       id: z.string(),
@@ -242,6 +250,7 @@ const uiMessagesSchema = lazySchema(() =>
                   output: z.unknown(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
+                  resultProviderMetadata: providerMetadataSchema.optional(),
                   preliminary: z.boolean().optional(),
                   approval: z
                     .object({
@@ -261,6 +270,7 @@ const uiMessagesSchema = lazySchema(() =>
                   output: z.never().optional(),
                   errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
+                  resultProviderMetadata: providerMetadataSchema.optional(),
                   approval: z
                     .object({
                       id: z.string(),

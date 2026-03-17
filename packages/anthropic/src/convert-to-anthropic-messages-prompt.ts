@@ -1,12 +1,13 @@
 import {
-  SharedV3Warning,
-  LanguageModelV3DataContent,
-  LanguageModelV3Message,
-  LanguageModelV3Prompt,
-  SharedV3ProviderMetadata,
+  SharedV4Warning,
+  LanguageModelV4DataContent,
+  LanguageModelV4Message,
+  LanguageModelV4Prompt,
+  SharedV4ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
+  convertBase64ToUint8Array,
   convertToBase64,
   parseProviderOptions,
   validateTypes,
@@ -25,13 +26,14 @@ import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
 import { CacheControlValidator } from './get-cache-control';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
 import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
+import { codeExecution_20260120OutputSchema } from './tool/code-execution_20260120';
 import { toolSearchRegex_20251119OutputSchema as toolSearchOutputSchema } from './tool/tool-search-regex_20251119';
 import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
 import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 
-function convertToString(data: LanguageModelV3DataContent): string {
+function convertToString(data: LanguageModelV4DataContent): string {
   if (typeof data === 'string') {
-    return Buffer.from(data, 'base64').toString('utf-8');
+    return new TextDecoder().decode(convertBase64ToUint8Array(data));
   }
 
   if (data instanceof Uint8Array) {
@@ -53,16 +55,16 @@ function convertToString(data: LanguageModelV3DataContent): string {
  * Checks if data is a URL (either a URL object or a URL string).
  */
 function isUrlData(
-  data: LanguageModelV3DataContent,
+  data: LanguageModelV4DataContent,
 ): data is URL | (string & { __brand: 'url-string' }) {
   return data instanceof URL || isUrlString(data);
 }
 
-function isUrlString(data: LanguageModelV3DataContent): boolean {
+function isUrlString(data: LanguageModelV4DataContent): boolean {
   return typeof data === 'string' && /^https?:\/\//i.test(data);
 }
 
-function getUrlString(data: LanguageModelV3DataContent): string {
+function getUrlString(data: LanguageModelV4DataContent): string {
   return data instanceof URL ? data.toString() : (data as string);
 }
 
@@ -73,9 +75,9 @@ export async function convertToAnthropicMessagesPrompt({
   cacheControlValidator,
   toolNameMapping,
 }: {
-  prompt: LanguageModelV3Prompt;
+  prompt: LanguageModelV4Prompt;
   sendReasoning: boolean;
-  warnings: SharedV3Warning[];
+  warnings: SharedV4Warning[];
   cacheControlValidator?: CacheControlValidator;
   toolNameMapping: ToolNameMapping;
 }): Promise<{
@@ -90,7 +92,7 @@ export async function convertToAnthropicMessagesPrompt({
   const messages: AnthropicMessagesPrompt['messages'] = [];
 
   async function shouldEnableCitations(
-    providerMetadata: SharedV3ProviderMetadata | undefined,
+    providerMetadata: SharedV4ProviderMetadata | undefined,
   ): Promise<boolean> {
     const anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',
@@ -102,7 +104,7 @@ export async function convertToAnthropicMessagesPrompt({
   }
 
   async function getDocumentMetadata(
-    providerMetadata: SharedV3ProviderMetadata | undefined,
+    providerMetadata: SharedV4ProviderMetadata | undefined,
   ): Promise<{ title?: string; context?: string }> {
     const anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',
@@ -648,10 +650,14 @@ export async function convertToAnthropicMessagesPrompt({
                   | { caller?: { type: string; toolId?: string } }
                   | undefined;
                 const caller = callerOptions?.caller
-                  ? callerOptions.caller.type === 'code_execution_20250825' &&
+                  ? (callerOptions.caller.type === 'code_execution_20250825' ||
+                      callerOptions.caller.type ===
+                        'code_execution_20260120') &&
                     callerOptions.caller.toolId
                     ? {
-                        type: 'code_execution_20250825' as const,
+                        type: callerOptions.caller.type as
+                          | 'code_execution_20250825'
+                          | 'code_execution_20260120',
                         tool_id: callerOptions.caller.toolId,
                       }
                     : callerOptions.caller.type === 'direct'
@@ -762,8 +768,9 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
-                  // to distinguish between code execution 20250522 and 20250825,
-                  // we check if a type property is present in the output.value
+                  // to distinguish between code execution 20250522, 20250825,
+                  // and encrypted results (from web_fetch_20260209/web_search_20260209 injection),
+                  // we check the type property in output.value
                   if (output.value.type === 'code_execution_result') {
                     // code execution 20250522
                     const codeExecutionOutput = await validateTypes({
@@ -783,6 +790,33 @@ export async function convertToAnthropicMessagesPrompt({
                       },
                       cache_control: cacheControl,
                     });
+                  } else if (
+                    output.value.type === 'encrypted_code_execution_result'
+                  ) {
+                    // code execution 20260120 encrypted result
+                    const codeExecutionOutput = await validateTypes({
+                      value: output.value,
+                      schema: codeExecution_20260120OutputSchema,
+                    });
+
+                    if (
+                      codeExecutionOutput.type ===
+                      'encrypted_code_execution_result'
+                    ) {
+                      anthropicContent.push({
+                        type: 'code_execution_tool_result',
+                        tool_use_id: part.toolCallId,
+                        content: {
+                          type: codeExecutionOutput.type,
+                          encrypted_stdout:
+                            codeExecutionOutput.encrypted_stdout,
+                          stderr: codeExecutionOutput.stderr,
+                          return_code: codeExecutionOutput.return_code,
+                          content: codeExecutionOutput.content ?? [],
+                        },
+                        cache_control: cacheControl,
+                      });
+                    }
                   } else {
                     // code execution 20250825
                     const codeExecutionOutput = await validateTypes({
@@ -791,7 +825,6 @@ export async function convertToAnthropicMessagesPrompt({
                     });
 
                     if (codeExecutionOutput.type === 'code_execution_result') {
-                      // Programmatic tool calling result - same format as 20250522
                       anthropicContent.push({
                         type: 'code_execution_tool_result',
                         tool_use_id: part.toolCallId,
@@ -851,7 +884,7 @@ export async function convertToAnthropicMessagesPrompt({
                         errorCode:
                           typeof extractedErrorCode === 'string'
                             ? extractedErrorCode
-                            : 'unknown',
+                            : 'unavailable',
                       };
                     }
 
@@ -860,7 +893,7 @@ export async function convertToAnthropicMessagesPrompt({
                       tool_use_id: part.toolCallId,
                       content: {
                         type: 'web_fetch_tool_result_error',
-                        error_code: errorValue.errorCode ?? 'unknown',
+                        error_code: errorValue.errorCode ?? 'unavailable',
                       },
                       cache_control: cacheControl,
                     });
@@ -877,6 +910,9 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
+                  // ideally we'd switch schema based on the tool version (e.g.
+                  // web_fetch_20260209 vs web_fetch_20250910), but since both
+                  // versions share an identical output schema, we use one here.
                   const webFetchOutput = await validateTypes({
                     value: output.value,
                     schema: webFetch_20250910OutputSchema,
@@ -921,6 +957,9 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
+                  // ideally we'd switch schema based on the tool version (e.g.
+                  // web_search_20260209 vs web_search_20250305), but since both
+                  // versions share an identical output schema, we use one here.
                   const webSearchOutput = await validateTypes({
                     value: output.value,
                     schema: webSearch_20250305OutputSchema,
@@ -1012,19 +1051,19 @@ export async function convertToAnthropicMessagesPrompt({
 
 type SystemBlock = {
   type: 'system';
-  messages: Array<LanguageModelV3Message & { role: 'system' }>;
+  messages: Array<LanguageModelV4Message & { role: 'system' }>;
 };
 type AssistantBlock = {
   type: 'assistant';
-  messages: Array<LanguageModelV3Message & { role: 'assistant' }>;
+  messages: Array<LanguageModelV4Message & { role: 'assistant' }>;
 };
 type UserBlock = {
   type: 'user';
-  messages: Array<LanguageModelV3Message & { role: 'user' | 'tool' }>;
+  messages: Array<LanguageModelV4Message & { role: 'user' | 'tool' }>;
 };
 
 function groupIntoBlocks(
-  prompt: LanguageModelV3Prompt,
+  prompt: LanguageModelV4Prompt,
 ): Array<SystemBlock | AssistantBlock | UserBlock> {
   const blocks: Array<SystemBlock | AssistantBlock | UserBlock> = [];
   let currentBlock: SystemBlock | AssistantBlock | UserBlock | undefined =

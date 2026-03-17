@@ -2,7 +2,7 @@ import { xai } from '@ai-sdk/xai';
 import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
 export const xaiWebSearchAgent = new ToolLoopAgent({
-  model: xai.responses('grok-4-fast'),
+  model: xai.responses('grok-4-fast-non-reasoning'),
   tools: {
     web_search: xai.tools.webSearch({
       enableImageUnderstanding: true,

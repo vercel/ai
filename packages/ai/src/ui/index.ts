@@ -2,6 +2,7 @@ export { callCompletionApi } from './call-completion-api';
 export {
   AbstractChat,
   type ChatAddToolApproveResponseFunction,
+  type ChatAddToolOutputFunction,
   type ChatInit,
   type ChatOnDataCallback,
   type ChatOnErrorCallback,
@@ -37,6 +38,7 @@ export {
   getToolOrDynamicToolName,
   isDataUIPart,
   isFileUIPart,
+  isReasoningFileUIPart,
   isReasoningUIPart,
   isStaticToolUIPart,
   isTextUIPart,
@@ -47,6 +49,7 @@ export {
   type FileUIPart,
   type InferUITool,
   type InferUITools,
+  type ReasoningFileUIPart,
   type ReasoningUIPart,
   type SourceDocumentUIPart,
   type SourceUrlUIPart,

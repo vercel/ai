@@ -1,13 +1,13 @@
 import {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  LanguageModelV3Usage,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  LanguageModelV4Usage,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -43,8 +43,8 @@ type XaiResponsesConfig = {
   fetch?: FetchFunction;
 };
 
-export class XaiResponsesLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class XaiResponsesLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: XaiResponsesModelId;
 
@@ -74,8 +74,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     providerOptions,
     tools,
     toolChoice,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     const options =
       (await parseProviderOptions({
@@ -142,6 +142,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     const baseArgs: Record<string, unknown> = {
       model: this.modelId,
       input,
+      logprobs:
+        options.logprobs === true || options.topLogprobs != null
+          ? true
+          : undefined,
+      top_logprobs: options.topLogprobs,
       max_output_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
@@ -160,8 +165,16 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               : { type: 'json_object' },
         },
       }),
-      ...(options.reasoningEffort != null && {
-        reasoning: { effort: options.reasoningEffort },
+      ...((options.reasoningEffort != null ||
+        options.reasoningSummary != null) && {
+        reasoning: {
+          ...(options.reasoningEffort != null && {
+            effort: options.reasoningEffort,
+          }),
+          ...(options.reasoningSummary != null && {
+            summary: options.reasoningSummary,
+          }),
+        },
       }),
       ...(options.store === false && {
         store: options.store,
@@ -194,8 +207,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const {
       args: body,
       warnings,
@@ -222,7 +235,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     const webSearchSubTools = [
       'web_search',
@@ -355,12 +368,16 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
         }
 
         case 'reasoning': {
-          const summaryTexts = part.summary
-            .map(s => s.text)
-            .filter(text => text && text.length > 0);
+          const texts =
+            part.summary.length > 0
+              ? part.summary.map(s => s.text)
+              : (part.content ?? []).map(c => c.text);
 
-          if (summaryTexts.length > 0) {
-            const reasoningText = summaryTexts.join('');
+          const reasoningText = texts
+            .filter(text => text && text.length > 0)
+            .join('');
+
+          if (reasoningText) {
             if (part.encrypted_content || part.id) {
               content.push({
                 type: 'reasoning',
@@ -413,8 +430,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const {
       args,
       warnings,
@@ -441,11 +458,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
-    let usage: LanguageModelV3Usage | undefined = undefined;
+    let usage: LanguageModelV4Usage | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -468,7 +485,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof xaiResponsesChunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });

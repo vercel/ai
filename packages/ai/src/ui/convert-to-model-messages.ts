@@ -19,7 +19,9 @@ import {
   InferUIMessageTools,
   isDataUIPart,
   isFileUIPart,
+  isReasoningFileUIPart,
   isReasoningUIPart,
+  ReasoningFileUIPart,
   isTextUIPart,
   isToolUIPart,
   ReasoningUIPart,
@@ -136,6 +138,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
             | ToolUIPart<InferUIMessageTools<UI_MESSAGE>>
             | ReasoningUIPart
             | FileUIPart
+            | ReasoningFileUIPart
             | DynamicToolUIPart
             | DataUIPart<InferUIMessageData<UI_MESSAGE>>
           > = [];
@@ -162,6 +165,16 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   mediaType: part.mediaType,
                   filename: part.filename,
                   data: part.url,
+                  ...(part.providerMetadata != null
+                    ? { providerOptions: part.providerMetadata }
+                    : {}),
+                });
+              } else if (isReasoningFileUIPart(part)) {
+                content.push({
+                  type: 'reasoning-file' as const,
+                  data: part.url,
+                  mediaType: part.mediaType,
+                  providerOptions: part.providerMetadata,
                 });
               } else if (isReasoningUIPart(part)) {
                 content.push({
@@ -202,6 +215,9 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     (part.state === 'output-available' ||
                       part.state === 'output-error')
                   ) {
+                    const resultProviderMetadata =
+                      part.resultProviderMetadata ?? part.callProviderMetadata;
+
                     content.push({
                       type: 'tool-result',
                       toolCallId: part.toolCallId,
@@ -217,8 +233,8 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                         errorMode:
                           part.state === 'output-error' ? 'json' : 'none',
                       }),
-                      ...(part.callProviderMetadata != null
-                        ? { providerOptions: part.callProviderMetadata }
+                      ...(resultProviderMetadata != null
+                        ? { providerOptions: resultProviderMetadata }
                         : {}),
                     });
                   }
@@ -341,6 +357,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
             if (
               isTextUIPart(part) ||
               isReasoningUIPart(part) ||
+              isReasoningFileUIPart(part) ||
               isFileUIPart(part) ||
               isToolUIPart(part) ||
               isDataUIPart(part)
