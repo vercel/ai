@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.29
+
+### Patch Changes
+
+- cc8b506: feat(mcp): add `redirect` option to `MCPTransportConfig` for controlling HTTP redirect behavior
+
 ## 1.0.28
 
 ### Patch Changes
