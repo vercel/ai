@@ -459,10 +459,17 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'timeout',
-      type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number }',
+      type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number; toolMs?: number }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, and/or chunkMs properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call), useful for multi-step generations. chunkMs sets the timeout between stream chunks - the call will abort if no new chunk is received within this duration, useful for detecting stalled streams. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, chunkMs, and/or toolMs properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call). chunkMs sets the timeout between stream chunks - the call will abort if no new chunk is received within this duration. toolMs sets the timeout for each tool execution - if a tool takes longer, it aborts and returns a tool-error so the model can respond or retry. Can be used alongside abortSignal.',
+    },
+    {
+      name: 'toolTimeouts',
+      type: 'Partial<Record<keyof TOOLS, number>>',
+      isOptional: true,
+      description:
+        'Per-tool timeout overrides in milliseconds. Takes precedence over the generic timeout.toolMs value. Tool names are type-checked for autocomplete.',
     },
     {
       name: 'headers',
