@@ -683,9 +683,77 @@ describe('tool messages', () => {
     });
   });
 
-  it('should throw for non-data image-url tool result parts', async () => {
-    expect(() =>
-      convertToGoogleGenerativeAIMessages([
+  it('should forward non-data image-url tool result parts as text content', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'imageGenerator',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'image-url',
+                  url: 'https://example.com/image.png',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        name: 'imageGenerator',
+        response: {
+          name: 'imageGenerator',
+          content: '{"type":"image-url","url":"https://example.com/image.png"}',
+        },
+      },
+    });
+  });
+
+  it('should forward non-data file-url tool result parts as text content', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'documentReader',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file-url',
+                  url: 'https://example.com/report.pdf',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        name: 'documentReader',
+        response: {
+          name: 'documentReader',
+          content: '{"type":"file-url","url":"https://example.com/report.pdf"}',
+        },
+      },
+    });
+  });
+
+  it('should use legacy tool-result conversion when functionResponse parts are unsupported', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
         {
           role: 'tool',
           content: [
@@ -697,23 +765,57 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'image-url',
-                    url: 'https://example.com/image.png',
+                    type: 'text',
+                    text: 'Here is the generated image:',
+                  },
+                  {
+                    type: 'image-data',
+                    data: 'base64encodedimagedata',
+                    mediaType: 'image/jpeg',
+                  },
+                  {
+                    type: 'file-data',
+                    data: 'base64pdfdata',
+                    mediaType: 'application/pdf',
+                    filename: 'report.pdf',
                   },
                 ],
               },
             },
           ],
         },
-      ]),
-    ).toThrow(
-      'URL-based image-url tool result parts are not supported. Use image-data/file-data or base64 data URLs.',
+      ],
+      { supportsFunctionResponseParts: false },
     );
+
+    expect(result.contents[0].parts).toEqual([
+      {
+        functionResponse: {
+          name: 'imageGenerator',
+          response: {
+            name: 'imageGenerator',
+            content: 'Here is the generated image:',
+          },
+        },
+      },
+      {
+        inlineData: {
+          mimeType: 'image/jpeg',
+          data: 'base64encodedimagedata',
+        },
+      },
+      {
+        text: 'Tool executed successfully and returned this image as a response',
+      },
+      {
+        text: '{"type":"file-data","data":"base64pdfdata","mediaType":"application/pdf","filename":"report.pdf"}',
+      },
+    ]);
   });
 
-  it('should throw for non-data file-url tool result parts', async () => {
-    expect(() =>
-      convertToGoogleGenerativeAIMessages([
+  it('should keep URL tool result parts on the legacy path', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
         {
           role: 'tool',
           content: [
@@ -725,6 +827,10 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
+                    type: 'image-url',
+                    url: 'https://example.com/image.png',
+                  },
+                  {
                     type: 'file-url',
                     url: 'https://example.com/report.pdf',
                   },
@@ -733,10 +839,18 @@ describe('tool messages', () => {
             },
           ],
         },
-      ]),
-    ).toThrow(
-      'URL-based file-url tool result parts are not supported. Use image-data/file-data or base64 data URLs.',
+      ],
+      { supportsFunctionResponseParts: false },
     );
+
+    expect(result.contents[0].parts).toEqual([
+      {
+        text: '{"type":"image-url","url":"https://example.com/image.png"}',
+      },
+      {
+        text: '{"type":"file-url","url":"https://example.com/report.pdf"}',
+      },
+    ]);
   });
 });
 

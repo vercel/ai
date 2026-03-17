@@ -27,14 +27,11 @@ function parseBase64DataUrl(
 }
 
 function convertUrlToolResultPart(
-  type: 'image-url' | 'file-url',
   url: string,
-): GoogleGenerativeAIFunctionResponsePart {
+): GoogleGenerativeAIFunctionResponsePart | undefined {
   const parsedDataUrl = parseBase64DataUrl(url);
   if (parsedDataUrl == null) {
-    throw new UnsupportedFunctionalityError({
-      functionality: `URL-based ${type} tool result parts are not supported. Use image-data/file-data or base64 data URLs.`,
-    });
+    return undefined;
   }
 
   return {
@@ -45,15 +42,62 @@ function convertUrlToolResultPart(
   };
 }
 
+function appendLegacyToolResultParts(
+  parts: GoogleGenerativeAIContentPart[],
+  toolName: string,
+  outputValue: Array<{
+    type: string;
+    [key: string]: unknown;
+  }>,
+): void {
+  for (const contentPart of outputValue) {
+    switch (contentPart.type) {
+      case 'text':
+        parts.push({
+          functionResponse: {
+            name: toolName,
+            response: {
+              name: toolName,
+              content: contentPart.text,
+            },
+          },
+        });
+        break;
+      case 'image-data':
+        parts.push(
+          {
+            inlineData: {
+              mimeType: String(contentPart.mediaType),
+              data: String(contentPart.data),
+            },
+          },
+          {
+            text: 'Tool executed successfully and returned this image as a response',
+          },
+        );
+        break;
+      default:
+        parts.push({ text: JSON.stringify(contentPart) });
+        break;
+    }
+  }
+}
+
 export function convertToGoogleGenerativeAIMessages(
   prompt: LanguageModelV3Prompt,
-  options?: { isGemmaModel?: boolean; providerOptionsName?: string },
+  options?: {
+    isGemmaModel?: boolean;
+    providerOptionsName?: string;
+    supportsFunctionResponseParts?: boolean;
+  },
 ): GoogleGenerativeAIPrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
   const contents: Array<GoogleGenerativeAIContent> = [];
   let systemMessagesAllowed = true;
   const isGemmaModel = options?.isGemmaModel ?? false;
   const providerOptionsName = options?.providerOptionsName ?? 'google';
+  const supportsFunctionResponseParts =
+    options?.supportsFunctionResponseParts ?? true;
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -196,6 +240,11 @@ export function convertToGoogleGenerativeAIMessages(
           const output = part.output;
 
           if (output.type === 'content') {
+            if (!supportsFunctionResponseParts) {
+              appendLegacyToolResultParts(parts, part.toolName, output.value);
+              continue;
+            }
+
             const functionResponseParts: GoogleGenerativeAIFunctionResponsePart[] =
               [];
             const responseTextParts: string[] = [];
@@ -218,9 +267,15 @@ export function convertToGoogleGenerativeAIMessages(
                 }
                 case 'image-url':
                 case 'file-url': {
-                  functionResponseParts.push(
-                    convertUrlToolResultPart(contentPart.type, contentPart.url),
+                  const functionResponsePart = convertUrlToolResultPart(
+                    contentPart.url,
                   );
+
+                  if (functionResponsePart != null) {
+                    functionResponseParts.push(functionResponsePart);
+                  } else {
+                    responseTextParts.push(JSON.stringify(contentPart));
+                  }
                   break;
                 }
                 default: {
