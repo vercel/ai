@@ -10,34 +10,14 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { RerankingModel } from '../types';
 import { notify } from '../util/notify';
-import type {
-  RerankOnFinishEvent,
-  RerankOnStartEvent,
-} from './rerank-callback-events';
+import type { Listener } from '../util/notify';
+import type { RerankOnFinishEvent, RerankOnStartEvent } from './rerank-events';
 import { RerankResult } from './rerank-result';
 
 const originalGenerateCallId = createIdGenerator({
   prefix: 'call',
   size: 24,
 });
-
-/**
- * Callback that is set using the `experimental_onStart` option.
- *
- * Called when the rerank operation begins, before the reranking model is called.
- */
-export type RerankOnStartCallback = (
-  event: RerankOnStartEvent,
-) => PromiseLike<void> | void;
-
-/**
- * Callback that is set using the `experimental_onFinish` option.
- *
- * Called when the rerank operation completes, after the reranking model returns.
- */
-export type RerankOnFinishCallback = (
-  event: RerankOnFinishEvent,
-) => PromiseLike<void> | void;
 
 /**
  * Rerank documents using a reranking model. The type of the value is defined by the reranking model.
@@ -123,13 +103,13 @@ export async function rerank<VALUE extends JSONObject | string>({
    * Callback that is called when the rerank operation begins,
    * before the reranking model is called.
    */
-  experimental_onStart?: RerankOnStartCallback;
+  experimental_onStart?: Listener<RerankOnStartEvent>;
 
   /**
    * Callback that is called when the rerank operation completes,
    * after the reranking model returns.
    */
-  experimental_onFinish?: RerankOnFinishCallback;
+  experimental_onFinish?: Listener<RerankOnFinishEvent>;
 
   /**
    * Internal. For test use only. May change without notice.

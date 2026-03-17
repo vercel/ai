@@ -1,11 +1,8 @@
 import { RerankingModelV3CallOptions } from '@ai-sdk/provider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
-import {
-  rerank,
-  RerankOnStartCallback,
-  RerankOnFinishCallback,
-} from './rerank';
+import { rerank } from './rerank';
+import type { RerankOnStartEvent, RerankOnFinishEvent } from './rerank-events';
 import { RerankResult } from './rerank-result';
 import { MockTracer } from '../test/mock-tracer';
 
@@ -536,7 +533,7 @@ describe('rerank', () => {
     });
 
     it('should send correct event information', async () => {
-      let startEvent!: Parameters<RerankOnStartCallback>[0];
+      let startEvent!: RerankOnStartEvent;
 
       await rerank({
         model: mockModel,
@@ -563,7 +560,7 @@ describe('rerank', () => {
     });
 
     it('should include telemetry fields', async () => {
-      let startEvent!: Parameters<RerankOnStartCallback>[0];
+      let startEvent!: RerankOnStartEvent;
 
       await rerank({
         model: mockModel,
@@ -593,7 +590,7 @@ describe('rerank', () => {
     });
 
     it('should include model information', async () => {
-      let startEvent!: Parameters<RerankOnStartCallback>[0];
+      let startEvent!: RerankOnStartEvent;
 
       await rerank({
         model: mockModel,
@@ -656,7 +653,7 @@ describe('rerank', () => {
     });
 
     it('should include providerOptions, headers, documents, and query', async () => {
-      let startEvent!: Parameters<RerankOnStartCallback>[0];
+      let startEvent!: RerankOnStartEvent;
 
       await rerank({
         model: mockModel,
@@ -711,7 +708,7 @@ describe('rerank', () => {
     });
 
     it('should send correct event information', async () => {
-      let finishEvent!: Parameters<RerankOnFinishCallback>[0];
+      let finishEvent!: RerankOnFinishEvent;
 
       await rerank({
         model: mockModel,
@@ -738,7 +735,7 @@ describe('rerank', () => {
     });
 
     it('should include ranking and documents in event', async () => {
-      let finishEvent!: Parameters<RerankOnFinishCallback>[0];
+      let finishEvent!: RerankOnFinishEvent;
 
       await rerank({
         model: mockModel,
@@ -779,7 +776,7 @@ describe('rerank', () => {
     });
 
     it('should include model information', async () => {
-      let finishEvent!: Parameters<RerankOnFinishCallback>[0];
+      let finishEvent!: RerankOnFinishEvent;
 
       await rerank({
         model: mockModel,
@@ -802,7 +799,7 @@ describe('rerank', () => {
     });
 
     it('should include warnings and providerMetadata', async () => {
-      let finishEvent!: Parameters<RerankOnFinishCallback>[0];
+      let finishEvent!: RerankOnFinishEvent;
 
       await rerank({
         model: mockModel,
@@ -826,7 +823,7 @@ describe('rerank', () => {
     });
 
     it('should include response data', async () => {
-      let finishEvent!: Parameters<RerankOnFinishCallback>[0];
+      let finishEvent!: RerankOnFinishEvent;
 
       await rerank({
         model: mockModel,
@@ -907,8 +904,8 @@ describe('rerank', () => {
     });
 
     it('should have consistent callId across both events', async () => {
-      let startEvent!: Parameters<RerankOnStartCallback>[0];
-      let finishEvent!: Parameters<RerankOnFinishCallback>[0];
+      let startEvent!: RerankOnStartEvent;
+      let finishEvent!: RerankOnFinishEvent;
 
       await rerank({
         model: mockModel,
@@ -983,8 +980,8 @@ describe('rerank', () => {
     });
 
     it('should fire callbacks for empty documents', async () => {
-      let startEvent!: Parameters<RerankOnStartCallback>[0];
-      let finishEvent!: Parameters<RerankOnFinishCallback>[0];
+      let startEvent!: RerankOnStartEvent;
+      let finishEvent!: RerankOnFinishEvent;
 
       await rerank({
         model: mockModel,
