@@ -46,7 +46,7 @@ export async function convertToOpenAIResponsesInput({
   input: OpenAIResponsesInput;
   warnings: Array<LanguageModelV2CallWarning>;
 }> {
-  const input: OpenAIResponsesInput = [];
+  let input: OpenAIResponsesInput = [];
   const warnings: Array<LanguageModelV2CallWarning> = [];
 
   for (const { role, content } of prompt) {
@@ -376,6 +376,29 @@ export async function convertToOpenAIResponsesInput({
         throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
       }
     }
+  }
+
+  // when store is false, remove reasoning parts without encrypted content
+  if (
+    !store &&
+    input.some(
+      item =>
+        'type' in item &&
+        item.type === 'reasoning' &&
+        item.encrypted_content == null,
+    )
+  ) {
+    warnings.push({
+      type: 'other',
+      message:
+        'Reasoning parts without encrypted content are not supported when store is false. Skipping reasoning parts.',
+    });
+    input = input.filter(
+      item =>
+        !('type' in item) ||
+        item.type !== 'reasoning' ||
+        item.encrypted_content != null,
+    );
   }
 
   return { input, warnings };
