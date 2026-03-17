@@ -53,26 +53,13 @@ export function convertToAlibabaChatMessages({
       }
 
       case 'user': {
-        const isSinglePart = content.length === 1;
-
-        if (
-          isSinglePart &&
-          content[0].type === 'text' &&
-          !messageCacheControl
-        ) {
-          messages.push({
-            role: 'user',
-            content: content[0].text,
-          });
-          break;
-        }
-
         messages.push({
           role: 'user',
-          content: content.map(part => {
-            const partCacheControl = isSinglePart
-              ? messageCacheControl
-              : cacheControlValidator?.getCacheControl(part.providerOptions);
+          content: content.map((part, index) => {
+            const isLastPart = index === content.length - 1;
+            const partCacheControl =
+              cacheControlValidator?.getCacheControl(part.providerOptions) ??
+              (isLastPart ? messageCacheControl : undefined);
 
             switch (part.type) {
               case 'text': {
@@ -160,17 +147,15 @@ export function convertToAlibabaChatMessages({
       }
 
       case 'tool': {
-        const isSinglePart = content.length === 1;
-
         for (let i = 0; i < content.length; i++) {
           const toolResponse = content[i];
           const output = toolResponse.output;
+          const isLastPart = i === content.length - 1;
 
-          const partCacheControl = isSinglePart
-            ? messageCacheControl
-            : cacheControlValidator?.getCacheControl(
-                toolResponse.providerOptions,
-              );
+          const partCacheControl =
+            cacheControlValidator?.getCacheControl(
+              toolResponse.providerOptions,
+            ) ?? (isLastPart ? messageCacheControl : undefined);
 
           let contentValue: string;
           switch (output.type) {
