@@ -1,4 +1,3 @@
-import dns from 'node:dns';
 import { DownloadError } from './download-error';
 
 /**
@@ -80,7 +79,17 @@ async function validateDnsResolution(
   hostname: string,
   url: string,
 ): Promise<void> {
-  let addresses: dns.LookupAddress[];
+  let dns: typeof import('node:dns');
+  try {
+    dns = (await import('node:dns')).default;
+  } catch {
+    // Edge runtimes (Cloudflare Workers, Vercel Edge Functions) don't support
+    // Node.js built-in modules. Skip DNS rebinding protection gracefully —
+    // URL-level and IP-level checks still apply.
+    return;
+  }
+
+  let addresses: Array<{ address: string; family: number }>;
   try {
     addresses = await dns.promises.lookup(hostname, { all: true });
   } catch {
