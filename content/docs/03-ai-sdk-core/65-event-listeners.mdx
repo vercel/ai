@@ -630,7 +630,7 @@ const result = await generateText({
     },
     {
       name: 'reasoning',
-      type: 'Array<ReasoningPart>',
+      type: 'Array<ReasoningPart | ReasoningFilePart>',
       description: 'The reasoning that was generated during the generation.',
     },
     {
@@ -783,7 +783,7 @@ const result = await generateText({
     },
     {
       name: 'reasoning',
-      type: 'Array<ReasoningPart>',
+      type: 'Array<ReasoningPart | ReasoningFilePart>',
       description: 'The reasoning that was generated.',
     },
     {

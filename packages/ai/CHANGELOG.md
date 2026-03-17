@@ -1,5 +1,91 @@
 # ai
 
+## 7.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+  - @ai-sdk/gateway@4.0.0-beta.12
+
+## 7.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/gateway@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 7.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [4d6ab9a]
+  - @ai-sdk/gateway@4.0.0-beta.10
+
+## 7.0.0-beta.16
+
+### Major Changes
+
+- 5b8c58f: feat(ai): decouple otel from core functions
+
+## 7.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [980f777]
+- Updated dependencies [7185ba2]
+  - @ai-sdk/gateway@4.0.0-beta.9
+
+## 7.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [4adc485]
+  - @ai-sdk/gateway@4.0.0-beta.8
+
+## 7.0.0-beta.13
+
+### Patch Changes
+
+- c26ca8d: Remove custom User-Agent header from HttpChatTransport to fix CORS preflight failures in Safari and Firefox
+
+## 7.0.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [e046ea3]
+  - @ai-sdk/gateway@4.0.0-beta.7
+
+## 7.0.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [82288b0]
+  - @ai-sdk/gateway@4.0.0-beta.6
+
+## 7.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [aa5a583]
+  - @ai-sdk/gateway@4.0.0-beta.5
+
+## 7.0.0-beta.9
+
+### Patch Changes
+
+- 1fe058b: fix(anthropic): preserve the error code returned by model
+
+## 7.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [f32d84a]
+  - @ai-sdk/gateway@4.0.0-beta.4
+
 ## 7.0.0-beta.7
 
 ### Patch Changes

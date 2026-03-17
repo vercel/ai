@@ -1,6 +1,6 @@
 import {
-  LanguageModelV3Prompt,
-  LanguageModelV3ProviderTool,
+  LanguageModelV4Prompt,
+  LanguageModelV4ProviderTool,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -22,7 +22,7 @@ vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -509,6 +509,50 @@ describe('doGenerate', () => {
         "unified": "error",
       }
     `);
+  });
+
+  it('should expose finishMessage in provider metadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {},
+            finishReason: 'MALFORMED_FUNCTION_CALL',
+            finishMessage:
+              "Malformed function call: print(default_api.create(name='test'))",
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 130,
+          totalTokenCount: 130,
+          promptTokensDetails: [
+            {
+              modality: 'TEXT',
+              tokenCount: 130,
+            },
+          ],
+        },
+      },
+    };
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.finishMessage).toBe(
+      "Malformed function call: print(default_api.create(name='test'))",
+    );
+  });
+
+  it('should expose null finishMessage in provider metadata when not present', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.finishMessage).toBeNull();
   });
 
   describe('tool-call', () => {
@@ -2299,6 +2343,70 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should preserve thought flag on file parts in providerMetadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: 'image/png',
+                    data: 'thoughtimagedata',
+                  },
+                  thought: true,
+                  thoughtSignature: 'img_sig1',
+                },
+                {
+                  inlineData: {
+                    mimeType: 'image/jpeg',
+                    data: 'regularimagedata',
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 20,
+          totalTokenCount: 30,
+        },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "data": "thoughtimagedata",
+          "mediaType": "image/png",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "img_sig1",
+            },
+          },
+          "type": "reasoning-file",
+        },
+        {
+          "data": "regularimagedata",
+          "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
+          "type": "file",
+        },
+      ]
+    `);
+  });
+
   it('should pass responseModalities in provider options', async () => {
     prepareJsonFixtureResponse('google-text');
 
@@ -3585,6 +3693,57 @@ describe('doStream', () => {
     `);
   });
 
+  it('should expose finishMessage in provider metadata on finish', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {},
+              finishReason: 'MALFORMED_FUNCTION_CALL',
+              finishMessage:
+                "Malformed function call: print(default_api.create(name='test'))",
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 130,
+            totalTokenCount: 130,
+            promptTokensDetails: [{ modality: 'TEXT', tokenCount: 130 }],
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.finishMessage,
+    ).toBe("Malformed function call: print(default_api.create(name='test'))");
+  });
+
+  it('should expose null finishMessage in provider metadata on finish when not present', async () => {
+    prepareStreamResponse({ content: ['test'] });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.finishMessage,
+    ).toBeNull();
+  });
+
   it('should stream code execution tool calls and results', async () => {
     server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
       type: 'stream-chunks',
@@ -4173,6 +4332,7 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "google": {
+              "finishMessage": null,
               "groundingMetadata": null,
               "promptFeedback": null,
               "safetyRatings": [
@@ -4194,6 +4354,7 @@ describe('doStream', () => {
                 },
               ],
               "urlContextMetadata": null,
+              "usageMetadata": null,
             },
           },
           "type": "finish",
@@ -4215,6 +4376,75 @@ describe('doStream', () => {
               "totalTokenCount": 527,
             },
           },
+        },
+      ]
+    `);
+  });
+
+  it('should stream file parts with thought flag in providerMetadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    inlineData: { data: 'thoughtimg', mimeType: 'image/png' },
+                    thought: true,
+                    thoughtSignature: 'stream_sig',
+                  },
+                  {
+                    inlineData: {
+                      data: 'regularimg',
+                      mimeType: 'image/jpeg',
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 20,
+            totalTokenCount: 30,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    const fileEvents = events.filter(
+      e => e.type === 'file' || e.type === 'reasoning-file',
+    );
+    expect(fileEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "data": "thoughtimg",
+          "mediaType": "image/png",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "stream_sig",
+            },
+          },
+          "type": "reasoning-file",
+        },
+        {
+          "data": "regularimg",
+          "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
+          "type": "file",
         },
       ]
     `);
@@ -4581,6 +4811,7 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "google": {
+              "finishMessage": null,
               "groundingMetadata": null,
               "promptFeedback": null,
               "safetyRatings": null,
@@ -4725,6 +4956,7 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "google": {
+              "finishMessage": null,
               "groundingMetadata": null,
               "promptFeedback": null,
               "safetyRatings": [
@@ -4746,6 +4978,7 @@ describe('doStream', () => {
                 },
               ],
               "urlContextMetadata": null,
+              "usageMetadata": null,
             },
           },
           "type": "finish",
@@ -4961,7 +5194,7 @@ describe('doStream', () => {
 });
 
 describe('GEMMA Model System Instruction Fix', () => {
-  const TEST_PROMPT_WITH_SYSTEM: LanguageModelV3Prompt = [
+  const TEST_PROMPT_WITH_SYSTEM: LanguageModelV4Prompt = [
     { role: 'system', content: 'You are a helpful assistant.' },
     { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
   ];
@@ -5099,7 +5332,7 @@ describe('GEMMA Model System Instruction Fix', () => {
       generateId: () => 'test-id',
     });
 
-    const TEST_PROMPT_WITHOUT_SYSTEM: LanguageModelV3Prompt = [
+    const TEST_PROMPT_WITHOUT_SYSTEM: LanguageModelV4Prompt = [
       { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
     ];
 

@@ -1,7 +1,7 @@
 import {
-  type ImageModelV3,
+  type ImageModelV4,
   NoSuchModelError,
-  type ProviderV3,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
@@ -36,16 +36,16 @@ export interface ProdiaProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface ProdiaProvider extends ProviderV3 {
+export interface ProdiaProvider extends ProviderV4 {
   /**
    * Creates a model for image generation.
    */
-  image(modelId: ProdiaImageModelId): ImageModelV3;
+  image(modelId: ProdiaImageModelId): ImageModelV4;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: ProdiaImageModelId): ImageModelV3;
+  imageModel(modelId: ProdiaImageModelId): ImageModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -95,7 +95,7 @@ export function createProdia(
   };
 
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     imageModel: createImageModel,
     image: createImageModel,
     languageModel,

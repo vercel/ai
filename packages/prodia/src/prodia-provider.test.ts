@@ -66,7 +66,7 @@ describe('Prodia provider', () => {
     expect(imageModel.provider).toBe('prodia.image');
     expect(imageModel.modelId).toBe('inference.flux-fast.schnell.txt2img.v2');
     expect(imageModel2.modelId).toBe('inference.flux.schnell.txt2img.v2');
-    expect(imageModel.specificationVersion).toBe('v3');
+    expect(imageModel.specificationVersion).toBe('v4');
   });
 
   it('configures baseURL and headers correctly', async () => {

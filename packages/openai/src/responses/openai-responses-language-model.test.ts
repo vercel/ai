@@ -1,10 +1,10 @@
 import {
-  LanguageModelV3Content,
-  LanguageModelV3FunctionTool,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3ProviderTool,
-  LanguageModelV3Prompt,
-  LanguageModelV3StreamPart,
+  LanguageModelV4Content,
+  LanguageModelV4FunctionTool,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4ProviderTool,
+  LanguageModelV4Prompt,
+  LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -20,11 +20,11 @@ import {
   openaiResponsesReasoningModelIds,
 } from './openai-responses-options';
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const TEST_TOOLS: Array<LanguageModelV3FunctionTool> = [
+const TEST_TOOLS: Array<LanguageModelV4FunctionTool> = [
   {
     type: 'function',
     name: 'weather',
@@ -48,7 +48,7 @@ const TEST_TOOLS: Array<LanguageModelV3FunctionTool> = [
 ];
 
 const HOSTED_TOOL_SEARCH_TOOLS: Array<
-  LanguageModelV3FunctionTool | LanguageModelV3ProviderTool
+  LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
 > = [
   {
     type: 'provider' as const,
@@ -126,7 +126,7 @@ const HOSTED_TOOL_SEARCH_TOOLS: Array<
 ];
 
 const CLIENT_TOOL_SEARCH_TOOLS: Array<
-  LanguageModelV3FunctionTool | LanguageModelV3ProviderTool
+  LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
 > = [
   {
     type: 'provider' as const,
@@ -2433,7 +2433,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('code interpreter tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-code-interpreter-tool.1');
@@ -2485,7 +2485,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(result.content).toMatchSnapshot();
 
         const sources = result.content.filter(
-          (part): part is Extract<LanguageModelV3Content, { type: 'source' }> =>
+          (part): part is Extract<LanguageModelV4Content, { type: 'source' }> =>
             part.type === 'source',
         );
 
@@ -2510,7 +2510,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('image generation tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-image-generation-tool.1');
@@ -2567,7 +2567,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('tool search tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-tool-search.1');
@@ -2584,7 +2584,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             (
               part,
             ): part is Extract<
-              LanguageModelV3Content,
+              LanguageModelV4Content,
               { type: 'tool-call' | 'tool-result' }
             > =>
               (part.type === 'tool-call' || part.type === 'tool-result') &&
@@ -2682,7 +2682,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           .filter(
             (
               part,
-            ): part is Extract<LanguageModelV3Content, { type: 'tool-call' }> =>
+            ): part is Extract<LanguageModelV4Content, { type: 'tool-call' }> =>
               part.type === 'tool-call' && part.toolName === 'toolSearch',
           )
           .map(part => ({
@@ -2724,7 +2724,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         const toolCallPart = result.content.find(
           (
             part,
-          ): part is Extract<LanguageModelV3Content, { type: 'tool-call' }> =>
+          ): part is Extract<LanguageModelV4Content, { type: 'tool-call' }> =>
             part.type === 'tool-call' && part.toolName === 'toolSearch',
         );
 
@@ -2743,7 +2743,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         const toolCallPart = result.content.find(
           (
             part,
-          ): part is Extract<LanguageModelV3Content, { type: 'tool-call' }> =>
+          ): part is Extract<LanguageModelV4Content, { type: 'tool-call' }> =>
             part.type === 'tool-call' && part.toolName === 'toolSearch',
         );
 
@@ -2755,7 +2755,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('local shell tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-local-shell-tool.1');
@@ -2803,7 +2803,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('web search tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-web-search-tool.1');
@@ -2854,7 +2854,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('shell tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-shell-tool.1');
@@ -2902,7 +2902,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('shell tool with container (no skills)', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-shell-container.1');
@@ -3003,9 +3003,9 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('shell tool with container multiturn', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
-      const MULTITURN_PROMPT: LanguageModelV3Prompt = [
+      const MULTITURN_PROMPT: LanguageModelV4Prompt = [
         {
           role: 'user',
           content: [{ type: 'text', text: 'Run uname -a' }],
@@ -3159,9 +3159,9 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('shell tool with local multiturn', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
-      const MULTITURN_PROMPT: LanguageModelV3Prompt = [
+      const MULTITURN_PROMPT: LanguageModelV4Prompt = [
         {
           role: 'user',
           content: [{ type: 'text', text: 'Run uname -a' }],
@@ -3317,7 +3317,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('shell tool with environment', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-shell-skills.1');
@@ -3621,7 +3621,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('mcp tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-mcp-tool.1');
@@ -3881,7 +3881,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('file search tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       describe('without results include', () => {
         beforeEach(async () => {
@@ -4035,7 +4035,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('apply_patch tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       describe('create_file operation', () => {
         beforeEach(async () => {
@@ -4085,7 +4085,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('custom tool', () => {
-      let result: LanguageModelV3GenerateResult;
+      let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-custom-tool.1');
@@ -4995,7 +4995,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         const toolCallPart = result.content.find(
           (
             part,
-          ): part is Extract<LanguageModelV3Content, { type: 'tool-call' }> =>
+          ): part is Extract<LanguageModelV4Content, { type: 'tool-call' }> =>
             part.type === 'tool-call',
         );
 
@@ -5013,7 +5013,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         const textParts = result.content.filter(
-          (part): part is Extract<LanguageModelV3Content, { type: 'text' }> =>
+          (part): part is Extract<LanguageModelV4Content, { type: 'text' }> =>
             part.type === 'text',
         );
 
@@ -6018,7 +6018,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             (
               part,
             ): part is Extract<
-              LanguageModelV3StreamPart,
+              LanguageModelV4StreamPart,
               { type: 'tool-call' | 'tool-result' }
             > =>
               (part.type === 'tool-call' || part.type === 'tool-result') &&
@@ -6252,7 +6252,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             (
               part,
             ): part is Extract<
-              LanguageModelV3StreamPart,
+              LanguageModelV4StreamPart,
               {
                 type:
                   | 'tool-input-start'
@@ -6317,7 +6317,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           (
             part,
           ): part is Extract<
-            LanguageModelV3StreamPart,
+            LanguageModelV4StreamPart,
             { type: 'tool-input-start' }
           > =>
             part.type === 'tool-input-start' && part.toolName === 'toolSearch',
@@ -6326,7 +6326,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           (
             part,
           ): part is Extract<
-            LanguageModelV3StreamPart,
+            LanguageModelV4StreamPart,
             { type: 'tool-call' }
           > => part.type === 'tool-call' && part.toolName === 'toolSearch',
         );
@@ -6349,7 +6349,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           (
             part,
           ): part is Extract<
-            LanguageModelV3StreamPart,
+            LanguageModelV4StreamPart,
             { type: 'tool-call' }
           > => part.type === 'tool-call' && part.toolName === 'toolSearch',
         );
@@ -6375,7 +6375,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           (
             part,
           ): part is Extract<
-            LanguageModelV3StreamPart,
+            LanguageModelV4StreamPart,
             { type: 'tool-call' }
           > => part.type === 'tool-call' && part.toolName === 'get_weather',
         );
@@ -6467,7 +6467,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         const sourceParts = streamParts.filter(
           (
             part,
-          ): part is Extract<LanguageModelV3StreamPart, { type: 'source' }> =>
+          ): part is Extract<LanguageModelV4StreamPart, { type: 'source' }> =>
             part.type === 'source',
         );
 
@@ -6586,7 +6586,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should stream follow-up response after shell tool history', async () => {
         prepareChunksFixtureResponse('openai-shell-container-multiturn.1');
 
-        const multiturnPrompt: LanguageModelV3Prompt = [
+        const multiturnPrompt: LanguageModelV4Prompt = [
           {
             role: 'user',
             content: [{ type: 'text', text: 'Run uname -a' }],
@@ -6671,7 +6671,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should stream follow-up response after local shell tool history', async () => {
         prepareChunksFixtureResponse('openai-shell-local-multiturn.1');
 
-        const multiturnPrompt: LanguageModelV3Prompt = [
+        const multiturnPrompt: LanguageModelV4Prompt = [
           {
             role: 'user',
             content: [{ type: 'text', text: 'Run uname -a' }],
@@ -8072,7 +8072,7 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('fileIdPrefixes configuration', () => {
-    const TEST_PROMPT_WITH_FILE: LanguageModelV3Prompt = [
+    const TEST_PROMPT_WITH_FILE: LanguageModelV4Prompt = [
       {
         role: 'user',
         content: [
@@ -8893,7 +8893,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           (
             part,
           ): part is Extract<
-            LanguageModelV3StreamPart,
+            LanguageModelV4StreamPart,
             { type: 'text-start' }
           > => part.type === 'text-start',
         );
@@ -8911,7 +8911,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         const textEndParts = parts.filter(
           (
             part,
-          ): part is Extract<LanguageModelV3StreamPart, { type: 'text-end' }> =>
+          ): part is Extract<LanguageModelV4StreamPart, { type: 'text-end' }> =>
             part.type === 'text-end',
         );
 

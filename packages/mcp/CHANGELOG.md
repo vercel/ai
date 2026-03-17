@@ -1,5 +1,33 @@
 # @ai-sdk/mcp
 
+## 2.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+
+## 2.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 2.0.0-beta.3
+
+### Patch Changes
+
+- b9b3899: fix(mcp): validate state param in oauth flow
+
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- 9ecd8ae: fix(mcp): add MCP protocol version 2025-11-25 to supported versions
+
 ## 2.0.0-beta.1
 
 ### Patch Changes

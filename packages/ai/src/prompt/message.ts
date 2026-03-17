@@ -10,6 +10,7 @@ import { providerMetadataSchema } from '../types/provider-metadata';
 import {
   filePartSchema,
   imagePartSchema,
+  reasoningFilePartSchema,
   reasoningPartSchema,
   textPartSchema,
   toolApprovalRequestSchema,
@@ -45,6 +46,7 @@ export const assistantModelMessageSchema: z.ZodType<AssistantModelMessage> =
           textPartSchema,
           filePartSchema,
           reasoningPartSchema,
+          reasoningFilePartSchema,
           toolCallPartSchema,
           toolResultPartSchema,
           toolApprovalRequestSchema,

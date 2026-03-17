@@ -1,5 +1,27 @@
 # @ai-sdk/klingai
 
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- e569f5d: feat (provider/klingai): add kling v3.0 motion control support
+
 ## 4.0.0-beta.1
 
 ### Patch Changes
