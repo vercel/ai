@@ -806,6 +806,14 @@ export async function generateText<
             continue;
           }
 
+          // skip tool calls for tools that are not active
+          if (
+            stepActiveTools != null &&
+            !stepActiveTools.includes(toolCall.toolName as keyof TOOLS)
+          ) {
+            continue;
+          }
+
           if (tool?.onInputAvailable != null) {
             await tool.onInputAvailable({
               input: toolCall.input,
@@ -862,7 +870,9 @@ export async function generateText<
               toolCalls: clientToolCalls.filter(
                 toolCall =>
                   !toolCall.invalid &&
-                  toolApprovalRequests[toolCall.toolCallId] == null,
+                  toolApprovalRequests[toolCall.toolCallId] == null &&
+                  (stepActiveTools == null ||
+                    stepActiveTools.includes(toolCall.toolName as keyof TOOLS)),
               ),
               tools,
               telemetry,
