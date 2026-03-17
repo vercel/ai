@@ -1,7 +1,6 @@
 import {
   getErrorMessage,
   LanguageModelV4,
-  LanguageModelV4ToolChoice,
   SharedV4Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -10,15 +9,12 @@ import {
   DelayedPromise,
   IdGenerator,
   isAbortError,
-  ModelMessage,
   ProviderOptions,
-  SystemModelMessage,
   ToolApprovalResponse,
   ToolContent,
 } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
-import { Listener, notify } from '../util/notify';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import {
@@ -73,9 +69,9 @@ import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DownloadFunction } from '../util/download/download-function';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
+import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
-import { collectToolApprovals } from './collect-tool-approvals';
 import type {
   OnFinishEvent,
   OnStartEvent,
@@ -84,6 +80,7 @@ import type {
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
 } from './callback-events';
+import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
 import { Output, text } from './output';
@@ -1687,13 +1684,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     }
 
                     case 'text-delta': {
-                      if (chunk.delta.length > 0) {
-                        controller.enqueue({
-                          type: 'text-delta',
-                          id: chunk.id,
-                          text: chunk.delta,
-                          providerMetadata: chunk.providerMetadata,
-                        });
+                      if (chunk.text.length > 0) {
+                        controller.enqueue(chunk);
                       }
                       break;
                     }
@@ -1705,12 +1697,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     }
 
                     case 'reasoning-delta': {
-                      controller.enqueue({
-                        type: 'reasoning-delta',
-                        id: chunk.id,
-                        text: chunk.delta,
-                        providerMetadata: chunk.providerMetadata,
-                      });
+                      controller.enqueue(chunk);
                       break;
                     }
 
