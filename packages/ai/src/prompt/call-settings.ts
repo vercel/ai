@@ -7,7 +7,7 @@
  */
 export type TimeoutConfiguration =
   | number
-  | { totalMs?: number; stepMs?: number; chunkMs?: number };
+  | { totalMs?: number; stepMs?: number; chunkMs?: number; toolMs?: number };
 
 /**
  * Extracts the total timeout value in milliseconds from a TimeoutConfiguration.
@@ -56,6 +56,15 @@ export function getChunkTimeoutMs(
     return undefined;
   }
   return timeout.chunkMs;
+}
+
+export function getToolTimeoutMs(
+  timeout: TimeoutConfiguration | undefined,
+): number | undefined {
+  if (timeout == null || typeof timeout === 'number') {
+    return undefined;
+  }
+  return timeout.toolMs;
 }
 
 export type CallSettings = {

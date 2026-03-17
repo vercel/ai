@@ -1,5 +1,20 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-beta.3
+
+### Patch Changes
+
+- f7d4f01: feat(provider): add support for `reasoning-file` type for files that are part of reasoning
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider@4.0.0-beta.2
+
+## 5.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+
 ## 5.0.0-beta.1
 
 ### Patch Changes

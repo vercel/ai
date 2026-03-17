@@ -1,4 +1,4 @@
-import { JSONSchema7, LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { JSONSchema7, LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { expect, it, describe } from 'vitest';
 import {
   injectJsonInstruction,
@@ -207,7 +207,7 @@ describe('injectJsonInstructionIntoMessages', () => {
   });
 
   it('should not mutate the input messages array', () => {
-    const originalMessages: LanguageModelV3Prompt = [
+    const originalMessages: LanguageModelV4Prompt = [
       { role: 'system', content: 'Generate a person' },
     ];
 

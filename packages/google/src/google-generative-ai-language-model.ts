@@ -310,20 +310,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
         const hasThought = part.thought === true;
         const hasThoughtSignature = !!part.thoughtSignature;
         content.push({
-          type: 'file' as const,
+          type: hasThought ? 'reasoning-file' : 'file',
           data: part.inlineData.data,
           mediaType: part.inlineData.mimeType,
-          providerMetadata:
-            hasThought || hasThoughtSignature
-              ? {
-                  [providerOptionsName]: {
-                    ...(hasThought ? { thought: true } : {}),
-                    ...(hasThoughtSignature
-                      ? { thoughtSignature: part.thoughtSignature }
-                      : {}),
-                  },
-                }
-              : undefined,
+          providerMetadata: hasThoughtSignature
+            ? {
+                [providerOptionsName]: {
+                  thoughtSignature: part.thoughtSignature,
+                },
+              }
+            : undefined,
         });
       }
     }
@@ -602,19 +598,15 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
 
                   const hasThought = part.thought === true;
                   const hasThoughtSignature = !!part.thoughtSignature;
-                  const fileMeta =
-                    hasThought || hasThoughtSignature
-                      ? {
-                          [providerOptionsName]: {
-                            ...(hasThought ? { thought: true } : {}),
-                            ...(hasThoughtSignature
-                              ? { thoughtSignature: part.thoughtSignature }
-                              : {}),
-                          },
-                        }
-                      : undefined;
+                  const fileMeta = hasThoughtSignature
+                    ? {
+                        [providerOptionsName]: {
+                          thoughtSignature: part.thoughtSignature,
+                        },
+                      }
+                    : undefined;
                   controller.enqueue({
-                    type: 'file',
+                    type: hasThought ? 'reasoning-file' : 'file',
                     mediaType: part.inlineData.mimeType,
                     data: part.inlineData.data,
                     providerMetadata: fileMeta,

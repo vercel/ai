@@ -29,6 +29,7 @@ import { z } from 'zod/v4';
 import { Output } from '.';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockTracer } from '../test/mock-tracer';
 import {
   generateText,
@@ -262,6 +263,85 @@ describe('generateText', () => {
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-result",
+          },
+        ]
+      `);
+    });
+
+    it('should include reasoning-file in content and exclude from files', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              { type: 'text', text: 'Here is a thought image:' },
+              {
+                type: 'reasoning-file',
+                data: new Uint8Array([10, 20, 30]),
+                mediaType: 'image/png',
+                providerMetadata: {
+                  google: { thoughtSignature: 'sig123' },
+                },
+              },
+              {
+                type: 'file',
+                data: new Uint8Array([40, 50, 60]),
+                mediaType: 'image/jpeg',
+              },
+            ],
+          },
+        }),
+        prompt: 'prompt',
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "Here is a thought image:",
+            "type": "text",
+          },
+          {
+            "file": DefaultGeneratedFile {
+              "base64Data": "ChQe",
+              "mediaType": "image/png",
+              "uint8ArrayData": Uint8Array [
+                10,
+                20,
+                30,
+              ],
+            },
+            "providerMetadata": {
+              "google": {
+                "thoughtSignature": "sig123",
+              },
+            },
+            "type": "reasoning-file",
+          },
+          {
+            "file": DefaultGeneratedFile {
+              "base64Data": "KDI8",
+              "mediaType": "image/jpeg",
+              "uint8ArrayData": Uint8Array [
+                40,
+                50,
+                60,
+              ],
+            },
+            "type": "file",
+          },
+        ]
+      `);
+
+      expect(result.files).toMatchInlineSnapshot(`
+        [
+          DefaultGeneratedFile {
+            "base64Data": "KDI8",
+            "mediaType": "image/jpeg",
+            "uint8ArrayData": Uint8Array [
+              40,
+              50,
+              60,
+            ],
           },
         ]
       `);

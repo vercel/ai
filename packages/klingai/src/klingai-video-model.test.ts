@@ -179,7 +179,7 @@ describe('KlingAIVideoModel', () => {
 
       expect(model.provider).toBe('klingai.video');
       expect(model.modelId).toBe('kling-v2.6-motion-control');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxVideosPerCall).toBe(1);
     });
 
