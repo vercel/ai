@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.21
+
+### Patch Changes
+
+- 34fd051: feat(ai): add toolMs to timeout configuration
+
 ## 7.0.0-beta.20
 
 ### Patch Changes
