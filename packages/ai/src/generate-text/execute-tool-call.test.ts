@@ -775,6 +775,87 @@ describe('executeToolCall', () => {
     });
   });
 
+  describe('toolTimeouts (per-tool)', () => {
+    it('should use per-tool timeout over generic toolTimeoutMs', async () => {
+      let receivedSignal: AbortSignal | undefined;
+
+      await executeToolCall({
+        toolCall: createToolCall(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { abortSignal }) => {
+              receivedSignal = abortSignal;
+              return `${value}-result`;
+            },
+          }),
+        },
+        telemetry: undefined,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        toolTimeoutMs: 10000,
+        toolTimeouts: { testTool: 2000 },
+        experimental_context: undefined,
+      });
+
+      expect(receivedSignal).toBeDefined();
+      expect(receivedSignal!.aborted).toBe(false);
+    });
+
+    it('should fall back to toolTimeoutMs when tool not in toolTimeouts', async () => {
+      let receivedSignal: AbortSignal | undefined;
+
+      await executeToolCall({
+        toolCall: createToolCall(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { abortSignal }) => {
+              receivedSignal = abortSignal;
+              return `${value}-result`;
+            },
+          }),
+        },
+        telemetry: undefined,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        toolTimeoutMs: 5000,
+        toolTimeouts: { otherTool: 2000 },
+        experimental_context: undefined,
+      });
+
+      expect(receivedSignal).toBeDefined();
+      expect(receivedSignal!.aborted).toBe(false);
+    });
+
+    it('should not create abort signal when tool not in toolTimeouts and no toolTimeoutMs', async () => {
+      let receivedSignal: AbortSignal | undefined;
+
+      await executeToolCall({
+        toolCall: createToolCall(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { abortSignal }) => {
+              receivedSignal = abortSignal;
+              return `${value}-result`;
+            },
+          }),
+        },
+        telemetry: undefined,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        toolTimeouts: { otherTool: 2000 },
+        experimental_context: undefined,
+      });
+
+      expect(receivedSignal).toBeUndefined();
+    });
+  });
+
   describe('dynamic tools', () => {
     it('should set dynamic: true for dynamic tools on success', async () => {
       const { dynamicTool } = await import('@ai-sdk/provider-utils');
