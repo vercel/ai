@@ -311,6 +311,7 @@ export function streamText<
   providerOptions,
   experimental_activeTools,
   activeTools = experimental_activeTools,
+  toolTimeouts,
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
   experimental_download: download,
@@ -383,6 +384,12 @@ export function streamText<
      * changing the tool call and result types in the result.
      */
     activeTools?: Array<keyof NoInfer<TOOLS>>;
+
+    /**
+     * Per-tool timeout overrides in milliseconds.
+     * Takes precedence over the generic `timeout.toolMs` value.
+     */
+    toolTimeouts?: Partial<Record<keyof NoInfer<TOOLS>, number>>;
 
     /**
      * Optional specification for parsing structured outputs from the LLM response.
@@ -554,6 +561,7 @@ export function streamText<
     chunkTimeoutMs,
     chunkAbortController,
     toolTimeoutMs,
+    toolTimeouts: toolTimeouts as Record<string, number> | undefined,
     system,
     prompt,
     messages,
@@ -734,6 +742,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     chunkTimeoutMs,
     chunkAbortController,
     toolTimeoutMs,
+    toolTimeouts,
     system,
     prompt,
     messages,
@@ -777,6 +786,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     chunkTimeoutMs: number | undefined;
     chunkAbortController: AbortController | undefined;
     toolTimeoutMs: number | undefined;
+    toolTimeouts: Record<string, number> | undefined;
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
@@ -1359,6 +1369,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 messages: initialMessages,
                 abortSignal,
                 toolTimeoutMs,
+                toolTimeouts,
                 experimental_context,
                 stepNumber: recordedSteps.length,
                 model: modelInfo,
@@ -1612,6 +1623,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             repairToolCall,
             abortSignal,
             toolTimeoutMs,
+            toolTimeouts,
             experimental_context,
             generateId,
             stepNumber: recordedSteps.length,

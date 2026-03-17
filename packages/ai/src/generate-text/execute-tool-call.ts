@@ -31,6 +31,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   toolTimeoutMs,
+  toolTimeouts,
   experimental_context,
   stepNumber,
   model,
@@ -46,6 +47,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   toolTimeoutMs?: number | undefined;
+  toolTimeouts?: Record<string, number>;
   experimental_context: unknown;
   stepNumber?: number;
   model?: { provider: string; modelId: string };
@@ -85,11 +87,13 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 
   await notify({ event: baseCallbackEvent, callbacks: onToolCallStart });
 
+  const resolvedTimeoutMs = toolTimeouts?.[toolName as string] ?? toolTimeoutMs;
+
   const toolAbortSignal =
-    toolTimeoutMs != null
+    resolvedTimeoutMs != null
       ? abortSignal != null
-        ? AbortSignal.any([abortSignal, AbortSignal.timeout(toolTimeoutMs)])
-        : AbortSignal.timeout(toolTimeoutMs)
+        ? AbortSignal.any([abortSignal, AbortSignal.timeout(resolvedTimeoutMs)])
+        : AbortSignal.timeout(resolvedTimeoutMs)
       : abortSignal;
 
   const startTime = now();

@@ -267,6 +267,7 @@ export async function generateText<
   activeTools = experimental_activeTools,
   experimental_prepareStep,
   prepareStep = experimental_prepareStep,
+  toolTimeouts,
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
   experimental_context,
@@ -331,6 +332,12 @@ export async function generateText<
      * changing the tool call and result types in the result.
      */
     activeTools?: Array<keyof NoInfer<TOOLS>>;
+
+    /**
+     * Per-tool timeout overrides in milliseconds.
+     * Takes precedence over the generic `timeout.toolMs` value.
+     */
+    toolTimeouts?: Partial<Record<keyof NoInfer<TOOLS>, number>>;
 
     /**
      * Optional specification for parsing structured outputs from the LLM response.
@@ -551,6 +558,7 @@ export async function generateText<
         messages: initialMessages,
         abortSignal: mergedAbortSignal,
         toolTimeoutMs,
+        toolTimeouts: toolTimeouts as Record<string, number> | undefined,
         experimental_context,
         stepNumber: 0,
         model: modelInfo,
@@ -874,6 +882,7 @@ export async function generateText<
               messages: stepInputMessages,
               abortSignal: mergedAbortSignal,
               toolTimeoutMs,
+              toolTimeouts: toolTimeouts as Record<string, number> | undefined,
               experimental_context,
               stepNumber: steps.length,
               model: stepModelInfo,
@@ -1107,6 +1116,7 @@ async function executeTools<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   toolTimeoutMs,
+  toolTimeouts,
   experimental_context,
   stepNumber,
   model,
@@ -1121,6 +1131,7 @@ async function executeTools<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   toolTimeoutMs?: number | undefined;
+  toolTimeouts?: Record<string, number>;
   experimental_context: unknown;
   stepNumber: number;
   model: { provider: string; modelId: string };
@@ -1138,6 +1149,7 @@ async function executeTools<TOOLS extends ToolSet>({
         messages,
         abortSignal,
         toolTimeoutMs,
+        toolTimeouts,
         experimental_context,
         stepNumber,
         model,
