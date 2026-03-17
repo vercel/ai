@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 4.0.92
+
+### Patch Changes
+
+- a00fe62: feat(google-vertex): add the anthropic tool search tools
+
 ## 4.0.91
 
 ### Patch Changes
