@@ -8,13 +8,10 @@
     "changeset": "changeset",
     "clean": "turbo clean",
     "dev": "turbo dev --cache=local:r,remote:r --concurrency 25 --continue",
-    "lint": "turbo lint",
     "prepare": "husky",
     "update-references": "update-ts-references",
-    "prettier-check": "prettier --check \"**/*.{js,ts,tsx,md,mdx,svelte}\"",
     "type-check": "tsc --build",
     "type-check:full": "tsc --build tsconfig.with-examples.json",
-    "prettier-fix": "prettier --write \"**/*.{js,ts,tsx,md,mdx,svelte}\"",
     "publint": "turbo publint",
     "test": "turbo test --concurrency 16 --filter=!@example/*",
     "test:update": "turbo test:update --concurrency 16 --filter=!@example/*",
@@ -24,25 +21,15 @@
     "check": "ultracite check",
     "fix": "ultracite fix"
   },
-  "lint-staged": {
-    "*": [
-      "prettier --ignore-unknown --write"
-    ]
-  },
   "devDependencies": {
     "@changesets/cli": "2.27.10",
     "@playwright/test": "^1.44.1",
     "del-cli": "^5.1.0",
-    "eslint": "8.57.1",
-    "eslint-config-vercel-ai": "workspace:*",
     "husky": "^9.1.7",
-    "lint-staged": "15.2.10",
     "next": "15.0.7",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
     "playwright": "^1.44.1",
-    "prettier": "3.5.3",
-    "prettier-plugin-svelte": "^3.3.3",
     "publint": "0.2.12",
     "react": "19.0.0-rc-cc1ec60d0d-20240607",
     "react-dom": "19.0.0-rc-cc1ec60d0d-20240607",
@@ -68,24 +55,6 @@
     "ai"
   ],
   "packageManager": "pnpm@10.11.0",
-  "prettier": {
-    "tabWidth": 2,
-    "useTabs": false,
-    "singleQuote": true,
-    "arrowParens": "avoid",
-    "trailingComma": "all",
-    "plugins": [
-      "prettier-plugin-svelte"
-    ],
-    "overrides": [
-      {
-        "files": "*.svelte",
-        "options": {
-          "parser": "svelte"
-        }
-      }
-    ]
-  },
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild"

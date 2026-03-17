@@ -20,7 +20,6 @@
     "@types/node": "20.17.24",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "eslint-config-vercel-ai": "0.0.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
     "typescript": "5.8.3"
