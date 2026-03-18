@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.25
+
+### Patch Changes
+
+- ff9ce30: feat(ai): introduce experimental callbacks for embed function
+
 ## 7.0.0-beta.24
 
 ### Major Changes
