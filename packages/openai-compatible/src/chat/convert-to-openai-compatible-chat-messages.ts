@@ -1,6 +1,6 @@
 import {
-  LanguageModelV3Prompt,
-  SharedV3ProviderMetadata,
+  LanguageModelV4Prompt,
+  SharedV4ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
@@ -10,7 +10,7 @@ import {
 } from '@ai-sdk/provider-utils';
 
 function getOpenAIMetadata(message: {
-  providerOptions?: SharedV3ProviderMetadata;
+  providerOptions?: SharedV4ProviderMetadata;
 }) {
   return message?.providerOptions?.openaiCompatible ?? {};
 }
@@ -28,7 +28,7 @@ function getAudioFormat(mediaType: string): 'wav' | 'mp3' | null {
 }
 
 export function convertToOpenAICompatibleChatMessages(
-  prompt: LanguageModelV3Prompt,
+  prompt: LanguageModelV4Prompt,
 ): OpenAICompatibleChatPrompt {
   const messages: OpenAICompatibleChatPrompt = [];
   for (const { role, content, ...message } of prompt) {

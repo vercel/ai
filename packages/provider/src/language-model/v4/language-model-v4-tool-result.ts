@@ -1,5 +1,5 @@
 import { JSONValue } from '../../json-value';
-import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
+import { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
 
 /**
  * Result of a tool call that has been executed by the provider.
@@ -47,5 +47,5 @@ export type LanguageModelV4ToolResult = {
   /**
    * Additional provider-specific metadata for the tool result.
    */
-  providerMetadata?: SharedV3ProviderMetadata;
+  providerMetadata?: SharedV4ProviderMetadata;
 };

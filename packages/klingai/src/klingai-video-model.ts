@@ -1,8 +1,8 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV3,
+  type Experimental_VideoModelV4,
   NoSuchModelError,
-  type SharedV3Warning,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -372,8 +372,8 @@ interface KlingAIVideoModelConfig {
   };
 }
 
-export class KlingAIVideoModel implements Experimental_VideoModelV3 {
-  readonly specificationVersion = 'v3';
+export class KlingAIVideoModel implements Experimental_VideoModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
   get provider(): string {
@@ -386,10 +386,10 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   ) {}
 
   async doGenerate(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
+    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const mode = detectMode(this.modelId);
 
     const klingaiOptions = (await parseProviderOptions({
@@ -577,9 +577,9 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   private buildT2VBody(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
-    warnings: SharedV3Warning[],
+    warnings: SharedV4Warning[],
   ): Record<string, unknown> {
     const mode = 't2v' as const;
     const body: Record<string, unknown> = {
@@ -658,9 +658,9 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   private buildI2VBody(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
-    warnings: SharedV3Warning[],
+    warnings: SharedV4Warning[],
   ): Record<string, unknown> {
     const mode = 'i2v' as const;
     const body: Record<string, unknown> = {
@@ -765,9 +765,9 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
   }
 
   private buildMotionControlBody(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
     klingaiOptions: KlingAIVideoModelOptions | undefined,
-    warnings: SharedV3Warning[],
+    warnings: SharedV4Warning[],
   ): Record<string, unknown> {
     if (
       !klingaiOptions?.videoUrl ||

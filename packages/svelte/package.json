@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/svelte",
-  "version": "5.0.0-beta.17",
+  "version": "5.0.0-beta.21",
   "license": "Apache-2.0",
   "scripts": {
     "build": "pnpm prepack",
@@ -72,7 +72,7 @@
     "typescript": "^5.0.0",
     "typescript-eslint": "^8.20.0",
     "vite": "^6.0.0",
-    "vitest": "^3.0.0",
+    "vitest": "^4.1.0",
     "zod": "3.25.76"
   },
   "homepage": "https://ai-sdk.dev/docs",

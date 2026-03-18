@@ -1,4 +1,10 @@
-import { ReasoningPart } from '@ai-sdk/provider-utils';
+import { ReasoningPart, ReasoningFilePart } from '@ai-sdk/provider-utils';
+import { asReasoningText } from './reasoning';
+import {
+  ReasoningOutput,
+  ReasoningFileOutput,
+  convertFromReasoningOutputs,
+} from './reasoning-output';
 import {
   CallWarning,
   FinishReason,
@@ -73,7 +79,7 @@ export type StepResult<TOOLS extends ToolSet> = {
   /**
    * The reasoning that was generated during the generation.
    */
-  readonly reasoning: Array<ReasoningPart>;
+  readonly reasoning: Array<ReasoningPart | ReasoningFilePart>;
 
   /**
    * The reasoning text that was generated during the generation.
@@ -242,14 +248,17 @@ export class DefaultStepResult<TOOLS extends ToolSet>
       .join('');
   }
 
-  get reasoning() {
-    return this.content.filter(part => part.type === 'reasoning');
+  get reasoning(): Array<ReasoningPart | ReasoningFilePart> {
+    return convertFromReasoningOutputs(
+      this.content.filter(
+        (part): part is ReasoningOutput | ReasoningFileOutput =>
+          part.type === 'reasoning' || part.type === 'reasoning-file',
+      ),
+    );
   }
 
   get reasoningText() {
-    return this.reasoning.length === 0
-      ? undefined
-      : this.reasoning.map(part => part.text).join('');
+    return asReasoningText(this.reasoning);
   }
 
   get files() {
