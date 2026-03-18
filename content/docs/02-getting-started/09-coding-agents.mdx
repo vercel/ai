@@ -89,16 +89,21 @@ Install the DevTools package:
 
 ### Add the middleware
 
-Wrap your language model with the DevTools middleware using [`wrapLanguageModel`](/docs/ai-sdk-core/middleware):
+For development, wrap your language model with the DevTools middleware using [`wrapLanguageModel`](/docs/ai-sdk-core/middleware):
 
 ```ts
 import { wrapLanguageModel, gateway } from 'ai';
 import { devToolsMiddleware } from '@ai-sdk/devtools';
 
-const model = wrapLanguageModel({
-  model: gateway('anthropic/claude-sonnet-4.5'),
-  middleware: devToolsMiddleware(),
-});
+const gatewayModelSlug = 'anthropic/claude-sonnet-4.5';
+
+const model =
+  process.env.NODE_ENV === 'development'
+    ? wrapLanguageModel({
+        model: gateway(gatewayModelSlug),
+        middleware: devToolsMiddleware(),
+      })
+    : gatewayModelSlug;
 ```
 
 Use the wrapped model with any AI SDK Core function:
@@ -107,7 +112,7 @@ Use the wrapped model with any AI SDK Core function:
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model, // wrapped model with DevTools middleware
+  model, // conditionally wrapped model with DevTools middleware
   prompt: 'What cities are in the United States?',
 });
 ```
