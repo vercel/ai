@@ -1,8 +1,8 @@
-import { EmbeddingModelV3 } from '@ai-sdk/provider';
+import { EmbeddingModelV4 } from '@ai-sdk/provider';
 import assert from 'node:assert';
 import { beforeEach, describe, expect, it, vi, vitest } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
-import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
+import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import { MockTracer } from '../test/mock-tracer';
 import { Embedding, EmbeddingModelUsage, Warning } from '../types';
 import { embed } from './embed';
@@ -20,7 +20,7 @@ vi.mock('../version', () => {
 describe('result.embedding', () => {
   it('should generate embedding', async () => {
     const result = await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
@@ -33,7 +33,7 @@ describe('result.embedding', () => {
 describe('result.response', () => {
   it('should include response in the result', async () => {
     const result = await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding], undefined, {
           body: { foo: 'bar' },
           headers: { foo: 'bar' },
@@ -58,7 +58,7 @@ describe('result.response', () => {
 describe('result.value', () => {
   it('should include value in the result', async () => {
     const result = await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
@@ -71,7 +71,7 @@ describe('result.value', () => {
 describe('result.usage', () => {
   it('should include usage in the result', async () => {
     const result = await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding], { tokens: 10 }),
       }),
       value: testValue,
@@ -92,7 +92,7 @@ describe('result.providerMetadata', () => {
     };
 
     const result = await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed(
           [testValue],
           [dummyEmbedding],
@@ -114,7 +114,7 @@ describe('result.providerMetadata', () => {
 describe('options.headers', () => {
   it('should set headers', async () => {
     const result = await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: async ({ headers }) => {
           assert.deepStrictEqual(headers, {
             'custom-request-header': 'request-header-value',
@@ -137,7 +137,7 @@ describe('options.headers', () => {
 describe('options.providerOptions', () => {
   it('should pass provider options to model', async () => {
     const result = await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: async ({ providerOptions }) => {
           expect(providerOptions).toStrictEqual({
             aProvider: { someKey: 'someValue' },
@@ -171,7 +171,7 @@ describe('result.warnings', () => {
     ];
 
     const result = await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: async () => ({
           embeddings: [dummyEmbedding],
           warnings: expectedWarnings,
@@ -205,7 +205,7 @@ describe('logWarnings', () => {
     ];
 
     await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: async () => ({
           embeddings: [dummyEmbedding],
           warnings: expectedWarnings,
@@ -232,7 +232,7 @@ describe('telemetry', () => {
 
   it('should not record any telemetry data when not explicitly enabled', async () => {
     await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
@@ -244,7 +244,7 @@ describe('telemetry', () => {
 
   it('should record telemetry data when enabled', async () => {
     await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding], { tokens: 10 }),
       }),
       value: testValue,
@@ -264,7 +264,7 @@ describe('telemetry', () => {
 
   it('should not record telemetry inputs / outputs when disabled', async () => {
     await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding], { tokens: 10 }),
       }),
       value: testValue,
@@ -285,7 +285,7 @@ describe('options.experimental_onStart', () => {
     let startEvent!: EmbedOnStartEvent;
 
     await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
@@ -308,7 +308,7 @@ describe('options.experimental_onStart', () => {
     let startEvent!: EmbedOnStartEvent;
 
     await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
@@ -335,7 +335,7 @@ describe('options.experimental_onStart', () => {
     let startEvent!: EmbedOnStartEvent;
 
     await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
@@ -355,7 +355,7 @@ describe('options.experimental_onStart', () => {
     const callOrder: string[] = [];
 
     await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: async ({ values }) => {
           callOrder.push('doEmbed');
           return { embeddings: [dummyEmbedding], warnings: [] };
@@ -372,7 +372,7 @@ describe('options.experimental_onStart', () => {
 
   it('should not break embedding when callback throws', async () => {
     const result = await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
@@ -388,7 +388,7 @@ describe('options.experimental_onStart', () => {
     let startEvent!: EmbedOnStartEvent;
 
     await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
@@ -414,7 +414,7 @@ describe('options.experimental_onFinish', () => {
     let finishEvent!: EmbedOnFinishEvent;
 
     await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding], { tokens: 10 }),
       }),
       value: testValue,
@@ -437,7 +437,7 @@ describe('options.experimental_onFinish', () => {
     let finishEvent!: EmbedOnFinishEvent;
 
     await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding], { tokens: 15 }),
       }),
       value: testValue,
@@ -455,7 +455,7 @@ describe('options.experimental_onFinish', () => {
     let finishEvent!: EmbedOnFinishEvent;
 
     await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
@@ -481,7 +481,7 @@ describe('options.experimental_onFinish', () => {
     };
 
     await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed(
           [testValue],
           [dummyEmbedding],
@@ -505,7 +505,7 @@ describe('options.experimental_onFinish', () => {
     let finishEvent!: EmbedOnFinishEvent;
 
     await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding], undefined, {
           headers: { 'x-resp': 'val' },
           body: { result: 'ok' },
@@ -527,7 +527,7 @@ describe('options.experimental_onFinish', () => {
     const callOrder: string[] = [];
 
     await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: async ({ values }) => {
           callOrder.push('doEmbed');
           return { embeddings: [dummyEmbedding], warnings: [] };
@@ -544,7 +544,7 @@ describe('options.experimental_onFinish', () => {
 
   it('should not break embedding when callback throws', async () => {
     const result = await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
@@ -563,7 +563,7 @@ describe('options.experimental_onStart and experimental_onFinish together', () =
     let finishEvent!: EmbedOnFinishEvent;
 
     await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
@@ -587,7 +587,7 @@ describe('options.experimental_onStart and experimental_onFinish together', () =
     const callOrder: string[] = [];
 
     await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: async ({ values }) => {
           callOrder.push('doEmbed');
           return { embeddings: [dummyEmbedding], warnings: [] };
@@ -609,7 +609,7 @@ describe('options.experimental_onStart and experimental_onFinish together', () =
     let finishCalled = false;
 
     const result = await embed({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
@@ -630,15 +630,15 @@ function mockEmbed(
   expectedValues: Array<string>,
   embeddings: Array<Embedding>,
   usage?: EmbeddingModelUsage,
-  response: Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>['response'] = {
+  response: Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>['response'] = {
     headers: {},
     body: {},
   },
   providerMetadata?: Awaited<
-    ReturnType<EmbeddingModelV3['doEmbed']>
+    ReturnType<EmbeddingModelV4['doEmbed']>
   >['providerMetadata'],
   warnings: Warning[] = [],
-): EmbeddingModelV3['doEmbed'] {
+): EmbeddingModelV4['doEmbed'] {
   return async ({ values }) => {
     assert.deepStrictEqual(expectedValues, values);
     return { embeddings, usage, response, providerMetadata, warnings };
