@@ -1,3 +1,5 @@
+import { ToolSet } from '../generate-text/tool-set';
+
 /**
  * Timeout configuration for API calls. Can be specified as:
  * - A number representing milliseconds
@@ -5,9 +7,7 @@
  * - An object with `stepMs` property for the timeout of each step in milliseconds
  * - An object with `chunkMs` property for the timeout between stream chunks (streaming only)
  */
-export type TimeoutConfiguration<
-  TOOLS extends Record<string, unknown> = Record<string, unknown>,
-> =
+export type TimeoutConfiguration<TOOLS extends ToolSet = ToolSet> =
   | number
   | {
       totalMs?: number;
@@ -68,18 +68,15 @@ export function getChunkTimeoutMs(
   return timeout.chunkMs;
 }
 
-export function getToolTimeoutMs(
-  timeout: TimeoutConfiguration | undefined,
-  toolName?: string,
+export function getToolTimeoutMs<TOOLS extends ToolSet>(
+  timeout: TimeoutConfiguration<TOOLS> | undefined,
+  toolName: keyof TOOLS & string,
 ): number | undefined {
   if (timeout == null || typeof timeout === 'number') {
     return undefined;
   }
-  const perToolTimeout =
-    toolName != null
-      ? (timeout.tools as Record<string, number> | undefined)?.[`${toolName}Ms`]
-      : undefined;
-  return perToolTimeout ?? timeout.toolMs;
+
+  return timeout.tools?.[`${toolName}Ms`] ?? timeout.toolMs;
 }
 
 export type CallSettings = {
