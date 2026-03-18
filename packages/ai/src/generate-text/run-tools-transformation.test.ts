@@ -1,7 +1,4 @@
-import {
-  LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
-} from '@ai-sdk/provider';
+import { LanguageModelV4Usage } from '@ai-sdk/provider';
 import { delay, tool } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -11,9 +8,10 @@ import {
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { NoSuchToolError } from '../error/no-such-tool-error';
+import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
 import { runToolsTransformation } from './run-tools-transformation';
 
-const testUsage: LanguageModelV3Usage = {
+const testUsage: LanguageModelV4Usage = {
   inputTokens: {
     total: 3,
     noCache: 3,
@@ -28,222 +26,8 @@ const testUsage: LanguageModelV3Usage = {
 };
 
 describe('runToolsTransformation', () => {
-  it('should forward text parts', async () => {
-    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
-      convertArrayToReadableStream([
-        { type: 'text-start', id: '1' },
-        { type: 'text-delta', id: '1', delta: 'text' },
-        { type: 'text-end', id: '1' },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
-      ]);
-
-    const transformedStream = runToolsTransformation({
-      generateId: mockId({ prefix: 'id' }),
-      tools: undefined,
-      generatorStream: inputStream,
-      telemetry: undefined,
-      callId: 'test-telemetry-call-id',
-      messages: [],
-      system: undefined,
-      abortSignal: undefined,
-      repairToolCall: undefined,
-      experimental_context: undefined,
-    });
-
-    const result = await convertReadableStreamToArray(transformedStream);
-
-    expect(result).toMatchInlineSnapshot(`
-      [
-        {
-          "id": "1",
-          "type": "text-start",
-        },
-        {
-          "delta": "text",
-          "id": "1",
-          "type": "text-delta",
-        },
-        {
-          "id": "1",
-          "type": "text-end",
-        },
-        {
-          "finishReason": "stop",
-          "providerMetadata": undefined,
-          "rawFinishReason": "stop",
-          "type": "finish",
-          "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokenDetails": {
-              "cacheReadTokens": undefined,
-              "cacheWriteTokens": undefined,
-              "noCacheTokens": 3,
-            },
-            "inputTokens": 3,
-            "outputTokenDetails": {
-              "reasoningTokens": undefined,
-              "textTokens": 10,
-            },
-            "outputTokens": 10,
-            "raw": undefined,
-            "reasoningTokens": undefined,
-            "totalTokens": 13,
-          },
-        },
-      ]
-    `);
-  });
-
-  it('should forward file parts', async () => {
-    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
-      convertArrayToReadableStream([
-        {
-          type: 'file',
-          data: 'Hello World',
-          mediaType: 'text/plain',
-        },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
-      ]);
-
-    const transformedStream = runToolsTransformation({
-      generateId: mockId({ prefix: 'id' }),
-      tools: undefined,
-      generatorStream: inputStream,
-      callId: 'test-telemetry-call-id',
-      telemetry: undefined,
-      messages: [],
-      system: undefined,
-      abortSignal: undefined,
-      repairToolCall: undefined,
-      experimental_context: undefined,
-    });
-
-    const result = await convertReadableStreamToArray(transformedStream);
-
-    expect(result).toMatchInlineSnapshot(`
-      [
-        {
-          "file": DefaultGeneratedFileWithType {
-            "base64Data": "Hello World",
-            "mediaType": "text/plain",
-            "type": "file",
-            "uint8ArrayData": undefined,
-          },
-          "type": "file",
-        },
-        {
-          "finishReason": "stop",
-          "providerMetadata": undefined,
-          "rawFinishReason": "stop",
-          "type": "finish",
-          "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokenDetails": {
-              "cacheReadTokens": undefined,
-              "cacheWriteTokens": undefined,
-              "noCacheTokens": 3,
-            },
-            "inputTokens": 3,
-            "outputTokenDetails": {
-              "reasoningTokens": undefined,
-              "textTokens": 10,
-            },
-            "outputTokens": 10,
-            "raw": undefined,
-            "reasoningTokens": undefined,
-            "totalTokens": 13,
-          },
-        },
-      ]
-    `);
-  });
-
-  it('should forward file parts with providerMetadata', async () => {
-    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
-      convertArrayToReadableStream([
-        {
-          type: 'file',
-          data: 'Hello World',
-          mediaType: 'text/plain',
-          providerMetadata: {
-            testProvider: { signature: 'test-signature' },
-          },
-        },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
-      ]);
-
-    const transformedStream = runToolsTransformation({
-      generateId: mockId({ prefix: 'id' }),
-      tools: undefined,
-      generatorStream: inputStream,
-      callId: 'test-telemetry-call-id',
-      telemetry: undefined,
-      messages: [],
-      system: undefined,
-      abortSignal: undefined,
-      repairToolCall: undefined,
-      experimental_context: undefined,
-    });
-
-    const result = await convertReadableStreamToArray(transformedStream);
-
-    expect(result).toMatchInlineSnapshot(`
-      [
-        {
-          "file": DefaultGeneratedFileWithType {
-            "base64Data": "Hello World",
-            "mediaType": "text/plain",
-            "type": "file",
-            "uint8ArrayData": undefined,
-          },
-          "providerMetadata": {
-            "testProvider": {
-              "signature": "test-signature",
-            },
-          },
-          "type": "file",
-        },
-        {
-          "finishReason": "stop",
-          "providerMetadata": undefined,
-          "rawFinishReason": "stop",
-          "type": "finish",
-          "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokenDetails": {
-              "cacheReadTokens": undefined,
-              "cacheWriteTokens": undefined,
-              "noCacheTokens": 3,
-            },
-            "inputTokens": 3,
-            "outputTokenDetails": {
-              "reasoningTokens": undefined,
-              "textTokens": 10,
-            },
-            "outputTokens": 10,
-            "raw": undefined,
-            "reasoningTokens": undefined,
-            "totalTokens": 13,
-          },
-        },
-      ]
-    `);
-  });
-
   it('should handle async tool execution', async () => {
-    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+    const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',
@@ -329,7 +113,7 @@ describe('runToolsTransformation', () => {
   });
 
   it('should handle sync tool execution', async () => {
-    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+    const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',
@@ -415,7 +199,7 @@ describe('runToolsTransformation', () => {
   });
 
   it('should hold off on sending finish until the delayed tool result is received', async () => {
-    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+    const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',
@@ -505,7 +289,7 @@ describe('runToolsTransformation', () => {
   });
 
   it('should try to repair tool call when the tool name is not found', async () => {
-    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+    const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',
@@ -602,7 +386,7 @@ describe('runToolsTransformation', () => {
   it('should not call execute for provider-executed tool calls', async () => {
     let toolExecuted = false;
 
-    const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+    const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',
@@ -653,7 +437,7 @@ describe('runToolsTransformation', () => {
 
   describe('provider-emitted tool-approval-request (MCP flow)', () => {
     it('should forward provider-emitted tool-approval-request with the correct tool call', async () => {
-      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -752,7 +536,7 @@ describe('runToolsTransformation', () => {
     });
 
     it('should emit error when tool call is not found for provider approval request', async () => {
-      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
         convertArrayToReadableStream([
           // No tool-call part before the approval request
           {
@@ -816,7 +600,7 @@ describe('runToolsTransformation', () => {
     });
 
     it('should handle multiple provider-executed tool calls with approval requests', async () => {
-      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -962,7 +746,7 @@ describe('runToolsTransformation', () => {
   describe('Tool.onInputAvailable', () => {
     it('should call onInputAvailable before the tool call is executed', async () => {
       const output: unknown[] = [];
-      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -1053,7 +837,7 @@ describe('runToolsTransformation', () => {
 
     it('should call onInputAvailable when the tool needs approval', async () => {
       const output: unknown[] = [];
-      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -1163,7 +947,7 @@ describe('runToolsTransformation', () => {
     it('should call onToolCallStart before tool execution and onToolCallFinish after', async () => {
       const callOrder: string[] = [];
 
-      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -1218,7 +1002,7 @@ describe('runToolsTransformation', () => {
       const startEvents: unknown[] = [];
       const finishEvents: unknown[] = [];
 
-      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -1288,7 +1072,7 @@ describe('runToolsTransformation', () => {
     it('should call onToolCallFinish with success data', async () => {
       const finishEvents: unknown[] = [];
 
-      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -1342,7 +1126,7 @@ describe('runToolsTransformation', () => {
       const finishEvents: unknown[] = [];
       const toolError = new Error('tool failed');
 
-      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -1397,7 +1181,7 @@ describe('runToolsTransformation', () => {
       const startEvents: unknown[] = [];
       const finishEvents: unknown[] = [];
 
-      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -1445,7 +1229,7 @@ describe('runToolsTransformation', () => {
       const startEvents: unknown[] = [];
       const finishEvents: unknown[] = [];
 
-      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -1500,7 +1284,7 @@ describe('runToolsTransformation', () => {
       const startEvents: unknown[] = [];
       const finishEvents: unknown[] = [];
 
-      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -1556,7 +1340,7 @@ describe('runToolsTransformation', () => {
 
   describe('tool execution error handling', () => {
     it('should handle error thrown in async tool execution', async () => {
-      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -1622,7 +1406,7 @@ describe('runToolsTransformation', () => {
     });
 
     it('should handle error thrown in sync tool execution', async () => {
-      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',

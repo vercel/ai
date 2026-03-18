@@ -1,6 +1,6 @@
 import {
-  TranscriptionModelV3,
-  ProviderV3,
+  TranscriptionModelV4,
+  ProviderV4,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
@@ -11,7 +11,7 @@ import {
 import { GladiaTranscriptionModel } from './gladia-transcription-model';
 import { VERSION } from './version';
 
-export interface GladiaProvider extends ProviderV3 {
+export interface GladiaProvider extends ProviderV4 {
   (): {
     transcription: GladiaTranscriptionModel;
   };
@@ -19,7 +19,7 @@ export interface GladiaProvider extends ProviderV3 {
   /**
    * Creates a model for transcription.
    */
-  transcription(): TranscriptionModelV3;
+  transcription(): TranscriptionModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -78,11 +78,11 @@ export function createGladia(
     };
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 
-  // Required ProviderV3 methods that are not supported
+  // Required ProviderV4 methods that are not supported
   provider.languageModel = (modelId: string) => {
     throw new NoSuchModelError({
       modelId,

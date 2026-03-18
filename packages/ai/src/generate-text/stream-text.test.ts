@@ -1,13 +1,13 @@
 import {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3FunctionTool,
-  LanguageModelV3Prompt,
-  LanguageModelV3ProviderTool,
-  LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4FunctionTool,
+  LanguageModelV4Prompt,
+  LanguageModelV4ProviderTool,
+  LanguageModelV4StreamPart,
+  LanguageModelV4Usage,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   delay,
@@ -39,7 +39,7 @@ import {
 import { z } from 'zod/v4';
 import { Output } from '..';
 import * as logWarningsModule from '../logger/log-warnings';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
@@ -72,7 +72,7 @@ const defaultSettings = () =>
     onError: () => {},
   }) as const;
 
-const testUsage: LanguageModelV3Usage = {
+const testUsage: LanguageModelV4Usage = {
   inputTokens: {
     total: 3,
     noCache: 3,
@@ -86,7 +86,7 @@ const testUsage: LanguageModelV3Usage = {
   },
 };
 
-const testUsage2: LanguageModelV3Usage = {
+const testUsage2: LanguageModelV4Usage = {
   inputTokens: {
     total: 3,
     noCache: 3,
@@ -130,17 +130,17 @@ function createTestModel({
   request = undefined,
   response = undefined,
 }: {
-  stream?: ReadableStream<LanguageModelV3StreamPart>;
+  stream?: ReadableStream<LanguageModelV4StreamPart>;
   request?: { body: string };
   response?: { headers: Record<string, string> };
-  warnings?: SharedV3Warning[];
-} = {}): LanguageModelV3 {
-  return new MockLanguageModelV3({
+  warnings?: SharedV4Warning[];
+} = {}): LanguageModelV4 {
+  return new MockLanguageModelV4({
     doStream: async () => ({ stream, request, response, warnings }),
   });
 }
 
-const modelWithSources = new MockLanguageModelV3({
+const modelWithSources = new MockLanguageModelV4({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
@@ -171,7 +171,7 @@ const modelWithSources = new MockLanguageModelV3({
   }),
 });
 
-const modelWithDocumentSources = new MockLanguageModelV3({
+const modelWithDocumentSources = new MockLanguageModelV4({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
@@ -203,7 +203,7 @@ const modelWithDocumentSources = new MockLanguageModelV3({
   }),
 });
 
-const modelWithFiles = new MockLanguageModelV3({
+const modelWithFiles = new MockLanguageModelV4({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
@@ -228,7 +228,7 @@ const modelWithFiles = new MockLanguageModelV3({
   }),
 });
 
-const modelWithFilesAndProviderMetadata = new MockLanguageModelV3({
+const modelWithFilesAndProviderMetadata = new MockLanguageModelV4({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
@@ -256,7 +256,7 @@ const modelWithFilesAndProviderMetadata = new MockLanguageModelV3({
   }),
 });
 
-const modelWithReasoning = new MockLanguageModelV3({
+const modelWithReasoning = new MockLanguageModelV4({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
@@ -282,7 +282,7 @@ const modelWithReasoning = new MockLanguageModelV3({
         delta: '',
         providerMetadata: {
           testProvider: { signature: '1234567890' },
-        } as SharedV3ProviderMetadata,
+        } as SharedV4ProviderMetadata,
       },
       { type: 'reasoning-end', id: '1' },
       {
@@ -309,14 +309,14 @@ const modelWithReasoning = new MockLanguageModelV3({
         id: '3',
         providerMetadata: {
           testProvider: { signature: '1234567890' },
-        } as SharedV3ProviderMetadata,
+        } as SharedV4ProviderMetadata,
       },
       {
         type: 'reasoning-start',
         id: '4',
         providerMetadata: {
           testProvider: { signature: '1234567890' },
-        } as SharedV3ProviderMetadata,
+        } as SharedV4ProviderMetadata,
       },
       {
         type: 'reasoning-delta',
@@ -333,7 +333,7 @@ const modelWithReasoning = new MockLanguageModelV3({
         id: '5',
         providerMetadata: {
           testProvider: { signature: '1234567890' },
-        } as SharedV3ProviderMetadata,
+        } as SharedV4ProviderMetadata,
       },
       {
         type: 'reasoning-delta',
@@ -355,14 +355,14 @@ const modelWithReasoning = new MockLanguageModelV3({
         id: '4',
         providerMetadata: {
           testProvider: { signature: '0987654321' },
-        } as SharedV3ProviderMetadata,
+        } as SharedV4ProviderMetadata,
       },
       {
         type: 'reasoning-end',
         id: '5',
         providerMetadata: {
           testProvider: { signature: '0987654321' },
-        } as SharedV3ProviderMetadata,
+        } as SharedV4ProviderMetadata,
       },
       { type: 'text-start', id: '1' },
       { type: 'text-delta', id: '1', delta: 'Hi' },
@@ -372,8 +372,49 @@ const modelWithReasoning = new MockLanguageModelV3({
         id: '1',
         providerMetadata: {
           testProvider: { signature: '0987654321' },
-        } as SharedV3ProviderMetadata,
+        } as SharedV4ProviderMetadata,
       },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage: testUsage,
+      },
+    ]),
+  }),
+});
+
+const modelWithReasoningFiles = new MockLanguageModelV4({
+  doStream: async () => ({
+    stream: convertArrayToReadableStream([
+      {
+        type: 'response-metadata',
+        id: 'id-0',
+        modelId: 'mock-model-id',
+        timestamp: new Date(0),
+      },
+      {
+        type: 'reasoning-file',
+        data: 'reasoning-file-data-1',
+        mediaType: 'image/png',
+      },
+      { type: 'reasoning-start', id: '1' },
+      {
+        type: 'reasoning-delta',
+        id: '1',
+        delta: 'Some reasoning text.',
+      },
+      { type: 'reasoning-end', id: '1' },
+      {
+        type: 'reasoning-file',
+        data: 'reasoning-file-data-2',
+        mediaType: 'image/jpeg',
+        providerMetadata: {
+          testProvider: { signature: 'rf-sig-1' },
+        },
+      },
+      { type: 'text-start', id: '1' },
+      { type: 'text-delta', id: '1', delta: 'Hello!' },
+      { type: 'text-end', id: '1' },
       {
         type: 'finish',
         finishReason: { unified: 'stop', raw: 'stop' },
@@ -402,7 +443,7 @@ describe('streamText', () => {
   describe('result.textStream', () => {
     it('should send text deltas', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ prompt }) => {
             expect(prompt).toStrictEqual([
               {
@@ -479,7 +520,7 @@ describe('streamText', () => {
   describe('result.fullStream', () => {
     it('should send text deltas', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ prompt }) => {
             expect(prompt).toStrictEqual([
               {
@@ -968,6 +1009,7 @@ describe('streamText', () => {
                 "type": "file",
                 "uint8ArrayData": undefined,
               },
+              "providerMetadata": undefined,
               "type": "file",
             },
             {
@@ -991,6 +1033,7 @@ describe('streamText', () => {
                 "type": "file",
                 "uint8ArrayData": undefined,
               },
+              "providerMetadata": undefined,
               "type": "file",
             },
             {
@@ -1079,15 +1122,139 @@ describe('streamText', () => {
               "type": "file",
               "uint8ArrayData": undefined,
             },
+            "providerMetadata": undefined,
             "type": "file",
           },
         ]
       `);
     });
 
+    it('should send reasoning-files', async () => {
+      const result = streamText({
+        model: modelWithReasoningFiles,
+        ...defaultSettings(),
+      });
+
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "file": DefaultGeneratedFileWithType {
+                "base64Data": "reasoning-file-data-1",
+                "mediaType": "image/png",
+                "type": "file",
+                "uint8ArrayData": undefined,
+              },
+              "providerMetadata": undefined,
+              "type": "reasoning-file",
+            },
+            {
+              "id": "1",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Some reasoning text.",
+              "type": "reasoning-delta",
+            },
+            {
+              "id": "1",
+              "type": "reasoning-end",
+            },
+            {
+              "file": DefaultGeneratedFileWithType {
+                "base64Data": "reasoning-file-data-2",
+                "mediaType": "image/jpeg",
+                "type": "file",
+                "uint8ArrayData": undefined,
+              },
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "rf-sig-1",
+                },
+              },
+              "type": "reasoning-file",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Hello!",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "rawFinishReason": "stop",
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
+                "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
+                "outputTokens": 10,
+                "raw": undefined,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "rawFinishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
+                "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
+    });
+
     it('should use fallback response metadata when response metadata is not provided', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ prompt }) => {
             expect(prompt).toStrictEqual([
               {
@@ -1213,7 +1380,7 @@ describe('streamText', () => {
 
     it('should send tool calls', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ prompt, tools, toolChoice }) => {
             expect(tools).toStrictEqual([
               {
@@ -1751,7 +1918,7 @@ describe('streamText', () => {
   describe('errors', () => {
     it('should swallow error to prevent server crash', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -1767,7 +1934,7 @@ describe('streamText', () => {
 
     it('should forward error in doStream as error stream part', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -1793,7 +1960,7 @@ describe('streamText', () => {
       const onError = vi.fn();
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -1860,7 +2027,7 @@ describe('streamText', () => {
       let responseCount = 0;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ prompt, tools, toolChoice }) => {
             if (responseCount++ === 0) {
               return {
@@ -1910,7 +2077,7 @@ describe('streamText', () => {
 
     it('should reject text promise when error is thrown', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -3439,7 +3606,7 @@ describe('streamText', () => {
     it('should call onFinish when reader.cancel() is called', async () => {
       const onFinishCallback = vi.fn();
 
-      const model = new MockLanguageModelV3({
+      const model = new MockLanguageModelV4({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
             {
@@ -3495,7 +3662,7 @@ describe('streamText', () => {
     it('should call onFinish when async iteration stops mid-stream', async () => {
       const onFinishCallback = vi.fn();
 
-      const model = new MockLanguageModelV3({
+      const model = new MockLanguageModelV4({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
             {
@@ -3574,7 +3741,7 @@ describe('streamText', () => {
       const onFinishCallback = vi.fn();
       const abortController = new AbortController();
 
-      const model = new MockLanguageModelV3({
+      const model = new MockLanguageModelV4({
         doStream: async ({ abortSignal }) => {
           const stream = new ReadableStream({
             async start(controller) {
@@ -4930,6 +5097,125 @@ describe('streamText', () => {
         ]
       `);
     });
+
+    it('should add reasoning-files from the model response to the step result', async () => {
+      const result = streamText({
+        model: modelWithReasoningFiles,
+        ...defaultSettings(),
+      });
+
+      expect(await result.steps).toMatchInlineSnapshot(`
+        [
+          DefaultStepResult {
+            "callId": "test-telemetry-call-id",
+            "content": [
+              {
+                "file": DefaultGeneratedFileWithType {
+                  "base64Data": "reasoning-file-data-1",
+                  "mediaType": "image/png",
+                  "type": "file",
+                  "uint8ArrayData": undefined,
+                },
+                "type": "reasoning-file",
+              },
+              {
+                "providerMetadata": undefined,
+                "text": "Some reasoning text.",
+                "type": "reasoning",
+              },
+              {
+                "file": DefaultGeneratedFileWithType {
+                  "base64Data": "reasoning-file-data-2",
+                  "mediaType": "image/jpeg",
+                  "type": "file",
+                  "uint8ArrayData": undefined,
+                },
+                "providerMetadata": {
+                  "testProvider": {
+                    "signature": "rf-sig-1",
+                  },
+                },
+                "type": "reasoning-file",
+              },
+              {
+                "providerMetadata": undefined,
+                "text": "Hello!",
+                "type": "text",
+              },
+            ],
+            "experimental_context": undefined,
+            "finishReason": "stop",
+            "functionId": undefined,
+            "metadata": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "request": {},
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "data": "reasoning-file-data-1",
+                      "mediaType": "image/png",
+                      "providerOptions": undefined,
+                      "type": "reasoning-file",
+                    },
+                    {
+                      "providerOptions": undefined,
+                      "text": "Some reasoning text.",
+                      "type": "reasoning",
+                    },
+                    {
+                      "data": "reasoning-file-data-2",
+                      "mediaType": "image/jpeg",
+                      "providerOptions": {
+                        "testProvider": {
+                          "signature": "rf-sig-1",
+                        },
+                      },
+                      "type": "reasoning-file",
+                    },
+                    {
+                      "providerOptions": undefined,
+                      "text": "Hello!",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+              ],
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "stepNumber": 0,
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "warnings": [],
+          },
+        ]
+      `);
+    });
   });
 
   describe('result.toolCalls', () => {
@@ -5102,7 +5388,7 @@ describe('streamText', () => {
       const callOrder: string[] = [];
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             callOrder.push('doStream');
             return {
@@ -5275,7 +5561,7 @@ describe('streamText', () => {
       let responseCount = 0;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             switch (responseCount++) {
               case 0:
@@ -5359,7 +5645,7 @@ describe('streamText', () => {
       const callOrder: string[] = [];
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             callOrder.push('doStream');
             return {
@@ -5417,7 +5703,7 @@ describe('streamText', () => {
       >[0][] = [];
       let responseCount = 0;
 
-      const alternateModel = new MockLanguageModelV3({
+      const alternateModel = new MockLanguageModelV4({
         provider: 'alternate-provider',
         modelId: 'alternate-model-id',
         doStream: async () => ({
@@ -5441,7 +5727,7 @@ describe('streamText', () => {
       });
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             responseCount++;
             return {
@@ -5561,7 +5847,7 @@ describe('streamText', () => {
       >[0][] = [];
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -5613,7 +5899,7 @@ describe('streamText', () => {
       >[0][] = [];
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -5666,7 +5952,7 @@ describe('streamText', () => {
       const callOrder: string[] = [];
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -5714,7 +6000,7 @@ describe('streamText', () => {
 
     it('should not break generation when callback throws', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -5763,7 +6049,7 @@ describe('streamText', () => {
       >[0][] = [];
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -5809,7 +6095,7 @@ describe('streamText', () => {
       >[0][] = [];
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -5863,7 +6149,7 @@ describe('streamText', () => {
       >[0][] = [];
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -5919,7 +6205,7 @@ describe('streamText', () => {
       const toolError = new Error('tool execution failed');
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -5973,7 +6259,7 @@ describe('streamText', () => {
       >[0][] = [];
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -6017,7 +6303,7 @@ describe('streamText', () => {
 
     it('should not break generation when callback throws', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -6066,7 +6352,7 @@ describe('streamText', () => {
       >[0][] = [];
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -6112,7 +6398,7 @@ describe('streamText', () => {
       >[0][] = [];
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -6166,7 +6452,7 @@ describe('streamText', () => {
       const toolError = new Error('Tool execution failed');
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -6221,7 +6507,7 @@ describe('streamText', () => {
       const callOrder: string[] = [];
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -6275,7 +6561,7 @@ describe('streamText', () => {
       let callCount = 0;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             switch (callCount++) {
               case 0:
@@ -6547,7 +6833,7 @@ describe('streamText', () => {
       const result: Array<{ error: unknown }> = [];
 
       const resultObject = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -7386,7 +7672,7 @@ describe('streamText', () => {
 
     it('should not prevent error from being forwarded', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -7535,7 +7821,7 @@ describe('streamText', () => {
       beforeEach(async () => {
         let responseCount = 0;
         result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async ({ prompt, tools, toolChoice }) => {
               stepInputs.push({ prompt, tools, toolChoice });
 
@@ -8834,7 +9120,7 @@ describe('streamText', () => {
     });
 
     describe('2 steps: initial, tool-result with prepareStep', () => {
-      let doStreamCalls: Array<LanguageModelV3CallOptions>;
+      let doStreamCalls: Array<LanguageModelV4CallOptions>;
       let prepareStepCalls: Array<{
         modelId: string;
         stepNumber: number;
@@ -8848,7 +9134,7 @@ describe('streamText', () => {
         prepareStepCalls = [];
 
         result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async options => {
               doStreamCalls.push(options);
               switch (doStreamCalls.length) {
@@ -9556,7 +9842,7 @@ describe('streamText', () => {
       beforeEach(async () => {
         let responseCount = 0;
         result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async ({ prompt, tools, toolChoice }) => {
               switch (responseCount++) {
                 case 0: {
@@ -10892,7 +11178,7 @@ describe('streamText', () => {
 
         let responseCount = 0;
         result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => {
               switch (responseCount++) {
                 case 0: {
@@ -11206,7 +11492,7 @@ describe('streamText', () => {
   describe('options.headers', () => {
     it('should set headers', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ headers }) => {
             expect(headers).toStrictEqual({
               'custom-request-header': 'request-header-value',
@@ -11655,12 +11941,12 @@ describe('streamText', () => {
 
     describe('provider-executed tool result replay across steps', () => {
       it('should preserve provider metadata when replaying the next step', async () => {
-        const stepInputs: Array<{ prompt: LanguageModelV3Prompt }> = [];
+        const stepInputs: Array<{ prompt: LanguageModelV4Prompt }> = [];
         let responseCount = 0;
 
         const result = streamText({
           ...defaultSettings(),
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async ({ prompt }) => {
               stepInputs.push({ prompt });
 
@@ -12112,7 +12398,7 @@ describe('streamText', () => {
   describe('options.providerMetadata', () => {
     it('should pass provider metadata to model', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ providerOptions }) => {
             expect(providerOptions).toStrictEqual({
               aProvider: { someKey: 'someValue' },
@@ -12200,7 +12486,7 @@ describe('streamText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -12232,7 +12518,7 @@ describe('streamText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -12266,7 +12552,7 @@ describe('streamText', () => {
       let receivedAbortSignal: AbortSignal | undefined = 'not-set' as any;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -12297,7 +12583,7 @@ describe('streamText', () => {
       const abortController = new AbortController();
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             await delayedPromise.promise;
             return {
@@ -12329,7 +12615,7 @@ describe('streamText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -12361,7 +12647,7 @@ describe('streamText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -12395,7 +12681,7 @@ describe('streamText', () => {
       let receivedAbortSignal: AbortSignal | undefined = 'not-set' as any;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -12426,7 +12712,7 @@ describe('streamText', () => {
       const receivedAbortSignals: (AbortSignal | undefined)[] = [];
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignals.push(abortSignal);
             return {
@@ -12459,7 +12745,7 @@ describe('streamText', () => {
       let stepCount = 0;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignals.push(abortSignal);
             stepCount++;
@@ -12520,7 +12806,7 @@ describe('streamText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -12551,7 +12837,7 @@ describe('streamText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -12582,7 +12868,7 @@ describe('streamText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -12616,7 +12902,7 @@ describe('streamText', () => {
       const delayedPromise = new DelayedPromise<void>();
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -12669,7 +12955,7 @@ describe('streamText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -12698,7 +12984,7 @@ describe('streamText', () => {
 
     it('should clean up step timeout when doStream throws an error', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             throw new Error('Fail immediately');
           },
@@ -13345,7 +13631,7 @@ describe('streamText', () => {
   describe('tools with custom schema', () => {
     it('should send tool calls', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ prompt, tools, toolChoice }) => {
             expect(tools).toStrictEqual([
               {
@@ -13421,7 +13707,7 @@ describe('streamText', () => {
   describe('options.messages', () => {
     it('should support models that use "this" context in supportedUrls', async () => {
       let supportedUrlsCalled = false;
-      class MockLanguageModelWithImageSupport extends MockLanguageModelV3 {
+      class MockLanguageModelWithImageSupport extends MockLanguageModelV4 {
         constructor() {
           super({
             supportedUrls() {
@@ -15369,10 +15655,10 @@ describe('streamText', () => {
 
     describe('object output', () => {
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
-        let callOptions!: LanguageModelV3CallOptions;
+        let callOptions!: LanguageModelV4CallOptions;
 
         const result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async args => {
               callOptions = args;
               return {
@@ -16092,7 +16378,7 @@ describe('streamText', () => {
       });
 
       it('should not stream incorrect values', async () => {
-        const mockModel = new MockLanguageModelV3({
+        const mockModel = new MockLanguageModelV4({
           doStream: {
             stream: convertArrayToReadableStream([
               { type: 'text-start', id: '1' },
@@ -16199,11 +16485,11 @@ describe('streamText', () => {
   describe('options.activeTools', () => {
     it('should filter available tools to only the ones in activeTools', async () => {
       let tools:
-        | (LanguageModelV3FunctionTool | LanguageModelV3ProviderTool)[]
+        | (LanguageModelV4FunctionTool | LanguageModelV4ProviderTool)[]
         | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ tools: toolsArg }) => {
             tools = toolsArg;
 
@@ -16358,7 +16644,7 @@ describe('streamText', () => {
     it('should pass through the includeRawChunks flag correctly to the model', async () => {
       let capturedOptions: any;
 
-      const model = new MockLanguageModelV3({
+      const model = new MockLanguageModelV4({
         doStream: async options => {
           capturedOptions = options;
 
@@ -16493,7 +16779,7 @@ describe('streamText', () => {
     it('should pass includeRawChunks flag correctly to the model', async () => {
       let capturedOptions: any;
 
-      const model = new MockLanguageModelV3({
+      const model = new MockLanguageModelV4({
         doStream: async options => {
           capturedOptions = options;
           return {
@@ -16888,7 +17174,7 @@ describe('streamText', () => {
           onAbort: event => {
             onAbortCalls.push(event);
           },
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: new ReadableStream({
                 pull(controller) {
@@ -16990,7 +17276,7 @@ describe('streamText', () => {
 
         const resultWithReason = streamText({
           abortSignal: abortController.signal,
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: new ReadableStream({
                 pull(controller) {
@@ -17067,7 +17353,7 @@ describe('streamText', () => {
           onAbort: event => {
             onAbortCalls.push(event);
           },
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: new ReadableStream({
                 start(controller) {
@@ -17397,7 +17683,7 @@ describe('streamText', () => {
           onAbort: event => {
             onAbortCalls.push(event);
           },
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: new ReadableStream({
                 start(controller) {
@@ -17587,7 +17873,7 @@ describe('streamText', () => {
       let capturedContext: unknown;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               { type: 'text-start', id: '1' },
@@ -17618,7 +17904,7 @@ describe('streamText', () => {
       let recordedContext: unknown | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               { type: 'text-start', id: '1' },
@@ -18444,7 +18730,9 @@ describe('streamText', () => {
               },
               {
                 "dynamic": true,
-                "input": undefined,
+                "input": {
+                  "city": "San Francisco",
+                },
                 "output": {
                   "status": "success",
                   "text": "The weather in San Francisco is 72°F",
@@ -18601,7 +18889,9 @@ describe('streamText', () => {
             },
             {
               "dynamic": true,
-              "input": undefined,
+              "input": {
+                "city": "San Francisco",
+              },
               "output": {
                 "status": "success",
                 "text": "The weather in San Francisco is 72°F",
@@ -18627,7 +18917,7 @@ describe('streamText', () => {
       let result: StreamTextResult<any, any>;
       let onFinishResult: Parameters<StreamTextOnFinishCallback<any>>[0];
       let onStepFinishResults: StepResult<any>[];
-      let doStreamCalls: Array<LanguageModelV3CallOptions>;
+      let doStreamCalls: Array<LanguageModelV4CallOptions>;
       let prepareStepCalls: Array<{
         modelId: string;
         stepNumber: number;
@@ -18650,7 +18940,7 @@ describe('streamText', () => {
         let responseCount = 0;
 
         result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async options => {
               doStreamCalls.push(options);
 
@@ -20155,7 +20445,7 @@ describe('streamText', () => {
     describe('deferred tool calls with tool-error', () => {
       it('should resolve deferred tool call when tool-error is in the same step', async () => {
         const result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => {
               return {
                 stream: convertArrayToReadableStream([
@@ -20260,7 +20550,7 @@ describe('streamText', () => {
       it('should resolve deferred tool call when tool-error arrives in a later step', async () => {
         let responseCount = 0;
         const result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => {
               switch (responseCount++) {
                 case 0:
@@ -20419,7 +20709,7 @@ describe('streamText', () => {
       };
 
       let callCount = 0;
-      const model = new MockLanguageModelV3({
+      const model = new MockLanguageModelV4({
         doStream: async _options => {
           switch (callCount++) {
             case 0:
@@ -21083,14 +21373,14 @@ describe('streamText', () => {
 
     describe('when a call from a single tool that needs approval is approved', () => {
       let result: StreamTextResult<any, any>;
-      let prompts: LanguageModelV3Prompt[];
+      let prompts: LanguageModelV4Prompt[];
       let executeFunction: ToolExecuteFunction<any, any>;
 
       beforeEach(async () => {
         prompts = [];
         executeFunction = vi.fn().mockReturnValue('result1');
         result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async ({ prompt }) => {
               prompts.push(prompt);
               return {
@@ -21387,12 +21677,12 @@ describe('streamText', () => {
 
     describe('when a call from a single tool that needs approval is approved and the tool throws', () => {
       let result: StreamTextResult<any, any>;
-      let prompts: LanguageModelV3Prompt[];
+      let prompts: LanguageModelV4Prompt[];
 
       beforeEach(async () => {
         prompts = [];
         result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async ({ prompt }) => {
               prompts.push(prompt);
               return {
@@ -21510,12 +21800,12 @@ describe('streamText', () => {
 
     describe('when a call from a single tool with preliminary results that needs approval is approved', () => {
       let result: StreamTextResult<any, any>;
-      let prompts: LanguageModelV3Prompt[];
+      let prompts: LanguageModelV4Prompt[];
 
       beforeEach(async () => {
         prompts = [];
         result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async ({ prompt }) => {
               prompts.push(prompt);
               return {
@@ -21840,14 +22130,14 @@ describe('streamText', () => {
 
     describe('when a call from a single tool that needs approval is denied', () => {
       let result: StreamTextResult<any, any>;
-      let prompts: LanguageModelV3Prompt[];
+      let prompts: LanguageModelV4Prompt[];
       let executeFunction: ToolExecuteFunction<any, any>;
 
       beforeEach(async () => {
         prompts = [];
         executeFunction = vi.fn().mockReturnValue('result1');
         result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async ({ prompt }) => {
               prompts.push(prompt);
               return {
@@ -22367,12 +22657,12 @@ describe('streamText', () => {
 
       describe('when a provider-executed tool approval is approved', () => {
         let result: StreamTextResult<any, any>;
-        let prompts: LanguageModelV3Prompt[];
+        let prompts: LanguageModelV4Prompt[];
 
         beforeEach(async () => {
           prompts = [];
           result = streamText({
-            model: new MockLanguageModelV3({
+            model: new MockLanguageModelV4({
               doStream: async ({ prompt }) => {
                 prompts.push(prompt);
                 return {
@@ -22556,12 +22846,12 @@ describe('streamText', () => {
 
       describe('when a provider-executed tool approval is denied', () => {
         let result: StreamTextResult<any, any>;
-        let prompts: LanguageModelV3Prompt[];
+        let prompts: LanguageModelV4Prompt[];
 
         beforeEach(async () => {
           prompts = [];
           result = streamText({
-            model: new MockLanguageModelV3({
+            model: new MockLanguageModelV4({
               doStream: async ({ prompt }) => {
                 prompts.push(prompt);
                 return {
@@ -22716,9 +23006,9 @@ describe('streamText', () => {
     it('should use the prepareStep model supportedUrls for download decision', async () => {
       const downloadCalls: Array<{ url: URL; isUrlSupportedByModel: boolean }> =
         [];
-      const languageModelCalls: Array<LanguageModelV3CallOptions> = [];
+      const languageModelCalls: Array<LanguageModelV4CallOptions> = [];
 
-      const modelWithImageUrlSupport = new MockLanguageModelV3({
+      const modelWithImageUrlSupport = new MockLanguageModelV4({
         provider: 'with-image-url-support',
         modelId: 'with-image-url-support',
         supportedUrls: {
@@ -22740,7 +23030,7 @@ describe('streamText', () => {
         },
       });
 
-      const modelWithoutImageUrlSupport = new MockLanguageModelV3({
+      const modelWithoutImageUrlSupport = new MockLanguageModelV4({
         provider: 'without-image-url-support',
         modelId: 'without-image-url-support',
         supportedUrls: {},
@@ -22864,7 +23154,7 @@ describe('streamText', () => {
       const events: string[] = [];
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {

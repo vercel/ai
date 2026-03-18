@@ -1,7 +1,6 @@
 import {
   getErrorMessage,
   LanguageModelV4,
-  LanguageModelV4ToolChoice,
   SharedV4Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -10,21 +9,19 @@ import {
   DelayedPromise,
   IdGenerator,
   isAbortError,
-  ModelMessage,
   ProviderOptions,
-  SystemModelMessage,
   ToolApprovalResponse,
   ToolContent,
 } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
-import { Listener, notify } from '../util/notify';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import {
   CallSettings,
   getChunkTimeoutMs,
   getStepTimeoutMs,
+  getToolTimeoutMs,
   getTotalTimeoutMs,
   TimeoutConfiguration,
 } from '../prompt/call-settings';
@@ -73,9 +70,9 @@ import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DownloadFunction } from '../util/download/download-function';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
+import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
-import { collectToolApprovals } from './collect-tool-approvals';
 import type {
   OnFinishEvent,
   OnStartEvent,
@@ -84,7 +81,9 @@ import type {
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
 } from './callback-events';
+import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
+import { createStreamTextPartTransform } from './create-stream-text-part-transform';
 import { executeToolCall } from './execute-tool-call';
 import { Output, text } from './output';
 import {
@@ -93,6 +92,7 @@ import {
   InferPartialOutput,
 } from './output-utils';
 import { PrepareStepFunction } from './prepare-step';
+import { convertToReasoningOutputs } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import {
   runToolsTransformation,
@@ -532,6 +532,7 @@ export function streamText<
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
   const chunkTimeoutMs = getChunkTimeoutMs(timeout);
+  const toolTimeoutMs = getToolTimeoutMs(timeout);
   const stepAbortController =
     stepTimeoutMs != null ? new AbortController() : undefined;
   const chunkAbortController =
@@ -552,6 +553,7 @@ export function streamText<
     stepAbortController,
     chunkTimeoutMs,
     chunkAbortController,
+    toolTimeoutMs,
     system,
     prompt,
     messages,
@@ -731,6 +733,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     stepAbortController,
     chunkTimeoutMs,
     chunkAbortController,
+    toolTimeoutMs,
     system,
     prompt,
     messages,
@@ -773,6 +776,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     stepAbortController: AbortController | undefined;
     chunkTimeoutMs: number | undefined;
     chunkAbortController: AbortController | undefined;
+    toolTimeoutMs: number | undefined;
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
@@ -983,9 +987,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           delete activeReasoningContent[part.id];
         }
 
-        if (part.type === 'file') {
+        if (part.type === 'file' || part.type === 'reasoning-file') {
           recordedContent.push({
-            type: 'file',
+            type: part.type,
             file: part.file,
             ...(part.providerMetadata != null
               ? { providerMetadata: part.providerMetadata }
@@ -1354,6 +1358,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 callId,
                 messages: initialMessages,
                 abortSignal,
+                toolTimeoutMs,
                 experimental_context,
                 stepNumber: recordedSteps.length,
                 model: modelInfo,
@@ -1575,7 +1580,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           });
 
           const stepStartTimestampMs = now();
-          const { stream, response, request } = await retry(async () =>
+          const {
+            stream: languageModelStream,
+            response,
+            request,
+          } = await retry(async () =>
             stepModel.doStream({
               ...callSettings,
               tools: stepTools,
@@ -1589,6 +1598,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             }),
           );
 
+          const stream = languageModelStream.pipeThrough(
+            createStreamTextPartTransform(),
+          );
+
           const streamWithToolResults = runToolsTransformation({
             tools,
             generatorStream: stream,
@@ -1598,6 +1611,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             messages: stepInputMessages,
             repairToolCall,
             abortSignal,
+            toolTimeoutMs,
             experimental_context,
             generateId,
             stepNumber: recordedSteps.length,
@@ -1686,13 +1700,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     }
 
                     case 'text-delta': {
-                      if (chunk.delta.length > 0) {
-                        controller.enqueue({
-                          type: 'text-delta',
-                          id: chunk.id,
-                          text: chunk.delta,
-                          providerMetadata: chunk.providerMetadata,
-                        });
+                      if (chunk.text.length > 0) {
+                        controller.enqueue(chunk);
                       }
                       break;
                     }
@@ -1704,12 +1713,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     }
 
                     case 'reasoning-delta': {
-                      controller.enqueue({
-                        type: 'reasoning-delta',
-                        id: chunk.id,
-                        text: chunk.delta,
-                        providerMetadata: chunk.providerMetadata,
-                      });
+                      controller.enqueue(chunk);
                       break;
                     }
 
@@ -1770,7 +1774,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                       break;
                     }
 
-                    case 'file': {
+                    case 'file':
+                    case 'reasoning-file': {
                       controller.enqueue(chunk);
                       break;
                     }
@@ -2024,7 +2029,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
   }
 
   get reasoning() {
-    return this.finalStep.then(step => step.reasoning);
+    return this.finalStep.then(step =>
+      convertToReasoningOutputs(step.reasoning),
+    );
   }
 
   get sources() {
@@ -2317,15 +2324,18 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               break;
             }
 
-            case 'file': {
-              controller.enqueue({
-                type: 'file',
-                mediaType: part.file.mediaType,
-                url: `data:${part.file.mediaType};base64,${part.file.base64}`,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
+            case 'file':
+            case 'reasoning-file': {
+              if (partType !== 'reasoning-file' || sendReasoning) {
+                controller.enqueue({
+                  type: part.type,
+                  mediaType: part.file.mediaType,
+                  url: `data:${part.file.mediaType};base64,${part.file.base64}`,
+                  ...(part.providerMetadata != null
+                    ? { providerMetadata: part.providerMetadata }
+                    : {}),
+                });
+              }
               break;
             }
 

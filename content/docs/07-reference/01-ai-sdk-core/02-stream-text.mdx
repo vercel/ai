@@ -157,7 +157,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'content',
-              type: 'string | Array<TextPart | FilePart | ReasoningPart | ToolCallPart>',
+              type: 'string | Array<TextPart | FilePart | ReasoningPart | ReasoningFilePart | ToolCallPart>',
               description: 'The content of the message.',
               properties: [
                 {
@@ -187,6 +187,27 @@ To see `streamText` in action, check out [these examples](#examples).
                       name: 'text',
                       type: 'string',
                       description: 'The reasoning text.',
+                    },
+                  ],
+                },
+                {
+                  type: 'ReasoningFilePart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'reasoning-file'",
+                      description: 'The type of the message part.',
+                    },
+                    {
+                      name: 'data',
+                      type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
+                      description:
+                        'The file data. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
+                    },
+                    {
+                      name: 'mediaType',
+                      type: 'string',
+                      description: 'The IANA media type of the file.',
                     },
                   ],
                 },
@@ -710,7 +731,7 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_repairToolCall',
-      type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV3ToolCall | null>',
+      type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV4ToolCall | null>',
       isOptional: true,
       description:
         'A function that attempts to repair a tool call that failed to parse. Return either a repaired tool call or null if the tool call cannot be repaired.',
@@ -730,7 +751,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'toolCall',
-              type: 'LanguageModelV3ToolCall',
+              type: 'LanguageModelV4ToolCall',
               description: 'The tool call that failed to parse.',
             },
             {
@@ -1933,7 +1954,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'toolChoice',
-              type: 'LanguageModelV3ToolChoice | undefined',
+              type: 'LanguageModelV4ToolChoice | undefined',
               description: 'The tool choice configuration for this step.',
             },
             {
@@ -2316,7 +2337,7 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'reasoning',
-      type: 'Promise<Array<ReasoningOutput>>',
+      type: 'Promise<Array<ReasoningOutput | ReasoningFileOutput>>',
       description:
         'The full reasoning that the model has generated in the last step. Automatically consumes the stream.',
       properties: [
@@ -2337,7 +2358,28 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'providerMetadata',
               type: 'SharedV2ProviderMetadata',
               isOptional: true,
-              description: 'Additional provider metadata for the source.',
+              description: 'Additional provider metadata.',
+            },
+          ],
+        },
+        {
+          type: 'ReasoningFileOutput',
+          parameters: [
+            {
+              name: 'type',
+              type: "'reasoning-file'",
+              description: 'The type of the message part.',
+            },
+            {
+              name: 'file',
+              type: 'GeneratedFile',
+              description: 'The generated file.',
+            },
+            {
+              name: 'providerMetadata',
+              type: 'SharedV2ProviderMetadata',
+              isOptional: true,
+              description: 'Additional provider metadata.',
             },
           ],
         },

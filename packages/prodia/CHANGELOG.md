@@ -1,5 +1,44 @@
 # @ai-sdk/prodia
 
+## 2.0.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+
+## 2.0.0-beta.5
+
+### Patch Changes
+
+- e2bdcd6: feat(provider/prodia): Add LanguageModel and VideoModel support to the Prodia provider.
+
+  - **LanguageModel**: Supports Nano Banana (`inference.nano-banana.img2img.v2`) for img2img generation with text+image output via multipart form-data requests. Implements both `doGenerate` and `doStream`.
+  - **VideoModel**: Supports Wan 2.2 Lightning for text-to-video (`inference.wan2-2.lightning.txt2vid.v0`) and image-to-video (`inference.wan2-2.lightning.img2vid.v0`) generation.
+  - Extract shared multipart parsing and error handling infrastructure into `prodia-api.ts`.
+
+## 2.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+
+## 2.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 2.0.0-beta.2
+
+### Patch Changes
+
+- 77600ba: chore(provider/prodia): update provider to use v4 types
+
 ## 2.0.0-beta.1
 
 ### Patch Changes
