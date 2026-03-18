@@ -10,7 +10,7 @@ export default function Page() {
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
-        api: '/api/use-chat-openai-compaction',
+        api: '/api/chat/use-chat-openai-compaction',
       }),
     [],
   );
