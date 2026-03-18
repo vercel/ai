@@ -38,7 +38,12 @@ describe('createStreamTextPartTransform', () => {
       ]);
 
     const transformedStream = inputStream.pipeThrough(
-      createStreamTextPartTransform(),
+      createStreamTextPartTransform({
+        tools: undefined,
+        system: undefined,
+        messages: [],
+        repairToolCall: undefined,
+      }),
     );
 
     const result = await convertReadableStreamToArray(transformedStream);
@@ -92,7 +97,12 @@ describe('createStreamTextPartTransform', () => {
       ]);
 
     const transformedStream = inputStream.pipeThrough(
-      createStreamTextPartTransform(),
+      createStreamTextPartTransform({
+        tools: undefined,
+        system: undefined,
+        messages: [],
+        repairToolCall: undefined,
+      }),
     );
 
     const result = await convertReadableStreamToArray(transformedStream);
@@ -133,7 +143,12 @@ describe('createStreamTextPartTransform', () => {
       ]);
 
     const transformedStream = inputStream.pipeThrough(
-      createStreamTextPartTransform(),
+      createStreamTextPartTransform({
+        tools: undefined,
+        system: undefined,
+        messages: [],
+        repairToolCall: undefined,
+      }),
     );
 
     const result = await convertReadableStreamToArray(transformedStream);
@@ -195,7 +210,12 @@ describe('createStreamTextPartTransform', () => {
       ]);
 
     const transformedStream = inputStream.pipeThrough(
-      createStreamTextPartTransform(),
+      createStreamTextPartTransform({
+        tools: undefined,
+        system: undefined,
+        messages: [],
+        repairToolCall: undefined,
+      }),
     );
 
     const result = await convertReadableStreamToArray(transformedStream);
