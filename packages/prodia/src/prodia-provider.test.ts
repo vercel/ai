@@ -110,12 +110,19 @@ describe('Prodia provider', () => {
     expect(server.calls[0].requestUserAgent).toContain('ai-sdk/prodia/');
   });
 
+  it('creates language models via .languageModel', () => {
+    const provider = createProdia();
+
+    const model = provider.languageModel('inference.nano-banana.img2img.v2');
+
+    expect(model.provider).toBe('prodia.language');
+    expect(model.modelId).toBe('inference.nano-banana.img2img.v2');
+    expect(model.specificationVersion).toBe('v2');
+  });
+
   it('throws NoSuchModelError for unsupported model types', () => {
     const provider = createProdia();
 
-    expect(() => provider.languageModel('some-id')).toThrowError(
-      'No such languageModel',
-    );
     expect(() => provider.textEmbeddingModel('some-id')).toThrowError(
       'No such textEmbeddingModel',
     );
