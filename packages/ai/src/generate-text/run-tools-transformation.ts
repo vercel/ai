@@ -169,10 +169,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   // keep track of outstanding tool results for stream closing:
   const outstandingToolResults = new Set<string>();
 
-  // keep track of tool inputs for provider-side tool results
-  const toolInputs = new Map<string, unknown>();
-
   // keep track of parsed tool calls so provider-emitted approval requests can reference them
+  // keep track of tool inputs for provider-side tool results
   const toolCallsByToolCallId = new Map<string, TypedToolCall<TOOLS>>();
 
   let canClose = false;
@@ -322,8 +320,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               break;
             }
 
-            toolInputs.set(toolCall.toolCallId, toolCall.input);
-
             // Only execute tools that are not provider-executed:
             if (tool.execute != null && toolCall.providerExecuted !== true) {
               const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
@@ -380,7 +376,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                   type: 'tool-error',
                   toolCallId: chunk.toolCallId,
                   toolName,
-                  input: toolInputs.get(chunk.toolCallId),
+                  input: toolCallsByToolCallId.get(chunk.toolCallId)?.input,
                   providerExecuted: true,
                   error: chunk.result,
                   dynamic: chunk.dynamic,
@@ -392,7 +388,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                   type: 'tool-result',
                   toolCallId: chunk.toolCallId,
                   toolName,
-                  input: toolInputs.get(chunk.toolCallId),
+                  input: toolCallsByToolCallId.get(chunk.toolCallId)?.input,
                   output: chunk.result,
                   providerExecuted: true,
                   dynamic: chunk.dynamic,

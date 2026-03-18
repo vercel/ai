@@ -18731,7 +18731,9 @@ describe('streamText', () => {
               },
               {
                 "dynamic": true,
-                "input": undefined,
+                "input": {
+                  "city": "San Francisco",
+                },
                 "output": {
                   "status": "success",
                   "text": "The weather in San Francisco is 72°F",
@@ -18888,7 +18890,9 @@ describe('streamText', () => {
             },
             {
               "dynamic": true,
-              "input": undefined,
+              "input": {
+                "city": "San Francisco",
+              },
               "output": {
                 "status": "success",
                 "text": "The weather in San Francisco is 72°F",
