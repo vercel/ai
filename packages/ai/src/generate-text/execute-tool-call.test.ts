@@ -795,7 +795,7 @@ describe('executeToolCall', () => {
         messages: [],
         abortSignal: undefined,
         toolTimeoutMs: 10000,
-        toolTimeouts: { testTool: 2000 },
+        toolTimeouts: { testToolMs: 2000 },
         experimental_context: undefined,
       });
 
@@ -822,7 +822,7 @@ describe('executeToolCall', () => {
         messages: [],
         abortSignal: undefined,
         toolTimeoutMs: 5000,
-        toolTimeouts: { otherTool: 2000 },
+        toolTimeouts: { otherToolMs: 2000 },
         experimental_context: undefined,
       });
 
@@ -848,7 +848,7 @@ describe('executeToolCall', () => {
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
-        toolTimeouts: { otherTool: 2000 },
+        toolTimeouts: { otherToolMs: 2000 },
         experimental_context: undefined,
       });
 

@@ -14,7 +14,9 @@ export type TimeoutConfiguration<
       stepMs?: number;
       chunkMs?: number;
       toolMs?: number;
-      tools?: Partial<Record<keyof TOOLS, number>>;
+      tools?: Partial<
+        Record<keyof TOOLS extends string ? `${keyof TOOLS}Ms` : never, number>
+      >;
     };
 
 /**

@@ -39,8 +39,8 @@ run(async () => {
     timeout: {
       toolMs: 5000,
       tools: {
-        fastApi: 2000,
-        slowApi: 1000,
+        fastApiMs: 2000,
+        slowApiMs: 1000,
       },
     },
     stopWhen: stepCountIs(3),

@@ -87,7 +87,8 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 
   await notify({ event: baseCallbackEvent, callbacks: onToolCallStart });
 
-  const resolvedTimeoutMs = toolTimeouts?.[toolName as string] ?? toolTimeoutMs;
+  const resolvedTimeoutMs =
+    toolTimeouts?.[`${toolName as string}Ms`] ?? toolTimeoutMs;
 
   const toolAbortSignal =
     resolvedTimeoutMs != null

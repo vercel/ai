@@ -27,8 +27,8 @@ run(async () => {
     timeout: {
       toolMs: 5000,
       tools: {
-        weather: 3000,
-        slowApi: 1000,
+        weatherMs: 3000,
+        slowApiMs: 1000,
       },
     },
     stopWhen: stepCountIs(2),
