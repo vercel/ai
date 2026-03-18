@@ -1,10 +1,5 @@
-<<<<<<< HEAD
 import type { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
-import type { InferSchema, Resolvable } from '@ai-sdk/provider-utils';
-=======
-import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import type { InferSchema } from '@ai-sdk/provider-utils';
->>>>>>> e2bdcd67b (feat(prodia): add LanguageModel and VideoModel support (#13364))
 import {
   combineHeaders,
   lazySchema,

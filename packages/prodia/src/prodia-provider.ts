@@ -1,11 +1,7 @@
 import {
-<<<<<<< HEAD
+  type Experimental_VideoModelV3,
   type ImageModelV3,
-=======
-  type Experimental_VideoModelV4,
-  type ImageModelV4,
-  type LanguageModelV4,
->>>>>>> e2bdcd67b (feat(prodia): add LanguageModel and VideoModel support (#13364))
+  type LanguageModelV3,
   NoSuchModelError,
   type ProviderV3,
 } from '@ai-sdk/provider';
@@ -50,7 +46,7 @@ export interface ProdiaProvider extends ProviderV3 {
   /**
    * Creates a language model for multimodal generation (img2img with text+image output).
    */
-  languageModel(modelId: ProdiaLanguageModelId): LanguageModelV4;
+  languageModel(modelId: ProdiaLanguageModelId): LanguageModelV3;
 
   /**
    * Creates a model for image generation.
@@ -65,12 +61,12 @@ export interface ProdiaProvider extends ProviderV3 {
   /**
    * Creates a model for video generation.
    */
-  video(modelId: ProdiaVideoModelId): Experimental_VideoModelV4;
+  video(modelId: ProdiaVideoModelId): Experimental_VideoModelV3;
 
   /**
    * Creates a model for video generation.
    */
-  videoModel(modelId: ProdiaVideoModelId): Experimental_VideoModelV4;
+  videoModel(modelId: ProdiaVideoModelId): Experimental_VideoModelV3;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -129,12 +125,8 @@ export function createProdia(
   };
 
   return {
-<<<<<<< HEAD
     specificationVersion: 'v3',
-=======
-    specificationVersion: 'v4',
     languageModel: createLanguageModel,
->>>>>>> e2bdcd67b (feat(prodia): add LanguageModel and VideoModel support (#13364))
     imageModel: createImageModel,
     image: createImageModel,
     videoModel: createVideoModel,

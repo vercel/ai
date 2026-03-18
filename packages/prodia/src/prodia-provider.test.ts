@@ -76,7 +76,7 @@ describe('Prodia provider', () => {
 
     expect(model.provider).toBe('prodia.language');
     expect(model.modelId).toBe('inference.nano-banana.img2img.v2');
-    expect(model.specificationVersion).toBe('v4');
+    expect(model.specificationVersion).toBe('v3');
   });
 
   it('creates video models via .video and .videoModel', () => {
@@ -90,7 +90,7 @@ describe('Prodia provider', () => {
     expect(videoModel.provider).toBe('prodia.video');
     expect(videoModel.modelId).toBe('inference.wan2-2.lightning.txt2vid.v0');
     expect(videoModel2.modelId).toBe('inference.wan2-2.lightning.img2vid.v0');
-    expect(videoModel.specificationVersion).toBe('v4');
+    expect(videoModel.specificationVersion).toBe('v3');
   });
 
   it('configures baseURL and headers correctly', async () => {

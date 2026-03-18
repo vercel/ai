@@ -92,7 +92,7 @@ describe('ProdiaVideoModel', () => {
 
       expect(model.provider).toBe('prodia.video');
       expect(model.modelId).toBe('inference.wan2-2.lightning.txt2vid.v0');
-      expect(model.specificationVersion).toBe('v4');
+      expect(model.specificationVersion).toBe('v3');
       expect(model.maxVideosPerCall).toBe(1);
     });
   });

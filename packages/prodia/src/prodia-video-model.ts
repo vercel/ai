@@ -1,6 +1,6 @@
 import type {
-  Experimental_VideoModelV4,
-  SharedV4Warning,
+  Experimental_VideoModelV3,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import type { InferSchema } from '@ai-sdk/provider-utils';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
@@ -26,8 +26,8 @@ import {
 import type { ProdiaJobResult } from './prodia-api';
 import type { ProdiaVideoModelId } from './prodia-video-model-settings';
 
-export class ProdiaVideoModel implements Experimental_VideoModelV4 {
-  readonly specificationVersion = 'v4';
+export class ProdiaVideoModel implements Experimental_VideoModelV3 {
+  readonly specificationVersion = 'v3';
   readonly maxVideosPerCall = 1;
 
   get provider(): string {
@@ -40,9 +40,9 @@ export class ProdiaVideoModel implements Experimental_VideoModelV4 {
   ) {}
 
   async doGenerate(
-    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
-    const warnings: Array<SharedV4Warning> = [];
+    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
+    const warnings: Array<SharedV3Warning> = [];
 
     const prodiaOptions = await parseProviderOptions({
       provider: 'prodia',
@@ -251,7 +251,7 @@ function createVideoMultipartResponseHandler() {
 
 async function resolveVideoFileData(
   file: NonNullable<
-    Parameters<Experimental_VideoModelV4['doGenerate']>[0]['image']
+    Parameters<Experimental_VideoModelV3['doGenerate']>[0]['image']
   >,
   fetchFunction?: FetchFunction,
 ): Promise<{ bytes: Uint8Array; mediaType: string }> {
