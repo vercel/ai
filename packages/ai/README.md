@@ -63,16 +63,6 @@ const { text } = await generateText({
 });
 ```
 
-```ts
-import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
-
-const { text } = await generateText({
-  model: openai('gpt-5'), // use OpenAI Responses API
-  prompt: 'What is an agent?',
-});
-```
-
 ### Generating Structured Data
 
 ```ts
@@ -134,7 +124,7 @@ import { openai } from '@ai-sdk/openai';
 import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
 export const imageGenerationAgent = new ToolLoopAgent({
-  model: openai('gpt-5'),
+  model: 'openai/gpt-5',
   tools: {
     generateImage: openai.tools.imageGeneration({
       partialImages: 3,
