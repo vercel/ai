@@ -292,15 +292,10 @@ export async function convertToBedrockChatMessages(
                     bedrockContent.push({
                       reasoningContent: {
                         reasoningText: {
-                          // trim the last text part if it's the last message in the block
-                          // because Bedrock does not allow trailing whitespace
-                          // in pre-filled assistant responses
-                          text: trimIfLast(
-                            isLastBlock,
-                            isLastMessage,
-                            isLastContentPart,
-                            part.text,
-                          ),
+                          // Never trim reasoning text when a signature is present.
+                          // The signature validates the exact original bytes;
+                          // trimming even a trailing newline invalidates it.
+                          text: part.text,
                           signature: reasoningMetadata.signature,
                         },
                       },
