@@ -374,35 +374,34 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'tool-result': {
           const toolName = chunk.toolName as keyof TOOLS & string;
 
-          if (callId) {
-            controller.enqueue(
-              chunk.isError
-                ? ({
-                    type: 'tool-error',
-                    toolCallId: chunk.toolCallId,
-                    toolName,
-                    input: toolInputs.get(chunk.toolCallId),
-                    providerExecuted: true,
-                    error: chunk.result,
-                    dynamic: chunk.dynamic,
-                    ...(chunk.providerMetadata != null
-                      ? { providerMetadata: chunk.providerMetadata }
-                      : {}),
-                  } as TypedToolError<TOOLS>)
-                : ({
-                    type: 'tool-result',
-                    toolCallId: chunk.toolCallId,
-                    toolName,
-                    input: toolInputs.get(chunk.toolCallId),
-                    output: chunk.result,
-                    providerExecuted: true,
-                    dynamic: chunk.dynamic,
-                    ...(chunk.providerMetadata != null
-                      ? { providerMetadata: chunk.providerMetadata }
-                      : {}),
-                  } as TypedToolResult<TOOLS>),
-            );
-          }
+          controller.enqueue(
+            chunk.isError
+              ? ({
+                  type: 'tool-error',
+                  toolCallId: chunk.toolCallId,
+                  toolName,
+                  input: toolInputs.get(chunk.toolCallId),
+                  providerExecuted: true,
+                  error: chunk.result,
+                  dynamic: chunk.dynamic,
+                  ...(chunk.providerMetadata != null
+                    ? { providerMetadata: chunk.providerMetadata }
+                    : {}),
+                } as TypedToolError<TOOLS>)
+              : ({
+                  type: 'tool-result',
+                  toolCallId: chunk.toolCallId,
+                  toolName,
+                  input: toolInputs.get(chunk.toolCallId),
+                  output: chunk.result,
+                  providerExecuted: true,
+                  dynamic: chunk.dynamic,
+                  ...(chunk.providerMetadata != null
+                    ? { providerMetadata: chunk.providerMetadata }
+                    : {}),
+                } as TypedToolResult<TOOLS>),
+          );
+
           break;
         }
 
