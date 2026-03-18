@@ -1,5 +1,18 @@
 # @ai-sdk/mcp
 
+## 2.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+
+## 2.0.0-beta.7
+
+### Major Changes
+
+- 23fa161: fix(mcp): setting redirect: error for MCP transport
+
 ## 2.0.0-beta.6
 
 ### Patch Changes

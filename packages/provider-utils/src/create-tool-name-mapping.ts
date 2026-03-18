@@ -33,7 +33,6 @@ export interface ToolNameMapping {
 export function createToolNameMapping({
   tools = [],
   providerToolNames,
-  resolveProviderToolName,
 }: {
   /**
    * Tools that were passed to the language model.
@@ -46,28 +45,13 @@ export function createToolNameMapping({
    * Maps the provider tool ids to the provider tool names.
    */
   providerToolNames: Record<`${string}.${string}`, string>;
-
-  /**
-   * Optional resolver for provider tool names that cannot be represented as
-   * static id -> name mappings (e.g. dynamic provider names).
-   */
-  resolveProviderToolName?: (
-    tool: LanguageModelV4ProviderTool,
-  ) => string | undefined;
 }): ToolNameMapping {
   const customToolNameToProviderToolName: Record<string, string> = {};
   const providerToolNameToCustomToolName: Record<string, string> = {};
 
   for (const tool of tools) {
-    if (tool.type === 'provider') {
-      const providerToolName =
-        resolveProviderToolName?.(tool) ??
-        (tool.id in providerToolNames ? providerToolNames[tool.id] : undefined);
-
-      if (providerToolName == null) {
-        continue;
-      }
-
+    if (tool.type === 'provider' && tool.id in providerToolNames) {
+      const providerToolName = providerToolNames[tool.id];
       customToolNameToProviderToolName[tool.name] = providerToolName;
       providerToolNameToCustomToolName[providerToolName] = tool.name;
     }
