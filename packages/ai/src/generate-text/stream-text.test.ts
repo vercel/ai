@@ -1009,6 +1009,7 @@ describe('streamText', () => {
                 "type": "file",
                 "uint8ArrayData": undefined,
               },
+              "providerMetadata": undefined,
               "type": "file",
             },
             {
@@ -1032,6 +1033,7 @@ describe('streamText', () => {
                 "type": "file",
                 "uint8ArrayData": undefined,
               },
+              "providerMetadata": undefined,
               "type": "file",
             },
             {
@@ -1120,6 +1122,7 @@ describe('streamText', () => {
               "type": "file",
               "uint8ArrayData": undefined,
             },
+            "providerMetadata": undefined,
             "type": "file",
           },
         ]
@@ -1150,6 +1153,7 @@ describe('streamText', () => {
                 "type": "file",
                 "uint8ArrayData": undefined,
               },
+              "providerMetadata": undefined,
               "type": "reasoning-file",
             },
             {
