@@ -153,7 +153,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
     | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
   executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
-  // tool results stream
+  // there is a separate stream for tool results, because
+  // tool results might be emitted after the generator stream has finished
   let toolResultsStreamController: ReadableStreamDefaultController<
     SingleRequestTextStreamPart<TOOLS>
   > | null = null;
@@ -374,7 +375,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           const toolName = chunk.toolName as keyof TOOLS & string;
 
           if (chunk.isError) {
-            toolResultsStreamController!.enqueue({
+            controller.enqueue({
               type: 'tool-error',
               toolCallId: chunk.toolCallId,
               toolName,
