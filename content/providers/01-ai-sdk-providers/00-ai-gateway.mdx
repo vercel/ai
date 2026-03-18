@@ -174,7 +174,7 @@ const { text } = await generateText({
 });
 ```
 
-AI Gateway language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions (see [AI SDK Core](/docs/ai-sdk-core)).
+AI Gateway language models can also be used in the `streamText` function and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output) (see [AI SDK Core](/docs/ai-sdk-core)).
 
 ## Available Models
 
@@ -630,6 +630,14 @@ The following gateway provider options are available:
 - **zeroDataRetention** _boolean_
 
   Restricts routing requests to providers that have zero data retention policies.
+
+- **providerTimeouts** _object_
+
+  Per-provider timeouts for BYOK credentials in milliseconds. Controls how long to wait for a provider to start responding before falling back to the next available provider.
+
+  Example: `providerTimeouts: { byok: { openai: 5000, anthropic: 2000 } }`
+
+  For full details, see [Provider Timeouts](https://vercel.com/docs/ai-gateway/models-and-providers/provider-timeouts).
 
 You can combine these options to have fine-grained control over routing and tracking:
 

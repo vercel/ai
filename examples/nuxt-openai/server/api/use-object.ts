@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamObject } from 'ai';
+import { Output, streamText } from 'ai';
 import { notificationSchema } from '~/shared/notification-schema';
 
 export default defineLazyEventHandler(async () => {
@@ -10,11 +10,10 @@ export default defineLazyEventHandler(async () => {
   return defineEventHandler(async (event: any) => {
     const context = await readBody(event);
 
-    // Stream generated notifications as objects
-    const result = streamObject({
+    const result = streamText({
       model: openai('gpt-4.1'),
       prompt: `Generate 5 notifications for a messages app in this context: ${context}`,
-      schema: notificationSchema,
+      output: Output.object({ schema: notificationSchema }),
     });
 
     return result.toTextStreamResponse();

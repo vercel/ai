@@ -1,4 +1,10 @@
-import { ReasoningPart } from '@ai-sdk/provider-utils';
+import { ReasoningPart, ReasoningFilePart } from '@ai-sdk/provider-utils';
+import { asReasoningText } from './reasoning';
+import {
+  ReasoningOutput,
+  ReasoningFileOutput,
+  convertFromReasoningOutputs,
+} from './reasoning-output';
 import {
   CallWarning,
   FinishReason,
@@ -24,6 +30,43 @@ import { ToolSet } from './tool-set';
  */
 export type StepResult<TOOLS extends ToolSet> = {
   /**
+   * Unique identifier for the generation call this step belongs to.
+   */
+  readonly callId: string;
+
+  /**
+   * Zero-based index of this step.
+   */
+  readonly stepNumber: number;
+
+  /**
+   * Information about the model that produced this step.
+   */
+  readonly model: {
+    /** The provider of the model. */
+    readonly provider: string;
+    /** The ID of the model. */
+    readonly modelId: string;
+  };
+
+  /**
+   * Identifier from telemetry settings for grouping related operations.
+   */
+  readonly functionId: string | undefined;
+
+  /**
+   * Additional metadata from telemetry settings.
+   */
+  readonly metadata: Record<string, unknown> | undefined;
+
+  /**
+   * User-defined context object flowing through the generation.
+   *
+   * Experimental (can break in patch releases).
+   */
+  readonly experimental_context: unknown;
+
+  /**
    * The content that was generated in the last step.
    */
   readonly content: Array<ContentPart<TOOLS>>;
@@ -36,7 +79,7 @@ export type StepResult<TOOLS extends ToolSet> = {
   /**
    * The reasoning that was generated during the generation.
    */
-  readonly reasoning: Array<ReasoningPart>;
+  readonly reasoning: Array<ReasoningPart | ReasoningFilePart>;
 
   /**
    * The reasoning text that was generated during the generation.
@@ -136,6 +179,12 @@ export type StepResult<TOOLS extends ToolSet> = {
 export class DefaultStepResult<TOOLS extends ToolSet>
   implements StepResult<TOOLS>
 {
+  readonly callId: StepResult<TOOLS>['callId'];
+  readonly stepNumber: StepResult<TOOLS>['stepNumber'];
+  readonly model: StepResult<TOOLS>['model'];
+  readonly functionId: StepResult<TOOLS>['functionId'];
+  readonly metadata: StepResult<TOOLS>['metadata'];
+  readonly experimental_context: StepResult<TOOLS>['experimental_context'];
   readonly content: StepResult<TOOLS>['content'];
   readonly finishReason: StepResult<TOOLS>['finishReason'];
   readonly rawFinishReason: StepResult<TOOLS>['rawFinishReason'];
@@ -146,6 +195,12 @@ export class DefaultStepResult<TOOLS extends ToolSet>
   readonly providerMetadata: StepResult<TOOLS>['providerMetadata'];
 
   constructor({
+    callId,
+    stepNumber,
+    model,
+    functionId,
+    metadata,
+    experimental_context,
     content,
     finishReason,
     rawFinishReason,
@@ -155,6 +210,12 @@ export class DefaultStepResult<TOOLS extends ToolSet>
     response,
     providerMetadata,
   }: {
+    callId: StepResult<TOOLS>['callId'];
+    stepNumber: StepResult<TOOLS>['stepNumber'];
+    model: StepResult<TOOLS>['model'];
+    functionId: StepResult<TOOLS>['functionId'];
+    metadata: StepResult<TOOLS>['metadata'];
+    experimental_context: StepResult<TOOLS>['experimental_context'];
     content: StepResult<TOOLS>['content'];
     finishReason: StepResult<TOOLS>['finishReason'];
     rawFinishReason: StepResult<TOOLS>['rawFinishReason'];
@@ -164,6 +225,12 @@ export class DefaultStepResult<TOOLS extends ToolSet>
     response: StepResult<TOOLS>['response'];
     providerMetadata: StepResult<TOOLS>['providerMetadata'];
   }) {
+    this.callId = callId;
+    this.stepNumber = stepNumber;
+    this.model = model;
+    this.functionId = functionId;
+    this.metadata = metadata;
+    this.experimental_context = experimental_context;
     this.content = content;
     this.finishReason = finishReason;
     this.rawFinishReason = rawFinishReason;
@@ -181,14 +248,17 @@ export class DefaultStepResult<TOOLS extends ToolSet>
       .join('');
   }
 
-  get reasoning() {
-    return this.content.filter(part => part.type === 'reasoning');
+  get reasoning(): Array<ReasoningPart | ReasoningFilePart> {
+    return convertFromReasoningOutputs(
+      this.content.filter(
+        (part): part is ReasoningOutput | ReasoningFileOutput =>
+          part.type === 'reasoning' || part.type === 'reasoning-file',
+      ),
+    );
   }
 
   get reasoningText() {
-    return this.reasoning.length === 0
-      ? undefined
-      : this.reasoning.map(part => part.text).join('');
+    return asReasoningText(this.reasoning);
   }
 
   get files() {

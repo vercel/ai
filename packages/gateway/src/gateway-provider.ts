@@ -24,27 +24,27 @@ import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import type {
-  LanguageModelV3,
-  EmbeddingModelV3,
-  ImageModelV3,
-  Experimental_VideoModelV3,
-  ProviderV3,
+  LanguageModelV4,
+  EmbeddingModelV4,
+  ImageModelV4,
+  Experimental_VideoModelV4,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 
-export interface GatewayProvider extends ProviderV3 {
-  (modelId: GatewayModelId): LanguageModelV3;
+export interface GatewayProvider extends ProviderV4 {
+  (modelId: GatewayModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  chat(modelId: GatewayModelId): LanguageModelV3;
+  chat(modelId: GatewayModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: GatewayModelId): LanguageModelV3;
+  languageModel(modelId: GatewayModelId): LanguageModelV4;
 
   /**
    * Returns available providers and models for use with the remote provider.
@@ -59,37 +59,37 @@ export interface GatewayProvider extends ProviderV3 {
   /**
    * Creates a model for generating text embeddings.
    */
-  embedding(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
+  embedding(modelId: GatewayEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * Creates a model for generating text embeddings.
    */
-  embeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
+  embeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
+  textEmbeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * Creates a model for generating images.
    */
-  image(modelId: GatewayImageModelId): ImageModelV3;
+  image(modelId: GatewayImageModelId): ImageModelV4;
 
   /**
    * Creates a model for generating images.
    */
-  imageModel(modelId: GatewayImageModelId): ImageModelV3;
+  imageModel(modelId: GatewayImageModelId): ImageModelV4;
 
   /**
    * Creates a model for generating videos.
    */
-  video(modelId: GatewayVideoModelId): Experimental_VideoModelV3;
+  video(modelId: GatewayVideoModelId): Experimental_VideoModelV4;
 
   /**
    * Creates a model for generating videos.
    */
-  videoModel(modelId: GatewayVideoModelId): Experimental_VideoModelV3;
+  videoModel(modelId: GatewayVideoModelId): Experimental_VideoModelV4;
 
   /**
    * Gateway-specific tools executed server-side.
@@ -185,6 +185,10 @@ export function createGatewayProvider(
       settingValue: undefined,
       environmentVariableName: 'VERCEL_REGION',
     });
+    const projectId = loadOptionalSetting({
+      settingValue: undefined,
+      environmentVariableName: 'VERCEL_PROJECT_ID',
+    });
 
     return async () => {
       const requestId = await getVercelRequestId();
@@ -193,6 +197,7 @@ export function createGatewayProvider(
         ...(environment && { 'ai-o11y-environment': environment }),
         ...(region && { 'ai-o11y-region': region }),
         ...(requestId && { 'ai-o11y-request-id': requestId }),
+        ...(projectId && { 'ai-o11y-project-id': projectId }),
       };
     };
   };
@@ -258,7 +263,7 @@ export function createGatewayProvider(
     return createLanguageModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.getAvailableModels = getAvailableModels;
   provider.getCredits = getCredits;
   provider.imageModel = (modelId: GatewayImageModelId) => {

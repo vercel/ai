@@ -48,6 +48,13 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           providerOptions: part.providerMetadata,
         });
         break;
+      case 'custom':
+        content.push({
+          type: 'custom',
+          kind: part.kind,
+          providerOptions: part.providerMetadata,
+        });
+        break;
       case 'reasoning':
         content.push({
           type: 'reasoning',
@@ -58,6 +65,14 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
       case 'file':
         content.push({
           type: 'file',
+          data: part.file.base64,
+          mediaType: part.file.mediaType,
+          providerOptions: part.providerMetadata,
+        });
+        break;
+      case 'reasoning-file':
+        content.push({
+          type: 'reasoning-file',
           data: part.file.base64,
           mediaType: part.file.mediaType,
           providerOptions: part.providerMetadata,

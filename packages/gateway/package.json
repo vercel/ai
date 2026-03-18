@@ -1,7 +1,7 @@
 {
   "name": "@ai-sdk/gateway",
   "private": false,
-  "version": "3.0.49",
+  "version": "4.0.0-beta.16",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -48,7 +48,7 @@
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "@vercel/oidc": "3.1.0"
+    "@vercel/oidc": "3.2.0"
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",

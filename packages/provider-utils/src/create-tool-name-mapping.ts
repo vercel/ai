@@ -1,6 +1,6 @@
 import {
-  LanguageModelV3FunctionTool,
-  LanguageModelV3ProviderTool,
+  LanguageModelV4FunctionTool,
+  LanguageModelV4ProviderTool,
 } from '@ai-sdk/provider';
 
 /**
@@ -38,7 +38,7 @@ export function createToolNameMapping({
    * Tools that were passed to the language model.
    */
   tools:
-    | Array<LanguageModelV3FunctionTool | LanguageModelV3ProviderTool>
+    | Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool>
     | undefined;
 
   /**

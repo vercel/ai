@@ -1,4 +1,4 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import { LanguageModelV4Usage } from '@ai-sdk/provider';
 
 export function convertOpenAICompatibleCompletionUsage(
   usage:
@@ -8,7 +8,7 @@ export function convertOpenAICompatibleCompletionUsage(
       }
     | undefined
     | null,
-): LanguageModelV3Usage {
+): LanguageModelV4Usage {
   if (usage == null) {
     return {
       inputTokens: {

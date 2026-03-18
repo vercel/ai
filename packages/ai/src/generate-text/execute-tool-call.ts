@@ -1,33 +1,66 @@
 import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
-import { assembleOperationName } from '../telemetry/assemble-operation-name';
-import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
-import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
+import { notify } from '../util/notify';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { now } from '../util/now';
+import {
+  GenerateTextOnToolCallFinishCallback,
+  GenerateTextOnToolCallStartCallback,
+} from './generate-text';
 import { TypedToolCall } from './tool-call';
 import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
 import { TypedToolResult } from './tool-result';
 import { TypedToolError } from './tool-error';
 
+/**
+ * Executes a single tool call and manages its lifecycle callbacks.
+ *
+ * This function handles the complete tool execution flow:
+ * 1. Invokes `onToolCallStart` callback before execution
+ * 2. Executes the tool's `execute` function with proper context
+ * 3. Handles streaming outputs via `onPreliminaryToolResult`
+ * 4. Invokes `onToolCallFinish` callback with success or error result
+ *
+ * @returns The tool output (result or error), or undefined if the tool has no execute function.
+ */
 export async function executeToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
-  tracer,
   telemetry,
+  callId,
   messages,
   abortSignal,
+  toolTimeoutMs,
   experimental_context,
+  stepNumber,
+  model,
   onPreliminaryToolResult,
+  onToolCallStart,
+  onToolCallFinish,
+  executeToolInTelemetryContext = async ({ execute }) => execute(),
 }: {
   toolCall: TypedToolCall<TOOLS>;
   tools: TOOLS | undefined;
-  tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
+  callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
+  toolTimeoutMs?: number | undefined;
   experimental_context: unknown;
+  stepNumber?: number;
+  model?: { provider: string; modelId: string };
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
+  onToolCallStart?:
+    | GenerateTextOnToolCallStartCallback<TOOLS>
+    | Array<GenerateTextOnToolCallStartCallback<TOOLS> | undefined | null>;
+  onToolCallFinish?:
+    | GenerateTextOnToolCallFinishCallback<TOOLS>
+    | Array<GenerateTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
+  executeToolInTelemetryContext?: <T>(params: {
+    callId: string;
+    toolCallId: string;
+    execute: () => PromiseLike<T>;
+  }) => PromiseLike<T>;
 }): Promise<ToolOutput<TOOLS> | undefined> {
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
@@ -36,34 +69,48 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     return undefined;
   }
 
-  return recordSpan({
-    name: 'ai.toolCall',
-    attributes: selectTelemetryAttributes({
-      telemetry,
-      attributes: {
-        ...assembleOperationName({
-          operationId: 'ai.toolCall',
-          telemetry,
-        }),
-        'ai.toolCall.name': toolName,
-        'ai.toolCall.id': toolCallId,
-        'ai.toolCall.args': {
-          output: () => JSON.stringify(input),
-        },
-      },
-    }),
-    tracer,
-    fn: async span => {
-      let output: unknown;
+  const baseCallbackEvent = {
+    callId,
+    stepNumber,
+    model,
+    toolCall,
+    messages,
+    abortSignal,
+    functionId: telemetry?.functionId,
+    metadata: telemetry?.metadata as Record<string, unknown> | undefined,
+    experimental_context,
+  };
 
-      try {
+  let output: unknown;
+
+  await notify({ event: baseCallbackEvent, callbacks: onToolCallStart });
+
+  const toolAbortSignal =
+    toolTimeoutMs != null
+      ? abortSignal != null
+        ? AbortSignal.any([abortSignal, AbortSignal.timeout(toolTimeoutMs)])
+        : AbortSignal.timeout(toolTimeoutMs)
+      : abortSignal;
+
+  const startTime = now();
+
+  try {
+    // In order to correctly nest telemetry spans within tool calls spans, telemetry integrations need
+    // to be able to execute the tool call in a telemetry-integration-specific context.
+    //
+    // The call id and the tool call id are provided to the telemetry integration so that it can correctly
+    // identify the parent span.
+    await executeToolInTelemetryContext({
+      callId,
+      toolCallId,
+      execute: async () => {
         const stream = executeTool({
           execute: tool.execute!.bind(tool),
           input,
           options: {
             toolCallId,
             messages,
-            abortSignal,
+            abortSignal: toolAbortSignal,
             experimental_context,
           },
         });
@@ -80,50 +127,55 @@ export async function executeToolCall<TOOLS extends ToolSet>({
             output = part.output;
           }
         }
-      } catch (error) {
-        recordErrorOnSpan(span, error);
-        return {
-          type: 'tool-error',
-          toolCallId,
-          toolName,
-          input,
-          error,
-          dynamic: tool.type === 'dynamic',
-          ...(toolCall.providerMetadata != null
-            ? { providerMetadata: toolCall.providerMetadata }
-            : {}),
-        } as TypedToolError<TOOLS>;
-      }
+      },
+    });
+  } catch (error) {
+    const durationMs = now() - startTime;
 
-      try {
-        span.setAttributes(
-          await selectTelemetryAttributes({
-            telemetry,
-            attributes: {
-              'ai.toolCall.result': {
-                output: () => JSON.stringify(output),
-              },
-            },
-          }),
-        );
-      } catch (ignored) {
-        // JSON stringify might fail if the result is not serializable,
-        // in which case we just ignore it. In the future we might want to
-        // add an optional serialize method to the tool interface and warn
-        // if the result is not serializable.
-      }
+    await notify({
+      event: {
+        ...baseCallbackEvent,
+        success: false as const,
+        error,
+        durationMs,
+      },
+      callbacks: onToolCallFinish,
+    });
 
-      return {
-        type: 'tool-result',
-        toolCallId,
-        toolName,
-        input,
-        output,
-        dynamic: tool.type === 'dynamic',
-        ...(toolCall.providerMetadata != null
-          ? { providerMetadata: toolCall.providerMetadata }
-          : {}),
-      } as TypedToolResult<TOOLS>;
+    return {
+      type: 'tool-error',
+      toolCallId,
+      toolName,
+      input,
+      error,
+      dynamic: tool.type === 'dynamic',
+      ...(toolCall.providerMetadata != null
+        ? { providerMetadata: toolCall.providerMetadata }
+        : {}),
+    } as TypedToolError<TOOLS>;
+  }
+
+  const durationMs = now() - startTime;
+
+  await notify({
+    event: {
+      ...baseCallbackEvent,
+      success: true as const,
+      output,
+      durationMs,
     },
+    callbacks: onToolCallFinish,
   });
+
+  return {
+    type: 'tool-result',
+    toolCallId,
+    toolName,
+    input,
+    output,
+    dynamic: tool.type === 'dynamic',
+    ...(toolCall.providerMetadata != null
+      ? { providerMetadata: toolCall.providerMetadata }
+      : {}),
+  } as TypedToolResult<TOOLS>;
 }

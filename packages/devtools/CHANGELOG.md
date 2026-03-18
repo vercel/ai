@@ -1,5 +1,43 @@
 # @ai-sdk/devtools
 
+## 1.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider@4.0.0-beta.3
+
+## 1.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider@4.0.0-beta.2
+
+## 1.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+
+## 1.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/provider@4.0.0-beta.0
+
+## 0.0.15
+
+### Patch Changes
+
+- 4c3a932: Use explicit AI_SDK_DEVTOOLS_DEV env flag for dev mode detection
+
 ## 0.0.14
 
 ### Patch Changes

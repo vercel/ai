@@ -175,6 +175,39 @@ Supermemory works with any AI SDK provider. The tools give the model `addMemory`
 
 See the [Supermemory provider documentation](/providers/community-providers/supermemory) for full setup and configuration.
 
+### Hindsight
+
+[Hindsight](/providers/community-providers/hindsight) provides agents with persistent memory through five tools: `retain`, `recall`, `reflect`, `getMentalModel`, and `getDocument`. It can be self-hosted with Docker or used as a cloud service.
+
+```bash
+pnpm add @vectorize-io/hindsight-ai-sdk @vectorize-io/hindsight-client
+```
+
+```ts
+__PROVIDER_IMPORT__;
+import { HindsightClient } from '@vectorize-io/hindsight-client';
+import { createHindsightTools } from '@vectorize-io/hindsight-ai-sdk';
+import { ToolLoopAgent, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const client = new HindsightClient({ baseUrl: process.env.HINDSIGHT_API_URL });
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: createHindsightTools({ client, bankId: 'user-123' }),
+  stopWhen: stepCountIs(10),
+  instructions: 'You are a helpful assistant with long-term memory.',
+});
+
+const result = await agent.generate({
+  prompt: 'Remember that my favorite editor is Neovim',
+});
+```
+
+The `bankId` identifies the memory store and is typically a user ID. In multi-user apps, call `createHindsightTools` inside your request handler so each request gets the right bank. Hindsight works with any AI SDK provider.
+
+See the [Hindsight provider documentation](/providers/community-providers/hindsight) for full setup and configuration.
+
 **When to use memory providers**: these providers are a good fit when you want memory without building any storage infrastructure. The tradeoff is that the provider controls memory behavior, so you have less visibility into what gets stored and how it is retrieved. You also take on a dependency on an external service.
 
 ## Custom Tool

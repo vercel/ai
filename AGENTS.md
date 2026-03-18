@@ -84,8 +84,15 @@ Run these from within a package directory (e.g., `packages/ai`):
 
 ```bash
 cd examples/ai-functions
-pnpm tsx src/stream-text/openai.ts    # Run a specific example
+pnpm tsx src/stream-text/openai/basic.ts    # Run a specific example
 ```
+
+### AI Functions Example Layout
+
+- Place examples under `examples/ai-functions/src/<function>/<provider>/`
+- Use `basic.ts` for the provider entry example file
+- Place all other examples in the same provider folder using descriptive `kebab-case` file names
+- Do not create flat top-level provider files like `src/stream-text/openai.ts`
 
 ## Core APIs
 
@@ -108,7 +115,7 @@ pnpm tsx src/stream-text/openai.ts    # Run a specific example
 | Tool/schema utilities (`tool`, `jsonSchema`)  | `ai`                                          |
 | Provider implementations                      | `@ai-sdk/<provider>` (e.g., `@ai-sdk/openai`) |
 | Error classes                                 | `ai` (re-exports from `@ai-sdk/provider`)     |
-| Provider type interfaces (`LanguageModelV3`)  | `@ai-sdk/provider`                            |
+| Provider type interfaces (`LanguageModelV4`)  | `@ai-sdk/provider`                            |
 | Provider implementation utilities             | `@ai-sdk/provider-utils`                      |
 
 ## Coding Standards
@@ -187,16 +194,33 @@ export class MyError extends AISDKError {
 }
 ```
 
+## Architecture Decision Records (ADRs)
+
+This repo uses ADRs in `contributing/decisions/` to capture important architecture decisions. Before making changes that touch architecture (new dependencies, new patterns, API design, infrastructure), check existing ADRs:
+
+1. Read `contributing/decisions/README.md` for the index of decisions.
+2. Read any accepted ADRs relevant to your area of work. Follow the decisions and implementation patterns they specify.
+3. If you encounter a pattern in the code and wonder "why is it done this way?", check whether an ADR explains it.
+4. If your work would contradict an existing accepted ADR, stop and discuss with the human before proceeding.
+
+To propose or create a new ADR, use the ADR skill.
+
+## Project Philosophies
+
+For an overview of the project's key philosophies that guide decision making, see `contributing/project-philosophies.md`.
+
 ## Architecture
 
 ### Provider Pattern
 
 The SDK uses a layered provider architecture following the adapter pattern:
 
-1. **Specifications** (`@ai-sdk/provider`): Defines interfaces like `LanguageModelV3`
+1. **Specifications** (`@ai-sdk/provider`): Defines interfaces like `LanguageModelV4`
 2. **Utilities** (`@ai-sdk/provider-utils`): Shared code for implementing providers
 3. **Providers** (`@ai-sdk/<provider>`): Concrete implementations for each AI service
 4. **Core** (`ai`): High-level functions like `generateText`, `streamText`, `generateObject`
+
+For a focused conceptual walkthrough of AI functions, model specifications, and provider implementations, see `architecture/provider-abstraction.md`.
 
 ### Provider Development
 
