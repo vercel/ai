@@ -1,8 +1,8 @@
 ---
-'@ai-sdk/provider-utils': patch
-'@ai-sdk/provider': patch
-'@ai-sdk/xai': patch
-'ai': patch
+'@ai-sdk/provider-utils': major
+'@ai-sdk/provider': major
+'@ai-sdk/xai': major
+'ai': major
 ---
 
 feat(provider): adding new 'custom' content type
