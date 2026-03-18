@@ -1,10 +1,10 @@
 import type {
-  Experimental_VideoModelV3,
-  Experimental_VideoModelV3CallOptions,
-  Experimental_VideoModelV3File,
-  Experimental_VideoModelV3VideoData,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  Experimental_VideoModelV4,
+  Experimental_VideoModelV4CallOptions,
+  Experimental_VideoModelV4File,
+  Experimental_VideoModelV4VideoData,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import { APICallError } from '@ai-sdk/provider';
 import {
@@ -21,8 +21,8 @@ import type { GatewayConfig } from './gateway-config';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 
-export class GatewayVideoModel implements Experimental_VideoModelV3 {
-  readonly specificationVersion = 'v3' as const;
+export class GatewayVideoModel implements Experimental_VideoModelV4 {
+  readonly specificationVersion = 'v4' as const;
   // Set a very large number to prevent client-side splitting of requests
   readonly maxVideosPerCall = Number.MAX_SAFE_INTEGER;
 
@@ -50,10 +50,10 @@ export class GatewayVideoModel implements Experimental_VideoModelV3 {
     providerOptions,
     headers,
     abortSignal,
-  }: Experimental_VideoModelV3CallOptions): Promise<{
-    videos: Array<Experimental_VideoModelV3VideoData>;
-    warnings: Array<SharedV3Warning>;
-    providerMetadata?: SharedV3ProviderMetadata;
+  }: Experimental_VideoModelV4CallOptions): Promise<{
+    videos: Array<Experimental_VideoModelV4VideoData>;
+    warnings: Array<SharedV4Warning>;
+    providerMetadata?: SharedV4ProviderMetadata;
     response: {
       timestamp: Date;
       modelId: string;
@@ -170,7 +170,7 @@ export class GatewayVideoModel implements Experimental_VideoModelV3 {
         videos: responseBody.videos,
         warnings: responseBody.warnings ?? [],
         providerMetadata:
-          responseBody.providerMetadata as SharedV3ProviderMetadata,
+          responseBody.providerMetadata as SharedV4ProviderMetadata,
         response: {
           timestamp: new Date(),
           modelId: this.modelId,
@@ -188,13 +188,13 @@ export class GatewayVideoModel implements Experimental_VideoModelV3 {
 
   private getModelConfigHeaders() {
     return {
-      'ai-video-model-specification-version': '3',
+      'ai-video-model-specification-version': '4',
       'ai-model-id': this.modelId,
     };
   }
 }
 
-function maybeEncodeVideoFile(file: Experimental_VideoModelV3File) {
+function maybeEncodeVideoFile(file: Experimental_VideoModelV4File) {
   if (file.type === 'file' && file.data instanceof Uint8Array) {
     return {
       ...file,
