@@ -629,7 +629,7 @@ The following gateway provider options are available:
 
 - **zeroDataRetention** _boolean_
 
-  Restricts routing requests to providers that have zero data retention agreements with Vercel for AI Gateway. If there are no providers available for the model with zero data retention, the request will fail. BYOK credentials are skipped when `zeroDataRetention` is set to `true` to ensure that requests are only routed to providers that support ZDR compliance. Request-level ZDR is only available for Vercel Pro and Enterprise plans.
+  Restricts routing requests to providers that have zero data retention agreements with Vercel for AI Gateway. If there are no providers available for the model with zero data retention, the request will fail. BYOK credentials are skipped when `zeroDataRetention` is set to `true` to ensure that requests are only routed to providers that support ZDR compliance.
 
 - **hipaaCompliant** _boolean_
 
@@ -680,7 +680,7 @@ const { text } = await generateText({
 
 #### Zero Data Retention Example
 
-Set `zeroDataRetention` to true to route requests to providers that have zero data retention agreements with Vercel for AI Gateway. If there are no providers available for the model with zero data retention, the request will fail. When `zeroDataRetention` is `false` or not specified, there is no enforcement of restricting routing. BYOK credentials are skipped when `zeroDataRetention` is set to `true` to ensure that requests are only routed to providers that support ZDR compliance. Request-level ZDR is only available for Vercel Pro and Enterprise plans.
+Set `zeroDataRetention` to true to route requests to providers that have zero data retention agreements with Vercel for AI Gateway. If there are no providers available for the model with zero data retention, the request will fail. When `zeroDataRetention` is `false` or not specified, there is no enforcement of restricting routing. BYOK credentials are skipped when `zeroDataRetention` is set to `true` to ensure that requests are only routed to providers that support ZDR compliance.
 
 ```ts
 import type { GatewayLanguageModelOptions } from '@ai-sdk/gateway';
