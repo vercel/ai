@@ -125,6 +125,9 @@ export interface LanguageModelV4ReasoningFilePart {
 export interface LanguageModelV4CustomPart {
   type: 'custom';
 
+  /**
+   * The kind of custom content, in the format `{provider}-{provider-type}`.
+   */
   kind: string;
 
   /**
