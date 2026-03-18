@@ -43,35 +43,28 @@ export default function Page() {
             </div>
 
             {message.parts.map((part, index) => {
-              if (part.type === 'text') {
-                const isCompaction =
-                  (
-                    part.providerMetadata?.openai as
-                      | { type?: string }
-                      | undefined
-                  )?.type === 'compaction';
-
-                if (isCompaction) {
-                  return (
-                    <div
-                      key={index}
-                      className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-300 rounded-lg"
-                    >
-                      <span className="text-amber-600 text-lg">⚡</span>
-                      <div>
-                        <span className="font-semibold text-amber-700 text-sm">
-                          Context Compacted
-                        </span>
-                        <p className="text-xs text-amber-600 mt-0.5">
-                          The server compressed the conversation context to
-                          reduce token usage. The encrypted compaction state
-                          will be passed forward automatically.
-                        </p>
-                      </div>
+              if (part.type === 'custom' && part.kind === 'openai-compaction') {
+                return (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-300 rounded-lg"
+                  >
+                    <span className="text-amber-600 text-lg">⚡</span>
+                    <div>
+                      <span className="font-semibold text-amber-700 text-sm">
+                        Context Compacted
+                      </span>
+                      <p className="text-xs text-amber-600 mt-0.5">
+                        The server compressed the conversation context to reduce
+                        token usage. The encrypted compaction state will be
+                        passed forward automatically.
+                      </p>
                     </div>
-                  );
-                }
+                  </div>
+                );
+              }
 
+              if (part.type === 'text') {
                 return (
                   <div key={index} className="whitespace-pre-wrap">
                     {part.text}
