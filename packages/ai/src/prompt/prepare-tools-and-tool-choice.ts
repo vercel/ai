@@ -7,6 +7,7 @@ import { asSchema } from '@ai-sdk/provider-utils';
 import { isNonEmptyObject } from '../util/is-non-empty-object';
 import { ToolSet } from '../generate-text';
 import { ToolChoice } from '../types/language-model';
+import { toLanguageModelToolChoice } from './to-language-model-tool-choice';
 
 export async function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
   tools,
@@ -76,11 +77,6 @@ export async function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
 
   return {
     tools: languageModelTools,
-    toolChoice:
-      toolChoice == null
-        ? { type: 'auto' }
-        : typeof toolChoice === 'string'
-          ? { type: toolChoice }
-          : { type: 'tool' as const, toolName: toolChoice.toolName as string },
+    toolChoice: toLanguageModelToolChoice(toolChoice) ?? { type: 'auto' },
   };
 }

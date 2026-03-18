@@ -6,6 +6,7 @@ import type {
   LanguageModelV4ToolChoice,
   SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import {
   type FinishReason,
   gateway,
@@ -16,6 +17,8 @@ import {
   type ToolSet,
   type UIMessageChunk,
 } from 'ai';
+import { toLanguageModelToolChoice } from 'ai/internal';
+import { createProviderStreamToUIChunkTransform } from './create-provider-stream-to-ui-chunk-transform.js';
 import type {
   ProviderOptions,
   StreamTextTransform,
@@ -35,18 +38,6 @@ export interface ProviderExecutedToolResult {
   toolName: string;
   result: unknown;
   isError?: boolean;
-}
-
-/**
- * Convert a Uint8Array to a base64 string safely.
- * Uses a loop instead of spread operator to avoid stack overflow on large arrays.
- */
-function uint8ArrayToBase64(data: Uint8Array): string {
-  let binary = '';
-  for (let i = 0; i < data.length; i++) {
-    binary += String.fromCharCode(data[i]);
-  }
-  return btoa(binary);
 }
 
 /**
@@ -76,30 +67,6 @@ export interface DoStreamStepOptions {
    * This is used by DurableAgent when collectUIMessages is enabled.
    */
   collectUIChunks?: boolean;
-}
-
-/**
- * Convert AI SDK ToolChoice to LanguageModelV4ToolChoice
- */
-function toLanguageModelToolChoice(
-  toolChoice: ToolChoice<ToolSet> | undefined,
-): LanguageModelV4ToolChoice | undefined {
-  if (toolChoice === undefined) {
-    return undefined;
-  }
-  if (toolChoice === 'auto') {
-    return { type: 'auto' };
-  }
-  if (toolChoice === 'none') {
-    return { type: 'none' };
-  }
-  if (toolChoice === 'required') {
-    return { type: 'required' };
-  }
-  if (typeof toolChoice === 'object' && toolChoice.type === 'tool') {
-    return { type: 'tool', toolName: toolChoice.toolName };
-  }
-  return undefined;
 }
 
 export async function doStreamStep(
@@ -174,6 +141,7 @@ export async function doStreamStep(
   >();
   const chunks: LanguageModelV4StreamPart[] = [];
   const includeRawChunks = options?.includeRawChunks ?? false;
+
   const collectUIChunks = options?.collectUIChunks ?? false;
   const uiChunks: UIMessageChunk[] = [];
 
@@ -225,249 +193,9 @@ export async function doStreamStep(
       }),
     )
     .pipeThrough(
-      new TransformStream<LanguageModelV4StreamPart, UIMessageChunk>({
-        start: controller => {
-          if (options?.sendStart) {
-            controller.enqueue({
-              type: 'start',
-              // Note that if useChat is used client-side, useChat will generate a different
-              // messageId. It's hard to work around this.
-              messageId: generateId(),
-            });
-          }
-          controller.enqueue({
-            type: 'start-step',
-          });
-        },
-        flush: controller => {
-          controller.enqueue({
-            type: 'finish-step',
-          });
-        },
-        transform: async (part, controller) => {
-          const partType = part.type;
-          switch (partType) {
-            case 'text-start': {
-              controller.enqueue({
-                type: 'text-start',
-                id: part.id,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
-              break;
-            }
-
-            case 'text-delta': {
-              controller.enqueue({
-                type: 'text-delta',
-                id: part.id,
-                delta: part.delta,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
-              break;
-            }
-
-            case 'text-end': {
-              controller.enqueue({
-                type: 'text-end',
-                id: part.id,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
-              break;
-            }
-
-            case 'reasoning-start': {
-              controller.enqueue({
-                type: 'reasoning-start',
-                id: part.id,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
-              break;
-            }
-
-            case 'reasoning-delta': {
-              controller.enqueue({
-                type: 'reasoning-delta',
-                id: part.id,
-                delta: part.delta,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
-
-              break;
-            }
-
-            case 'reasoning-end': {
-              controller.enqueue({
-                type: 'reasoning-end',
-                id: part.id,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
-              break;
-            }
-
-            case 'file': {
-              // Convert data to URL, handling Uint8Array, URL, and string cases
-              let url: string;
-              const fileData = part.data as Uint8Array | string | URL;
-              if (fileData instanceof Uint8Array) {
-                // Convert Uint8Array to base64 and create data URL
-                const base64 = uint8ArrayToBase64(fileData);
-                url = `data:${part.mediaType};base64,${base64}`;
-              } else if (fileData instanceof URL) {
-                // Use URL directly (could be a data URL or remote URL)
-                url = fileData.href;
-              } else if (
-                fileData.startsWith('data:') ||
-                fileData.startsWith('http:') ||
-                fileData.startsWith('https:')
-              ) {
-                // Already a URL string
-                url = fileData;
-              } else {
-                // Assume it's base64-encoded data
-                url = `data:${part.mediaType};base64,${fileData}`;
-              }
-              controller.enqueue({
-                type: 'file',
-                mediaType: part.mediaType,
-                url,
-              });
-              break;
-            }
-
-            case 'source': {
-              if (part.sourceType === 'url') {
-                controller.enqueue({
-                  type: 'source-url',
-                  sourceId: part.id,
-                  url: part.url,
-                  title: part.title,
-                  ...(part.providerMetadata != null
-                    ? { providerMetadata: part.providerMetadata }
-                    : {}),
-                });
-              }
-
-              if (part.sourceType === 'document') {
-                controller.enqueue({
-                  type: 'source-document',
-                  sourceId: part.id,
-                  mediaType: part.mediaType,
-                  title: part.title,
-                  filename: part.filename,
-                  ...(part.providerMetadata != null
-                    ? { providerMetadata: part.providerMetadata }
-                    : {}),
-                });
-              }
-              break;
-            }
-
-            case 'tool-input-start': {
-              controller.enqueue({
-                type: 'tool-input-start',
-                toolCallId: part.id,
-                toolName: part.toolName,
-                ...(part.providerExecuted != null
-                  ? { providerExecuted: part.providerExecuted }
-                  : {}),
-              });
-              break;
-            }
-
-            case 'tool-input-delta': {
-              controller.enqueue({
-                type: 'tool-input-delta',
-                toolCallId: part.id,
-                inputTextDelta: part.delta,
-              });
-              break;
-            }
-
-            case 'tool-input-end': {
-              // End of tool input streaming - no UI chunk needed
-              break;
-            }
-
-            case 'tool-call': {
-              controller.enqueue({
-                type: 'tool-input-available',
-                toolCallId: part.toolCallId,
-                toolName: part.toolName,
-                input: JSON.parse(part.input || '{}'),
-                ...(part.providerExecuted != null
-                  ? { providerExecuted: part.providerExecuted }
-                  : {}),
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
-              break;
-            }
-
-            case 'tool-result': {
-              controller.enqueue({
-                type: 'tool-output-available',
-                toolCallId: part.toolCallId,
-                output: part.result,
-              });
-              break;
-            }
-
-            case 'error': {
-              const error = part.error;
-              controller.enqueue({
-                type: 'error',
-                errorText:
-                  error instanceof Error ? error.message : String(error),
-              });
-
-              break;
-            }
-
-            case 'stream-start': {
-              // Stream start is internal, no UI chunk needed
-              break;
-            }
-
-            case 'response-metadata': {
-              // Response metadata is internal, no UI chunk needed
-              break;
-            }
-
-            case 'finish': {
-              // Finish is handled separately
-              break;
-            }
-
-            case 'raw': {
-              // Raw chunks are only included if explicitly requested
-              if (includeRawChunks) {
-                // Raw chunks contain provider-specific data
-                // We don't have a direct mapping to UIMessageChunk
-                // but we can log or handle them if needed
-              }
-              break;
-            }
-
-            default: {
-              // Handle any other chunk types gracefully
-              // const exhaustiveCheck: never = partType;
-              // console.warn(`Unknown chunk type: ${partType}`);
-            }
-          }
-        },
+      createProviderStreamToUIChunkTransform({
+        sendStart: options?.sendStart,
+        messageId: options?.sendStart ? generateId() : undefined,
       }),
     )
     .pipeThrough(
@@ -542,7 +270,7 @@ function chunksToStep(
       // If data is already a Uint8Array, convert to base64; otherwise use as-is
       if (data instanceof Uint8Array) {
         // Convert Uint8Array to base64 string
-        const base64 = uint8ArrayToBase64(data);
+        const base64 = convertUint8ArrayToBase64(data);
         return {
           mediaType: chunk.mediaType,
           base64,
@@ -574,6 +302,7 @@ function chunksToStep(
   const rawFinishReason = finish?.finishReason?.raw;
 
   const stepResult: StepResult<any> = {
+    callId: generateId(),
     stepNumber: 0, // Will be overridden by the caller
     model: {
       provider: responseMetadata?.modelId?.split(':')[0] ?? 'unknown',
