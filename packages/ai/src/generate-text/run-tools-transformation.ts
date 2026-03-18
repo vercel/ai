@@ -213,6 +213,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'text-delta':
         case 'text-end':
         case 'reasoning-start':
+        case 'reasoning-delta':
         case 'reasoning-end':
         case 'tool-input-start':
         case 'tool-input-delta':
@@ -224,15 +225,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           controller.enqueue(chunk);
           break;
         }
-
-        case 'reasoning-delta':
-          controller.enqueue({
-            type: 'reasoning-delta',
-            id: chunk.id,
-            text: chunk.delta,
-            providerMetadata: chunk.providerMetadata,
-          });
-          break;
 
         case 'file':
         case 'reasoning-file': {

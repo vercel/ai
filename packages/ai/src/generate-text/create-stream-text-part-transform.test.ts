@@ -24,7 +24,7 @@ const testUsage: LanguageModelV4Usage = {
 };
 
 describe('createStreamTextPartTransform', () => {
-  it('should forward text parts', async () => {
+  it('should convert text parts text to delta', async () => {
     const inputStream: ReadableStream<LanguageModelV4StreamPart> =
       convertArrayToReadableStream([
         { type: 'text-start', id: '1' },
@@ -78,6 +78,40 @@ describe('createStreamTextPartTransform', () => {
               "total": 10,
             },
           },
+        },
+      ]
+    `);
+  });
+
+  it('should convert reasoning parts text to delta', async () => {
+    const inputStream: ReadableStream<LanguageModelV4StreamPart> =
+      convertArrayToReadableStream([
+        { type: 'reasoning-start', id: '1' },
+        { type: 'reasoning-delta', id: '1', delta: 'text' },
+        { type: 'reasoning-end', id: '1' },
+      ]);
+
+    const transformedStream = inputStream.pipeThrough(
+      createStreamTextPartTransform(),
+    );
+
+    const result = await convertReadableStreamToArray(transformedStream);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "1",
+          "type": "reasoning-start",
+        },
+        {
+          "id": "1",
+          "providerMetadata": undefined,
+          "text": "text",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "1",
+          "type": "reasoning-end",
         },
       ]
     `);
