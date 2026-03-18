@@ -4,7 +4,7 @@ import {
 } from '@ai-sdk/test-server/with-vitest';
 import { MCPClientError } from '../error/mcp-client-error';
 import { SseMCPTransport } from './mcp-sse-transport';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LATEST_PROTOCOL_VERSION } from './types';
 
 describe('SseMCPTransport', () => {
@@ -283,5 +283,102 @@ describe('SseMCPTransport', () => {
     expect(server.calls[1].requestUserAgent).toContain('ai-sdk/');
 
     await transport.close();
+  });
+
+  describe('redirect option', () => {
+    it('should pass redirect: error to GET fetch on start()', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+      const controller = new TestResponseController();
+      server.urls['http://localhost:3000/sse'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      transport = new SseMCPTransport({
+        url: 'http://localhost:3000/sse',
+        redirect: 'error',
+      });
+
+      const connectPromise = transport.start();
+      controller.write(
+        'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+      );
+      await connectPromise;
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'http://localhost:3000/sse',
+        expect.objectContaining({ redirect: 'error' }),
+      );
+
+      await transport.close();
+      fetchSpy.mockRestore();
+    });
+
+    it('should pass redirect: error to POST fetch on send()', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+      const controller = new TestResponseController();
+      server.urls['http://localhost:3000/sse'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      transport = new SseMCPTransport({
+        url: 'http://localhost:3000/sse',
+        redirect: 'error',
+      });
+
+      const connectPromise = transport.start();
+      controller.write(
+        'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+      );
+      await connectPromise;
+
+      fetchSpy.mockClear();
+
+      await transport.send({
+        jsonrpc: '2.0' as const,
+        method: 'test',
+        params: {},
+        id: '1',
+      });
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ redirect: 'error' }),
+      );
+
+      await transport.close();
+      fetchSpy.mockRestore();
+    });
+
+    it('should default redirect to error', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+      const controller = new TestResponseController();
+      server.urls['http://localhost:3000/sse'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      transport = new SseMCPTransport({
+        url: 'http://localhost:3000/sse',
+      });
+
+      const connectPromise = transport.start();
+      controller.write(
+        'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+      );
+      await connectPromise;
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'http://localhost:3000/sse',
+        expect.objectContaining({ redirect: 'error' }),
+      );
+
+      await transport.close();
+      fetchSpy.mockRestore();
+    });
   });
 });

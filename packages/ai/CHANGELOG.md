@@ -1,5 +1,18 @@
 # ai
 
+## 7.0.0-beta.21
+
+### Patch Changes
+
+- 34fd051: feat(ai): add toolMs to timeout configuration
+
+## 7.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [2095655]
+  - @ai-sdk/gateway@4.0.0-beta.13
+
 ## 7.0.0-beta.19
 
 ### Patch Changes

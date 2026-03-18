@@ -671,6 +671,110 @@ describe('executeToolCall', () => {
     });
   });
 
+  describe('toolTimeoutMs', () => {
+    it('should return tool-result when tool completes before timeout', async () => {
+      const result = await executeToolCall({
+        toolCall: createToolCall(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        telemetry: undefined,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        toolTimeoutMs: 5000,
+        experimental_context: undefined,
+      });
+
+      expect(result).toMatchObject({
+        type: 'tool-result',
+        output: 'test-result',
+      });
+    });
+
+    it('should pass an abort signal to tool when toolTimeoutMs is set', async () => {
+      let receivedSignal: AbortSignal | undefined;
+
+      await executeToolCall({
+        toolCall: createToolCall(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { abortSignal }) => {
+              receivedSignal = abortSignal;
+              return `${value}-result`;
+            },
+          }),
+        },
+        telemetry: undefined,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        toolTimeoutMs: 5000,
+        experimental_context: undefined,
+      });
+
+      expect(receivedSignal).toBeDefined();
+      expect(receivedSignal!.aborted).toBe(false);
+    });
+
+    it('should not override abort signal when toolTimeoutMs is undefined', async () => {
+      let receivedSignal: AbortSignal | undefined;
+
+      await executeToolCall({
+        toolCall: createToolCall(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { abortSignal }) => {
+              receivedSignal = abortSignal;
+              return `${value}-result`;
+            },
+          }),
+        },
+        telemetry: undefined,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        toolTimeoutMs: undefined,
+        experimental_context: undefined,
+      });
+
+      expect(receivedSignal).toBeUndefined();
+    });
+
+    it('should merge toolTimeoutMs with existing abort signal', async () => {
+      const controller = new AbortController();
+      let receivedSignal: AbortSignal | undefined;
+
+      await executeToolCall({
+        toolCall: createToolCall(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }, { abortSignal }) => {
+              receivedSignal = abortSignal;
+              return `${value}-result`;
+            },
+          }),
+        },
+        telemetry: undefined,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: controller.signal,
+        toolTimeoutMs: 5000,
+        experimental_context: undefined,
+      });
+
+      expect(receivedSignal).toBeDefined();
+      expect(receivedSignal).not.toBe(controller.signal);
+      expect(receivedSignal!.aborted).toBe(false);
+    });
+  });
+
   describe('dynamic tools', () => {
     it('should set dynamic: true for dynamic tools on success', async () => {
       const { dynamicTool } = await import('@ai-sdk/provider-utils');

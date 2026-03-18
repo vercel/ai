@@ -1,11 +1,11 @@
 import {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -35,8 +35,8 @@ type CohereChatConfig = {
   generateId: () => string;
 };
 
-export class CohereChatLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class CohereChatLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: CohereChatModelId;
 
@@ -69,7 +69,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     providerOptions,
-  }: LanguageModelV3CallOptions) {
+  }: LanguageModelV4CallOptions) {
     // Parse provider options
     const cohereOptions =
       (await parseProviderOptions({
@@ -134,8 +134,8 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const {
@@ -154,7 +154,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     for (const item of response.message.content ?? []) {
       if (item.type === 'text' && item.text.length > 0) {
@@ -219,8 +219,8 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -235,7 +235,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -254,7 +254,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof cohereChatChunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
