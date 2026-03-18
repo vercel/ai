@@ -97,7 +97,9 @@ describe('streamTextIterator', () => {
       vi.mocked(doStreamStep)
         .mockResolvedValueOnce({
           toolCalls: [toolCallWithMetadata],
-          finish: { finishReason: 'tool-calls' },
+          finish: {
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+          },
           step: createMockStepResult({ finishReason: 'tool-calls' }),
         })
         .mockImplementationOnce(async prompt => {
@@ -105,7 +107,7 @@ describe('streamTextIterator', () => {
           capturedPrompt = prompt;
           return {
             toolCalls: [],
-            finish: { finishReason: 'stop' },
+            finish: { finishReason: { unified: 'stop', raw: 'stop' } },
             step: createMockStepResult({ finishReason: 'stop' }),
           };
         });
@@ -178,14 +180,16 @@ describe('streamTextIterator', () => {
       vi.mocked(doStreamStep)
         .mockResolvedValueOnce({
           toolCalls: [toolCallWithoutMetadata],
-          finish: { finishReason: 'tool-calls' },
+          finish: {
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+          },
           step: createMockStepResult({ finishReason: 'tool-calls' }),
         })
         .mockImplementationOnce(async prompt => {
           capturedPrompt = prompt;
           return {
             toolCalls: [],
-            finish: { finishReason: 'stop' },
+            finish: { finishReason: { unified: 'stop', raw: 'stop' } },
             step: createMockStepResult({ finishReason: 'stop' }),
           };
         });
@@ -257,14 +261,16 @@ describe('streamTextIterator', () => {
       vi.mocked(doStreamStep)
         .mockResolvedValueOnce({
           toolCalls,
-          finish: { finishReason: 'tool-calls' },
+          finish: {
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+          },
           step: createMockStepResult({ finishReason: 'tool-calls' }),
         })
         .mockImplementationOnce(async prompt => {
           capturedPrompt = prompt;
           return {
             toolCalls: [],
-            finish: { finishReason: 'stop' },
+            finish: { finishReason: { unified: 'stop', raw: 'stop' } },
             step: createMockStepResult({ finishReason: 'stop' }),
           };
         });
@@ -359,14 +365,16 @@ describe('streamTextIterator', () => {
       vi.mocked(doStreamStep)
         .mockResolvedValueOnce({
           toolCalls,
-          finish: { finishReason: 'tool-calls' },
+          finish: {
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+          },
           step: createMockStepResult({ finishReason: 'tool-calls' }),
         })
         .mockImplementationOnce(async prompt => {
           capturedPrompt = prompt;
           return {
             toolCalls: [],
-            finish: { finishReason: 'stop' },
+            finish: { finishReason: { unified: 'stop', raw: 'stop' } },
             step: createMockStepResult({ finishReason: 'stop' }),
           };
         });
@@ -448,14 +456,16 @@ describe('streamTextIterator', () => {
       vi.mocked(doStreamStep)
         .mockResolvedValueOnce({
           toolCalls: [toolCallWithOpenAIMetadata],
-          finish: { finishReason: 'tool-calls' },
+          finish: {
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+          },
           step: createMockStepResult({ finishReason: 'tool-calls' }),
         })
         .mockImplementationOnce(async prompt => {
           capturedPrompt = prompt;
           return {
             toolCalls: [],
-            finish: { finishReason: 'stop' },
+            finish: { finishReason: { unified: 'stop', raw: 'stop' } },
             step: createMockStepResult({ finishReason: 'stop' }),
           };
         });
@@ -520,14 +530,16 @@ describe('streamTextIterator', () => {
       vi.mocked(doStreamStep)
         .mockResolvedValueOnce({
           toolCalls: [toolCallWithMixedOpenAIMetadata],
-          finish: { finishReason: 'tool-calls' },
+          finish: {
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+          },
           step: createMockStepResult({ finishReason: 'tool-calls' }),
         })
         .mockImplementationOnce(async prompt => {
           capturedPrompt = prompt;
           return {
             toolCalls: [],
-            finish: { finishReason: 'stop' },
+            finish: { finishReason: { unified: 'stop', raw: 'stop' } },
             step: createMockStepResult({ finishReason: 'stop' }),
           };
         });
@@ -598,14 +610,16 @@ describe('streamTextIterator', () => {
       vi.mocked(doStreamStep)
         .mockResolvedValueOnce({
           toolCalls: [toolCallWithMixedProviders],
-          finish: { finishReason: 'tool-calls' },
+          finish: {
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+          },
           step: createMockStepResult({ finishReason: 'tool-calls' }),
         })
         .mockImplementationOnce(async prompt => {
           capturedPrompt = prompt;
           return {
             toolCalls: [],
-            finish: { finishReason: 'stop' },
+            finish: { finishReason: { unified: 'stop', raw: 'stop' } },
             step: createMockStepResult({ finishReason: 'stop' }),
           };
         });
