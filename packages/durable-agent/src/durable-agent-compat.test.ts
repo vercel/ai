@@ -13,7 +13,7 @@
  */
 import { tool } from 'ai';
 import type { UIMessageChunk } from 'ai';
-import { MockLanguageModelV3, convertArrayToReadableStream } from 'ai/test';
+import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { DurableAgent } from './durable-agent.js';
@@ -37,11 +37,11 @@ function createMockWritable() {
 }
 
 /**
- * Wraps a MockLanguageModelV3 in an async factory function.
+ * Wraps a MockLanguageModelV4 in an async factory function.
  * DIVERGENCE: DurableAgent model is `() => Promise<CompatibleLanguageModel>`
  * while ToolLoopAgent takes `LanguageModel` directly.
  */
-function asModelFactory(model: MockLanguageModelV3) {
+function asModelFactory(model: MockLanguageModelV4) {
   return async () => model;
 }
 
@@ -146,7 +146,7 @@ function createShortStreamResponse() {
 
 function createToolCallStreamMockModel() {
   let callCount = 0;
-  return new MockLanguageModelV3({
+  return new MockLanguageModelV4({
     doStream: async () => {
       if (callCount++ === 0) {
         return {
@@ -195,7 +195,7 @@ function createToolCallStreamMockModel() {
 
 function createToolCallStreamMockModelWithInput(input: string) {
   let callCount = 0;
-  return new MockLanguageModelV3({
+  return new MockLanguageModelV4({
     doStream: async () => {
       if (callCount++ === 0) {
         return {
@@ -249,11 +249,11 @@ function createToolCallStreamMockModelWithInput(input: string) {
 describe('DurableAgent (ToolLoopAgent compat)', () => {
   describe('stream', () => {
     let doStreamOptions: any;
-    let mockModel: MockLanguageModelV3;
+    let mockModel: MockLanguageModelV4;
 
     beforeEach(() => {
       doStreamOptions = undefined;
-      mockModel = new MockLanguageModelV3({
+      mockModel = new MockLanguageModelV4({
         doStream: async options => {
           doStreamOptions = options;
           return createSimpleStreamResponse();
@@ -496,10 +496,10 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
 
   describe('experimental_onStart', () => {
     describe('stream', () => {
-      let mockModel: MockLanguageModelV3;
+      let mockModel: MockLanguageModelV4;
 
       beforeEach(() => {
-        mockModel = new MockLanguageModelV3({
+        mockModel = new MockLanguageModelV4({
           doStream: async () => createShortStreamResponse(),
         });
       });
@@ -635,10 +635,10 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
 
   describe('experimental_onStepStart', () => {
     describe('stream', () => {
-      let mockModel: MockLanguageModelV3;
+      let mockModel: MockLanguageModelV4;
 
       beforeEach(() => {
-        mockModel = new MockLanguageModelV3({
+        mockModel = new MockLanguageModelV4({
           doStream: async () => createShortStreamResponse(),
         });
       });
@@ -770,10 +770,10 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
 
   describe('onStepFinish', () => {
     describe('stream', () => {
-      let mockModel: MockLanguageModelV3;
+      let mockModel: MockLanguageModelV4;
 
       beforeEach(() => {
-        mockModel = new MockLanguageModelV3({
+        mockModel = new MockLanguageModelV4({
           doStream: async () => createSimpleStreamResponse(),
         });
       });
@@ -1196,10 +1196,10 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
 
   describe('onFinish', () => {
     describe('stream', () => {
-      let mockModel: MockLanguageModelV3;
+      let mockModel: MockLanguageModelV4;
 
       beforeEach(() => {
-        mockModel = new MockLanguageModelV3({
+        mockModel = new MockLanguageModelV4({
           doStream: async () => createSimpleStreamResponse(),
         });
       });
@@ -1396,7 +1396,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
 
           const agent = new DurableAgent({
             model: asModelFactory(
-              new MockLanguageModelV3({
+              new MockLanguageModelV4({
                 doStream: async () => ({
                   stream: convertArrayToReadableStream([
                     { type: 'stream-start' as const, warnings: [] },
@@ -1437,7 +1437,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
 
           const agent = new DurableAgent({
             model: asModelFactory(
-              new MockLanguageModelV3({
+              new MockLanguageModelV4({
                 doStream: async () => ({
                   stream: convertArrayToReadableStream([
                     { type: 'stream-start' as const, warnings: [] },
@@ -1499,7 +1499,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
       it('should not break streaming when an integration listener throws', async () => {
         const agent = new DurableAgent({
           model: asModelFactory(
-            new MockLanguageModelV3({
+            new MockLanguageModelV4({
               doStream: async () => ({
                 stream: convertArrayToReadableStream([
                   { type: 'stream-start' as const, warnings: [] },
