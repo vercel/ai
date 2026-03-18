@@ -652,7 +652,7 @@ describe('options.experimental_onStart', () => {
     let startEvent!: EmbedOnStartEvent;
 
     await embedMany({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 5,
         doEmbed: mockEmbed(testValues, dummyEmbeddings),
       }),
@@ -676,7 +676,7 @@ describe('options.experimental_onStart', () => {
     let startEvent!: EmbedOnStartEvent;
 
     await embedMany({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 5,
         doEmbed: mockEmbed(testValues, dummyEmbeddings),
       }),
@@ -704,7 +704,7 @@ describe('options.experimental_onStart', () => {
     let startEvent!: EmbedOnStartEvent;
 
     await embedMany({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 5,
         doEmbed: mockEmbed(testValues, dummyEmbeddings),
       }),
@@ -725,7 +725,7 @@ describe('options.experimental_onStart', () => {
     const callOrder: string[] = [];
 
     await embedMany({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 5,
         doEmbed: async ({ values }) => {
           callOrder.push('doEmbed');
@@ -743,7 +743,7 @@ describe('options.experimental_onStart', () => {
 
   it('should not break embedding when callback throws', async () => {
     const result = await embedMany({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 5,
         doEmbed: mockEmbed(testValues, dummyEmbeddings),
       }),
@@ -760,7 +760,7 @@ describe('options.experimental_onStart', () => {
     let startEvent!: EmbedOnStartEvent;
 
     await embedMany({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 5,
         doEmbed: mockEmbed(testValues, dummyEmbeddings),
       }),
@@ -787,7 +787,7 @@ describe('options.experimental_onFinish', () => {
     let finishEvent!: EmbedOnFinishEvent;
 
     await embedMany({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 5,
         doEmbed: mockEmbed(testValues, dummyEmbeddings, { tokens: 10 }),
       }),
@@ -812,7 +812,7 @@ describe('options.experimental_onFinish', () => {
     let callCount = 0;
 
     await embedMany({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 2,
         doEmbed: async () => {
           switch (callCount++) {
@@ -856,7 +856,7 @@ describe('options.experimental_onFinish', () => {
     let finishEvent!: EmbedOnFinishEvent;
 
     await embedMany({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 5,
         doEmbed: mockEmbed(testValues, dummyEmbeddings, { tokens: 15 }),
       }),
@@ -875,7 +875,7 @@ describe('options.experimental_onFinish', () => {
     let finishEvent!: EmbedOnFinishEvent;
 
     await embedMany({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 5,
         doEmbed: mockEmbed(testValues, dummyEmbeddings),
       }),
@@ -896,7 +896,7 @@ describe('options.experimental_onFinish', () => {
     let finishEvent!: EmbedOnFinishEvent;
 
     await embedMany({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 5,
         doEmbed: mockEmbed(testValues, dummyEmbeddings, undefined, {
           headers: { 'x-resp': 'val' },
@@ -921,7 +921,7 @@ describe('options.experimental_onFinish', () => {
     const callOrder: string[] = [];
 
     await embedMany({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 5,
         doEmbed: async ({ values }) => {
           callOrder.push('doEmbed');
@@ -939,7 +939,7 @@ describe('options.experimental_onFinish', () => {
 
   it('should not break embedding when callback throws', async () => {
     const result = await embedMany({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 5,
         doEmbed: mockEmbed(testValues, dummyEmbeddings),
       }),
@@ -959,7 +959,7 @@ describe('options.experimental_onStart and experimental_onFinish together', () =
     let finishEvent!: EmbedOnFinishEvent;
 
     await embedMany({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 5,
         doEmbed: mockEmbed(testValues, dummyEmbeddings),
       }),
@@ -984,7 +984,7 @@ describe('options.experimental_onStart and experimental_onFinish together', () =
     const callOrder: string[] = [];
 
     await embedMany({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 5,
         doEmbed: async ({ values }) => {
           callOrder.push('doEmbed');
@@ -1007,7 +1007,7 @@ describe('options.experimental_onStart and experimental_onFinish together', () =
     let finishCalled = false;
 
     const result = await embedMany({
-      model: new MockEmbeddingModelV3({
+      model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 5,
         doEmbed: mockEmbed(testValues, dummyEmbeddings),
       }),
