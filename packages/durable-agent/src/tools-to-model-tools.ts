@@ -1,9 +1,9 @@
-import type { LanguageModelV3FunctionTool } from '@ai-sdk/provider';
+import type { LanguageModelV4FunctionTool } from '@ai-sdk/provider';
 import { asSchema, type ToolSet } from 'ai';
 
 export async function toolsToModelTools(
   tools: ToolSet,
-): Promise<LanguageModelV3FunctionTool[]> {
+): Promise<LanguageModelV4FunctionTool[]> {
   return Promise.all(
     Object.entries(tools).map(async ([name, tool]) => ({
       type: 'function' as const,

@@ -6,10 +6,10 @@
  * and verifying that messages are properly passed to tool execute functions.
  */
 import type {
-  LanguageModelV3,
-  LanguageModelV3Prompt,
-  LanguageModelV3ToolCall,
-  LanguageModelV3ToolResult,
+  LanguageModelV4,
+  LanguageModelV4Prompt,
+  LanguageModelV4ToolCall,
+  LanguageModelV4ToolResult,
 } from '@ai-sdk/provider';
 import type { StepResult, ToolSet } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
@@ -31,9 +31,9 @@ import type {
 import type { StreamTextIteratorYieldValue } from './stream-text-iterator.js';
 
 /**
- * Creates a mock LanguageModelV3 for testing
+ * Creates a mock LanguageModelV4 for testing
  */
-function createMockModel(): LanguageModelV3 {
+function createMockModel(): LanguageModelV4 {
   return {
     specificationVersion: 'v3' as const,
     provider: 'test',
@@ -49,8 +49,8 @@ function createMockModel(): LanguageModelV3 {
  */
 type MockIterator = AsyncGenerator<
   StreamTextIteratorYieldValue,
-  LanguageModelV3Prompt,
-  LanguageModelV3ToolResult[]
+  LanguageModelV4Prompt,
+  LanguageModelV4ToolResult[]
 >;
 
 describe('DurableAgent', () => {
@@ -84,7 +84,7 @@ describe('DurableAgent', () => {
 
       // Mock the streamTextIterator to return tool calls and then complete
       const { streamTextIterator } = await import('./stream-text-iterator.js');
-      const mockMessages: LanguageModelV3Prompt = [
+      const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
       const mockIterator = {
@@ -98,7 +98,7 @@ describe('DurableAgent', () => {
                   toolCallId: 'test-call-id',
                   toolName: 'testTool',
                   input: '{}',
-                } as LanguageModelV3ToolCall,
+                } as LanguageModelV4ToolCall,
               ],
               messages: mockMessages,
             },
@@ -158,7 +158,7 @@ describe('DurableAgent', () => {
       });
 
       const { streamTextIterator } = await import('./stream-text-iterator.js');
-      const mockMessages: LanguageModelV3Prompt = [
+      const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
       const mockIterator = {
@@ -172,7 +172,7 @@ describe('DurableAgent', () => {
                   toolCallId: 'test-call-id',
                   toolName: 'testTool',
                   input: '{}',
-                } as LanguageModelV3ToolCall,
+                } as LanguageModelV4ToolCall,
               ],
               messages: mockMessages,
             },
@@ -230,7 +230,7 @@ describe('DurableAgent', () => {
       });
 
       const { streamTextIterator } = await import('./stream-text-iterator.js');
-      const mockMessages: LanguageModelV3Prompt = [
+      const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
       const mockIterator = {
@@ -244,7 +244,7 @@ describe('DurableAgent', () => {
                   toolCallId: 'test-call-id',
                   toolName: 'testTool',
                   input: '{}',
-                } as LanguageModelV3ToolCall,
+                } as LanguageModelV4ToolCall,
               ],
               messages: mockMessages,
             },
@@ -302,7 +302,7 @@ describe('DurableAgent', () => {
       });
 
       const { streamTextIterator } = await import('./stream-text-iterator.js');
-      const mockMessages: LanguageModelV3Prompt = [
+      const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
 
@@ -327,7 +327,7 @@ describe('DurableAgent', () => {
                   toolName: 'WebSearch',
                   input: '{"query":"test query"}',
                   providerExecuted: true, // This is a provider-executed tool
-                } as LanguageModelV3ToolCall,
+                } as LanguageModelV4ToolCall,
               ],
               messages: mockMessages,
               providerExecutedToolResults,
@@ -388,7 +388,7 @@ describe('DurableAgent', () => {
       });
 
       const { streamTextIterator } = await import('./stream-text-iterator.js');
-      const mockMessages: LanguageModelV3Prompt = [
+      const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
 
@@ -414,14 +414,14 @@ describe('DurableAgent', () => {
                   toolName: 'localTool',
                   input: '{}',
                   providerExecuted: false,
-                } as LanguageModelV3ToolCall,
+                } as LanguageModelV4ToolCall,
                 // Provider-executed tool call - should use stream result
                 {
                   toolCallId: 'provider-call-id',
                   toolName: 'WebSearch',
                   input: '{"query":"test"}',
                   providerExecuted: true,
-                } as LanguageModelV3ToolCall,
+                } as LanguageModelV4ToolCall,
               ],
               messages: mockMessages,
               providerExecutedToolResults,
@@ -484,7 +484,7 @@ describe('DurableAgent', () => {
       });
 
       const { streamTextIterator } = await import('./stream-text-iterator.js');
-      const mockMessages: LanguageModelV3Prompt = [
+      const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
 
@@ -509,7 +509,7 @@ describe('DurableAgent', () => {
                   toolName: 'WebSearch',
                   input: '{"query":"test query"}',
                   providerExecuted: true,
-                } as LanguageModelV3ToolCall,
+                } as LanguageModelV4ToolCall,
               ],
               messages: mockMessages,
               providerExecutedToolResults,
@@ -561,7 +561,7 @@ describe('DurableAgent', () => {
       });
 
       const { streamTextIterator } = await import('./stream-text-iterator.js');
-      const mockMessages: LanguageModelV3Prompt = [
+      const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
 
@@ -580,7 +580,7 @@ describe('DurableAgent', () => {
                   toolName: 'WebSearch',
                   input: '{"query":"test query"}',
                   providerExecuted: true,
-                } as LanguageModelV3ToolCall,
+                } as LanguageModelV4ToolCall,
               ],
               messages: mockMessages,
               providerExecutedToolResults,
@@ -646,7 +646,7 @@ describe('DurableAgent', () => {
       });
 
       const { streamTextIterator } = await import('./stream-text-iterator.js');
-      const mockMessages: LanguageModelV3Prompt = [
+      const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
 
@@ -660,7 +660,7 @@ describe('DurableAgent', () => {
                 toolName: 'askUser',
                 input: '{"question":"What is your name?"}',
                 providerExecuted: false,
-              } as LanguageModelV3ToolCall,
+              } as LanguageModelV4ToolCall,
             ],
             messages: mockMessages,
           },
@@ -728,7 +728,7 @@ describe('DurableAgent', () => {
       });
 
       const { streamTextIterator } = await import('./stream-text-iterator.js');
-      const mockMessages: LanguageModelV3Prompt = [
+      const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
 
@@ -742,13 +742,13 @@ describe('DurableAgent', () => {
                 toolName: 'serverTool',
                 input: '{}',
                 providerExecuted: false,
-              } as LanguageModelV3ToolCall,
+              } as LanguageModelV4ToolCall,
               {
                 toolCallId: 'client-call-id',
                 toolName: 'clientTool',
                 input: '{"prompt":"confirm action"}',
                 providerExecuted: false,
-              } as LanguageModelV3ToolCall,
+              } as LanguageModelV4ToolCall,
             ],
             messages: mockMessages,
           },
@@ -833,7 +833,7 @@ describe('DurableAgent', () => {
       });
 
       const { streamTextIterator } = await import('./stream-text-iterator.js');
-      const mockMessages: LanguageModelV3Prompt = [
+      const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
 
@@ -847,7 +847,7 @@ describe('DurableAgent', () => {
                 toolName: 'askUser',
                 input: '{"question":"confirm?"}',
                 providerExecuted: false,
-              } as LanguageModelV3ToolCall,
+              } as LanguageModelV4ToolCall,
             ],
             messages: mockMessages,
           },
@@ -895,7 +895,7 @@ describe('DurableAgent', () => {
       });
 
       const { streamTextIterator } = await import('./stream-text-iterator.js');
-      const mockMessages: LanguageModelV3Prompt = [
+      const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
 
@@ -912,7 +912,7 @@ describe('DurableAgent', () => {
                   toolName: 'serverTool',
                   input: '{}',
                   providerExecuted: false,
-                } as LanguageModelV3ToolCall,
+                } as LanguageModelV4ToolCall,
               ],
               messages: mockMessages,
             },
@@ -1097,7 +1097,7 @@ describe('DurableAgent', () => {
         model: unknown;
         stepNumber: number;
         steps: unknown[];
-        messages: LanguageModelV3Prompt;
+        messages: LanguageModelV4Prompt;
       }> = [];
 
       const prepareStep: PrepareStepCallback = info => {
@@ -1156,7 +1156,7 @@ describe('DurableAgent', () => {
       });
 
       // Mock conversation messages that would be accumulated by the iterator
-      const conversationMessages: LanguageModelV3Prompt = [
+      const conversationMessages: LanguageModelV4Prompt = [
         {
           role: 'user',
           content: [{ type: 'text', text: 'What is the weather?' }],
@@ -1186,7 +1186,7 @@ describe('DurableAgent', () => {
                   toolCallId: 'test-call-id',
                   toolName: 'testTool',
                   input: '{"query":"weather"}',
-                } as LanguageModelV3ToolCall,
+                } as LanguageModelV4ToolCall,
               ],
               messages: conversationMessages,
             },
@@ -1244,7 +1244,7 @@ describe('DurableAgent', () => {
         close: vi.fn(),
       });
 
-      const conversationMessages: LanguageModelV3Prompt = [
+      const conversationMessages: LanguageModelV4Prompt = [
         {
           role: 'user',
           content: [{ type: 'text', text: 'Weather and news please' }],
@@ -1280,12 +1280,12 @@ describe('DurableAgent', () => {
                   toolCallId: 'weather-call',
                   toolName: 'weatherTool',
                   input: '{"city":"NYC"}',
-                } as LanguageModelV3ToolCall,
+                } as LanguageModelV4ToolCall,
                 {
                   toolCallId: 'news-call',
                   toolName: 'newsTool',
                   input: '{"topic":"tech"}',
-                } as LanguageModelV3ToolCall,
+                } as LanguageModelV4ToolCall,
               ],
               messages: conversationMessages,
             },
@@ -1334,7 +1334,7 @@ describe('DurableAgent', () => {
       });
 
       // First round messages
-      const firstRoundMessages: LanguageModelV3Prompt = [
+      const firstRoundMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'Search for cats' }] },
         {
           role: 'assistant',
@@ -1350,7 +1350,7 @@ describe('DurableAgent', () => {
       ];
 
       // Second round messages (includes first tool result)
-      const secondRoundMessages: LanguageModelV3Prompt = [
+      const secondRoundMessages: LanguageModelV4Prompt = [
         ...firstRoundMessages,
         {
           role: 'tool',
@@ -1389,7 +1389,7 @@ describe('DurableAgent', () => {
                   toolCallId: 'search-1',
                   toolName: 'searchTool',
                   input: '{"query":"cats"}',
-                } as LanguageModelV3ToolCall,
+                } as LanguageModelV4ToolCall,
               ],
               messages: firstRoundMessages,
             },
@@ -1403,7 +1403,7 @@ describe('DurableAgent', () => {
                   toolCallId: 'search-2',
                   toolName: 'searchTool',
                   input: '{"query":"dogs"}',
-                } as LanguageModelV3ToolCall,
+                } as LanguageModelV4ToolCall,
               ],
               messages: secondRoundMessages,
             },
@@ -1737,7 +1737,7 @@ describe('DurableAgent', () => {
         close: vi.fn(),
       });
 
-      const mockMessages: LanguageModelV3Prompt = [
+      const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
 
@@ -1753,7 +1753,7 @@ describe('DurableAgent', () => {
                   toolCallId: 'test-call-id',
                   toolName: 'failingTool',
                   input: '{}',
-                } as LanguageModelV3ToolCall,
+                } as LanguageModelV4ToolCall,
               ],
               messages: mockMessages,
             },
@@ -1822,7 +1822,7 @@ describe('DurableAgent', () => {
         warnings: [],
         // We're missing some properties that aren't relevant for the test
       } as unknown as StepResult<any>;
-      const mockMessages: LanguageModelV3Prompt = [
+      const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
       const mockIterator = {
@@ -1922,7 +1922,7 @@ describe('DurableAgent', () => {
         close: vi.fn(),
       });
 
-      const mockMessages: LanguageModelV3Prompt = [
+      const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
 
@@ -1938,7 +1938,7 @@ describe('DurableAgent', () => {
                   toolCallId: 'test-call-id',
                   toolName: 'testTool',
                   input: '{}',
-                } as LanguageModelV3ToolCall,
+                } as LanguageModelV4ToolCall,
               ],
               messages: mockMessages,
               context: { userId: '123', sessionId: 'abc' },
@@ -1994,7 +1994,7 @@ describe('DurableAgent', () => {
         warnings: [],
         // We're missing some properties that aren't relevant for the test
       } as unknown as StepResult<any>;
-      const finalMessages: LanguageModelV3Prompt = [
+      const finalMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
         { role: 'assistant', content: [{ type: 'text', text: 'Hello' }] },
       ];
@@ -2058,7 +2058,7 @@ describe('DurableAgent', () => {
         close: vi.fn(),
       });
 
-      const mockMessages: LanguageModelV3Prompt = [
+      const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
 
@@ -2074,7 +2074,7 @@ describe('DurableAgent', () => {
                   toolCallId: 'test-call-id',
                   toolName: 'testTool',
                   input: 'invalid json', // This will fail to parse
-                } as LanguageModelV3ToolCall,
+                } as LanguageModelV4ToolCall,
               ],
               messages: mockMessages,
             },

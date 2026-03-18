@@ -1,11 +1,11 @@
 import type {
   JSONValue,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Prompt,
-  LanguageModelV3StreamPart,
-  LanguageModelV3ToolCall,
-  LanguageModelV3ToolResultPart,
-  SharedV3ProviderOptions,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Prompt,
+  LanguageModelV4StreamPart,
+  LanguageModelV4ToolCall,
+  LanguageModelV4ToolResultPart,
+  SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import {
   asSchema,
@@ -43,7 +43,7 @@ export { Output };
  */
 export interface OutputSpecification<OUTPUT, PARTIAL> {
   readonly name: string;
-  responseFormat: PromiseLike<LanguageModelV3CallOptions['responseFormat']>;
+  responseFormat: PromiseLike<LanguageModelV4CallOptions['responseFormat']>;
   parsePartialOutput(options: {
     text: string;
   }): Promise<{ partial: PARTIAL } | undefined>;
@@ -58,9 +58,9 @@ export interface OutputSpecification<OUTPUT, PARTIAL> {
 }
 
 /**
- * Provider-specific options type. This is equivalent to SharedV3ProviderOptions from @ai-sdk/provider.
+ * Provider-specific options type. This is equivalent to SharedV4ProviderOptions from @ai-sdk/provider.
  */
-export type ProviderOptions = SharedV3ProviderOptions;
+export type ProviderOptions = SharedV4ProviderOptions;
 
 /**
  * Telemetry settings for observability.
@@ -101,17 +101,17 @@ export interface TelemetrySettings {
 export type StreamTextTransform<TTools extends ToolSet> = (options: {
   tools: TTools;
   stopStream: () => void;
-}) => TransformStream<LanguageModelV3StreamPart, LanguageModelV3StreamPart>;
+}) => TransformStream<LanguageModelV4StreamPart, LanguageModelV4StreamPart>;
 
 /**
  * Function to repair a tool call that failed to parse.
  */
 export type ToolCallRepairFunction<TTools extends ToolSet> = (options: {
-  toolCall: LanguageModelV3ToolCall;
+  toolCall: LanguageModelV4ToolCall;
   tools: TTools;
   error: unknown;
-  messages: LanguageModelV3Prompt;
-}) => Promise<LanguageModelV3ToolCall | null> | LanguageModelV3ToolCall | null;
+  messages: LanguageModelV4Prompt;
+}) => Promise<LanguageModelV4ToolCall | null> | LanguageModelV4ToolCall | null;
 
 /**
  * Custom download function for URLs.
@@ -129,7 +129,7 @@ export type DownloadFunction = (
 
 /**
  * Generation settings that can be passed to the model.
- * These map directly to LanguageModelV3CallOptions.
+ * These map directly to LanguageModelV4CallOptions.
  */
 export interface GenerationSettings {
   /**
@@ -217,7 +217,7 @@ export interface GenerationSettings {
 export interface PrepareStepInfo<TTools extends ToolSet = ToolSet> {
   /**
    * The current model configuration (string or function).
-   * The function should return a LanguageModelV3 instance.
+   * The function should return a LanguageModelV4 instance.
    */
   model: string | (() => Promise<CompatibleLanguageModel>);
 
@@ -233,9 +233,9 @@ export interface PrepareStepInfo<TTools extends ToolSet = ToolSet> {
 
   /**
    * The messages that will be sent to the model.
-   * This is the LanguageModelV3Prompt format used internally.
+   * This is the LanguageModelV4Prompt format used internally.
    */
-  messages: LanguageModelV3Prompt;
+  messages: LanguageModelV4Prompt;
 
   /**
    * The context passed via the experimental_context setting (experimental).
@@ -250,7 +250,7 @@ export interface PrepareStepInfo<TTools extends ToolSet = ToolSet> {
 export interface PrepareStepResult extends Partial<GenerationSettings> {
   /**
    * Override the model for this step.
-   * The function should return a LanguageModelV3 instance.
+   * The function should return a LanguageModelV4 instance.
    */
   model?: string | (() => Promise<CompatibleLanguageModel>);
 
@@ -263,7 +263,7 @@ export interface PrepareStepResult extends Partial<GenerationSettings> {
    * Override the messages for this step.
    * Use this for context management or message injection.
    */
-  messages?: LanguageModelV3Prompt;
+  messages?: LanguageModelV4Prompt;
 
   /**
    * Override the tool choice for this step.
@@ -299,7 +299,7 @@ export interface DurableAgentOptions extends GenerationSettings {
    * The model provider to use for the agent.
    *
    * This should be a string compatible with the Vercel AI Gateway (e.g., 'anthropic/claude-opus'),
-   * or a step function that returns a LanguageModelV3 instance.
+   * or a step function that returns a LanguageModelV4 instance.
    */
   model: string | (() => Promise<CompatibleLanguageModel>);
 
@@ -933,7 +933,7 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
     });
 
     // Track the final conversation messages from the iterator
-    let finalMessages: LanguageModelV3Prompt | undefined;
+    let finalMessages: LanguageModelV4Prompt | undefined;
     let encounteredError: unknown;
     let wasAborted = false;
 
@@ -997,7 +997,7 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
             // Execute any executable tools that were also called in this step
             const executableResults = await Promise.all(
               executableToolCalls.map(
-                (toolCall): Promise<LanguageModelV3ToolResultPart> =>
+                (toolCall): Promise<LanguageModelV4ToolResultPart> =>
                   executeTool(
                     toolCall,
                     effectiveTools as ToolSet,
@@ -1009,7 +1009,7 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
             );
 
             // Collect provider tool results
-            const providerResults: LanguageModelV3ToolResultPart[] =
+            const providerResults: LanguageModelV4ToolResultPart[] =
               providerToolCalls.map(toolCall =>
                 resolveProviderToolResult(
                   toolCall,
@@ -1112,7 +1112,7 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
           // Execute client tools (all have execute functions at this point)
           const clientToolResults = await Promise.all(
             nonProviderToolCalls.map(
-              (toolCall): Promise<LanguageModelV3ToolResultPart> =>
+              (toolCall): Promise<LanguageModelV4ToolResultPart> =>
                 executeTool(
                   toolCall,
                   effectiveTools as ToolSet,
@@ -1124,7 +1124,7 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
           );
 
           // For provider-executed tools, use the results from the stream
-          const providerToolResults: LanguageModelV3ToolResultPart[] =
+          const providerToolResults: LanguageModelV4ToolResultPart[] =
             providerToolCalls.map(toolCall =>
               resolveProviderToolResult(toolCall, providerExecutedToolResults),
             );
@@ -1417,12 +1417,12 @@ function getErrorMessage(error: unknown): string {
 }
 
 function resolveProviderToolResult(
-  toolCall: LanguageModelV3ToolCall,
+  toolCall: LanguageModelV4ToolCall,
   providerExecutedToolResults?: Map<
     string,
     { toolCallId: string; toolName: string; result: unknown; isError?: boolean }
   >,
-): LanguageModelV3ToolResultPart {
+): LanguageModelV4ToolResultPart {
   const streamResult = providerExecutedToolResults?.get(toolCall.toolCallId);
   if (!streamResult) {
     console.warn(
@@ -1464,12 +1464,12 @@ function resolveProviderToolResult(
 }
 
 async function executeTool(
-  toolCall: LanguageModelV3ToolCall,
+  toolCall: LanguageModelV4ToolCall,
   tools: ToolSet,
-  messages: LanguageModelV3Prompt,
+  messages: LanguageModelV4Prompt,
   experimentalContext?: unknown,
   repairToolCall?: ToolCallRepairFunction<ToolSet>,
-): Promise<LanguageModelV3ToolResultPart> {
+): Promise<LanguageModelV4ToolResultPart> {
   const tool = tools[toolCall.toolName];
   if (!tool) throw new Error(`Tool "${toolCall.toolName}" not found`);
   if (typeof tool.execute !== 'function') {

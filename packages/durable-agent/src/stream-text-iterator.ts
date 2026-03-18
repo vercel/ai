@@ -1,8 +1,8 @@
 import type {
-  LanguageModelV3CallOptions,
-  LanguageModelV3Prompt,
-  LanguageModelV3ToolCall,
-  LanguageModelV3ToolResultPart,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Prompt,
+  LanguageModelV4ToolCall,
+  LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
 import type {
   FinishReason,
@@ -36,9 +36,9 @@ export type { ProviderExecutedToolResult } from './do-stream-step.js';
  */
 export interface StreamTextIteratorYieldValue {
   /** The tool calls requested by the model */
-  toolCalls: LanguageModelV3ToolCall[];
+  toolCalls: LanguageModelV4ToolCall[];
   /** The conversation messages up to (and including) the tool call request */
-  messages: LanguageModelV3Prompt;
+  messages: LanguageModelV4Prompt;
   /** The step result from the current step */
   step?: StepResult<ToolSet>;
   /** The current experimental context */
@@ -70,7 +70,7 @@ export async function* streamTextIterator({
   responseFormat,
   collectUIChunks = false,
 }: {
-  prompt: LanguageModelV3Prompt;
+  prompt: LanguageModelV4Prompt;
   tools: ToolSet;
   writable: WritableStream<UIMessageChunk>;
   model: string | (() => Promise<CompatibleLanguageModel>);
@@ -88,13 +88,13 @@ export async function* streamTextIterator({
   experimental_transform?:
     | StreamTextTransform<ToolSet>
     | Array<StreamTextTransform<ToolSet>>;
-  responseFormat?: LanguageModelV3CallOptions['responseFormat'];
+  responseFormat?: LanguageModelV4CallOptions['responseFormat'];
   /** If true, collects UIMessageChunks for later conversion to UIMessage[] */
   collectUIChunks?: boolean;
 }): AsyncGenerator<
   StreamTextIteratorYieldValue,
-  LanguageModelV3Prompt,
-  LanguageModelV3ToolResultPart[]
+  LanguageModelV4Prompt,
+  LanguageModelV4ToolResultPart[]
 > {
   let conversationPrompt = [...prompt]; // Create a mutable copy
   let currentModel: string | (() => Promise<CompatibleLanguageModel>) = model;
@@ -428,7 +428,7 @@ export async function* streamTextIterator({
 
 async function writeToolOutputToUI(
   writable: WritableStream<UIMessageChunk>,
-  toolResults: LanguageModelV3ToolResultPart[],
+  toolResults: LanguageModelV4ToolResultPart[],
   collectUIChunks?: boolean,
 ): Promise<UIMessageChunk[]> {
   'use step';
