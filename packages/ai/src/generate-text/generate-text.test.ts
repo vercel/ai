@@ -267,6 +267,46 @@ describe('generateText', () => {
       `);
     });
 
+    it('should include custom parts in content', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              { type: 'text', text: 'Hello' },
+              {
+                type: 'custom',
+                kind: 'openai-compaction',
+                providerMetadata: {
+                  openai: { itemId: 'cmp_123' },
+                },
+              },
+              {
+                type: 'custom',
+                kind: 'openai-other',
+              },
+            ],
+          },
+        }),
+        prompt: 'prompt',
+      });
+
+      expect(result.content).toStrictEqual([
+        { type: 'text', text: 'Hello' },
+        {
+          type: 'custom',
+          kind: 'openai-compaction',
+          providerMetadata: {
+            openai: { itemId: 'cmp_123' },
+          },
+        },
+        {
+          type: 'custom',
+          kind: 'openai-other',
+        },
+      ]);
+    });
+
     it('should include reasoning-file in content and exclude from files', async () => {
       const result = await generateText({
         model: new MockLanguageModelV4({

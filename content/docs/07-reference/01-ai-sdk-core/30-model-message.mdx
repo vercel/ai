@@ -55,7 +55,7 @@ type AssistantModelMessage = {
   content: AssistantContent;
 };
 
-type AssistantContent = string | Array<TextPart | ToolCallPart>;
+type AssistantContent = string | Array<TextPart | CustomPart | ToolCallPart>;
 ```
 
 You can access the Zod schema for `AssistantModelMessage` with the `assistantModelMessageSchema` export.
@@ -138,6 +138,26 @@ export interface FilePart {
    * IANA media type of the file.
    */
   mediaType: string;
+}
+```
+
+### `CustomPart`
+
+Represents a provider-specific custom content part. The `kind` field identifies the content type in the format `{provider}-{provider-type}`.
+
+```typescript
+export interface CustomPart {
+  type: 'custom';
+
+  /**
+   * The kind of custom content, in the format `{provider}-{provider-type}`.
+   */
+  kind: string;
+
+  /**
+   * Additional provider-specific metadata.
+   */
+  providerOptions?: ProviderOptions;
 }
 ```
 
