@@ -21,8 +21,6 @@ import {
   CallSettings,
   getChunkTimeoutMs,
   getStepTimeoutMs,
-  getToolTimeoutMs,
-  getToolTimeouts,
   getTotalTimeoutMs,
   TimeoutConfiguration,
 } from '../prompt/call-settings';
@@ -335,17 +333,12 @@ export function streamText<
     generateCallId = originalGenerateCallId,
   } = {},
   ...settings
-}: Omit<CallSettings, 'timeout'> &
+}: CallSettings &
   Prompt & {
     /**
      * The language model to use.
      */
     model: LanguageModel;
-
-    /**
-     * Timeout configuration with optional per-tool overrides.
-     */
-    timeout?: TimeoutConfiguration<NoInfer<TOOLS>>;
 
     /**
      * The tools that the model can call. The model needs to support calling tools.
@@ -538,8 +531,6 @@ export function streamText<
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
   const chunkTimeoutMs = getChunkTimeoutMs(timeout);
-  const toolTimeoutMs = getToolTimeoutMs(timeout);
-  const toolTimeouts = getToolTimeouts(timeout);
   const stepAbortController =
     stepTimeoutMs != null ? new AbortController() : undefined;
   const chunkAbortController =
@@ -560,8 +551,6 @@ export function streamText<
     stepAbortController,
     chunkTimeoutMs,
     chunkAbortController,
-    toolTimeoutMs,
-    toolTimeouts,
     system,
     prompt,
     messages,
@@ -741,8 +730,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     stepAbortController,
     chunkTimeoutMs,
     chunkAbortController,
-    toolTimeoutMs,
-    toolTimeouts,
     system,
     prompt,
     messages,
@@ -785,8 +772,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     stepAbortController: AbortController | undefined;
     chunkTimeoutMs: number | undefined;
     chunkAbortController: AbortController | undefined;
-    toolTimeoutMs: number | undefined;
-    toolTimeouts: Record<string, number> | undefined;
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
@@ -1368,8 +1353,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 callId,
                 messages: initialMessages,
                 abortSignal,
-                toolTimeoutMs,
-                toolTimeouts,
+                timeout,
                 experimental_context,
                 stepNumber: recordedSteps.length,
                 model: modelInfo,
@@ -1622,8 +1606,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             messages: stepInputMessages,
             repairToolCall,
             abortSignal,
-            toolTimeoutMs,
-            toolTimeouts,
+            timeout,
             experimental_context,
             generateId,
             stepNumber: recordedSteps.length,

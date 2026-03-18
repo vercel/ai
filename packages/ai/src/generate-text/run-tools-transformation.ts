@@ -1,4 +1,5 @@
 import { SharedV4Warning } from '@ai-sdk/provider';
+import { TimeoutConfiguration } from '../prompt/call-settings';
 import {
   getErrorMessage,
   IdGenerator,
@@ -123,8 +124,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   repairToolCall,
-  toolTimeoutMs,
-  toolTimeouts,
+  timeout,
   experimental_context,
   generateId,
   stepNumber,
@@ -141,8 +141,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
-  toolTimeoutMs?: number | undefined;
-  toolTimeouts?: Record<string, number>;
+  timeout?: TimeoutConfiguration;
   experimental_context: unknown;
   generateId: IdGenerator;
   stepNumber?: number;
@@ -361,8 +360,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 callId,
                 messages,
                 abortSignal,
-                toolTimeoutMs,
-                toolTimeouts,
+                timeout,
                 experimental_context,
                 stepNumber,
                 model,

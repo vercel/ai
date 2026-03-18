@@ -70,20 +70,16 @@ export function getChunkTimeoutMs(
 
 export function getToolTimeoutMs(
   timeout: TimeoutConfiguration | undefined,
+  toolName?: string,
 ): number | undefined {
   if (timeout == null || typeof timeout === 'number') {
     return undefined;
   }
-  return timeout.toolMs;
-}
-
-export function getToolTimeouts(
-  timeout: TimeoutConfiguration | undefined,
-): Record<string, number> | undefined {
-  if (timeout == null || typeof timeout === 'number') {
-    return undefined;
-  }
-  return timeout.tools as Record<string, number> | undefined;
+  const perToolTimeout =
+    toolName != null
+      ? (timeout.tools as Record<string, number> | undefined)?.[`${toolName}Ms`]
+      : undefined;
+  return perToolTimeout ?? timeout.toolMs;
 }
 
 export type CallSettings = {

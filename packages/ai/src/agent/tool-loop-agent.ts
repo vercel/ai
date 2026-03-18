@@ -1,4 +1,3 @@
-import { TimeoutConfiguration } from '../prompt/call-settings';
 import { generateText } from '../generate-text/generate-text';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { Output } from '../generate-text/output';
@@ -134,7 +133,7 @@ export class ToolLoopAgent<
     return generateText({
       ...(await this.prepareCall(options)),
       abortSignal,
-      timeout: timeout as TimeoutConfiguration<TOOLS> | undefined,
+      timeout,
       experimental_onStart: this.mergeCallbacks(
         this.settings.experimental_onStart,
         experimental_onStart,
@@ -179,7 +178,7 @@ export class ToolLoopAgent<
     return streamText({
       ...(await this.prepareCall(options)),
       abortSignal,
-      timeout: timeout as TimeoutConfiguration<TOOLS> | undefined,
+      timeout,
       experimental_transform,
       experimental_onStart: this.mergeCallbacks(
         this.settings.experimental_onStart,

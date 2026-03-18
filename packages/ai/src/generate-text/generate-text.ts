@@ -22,7 +22,6 @@ import {
   CallSettings,
   getStepTimeoutMs,
   getToolTimeoutMs,
-  getToolTimeouts,
   getTotalTimeoutMs,
   TimeoutConfiguration,
 } from '../prompt/call-settings';
@@ -283,17 +282,12 @@ export async function generateText<
   onStepFinish,
   onFinish,
   ...settings
-}: Omit<CallSettings, 'timeout'> &
+}: CallSettings &
   Prompt & {
     /**
      * The language model to use.
      */
     model: LanguageModel;
-
-    /**
-     * Timeout configuration with optional per-tool overrides.
-     */
-    timeout?: TimeoutConfiguration<NoInfer<TOOLS>>;
 
     /**
      * The tools that the model can call. The model needs to support calling tools.
@@ -456,8 +450,6 @@ export async function generateText<
 
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
-  const toolTimeoutMs = getToolTimeoutMs(timeout);
-  const toolTimeouts = getToolTimeouts(timeout);
   const stepAbortController =
     stepTimeoutMs != null ? new AbortController() : undefined;
   const mergedAbortSignal = mergeAbortSignals(
@@ -557,8 +549,7 @@ export async function generateText<
         callId,
         messages: initialMessages,
         abortSignal: mergedAbortSignal,
-        toolTimeoutMs,
-        toolTimeouts,
+        timeout,
         experimental_context,
         stepNumber: 0,
         model: modelInfo,
@@ -881,8 +872,7 @@ export async function generateText<
               callId,
               messages: stepInputMessages,
               abortSignal: mergedAbortSignal,
-              toolTimeoutMs,
-              toolTimeouts,
+              timeout,
               experimental_context,
               stepNumber: steps.length,
               model: stepModelInfo,
@@ -1115,8 +1105,7 @@ async function executeTools<TOOLS extends ToolSet>({
   callId,
   messages,
   abortSignal,
-  toolTimeoutMs,
-  toolTimeouts,
+  timeout,
   experimental_context,
   stepNumber,
   model,
@@ -1130,8 +1119,7 @@ async function executeTools<TOOLS extends ToolSet>({
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
-  toolTimeoutMs?: number | undefined;
-  toolTimeouts?: Record<string, number>;
+  timeout?: TimeoutConfiguration;
   experimental_context: unknown;
   stepNumber: number;
   model: { provider: string; modelId: string };
@@ -1148,8 +1136,7 @@ async function executeTools<TOOLS extends ToolSet>({
         callId,
         messages,
         abortSignal,
-        toolTimeoutMs,
-        toolTimeouts,
+        timeout,
         experimental_context,
         stepNumber,
         model,

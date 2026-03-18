@@ -1,5 +1,9 @@
 import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
 import { notify } from '../util/notify';
+import {
+  getToolTimeoutMs,
+  TimeoutConfiguration,
+} from '../prompt/call-settings';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { now } from '../util/now';
 import {
@@ -30,8 +34,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   callId,
   messages,
   abortSignal,
-  toolTimeoutMs,
-  toolTimeouts,
+  timeout,
   experimental_context,
   stepNumber,
   model,
@@ -46,8 +49,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
-  toolTimeoutMs?: number | undefined;
-  toolTimeouts?: Record<string, number>;
+  timeout?: TimeoutConfiguration;
   experimental_context: unknown;
   stepNumber?: number;
   model?: { provider: string; modelId: string };
@@ -87,14 +89,13 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 
   await notify({ event: baseCallbackEvent, callbacks: onToolCallStart });
 
-  const resolvedTimeoutMs =
-    toolTimeouts?.[`${toolName as string}Ms`] ?? toolTimeoutMs;
+  const toolTimeoutMs = getToolTimeoutMs(timeout, toolName as string);
 
   const toolAbortSignal =
-    resolvedTimeoutMs != null
+    toolTimeoutMs != null
       ? abortSignal != null
-        ? AbortSignal.any([abortSignal, AbortSignal.timeout(resolvedTimeoutMs)])
-        : AbortSignal.timeout(resolvedTimeoutMs)
+        ? AbortSignal.any([abortSignal, AbortSignal.timeout(toolTimeoutMs)])
+        : AbortSignal.timeout(toolTimeoutMs)
       : abortSignal;
 
   const startTime = now();
