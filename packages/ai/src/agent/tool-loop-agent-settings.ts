@@ -5,6 +5,7 @@ import {
   SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import type {
+  OnAbortEvent,
   OnFinishEvent,
   OnStartEvent,
   OnStepFinishEvent,
@@ -23,6 +24,10 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types/language-model';
 import { DownloadFunction } from '../util/download/download-function';
 import { AgentCallParameters } from './agent';
+
+export type ToolLoopAgentOnAbortCallback<TOOLS extends ToolSet = {}> = (
+  event: OnAbortEvent<TOOLS>,
+) => Promise<void> | void;
 
 export type ToolLoopAgentOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
@@ -147,6 +152,11 @@ export type ToolLoopAgentSettings<
   experimental_onToolCallFinish?: ToolLoopAgentOnToolCallFinishCallback<
     NoInfer<TOOLS>
   >;
+
+  /**
+   * Callback that is called when the agent is aborted, either through the `abortSignal` or due to a timeout.
+   */
+  onAbort?: ToolLoopAgentOnAbortCallback<NoInfer<TOOLS>>;
 
   /**
    * Callback that is called when each step (LLM call) is finished, including intermediate steps.
