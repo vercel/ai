@@ -279,7 +279,7 @@ export async function generateText<
   onStepFinish,
   onFinish,
   ...settings
-}: CallSettings &
+}: CallSettings<TOOLS> &
   Prompt & {
     /**
      * The language model to use.

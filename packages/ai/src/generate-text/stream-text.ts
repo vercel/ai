@@ -333,7 +333,7 @@ export function streamText<
     generateCallId = originalGenerateCallId,
   } = {},
   ...settings
-}: CallSettings &
+}: CallSettings<TOOLS> &
   Prompt & {
     /**
      * The language model to use.
@@ -765,7 +765,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     model: LanguageModelV4;
     telemetry: TelemetrySettings | undefined;
     headers: Record<string, string | undefined> | undefined;
-    settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
+    settings: Omit<CallSettings<TOOLS>, 'abortSignal' | 'headers'>;
     maxRetries: number | undefined;
     abortSignal: AbortSignal | undefined;
     stepTimeoutMs: number | undefined;

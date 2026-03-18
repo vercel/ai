@@ -7,7 +7,7 @@ import { ToolSet } from '../generate-text/tool-set';
  * - An object with `stepMs` property for the timeout of each step in milliseconds
  * - An object with `chunkMs` property for the timeout between stream chunks (streaming only)
  */
-export type TimeoutConfiguration<TOOLS extends ToolSet = ToolSet> =
+export type TimeoutConfiguration<TOOLS extends ToolSet> =
   | number
   | {
       totalMs?: number;
@@ -24,7 +24,7 @@ export type TimeoutConfiguration<TOOLS extends ToolSet = ToolSet> =
  * @returns The total timeout in milliseconds, or undefined if no timeout is configured.
  */
 export function getTotalTimeoutMs(
-  timeout: TimeoutConfiguration | undefined,
+  timeout: TimeoutConfiguration<any> | undefined,
 ): number | undefined {
   if (timeout == null) {
     return undefined;
@@ -42,7 +42,7 @@ export function getTotalTimeoutMs(
  * @returns The step timeout in milliseconds, or undefined if no step timeout is configured.
  */
 export function getStepTimeoutMs(
-  timeout: TimeoutConfiguration | undefined,
+  timeout: TimeoutConfiguration<any> | undefined,
 ): number | undefined {
   if (timeout == null || typeof timeout === 'number') {
     return undefined;
@@ -58,7 +58,7 @@ export function getStepTimeoutMs(
  * @returns The chunk timeout in milliseconds, or undefined if no chunk timeout is configured.
  */
 export function getChunkTimeoutMs(
-  timeout: TimeoutConfiguration | undefined,
+  timeout: TimeoutConfiguration<any> | undefined,
 ): number | undefined {
   if (timeout == null || typeof timeout === 'number') {
     return undefined;
@@ -77,7 +77,7 @@ export function getToolTimeoutMs<TOOLS extends ToolSet>(
   return timeout.tools?.[`${toolName}Ms`] ?? timeout.toolMs;
 }
 
-export type CallSettings = {
+export type CallSettings<TOOLS extends ToolSet> = {
   /**
    * Maximum number of tokens to generate.
    */
@@ -157,7 +157,7 @@ export type CallSettings = {
    *
    * Can be specified as a number (milliseconds) or as an object with `totalMs`.
    */
-  timeout?: TimeoutConfiguration;
+  timeout?: TimeoutConfiguration<TOOLS>;
 
   /**
    * Additional HTTP headers to be sent with the request.
