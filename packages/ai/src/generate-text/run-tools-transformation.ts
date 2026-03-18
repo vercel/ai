@@ -218,26 +218,13 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'tool-input-start':
         case 'tool-input-delta':
         case 'tool-input-end':
+        case 'file':
+        case 'reasoning-file':
         case 'source':
         case 'response-metadata':
         case 'error':
         case 'raw': {
           controller.enqueue(chunk);
-          break;
-        }
-
-        case 'file':
-        case 'reasoning-file': {
-          controller.enqueue({
-            type: chunk.type,
-            file: new DefaultGeneratedFileWithType({
-              data: chunk.data,
-              mediaType: chunk.mediaType,
-            }),
-            ...(chunk.providerMetadata != null
-              ? { providerMetadata: chunk.providerMetadata }
-              : {}),
-          });
           break;
         }
 

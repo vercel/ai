@@ -1,5 +1,6 @@
 import { LanguageModelV4StreamPart } from '@ai-sdk/provider';
 import { ProviderMetadata } from '../types/provider-metadata';
+import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
 
 export type UglyTransformedStreamTextPart =
   | Exclude<
@@ -9,6 +10,12 @@ export type UglyTransformedStreamTextPart =
         }
       | {
           type: 'reasoning-delta';
+        }
+      | {
+          type: 'file';
+        }
+      | {
+          type: 'reasoning-file';
         }
     >
   | {
@@ -22,6 +29,16 @@ export type UglyTransformedStreamTextPart =
       id: string;
       providerMetadata?: ProviderMetadata;
       text: string;
+    }
+  | {
+      type: 'file';
+      file: GeneratedFile;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'reasoning-file';
+      file: GeneratedFile;
+      providerMetadata?: ProviderMetadata;
     };
 
 export function createStreamTextPartTransform() {
@@ -48,6 +65,21 @@ export function createStreamTextPartTransform() {
             providerMetadata: chunk.providerMetadata,
           });
           break;
+
+        case 'file':
+        case 'reasoning-file': {
+          controller.enqueue({
+            type: chunk.type,
+            file: new DefaultGeneratedFileWithType({
+              data: chunk.data,
+              mediaType: chunk.mediaType,
+            }),
+            ...(chunk.providerMetadata != null
+              ? { providerMetadata: chunk.providerMetadata }
+              : {}),
+          });
+          break;
+        }
 
         default:
           controller.enqueue(chunk);
