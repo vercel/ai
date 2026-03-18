@@ -49,7 +49,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
-  timeout?: TimeoutConfiguration;
+  timeout?: TimeoutConfiguration<TOOLS>;
   experimental_context: unknown;
   stepNumber?: number;
   model?: { provider: string; modelId: string };

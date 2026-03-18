@@ -788,7 +788,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     now: () => number;
     generateId: () => string;
     generateCallId: () => string;
-    timeout: TimeoutConfiguration | undefined;
+    timeout: TimeoutConfiguration<TOOLS> | undefined;
     stopWhen:
       | StopCondition<NoInfer<TOOLS>>
       | Array<StopCondition<NoInfer<TOOLS>>>
