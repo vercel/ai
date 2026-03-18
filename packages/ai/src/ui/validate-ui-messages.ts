@@ -427,12 +427,13 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
               };
             }
 
-            // Tool input validation
+            // Tool input validation.
+            // Skip output-error parts: the input already failed validation,
+            // re-validating it on subsequent turns would permanently brick
+            // the conversation with TypeValidationError.
             if (
               toolPart.state === 'input-available' ||
-              toolPart.state === 'output-available' ||
-              (toolPart.state === 'output-error' &&
-                toolPart.input !== undefined)
+              toolPart.state === 'output-available'
             ) {
               await validateTypes({
                 value: toolPart.input,
