@@ -1043,8 +1043,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             callId,
             stepNumber: recordedSteps.length,
-            provider: modelInfo.provider,
-            modelId: modelInfo.modelId,
+            provider: model.provider,
+            modelId: model.modelId,
             ...callbackTelemetryProps,
             experimental_context,
             content: recordedContent,
@@ -1067,8 +1067,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           logWarnings({
             warnings: recordedWarnings,
-            provider: modelInfo.provider,
-            model: modelInfo.modelId,
+            provider: model.provider,
+            model: model.modelId,
           });
 
           recordedSteps.push(currentStepResult);
@@ -1246,7 +1246,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
     const self = this;
 
-    const modelInfo = { provider: model.provider, modelId: model.modelId };
     const callId = generateCallId();
     const callbackTelemetryProps = {
       functionId: telemetry?.functionId,
@@ -1271,8 +1270,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         event: {
           callId,
           operationId: 'ai.streamText',
-          provider: modelInfo.provider,
-          modelId: modelInfo.modelId,
+          provider: model.provider,
+          modelId: model.modelId,
           system,
           prompt,
           messages,
@@ -1369,8 +1368,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 toolTimeoutMs,
                 experimental_context,
                 stepNumber: recordedSteps.length,
-                provider: modelInfo.provider,
-                modelId: modelInfo.modelId,
+                provider: model.provider,
+                modelId: model.modelId,
                 onToolCallStart: [
                   onToolCallStart,
                   globalTelemetry.onToolCallStart as
@@ -1521,10 +1520,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           const stepModel = resolveLanguageModel(
             prepareStepResult?.model ?? model,
           );
-          const stepModelInfo = {
-            provider: stepModel.provider,
-            modelId: stepModel.modelId,
-          };
 
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
@@ -1560,8 +1555,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             event: {
               callId,
               stepNumber: recordedSteps.length,
-              provider: stepModelInfo.provider,
-              modelId: stepModelInfo.modelId,
+              provider: stepModel.provider,
+              modelId: stepModel.modelId,
               system: stepSystem,
               messages: stepMessages,
               tools,
@@ -1625,8 +1620,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             experimental_context,
             generateId,
             stepNumber: recordedSteps.length,
-            provider: stepModelInfo.provider,
-            modelId: stepModelInfo.modelId,
+            provider: stepModel.provider,
+            modelId: stepModel.modelId,
             onToolCallStart: [
               onToolCallStart,
               globalTelemetry.onToolCallStart as
@@ -1661,7 +1656,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
             id: generateId(),
             timestamp: new Date(),
-            modelId: modelInfo.modelId,
+            modelId: model.modelId,
           };
 
           self.addStream(
