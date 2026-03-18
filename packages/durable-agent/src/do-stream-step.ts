@@ -493,38 +493,6 @@ export async function doStreamStep(
   };
 }
 
-/**
- * Normalize the finish reason to the AI SDK FinishReason type.
- * AI SDK v6 may return an object with a 'type' property,
- * while AI SDK v5 returns a plain string. This function handles both.
- *
- * @internal Exported for testing
- */
-export function normalizeFinishReason(rawFinishReason: unknown): FinishReason {
-  const KNOWN_FINISH_REASONS = new Set<string>([
-    'stop',
-    'length',
-    'content-filter',
-    'tool-calls',
-    'error',
-    'other',
-  ]);
-
-  // Handle object-style finish reason (V4 returns { unified, raw })
-  if (typeof rawFinishReason === 'object' && rawFinishReason !== null) {
-    const objReason = rawFinishReason as { unified?: string; type?: string };
-    const extracted = objReason.unified ?? objReason.type ?? 'other';
-    return (
-      KNOWN_FINISH_REASONS.has(extracted) ? extracted : 'other'
-    ) as FinishReason;
-  }
-  // Handle string finish reason (standard format)
-  if (typeof rawFinishReason === 'string') {
-    return rawFinishReason as FinishReason;
-  }
-  return 'other';
-}
-
 // This is a stand-in for logic in the AI-SDK streamText code which aggregates
 // chunks into a single step result.
 function chunksToStep(
@@ -603,14 +571,7 @@ function chunksToStep(
     )
     .map(chunk => chunk);
 
-  // Extract the raw finish reason from the V4 finish reason object
-  const v3FinishReason = finish?.finishReason;
-  const rawFinishReason =
-    typeof v3FinishReason === 'object' && v3FinishReason !== null
-      ? (v3FinishReason as { raw?: string }).raw
-      : typeof v3FinishReason === 'string'
-        ? v3FinishReason
-        : undefined;
+  const rawFinishReason = finish?.finishReason?.raw;
 
   const stepResult: StepResult<any> = {
     stepNumber: 0, // Will be overridden by the caller
@@ -657,7 +618,7 @@ function chunksToStep(
     toolResults: [],
     staticToolResults: [],
     dynamicToolResults: [],
-    finishReason: normalizeFinishReason(finish?.finishReason),
+    finishReason: finish?.finishReason?.unified ?? 'other',
     rawFinishReason,
     usage: finish?.usage
       ? {
