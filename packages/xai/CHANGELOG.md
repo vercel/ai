@@ -1,5 +1,18 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.13
+
+### Major Changes
+
+- 776b617: feat(provider): adding new 'custom' content type
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+  - @ai-sdk/openai-compatible@3.0.0-beta.7
+
 ## 4.0.0-beta.12
 
 ### Patch Changes

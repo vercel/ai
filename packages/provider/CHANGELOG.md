@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.0-beta.3
+
+### Major Changes
+
+- 776b617: feat(provider): adding new 'custom' content type
+
 ## 4.0.0-beta.2
 
 ### Patch Changes
