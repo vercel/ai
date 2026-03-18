@@ -147,6 +147,7 @@ describe('createStreamTextPartTransform', () => {
             "type": "file",
             "uint8ArrayData": undefined,
           },
+          "providerMetadata": undefined,
           "type": "file",
         },
         {

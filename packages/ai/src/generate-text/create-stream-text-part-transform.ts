@@ -74,9 +74,7 @@ export function createStreamTextPartTransform() {
               data: chunk.data,
               mediaType: chunk.mediaType,
             }),
-            ...(chunk.providerMetadata != null
-              ? { providerMetadata: chunk.providerMetadata }
-              : {}),
+            providerMetadata: chunk.providerMetadata,
           });
           break;
         }
