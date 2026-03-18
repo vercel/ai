@@ -5,7 +5,6 @@ import type {
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
 import type {
-  FinishReason,
   StepResult,
   StreamTextOnStepFinishCallback,
   ToolChoice,
@@ -290,8 +289,7 @@ export async function* streamTextIterator({
         ...(stepUIChunks ?? []),
       ];
 
-      // Normalize finishReason - AI SDK v6 returns { unified, raw }, v5 returns a string
-      const finishReason = normalizeFinishReason(finish?.finishReason);
+      const finishReason = finish?.finishReason?.unified;
 
       if (finishReason === 'tool-calls') {
         lastStepWasToolCalls = true;
@@ -463,21 +461,6 @@ function filterToolSet(tools: ToolSet, activeTools: string[]): ToolSet {
     }
   }
   return filtered;
-}
-
-/**
- * Normalize finishReason from different AI SDK versions.
- * - AI SDK v6: returns { unified: 'tool-calls', raw: 'tool_use' }
- * - AI SDK v5: returns 'tool-calls' string directly
- */
-function normalizeFinishReason(raw: unknown): FinishReason | undefined {
-  if (raw == null) return undefined;
-  if (typeof raw === 'string') return raw as FinishReason;
-  if (typeof raw === 'object') {
-    const obj = raw as { unified?: FinishReason; type?: FinishReason };
-    return obj.unified ?? obj.type ?? 'other';
-  }
-  return undefined;
 }
 
 /**
