@@ -20,8 +20,6 @@ export function getOpenAILanguageModelCapabilities(
 
   const supportsPriorityProcessing =
     modelId.startsWith('gpt-4') ||
-    modelId.startsWith('gpt-5-mini') ||
-    modelId.startsWith('gpt-5.4-mini') ||
     (modelId.startsWith('gpt-5') &&
       !modelId.startsWith('gpt-5-nano') &&
       !modelId.startsWith('gpt-5-chat') &&
