@@ -1,6 +1,6 @@
 'use client';
 
-import type { OpenAICompactionMessage } from '@/agent/openai-compaction-agent';
+import type { OpenAICompactionMessage } from '@/agent/openai/compaction-agent';
 import ChatInput from '@/components/chat-input';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
