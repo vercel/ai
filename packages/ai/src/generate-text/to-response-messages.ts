@@ -51,7 +51,7 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
       case 'custom':
         content.push({
           type: 'custom',
-          provider: part.provider,
+          kind: part.kind,
           providerOptions: part.providerMetadata,
         });
         break;

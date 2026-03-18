@@ -938,7 +938,6 @@ export async function generateText<
           toolOutputs: clientToolOutputs,
           toolApprovalRequests: Object.values(toolApprovalRequests),
           tools,
-          provider: stepModelInfo.provider,
         });
 
         // append to messages for potential next step:
@@ -1270,14 +1269,12 @@ function asContent<TOOLS extends ToolSet>({
   toolOutputs,
   toolApprovalRequests,
   tools,
-  provider,
 }: {
   content: Array<LanguageModelV4Content>;
   toolCalls: Array<TypedToolCall<TOOLS>>;
   toolOutputs: Array<ToolOutput<TOOLS>>;
   toolApprovalRequests: Array<ToolApprovalRequestOutput<TOOLS>>;
   tools: TOOLS | undefined;
-  provider: string;
 }): Array<ContentPart<TOOLS>> {
   const contentParts: Array<ContentPart<TOOLS>> = [];
 
@@ -1285,12 +1282,9 @@ function asContent<TOOLS extends ToolSet>({
     switch (part.type) {
       case 'text':
       case 'reasoning':
+      case 'custom':
       case 'source':
         contentParts.push(part);
-        break;
-
-      case 'custom':
-        contentParts.push({ ...part, provider });
         break;
 
       case 'file':

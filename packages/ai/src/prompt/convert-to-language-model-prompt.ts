@@ -249,7 +249,7 @@ export function convertToLanguageModelMessage({
               case 'custom': {
                 return {
                   type: 'custom' as const,
-                  provider: part.provider,
+                  kind: part.kind,
                   providerOptions,
                 };
               }

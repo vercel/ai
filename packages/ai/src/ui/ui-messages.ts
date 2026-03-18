@@ -117,9 +117,9 @@ export type CustomContentUIPart = {
   type: 'custom';
 
   /**
-   * The provider that created this content.
+   * The kind of custom content, in the format `{provider}-{provider-type}`.
    */
-  provider?: string;
+  kind: string;
 
   /**
    * The provider metadata.

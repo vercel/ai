@@ -110,7 +110,7 @@ export interface ReasoningPart {
 export interface CustomPart {
   type: 'custom';
 
-  provider?: string;
+  kind: string;
 
   /**
    * Additional provider-specific metadata. They are passed through

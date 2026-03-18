@@ -31,6 +31,7 @@ describe('runToolsTransformation', () => {
       convertArrayToReadableStream([
         {
           type: 'custom',
+          kind: 'openai-compaction',
           providerMetadata: {
             openai: { itemId: 'cmp_123' },
           },
@@ -64,7 +65,7 @@ describe('runToolsTransformation', () => {
     expect(result).toMatchInlineSnapshot(`
       [
         {
-          "provider": "mock-provider",
+          "kind": "openai-compaction",
           "providerMetadata": {
             "openai": {
               "itemId": "cmp_123",

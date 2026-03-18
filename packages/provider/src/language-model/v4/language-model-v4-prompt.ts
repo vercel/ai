@@ -125,7 +125,7 @@ export interface LanguageModelV4ReasoningFilePart {
 export interface LanguageModelV4CustomPart {
   type: 'custom';
 
-  provider?: string;
+  kind: string;
 
   /**
    * Additional provider-specific options. They are passed through

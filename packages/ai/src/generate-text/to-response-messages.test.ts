@@ -127,7 +127,7 @@ describe('toResponseMessages', () => {
       content: [
         {
           type: 'custom',
-          provider: 'mock-provider',
+          kind: 'mock-provider-compaction',
           providerMetadata: {
             openai: {
               itemId: 'cmp_123',
@@ -144,7 +144,7 @@ describe('toResponseMessages', () => {
         content: [
           {
             type: 'custom',
-            provider: 'mock-provider',
+            kind: 'mock-provider-compaction',
             providerOptions: {
               openai: {
                 itemId: 'cmp_123',

@@ -277,12 +277,14 @@ describe('generateText', () => {
               { type: 'text', text: 'Hello' },
               {
                 type: 'custom',
+                kind: 'openai-compaction',
                 providerMetadata: {
                   openai: { itemId: 'cmp_123' },
                 },
               },
               {
                 type: 'custom',
+                kind: 'openai-other',
               },
             ],
           },
@@ -294,14 +296,14 @@ describe('generateText', () => {
         { type: 'text', text: 'Hello' },
         {
           type: 'custom',
-          provider: 'mock-provider',
+          kind: 'openai-compaction',
           providerMetadata: {
             openai: { itemId: 'cmp_123' },
           },
         },
         {
           type: 'custom',
-          provider: 'mock-provider',
+          kind: 'openai-other',
         },
       ]);
     });

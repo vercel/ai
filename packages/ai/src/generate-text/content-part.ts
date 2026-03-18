@@ -12,7 +12,7 @@ export type ContentPart<TOOLS extends ToolSet> =
   | { type: 'text'; text: string; providerMetadata?: ProviderMetadata }
   | {
       type: 'custom';
-      provider?: string;
+      kind: string;
       providerMetadata?: ProviderMetadata;
     }
   | ReasoningOutput

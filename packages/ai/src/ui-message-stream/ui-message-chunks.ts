@@ -115,7 +115,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
       }),
       z.strictObject({
         type: z.literal('custom'),
-        provider: z.string().optional(),
+        kind: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
       }),
       z.strictObject({
@@ -239,7 +239,7 @@ export type UIMessageChunk<
     }
   | {
       type: 'custom';
-      provider?: string;
+      kind: string;
       providerMetadata?: ProviderMetadata;
     }
   | {

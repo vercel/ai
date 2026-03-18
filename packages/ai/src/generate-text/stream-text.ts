@@ -2381,7 +2381,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             case 'custom': {
               controller.enqueue({
                 type: 'custom',
-                ...(part.provider != null ? { provider: part.provider } : {}),
+                kind: part.kind,
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
                   : {}),

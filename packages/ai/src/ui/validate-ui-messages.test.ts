@@ -272,7 +272,7 @@ describe('validateUIMessages', () => {
             parts: [
               {
                 type: 'custom',
-                provider: 'test-provider',
+                kind: 'test-provider-compaction',
                 providerMetadata: {
                   openai: { itemId: 'cmp_123' },
                 },
@@ -290,7 +290,7 @@ describe('validateUIMessages', () => {
             "id": "1",
             "parts": [
               {
-                "provider": "test-provider",
+                "kind": "test-provider-compaction",
                 "providerMetadata": {
                   "openai": {
                     "itemId": "cmp_123",
@@ -311,7 +311,7 @@ describe('validateUIMessages', () => {
           {
             id: '1',
             role: 'assistant',
-            parts: [{ type: 'custom' }],
+            parts: [{ type: 'custom', kind: 'openai-compaction' }],
           },
         ],
       });
@@ -324,6 +324,7 @@ describe('validateUIMessages', () => {
             "id": "1",
             "parts": [
               {
+                "kind": "openai-compaction",
                 "type": "custom",
               },
             ],

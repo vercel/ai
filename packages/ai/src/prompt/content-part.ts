@@ -60,7 +60,7 @@ export const reasoningPartSchema: z.ZodType<ReasoningPart> = z.object({
  */
 export const customPartSchema: z.ZodType<CustomPart> = z.object({
   type: z.literal('custom'),
-  provider: z.string().optional(),
+  kind: z.string(),
   providerOptions: providerMetadataSchema.optional(),
 });
 
