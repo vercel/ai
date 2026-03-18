@@ -1,5 +1,11 @@
 # @ai-sdk/alibaba
 
+## 0.0.4
+
+### Patch Changes
+
+- d00c757: fix(provider/alibaba): handle single-item content array cache control
+
 ## 0.0.3
 
 ### Patch Changes

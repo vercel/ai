@@ -57,7 +57,12 @@ describe('doGenerate', () => {
         {
           "messages": [
             {
-              "content": "Hello",
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
               "role": "user",
             },
           ],
