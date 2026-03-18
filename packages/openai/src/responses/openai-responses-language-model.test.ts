@@ -4098,7 +4098,6 @@ describe('OpenAIResponsesLanguageModel', () => {
               id: 'openai.custom',
               name: 'write_sql',
               args: {
-                name: 'write_sql',
                 description:
                   'Write a SQL SELECT query to answer the user question.',
                 format: {
@@ -4168,45 +4167,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             "unified": "tool-calls",
           }
         `);
-      });
-
-      it('should map aliased custom tool names in toolChoice and response parsing', async () => {
-        prepareJsonFixtureResponse('openai-custom-tool.1');
-
-        const aliasedResult = await createModel('gpt-5.2-codex').doGenerate({
-          prompt: TEST_PROMPT,
-          toolChoice: { type: 'tool', toolName: 'alias_name' },
-          tools: [
-            {
-              type: 'provider',
-              id: 'openai.custom',
-              name: 'alias_name',
-              args: {
-                name: 'write_sql',
-                description:
-                  'Write a SQL SELECT query to answer the user question.',
-                format: {
-                  type: 'grammar',
-                  syntax: 'regex',
-                  definition: 'SELECT .+',
-                },
-              },
-            },
-          ],
-        });
-
-        expect(
-          (await server.calls.at(-1)!.requestBodyJson).tool_choice,
-        ).toStrictEqual({
-          type: 'custom',
-          name: 'write_sql',
-        });
-
-        const toolCall = aliasedResult.content.find(
-          part => part.type === 'tool-call',
-        );
-        expect(toolCall).toBeDefined();
-        expect((toolCall as { toolName: string }).toolName).toBe('alias_name');
       });
     });
 
@@ -5766,7 +5726,6 @@ describe('OpenAIResponsesLanguageModel', () => {
               id: 'openai.custom',
               name: 'write_sql',
               args: {
-                name: 'write_sql',
                 description:
                   'Write a SQL SELECT query to answer the user question.',
                 format: {
@@ -5866,47 +5825,6 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
             ]
           `);
-      });
-
-      it('should map aliased custom tool names while streaming', async () => {
-        prepareChunksFixtureResponse('openai-custom-tool.1');
-
-        const { stream } = await createModel('gpt-5.2-codex').doStream({
-          tools: [
-            {
-              type: 'provider',
-              id: 'openai.custom',
-              name: 'alias_name',
-              args: {
-                name: 'write_sql',
-                description:
-                  'Write a SQL SELECT query to answer the user question.',
-                format: {
-                  type: 'grammar',
-                  syntax: 'regex',
-                  definition: 'SELECT .+',
-                },
-              },
-            },
-          ],
-          toolChoice: { type: 'tool', toolName: 'alias_name' },
-          prompt: TEST_PROMPT,
-          includeRawChunks: false,
-        });
-
-        expect(
-          (await server.calls.at(-1)!.requestBodyJson).tool_choice,
-        ).toStrictEqual({
-          type: 'custom',
-          name: 'write_sql',
-        });
-
-        const parts = await convertReadableStreamToArray(stream);
-        const streamToolCall = parts.find(part => part.type === 'tool-call');
-        expect(streamToolCall).toBeDefined();
-        expect((streamToolCall as { toolName: string }).toolName).toBe(
-          'alias_name',
-        );
       });
     });
 

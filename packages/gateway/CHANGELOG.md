@@ -1,5 +1,18 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- ead9144: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.0-beta.13
 
 ### Patch Changes
