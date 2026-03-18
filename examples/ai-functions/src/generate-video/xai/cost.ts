@@ -17,8 +17,8 @@ run(async () => {
     }),
   );
 
-  console.log('Video generated:', result.videos[0].mediaType);
-  console.log();
+  await presentVideos(result.videos);
+
   console.log(
     'Provider metadata:',
     JSON.stringify(result.providerMetadata, null, 2),
