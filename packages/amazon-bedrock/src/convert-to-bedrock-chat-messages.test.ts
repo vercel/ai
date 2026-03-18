@@ -669,7 +669,11 @@ describe('assistant messages', () => {
     });
   });
 
-  it('should trim trailing whitespace from reasoning content when it is the last part', async () => {
+  it('should NOT trim reasoning text when a cryptographic signature is present', async () => {
+    // The signature is computed over the exact original bytes of the text.
+    // Trimming even a single trailing whitespace invalidates the signature,
+    // causing Bedrock to reject the request with a "thinking blocks cannot
+    // be modified" error.
     const result = await convertToBedrockChatMessages([
       {
         role: 'user',
@@ -703,8 +707,49 @@ describe('assistant messages', () => {
             {
               reasoningContent: {
                 reasoningText: {
-                  text: 'This is my reasoning with trailing space',
+                  // Text is preserved verbatim when a signature is present
+                  text: 'This is my reasoning with trailing space    ',
                   signature: 'test-signature',
+                },
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should trim trailing whitespace from reasoning content without signature when it is the last part', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Explain your reasoning' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'This is my reasoning with trailing space    ',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Explain your reasoning' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              reasoningContent: {
+                redactedReasoning: {
+                  data: undefined,
                 },
               },
             },
