@@ -243,7 +243,7 @@ export const openaiCompactionAgent = new ToolLoopAgent({
       messages: [...preloadedMessages, ...userMessages],
     };
   },
-  onStepFinish: ({ request }: { request: { body: unknown } }) => {
+  onStepFinish: ({ request }) => {
     console.dir(request.body, { depth: Infinity });
   },
 });
