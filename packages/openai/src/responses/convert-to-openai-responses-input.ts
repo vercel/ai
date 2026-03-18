@@ -175,33 +175,6 @@ export async function convertToOpenAIResponsesInput({
                 | 'final_answer'
                 | null
                 | undefined;
-              const textType = part.providerOptions?.[providerOptionsName]
-                ?.type as string | undefined;
-
-              // handle compaction items — send back as compaction input items
-              if (textType === 'compaction') {
-                if (hasConversation && id != null) {
-                  break;
-                }
-
-                if (store && id != null) {
-                  input.push({ type: 'item_reference', id });
-                  break;
-                }
-
-                const encryptedContent = part.providerOptions?.[
-                  providerOptionsName
-                ]?.encryptedContent as string;
-
-                if (id != null) {
-                  input.push({
-                    type: 'compaction',
-                    id,
-                    encrypted_content: encryptedContent,
-                  } satisfies OpenAIResponsesCompactionItem);
-                }
-                break;
-              }
 
               // when using conversation, skip items that already exist in the conversation context to avoid "Duplicate item found" errors
               if (hasConversation && id != null) {
@@ -567,6 +540,36 @@ export async function convertToOpenAIResponsesInput({
                     type: 'other',
                     message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${JSON.stringify(part)}.`,
                   });
+                }
+              }
+              break;
+            }
+
+            case 'custom': {
+              if (part.kind === 'openai-compaction') {
+                const providerOpts =
+                  part.providerOptions?.[providerOptionsName];
+                const id = providerOpts?.itemId as string | undefined;
+
+                if (hasConversation && id != null) {
+                  break;
+                }
+
+                if (store && id != null) {
+                  input.push({ type: 'item_reference', id });
+                  break;
+                }
+
+                const encryptedContent = providerOpts?.encryptedContent as
+                  | string
+                  | undefined;
+
+                if (id != null) {
+                  input.push({
+                    type: 'compaction',
+                    id,
+                    encrypted_content: encryptedContent!,
+                  } satisfies OpenAIResponsesCompactionItem);
                 }
               }
               break;

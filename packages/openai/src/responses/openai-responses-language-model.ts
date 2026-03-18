@@ -989,8 +989,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
         case 'compaction': {
           content.push({
-            type: 'text',
-            text: '',
+            type: 'custom',
+            kind: 'openai-compaction',
             providerMetadata: {
               [providerOptionsName]: {
                 type: 'compaction',
@@ -1376,17 +1376,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                       reasoningEncryptedContent:
                         value.item.encrypted_content ?? null,
                     } satisfies ResponsesReasoningProviderMetadata,
-                  },
-                });
-              } else if (value.item.type === 'compaction') {
-                controller.enqueue({
-                  type: 'text-start',
-                  id: value.item.id,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: 'compaction',
-                      itemId: value.item.id,
-                    } satisfies ResponsesCompactionProviderMetadata,
                   },
                 });
               }
@@ -1819,8 +1808,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 delete activeReasoning[value.item.id];
               } else if (value.item.type === 'compaction') {
                 controller.enqueue({
-                  type: 'text-end',
-                  id: value.item.id,
+                  type: 'custom',
+                  kind: 'openai-compaction',
                   providerMetadata: {
                     [providerOptionsName]: {
                       type: 'compaction',

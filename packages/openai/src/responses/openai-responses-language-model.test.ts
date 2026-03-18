@@ -5024,7 +5024,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         const compactionPart = result.content.find(
           part =>
-            part.type === 'text' &&
+            part.type === 'custom' &&
             part.providerMetadata?.openai?.type === 'compaction',
         );
 

@@ -3769,8 +3769,8 @@ describe('convertToOpenAIResponsesInput', () => {
             role: 'assistant',
             content: [
               {
-                type: 'text',
-                text: '',
+                type: 'custom',
+                kind: 'openai-compaction',
                 providerOptions: {
                   openai: {
                     type: 'compaction',
@@ -3805,8 +3805,8 @@ describe('convertToOpenAIResponsesInput', () => {
             role: 'assistant',
             content: [
               {
-                type: 'text',
-                text: '',
+                type: 'custom',
+                kind: 'openai-compaction',
                 providerOptions: {
                   openai: {
                     type: 'compaction',
@@ -3846,8 +3846,8 @@ describe('convertToOpenAIResponsesInput', () => {
             role: 'assistant',
             content: [
               {
-                type: 'text',
-                text: '',
+                type: 'custom',
+                kind: 'openai-compaction',
                 providerOptions: {
                   openai: {
                     type: 'compaction',
@@ -3897,8 +3897,8 @@ describe('convertToOpenAIResponsesInput', () => {
                 },
               },
               {
-                type: 'text',
-                text: '',
+                type: 'custom',
+                kind: 'openai-compaction',
                 providerOptions: {
                   openai: {
                     type: 'compaction',
@@ -3953,8 +3953,8 @@ describe('convertToOpenAIResponsesInput', () => {
                 },
               },
               {
-                type: 'text',
-                text: '',
+                type: 'custom',
+                kind: 'openai-compaction',
                 providerOptions: {
                   openai: {
                     type: 'compaction',
