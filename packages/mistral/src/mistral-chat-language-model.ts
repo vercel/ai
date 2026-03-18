@@ -1,12 +1,12 @@
 import {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -39,8 +39,8 @@ type MistralChatConfig = {
   generateId?: () => string;
 };
 
-export class MistralChatLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class MistralChatLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: MistralChatModelId;
 
@@ -75,8 +75,8 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
     providerOptions,
     tools,
     toolChoice,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     const options =
       (await parseProviderOptions({
@@ -173,8 +173,8 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args: body, warnings } = await this.getArgs(options);
 
     const {
@@ -194,7 +194,7 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // process content parts in order to preserve sequence
     if (
@@ -255,8 +255,8 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
     const body = { ...args, stream: true };
 
@@ -272,7 +272,7 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -288,7 +288,7 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof mistralChatChunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });

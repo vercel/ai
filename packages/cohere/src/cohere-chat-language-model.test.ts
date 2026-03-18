@@ -1,4 +1,4 @@
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import { createCohere } from './cohere-provider';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   {
     role: 'system',
     content: 'you are a friendly bot!',

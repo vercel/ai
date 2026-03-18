@@ -64,3 +64,32 @@ const result = await generateText({
 This applies to all AI SDK functions that accept `experimental_telemetry`, including `streamText`, `generateObject`, `streamObject`, `embed`, and `embedMany`.
 
 If you were not passing a custom `tracer` (relying on the default global tracer), no changes are needed — the `OpenTelemetryIntegration` is registered globally by default and uses `trace.getTracer('ai')` when no custom tracer is provided.
+
+## MCP Package
+
+### MCP Transport: `redirect` Default Changed from `'follow'` to `'error'`
+
+The `redirect` option on `MCPTransportConfig` (used by both HTTP and SSE transports) now defaults to `'error'` instead of `'follow'`. This means HTTP redirects are rejected by default to prevent server-side request forgery (SSRF) attacks where an MCP server could redirect requests to unintended hosts.
+
+If your MCP server relies on HTTP redirects, explicitly set `redirect: 'follow'` in your transport configuration:
+
+```tsx filename="AI SDK 6"
+const mcpClient = await createMCPClient({
+  transport: {
+    type: 'http',
+    url: 'https://your-server.com/mcp',
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const mcpClient = await createMCPClient({
+  transport: {
+    type: 'http',
+    url: 'https://your-server.com/mcp',
+    redirect: 'follow',
+  },
+});
+```
+
+If the MCP server you use does not issue redirects, no changes are needed — the new default is more secure.
