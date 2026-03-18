@@ -13,7 +13,7 @@ import { Source } from '../types/language-model';
 import { asLanguageModelUsage } from '../types/usage';
 import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
 import { executeToolCall } from './execute-tool-call';
-import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
+import { GeneratedFile } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
 import { parseToolCall } from './parse-tool-call';
 import {
