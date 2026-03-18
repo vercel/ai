@@ -132,7 +132,8 @@ export async function embed({
     event: {
       callId,
       operationId: 'ai.embed',
-      model: modelInfo,
+      provider: modelInfo.provider,
+      modelId: modelInfo.modelId,
       value,
       maxRetries,
       abortSignal,
@@ -239,7 +240,8 @@ export async function embed({
         event: {
           callId,
           operationId: 'ai.embed',
-          model: modelInfo,
+          provider: modelInfo.provider,
+          modelId: modelInfo.modelId,
           value,
           embedding,
           usage,

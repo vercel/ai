@@ -1043,7 +1043,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             callId,
             stepNumber: recordedSteps.length,
-            model: modelInfo,
+            provider: modelInfo.provider,
+            modelId: modelInfo.modelId,
             ...callbackTelemetryProps,
             experimental_context,
             content: recordedContent,
@@ -1270,7 +1271,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         event: {
           callId,
           operationId: 'ai.streamText',
-          model: modelInfo,
+          provider: modelInfo.provider,
+          modelId: modelInfo.modelId,
           system,
           prompt,
           messages,
@@ -1367,7 +1369,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 toolTimeoutMs,
                 experimental_context,
                 stepNumber: recordedSteps.length,
-                model: modelInfo,
+                provider: modelInfo.provider,
+                modelId: modelInfo.modelId,
                 onToolCallStart: [
                   onToolCallStart,
                   globalTelemetry.onToolCallStart as
@@ -1557,7 +1560,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             event: {
               callId,
               stepNumber: recordedSteps.length,
-              model: stepModelInfo,
+              provider: stepModelInfo.provider,
+              modelId: stepModelInfo.modelId,
               system: stepSystem,
               messages: stepMessages,
               tools,
@@ -1621,7 +1625,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             experimental_context,
             generateId,
             stepNumber: recordedSteps.length,
-            model: stepModelInfo,
+            provider: stepModelInfo.provider,
+            modelId: stepModelInfo.modelId,
             onToolCallStart: [
               onToolCallStart,
               globalTelemetry.onToolCallStart as

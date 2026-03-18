@@ -182,7 +182,7 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
     };
 
     const baseTelemetryAttributes = getBaseTelemetryAttributes({
-      model: event.model,
+      model: { provider: event.provider, modelId: event.modelId },
       telemetry,
       headers: event.headers,
       settings,
@@ -194,8 +194,8 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
         telemetry,
       }),
       ...baseTelemetryAttributes,
-      'ai.model.provider': event.model.provider,
-      'ai.model.id': event.model.modelId,
+      'ai.model.provider': event.provider,
+      'ai.model.id': event.modelId,
       'ai.prompt': {
         input: () =>
           JSON.stringify({
@@ -239,8 +239,8 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
         telemetry,
       }),
       ...state.baseTelemetryAttributes,
-      'ai.model.provider': event.model.provider,
-      'ai.model.id': event.model.modelId,
+      'ai.model.provider': event.provider,
+      'ai.model.id': event.modelId,
 
       'ai.prompt.messages': {
         input: () =>
@@ -258,8 +258,8 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
             : undefined,
       },
 
-      'gen_ai.system': event.model.provider,
-      'gen_ai.request.model': event.model.modelId,
+      'gen_ai.system': event.provider,
+      'gen_ai.request.model': event.modelId,
       'gen_ai.request.frequency_penalty': state.settings.frequencyPenalty as
         | number
         | undefined,

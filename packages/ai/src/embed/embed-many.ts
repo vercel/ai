@@ -148,7 +148,8 @@ export async function embedMany({
     event: {
       callId,
       operationId: 'ai.embedMany',
-      model: modelInfo,
+      provider: modelInfo.provider,
+      modelId: modelInfo.modelId,
       value: values,
       maxRetries,
       abortSignal,
@@ -275,7 +276,8 @@ export async function embedMany({
           event: {
             callId,
             operationId: 'ai.embedMany',
-            model: modelInfo,
+            provider: modelInfo.provider,
+            modelId: modelInfo.modelId,
             value: values,
             embedding: embeddings,
             usage,
@@ -428,7 +430,8 @@ export async function embedMany({
         event: {
           callId,
           operationId: 'ai.embedMany',
-          model: modelInfo,
+          provider: modelInfo.provider,
+          modelId: modelInfo.modelId,
           value: values,
           embedding: embeddings,
           usage: { tokens },
