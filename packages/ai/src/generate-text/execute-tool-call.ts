@@ -49,8 +49,8 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   toolTimeoutMs?: number | undefined;
   experimental_context: unknown;
   stepNumber?: number;
-  provider: string;
-  modelId: string;
+  provider?: string;
+  modelId?: string;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
   onToolCallStart?:
     | GenerateTextOnToolCallStartCallback<TOOLS>

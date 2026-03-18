@@ -239,10 +239,10 @@ export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
   readonly stepNumber: number | undefined;
 
   /** The provider identifier (e.g., 'openai', 'anthropic'). */
-  readonly provider: string;
+  readonly provider: string | undefined;
 
   /** The specific model identifier (e.g., 'gpt-4o'). */
-  readonly modelId: string;
+  readonly modelId: string | undefined;
 
   /** The full tool call object. */
   readonly toolCall: TypedToolCall<TOOLS>;
@@ -277,10 +277,10 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
   readonly stepNumber: number | undefined;
 
   /** The provider identifier (e.g., 'openai', 'anthropic'). */
-  readonly provider: string;
+  readonly provider: string | undefined;
 
   /** The specific model identifier (e.g., 'gpt-4o'). */
-  readonly modelId: string;
+  readonly modelId: string | undefined;
 
   /** The full tool call object. */
   readonly toolCall: TypedToolCall<TOOLS>;
