@@ -1,5 +1,13 @@
 # @ai-sdk/mcp
 
+## 2.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/provider@4.0.0-beta.4
+
 ## 2.0.0-beta.9
 
 ### Patch Changes
@@ -262,15 +270,15 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from 'ai';
-  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  import { experimental_createMCPClient } from "ai";
+  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from '@ai-sdk/mcp';
-  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  import { experimental_createMCPClient } from "@ai-sdk/mcp";
+  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
   ```
 
 ### Patch Changes
@@ -636,13 +644,13 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from 'ai';
-  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  import { experimental_createMCPClient } from "ai";
+  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from '@ai-sdk/mcp';
-  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  import { experimental_createMCPClient } from "@ai-sdk/mcp";
+  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
   ```
