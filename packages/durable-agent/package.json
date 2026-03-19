@@ -48,7 +48,6 @@
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "@workflow/vitest": "4.0.1-beta.7",
-    "eslint-config-vercel-ai": "workspace:*",
     "tsup": "^8",
     "typescript": "5.8.3",
     "workflow": "4.2.0-beta.70",
