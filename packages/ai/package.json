@@ -100,6 +100,7 @@
     "ai",
     "vercel",
     "sdk",
+    "llm",
     "mcp",
     "tool-calling",
     "tools",
@@ -107,11 +108,17 @@
     "agent",
     "agentic",
     "generative",
+    "genai",
     "chatbot",
     "prompt",
     "inference",
-    "llm",
     "language-model",
-    "streaming"
+    "streaming",
+    "openai",
+    "anthropic",
+    "claude",
+    "gemini",
+    "xai",
+    "grok"
   ]
 }
