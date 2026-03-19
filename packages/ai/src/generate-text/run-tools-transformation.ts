@@ -63,7 +63,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
     }
   | {
       type: 'custom';
-      kind: string;
+      kind: `${string}.${string}`;
       providerMetadata?: ProviderMetadata;
     }
 
