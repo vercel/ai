@@ -55,13 +55,17 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   onFinish?: UIMessageStreamOnFinishCallback<UI_MESSAGE>;
 
   /**
-   * Extracts message metadata that will be send to the client.
+   * Extracts message metadata that will be sent to the client.
    *
-   * Called on `start` and `finish` events.
+   * Called on `start` and `finish` events. May be async to support
+   * external stores (e.g. token usage tracking).
    */
   messageMetadata?: (options: {
     part: TextStreamPart<ToolSet>;
-  }) => InferUIMessageMetadata<UI_MESSAGE> | undefined;
+  }) =>
+    | InferUIMessageMetadata<UI_MESSAGE>
+    | undefined
+    | Promise<InferUIMessageMetadata<UI_MESSAGE> | undefined>;
 
   /**
    * Send reasoning parts to the client.
