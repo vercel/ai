@@ -1,6 +1,6 @@
-import { RerankingModelV3CallOptions } from '@ai-sdk/provider';
+import { RerankingModelV4CallOptions } from '@ai-sdk/provider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
+import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { rerank } from './rerank';
 import type { RerankOnStartEvent, RerankOnFinishEvent } from './rerank-events';
 import { RerankResult } from './rerank-result';
@@ -9,7 +9,7 @@ import { MockTracer } from '../test/mock-tracer';
 describe('rerank', () => {
   describe('rerank with string documents', () => {
     let result: RerankResult<string>;
-    let calls: RerankingModelV3CallOptions[];
+    let calls: RerankingModelV4CallOptions[];
 
     beforeEach(async () => {
       calls = [];
@@ -17,7 +17,7 @@ describe('rerank', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
 
-      const model = new MockRerankingModelV3({
+      const model = new MockRerankingModelV4({
         doRerank: async options => {
           calls.push(options);
           return {
@@ -161,7 +161,7 @@ describe('rerank', () => {
 
   describe('rerank with object documents', () => {
     let result: RerankResult<{ id: string; name: string }>;
-    let calls: RerankingModelV3CallOptions[];
+    let calls: RerankingModelV4CallOptions[];
 
     beforeEach(async () => {
       calls = [];
@@ -169,7 +169,7 @@ describe('rerank', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
 
-      const model = new MockRerankingModelV3({
+      const model = new MockRerankingModelV4({
         doRerank: async options => {
           calls.push(options);
           return {
@@ -350,7 +350,7 @@ describe('rerank', () => {
   describe('telemetry', () => {
     let tracer: MockTracer;
 
-    const model = new MockRerankingModelV3({
+    const model = new MockRerankingModelV4({
       doRerank: async options => {
         return {
           ranking: [

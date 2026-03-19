@@ -2,7 +2,7 @@ import {
   LanguageModelV4,
   LanguageModelV4StreamResult,
   LanguageModelV4Usage,
-  SharedV3Warning,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   InferSchema,
@@ -110,7 +110,7 @@ export async function streamUI<
   providerOptions,
   onFinish,
   ...settings
-}: CallSettings &
+}: CallSettings<any> &
   Prompt & {
     /**
      * The language model to use.
@@ -296,7 +296,7 @@ export async function streamUI<
     try {
       let content = '';
       let hasToolCall = false;
-      let warnings: SharedV3Warning[] | undefined;
+      let warnings: SharedV4Warning[] | undefined;
 
       const reader = forkedStream.getReader();
       while (true) {

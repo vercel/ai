@@ -104,6 +104,26 @@ export interface ReasoningPart {
 }
 
 /**
+ * Custom content part of a prompt. It contains no standardized payload beyond
+ * provider-specific options.
+ */
+export interface CustomPart {
+  type: 'custom';
+
+  /**
+   * The kind of custom content, in the format `{provider}-{provider-type}`.
+   */
+  kind: string;
+
+  /**
+   * Additional provider-specific metadata. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
+  providerOptions?: ProviderOptions;
+}
+
+/**
  * Reasoning file content part of a prompt. It contains a file generated as part of reasoning.
  */
 export interface ReasoningFilePart {

@@ -24,8 +24,7 @@ export class ToolLoopAgent<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
-> implements Agent<CALL_OPTIONS, TOOLS, OUTPUT>
-{
+> implements Agent<CALL_OPTIONS, TOOLS, OUTPUT> {
   readonly version = 'agent-v1';
 
   private readonly settings: ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>;

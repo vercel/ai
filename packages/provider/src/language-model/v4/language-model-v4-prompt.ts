@@ -31,6 +31,7 @@ export type LanguageModelV4Message =
         content: Array<
           | LanguageModelV4TextPart
           | LanguageModelV4FilePart
+          | LanguageModelV4CustomPart
           | LanguageModelV4ReasoningPart
           | LanguageModelV4ReasoningFilePart
           | LanguageModelV4ToolCallPart
@@ -108,6 +109,26 @@ export interface LanguageModelV4ReasoningFilePart {
    * @see https://www.iana.org/assignments/media-types/media-types.xhtml
    */
   mediaType: string;
+
+  /**
+   * Additional provider-specific options. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
+  providerOptions?: SharedV4ProviderOptions;
+}
+
+/**
+ * Provider-specific content part of a prompt. It contains no standardized
+ * payload beyond provider-specific options.
+ */
+export interface LanguageModelV4CustomPart {
+  type: 'custom';
+
+  /**
+   * The kind of custom content, in the format `{provider}-{provider-type}`.
+   */
+  kind: string;
 
   /**
    * Additional provider-specific options. They are passed through
