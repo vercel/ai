@@ -17,7 +17,7 @@ import { PrepareStepFunction } from '../generate-text/prepare-step';
 import { StopCondition } from '../generate-text/stop-condition';
 import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
 import { ToolSet } from '../generate-text/tool-set';
-import { CallSettings } from '../prompt/call-settings';
+import { CallSettings, TimeoutConfiguration } from '../prompt/call-settings';
 import { Prompt } from '../prompt/prompt';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types/language-model';
@@ -57,7 +57,15 @@ export type ToolLoopAgentSettings<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
-> = Omit<CallSettings<TOOLS>, 'abortSignal'> & {
+> = Omit<CallSettings, 'abortSignal'> & {
+  /**
+   * Timeout in milliseconds. The call will be aborted if it takes longer
+   * than the specified timeout. Can be used alongside abortSignal.
+   *
+   * Can be specified as a number (milliseconds) or as an object with `totalMs`.
+   */
+  timeout?: TimeoutConfiguration<TOOLS>;
+
   /**
    * The id of the agent.
    */

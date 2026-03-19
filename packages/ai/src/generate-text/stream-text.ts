@@ -334,12 +334,20 @@ export function streamText<
     generateCallId = originalGenerateCallId,
   } = {},
   ...settings
-}: CallSettings<TOOLS> &
+}: CallSettings &
   Prompt & {
     /**
      * The language model to use.
      */
     model: LanguageModel;
+
+    /**
+     * Timeout in milliseconds. The call will be aborted if it takes longer
+     * than the specified timeout. Can be used alongside abortSignal.
+     *
+     * Can be specified as a number (milliseconds) or as an object with `totalMs`.
+     */
+    timeout?: TimeoutConfiguration<TOOLS>;
 
     /**
      * The tools that the model can call. The model needs to support calling tools.
@@ -767,7 +775,7 @@ class DefaultStreamTextResult<
     model: LanguageModelV4;
     telemetry: TelemetrySettings | undefined;
     headers: Record<string, string | undefined> | undefined;
-    settings: Omit<CallSettings<TOOLS>, 'abortSignal' | 'headers'>;
+    settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
     maxRetries: number | undefined;
     abortSignal: AbortSignal | undefined;
     stepTimeoutMs: number | undefined;
