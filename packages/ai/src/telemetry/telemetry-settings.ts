@@ -1,4 +1,5 @@
 import { AttributeValue, Tracer } from '@opentelemetry/api';
+import type { JSONValue } from '@ai-sdk/provider';
 import type { TelemetryIntegration } from './telemetry-integration';
 
 /**
@@ -36,7 +37,7 @@ export type TelemetrySettings = {
   /**
    * Additional information to include in the telemetry data.
    */
-  metadata?: Record<string, AttributeValue>;
+  metadata?: Record<string, JSONValue>;
 
   /**
    * A custom tracer to use for the telemetry data.
