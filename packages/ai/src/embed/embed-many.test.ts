@@ -714,10 +714,8 @@ describe('options.experimental_onStart', () => {
       },
     });
 
-    expect(startEvent.model).toEqual({
-      provider: 'mock-provider',
-      modelId: 'mock-model-id',
-    });
+    expect(startEvent.provider).toBe('mock-provider');
+    expect(startEvent.modelId).toBe('mock-model-id');
     expect(startEvent.operationId).toBe('ai.embedMany');
   });
 
@@ -885,10 +883,8 @@ describe('options.experimental_onFinish', () => {
       },
     });
 
-    expect(finishEvent.model).toEqual({
-      provider: 'mock-provider',
-      modelId: 'mock-model-id',
-    });
+    expect(finishEvent.provider).toBe('mock-provider');
+    expect(finishEvent.modelId).toBe('mock-model-id');
     expect(finishEvent.operationId).toBe('ai.embedMany');
   });
 

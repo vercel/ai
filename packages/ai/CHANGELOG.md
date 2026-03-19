@@ -1,5 +1,27 @@
 # ai
 
+## 7.0.0-beta.29
+
+### Patch Changes
+
+- 877bf12: fix(ai): flatten model attributes for telemetry
+
+## 7.0.0-beta.28
+
+### Major Changes
+
+- b9cf502: refactoring(ai): delay tool execution in stream text until model call is finished
+
+## 7.0.0-beta.27
+
+### Patch Changes
+
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/provider@4.0.0-beta.4
+  - @ai-sdk/gateway@4.0.0-beta.17
+
 ## 7.0.0-beta.26
 
 ### Patch Changes

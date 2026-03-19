@@ -79,15 +79,15 @@ import type {
   OnStepStartEvent,
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
-} from './callback-events';
+} from './core-events';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
+import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
 import {
   createStreamTextPartTransform,
   UglyTransformedStreamTextPart,
 } from './create-stream-text-part-transform';
 import { executeToolCall } from './execute-tool-call';
-import { executeToolsTransformation } from './execute-tools-transformation';
 import { Output, text } from './output';
 import {
   InferCompleteOutput,
@@ -1039,7 +1039,8 @@ class DefaultStreamTextResult<
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             callId,
             stepNumber: recordedSteps.length,
-            model: modelInfo,
+            provider: model.provider,
+            modelId: model.modelId,
             ...callbackTelemetryProps,
             experimental_context,
             content: recordedContent,
@@ -1062,8 +1063,8 @@ class DefaultStreamTextResult<
 
           logWarnings({
             warnings: recordedWarnings,
-            provider: modelInfo.provider,
-            model: modelInfo.modelId,
+            provider: model.provider,
+            model: model.modelId,
           });
 
           recordedSteps.push(currentStepResult);
@@ -1241,7 +1242,6 @@ class DefaultStreamTextResult<
 
     const self = this;
 
-    const modelInfo = { provider: model.provider, modelId: model.modelId };
     const callId = generateCallId();
     const callbackTelemetryProps = {
       functionId: telemetry?.functionId,
@@ -1266,7 +1266,8 @@ class DefaultStreamTextResult<
         event: {
           callId,
           operationId: 'ai.streamText',
-          model: modelInfo,
+          provider: model.provider,
+          modelId: model.modelId,
           system,
           prompt,
           messages,
@@ -1364,7 +1365,8 @@ class DefaultStreamTextResult<
                 timeout,
                 experimental_context,
                 stepNumber: recordedSteps.length,
-                model: modelInfo,
+                provider: model.provider,
+                modelId: model.modelId,
                 onToolCallStart: [
                   onToolCallStart,
                   globalTelemetry.onToolCallStart as
@@ -1515,10 +1517,6 @@ class DefaultStreamTextResult<
           const stepModel = resolveLanguageModel(
             prepareStepResult?.model ?? model,
           );
-          const stepModelInfo = {
-            provider: stepModel.provider,
-            modelId: stepModel.modelId,
-          };
 
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
@@ -1554,7 +1552,8 @@ class DefaultStreamTextResult<
             event: {
               callId,
               stepNumber: recordedSteps.length,
-              model: stepModelInfo,
+              provider: stepModel.provider,
+              modelId: stepModel.modelId,
               system: stepSystem,
               messages: stepMessages,
               tools,
@@ -1601,39 +1600,41 @@ class DefaultStreamTextResult<
             }),
           );
 
-          const stream = languageModelStream.pipeThrough(
-            createStreamTextPartTransform<TOOLS>({
-              tools,
-              system,
-              messages: stepInputMessages,
-              repairToolCall,
-            }),
-          );
-
-          const streamWithToolResults = executeToolsTransformation({
-            tools,
-            generatorStream: stream,
-            telemetry,
-            callId,
-            messages: stepInputMessages,
-            abortSignal,
-            timeout,
-            experimental_context,
-            generateId,
-            stepNumber: recordedSteps.length,
-            model: stepModelInfo,
-            onToolCallStart: [
-              onToolCallStart,
-              globalTelemetry.onToolCallStart as
-                | undefined
-                | StreamTextOnToolCallStartCallback<TOOLS>,
-            ],
-            onToolCallFinish: [
-              onToolCallFinish,
-              globalTelemetry.onToolCallFinish,
-            ],
-            executeToolInTelemetryContext: globalTelemetry.executeTool,
-          });
+          const streamWithToolResults = languageModelStream
+            .pipeThrough(
+              createStreamTextPartTransform({
+                tools,
+                system,
+                messages: stepInputMessages,
+                repairToolCall,
+              }),
+            )
+            .pipeThrough(
+              createExecuteToolsTransformation({
+                tools,
+                telemetry,
+                callId,
+                messages: stepInputMessages,
+                abortSignal,
+                timeout,
+                experimental_context,
+                generateId,
+                stepNumber: recordedSteps.length,
+                provider: stepModel.provider,
+                modelId: stepModel.modelId,
+                onToolCallStart: [
+                  onToolCallStart,
+                  globalTelemetry.onToolCallStart as
+                    | undefined
+                    | StreamTextOnToolCallStartCallback<TOOLS>,
+                ],
+                onToolCallFinish: [
+                  onToolCallFinish,
+                  globalTelemetry.onToolCallFinish,
+                ],
+                executeToolInTelemetryContext: globalTelemetry.executeTool,
+              }),
+            );
 
           // Conditionally include request.body based on include settings.
           // Large payloads (e.g., base64-encoded images) can cause memory issues.
@@ -1656,7 +1657,7 @@ class DefaultStreamTextResult<
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
             id: generateId(),
             timestamp: new Date(),
-            modelId: modelInfo.modelId,
+            modelId: model.modelId,
           };
 
           self.addStream(
