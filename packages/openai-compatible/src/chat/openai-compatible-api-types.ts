@@ -6,8 +6,7 @@ export type OpenAICompatibleMessage =
   | OpenAICompatibleSystemMessage
   | OpenAICompatibleUserMessage
   | OpenAICompatibleAssistantMessage
-  | OpenAICompatibleToolMessage
-  | OpenAICompatibleContentPartVideoUrl;
+  | OpenAICompatibleToolMessage;
 
 // Allow for arbitrary additional properties for general purpose
 // provider-metadata-specific extensibility.
@@ -31,7 +30,8 @@ export type OpenAICompatibleContentPart =
   | OpenAICompatibleContentPartText
   | OpenAICompatibleContentPartImage
   | OpenAICompatibleContentPartInputAudio
-  | OpenAICompatibleContentPartFile;
+  | OpenAICompatibleContentPartFile
+  | OpenAICompatibleContentPartVideoUrl;
 
 export interface OpenAICompatibleContentPartText extends JsonRecord {
   type: 'text';
