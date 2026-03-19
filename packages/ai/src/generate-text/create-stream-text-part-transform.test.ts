@@ -474,4 +474,238 @@ describe('createStreamTextPartTransform', () => {
       ]
     `);
   });
+
+  describe('provider-emitted tool-approval-request (MCP flow)', () => {
+    it('should forward provider-emitted tool-approval-request with the correct tool call', async () => {
+      const tools = {
+        mcp_tool: tool({
+          type: 'provider',
+          id: 'mcp.mcp_tool',
+          inputSchema: z.object({ query: z.string() }),
+          args: {},
+        }),
+      };
+
+      const inputStream: ReadableStream<LanguageModelV4StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'mcp-call-1',
+            toolName: 'mcp_tool',
+            input: `{ "query": "test" }`,
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'mcp-approval-1',
+            toolCallId: 'mcp-call-1',
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'tool-calls', raw: undefined },
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = inputStream.pipeThrough(
+        createStreamTextPartTransform({
+          tools,
+          system: undefined,
+          messages: [],
+          repairToolCall: undefined,
+        }),
+      );
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "query": "test",
+            },
+            "providerExecuted": true,
+            "providerMetadata": undefined,
+            "title": undefined,
+            "toolCallId": "mcp-call-1",
+            "toolName": "mcp_tool",
+            "type": "tool-call",
+          },
+          {
+            "approvalId": "mcp-approval-1",
+            "toolCall": {
+              "input": {
+                "query": "test",
+              },
+              "providerExecuted": true,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "mcp-call-1",
+              "toolName": "mcp_tool",
+              "type": "tool-call",
+            },
+            "type": "tool-approval-request",
+          },
+          {
+            "finishReason": {
+              "raw": undefined,
+              "unified": "tool-calls",
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": undefined,
+                "cacheWrite": undefined,
+                "noCache": 3,
+                "total": 3,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": 10,
+                "total": 10,
+              },
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should handle multiple provider-executed tool calls with approval requests', async () => {
+      const tools = {
+        mcp_search: tool({
+          type: 'provider',
+          id: 'mcp.mcp_search',
+          inputSchema: z.object({ query: z.string() }),
+          args: {},
+        }),
+        mcp_execute: tool({
+          type: 'provider',
+          id: 'mcp.mcp_execute',
+          inputSchema: z.object({ command: z.string() }),
+          args: {},
+        }),
+      };
+
+      const inputStream: ReadableStream<LanguageModelV4StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'mcp-call-1',
+            toolName: 'mcp_search',
+            input: `{ "query": "first" }`,
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'mcp-call-2',
+            toolName: 'mcp_execute',
+            input: `{ "command": "ls" }`,
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-1',
+            toolCallId: 'mcp-call-1',
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-2',
+            toolCallId: 'mcp-call-2',
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'tool-calls', raw: undefined },
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = inputStream.pipeThrough(
+        createStreamTextPartTransform({
+          tools,
+          system: undefined,
+          messages: [],
+          repairToolCall: undefined,
+        }),
+      );
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "query": "first",
+            },
+            "providerExecuted": true,
+            "providerMetadata": undefined,
+            "title": undefined,
+            "toolCallId": "mcp-call-1",
+            "toolName": "mcp_search",
+            "type": "tool-call",
+          },
+          {
+            "input": {
+              "command": "ls",
+            },
+            "providerExecuted": true,
+            "providerMetadata": undefined,
+            "title": undefined,
+            "toolCallId": "mcp-call-2",
+            "toolName": "mcp_execute",
+            "type": "tool-call",
+          },
+          {
+            "approvalId": "approval-1",
+            "toolCall": {
+              "input": {
+                "query": "first",
+              },
+              "providerExecuted": true,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "mcp-call-1",
+              "toolName": "mcp_search",
+              "type": "tool-call",
+            },
+            "type": "tool-approval-request",
+          },
+          {
+            "approvalId": "approval-2",
+            "toolCall": {
+              "input": {
+                "command": "ls",
+              },
+              "providerExecuted": true,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "mcp-call-2",
+              "toolName": "mcp_execute",
+              "type": "tool-call",
+            },
+            "type": "tool-approval-request",
+          },
+          {
+            "finishReason": {
+              "raw": undefined,
+              "unified": "tool-calls",
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": undefined,
+                "cacheWrite": undefined,
+                "noCache": 3,
+                "total": 3,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": 10,
+                "total": 10,
+              },
+            },
+          },
+        ]
+      `);
+    });
+  });
 });
