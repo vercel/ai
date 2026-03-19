@@ -1,4 +1,9 @@
-import { getErrorMessage, LanguageModelV4StreamPart } from '@ai-sdk/provider';
+import {
+  getErrorMessage,
+  LanguageModelV4ResponseMetadata,
+  LanguageModelV4StreamPart,
+  SharedV4Warning,
+} from '@ai-sdk/provider';
 import { ModelMessage, SystemModelMessage } from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { FinishReason } from '../types/language-model';
@@ -8,6 +13,7 @@ import { DefaultGeneratedFileWithType } from './generated-file';
 import { parseToolCall } from './parse-tool-call';
 import {
   TextStreamFilePart,
+  TextStreamPart,
   TextStreamReasoningDeltaPart,
   TextStreamReasoningFilePart,
   TextStreamTextDeltaPart,
@@ -24,31 +30,17 @@ import { ToolSet } from './tool-set';
 
 export type UglyTransformedStreamTextPart<TOOLS extends ToolSet> =
   | Exclude<
-      LanguageModelV4StreamPart,
-      | {
-          type: 'text-delta';
-        }
-      | {
-          type: 'reasoning-delta';
-        }
-      | {
-          type: 'file';
-        }
-      | {
-          type: 'reasoning-file';
-        }
-      | {
-          type: 'tool-approval-request';
-        }
-      | {
-          type: 'tool-result';
-        }
-      | {
-          type: 'tool-call';
-        }
-      | {
-          type: 'finish';
-        }
+      TextStreamPart<TOOLS>,
+      {
+        type:
+          | 'finish'
+          | 'stream-start'
+          | 'tool-output-denied'
+          | 'start-step'
+          | 'finish-step'
+          | 'start'
+          | 'abort';
+      }
     >
   | TextStreamTextDeltaPart
   | TextStreamReasoningDeltaPart
@@ -58,13 +50,24 @@ export type UglyTransformedStreamTextPart<TOOLS extends ToolSet> =
   | TextStreamToolCallPart<TOOLS>
   | TextStreamToolResultPart<TOOLS>
   | TextStreamToolErrorPart<TOOLS>
+
+  // the finish part is special because it gets further transformed into
+  // a finish-step part (which includes additional response information and
+  // can have a different finish reason):
   | {
       type: 'finish';
       finishReason: FinishReason;
       rawFinishReason: string | undefined;
       usage: LanguageModelUsage;
       providerMetadata?: ProviderMetadata;
-    };
+    }
+
+  // TODO check if we need to transform these parts?
+  | {
+      type: 'stream-start';
+      warnings: Array<SharedV4Warning>;
+    }
+  | ({ type: 'response-metadata' } & LanguageModelV4ResponseMetadata);
 
 export function createStreamTextPartTransform<TOOLS extends ToolSet>({
   tools,
