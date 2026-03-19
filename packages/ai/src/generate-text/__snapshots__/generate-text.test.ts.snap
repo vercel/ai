@@ -26,6 +26,7 @@ exports[`generateText > options.experimental_onStart > should send correct infor
   "prompt": "test-input",
   "provider": "mock-provider",
   "providerOptions": undefined,
+  "reasoning": undefined,
   "recordInputs": undefined,
   "recordOutputs": undefined,
   "seed": undefined,

@@ -142,6 +142,32 @@ describe('prepareCallSettings', () => {
     });
   });
 
+  describe('reasoning', () => {
+    it('should pass through valid reasoning values', () => {
+      for (const value of [
+        'none',
+        'minimal',
+        'low',
+        'medium',
+        'high',
+        'xhigh',
+      ] as const) {
+        const settings = prepareCallSettings({ reasoning: value });
+        expect(settings.reasoning).toBe(value);
+      }
+    });
+
+    it('should pass through provider-default', () => {
+      const settings = prepareCallSettings({ reasoning: 'provider-default' });
+      expect(settings.reasoning).toBe('provider-default');
+    });
+
+    it('should pass through undefined', () => {
+      const settings = prepareCallSettings({});
+      expect(settings.reasoning).toBeUndefined();
+    });
+  });
+
   describe('getToolTimeoutMs', () => {
     it('should return undefined when timeout is undefined', () => {
       expect(getToolTimeoutMs(undefined, 'testTool')).toBeUndefined();
@@ -181,6 +207,7 @@ describe('prepareCallSettings', () => {
         "frequencyPenalty": undefined,
         "maxOutputTokens": 100,
         "presencePenalty": undefined,
+        "reasoning": undefined,
         "seed": undefined,
         "stopSequences": undefined,
         "temperature": 0.7,

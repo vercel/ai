@@ -1,12 +1,27 @@
-import { getErrorMessage, LanguageModelV4StreamPart } from '@ai-sdk/provider';
+import {
+  getErrorMessage,
+  LanguageModelV4ResponseMetadata,
+  LanguageModelV4StreamPart,
+  SharedV4Warning,
+} from '@ai-sdk/provider';
 import { ModelMessage, SystemModelMessage } from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { FinishReason } from '../types/language-model';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { asLanguageModelUsage, LanguageModelUsage } from '../types/usage';
-import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
+import { DefaultGeneratedFileWithType } from './generated-file';
 import { parseToolCall } from './parse-tool-call';
-import { ToolApprovalRequestOutput } from './tool-approval-request-output';
+import {
+  TextStreamFilePart,
+  TextStreamPart,
+  TextStreamReasoningDeltaPart,
+  TextStreamReasoningFilePart,
+  TextStreamTextDeltaPart,
+  TextStreamToolApprovalRequestPart,
+  TextStreamToolCallPart,
+  TextStreamToolErrorPart,
+  TextStreamToolResultPart,
+} from './stream-text-result';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
@@ -15,65 +30,44 @@ import { ToolSet } from './tool-set';
 
 export type UglyTransformedStreamTextPart<TOOLS extends ToolSet> =
   | Exclude<
-      LanguageModelV4StreamPart,
-      | {
-          type: 'text-delta';
-        }
-      | {
-          type: 'reasoning-delta';
-        }
-      | {
-          type: 'file';
-        }
-      | {
-          type: 'reasoning-file';
-        }
-      | {
-          type: 'tool-approval-request';
-        }
-      | {
-          type: 'tool-result';
-        }
-      | {
-          type: 'tool-call';
-        }
-      | {
-          type: 'finish';
-        }
+      TextStreamPart<TOOLS>,
+      {
+        type:
+          | 'finish'
+          | 'stream-start'
+          | 'tool-output-denied'
+          | 'start-step'
+          | 'finish-step'
+          | 'start'
+          | 'abort';
+      }
     >
-  | {
-      type: 'text-delta';
-      id: string;
-      providerMetadata?: ProviderMetadata;
-      text: string;
-    }
-  | {
-      type: 'reasoning-delta';
-      id: string;
-      providerMetadata?: ProviderMetadata;
-      text: string;
-    }
-  | {
-      type: 'file';
-      file: GeneratedFile;
-      providerMetadata?: ProviderMetadata;
-    }
-  | {
-      type: 'reasoning-file';
-      file: GeneratedFile;
-      providerMetadata?: ProviderMetadata;
-    }
-  | ToolApprovalRequestOutput<TOOLS>
-  | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
-  | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
-  | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
+  | TextStreamTextDeltaPart
+  | TextStreamReasoningDeltaPart
+  | TextStreamFilePart
+  | TextStreamReasoningFilePart
+  | TextStreamToolApprovalRequestPart<TOOLS>
+  | TextStreamToolCallPart<TOOLS>
+  | TextStreamToolResultPart<TOOLS>
+  | TextStreamToolErrorPart<TOOLS>
+
+  // the finish part is special because it gets further transformed into
+  // a finish-step part (which includes additional response information and
+  // can have a different finish reason):
   | {
       type: 'finish';
       finishReason: FinishReason;
       rawFinishReason: string | undefined;
       usage: LanguageModelUsage;
       providerMetadata?: ProviderMetadata;
-    };
+    }
+
+  // TODO check if we need to transform these parts?
+  | {
+      type: 'stream-start';
+      warnings: Array<SharedV4Warning>;
+    }
+  | ({ type: 'response-metadata' } & LanguageModelV4ResponseMetadata);
 
 export function createStreamTextPartTransform<TOOLS extends ToolSet>({
   tools,

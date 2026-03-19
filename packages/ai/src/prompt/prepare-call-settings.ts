@@ -13,6 +13,7 @@ export function prepareCallSettings({
   frequencyPenalty,
   seed,
   stopSequences,
+  reasoning,
 }: Omit<CallSettings<any>, 'abortSignal' | 'headers' | 'maxRetries'>): Omit<
   CallSettings<any>,
   'abortSignal' | 'headers' | 'maxRetries'
@@ -104,5 +105,6 @@ export function prepareCallSettings({
     frequencyPenalty,
     stopSequences,
     seed,
+    reasoning,
   };
 }

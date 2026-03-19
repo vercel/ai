@@ -82,12 +82,12 @@ import type {
 } from './core-events';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
-import { createStreamTextPartTransform } from './create-stream-text-part-transform';
-import { executeToolCall } from './execute-tool-call';
+import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
 import {
-  executeToolsTransformation,
-  SingleRequestTextStreamPart,
-} from './execute-tools-transformation';
+  createStreamTextPartTransform,
+  UglyTransformedStreamTextPart,
+} from './create-stream-text-part-transform';
+import { executeToolCall } from './execute-tool-call';
 import { Output, text } from './output';
 import {
   InferCompleteOutput,
@@ -1282,6 +1282,7 @@ class DefaultStreamTextResult<
           frequencyPenalty: callSettings.frequencyPenalty,
           stopSequences: callSettings.stopSequences,
           seed: callSettings.seed,
+          reasoning: callSettings.reasoning,
           maxRetries,
           timeout,
           headers,
@@ -1599,40 +1600,41 @@ class DefaultStreamTextResult<
             }),
           );
 
-          const stream = languageModelStream.pipeThrough(
-            createStreamTextPartTransform<TOOLS>({
-              tools,
-              system,
-              messages: stepInputMessages,
-              repairToolCall,
-            }),
-          );
-
-          const streamWithToolResults = executeToolsTransformation({
-            tools,
-            generatorStream: stream,
-            telemetry,
-            callId,
-            messages: stepInputMessages,
-            abortSignal,
-            timeout,
-            experimental_context,
-            generateId,
-            stepNumber: recordedSteps.length,
-            provider: stepModel.provider,
-            modelId: stepModel.modelId,
-            onToolCallStart: [
-              onToolCallStart,
-              globalTelemetry.onToolCallStart as
-                | undefined
-                | StreamTextOnToolCallStartCallback<TOOLS>,
-            ],
-            onToolCallFinish: [
-              onToolCallFinish,
-              globalTelemetry.onToolCallFinish,
-            ],
-            executeToolInTelemetryContext: globalTelemetry.executeTool,
-          });
+          const streamWithToolResults = languageModelStream
+            .pipeThrough(
+              createStreamTextPartTransform({
+                tools,
+                system,
+                messages: stepInputMessages,
+                repairToolCall,
+              }),
+            )
+            .pipeThrough(
+              createExecuteToolsTransformation({
+                tools,
+                telemetry,
+                callId,
+                messages: stepInputMessages,
+                abortSignal,
+                timeout,
+                experimental_context,
+                generateId,
+                stepNumber: recordedSteps.length,
+                provider: stepModel.provider,
+                modelId: stepModel.modelId,
+                onToolCallStart: [
+                  onToolCallStart,
+                  globalTelemetry.onToolCallStart as
+                    | undefined
+                    | StreamTextOnToolCallStartCallback<TOOLS>,
+                ],
+                onToolCallFinish: [
+                  onToolCallFinish,
+                  globalTelemetry.onToolCallFinish,
+                ],
+                executeToolInTelemetryContext: globalTelemetry.executeTool,
+              }),
+            );
 
           // Conditionally include request.body based on include settings.
           // Large payloads (e.g., base64-encoded images) can cause memory issues.
@@ -1661,7 +1663,7 @@ class DefaultStreamTextResult<
           self.addStream(
             streamWithToolResults.pipeThrough(
               new TransformStream<
-                SingleRequestTextStreamPart<TOOLS>,
+                UglyTransformedStreamTextPart<TOOLS>,
                 TextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {
@@ -1683,6 +1685,10 @@ class DefaultStreamTextResult<
                       warnings: warnings ?? [],
                     });
 
+                    // TODO considering changing to onStreamPart listener
+                    // which receives all stream parts as they are
+                    // (and add necessary information to the stream parts
+                    // where needed)
                     void globalTelemetry.onChunk?.({
                       chunk: {
                         type: 'ai.stream.firstChunk',

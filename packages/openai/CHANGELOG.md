@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.13
+
+### Patch Changes
+
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/provider@4.0.0-beta.4
+
 ## 4.0.0-beta.12
 
 ### Patch Changes
