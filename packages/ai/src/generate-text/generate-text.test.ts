@@ -267,6 +267,46 @@ describe('generateText', () => {
       `);
     });
 
+    it('should include custom parts in content', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              { type: 'text', text: 'Hello' },
+              {
+                type: 'custom',
+                kind: 'openai-compaction',
+                providerMetadata: {
+                  openai: { itemId: 'cmp_123' },
+                },
+              },
+              {
+                type: 'custom',
+                kind: 'openai-other',
+              },
+            ],
+          },
+        }),
+        prompt: 'prompt',
+      });
+
+      expect(result.content).toStrictEqual([
+        { type: 'text', text: 'Hello' },
+        {
+          type: 'custom',
+          kind: 'openai-compaction',
+          providerMetadata: {
+            openai: { itemId: 'cmp_123' },
+          },
+        },
+        {
+          type: 'custom',
+          kind: 'openai-other',
+        },
+      ]);
+    });
+
     it('should include reasoning-file in content and exclude from files', async () => {
       const result = await generateText({
         model: new MockLanguageModelV4({
@@ -843,10 +883,8 @@ describe('generateText', () => {
         },
       });
 
-      expect(startEvent.model).toEqual({
-        provider: 'mock-provider',
-        modelId: 'mock-model-id',
-      });
+      expect(startEvent.provider).toBe('mock-provider');
+      expect(startEvent.modelId).toBe('mock-model-id');
       expect(startEvent.system).toBe('you are a helpful assistant');
       expect(startEvent.prompt).toBeUndefined();
       expect(startEvent.messages).toEqual([
@@ -917,10 +955,8 @@ describe('generateText', () => {
       });
 
       expect(stepStartEvent.stepNumber).toBe(0);
-      expect(stepStartEvent.model).toEqual({
-        provider: 'mock-provider',
-        modelId: 'mock-model-id',
-      });
+      expect(stepStartEvent.provider).toBe('mock-provider');
+      expect(stepStartEvent.modelId).toBe('mock-model-id');
       expect(stepStartEvent.messages).toEqual([
         {
           role: 'user',
@@ -1073,14 +1109,10 @@ describe('generateText', () => {
         },
       });
 
-      expect(stepStartEvents[0].model).toEqual({
-        provider: 'mock-provider',
-        modelId: 'mock-model-id',
-      });
-      expect(stepStartEvents[1].model).toEqual({
-        provider: 'alternate-provider',
-        modelId: 'alternate-model-id',
-      });
+      expect(stepStartEvents[0].provider).toBe('mock-provider');
+      expect(stepStartEvents[0].modelId).toBe('mock-model-id');
+      expect(stepStartEvents[1].provider).toBe('alternate-provider');
+      expect(stepStartEvents[1].modelId).toBe('alternate-model-id');
     });
 
     it('should provide empty steps array on first step', async () => {
@@ -3795,6 +3827,42 @@ describe('generateText', () => {
     });
   });
 
+  describe('options.reasoning', () => {
+    it('should pass reasoning to model doGenerate call', async () => {
+      const model = new MockLanguageModelV4({
+        doGenerate: {
+          ...dummyResponseValues,
+          content: [{ type: 'text', text: 'test' }],
+        },
+      });
+
+      await generateText({
+        model,
+        prompt: 'test-input',
+        reasoning: 'high',
+      });
+
+      expect(model.doGenerateCalls[0].reasoning).toBe('high');
+    });
+
+    it('should pass through provider-default', async () => {
+      const model = new MockLanguageModelV4({
+        doGenerate: {
+          ...dummyResponseValues,
+          content: [{ type: 'text', text: 'test' }],
+        },
+      });
+
+      await generateText({
+        model,
+        prompt: 'test-input',
+        reasoning: 'provider-default',
+      });
+
+      expect(model.doGenerateCalls[0].reasoning).toBe('provider-default');
+    });
+  });
+
   describe('options.abortSignal', () => {
     it('should forward abort signal to tool execution', async () => {
       const abortController = new AbortController();
@@ -5139,6 +5207,7 @@ describe('generateText', () => {
               },
             ],
             "providerOptions": undefined,
+            "reasoning": undefined,
             "responseFormat": {
               "type": "text",
             },
@@ -5213,6 +5282,7 @@ describe('generateText', () => {
               },
             ],
             "providerOptions": undefined,
+            "reasoning": undefined,
             "responseFormat": {
               "schema": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
@@ -8944,6 +9014,7 @@ describe('generateText', () => {
               },
             ],
             "providerOptions": undefined,
+            "reasoning": undefined,
             "responseFormat": undefined,
             "seed": undefined,
             "stopSequences": undefined,

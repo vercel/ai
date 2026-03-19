@@ -15,16 +15,6 @@ import type { ToolSet } from './tool-set';
 import { TextStreamPart } from './stream-text-result';
 
 /**
- * Common model information used across callback events.
- */
-export interface CallbackModelInfo {
-  /** The provider identifier (e.g., 'openai', 'anthropic'). */
-  readonly provider: string;
-  /** The specific model identifier (e.g., 'gpt-4o'). */
-  readonly modelId: string;
-}
-
-/**
  * Event passed to the `onStart` callback.
  *
  * Called when the generation operation begins, before any LLM calls.
@@ -40,8 +30,11 @@ export interface OnStartEvent<
   /** Identifies the operation type (e.g. 'ai.generateText' or 'ai.streamText'). */
   readonly operationId: string;
 
-  /** The model being used for generation. */
-  readonly model: CallbackModelInfo;
+  /** The provider identifier (e.g., 'openai', 'anthropic'). */
+  readonly provider: string;
+
+  /** The specific model identifier (e.g., 'gpt-4o'). */
+  readonly modelId: string;
 
   /** The system message(s) provided to the model. */
   readonly system:
@@ -88,7 +81,7 @@ export interface OnStartEvent<
    * Timeout configuration for the generation.
    * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.
    */
-  readonly timeout: TimeoutConfiguration | undefined;
+  readonly timeout: TimeoutConfiguration<TOOLS> | undefined;
 
   /** Additional HTTP headers sent with the request. */
   readonly headers: Record<string, string | undefined> | undefined;
@@ -155,8 +148,11 @@ export interface OnStepStartEvent<
   /** Zero-based index of the current step. */
   readonly stepNumber: number;
 
-  /** The model being used for this step. */
-  readonly model: CallbackModelInfo;
+  /** The provider identifier (e.g., 'openai', 'anthropic'). */
+  readonly provider: string;
+
+  /** The specific model identifier (e.g., 'gpt-4o'). */
+  readonly modelId: string;
 
   /**
    * The system message for this step.
@@ -193,7 +189,7 @@ export interface OnStepStartEvent<
    * Timeout configuration for the generation.
    * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.
    */
-  readonly timeout: TimeoutConfiguration | undefined;
+  readonly timeout: TimeoutConfiguration<TOOLS> | undefined;
 
   /** Additional HTTP headers sent with the request. */
   readonly headers: Record<string, string | undefined> | undefined;
@@ -242,8 +238,11 @@ export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
   /** Zero-based index of the current step where this tool call occurs. */
   readonly stepNumber: number | undefined;
 
-  /** The model being used for this step. */
-  readonly model: CallbackModelInfo | undefined;
+  /** The provider identifier (e.g., 'openai', 'anthropic'). */
+  readonly provider: string | undefined;
+
+  /** The specific model identifier (e.g., 'gpt-4o'). */
+  readonly modelId: string | undefined;
 
   /** The full tool call object. */
   readonly toolCall: TypedToolCall<TOOLS>;
@@ -277,8 +276,11 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
   /** Zero-based index of the current step where this tool call occurred. */
   readonly stepNumber: number | undefined;
 
-  /** The model being used for this step. */
-  readonly model: CallbackModelInfo | undefined;
+  /** The provider identifier (e.g., 'openai', 'anthropic'). */
+  readonly provider: string | undefined;
+
+  /** The specific model identifier (e.g., 'gpt-4o'). */
+  readonly modelId: string | undefined;
 
   /** The full tool call object. */
   readonly toolCall: TypedToolCall<TOOLS>;

@@ -3,9 +3,9 @@ import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
 export const openaiBasicAgent = new ToolLoopAgent({
   model: openai('gpt-5-mini'),
+  reasoning: 'medium',
   providerOptions: {
     openai: {
-      reasoningEffort: 'medium',
       reasoningSummary: 'detailed',
       // store: false,
     } satisfies OpenAILanguageModelResponsesOptions,
