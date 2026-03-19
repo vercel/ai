@@ -1,4 +1,3 @@
-import { LanguageModelV4Usage } from '@ai-sdk/provider';
 import { delay, tool } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -7,24 +6,30 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
+import { asLanguageModelUsage } from '../types/usage';
 import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
-import { runToolsTransformation } from './run-tools-transformation';
+import { executeToolsTransformation } from './execute-tools-transformation';
 
-const testUsage: LanguageModelV4Usage = {
-  inputTokens: {
-    total: 3,
-    noCache: 3,
-    cacheRead: undefined,
-    cacheWrite: undefined,
-  },
-  outputTokens: {
-    total: 10,
-    text: 10,
-    reasoning: undefined,
-  },
+const finishChunk = {
+  type: 'finish' as const,
+  finishReason: 'stop' as const,
+  rawFinishReason: 'stop' as const,
+  usage: asLanguageModelUsage({
+    inputTokens: {
+      total: 3,
+      noCache: 3,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: 10,
+      text: 10,
+      reasoning: undefined,
+    },
+  }),
 };
 
-describe('runToolsTransformation', () => {
+describe('executeToolsTransformation', () => {
   it('should handle async tool execution', async () => {
     const tools = {
       syncTool: tool({
@@ -42,23 +47,18 @@ describe('runToolsTransformation', () => {
         toolName: 'syncTool',
         input: { value: 'test' },
       },
-      {
-        type: 'finish',
-        finishReason: { unified: 'stop', raw: 'stop' },
-        usage: testUsage,
-      },
+      finishChunk,
     ]);
 
-    const transformedStream = runToolsTransformation({
+    const transformedStream = executeToolsTransformation({
       generateId: mockId({ prefix: 'id' }),
       tools,
       generatorStream: inputStream,
       telemetry: undefined,
       callId: 'test-telemetry-call-id',
       messages: [],
-      system: undefined,
+      timeout: undefined,
       abortSignal: undefined,
-      repairToolCall: undefined,
       experimental_context: undefined,
     });
 
@@ -85,7 +85,6 @@ describe('runToolsTransformation', () => {
           },
           {
             "finishReason": "stop",
-            "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
@@ -127,23 +126,18 @@ describe('runToolsTransformation', () => {
         toolName: 'syncTool',
         input: { value: 'test' },
       },
-      {
-        type: 'finish',
-        finishReason: { unified: 'stop', raw: 'stop' },
-        usage: testUsage,
-      },
+      finishChunk,
     ]);
 
-    const transformedStream = runToolsTransformation({
+    const transformedStream = executeToolsTransformation({
       generateId: mockId({ prefix: 'id' }),
       tools,
       generatorStream: inputStream,
       telemetry: undefined,
       callId: 'test-telemetry-call-id',
       messages: [],
-      system: undefined,
       abortSignal: undefined,
-      repairToolCall: undefined,
+      timeout: undefined,
       experimental_context: undefined,
     });
 
@@ -170,7 +164,6 @@ describe('runToolsTransformation', () => {
           },
           {
             "finishReason": "stop",
-            "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
@@ -215,23 +208,18 @@ describe('runToolsTransformation', () => {
         toolName: 'delayedTool',
         input: { value: 'test' },
       },
-      {
-        type: 'finish',
-        finishReason: { unified: 'stop', raw: 'stop' },
-        usage: testUsage,
-      },
+      finishChunk,
     ]);
 
-    const transformedStream = runToolsTransformation({
+    const transformedStream = executeToolsTransformation({
       generateId: mockId({ prefix: 'id' }),
       tools,
       generatorStream: inputStream,
       telemetry: undefined,
       callId: 'test-telemetry-call-id',
       messages: [],
-      system: undefined,
       abortSignal: undefined,
-      repairToolCall: undefined,
+      timeout: undefined,
       experimental_context: undefined,
     });
 
@@ -259,7 +247,6 @@ describe('runToolsTransformation', () => {
         },
         {
           "finishReason": "stop",
-          "providerMetadata": undefined,
           "rawFinishReason": "stop",
           "type": "finish",
           "usage": {
@@ -315,23 +302,18 @@ describe('runToolsTransformation', () => {
         input: { value: 'test' },
         output: 'example-result',
       },
-      {
-        type: 'finish',
-        finishReason: { unified: 'stop', raw: 'stop' },
-        usage: testUsage,
-      },
+      finishChunk,
     ]);
 
-    const transformedStream = runToolsTransformation({
+    const transformedStream = executeToolsTransformation({
       generateId: mockId({ prefix: 'id' }),
       tools,
       generatorStream: inputStream,
       telemetry: undefined,
       callId: 'test-telemetry-call-id',
       messages: [],
-      system: undefined,
       abortSignal: undefined,
-      repairToolCall: undefined,
+      timeout: undefined,
       experimental_context: undefined,
     });
 
@@ -361,23 +343,18 @@ describe('runToolsTransformation', () => {
           toolName: 'onInputAvailableTool',
           input: { value: 'test' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
-      const transformedStream = runToolsTransformation({
+      const transformedStream = executeToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
         tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
+        timeout: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
         experimental_context: undefined,
       });
 
@@ -407,7 +384,6 @@ describe('runToolsTransformation', () => {
           },
           {
             "finishReason": "stop",
-            "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
@@ -453,23 +429,18 @@ describe('runToolsTransformation', () => {
           toolName: 'onInputAvailableTool',
           input: { value: 'test' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
-      const transformedStream = runToolsTransformation({
+      const transformedStream = executeToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
         tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
+        timeout: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
         experimental_context: undefined,
       });
 
@@ -511,7 +482,6 @@ describe('runToolsTransformation', () => {
           },
           {
             "finishReason": "stop",
-            "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
@@ -560,23 +530,18 @@ describe('runToolsTransformation', () => {
           toolName: 'testTool',
           input: { value: 'hello' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
-      const transformedStream = runToolsTransformation({
+      const transformedStream = executeToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
         tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
+        timeout: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
         experimental_context: undefined,
         onToolCallStart: async () => {
           callOrder.push('onToolCallStart');
@@ -615,23 +580,18 @@ describe('runToolsTransformation', () => {
           toolName: 'testTool',
           input: { value: 'test' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
-      const transformedStream = runToolsTransformation({
+      const transformedStream = executeToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
         tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
+        timeout: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
         experimental_context: undefined,
         stepNumber: 2,
         model: { provider: 'test-provider', modelId: 'test-model' },
@@ -688,23 +648,18 @@ describe('runToolsTransformation', () => {
           toolName: 'testTool',
           input: { value: 'abc' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
-      const transformedStream = runToolsTransformation({
+      const transformedStream = executeToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
         tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
+        timeout: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
         experimental_context: undefined,
         onToolCallFinish: async event => {
           finishEvents.push(event);
@@ -750,23 +705,18 @@ describe('runToolsTransformation', () => {
           toolName: 'failingTool',
           input: { value: 'test' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
-      const transformedStream = runToolsTransformation({
+      const transformedStream = executeToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
         tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
+        timeout: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
         experimental_context: undefined,
         onToolCallFinish: async event => {
           finishEvents.push(event);
@@ -805,23 +755,18 @@ describe('runToolsTransformation', () => {
           toolName: 'noExecuteTool',
           input: { value: 'test' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
-      const transformedStream = runToolsTransformation({
+      const transformedStream = executeToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
         tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
+        timeout: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
         experimental_context: undefined,
         onToolCallStart: async event => {
           startEvents.push(event);
@@ -863,23 +808,18 @@ describe('runToolsTransformation', () => {
           toolName: 'testTool',
           input: { value: 'b' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
-      const transformedStream = runToolsTransformation({
+      const transformedStream = executeToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
         tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
+        timeout: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
         experimental_context: undefined,
         onToolCallStart: async event => {
           startEvents.push(event.toolCall.toolCallId);
@@ -924,23 +864,18 @@ describe('runToolsTransformation', () => {
           input: { value: 'test' },
           output: { result: 'example' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
-      const transformedStream = runToolsTransformation({
+      const transformedStream = executeToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
         tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
+        timeout: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
         experimental_context: undefined,
         onToolCallStart: async event => {
           startEvents.push(event);
@@ -981,25 +916,20 @@ describe('runToolsTransformation', () => {
           toolName: 'failingTool',
           input: { value: 'test' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
       const toolError = new Error('Tool execution failed!');
 
-      const transformedStream = runToolsTransformation({
+      const transformedStream = executeToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
         tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
+        timeout: undefined,
         experimental_context: undefined,
       });
 
@@ -1051,25 +981,19 @@ describe('runToolsTransformation', () => {
           toolName: 'failingTool',
           input: { value: 'test' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
       const toolError = new Error('Sync tool failed!');
 
-      const transformedStream = runToolsTransformation({
+      const transformedStream = executeToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
         tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
         experimental_context: undefined,
       });
 

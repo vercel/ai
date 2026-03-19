@@ -84,6 +84,10 @@ import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import { createStreamTextPartTransform } from './create-stream-text-part-transform';
 import { executeToolCall } from './execute-tool-call';
+import {
+  executeToolsTransformation,
+  SingleRequestTextStreamPart,
+} from './execute-tools-transformation';
 import { Output, text } from './output';
 import {
   InferCompleteOutput,
@@ -93,10 +97,6 @@ import {
 import { PrepareStepFunction } from './prepare-step';
 import { convertToReasoningOutputs } from './reasoning-output';
 import { ResponseMessage } from './response-message';
-import {
-  runToolsTransformation,
-  SingleRequestTextStreamPart,
-} from './run-tools-transformation';
 import { DefaultStepResult, StepResult } from './step-result';
 import {
   isStopConditionMet,
@@ -1609,14 +1609,12 @@ class DefaultStreamTextResult<
             }),
           );
 
-          const streamWithToolResults = runToolsTransformation({
+          const streamWithToolResults = executeToolsTransformation({
             tools,
             generatorStream: stream,
             telemetry,
             callId,
-            system,
             messages: stepInputMessages,
-            repairToolCall,
             abortSignal,
             timeout,
             experimental_context,
