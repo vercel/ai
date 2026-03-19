@@ -1,115 +1,15 @@
-import { SharedV4Warning } from '@ai-sdk/provider';
 import { IdGenerator, ModelMessage } from '@ai-sdk/provider-utils';
 import { TimeoutConfiguration } from '../prompt/call-settings';
 import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
-import { Source } from '../types/language-model';
 import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
 import { executeToolCall } from './execute-tool-call';
-import { GeneratedFile } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
 import {
   StreamTextOnToolCallFinishCallback,
   StreamTextOnToolCallStartCallback,
 } from './stream-text';
-import { ToolApprovalRequestOutput } from './tool-approval-request-output';
-import { TypedToolCall } from './tool-call';
-import { TypedToolError } from './tool-error';
-import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
-
-export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
-  // Text blocks:
-  | {
-      type: 'text-start';
-      providerMetadata?: ProviderMetadata;
-      id: string;
-    }
-  | {
-      type: 'text-delta';
-      id: string;
-      providerMetadata?: ProviderMetadata;
-      text: string;
-    }
-  | {
-      type: 'text-end';
-      providerMetadata?: ProviderMetadata;
-      id: string;
-    }
-
-  // Reasoning blocks:
-  | {
-      type: 'reasoning-start';
-      providerMetadata?: ProviderMetadata;
-      id: string;
-    }
-  | {
-      type: 'reasoning-delta';
-      id: string;
-      providerMetadata?: ProviderMetadata;
-      text: string;
-    }
-  | {
-      type: 'reasoning-end';
-      id: string;
-      providerMetadata?: ProviderMetadata;
-    }
-  | {
-      type: 'custom';
-      kind: string;
-      providerMetadata?: ProviderMetadata;
-    }
-
-  // Tool calls:
-  | {
-      type: 'tool-input-start';
-      id: string;
-      toolName: string;
-      providerMetadata?: ProviderMetadata;
-      dynamic?: boolean;
-      title?: string;
-    }
-  | {
-      type: 'tool-input-delta';
-      id: string;
-      delta: string;
-      providerMetadata?: ProviderMetadata;
-    }
-  | {
-      type: 'tool-input-end';
-      id: string;
-      providerMetadata?: ProviderMetadata;
-    }
-  | ToolApprovalRequestOutput<TOOLS>
-
-  // Other types:
-  | ({ type: 'source' } & Source)
-  | { type: 'file'; file: GeneratedFile; providerMetadata?: ProviderMetadata }
-  | {
-      type: 'reasoning-file';
-      file: GeneratedFile;
-      providerMetadata?: ProviderMetadata;
-    }
-  | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
-  | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
-  | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
-  | { type: 'stream-start'; warnings: SharedV4Warning[] }
-  | {
-      type: 'response-metadata';
-      id?: string;
-      timestamp?: Date;
-      modelId?: string;
-    }
-  | {
-      type: 'finish';
-      finishReason: FinishReason;
-      rawFinishReason: string | undefined;
-      usage: LanguageModelUsage;
-      providerMetadata?: ProviderMetadata;
-    }
-  | { type: 'error'; error: unknown }
-  | { type: 'raw'; rawValue: unknown };
 
 export function executeToolsTransformation<TOOLS extends ToolSet>({
   tools,
@@ -145,14 +45,14 @@ export function executeToolsTransformation<TOOLS extends ToolSet>({
     | StreamTextOnToolCallFinishCallback<TOOLS>
     | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
   executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
-}): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
+}): ReadableStream<UglyTransformedStreamTextPart<TOOLS>> {
   // there is a separate stream for tool results, because
   // tool results might be emitted after the generator stream has finished
   let toolResultsStreamController: ReadableStreamDefaultController<
-    SingleRequestTextStreamPart<TOOLS>
+    UglyTransformedStreamTextPart<TOOLS>
   > | null = null;
   const toolResultsStream = new ReadableStream<
-    SingleRequestTextStreamPart<TOOLS>
+    UglyTransformedStreamTextPart<TOOLS>
   >({
     start(controller) {
       toolResultsStreamController = controller;
@@ -164,7 +64,7 @@ export function executeToolsTransformation<TOOLS extends ToolSet>({
 
   let canClose = false;
   let finishChunk:
-    | (SingleRequestTextStreamPart<TOOLS> & { type: 'finish' })
+    | (UglyTransformedStreamTextPart<TOOLS> & { type: 'finish' })
     | undefined = undefined;
 
   function attemptClose() {
@@ -184,12 +84,12 @@ export function executeToolsTransformation<TOOLS extends ToolSet>({
   // forward stream
   const forwardStream = new TransformStream<
     UglyTransformedStreamTextPart<TOOLS>,
-    SingleRequestTextStreamPart<TOOLS>
+    UglyTransformedStreamTextPart<TOOLS>
   >({
     async transform(
       chunk: UglyTransformedStreamTextPart<TOOLS>,
       controller: TransformStreamDefaultController<
-        SingleRequestTextStreamPart<TOOLS>
+        UglyTransformedStreamTextPart<TOOLS>
       >,
     ) {
       const chunkType = chunk.type;
@@ -305,7 +205,7 @@ export function executeToolsTransformation<TOOLS extends ToolSet>({
   });
 
   // combine the generator stream and the tool results stream
-  return new ReadableStream<SingleRequestTextStreamPart<TOOLS>>({
+  return new ReadableStream<UglyTransformedStreamTextPart<TOOLS>>({
     async start(controller) {
       // need to wait for both pipes so there are no dangling promises that
       // can cause uncaught promise rejections when the stream is aborted

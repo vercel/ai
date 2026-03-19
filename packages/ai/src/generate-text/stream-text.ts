@@ -82,12 +82,12 @@ import type {
 } from './callback-events';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
-import { createStreamTextPartTransform } from './create-stream-text-part-transform';
-import { executeToolCall } from './execute-tool-call';
 import {
-  executeToolsTransformation,
-  SingleRequestTextStreamPart,
-} from './execute-tools-transformation';
+  createStreamTextPartTransform,
+  UglyTransformedStreamTextPart,
+} from './create-stream-text-part-transform';
+import { executeToolCall } from './execute-tool-call';
+import { executeToolsTransformation } from './execute-tools-transformation';
 import { Output, text } from './output';
 import {
   InferCompleteOutput,
@@ -1661,7 +1661,7 @@ class DefaultStreamTextResult<
           self.addStream(
             streamWithToolResults.pipeThrough(
               new TransformStream<
-                SingleRequestTextStreamPart<TOOLS>,
+                UglyTransformedStreamTextPart<TOOLS>,
                 TextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {
