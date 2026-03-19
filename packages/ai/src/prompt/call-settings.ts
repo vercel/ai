@@ -1,3 +1,5 @@
+import { ToolSet } from '../generate-text/tool-set';
+
 /**
  * Timeout configuration for API calls. Can be specified as:
  * - A number representing milliseconds
@@ -5,9 +7,15 @@
  * - An object with `stepMs` property for the timeout of each step in milliseconds
  * - An object with `chunkMs` property for the timeout between stream chunks (streaming only)
  */
-export type TimeoutConfiguration =
+export type TimeoutConfiguration<TOOLS extends ToolSet> =
   | number
-  | { totalMs?: number; stepMs?: number; chunkMs?: number; toolMs?: number };
+  | {
+      totalMs?: number;
+      stepMs?: number;
+      chunkMs?: number;
+      toolMs?: number;
+      tools?: Partial<Record<`${keyof TOOLS & string}Ms`, number>>;
+    };
 
 /**
  * Extracts the total timeout value in milliseconds from a TimeoutConfiguration.
@@ -16,7 +24,7 @@ export type TimeoutConfiguration =
  * @returns The total timeout in milliseconds, or undefined if no timeout is configured.
  */
 export function getTotalTimeoutMs(
-  timeout: TimeoutConfiguration | undefined,
+  timeout: TimeoutConfiguration<any> | undefined,
 ): number | undefined {
   if (timeout == null) {
     return undefined;
@@ -34,7 +42,7 @@ export function getTotalTimeoutMs(
  * @returns The step timeout in milliseconds, or undefined if no step timeout is configured.
  */
 export function getStepTimeoutMs(
-  timeout: TimeoutConfiguration | undefined,
+  timeout: TimeoutConfiguration<any> | undefined,
 ): number | undefined {
   if (timeout == null || typeof timeout === 'number') {
     return undefined;
@@ -50,7 +58,7 @@ export function getStepTimeoutMs(
  * @returns The chunk timeout in milliseconds, or undefined if no chunk timeout is configured.
  */
 export function getChunkTimeoutMs(
-  timeout: TimeoutConfiguration | undefined,
+  timeout: TimeoutConfiguration<any> | undefined,
 ): number | undefined {
   if (timeout == null || typeof timeout === 'number') {
     return undefined;
@@ -58,16 +66,18 @@ export function getChunkTimeoutMs(
   return timeout.chunkMs;
 }
 
-export function getToolTimeoutMs(
-  timeout: TimeoutConfiguration | undefined,
+export function getToolTimeoutMs<TOOLS extends ToolSet>(
+  timeout: TimeoutConfiguration<TOOLS> | undefined,
+  toolName: keyof TOOLS & string,
 ): number | undefined {
   if (timeout == null || typeof timeout === 'number') {
     return undefined;
   }
-  return timeout.toolMs;
+
+  return timeout.tools?.[`${toolName}Ms`] ?? timeout.toolMs;
 }
 
-export type CallSettings = {
+export type CallSettings<TOOLS extends ToolSet> = {
   /**
    * Maximum number of tokens to generate.
    */
@@ -147,7 +157,7 @@ export type CallSettings = {
    *
    * Can be specified as a number (milliseconds) or as an object with `totalMs`.
    */
-  timeout?: TimeoutConfiguration;
+  timeout?: TimeoutConfiguration<TOOLS>;
 
   /**
    * Additional HTTP headers to be sent with the request.
