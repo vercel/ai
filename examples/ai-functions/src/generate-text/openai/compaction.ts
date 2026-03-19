@@ -1,8 +1,5 @@
-import {
-  anthropic,
-  type AnthropicLanguageModelOptions,
-} from '@ai-sdk/anthropic';
-import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -11,7 +8,7 @@ import { run } from '../../lib/run';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const documentCorpus = readFileSync(
-  join(__dirname, '../../data/compaction-data.txt'),
+  join(__dirname, '../../../data/compaction-data.txt'),
   'utf-8',
 );
 
@@ -33,8 +30,8 @@ ${documentCorpus}
 `;
 
 run(async () => {
-  const result = streamText({
-    model: anthropic('claude-opus-4-6'),
+  const result = await generateText({
+    model: openai.responses('gpt-5.2'),
     messages: [
       {
         role: 'user',
@@ -245,57 +242,19 @@ run(async () => {
       },
     ],
     providerOptions: {
-      anthropic: {
-        contextManagement: {
-          edits: [
-            {
-              type: 'compact_20260112',
-              trigger: {
-                type: 'input_tokens',
-                value: 50000,
-              },
-            },
-          ],
-        },
-      } satisfies AnthropicLanguageModelOptions,
-    },
-    onError: error => {
-      console.error('Stream error:', error);
+      openai: {
+        store: false,
+        contextManagement: [{ type: 'compaction', compactThreshold: 50000 }],
+      },
     },
   });
 
-  console.log('=== Streaming Response ===\n');
+  console.log('=== Response ===');
+  console.log(result.text);
 
-  for await (const part of result.fullStream) {
-    switch (part.type) {
-      case 'text-start': {
-        const isCompaction =
-          part.providerMetadata?.anthropic?.type === 'compaction';
-        if (isCompaction) {
-          console.log('\x1b[33m[COMPACTION SUMMARY START]\x1b[0m');
-        }
-        break;
-      }
-
-      case 'text-delta': {
-        process.stdout.write(part.text);
-        break;
-      }
-
-      case 'text-end': {
-        console.log();
-        break;
-      }
-
-      case 'finish': {
-        console.log('\n=== Stream Finished ===');
-        console.log('Finish reason:', part.finishReason);
-        break;
-      }
-    }
-  }
-
-  const response = await result.response;
   console.log('\n=== Raw Response Body ===');
-  console.log(JSON.stringify(response, null, 2));
+  console.dir(result.response.body, { depth: Infinity });
+
+  console.log('\n=== Provider Metadata ===');
+  console.log(JSON.stringify(result.providerMetadata, null, 2));
 });

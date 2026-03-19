@@ -67,6 +67,7 @@ import {
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import {
+  ResponsesCompactionProviderMetadata,
   ResponsesProviderMetadata,
   ResponsesReasoningProviderMetadata,
   ResponsesSourceDocumentProviderMetadata,
@@ -336,6 +337,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       safety_identifier: openaiOptions?.safetyIdentifier,
       top_logprobs: topLogprobs,
       truncation: openaiOptions?.truncation,
+
+      // context management (server-side compaction):
+      ...(openaiOptions?.contextManagement && {
+        context_management: openaiOptions.contextManagement.map(cm => ({
+          type: cm.type,
+          compact_threshold: cm.compactThreshold,
+        })),
+      }),
 
       // model-specific settings:
       ...(isReasoningModel &&
@@ -975,6 +984,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             },
           });
 
+          break;
+        }
+
+        case 'compaction': {
+          content.push({
+            type: 'custom',
+            kind: 'openai-compaction',
+            providerMetadata: {
+              [providerOptionsName]: {
+                type: 'compaction',
+                itemId: part.id,
+                encryptedContent: part.encrypted_content,
+              } satisfies ResponsesCompactionProviderMetadata,
+            },
+          });
           break;
         }
       }
@@ -1782,6 +1806,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 }
 
                 delete activeReasoning[value.item.id];
+              } else if (value.item.type === 'compaction') {
+                controller.enqueue({
+                  type: 'custom',
+                  kind: 'openai-compaction',
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      type: 'compaction',
+                      itemId: value.item.id,
+                      encryptedContent: value.item.encrypted_content,
+                    } satisfies ResponsesCompactionProviderMetadata,
+                  },
+                });
               }
             } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
               const toolCall = ongoingToolCalls[value.output_index];
