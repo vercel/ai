@@ -628,7 +628,8 @@ describe('ToolLoopAgent', () => {
         });
 
         expect({
-          model: startEvent.model,
+          provider: startEvent.provider,
+          modelId: startEvent.modelId,
           system: startEvent.system,
           prompt: startEvent.prompt,
           messages: startEvent.messages,
@@ -642,11 +643,9 @@ describe('ToolLoopAgent', () => {
             },
             "maxOutputTokens": 500,
             "messages": undefined,
-            "model": {
-              "modelId": "mock-model-id",
-              "provider": "mock-provider",
-            },
+            "modelId": "mock-model-id",
             "prompt": "Hello, world!",
+            "provider": "mock-provider",
             "system": "You are a helpful assistant",
             "temperature": 0.7,
           }
@@ -812,7 +811,8 @@ describe('ToolLoopAgent', () => {
         await result.consumeStream();
 
         expect({
-          model: startEvent.model,
+          provider: startEvent.provider,
+          modelId: startEvent.modelId,
           system: startEvent.system,
           prompt: startEvent.prompt,
           messages: startEvent.messages,
@@ -826,11 +826,9 @@ describe('ToolLoopAgent', () => {
             },
             "maxOutputTokens": 500,
             "messages": undefined,
-            "model": {
-              "modelId": "mock-model-id",
-              "provider": "mock-provider",
-            },
+            "modelId": "mock-model-id",
             "prompt": "Hello, world!",
+            "provider": "mock-provider",
             "system": "You are a helpful assistant",
             "temperature": 0.7,
           }
@@ -1014,7 +1012,8 @@ describe('ToolLoopAgent', () => {
 
         expect({
           stepNumber: stepStartEvent.stepNumber,
-          model: stepStartEvent.model,
+          provider: stepStartEvent.provider,
+          modelId: stepStartEvent.modelId,
           system: stepStartEvent.system,
           messagesLength: stepStartEvent.messages.length,
           steps: stepStartEvent.steps,
@@ -1025,10 +1024,8 @@ describe('ToolLoopAgent', () => {
               "userId": "test-user",
             },
             "messagesLength": 1,
-            "model": {
-              "modelId": "mock-model-id",
-              "provider": "mock-provider",
-            },
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
             "stepNumber": 0,
             "steps": [],
             "system": "You are a helpful assistant",
@@ -1169,7 +1166,8 @@ describe('ToolLoopAgent', () => {
 
         expect({
           stepNumber: stepStartEvent.stepNumber,
-          model: stepStartEvent.model,
+          provider: stepStartEvent.provider,
+          modelId: stepStartEvent.modelId,
           system: stepStartEvent.system,
           messagesLength: stepStartEvent.messages.length,
           steps: stepStartEvent.steps,
@@ -1180,10 +1178,8 @@ describe('ToolLoopAgent', () => {
               "userId": "test-user",
             },
             "messagesLength": 1,
-            "model": {
-              "modelId": "mock-model-id",
-              "provider": "mock-provider",
-            },
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
             "stepNumber": 0,
             "steps": [],
             "system": "You are a helpful assistant",
@@ -1645,7 +1641,8 @@ describe('ToolLoopAgent', () => {
 
         expect({
           stepNumber: event.stepNumber,
-          model: event.model,
+          provider: event.provider,
+          modelId: event.modelId,
           toolCallName: event.toolCall.toolName,
           toolCallId: event.toolCall.toolCallId,
           toolCallInput: event.toolCall.input,
@@ -1653,10 +1650,8 @@ describe('ToolLoopAgent', () => {
         }).toMatchInlineSnapshot(`
           {
             "messagesLength": 1,
-            "model": {
-              "modelId": "mock-model-id",
-              "provider": "mock-provider",
-            },
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
             "stepNumber": 0,
             "toolCallId": "call-1",
             "toolCallInput": {
@@ -2062,7 +2057,8 @@ describe('ToolLoopAgent', () => {
         expect(event.durationMs).toBeGreaterThanOrEqual(0);
         expect({
           stepNumber: event.stepNumber,
-          model: event.model,
+          provider: event.provider,
+          modelId: event.modelId,
           toolCallName: event.toolCall.toolName,
           toolCallId: event.toolCall.toolCallId,
           toolCallInput: event.toolCall.input,
@@ -2072,11 +2068,9 @@ describe('ToolLoopAgent', () => {
         }).toMatchInlineSnapshot(`
           {
             "messagesLength": 1,
-            "model": {
-              "modelId": "mock-model-id",
-              "provider": "mock-provider",
-            },
+            "modelId": "mock-model-id",
             "output": "hello-result",
+            "provider": "mock-provider",
             "stepNumber": 0,
             "success": true,
             "toolCallId": "call-1",

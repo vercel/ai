@@ -136,8 +136,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   experimental_context: unknown;
   generateId: IdGenerator;
   stepNumber?: number;
-  provider: string;
-  modelId: string;
+  provider?: string;
+  modelId?: string;
   onToolCallStart?:
     | StreamTextOnToolCallStartCallback<TOOLS>
     | Array<StreamTextOnToolCallStartCallback<TOOLS> | undefined | null>;
