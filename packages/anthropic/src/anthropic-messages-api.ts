@@ -1320,6 +1320,16 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
       z.object({
         type: z.literal('ping'),
       }),
+      // Vertex AI sends additional events for Anthropic models that need to be handled
+      z.object({
+        type: z.literal('vertex_event'),
+        usage: z.looseObject({
+          input_tokens: z.number(),
+          output_tokens: z.number(),
+          cache_creation_input_tokens: z.number().nullish(),
+          cache_read_input_tokens: z.number().nullish(),
+        }),
+      }),
     ]),
   ),
 );
