@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.28
+
+### Major Changes
+
+- b9cf502: refactoring(ai): delay tool execution in stream text until model call is finished
+
 ## 7.0.0-beta.27
 
 ### Patch Changes
