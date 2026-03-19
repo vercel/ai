@@ -1289,6 +1289,37 @@ describe('validateUIMessages', () => {
       `);
     });
 
+    it('should validate tool input using the legacy parameters field', async () => {
+      const inputMessages: TestMessage[] = [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-foo',
+              toolCallId: '1',
+              state: 'input-available',
+              input: { foo: 'bar' },
+              providerExecuted: true,
+            },
+          ],
+        },
+      ];
+
+      const result = await validateUIMessages<TestMessage>({
+        messages: inputMessages,
+        tools: {
+          foo: {
+            parameters: z.object({
+              foo: z.string(),
+            }),
+          } as any,
+        },
+      });
+
+      expect(result).toEqual(inputMessages);
+    });
+
     it('should throw error when tool input validation fails', async () => {
       await expect(
         validateUIMessages<TestMessage>({

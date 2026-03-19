@@ -9,6 +9,7 @@ import {
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ToolCallRepairError } from '../error/tool-call-repair-error';
+import { getToolInputSchema } from '../util/get-tool-input-schema';
 import { DynamicToolCall, TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolSet } from './tool-set';
@@ -56,8 +57,8 @@ export async function parseToolCall<TOOLS extends ToolSet>({
           toolCall,
           tools,
           inputSchema: async ({ toolName }) => {
-            const { inputSchema } = tools[toolName];
-            return await asSchema(inputSchema).jsonSchema;
+            return await asSchema(getToolInputSchema(tools[toolName]))
+              .jsonSchema;
           },
           system,
           messages,
@@ -148,7 +149,7 @@ async function doParseToolCall<TOOLS extends ToolSet>({
     });
   }
 
-  const schema = asSchema(tool.inputSchema);
+  const schema = asSchema(getToolInputSchema(tool));
 
   // when the tool call has no arguments, we try passing an empty object to the schema
   // (many LLMs generate empty strings for tool calls with no arguments)

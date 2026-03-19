@@ -220,6 +220,40 @@ describe('prepareToolsAndToolChoice', () => {
     `);
   });
 
+  it('should fall back to legacy parameters when inputSchema is absent', async () => {
+    const result = await prepareToolsAndToolChoice({
+      tools: {
+        legacyTool: {
+          description: 'Legacy tool description',
+          parameters: z.object({ city: z.string() }),
+        } as any,
+      },
+      toolChoice: undefined,
+      activeTools: undefined,
+    });
+
+    expect(result).toEqual({
+      toolChoice: { type: 'auto' },
+      tools: [
+        {
+          type: 'function',
+          name: 'legacyTool',
+          description: 'Legacy tool description',
+          inputSchema: {
+            $schema: 'http://json-schema.org/draft-07/schema#',
+            type: 'object',
+            properties: {
+              city: { type: 'string' },
+            },
+            required: ['city'],
+            additionalProperties: false,
+          },
+          providerOptions: undefined,
+        },
+      ],
+    });
+  });
+
   it('should correctly map tool properties', async () => {
     const result = await prepareToolsAndToolChoice({
       tools: mockTools,
