@@ -1,4 +1,4 @@
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import {
   context,
   trace,
@@ -99,7 +99,7 @@ interface OtelStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
   OUTPUT extends Output = Output,
 > extends OnStepStartEvent<TOOLS, OUTPUT> {
-  readonly promptMessages?: LanguageModelV3Prompt;
+  readonly promptMessages?: LanguageModelV4Prompt;
   readonly stepTools?: ReadonlyArray<Record<string, unknown>>;
   readonly stepToolChoice?: unknown;
 }
@@ -272,8 +272,9 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       'gen_ai.request.stop_sequences': state.settings.stopSequences as
         | string[]
         | undefined,
-      'gen_ai.request.temperature': (state.settings.temperature ??
-        undefined) as number | undefined,
+      'gen_ai.request.temperature': (state.settings.temperature ?? undefined) as
+        | number
+        | undefined,
       'gen_ai.request.top_k': state.settings.topK as number | undefined,
       'gen_ai.request.top_p': state.settings.topP as number | undefined,
     });

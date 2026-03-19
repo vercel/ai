@@ -14,7 +14,7 @@ import { Source } from '../types/language-model';
 import { asLanguageModelUsage } from '../types/usage';
 import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
 import { executeToolCall } from './execute-tool-call';
-import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
+import { GeneratedFile } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
 import { parseToolCall } from './parse-tool-call';
 import {
@@ -62,6 +62,11 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'reasoning-end';
       id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'custom';
+      kind: string;
       providerMetadata?: ProviderMetadata;
     }
 
@@ -154,7 +159,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
     | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
   executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
-  // tool results stream
+  // there is a separate stream for tool results, because
+  // tool results might be emitted after the generator stream has finished
   let toolResultsStreamController: ReadableStreamDefaultController<
     SingleRequestTextStreamPart<TOOLS>
   > | null = null;
@@ -169,10 +175,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   // keep track of outstanding tool results for stream closing:
   const outstandingToolResults = new Set<string>();
 
-  // keep track of tool inputs for provider-side tool results
-  const toolInputs = new Map<string, unknown>();
-
   // keep track of parsed tool calls so provider-emitted approval requests can reference them
+  // keep track of tool inputs for provider-side tool results
   const toolCallsByToolCallId = new Map<string, TypedToolCall<TOOLS>>();
 
   let canClose = false;
@@ -214,39 +218,19 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'text-delta':
         case 'text-end':
         case 'reasoning-start':
+        case 'reasoning-delta':
         case 'reasoning-end':
         case 'tool-input-start':
         case 'tool-input-delta':
         case 'tool-input-end':
+        case 'file':
+        case 'reasoning-file':
         case 'source':
         case 'response-metadata':
         case 'error':
+        case 'custom':
         case 'raw': {
           controller.enqueue(chunk);
-          break;
-        }
-
-        case 'reasoning-delta':
-          controller.enqueue({
-            type: 'reasoning-delta',
-            id: chunk.id,
-            text: chunk.delta,
-            providerMetadata: chunk.providerMetadata,
-          });
-          break;
-
-        case 'file':
-        case 'reasoning-file': {
-          controller.enqueue({
-            type: chunk.type,
-            file: new DefaultGeneratedFileWithType({
-              data: chunk.data,
-              mediaType: chunk.mediaType,
-            }),
-            ...(chunk.providerMetadata != null
-              ? { providerMetadata: chunk.providerMetadata }
-              : {}),
-          });
           break;
         }
 
@@ -343,8 +327,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               break;
             }
 
-            toolInputs.set(toolCall.toolCallId, toolCall.input);
-
             // Only execute tools that are not provider-executed:
             if (tool.execute != null && toolCall.providerExecuted !== true) {
               const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
@@ -395,33 +377,34 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'tool-result': {
           const toolName = chunk.toolName as keyof TOOLS & string;
 
-          if (chunk.isError) {
-            toolResultsStreamController!.enqueue({
-              type: 'tool-error',
-              toolCallId: chunk.toolCallId,
-              toolName,
-              input: toolInputs.get(chunk.toolCallId),
-              providerExecuted: true,
-              error: chunk.result,
-              dynamic: chunk.dynamic,
-              ...(chunk.providerMetadata != null
-                ? { providerMetadata: chunk.providerMetadata }
-                : {}),
-            } as TypedToolError<TOOLS>);
-          } else {
-            controller.enqueue({
-              type: 'tool-result',
-              toolCallId: chunk.toolCallId,
-              toolName,
-              input: toolInputs.get(chunk.toolCallId),
-              output: chunk.result,
-              providerExecuted: true,
-              dynamic: chunk.dynamic,
-              ...(chunk.providerMetadata != null
-                ? { providerMetadata: chunk.providerMetadata }
-                : {}),
-            } as TypedToolResult<TOOLS>);
-          }
+          controller.enqueue(
+            chunk.isError
+              ? ({
+                  type: 'tool-error',
+                  toolCallId: chunk.toolCallId,
+                  toolName,
+                  input: toolCallsByToolCallId.get(chunk.toolCallId)?.input,
+                  providerExecuted: true,
+                  error: chunk.result,
+                  dynamic: chunk.dynamic,
+                  ...(chunk.providerMetadata != null
+                    ? { providerMetadata: chunk.providerMetadata }
+                    : {}),
+                } as TypedToolError<TOOLS>)
+              : ({
+                  type: 'tool-result',
+                  toolCallId: chunk.toolCallId,
+                  toolName,
+                  input: toolCallsByToolCallId.get(chunk.toolCallId)?.input,
+                  output: chunk.result,
+                  providerExecuted: true,
+                  dynamic: chunk.dynamic,
+                  ...(chunk.providerMetadata != null
+                    ? { providerMetadata: chunk.providerMetadata }
+                    : {}),
+                } as TypedToolResult<TOOLS>),
+          );
+
           break;
         }
 

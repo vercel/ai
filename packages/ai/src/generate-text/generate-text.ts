@@ -1149,9 +1149,10 @@ async function executeTools<TOOLS extends ToolSet>({
   );
 }
 
-class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
-  implements GenerateTextResult<TOOLS, OUTPUT>
-{
+class DefaultGenerateTextResult<
+  TOOLS extends ToolSet,
+  OUTPUT extends Output,
+> implements GenerateTextResult<TOOLS, OUTPUT> {
   readonly steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
   readonly totalUsage: LanguageModelUsage;
   private readonly _output: InferCompleteOutput<OUTPUT> | undefined;
@@ -1278,6 +1279,7 @@ function asContent<TOOLS extends ToolSet>({
     switch (part.type) {
       case 'text':
       case 'reasoning':
+      case 'custom':
       case 'source':
         contentParts.push(part);
         break;

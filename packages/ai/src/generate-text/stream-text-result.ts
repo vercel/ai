@@ -401,6 +401,11 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       text: string;
     }
   | {
+      type: 'custom';
+      kind: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
       type: 'tool-input-start';
       id: string;
       toolName: string;
