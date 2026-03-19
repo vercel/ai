@@ -1604,6 +1604,13 @@ class DefaultStreamTextResult<
             repairToolCall,
           });
 
+          // Conditionally include request.body based on include settings.
+          // Large payloads (e.g., base64-encoded images) can cause memory issues.
+          const stepRequest: LanguageModelRequestMetadata =
+            (include?.requestBody ?? true)
+              ? (request ?? {})
+              : { ...request, body: undefined };
+
           const streamWithToolResults = modelStream.pipeThrough(
             createExecuteToolsTransformation({
               tools,
@@ -1666,13 +1673,6 @@ class DefaultStreamTextResult<
                   if (stepFirstChunk) {
                     const msToFirstChunk = now() - stepStartTimestampMs;
                     stepFirstChunk = false;
-
-                    // Conditionally include request.body based on include settings.
-                    // Large payloads (e.g., base64-encoded images) can cause memory issues.
-                    const stepRequest: LanguageModelRequestMetadata =
-                      (include?.requestBody ?? true)
-                        ? (request ?? {})
-                        : { ...request, body: undefined };
 
                     // Step start:
                     controller.enqueue({
