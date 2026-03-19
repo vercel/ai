@@ -1,38 +1,46 @@
-import { Tool } from '@ai-sdk/provider-utils';
+import { tool, Tool } from '@ai-sdk/provider-utils';
 import { createToolModelOutput } from './create-tool-model-output';
 import z from 'zod/v4';
 import { describe, it, expect } from 'vitest';
 
 describe('createToolModelOutput', () => {
   describe('error cases', () => {
-    it('should return error type with string value when isError is true and output is string', () => {
-      const result = createToolModelOutput({
+    it('should return error type with string value when isError is true and output is string', async () => {
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
         output: 'Error message',
         tool: undefined,
         errorMode: 'text',
       });
 
-      expect(result).toEqual({
-        type: 'error-text',
-        value: 'Error message',
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "error-text",
+          "value": "Error message",
+        }
+      `);
     });
 
-    it('should return error type with JSON stringified value when isError is true and output is not string', () => {
+    it('should return error type with JSON stringified value when isError is true and output is not string', async () => {
       const errorOutput = { error: 'Something went wrong', code: 500 };
-      const result = createToolModelOutput({
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
         output: errorOutput,
         tool: undefined,
         errorMode: 'text',
       });
 
-      expect(result).toEqual({
-        type: 'error-text',
-        value: JSON.stringify(errorOutput),
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "error-text",
+          "value": "{"error":"Something went wrong","code":500}",
+        }
+      `);
     });
 
-    it('should return error type with JSON stringified value for complex objects', () => {
+    it('should return error type with JSON stringified value for complex objects', async () => {
       const complexError = {
         message: 'Complex error',
         details: {
@@ -40,64 +48,85 @@ describe('createToolModelOutput', () => {
           stack: ['line1', 'line2'],
         },
       };
-      const result = createToolModelOutput({
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
         output: complexError,
         tool: undefined,
         errorMode: 'text',
       });
 
-      expect(result).toEqual({
-        type: 'error-text',
-        value: JSON.stringify(complexError),
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "error-text",
+          "value": "{"message":"Complex error","details":{"timestamp":"2023-01-01T00:00:00Z","stack":["line1","line2"]}}",
+        }
+      `);
     });
   });
 
   describe('tool with toModelOutput', () => {
-    it('should use tool.toModelOutput when available', () => {
-      const mockTool: Tool = {
-        toModelOutput: (output: any) => ({
+    it('should use tool.toModelOutput when available', async () => {
+      const mockTool = tool({
+        inputSchema: z.object({}),
+        toModelOutput: ({ output }) => ({
           type: 'text',
           value: `Custom output: ${output}`,
         }),
-        inputSchema: z.object({}),
-      };
+      });
 
-      const result = createToolModelOutput({
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
         output: 'test output',
         tool: mockTool,
         errorMode: 'none',
       });
 
-      expect(result).toEqual({
-        type: 'text',
-        value: 'Custom output: test output',
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "text",
+          "value": "Custom output: test output",
+        }
+      `);
     });
 
-    it('should use tool.toModelOutput with complex output', () => {
-      const mockTool: Tool = {
-        toModelOutput: (output: any) => ({
+    it('should use tool.toModelOutput with complex output', async () => {
+      const mockTool = tool({
+        inputSchema: z.object({}),
+        toModelOutput: ({ output }) => ({
           type: 'json',
           value: { processed: output, timestamp: '2023-01-01' },
         }),
-        inputSchema: z.object({}),
-      };
+      });
 
-      const complexOutput = { data: [1, 2, 3], status: 'success' };
-      const result = createToolModelOutput({
-        output: complexOutput,
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
+        output: { data: [1, 2, 3], status: 'success' },
         tool: mockTool,
         errorMode: 'none',
       });
 
-      expect(result).toEqual({
-        type: 'json',
-        value: { processed: complexOutput, timestamp: '2023-01-01' },
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "json",
+          "value": {
+            "processed": {
+              "data": [
+                1,
+                2,
+                3,
+              ],
+              "status": "success",
+            },
+            "timestamp": "2023-01-01",
+          },
+        }
+      `);
     });
 
-    it('should use tool.toModelOutput returning content type', () => {
+    it('should use tool.toModelOutput returning content type', async () => {
       const mockTool: Tool = {
         toModelOutput: () => ({
           type: 'content',
@@ -109,171 +138,246 @@ describe('createToolModelOutput', () => {
         inputSchema: z.object({}),
       };
 
-      const result = createToolModelOutput({
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
         output: 'any output',
         tool: mockTool,
         errorMode: 'none',
       });
 
-      expect(result).toEqual({
-        type: 'content',
-        value: [
-          { type: 'text', text: 'Here is the result:' },
-          { type: 'text', text: 'Additional information' },
-        ],
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "content",
+          "value": [
+            {
+              "text": "Here is the result:",
+              "type": "text",
+            },
+            {
+              "text": "Additional information",
+              "type": "text",
+            },
+          ],
+        }
+      `);
     });
   });
 
   describe('string output without toModelOutput', () => {
-    it('should return text type for string output', () => {
-      const result = createToolModelOutput({
+    it('should return text type for string output', async () => {
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
         output: 'Simple string output',
         tool: undefined,
         errorMode: 'none',
       });
 
-      expect(result).toEqual({
-        type: 'text',
-        value: 'Simple string output',
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "text",
+          "value": "Simple string output",
+        }
+      `);
     });
 
-    it('should return text type for string output even with tool that has no toModelOutput', () => {
-      const toolWithoutToModelOutput: Tool = {
-        description: 'A tool without toModelOutput',
-        inputSchema: z.object({}),
-      };
-
-      const result = createToolModelOutput({
+    it('should return text type for string output even with tool that has no toModelOutput', async () => {
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
         output: 'String output',
-        tool: toolWithoutToModelOutput,
+        tool: {
+          description: 'A tool without toModelOutput',
+          inputSchema: z.object({}),
+        },
         errorMode: 'none',
       });
 
-      expect(result).toEqual({
-        type: 'text',
-        value: 'String output',
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "text",
+          "value": "String output",
+        }
+      `);
     });
 
-    it('should return text type for empty string', () => {
-      const result = createToolModelOutput({
+    it('should return text type for empty string', async () => {
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
         output: '',
         tool: undefined,
         errorMode: 'none',
       });
 
-      expect(result).toEqual({
-        type: 'text',
-        value: '',
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "text",
+          "value": "",
+        }
+      `);
     });
   });
 
   describe('non-string output without toModelOutput', () => {
-    it('should return json type for object output', () => {
-      const objectOutput = { result: 'success', data: [1, 2, 3] };
-      const result = createToolModelOutput({
-        output: objectOutput,
+    it('should return json type for object output', async () => {
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
+        output: { result: 'success', data: [1, 2, 3] },
         tool: undefined,
         errorMode: 'none',
       });
 
-      expect(result).toEqual({
-        type: 'json',
-        value: objectOutput,
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "json",
+          "value": {
+            "data": [
+              1,
+              2,
+              3,
+            ],
+            "result": "success",
+          },
+        }
+      `);
     });
 
-    it('should return json type for array output', () => {
-      const arrayOutput = [1, 2, 3, 'test'];
-      const result = createToolModelOutput({
-        output: arrayOutput,
+    it('should return json type for array output', async () => {
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
+        output: [1, 2, 3, 'test'],
         tool: undefined,
         errorMode: 'none',
       });
 
-      expect(result).toEqual({
-        type: 'json',
-        value: arrayOutput,
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "json",
+          "value": [
+            1,
+            2,
+            3,
+            "test",
+          ],
+        }
+      `);
     });
 
-    it('should return json type for number output', () => {
-      const result = createToolModelOutput({
+    it('should return json type for number output', async () => {
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
         output: 42,
         tool: undefined,
         errorMode: 'none',
       });
 
-      expect(result).toEqual({
-        type: 'json',
-        value: 42,
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "json",
+          "value": 42,
+        }
+      `);
     });
 
-    it('should return json type for boolean output', () => {
-      const result = createToolModelOutput({
+    it('should return json type for boolean output', async () => {
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
         output: true,
         tool: undefined,
         errorMode: 'none',
       });
 
-      expect(result).toEqual({
-        type: 'json',
-        value: true,
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "json",
+          "value": true,
+        }
+      `);
     });
 
-    it('should return json type for null output', () => {
-      const result = createToolModelOutput({
+    it('should return json type for null output', async () => {
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
         output: null,
         tool: undefined,
         errorMode: 'none',
       });
 
-      expect(result).toEqual({
-        type: 'json',
-        value: null,
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "json",
+          "value": null,
+        }
+      `);
     });
 
-    it('should return json type for complex nested object', () => {
-      const complexOutput = {
-        user: {
-          id: 123,
-          name: 'John Doe',
-          preferences: {
-            theme: 'dark',
-            notifications: true,
+    it('should return json type for complex nested object', async () => {
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
+        output: {
+          user: {
+            id: 123,
+            name: 'John Doe',
+            preferences: {
+              theme: 'dark',
+              notifications: true,
+            },
           },
+          metadata: {
+            timestamp: '2023-01-01T00:00:00Z',
+            version: '1.0.0',
+          },
+          items: [
+            { id: 1, name: 'Item 1' },
+            { id: 2, name: 'Item 2' },
+          ],
         },
-        metadata: {
-          timestamp: '2023-01-01T00:00:00Z',
-          version: '1.0.0',
-        },
-        items: [
-          { id: 1, name: 'Item 1' },
-          { id: 2, name: 'Item 2' },
-        ],
-      };
-
-      const result = createToolModelOutput({
-        output: complexOutput,
         tool: undefined,
         errorMode: 'none',
       });
 
-      expect(result).toEqual({
-        type: 'json',
-        value: complexOutput,
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "json",
+          "value": {
+            "items": [
+              {
+                "id": 1,
+                "name": "Item 1",
+              },
+              {
+                "id": 2,
+                "name": "Item 2",
+              },
+            ],
+            "metadata": {
+              "timestamp": "2023-01-01T00:00:00Z",
+              "version": "1.0.0",
+            },
+            "user": {
+              "id": 123,
+              "name": "John Doe",
+              "preferences": {
+                "notifications": true,
+                "theme": "dark",
+              },
+            },
+          },
+        }
+      `);
     });
   });
 
   describe('edge cases', () => {
-    it('should prioritize isError over tool.toModelOutput', () => {
+    it('should prioritize isError over tool.toModelOutput', async () => {
       const mockTool: Tool = {
         inputSchema: z.object({}),
         toModelOutput: () => ({
@@ -282,55 +386,123 @@ describe('createToolModelOutput', () => {
         }),
       };
 
-      const result = createToolModelOutput({
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
         output: 'Error occurred',
         tool: mockTool,
         errorMode: 'text',
       });
 
-      expect(result).toEqual({
-        type: 'error-text',
-        value: 'Error occurred',
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "error-text",
+          "value": "Error occurred",
+        }
+      `);
     });
 
-    it('should handle undefined output in error text case', () => {
-      const result = createToolModelOutput({
+    it('should handle undefined output in error text case', async () => {
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
         output: undefined,
         tool: undefined,
         errorMode: 'text',
       });
 
-      expect(result).toEqual({
-        type: 'error-text',
-        value: 'unknown error',
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "error-text",
+          "value": "unknown error",
+        }
+      `);
     });
 
-    it('should use null for undefined output in error json case', () => {
-      const result = createToolModelOutput({
+    it('should use null for undefined output in error json case', async () => {
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
         output: undefined,
         tool: undefined,
         errorMode: 'json',
       });
 
-      expect(result).toEqual({
-        type: 'error-json',
-        value: null,
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "error-json",
+          "value": null,
+        }
+      `);
     });
 
-    it('should use null for undefined output in non-error case', () => {
-      const result = createToolModelOutput({
+    it('should use null for undefined output in non-error case', async () => {
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
         output: undefined,
         tool: undefined,
         errorMode: 'none',
       });
 
-      expect(result).toEqual({
-        type: 'json',
-        value: null,
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "json",
+          "value": null,
+        }
+      `);
+    });
+  });
+
+  describe('arguments', () => {
+    it('should pass toolCallId to tool.toModelOutput', async () => {
+      const mockTool: Tool = {
+        inputSchema: z.object({}),
+        toModelOutput: ({ toolCallId }) => ({
+          type: 'text',
+          value: `Tool call ID: ${toolCallId}`,
+        }),
+      };
+
+      const result = await createToolModelOutput({
+        toolCallId: '2344',
+        input: {},
+        output: 'test',
+        tool: mockTool,
+        errorMode: 'none',
       });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "text",
+          "value": "Tool call ID: 2344",
+        }
+      `);
+    });
+
+    it('should pass input to tool.toModelOutput', async () => {
+      const mockTool: Tool = {
+        inputSchema: z.object({ number: z.number() }),
+        toModelOutput: ({ input }) => ({
+          type: 'text',
+          value: `Input: ${input.number}`,
+        }),
+      };
+
+      const result = await createToolModelOutput({
+        toolCallId: '2344',
+        input: { number: 8877 },
+        output: 'test',
+        tool: mockTool,
+        errorMode: 'none',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "text",
+          "value": "Input: 8877",
+        }
+      `);
     });
   });
 });

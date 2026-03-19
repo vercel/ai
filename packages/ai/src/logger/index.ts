@@ -1,4 +1,6 @@
-export {
-  type Warning as Experimental_Warning,
-  type LogWarningsFunction as Experimental_LogWarningsFunction,
-} from './log-warnings';
+/**
+ * @deprecated  Use `LogWarningsFunction` instead.
+ */
+export type { LogWarningsFunction as Experimental_LogWarningsFunction } from './log-warnings';
+
+export { type LogWarningsFunction } from './log-warnings';

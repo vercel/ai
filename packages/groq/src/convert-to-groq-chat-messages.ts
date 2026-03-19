@@ -1,12 +1,12 @@
 import {
-  LanguageModelV3Prompt,
+  LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { GroqChatPrompt } from './groq-api-types';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToGroqChatMessages(
-  prompt: LanguageModelV3Prompt,
+  prompt: LanguageModelV4Prompt,
 ): GroqChatPrompt {
   const messages: GroqChatPrompt = [];
 
@@ -106,6 +106,9 @@ export function convertToGroqChatMessages(
 
       case 'tool': {
         for (const toolResponse of content) {
+          if (toolResponse.type === 'tool-approval-response') {
+            continue;
+          }
           const output = toolResponse.output;
 
           let contentValue: string;

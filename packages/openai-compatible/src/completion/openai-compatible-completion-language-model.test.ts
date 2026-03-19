@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
@@ -8,7 +8,7 @@ import {
 import { createOpenAICompatible } from '../openai-compatible-provider';
 import { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -28,7 +28,7 @@ const server = createTestServer({
 
 describe('config', () => {
   it('should extract base name from provider string', () => {
-    const model = new OpenAICompatibleCompletionLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleCompletionLanguageModel('gpt-5', {
       provider: 'anthropic.beta',
       url: () => '',
       headers: () => ({}),
@@ -38,7 +38,7 @@ describe('config', () => {
   });
 
   it('should handle provider without dot notation', () => {
-    const model = new OpenAICompatibleCompletionLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleCompletionLanguageModel('gpt-5', {
       provider: 'openai',
       url: () => '',
       headers: () => ({}),
@@ -49,7 +49,7 @@ describe('config', () => {
 
   it('should return empty for empty provider', () => {
     const model = new OpenAICompatibleCompletionLanguageModel(
-      'gpt-4',
+      'gpt-5',
 
       {
         provider: '',
@@ -136,9 +136,22 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
-        "inputTokens": 20,
-        "outputTokens": 5,
-        "totalTokens": 25,
+        "inputTokens": {
+          "cacheRead": undefined,
+          "cacheWrite": undefined,
+          "noCache": 20,
+          "total": 20,
+        },
+        "outputTokens": {
+          "reasoning": undefined,
+          "text": 5,
+          "total": 5,
+        },
+        "raw": {
+          "completion_tokens": 5,
+          "prompt_tokens": 20,
+          "total_tokens": 25,
+        },
       }
     `);
   });
@@ -230,7 +243,12 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-    expect(finishReason).toStrictEqual('stop');
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "stop",
+        "unified": "stop",
+      }
+    `);
   });
 
   it('should support unknown finish reason', async () => {
@@ -244,7 +262,12 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-    expect(finishReason).toStrictEqual('unknown');
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "eos",
+        "unified": "other",
+      }
+    `);
   });
 
   it('should expose the raw response headers', async () => {
@@ -445,12 +468,28 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
-            "inputTokens": 10,
-            "outputTokens": 362,
-            "totalTokens": 372,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": 10,
+              "total": 10,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": 362,
+              "total": 362,
+            },
+            "raw": {
+              "completion_tokens": 362,
+              "prompt_tokens": 10,
+              "total_tokens": 372,
+            },
           },
         },
       ]
@@ -487,12 +526,24 @@ describe('doStream', () => {
           "type": "error",
         },
         {
-          "finishReason": "error",
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -524,12 +575,24 @@ describe('doStream', () => {
             "type": "error",
           },
           {
-            "finishReason": "error",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "error",
+            },
             "type": "finish",
             "usage": {
-              "inputTokens": undefined,
-              "outputTokens": undefined,
-              "totalTokens": undefined,
+              "inputTokens": {
+                "cacheRead": undefined,
+                "cacheWrite": undefined,
+                "noCache": undefined,
+                "total": undefined,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": undefined,
+              },
+              "raw": undefined,
             },
           },
         ]

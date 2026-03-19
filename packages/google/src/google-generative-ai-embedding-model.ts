@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV3,
+  EmbeddingModelV4,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -16,7 +16,7 @@ import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
 import {
   GoogleGenerativeAIEmbeddingModelId,
-  googleGenerativeAIEmbeddingProviderOptions,
+  googleEmbeddingModelOptions,
 } from './google-generative-ai-embedding-options';
 
 type GoogleGenerativeAIEmbeddingConfig = {
@@ -26,10 +26,8 @@ type GoogleGenerativeAIEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-export class GoogleGenerativeAIEmbeddingModel
-  implements EmbeddingModelV3<string>
-{
-  readonly specificationVersion = 'v3';
+export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV4 {
+  readonly specificationVersion = 'v4';
   readonly modelId: GoogleGenerativeAIEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
@@ -52,14 +50,14 @@ export class GoogleGenerativeAIEmbeddingModel
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>
+  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
   > {
     // Parse provider options
     const googleOptions = await parseProviderOptions({
       provider: 'google',
       providerOptions,
-      schema: googleGenerativeAIEmbeddingProviderOptions,
+      schema: googleEmbeddingModelOptions,
     });
 
     if (values.length > this.maxEmbeddingsPerCall) {
@@ -76,8 +74,26 @@ export class GoogleGenerativeAIEmbeddingModel
       headers,
     );
 
-    // For single embeddings, use the single endpoint (ratelimits, etc.)
+    const multimodalContent = googleOptions?.content;
+
+    if (
+      multimodalContent != null &&
+      multimodalContent.length !== values.length
+    ) {
+      throw new Error(
+        `The number of multimodal content entries (${multimodalContent.length}) must match the number of values (${values.length}).`,
+      );
+    }
+
+    // For single embeddings, use the single endpoint
     if (values.length === 1) {
+      const valueParts = multimodalContent?.[0];
+      const textPart = values[0] ? [{ text: values[0] }] : [];
+      const parts =
+        valueParts != null
+          ? [...textPart, ...valueParts]
+          : [{ text: values[0] }];
+
       const {
         responseHeaders,
         value: response,
@@ -88,7 +104,7 @@ export class GoogleGenerativeAIEmbeddingModel
         body: {
           model: `models/${this.modelId}`,
           content: {
-            parts: [{ text: values[0] }],
+            parts,
           },
           outputDimensionality: googleOptions?.outputDimensionality,
           taskType: googleOptions?.taskType,
@@ -102,12 +118,14 @@ export class GoogleGenerativeAIEmbeddingModel
       });
 
       return {
+        warnings: [],
         embeddings: [response.embedding.values],
         usage: undefined,
         response: { headers: responseHeaders, body: rawValue },
       };
     }
 
+    // For multiple values, use the batch endpoint
     const {
       responseHeaders,
       value: response,
@@ -116,12 +134,22 @@ export class GoogleGenerativeAIEmbeddingModel
       url: `${this.config.baseURL}/models/${this.modelId}:batchEmbedContents`,
       headers: mergedHeaders,
       body: {
-        requests: values.map(value => ({
-          model: `models/${this.modelId}`,
-          content: { role: 'user', parts: [{ text: value }] },
-          outputDimensionality: googleOptions?.outputDimensionality,
-          taskType: googleOptions?.taskType,
-        })),
+        requests: values.map((value, index) => {
+          const valueParts = multimodalContent?.[index];
+          const textPart = value ? [{ text: value }] : [];
+          return {
+            model: `models/${this.modelId}`,
+            content: {
+              role: 'user',
+              parts:
+                valueParts != null
+                  ? [...textPart, ...valueParts]
+                  : [{ text: value }],
+            },
+            outputDimensionality: googleOptions?.outputDimensionality,
+            taskType: googleOptions?.taskType,
+          };
+        }),
       },
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -132,6 +160,7 @@ export class GoogleGenerativeAIEmbeddingModel
     });
 
     return {
+      warnings: [],
       embeddings: response.embeddings.map(item => item.values),
       usage: undefined,
       response: { headers: responseHeaders, body: rawValue },

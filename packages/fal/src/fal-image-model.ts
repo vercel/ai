@@ -1,12 +1,13 @@
-import type { ImageModelV3, ImageModelV3CallWarning } from '@ai-sdk/provider';
+import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
-  FetchFunction,
   combineHeaders,
+  convertImageModelFileToDataUri,
   createBinaryResponseHandler,
-  createJsonResponseHandler,
   createJsonErrorResponseHandler,
+  createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
+  FetchFunction,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
@@ -14,7 +15,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { FalImageModelId, FalImageSize } from './fal-image-settings';
-import { falImageProviderOptionsSchema } from './fal-image-options';
+import { falImageModelOptionsSchema } from './fal-image-options';
 
 interface FalImageModelConfig {
   provider: string;
@@ -26,8 +27,8 @@ interface FalImageModelConfig {
   };
 }
 
-export class FalImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class FalImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
   get provider(): string {
@@ -46,8 +47,10 @@ export class FalImageModel implements ImageModelV3 {
     aspectRatio,
     seed,
     providerOptions,
-  }: Parameters<ImageModelV3['doGenerate']>[0]) {
-    const warnings: Array<ImageModelV3CallWarning> = [];
+    files,
+    mask,
+  }: Parameters<ImageModelV4['doGenerate']>[0]) {
+    const warnings: Array<SharedV4Warning> = [];
 
     let imageSize: FalImageSize | undefined;
     if (size) {
@@ -60,7 +63,7 @@ export class FalImageModel implements ImageModelV3 {
     const falOptions = await parseProviderOptions({
       provider: 'fal',
       providerOptions,
-      schema: falImageProviderOptionsSchema,
+      schema: falImageModelOptionsSchema,
     });
 
     const requestBody: Record<string, unknown> = {
@@ -69,6 +72,36 @@ export class FalImageModel implements ImageModelV3 {
       image_size: imageSize,
       num_images: n,
     };
+
+    // Handle image editing: convert files to image_url or image_urls
+    if (files != null && files.length > 0) {
+      const useMultipleImages = falOptions?.useMultipleImages === true;
+
+      if (useMultipleImages) {
+        // Use image_urls array for models that support multiple images (e.g., flux-2/edit)
+        requestBody.image_urls = files.map(file =>
+          convertImageModelFileToDataUri(file),
+        );
+      } else {
+        // Use single image_url for standard image editing models
+        requestBody.image_url = convertImageModelFileToDataUri(files[0]);
+
+        if (files.length > 1) {
+          warnings.push({
+            type: 'other',
+            message:
+              'Multiple input images provided but useMultipleImages is not enabled. ' +
+              'Only the first image will be used. Set providerOptions.fal.useMultipleImages ' +
+              'to true for models that support multiple images (e.g., fal-ai/flux-2/edit).',
+          });
+        }
+      }
+    }
+
+    // Handle mask for inpainting
+    if (mask != null) {
+      requestBody.mask_url = convertImageModelFileToDataUri(mask);
+    }
 
     if (falOptions) {
       const deprecatedKeys =
@@ -92,6 +125,7 @@ export class FalImageModel implements ImageModelV3 {
 
       const fieldMapping: Record<string, string> = {
         imageUrl: 'image_url',
+        maskUrl: 'mask_url',
         guidanceScale: 'guidance_scale',
         numInferenceSteps: 'num_inference_steps',
         enableSafetyChecker: 'enable_safety_checker',
@@ -102,6 +136,7 @@ export class FalImageModel implements ImageModelV3 {
 
       for (const [key, value] of Object.entries(falOptions)) {
         if (key === '__deprecatedKeys') continue;
+        if (key === 'useMultipleImages') continue; // Don't send to API
         const apiKey = fieldMapping[key] ?? key;
 
         if (value !== undefined) {
@@ -114,8 +149,8 @@ export class FalImageModel implements ImageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<ImageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<ImageModelV3['doGenerate']>>> {
+    options: Parameters<ImageModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
     const { requestBody, warnings } = await this.getArgs(options);
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
@@ -216,9 +251,9 @@ function removeOnlyUndefined<T extends Record<string, unknown>>(obj: T) {
 }
 
 /**
-Converts an aspect ratio to an image size compatible with fal.ai APIs.
-@param aspectRatio - The aspect ratio to convert.
-@returns The image size.
+ * Converts an aspect ratio to an image size compatible with fal.ai APIs.
+ * @param aspectRatio - The aspect ratio to convert.
+ * @returns The image size.
  */
 function convertAspectRatioToSize(
   aspectRatio: `${number}:${number}`,

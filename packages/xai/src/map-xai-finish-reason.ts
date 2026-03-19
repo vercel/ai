@@ -1,8 +1,8 @@
-import { LanguageModelV3FinishReason } from '@ai-sdk/provider';
+import { LanguageModelV4FinishReason } from '@ai-sdk/provider';
 
 export function mapXaiFinishReason(
   finishReason: string | null | undefined,
-): LanguageModelV3FinishReason {
+): LanguageModelV4FinishReason['unified'] {
   switch (finishReason) {
     case 'stop':
       return 'stop';
@@ -14,6 +14,6 @@ export function mapXaiFinishReason(
     case 'content_filter':
       return 'content-filter';
     default:
-      return 'unknown';
+      return 'other';
   }
 }

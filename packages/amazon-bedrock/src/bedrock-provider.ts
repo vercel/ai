@@ -1,10 +1,10 @@
 import { anthropicTools } from '@ai-sdk/anthropic/internal';
 import {
-  EmbeddingModelV3,
-  ImageModelV3,
-  LanguageModelV3,
-  ProviderV3,
-  RerankingModelV3,
+  EmbeddingModelV4,
+  ImageModelV4,
+  LanguageModelV4,
+  ProviderV4,
+  RerankingModelV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -31,75 +31,75 @@ import { VERSION } from './version';
 
 export interface AmazonBedrockProviderSettings {
   /**
-The AWS region to use for the Bedrock provider. Defaults to the value of the
-`AWS_REGION` environment variable.
+   * The AWS region to use for the Bedrock provider. Defaults to the value of the
+   * `AWS_REGION` environment variable.
    */
   region?: string;
 
   /**
-API key for authenticating requests using Bearer token authentication.
-When provided, this will be used instead of AWS SigV4 authentication.
-Defaults to the value of the `AWS_BEARER_TOKEN_BEDROCK` environment variable.
-
-@example
-```typescript
-// Using API key directly
-const bedrock = createAmazonBedrock({
-  apiKey: 'your-api-key-here',
-  region: 'us-east-1'
-});
-
-// Using environment variable AWS_BEARER_TOKEN_BEDROCK
-const bedrock = createAmazonBedrock({
-  region: 'us-east-1'
-});
-```
-
-Note: When `apiKey` is provided, it takes precedence over AWS SigV4 authentication.
-If neither `apiKey` nor `AWS_BEARER_TOKEN_BEDROCK` environment variable is set,
-the provider will fall back to AWS SigV4 authentication using AWS credentials.
+   * API key for authenticating requests using Bearer token authentication.
+   * When provided, this will be used instead of AWS SigV4 authentication.
+   * Defaults to the value of the `AWS_BEARER_TOKEN_BEDROCK` environment variable.
+   *
+   * @example
+   * ```typescript
+   * // Using API key directly
+   * const bedrock = createAmazonBedrock({
+   * apiKey: 'your-api-key-here',
+   * region: 'us-east-1'
+   * });
+   *
+   * // Using environment variable AWS_BEARER_TOKEN_BEDROCK
+   * const bedrock = createAmazonBedrock({
+   * region: 'us-east-1'
+   * });
+   * ```
+   *
+   * Note: When `apiKey` is provided, it takes precedence over AWS SigV4 authentication.
+   * If neither `apiKey` nor `AWS_BEARER_TOKEN_BEDROCK` environment variable is set,
+   * the provider will fall back to AWS SigV4 authentication using AWS credentials.
    */
   apiKey?: string;
 
   /**
-The AWS access key ID to use for the Bedrock provider. Defaults to the value of the
-`AWS_ACCESS_KEY_ID` environment variable.
+   * The AWS access key ID to use for the Bedrock provider. Defaults to the value of the
+   * `AWS_ACCESS_KEY_ID` environment variable.
    */
   accessKeyId?: string;
 
   /**
-The AWS secret access key to use for the Bedrock provider. Defaults to the value of the
-`AWS_SECRET_ACCESS_KEY` environment variable.
+   * The AWS secret access key to use for the Bedrock provider. Defaults to the value of the
+   * `AWS_SECRET_ACCESS_KEY` environment variable.
    */
   secretAccessKey?: string;
 
   /**
-The AWS session token to use for the Bedrock provider. Defaults to the value of the
-`AWS_SESSION_TOKEN` environment variable.
+   * The AWS session token to use for the Bedrock provider. Defaults to the value of the
+   * `AWS_SESSION_TOKEN` environment variable.
    */
   sessionToken?: string;
 
   /**
-Base URL for the Bedrock API calls.
+   * Base URL for the Bedrock API calls.
    */
   baseURL?: string;
 
   /**
-Custom headers to include in the requests.
+   * Custom headers to include in the requests.
    */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-*/
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   /**
-The AWS credential provider to use for the Bedrock provider to get dynamic
-credentials similar to the AWS SDK. Setting a provider here will cause its
-credential values to be used instead of the `accessKeyId`, `secretAccessKey`,
-and `sessionToken` settings.
+   * The AWS credential provider to use for the Bedrock provider to get dynamic
+   * credentials similar to the AWS SDK. Setting a provider here will cause its
+   * credential values to be used instead of the `accessKeyId`, `secretAccessKey`,
+   * and `sessionToken` settings.
    */
   credentialProvider?: () => PromiseLike<Omit<BedrockCredentials, 'region'>>;
 
@@ -107,41 +107,59 @@ and `sessionToken` settings.
   generateId?: () => string;
 }
 
-export interface AmazonBedrockProvider extends ProviderV3 {
-  (modelId: BedrockChatModelId): LanguageModelV3;
+export interface AmazonBedrockProvider extends ProviderV4 {
+  (modelId: BedrockChatModelId): LanguageModelV4;
 
-  languageModel(modelId: BedrockChatModelId): LanguageModelV3;
-
-  embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV3<string>;
+  languageModel(modelId: BedrockChatModelId): LanguageModelV4;
 
   /**
-Creates a model for image generation.
+   * Creates a model for text embeddings.
    */
-  image(modelId: BedrockImageModelId): ImageModelV3;
+  embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV4;
 
   /**
-Creates a model for image generation.
+   * Creates a model for text embeddings.
    */
-  imageModel(modelId: BedrockImageModelId): ImageModelV3;
+  embeddingModel(modelId: BedrockEmbeddingModelId): EmbeddingModelV4;
+
+  /**
+   * @deprecated Use `embedding` instead.
+   */
+  textEmbedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV4;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: BedrockEmbeddingModelId): EmbeddingModelV4;
+
+  /**
+   * Creates a model for image generation.
+   */
+  image(modelId: BedrockImageModelId): ImageModelV4;
+
+  /**
+   * Creates a model for image generation.
+   */
+  imageModel(modelId: BedrockImageModelId): ImageModelV4;
 
   /**
    * Creates a model for reranking documents.
    */
-  reranking(modelId: BedrockRerankingModelId): RerankingModelV3;
+  reranking(modelId: BedrockRerankingModelId): RerankingModelV4;
 
   /**
    * Creates a model for reranking documents.
    */
-  rerankingModel(modelId: BedrockRerankingModelId): RerankingModelV3;
+  rerankingModel(modelId: BedrockRerankingModelId): RerankingModelV4;
 
   /**
-Anthropic-specific tools that can be used with Anthropic models on Bedrock.
+   * Anthropic-specific tools that can be used with Anthropic models on Bedrock.
    */
   tools: typeof anthropicTools;
 }
 
 /**
-Create an Amazon Bedrock provider instance.
+ * Create an Amazon Bedrock provider instance.
  */
 export function createAmazonBedrock(
   options: AmazonBedrockProviderSettings = {},
@@ -312,9 +330,10 @@ export function createAmazonBedrock(
       fetch: fetchFunction,
     });
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.embedding = createEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
@@ -327,6 +346,6 @@ export function createAmazonBedrock(
 }
 
 /**
-Default Bedrock provider instance.
+ * Default Bedrock provider instance.
  */
 export const bedrock = createAmazonBedrock();

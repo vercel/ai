@@ -41,7 +41,7 @@ describe('BlackForestLabs provider', () => {
     expect(imageModel.provider).toBe('black-forest-labs.image');
     expect(imageModel.modelId).toBe('flux-pro-1.1');
     expect(imageModel2.modelId).toBe('flux-pro-1.1-ultra');
-    expect(imageModel.specificationVersion).toBe('v3');
+    expect(imageModel.specificationVersion).toBe('v4');
   });
 
   it('configures baseURL and headers correctly', async () => {
@@ -57,6 +57,8 @@ describe('BlackForestLabs provider', () => {
 
     await model.doGenerate({
       prompt: 'A serene mountain landscape at sunset',
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: undefined,
       seed: undefined,
@@ -106,6 +108,8 @@ describe('BlackForestLabs provider', () => {
     await expect(
       model.doGenerate({
         prompt: 'Timeout test',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
@@ -128,8 +132,8 @@ describe('BlackForestLabs provider', () => {
     expect(() => provider.languageModel('some-id')).toThrowError(
       'No such languageModel',
     );
-    expect(() => provider.textEmbeddingModel('some-id')).toThrowError(
-      'No such textEmbeddingModel',
+    expect(() => provider.embeddingModel('some-id')).toThrowError(
+      'No such embeddingModel',
     );
   });
 });

@@ -10,11 +10,10 @@ Generate an embedding for a single value using an embedding model.
 This is ideal for use cases where you need to embed a single value to e.g. retrieve similar items or to use the embedding in a downstream task.
 
 ```ts
-import { openai } from '@ai-sdk/openai';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: openai.textEmbeddingModel('text-embedding-3-small'),
+  model: 'openai/text-embedding-3-small',
   value: 'sunny day at the beach',
 });
 ```
@@ -33,7 +32,7 @@ const { embedding } = await embed({
       name: 'model',
       type: 'EmbeddingModel',
       description:
-        "The embedding model to use. Example: openai.textEmbeddingModel('text-embedding-3-small')",
+        "The embedding model to use. Example: openai.embeddingModel('text-embedding-3-small')",
     },
     {
       name: 'value',
@@ -60,6 +59,13 @@ const { embedding } = await embed({
       isOptional: true,
       description:
         'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
+    },
+    {
+      name: 'providerOptions',
+      type: 'ProviderOptions',
+      isOptional: true,
+      description:
+        'Provider-specific options that are passed through to the provider.',
     },
     {
       name: 'experimental_telemetry',
@@ -115,6 +121,141 @@ const { embedding } = await embed({
         },
       ],
     },
+    {
+      name: 'experimental_onStart',
+      type: '(event: EmbedOnStartEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Callback that is called when the embed operation begins, before the embedding model is called. Errors thrown in this callback are silently caught and do not break the embedding flow. Experimental (can break in patch releases).',
+      properties: [
+        {
+          type: 'EmbedOnStartEvent',
+          parameters: [
+            {
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for this embed call.',
+            },
+            {
+              name: 'operationId',
+              type: 'string',
+              description: "Identifies the operation type ('ai.embed').",
+            },
+            {
+              name: 'model',
+              type: '{ provider: string; modelId: string }',
+              description: 'The embedding model being used.',
+            },
+            {
+              name: 'value',
+              type: 'string | Array<string>',
+              description: 'The value being embedded.',
+            },
+            {
+              name: 'maxRetries',
+              type: 'number',
+              description: 'Maximum number of retries for failed requests.',
+            },
+            {
+              name: 'abortSignal',
+              type: 'AbortSignal | undefined',
+              description: 'Abort signal for cancelling the operation.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string | undefined> | undefined',
+              description: 'Additional HTTP headers sent with the request.',
+            },
+            {
+              name: 'providerOptions',
+              type: 'ProviderOptions | undefined',
+              description: 'Additional provider-specific options.',
+            },
+            {
+              name: 'functionId',
+              type: 'string | undefined',
+              description:
+                'Identifier from telemetry settings for grouping related operations.',
+            },
+            {
+              name: 'metadata',
+              type: 'Record<string, JSONValue> | undefined',
+              description: 'Additional metadata from telemetry settings.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'experimental_onFinish',
+      type: '(event: EmbedOnFinishEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Callback that is called when the embed operation completes, after the embedding model returns. Errors thrown in this callback are silently caught and do not break the embedding flow. Experimental (can break in patch releases).',
+      properties: [
+        {
+          type: 'EmbedOnFinishEvent',
+          parameters: [
+            {
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for this embed call.',
+            },
+            {
+              name: 'operationId',
+              type: 'string',
+              description: "Identifies the operation type ('ai.embed').",
+            },
+            {
+              name: 'model',
+              type: '{ provider: string; modelId: string }',
+              description: 'The embedding model that was used.',
+            },
+            {
+              name: 'value',
+              type: 'string | Array<string>',
+              description: 'The value that was embedded.',
+            },
+            {
+              name: 'embedding',
+              type: 'Embedding | Array<Embedding>',
+              description: 'The resulting embedding vector.',
+            },
+            {
+              name: 'usage',
+              type: 'EmbeddingModelUsage',
+              description: 'Token usage for the embedding operation.',
+            },
+            {
+              name: 'warnings',
+              type: 'Array<Warning>',
+              description: 'Warnings from the embedding model.',
+            },
+            {
+              name: 'providerMetadata',
+              type: 'ProviderMetadata | undefined',
+              description: 'Optional provider-specific metadata.',
+            },
+            {
+              name: 'response',
+              type: '{ headers?: Record<string, string>; body?: unknown } | undefined',
+              description: 'Optional response data including headers and body.',
+            },
+            {
+              name: 'functionId',
+              type: 'string | undefined',
+              description:
+                'Identifier from telemetry settings for grouping related operations.',
+            },
+            {
+              name: 'metadata',
+              type: 'Record<string, JSONValue> | undefined',
+              description: 'Additional metadata from telemetry settings.',
+            },
+          ],
+        },
+      ],
+    },
   ]}
 />
 
@@ -148,6 +289,12 @@ const { embedding } = await embed({
           ],
         },
       ],
+    },
+    {
+      name: 'warnings',
+      type: 'Warning[]',
+      description:
+        'Warnings from the model provider (e.g. unsupported settings).',
     },
     {
       name: 'response',

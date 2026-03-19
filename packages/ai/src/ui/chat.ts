@@ -18,7 +18,7 @@ import {
 } from './process-ui-message-stream';
 import {
   InferUIMessageToolCall,
-  isToolOrDynamicToolUIPart,
+  isToolUIPart,
   UIMessagePart,
   UITools,
   type DataUIPart,
@@ -50,12 +50,12 @@ export type InferUIDataParts<T extends UIDataPartSchemas> = {
 
 export type ChatRequestOptions = {
   /**
-  Additional headers that should be to be passed to the API endpoint.
+   * Additional headers that should be to be passed to the API endpoint.
    */
   headers?: Record<string, string> | Headers;
 
   /**
-  Additional body JSON properties that should be sent to the API endpoint.
+   * Additional body JSON properties that should be sent to the API endpoint.
    */
   body?: object; // TODO JSONStringifyable
 
@@ -69,6 +69,7 @@ export type ChatAddToolApproveResponseFunction = ({
   id,
   approved,
   reason,
+  options,
 }: {
   id: string;
 
@@ -81,7 +82,52 @@ export type ChatAddToolApproveResponseFunction = ({
    * Optional reason for the approval or denial.
    */
   reason?: string;
+
+  /**
+   * Optional request options to be used if `sendAutomaticallyWhen` callback returns true.
+   */
+  options?: ChatRequestOptions;
 }) => void | PromiseLike<void>;
+
+/**
+ * Function that can be called to add a tool output to the chat.
+ */
+export type ChatAddToolOutputFunction<UI_MESSAGE extends UIMessage> = <
+  TOOL extends keyof InferUIMessageTools<UI_MESSAGE>,
+>({
+  state,
+  tool,
+  toolCallId,
+  output,
+  errorText,
+  options,
+}: {
+  /**
+   * Name of the tool that was called.
+   */
+  tool: TOOL;
+
+  /**
+   * Identifier of the tool call to add output for.
+   */
+  toolCallId: string;
+
+  /**
+   * Optional request options to be used if `sendAutomaticallyWhen` callback returns true.
+   */
+  options?: ChatRequestOptions;
+} & (
+  | {
+      state?: 'output-available';
+      output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
+      errorText?: never;
+    }
+  | {
+      state: 'output-error';
+      output?: never;
+      errorText: string;
+    }
+)) => void | PromiseLike<void>;
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
@@ -160,12 +206,12 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   onError?: ChatOnErrorCallback;
 
   /**
-  Optional callback function that is invoked when a tool call is received.
-  Intended for automatic client-side tool execution.
-
-  You can optionally return a result for the tool call,
-  either synchronously or asynchronously.
-     */
+   * Optional callback function that is invoked when a tool call is received.
+   * Intended for automatic client-side tool execution.
+   *
+   * You can optionally return a result for the tool call,
+   * either synchronously or asynchronously.
+   */
   onToolCall?: ChatOnToolCallCallback<UI_MESSAGE>;
 
   /**
@@ -433,6 +479,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     id,
     approved,
     reason,
+    options,
   }) =>
     this.jobExecutor.run(async () => {
       const messages = this.state.messages;
@@ -441,7 +488,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const updatePart = (
         part: UIMessagePart<UIDataTypes, UITools>,
       ): UIMessagePart<UIDataTypes, UITools> =>
-        isToolOrDynamicToolUIPart(part) &&
+        isToolUIPart(part) &&
         part.state === 'approval-requested' &&
         part.approval.id === id
           ? {
@@ -467,37 +514,28 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       if (
         this.status !== 'streaming' &&
         this.status !== 'submitted' &&
-        this.sendAutomaticallyWhen?.({ messages: this.state.messages })
+        this.sendAutomaticallyWhen
       ) {
-        // no await to avoid deadlocking
-        this.makeRequest({
-          trigger: 'submit-message',
-          messageId: this.lastMessage?.id,
+        this.shouldSendAutomatically().then(shouldSend => {
+          if (shouldSend) {
+            // no await to avoid deadlocking
+            this.makeRequest({
+              trigger: 'submit-message',
+              messageId: this.lastMessage?.id,
+              ...options,
+            });
+          }
         });
       }
     });
 
-  addToolOutput = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
+  addToolOutput: ChatAddToolOutputFunction<UI_MESSAGE> = async ({
     state = 'output-available',
-    tool,
     toolCallId,
     output,
     errorText,
-  }:
-    | {
-        state?: 'output-available';
-        tool: TOOL;
-        toolCallId: string;
-        output: InferUIMessageTools<UI_MESSAGE>[TOOL]['output'];
-        errorText?: never;
-      }
-    | {
-        state: 'output-error';
-        tool: TOOL;
-        toolCallId: string;
-        output?: never;
-        errorText: string;
-      }) =>
+    options,
+  }) =>
     this.jobExecutor.run(async () => {
       const messages = this.state.messages;
       const lastMessage = messages[messages.length - 1];
@@ -505,7 +543,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const updatePart = (
         part: UIMessagePart<UIDataTypes, UITools>,
       ): UIMessagePart<UIDataTypes, UITools> =>
-        isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
+        isToolUIPart(part) && part.toolCallId === toolCallId
           ? ({ ...part, state, output, errorText } as typeof part)
           : part;
 
@@ -525,12 +563,17 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       if (
         this.status !== 'streaming' &&
         this.status !== 'submitted' &&
-        this.sendAutomaticallyWhen?.({ messages: this.state.messages })
+        this.sendAutomaticallyWhen
       ) {
-        // no await to avoid deadlocking
-        this.makeRequest({
-          trigger: 'submit-message',
-          messageId: this.lastMessage?.id,
+        this.shouldSendAutomatically().then(shouldSend => {
+          if (shouldSend) {
+            // no await to avoid deadlocking
+            this.makeRequest({
+              trigger: 'submit-message',
+              messageId: this.lastMessage?.id,
+              ...options,
+            });
+          }
         });
       }
     });
@@ -549,6 +592,21 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
   };
 
+  private async shouldSendAutomatically(): Promise<boolean> {
+    if (!this.sendAutomaticallyWhen) return false;
+
+    const result = this.sendAutomaticallyWhen({
+      messages: this.state.messages,
+    });
+
+    // Check if result is a promise
+    if (result && typeof result === 'object' && 'then' in result) {
+      return await result;
+    }
+
+    return result as boolean;
+  }
+
   private async makeRequest({
     trigger,
     metadata,
@@ -559,6 +617,33 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     trigger: 'submit-message' | 'resume-stream' | 'regenerate-message';
     messageId?: string;
   } & ChatRequestOptions) {
+    // For resume-stream, check if there's an active stream before
+    // changing status. This avoids a brief flash of 'submitted' status
+    // when there is no stream to resume (e.g. on page load).
+    let resumeStream: ReadableStream<UIMessageChunk> | undefined;
+    if (trigger === 'resume-stream') {
+      try {
+        const reconnect = await this.transport.reconnectToStream({
+          chatId: this.id,
+          metadata,
+          headers,
+          body,
+        });
+
+        if (reconnect == null) {
+          return; // no active stream found, so we do not resume
+        }
+
+        resumeStream = reconnect;
+      } catch (err) {
+        if (this.onError && err instanceof Error) {
+          this.onError(err);
+        }
+        this.setStatus({ status: 'error', error: err as Error });
+        return;
+      }
+    }
+
     this.setStatus({ status: 'submitted', error: undefined });
 
     const lastMessage = this.lastMessage;
@@ -585,19 +670,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       let stream: ReadableStream<UIMessageChunk>;
 
       if (trigger === 'resume-stream') {
-        const reconnect = await this.transport.reconnectToStream({
-          chatId: this.id,
-          metadata,
-          headers,
-          body,
-        });
-
-        if (reconnect == null) {
-          this.setStatus({ status: 'ready' });
-          return; // no active stream found, so we do not resume
-        }
-
-        stream = reconnect;
+        stream = resumeStream!;
       } else {
         stream = await this.transport.sendMessages({
           chatId: this.id,
@@ -700,10 +773,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     // automatically send the message if the sendAutomaticallyWhen function returns true
-    if (
-      this.sendAutomaticallyWhen?.({ messages: this.state.messages }) &&
-      !isError
-    ) {
+    if (!isError && (await this.shouldSendAutomatically())) {
       await this.makeRequest({
         trigger: 'submit-message',
         messageId: this.lastMessage?.id,

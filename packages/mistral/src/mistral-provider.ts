@@ -1,8 +1,8 @@
 import {
-  EmbeddingModelV3,
-  LanguageModelV3,
+  EmbeddingModelV4,
+  LanguageModelV4,
   NoSuchModelError,
-  ProviderV3,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -16,60 +16,69 @@ import { MistralEmbeddingModel } from './mistral-embedding-model';
 import { MistralEmbeddingModelId } from './mistral-embedding-options';
 import { VERSION } from './version';
 
-export interface MistralProvider extends ProviderV3 {
-  (modelId: MistralChatModelId): LanguageModelV3;
+export interface MistralProvider extends ProviderV4 {
+  (modelId: MistralChatModelId): LanguageModelV4;
 
   /**
-Creates a model for text generation.
-*/
-  languageModel(modelId: MistralChatModelId): LanguageModelV3;
-
-  /**
-Creates a model for text generation.
-*/
-  chat(modelId: MistralChatModelId): LanguageModelV3;
-
-  /**
-@deprecated Use `textEmbedding()` instead.
+   * Creates a model for text generation.
    */
-  embedding(modelId: MistralEmbeddingModelId): EmbeddingModelV3<string>;
+  languageModel(modelId: MistralChatModelId): LanguageModelV4;
 
-  textEmbedding(modelId: MistralEmbeddingModelId): EmbeddingModelV3<string>;
+  /**
+   * Creates a model for text generation.
+   */
+  chat(modelId: MistralChatModelId): LanguageModelV4;
 
-  textEmbeddingModel: (
-    modelId: MistralEmbeddingModelId,
-  ) => EmbeddingModelV3<string>;
+  /**
+   * Creates a model for text embeddings.
+   */
+  embedding(modelId: MistralEmbeddingModelId): EmbeddingModelV4;
+
+  /**
+   * Creates a model for text embeddings.
+   */
+  embeddingModel: (modelId: MistralEmbeddingModelId) => EmbeddingModelV4;
+
+  /**
+   * @deprecated Use `embedding` instead.
+   */
+  textEmbedding(modelId: MistralEmbeddingModelId): EmbeddingModelV4;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: MistralEmbeddingModelId): EmbeddingModelV4;
 }
 
 export interface MistralProviderSettings {
   /**
-Use a different URL prefix for API calls, e.g. to use proxy servers.
-The default prefix is `https://api.mistral.ai/v1`.
+   * Use a different URL prefix for API calls, e.g. to use proxy servers.
+   * The default prefix is `https://api.mistral.ai/v1`.
    */
   baseURL?: string;
 
   /**
-API key that is being send using the `Authorization` header.
-It defaults to the `MISTRAL_API_KEY` environment variable.
+   * API key that is being send using the `Authorization` header.
+   * It defaults to the `MISTRAL_API_KEY` environment variable.
    */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   generateId?: () => string;
 }
 
 /**
-Create a Mistral AI provider instance.
+ * Create a Mistral AI provider instance.
  */
 export function createMistral(
   options: MistralProviderSettings = {},
@@ -117,10 +126,11 @@ export function createMistral(
     return createChatModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.embedding = createEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
 
@@ -132,6 +142,6 @@ export function createMistral(
 }
 
 /**
-Default Mistral provider instance.
+ * Default Mistral provider instance.
  */
 export const mistral = createMistral();

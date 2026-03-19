@@ -76,7 +76,7 @@ export default function Home() {
 ```tsx filename='app/actions.tsx' highlight={"57-63"}
 'use server';
 
-import { createAI, getMutableAIState, streamUI } from '@ai-sdk/rsc';
+import { getMutableAIState, streamUI } from '@ai-sdk/rsc';
 import { openai } from '@ai-sdk/openai';
 import { ReactNode } from 'react';
 import { z } from 'zod';

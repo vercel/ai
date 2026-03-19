@@ -5,10 +5,22 @@ import { JSONSchema7Definition } from '@ai-sdk/provider';
  */
 export function convertJSONSchemaToOpenAPISchema(
   jsonSchema: JSONSchema7Definition | undefined,
+  isRoot = true,
 ): unknown {
-  // parameters need to be undefined if they are empty objects:
-  if (jsonSchema == null || isEmptyObjectSchema(jsonSchema)) {
+  // Handle empty object schemas: undefined at root, preserved when nested
+  if (jsonSchema == null) {
     return undefined;
+  }
+
+  if (isEmptyObjectSchema(jsonSchema)) {
+    if (isRoot) {
+      return undefined;
+    }
+
+    if (typeof jsonSchema === 'object' && jsonSchema.description) {
+      return { type: 'object', description: jsonSchema.description };
+    }
+    return { type: 'object' };
   }
 
   if (typeof jsonSchema === 'boolean') {
@@ -69,7 +81,7 @@ export function convertJSONSchemaToOpenAPISchema(
   if (properties != null) {
     result.properties = Object.entries(properties).reduce(
       (acc, [key, value]) => {
-        acc[key] = convertJSONSchemaToOpenAPISchema(value);
+        acc[key] = convertJSONSchemaToOpenAPISchema(value, false);
         return acc;
       },
       {} as Record<string, unknown>,
@@ -78,12 +90,14 @@ export function convertJSONSchemaToOpenAPISchema(
 
   if (items) {
     result.items = Array.isArray(items)
-      ? items.map(convertJSONSchemaToOpenAPISchema)
-      : convertJSONSchemaToOpenAPISchema(items);
+      ? items.map(item => convertJSONSchemaToOpenAPISchema(item, false))
+      : convertJSONSchemaToOpenAPISchema(items, false);
   }
 
   if (allOf) {
-    result.allOf = allOf.map(convertJSONSchemaToOpenAPISchema);
+    result.allOf = allOf.map(item =>
+      convertJSONSchemaToOpenAPISchema(item, false),
+    );
   }
   if (anyOf) {
     // Handle cases where anyOf includes a null type
@@ -98,22 +112,31 @@ export function convertJSONSchemaToOpenAPISchema(
 
       if (nonNullSchemas.length === 1) {
         // If there's only one non-null schema, convert it and make it nullable
-        const converted = convertJSONSchemaToOpenAPISchema(nonNullSchemas[0]);
+        const converted = convertJSONSchemaToOpenAPISchema(
+          nonNullSchemas[0],
+          false,
+        );
         if (typeof converted === 'object') {
           result.nullable = true;
           Object.assign(result, converted);
         }
       } else {
         // If there are multiple non-null schemas, keep them in anyOf
-        result.anyOf = nonNullSchemas.map(convertJSONSchemaToOpenAPISchema);
+        result.anyOf = nonNullSchemas.map(item =>
+          convertJSONSchemaToOpenAPISchema(item, false),
+        );
         result.nullable = true;
       }
     } else {
-      result.anyOf = anyOf.map(convertJSONSchemaToOpenAPISchema);
+      result.anyOf = anyOf.map(item =>
+        convertJSONSchemaToOpenAPISchema(item, false),
+      );
     }
   }
   if (oneOf) {
-    result.oneOf = oneOf.map(convertJSONSchemaToOpenAPISchema);
+    result.oneOf = oneOf.map(item =>
+      convertJSONSchemaToOpenAPISchema(item, false),
+    );
   }
 
   if (minLength !== undefined) {

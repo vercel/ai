@@ -59,7 +59,7 @@ describe('prepareTools', () => {
     const result = prepareTools({
       tools: [
         {
-          type: 'provider-defined',
+          type: 'provider',
           id: 'some.unsupported_tool',
           name: 'unsupported_tool',
           args: {},
@@ -70,17 +70,14 @@ describe('prepareTools', () => {
 
     expect(result.tools).toEqual([]);
     expect(result.toolChoice).toBeUndefined();
-    expect(result.toolWarnings).toEqual([
-      {
-        type: 'unsupported-tool',
-        tool: {
-          type: 'provider-defined',
-          id: 'some.unsupported_tool',
-          name: 'unsupported_tool',
-          args: {},
+    expect(result.toolWarnings).toMatchInlineSnapshot(`
+      [
+        {
+          "feature": "provider-defined tool some.unsupported_tool",
+          "type": "unsupported",
         },
-      },
-    ]);
+      ]
+    `);
   });
 
   it('should handle tool choice "auto"', () => {
@@ -150,12 +147,150 @@ describe('prepareTools', () => {
     });
   });
 
+  describe('strict mode for function tools', () => {
+    it('should pass through strict mode when strict is true', () => {
+      const result = prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+        ],
+        modelId: 'gemma2-9b-it',
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          function: {
+            name: 'testFunction',
+            description: 'A test function',
+            parameters: { type: 'object', properties: {} },
+            strict: true,
+          },
+        },
+      ]);
+    });
+
+    it('should pass through strict mode when strict is false', () => {
+      const result = prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: false,
+          },
+        ],
+        modelId: 'gemma2-9b-it',
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          function: {
+            name: 'testFunction',
+            description: 'A test function',
+            parameters: { type: 'object', properties: {} },
+            strict: false,
+          },
+        },
+      ]);
+    });
+
+    it('should not include strict when strict is undefined', () => {
+      const result = prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        modelId: 'gemma2-9b-it',
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          function: {
+            name: 'testFunction',
+            description: 'A test function',
+            parameters: { type: 'object', properties: {} },
+          },
+        },
+      ]);
+    });
+
+    it('should pass through strict mode for multiple tools with different strict settings', () => {
+      const result = prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'strictTool',
+            description: 'A strict tool',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+          {
+            type: 'function',
+            name: 'nonStrictTool',
+            description: 'A non-strict tool',
+            inputSchema: { type: 'object', properties: {} },
+            strict: false,
+          },
+          {
+            type: 'function',
+            name: 'defaultTool',
+            description: 'A tool without strict setting',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        modelId: 'gemma2-9b-it',
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          function: {
+            name: 'strictTool',
+            description: 'A strict tool',
+            parameters: { type: 'object', properties: {} },
+            strict: true,
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'nonStrictTool',
+            description: 'A non-strict tool',
+            parameters: { type: 'object', properties: {} },
+            strict: false,
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'defaultTool',
+            description: 'A tool without strict setting',
+            parameters: { type: 'object', properties: {} },
+          },
+        },
+      ]);
+    });
+  });
+
   describe('browser search tool', () => {
     it('should handle browser search tool with supported model', () => {
       const result = prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'groq.browser_search',
             name: 'browser_search',
             args: {},
@@ -176,7 +311,7 @@ describe('prepareTools', () => {
       const result = prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'groq.browser_search',
             name: 'browser_search',
             args: {},
@@ -186,16 +321,15 @@ describe('prepareTools', () => {
       });
 
       expect(result.tools).toEqual([]);
-      expect(result.toolWarnings).toHaveLength(1);
-      expect(result.toolWarnings[0]).toEqual({
-        type: 'unsupported-tool',
-        tool: expect.objectContaining({
-          id: 'groq.browser_search',
-        }),
-        details: expect.stringContaining(
-          'Browser search is only supported on the following models: openai/gpt-oss-20b, openai/gpt-oss-120b',
-        ),
-      });
+      expect(result.toolWarnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "Browser search is only supported on the following models: openai/gpt-oss-20b, openai/gpt-oss-120b. Current model: gemma2-9b-it",
+            "feature": "provider-defined tool groq.browser_search",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('should handle mixed tools with model validation', () => {
@@ -208,7 +342,7 @@ describe('prepareTools', () => {
             inputSchema: { type: 'object', properties: {} },
           },
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'groq.browser_search',
             name: 'browser_search',
             args: {},
@@ -240,7 +374,7 @@ describe('prepareTools', () => {
         const result = prepareTools({
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'groq.browser_search',
               name: 'browser_search',
               args: {},
@@ -258,7 +392,7 @@ describe('prepareTools', () => {
       const result = prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'groq.browser_search',
             name: 'browser_search',
             args: {},

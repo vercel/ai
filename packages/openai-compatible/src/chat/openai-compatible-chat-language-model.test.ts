@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import fs from 'fs';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
@@ -8,7 +9,7 @@ import {
 import { createOpenAICompatible } from '../openai-compatible-provider';
 import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -20,15 +21,46 @@ const provider = createOpenAICompatible({
   },
 });
 
-const model = provider('grok-beta');
+const model = provider('grok-3');
 
 const server = createTestServer({
   'https://my.api.com/v1/chat/completions': {},
 });
 
+function prepareJsonFixtureResponse(
+  filename: string,
+  { headers }: { headers?: Record<string, string> } = {},
+) {
+  server.urls['https://my.api.com/v1/chat/completions'].response = {
+    type: 'json-value',
+    headers,
+    body: JSON.parse(
+      fs.readFileSync(`src/chat/__fixtures__/${filename}.json`, 'utf8'),
+    ),
+  };
+}
+
+function prepareChunksFixtureResponse(
+  filename: string,
+  { headers }: { headers?: Record<string, string> } = {},
+) {
+  const chunks = fs
+    .readFileSync(`src/chat/__fixtures__/${filename}.chunks.txt`, 'utf8')
+    .split('\n')
+    .filter(line => line.trim().length > 0)
+    .map(line => `data: ${line}\n\n`);
+  chunks.push('data: [DONE]\n\n');
+
+  server.urls['https://my.api.com/v1/chat/completions'].response = {
+    type: 'stream-chunks',
+    headers,
+    chunks,
+  };
+}
+
 describe('config', () => {
   it('should extract base name from provider string', () => {
-    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
       provider: 'anthropic.beta',
       url: () => '',
       headers: () => ({}),
@@ -38,7 +70,7 @@ describe('config', () => {
   });
 
   it('should handle provider without dot notation', () => {
-    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
       provider: 'openai',
       url: () => '',
       headers: () => ({}),
@@ -48,7 +80,7 @@ describe('config', () => {
   });
 
   it('should return empty for empty provider', () => {
-    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
       provider: '',
       url: () => '',
       headers: () => ({}),
@@ -73,7 +105,7 @@ describe('doGenerate', () => {
     finish_reason = 'stop',
     id = 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
     created = 1711115037,
-    model = 'grok-beta',
+    model = 'grok-3',
     headers,
   }: {
     content?: string;
@@ -85,6 +117,11 @@ describe('doGenerate', () => {
       function: {
         name: string;
         arguments: string;
+      };
+      extra_content?: {
+        google?: {
+          thought_signature?: string;
+        };
       };
     }>;
     function_call?: {
@@ -138,9 +175,110 @@ describe('doGenerate', () => {
     };
   }
 
+  describe('text (fixture)', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('xai-text');
+    });
+
+    it('should extract text content', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+  });
+
+  describe('tool call (fixture)', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('xai-tool-call');
+    });
+
+    it('should extract tool call content', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+  });
+
+  it('should extract usage', async () => {
+    prepareJsonFixtureResponse('xai-text');
+
+    const { usage } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "inputTokens": {
+          "cacheRead": 2,
+          "cacheWrite": undefined,
+          "noCache": 10,
+          "total": 12,
+        },
+        "outputTokens": {
+          "reasoning": 320,
+          "text": -318,
+          "total": 2,
+        },
+        "raw": {
+          "completion_tokens": 2,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": 0,
+            "reasoning_tokens": 320,
+            "rejected_prediction_tokens": 0,
+          },
+          "cost_in_usd_ticks": 1641500,
+          "num_sources_used": 0,
+          "prompt_tokens": 12,
+          "prompt_tokens_details": {
+            "cached_tokens": 2,
+          },
+          "total_tokens": 334,
+        },
+      }
+    `);
+  });
+
+  it('should send additional response information', async () => {
+    prepareJsonFixtureResponse('xai-text');
+
+    const { response } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response?.id).toMatchInlineSnapshot(
+      `"edea4703-19aa-6d74-fedb-dc1c213543e0"`,
+    );
+    expect(response?.timestamp).toMatchInlineSnapshot(
+      `2026-02-11T01:08:10.000Z`,
+    );
+    expect(response?.modelId).toMatchInlineSnapshot(`"grok-3-mini"`);
+  });
+
+  it('should expose the raw response headers', async () => {
+    prepareJsonFixtureResponse('xai-text', {
+      headers: { 'test-header': 'test-value' },
+    });
+
+    const { response } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(response?.headers).toMatchInlineSnapshot(`
+      {
+        "content-length": "2053",
+        "content-type": "application/json",
+        "test-header": "test-value",
+      }
+    `);
+  });
+
   it('should pass user setting to requests', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
-    const modelWithUser = provider('grok-beta');
+    const modelWithUser = provider('grok-3');
     await modelWithUser.doGenerate({
       prompt: TEST_PROMPT,
       providerOptions: {
@@ -157,49 +295,8 @@ describe('doGenerate', () => {
             "role": "user",
           },
         ],
-        "model": "grok-beta",
+        "model": "grok-3",
       }
-    `);
-  });
-
-  it('should extract text response', async () => {
-    prepareJsonResponse({ content: 'Hello, World!' });
-
-    const { content } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(content).toMatchInlineSnapshot(`
-      [
-        {
-          "text": "Hello, World!",
-          "type": "text",
-        },
-      ]
-    `);
-  });
-
-  it('should extract reasoning content', async () => {
-    prepareJsonResponse({
-      content: 'Hello, World!',
-      reasoning_content: 'This is the reasoning behind the response',
-    });
-
-    const { content } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(content).toMatchInlineSnapshot(`
-      [
-        {
-          "text": "Hello, World!",
-          "type": "text",
-        },
-        {
-          "text": "This is the reasoning behind the response",
-          "type": "reasoning",
-        },
-      ]
     `);
   });
 
@@ -248,74 +345,6 @@ describe('doGenerate', () => {
     `);
   });
 
-  it('should extract usage', async () => {
-    prepareJsonResponse({
-      usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
-    });
-
-    const { usage } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(usage).toMatchInlineSnapshot(`
-      {
-        "cachedInputTokens": undefined,
-        "inputTokens": 20,
-        "outputTokens": 5,
-        "reasoningTokens": undefined,
-        "totalTokens": 25,
-      }
-    `);
-  });
-
-  it('should send additional response information', async () => {
-    prepareJsonResponse({
-      id: 'test-id',
-      created: 123,
-      model: 'test-model',
-    });
-
-    const { response } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(response).toMatchInlineSnapshot(`
-      {
-        "body": {
-          "choices": [
-            {
-              "finish_reason": "stop",
-              "index": 0,
-              "message": {
-                "content": "",
-                "reasoning": "",
-                "reasoning_content": "",
-                "role": "assistant",
-              },
-            },
-          ],
-          "created": 123,
-          "id": "test-id",
-          "model": "test-model",
-          "object": "chat.completion",
-          "system_fingerprint": "fp_3bc1b5746c",
-          "usage": {
-            "completion_tokens": 30,
-            "prompt_tokens": 4,
-            "total_tokens": 34,
-          },
-        },
-        "headers": {
-          "content-length": "313",
-          "content-type": "application/json",
-        },
-        "id": "test-id",
-        "modelId": "test-model",
-        "timestamp": 1970-01-01T00:02:03.000Z,
-      }
-    `);
-  });
-
   it('should support partial usage', async () => {
     prepareJsonResponse({
       usage: { prompt_tokens: 20, total_tokens: 20 },
@@ -327,25 +356,23 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
-        "cachedInputTokens": undefined,
-        "inputTokens": 20,
-        "outputTokens": undefined,
-        "reasoningTokens": undefined,
-        "totalTokens": 20,
+        "inputTokens": {
+          "cacheRead": 0,
+          "cacheWrite": undefined,
+          "noCache": 20,
+          "total": 20,
+        },
+        "outputTokens": {
+          "reasoning": 0,
+          "text": 0,
+          "total": 0,
+        },
+        "raw": {
+          "prompt_tokens": 20,
+          "total_tokens": 20,
+        },
       }
     `);
-  });
-
-  it('should extract finish reason', async () => {
-    prepareJsonResponse({
-      finish_reason: 'stop',
-    });
-
-    const response = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(response.finishReason).toStrictEqual('stop');
   });
 
   it('should support unknown finish reason', async () => {
@@ -357,26 +384,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(response.finishReason).toStrictEqual('unknown');
-  });
-
-  it('should expose the raw response headers', async () => {
-    prepareJsonResponse({
-      headers: { 'test-header': 'test-value' },
-    });
-
-    const { response } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(response?.headers).toStrictEqual({
-      // default headers:
-      'content-length': '350',
-      'content-type': 'application/json',
-
-      // custom header
-      'test-header': 'test-value',
-    });
+    expect(response.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": "eos",
+            "unified": "other",
+          }
+        `);
   });
 
   it('should pass the model and the messages', async () => {
@@ -386,16 +399,49 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'grok-beta',
-      messages: [{ role: 'user', content: 'Hello' }],
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "grok-3",
+      }
+    `);
   });
 
   it('should pass settings', async () => {
     prepareJsonResponse();
 
-    await provider('grok-beta').doGenerate({
+    await provider('grok-3').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openaiCompatible: {
+          user: 'test-user-id',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "grok-3",
+        "user": "test-user-id",
+      }
+    `);
+  });
+
+  it('should pass settings with deprecated openai-compatible key and emit warning', async () => {
+    prepareJsonResponse();
+
+    const result = await provider('grok-3').doGenerate({
       prompt: TEST_PROMPT,
       providerOptions: {
         'openai-compatible': {
@@ -404,17 +450,29 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'grok-beta',
-      messages: [{ role: 'user', content: 'Hello' }],
-      user: 'test-user-id',
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "grok-3",
+        "user": "test-user-id",
+      }
+    `);
+
+    expect(result.warnings).toContainEqual({
+      type: 'other',
+      message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
     });
   });
 
   it('should include provider-specific options', async () => {
     prepareJsonResponse();
 
-    await provider('grok-beta').doGenerate({
+    await provider('grok-3').doGenerate({
       providerOptions: {
         'test-provider': {
           someCustomOption: 'test-value',
@@ -423,17 +481,24 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'grok-beta',
-      messages: [{ role: 'user', content: 'Hello' }],
-      someCustomOption: 'test-value',
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "grok-3",
+        "someCustomOption": "test-value",
+      }
+    `);
   });
 
   it('should not include provider-specific options for different provider', async () => {
     prepareJsonResponse();
 
-    await provider('grok-beta').doGenerate({
+    await provider('grok-3').doGenerate({
       providerOptions: {
         notThisProviderName: {
           someCustomOption: 'test-value',
@@ -442,10 +507,17 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'grok-beta',
-      messages: [{ role: 'user', content: 'Hello' }],
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "grok-3",
+      }
+    `);
   });
 
   it('should pass tools and toolChoice', async () => {
@@ -472,29 +544,44 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'grok-beta',
-      messages: [{ role: 'user', content: 'Hello' }],
-      tools: [
-        {
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
           },
+        ],
+        "model": "grok-3",
+        "tool_choice": {
+          "function": {
+            "name": "test-tool",
+          },
+          "type": "function",
         },
-      ],
-      tool_choice: {
-        type: 'function',
-        function: { name: 'test-tool' },
-      },
-    });
+        "tools": [
+          {
+            "function": {
+              "name": "test-tool",
+              "parameters": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+            },
+            "type": "function",
+          },
+        ],
+      }
+    `);
   });
 
   it('should pass headers', async () => {
@@ -509,66 +596,188 @@ describe('doGenerate', () => {
       },
     });
 
-    await provider('grok-beta').doGenerate({
+    await provider('grok-3').doGenerate({
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
     });
 
-    expect(server.calls[0].requestHeaders).toStrictEqual({
-      authorization: 'Bearer test-api-key',
-      'content-type': 'application/json',
-      'custom-provider-header': 'provider-header-value',
-      'custom-request-header': 'request-header-value',
-    });
+    expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+      {
+        "authorization": "Bearer test-api-key",
+        "content-type": "application/json",
+        "custom-provider-header": "provider-header-value",
+        "custom-request-header": "request-header-value",
+      }
+    `);
   });
 
-  it('should parse tool results', async () => {
-    prepareJsonResponse({
-      tool_calls: [
-        {
-          id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            arguments: '{"value":"Spark"}',
+  describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
+    it('should parse thought signature from extra_content and include in providerMetadata', async () => {
+      prepareJsonResponse({
+        tool_calls: [
+          {
+            id: 'function-call-1',
+            type: 'function',
+            function: {
+              name: 'check_flight',
+              arguments: '{"flight":"AA100"}',
+            },
+            extra_content: {
+              google: {
+                thought_signature: '<Signature A>',
+              },
+            },
           },
-        },
-      ],
+        ],
+      });
+
+      const result = await model.doGenerate({
+        tools: [
+          {
+            type: 'function',
+            name: 'check_flight',
+            inputSchema: {
+              type: 'object',
+              properties: { flight: { type: 'string' } },
+              required: ['flight'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "input": "{"flight":"AA100"}",
+            "providerMetadata": {
+              "test-provider": {
+                "thoughtSignature": "<Signature A>",
+              },
+            },
+            "toolCallId": "function-call-1",
+            "toolName": "check_flight",
+            "type": "tool-call",
+          },
+        ]
+      `);
     });
 
-    const result = await model.doGenerate({
-      tools: [
-        {
-          type: 'function',
-          name: 'test-tool',
-          inputSchema: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
+    it('should handle parallel tool calls with signature only on first call', async () => {
+      prepareJsonResponse({
+        tool_calls: [
+          {
+            id: 'function-call-paris',
+            type: 'function',
+            function: {
+              name: 'get_current_temperature',
+              arguments: '{"location":"Paris"}',
+            },
+            extra_content: {
+              google: {
+                thought_signature: '<Signature A>',
+              },
+            },
           },
-        },
-      ],
-      toolChoice: {
-        type: 'tool',
-        toolName: 'test-tool',
-      },
-      prompt: TEST_PROMPT,
+          {
+            id: 'function-call-london',
+            type: 'function',
+            function: {
+              name: 'get_current_temperature',
+              arguments: '{"location":"London"}',
+            },
+            // No extra_content - parallel calls don't have signatures
+          },
+        ],
+      });
+
+      const result = await model.doGenerate({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_current_temperature',
+            inputSchema: {
+              type: 'object',
+              properties: { location: { type: 'string' } },
+              required: ['location'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "input": "{"location":"Paris"}",
+            "providerMetadata": {
+              "test-provider": {
+                "thoughtSignature": "<Signature A>",
+              },
+            },
+            "toolCallId": "function-call-paris",
+            "toolName": "get_current_temperature",
+            "type": "tool-call",
+          },
+          {
+            "input": "{"location":"London"}",
+            "toolCallId": "function-call-london",
+            "toolName": "get_current_temperature",
+            "type": "tool-call",
+          },
+        ]
+      `);
     });
 
-    expect(result.content).toMatchInlineSnapshot(`
-      [
-        {
-          "input": "{"value":"Spark"}",
-          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-          "toolName": "test-tool",
-          "type": "tool-call",
-        },
-      ]
-    `);
+    it('should not include providerMetadata when no thought signature is present', async () => {
+      prepareJsonResponse({
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function',
+            function: {
+              name: 'some_tool',
+              arguments: '{"param":"value"}',
+            },
+            // No extra_content
+          },
+        ],
+      });
+
+      const result = await model.doGenerate({
+        tools: [
+          {
+            type: 'function',
+            name: 'some_tool',
+            inputSchema: {
+              type: 'object',
+              properties: { param: { type: 'string' } },
+              required: ['param'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "input": "{"param":"value"}",
+            "toolCallId": "call-1",
+            "toolName": "some_tool",
+            "type": "tool-call",
+          },
+        ]
+      `);
+    });
   });
 
   describe('response format', () => {
@@ -587,10 +796,17 @@ describe('doGenerate', () => {
         responseFormat: { type: 'text' },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "gpt-4o-2024-08-06",
+        }
+      `);
     });
 
     it('should forward json response format as "json_object" without schema', async () => {
@@ -603,11 +819,20 @@ describe('doGenerate', () => {
         responseFormat: { type: 'json' },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: { type: 'json_object' },
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "type": "json_object",
+          },
+        }
+      `);
     });
 
     it('should forward json response format as "json_object" and omit schema when structuredOutputs are disabled', async () => {
@@ -634,20 +859,30 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: { type: 'json_object' },
-      });
-
-      expect(warnings).toEqual([
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
-          details:
-            'JSON response format schema is only supported with structuredOutputs',
-          setting: 'responseFormat',
-          type: 'unsupported-setting',
-        },
-      ]);
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "type": "json_object",
+          },
+        }
+      `);
+
+      expect(warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "JSON response format schema is only supported with structuredOutputs",
+            "feature": "responseFormat",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('should forward json response format as "json_object" and include schema when structuredOutputs are enabled', async () => {
@@ -674,23 +909,37 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'response',
-            schema: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
             },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "json_schema": {
+              "name": "response",
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "strict": true,
+            },
+            "type": "json_schema",
           },
-        },
-      });
+        }
+      `);
 
       expect(warnings).toEqual([]);
     });
@@ -711,11 +960,18 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-5',
-        messages: [{ role: 'user', content: 'Hello' }],
-        reasoning_effort: 'high',
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "gpt-5",
+          "reasoning_effort": "high",
+        }
+      `);
     });
 
     it('should not duplicate reasoningEffort in request body', async () => {
@@ -760,11 +1016,18 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-5',
-        messages: [{ role: 'user', content: 'Hello' }],
-        verbosity: 'low',
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "gpt-5",
+          "verbosity": "low",
+        }
+      `);
     });
 
     it('should not duplicate textVerbosity in request body', async () => {
@@ -817,23 +1080,37 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'response',
-            schema: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
             },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "json_schema": {
+              "name": "response",
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "strict": true,
+            },
+            "type": "json_schema",
           },
-        },
-      });
+        }
+      `);
     });
 
     it('should set name & description with responseFormat json when structuredOutputs are enabled', async () => {
@@ -862,24 +1139,103 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'test-name',
-            description: 'test description',
-            schema: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
             },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "json_schema": {
+              "description": "test description",
+              "name": "test-name",
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "strict": true,
+            },
+            "type": "json_schema",
+          },
+        }
+      `);
+    });
+
+    it('should send strict: false when strictJsonSchema is explicitly disabled', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        supportsStructuredOutputs: true,
+      });
+
+      await model.doGenerate({
+        responseFormat: {
+          type: 'json',
+          name: 'test-name',
+          description: 'test description',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
         },
+        providerOptions: {
+          'test-provider': {
+            strictJsonSchema: false,
+          },
+        },
+        prompt: TEST_PROMPT,
       });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "json_schema": {
+              "description": "test description",
+              "name": "test-name",
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "strict": false,
+            },
+            "type": "json_schema",
+          },
+        }
+      `);
     });
 
     it('should allow for undefined schema with responseFormat json when structuredOutputs are enabled', async () => {
@@ -901,13 +1257,20 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: {
-          type: 'json_object',
-        },
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "type": "json_object",
+          },
+        }
+      `);
     });
   });
 
@@ -918,9 +1281,11 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(request).toStrictEqual({
-      body: '{"model":"grok-beta","messages":[{"role":"user","content":"Hello"}]}',
-    });
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": "{"model":"grok-3","messages":[{"role":"user","content":"Hello"}]}",
+      }
+    `);
   });
 
   describe('usage details', () => {
@@ -947,11 +1312,30 @@ describe('doGenerate', () => {
 
       expect(result.usage).toMatchInlineSnapshot(`
         {
-          "cachedInputTokens": 5,
-          "inputTokens": 20,
-          "outputTokens": 30,
-          "reasoningTokens": 10,
-          "totalTokens": 50,
+          "inputTokens": {
+            "cacheRead": 5,
+            "cacheWrite": undefined,
+            "noCache": 15,
+            "total": 20,
+          },
+          "outputTokens": {
+            "reasoning": 10,
+            "text": 20,
+            "total": 30,
+          },
+          "raw": {
+            "completion_tokens": 30,
+            "completion_tokens_details": {
+              "accepted_prediction_tokens": 15,
+              "reasoning_tokens": 10,
+              "rejected_prediction_tokens": 5,
+            },
+            "prompt_tokens": 20,
+            "prompt_tokens_details": {
+              "cached_tokens": 5,
+            },
+            "total_tokens": 50,
+          },
         }
       `);
       expect(result.providerMetadata).toMatchInlineSnapshot(`
@@ -977,7 +1361,9 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(result.providerMetadata!['test-provider']).toStrictEqual({});
+      expect(result.providerMetadata!['test-provider']).toMatchInlineSnapshot(
+        `{}`,
+      );
     });
 
     it('should handle partial token details', async () => {
@@ -1002,11 +1388,76 @@ describe('doGenerate', () => {
 
       expect(result.usage).toMatchInlineSnapshot(`
         {
-          "cachedInputTokens": 5,
-          "inputTokens": 20,
-          "outputTokens": 30,
-          "reasoningTokens": 10,
-          "totalTokens": 50,
+          "inputTokens": {
+            "cacheRead": 5,
+            "cacheWrite": undefined,
+            "noCache": 15,
+            "total": 20,
+          },
+          "outputTokens": {
+            "reasoning": 10,
+            "text": 20,
+            "total": 30,
+          },
+          "raw": {
+            "completion_tokens": 30,
+            "completion_tokens_details": {
+              "reasoning_tokens": 10,
+            },
+            "prompt_tokens": 20,
+            "prompt_tokens_details": {
+              "cached_tokens": 5,
+            },
+            "total_tokens": 50,
+          },
+        }
+      `);
+    });
+
+    it('should preserve extra usage fields from provider-specific responses', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-test',
+          object: 'chat.completion',
+          created: 1711115037,
+          model: 'grok-3',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: 'Hello!',
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: {
+            prompt_tokens: 18,
+            completion_tokens: 439,
+            total_tokens: 457,
+            // Provider-specific extra fields (e.g., from Groq)
+            queue_time: 0.061348671,
+            prompt_time: 0.000211569,
+            completion_time: 0.798181818,
+            total_time: 0.798393387,
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.usage.raw).toMatchInlineSnapshot(`
+        {
+          "completion_time": 0.798181818,
+          "completion_tokens": 439,
+          "prompt_time": 0.000211569,
+          "prompt_tokens": 18,
+          "queue_time": 0.061348671,
+          "total_time": 0.798393387,
+          "total_tokens": 457,
         }
       `);
     });
@@ -1027,17 +1478,17 @@ describe('doStream', () => {
       type: 'stream-chunks',
       headers,
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
           `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
         ...content.map(text => {
           return (
-            `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-beta",` +
+            `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
             `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"${text}"},"finish_reason":null}]}\n\n`
           );
         }),
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
           `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}"}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}"}],` +
           `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
           `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
@@ -1045,6 +1496,56 @@ describe('doStream', () => {
       ],
     };
   }
+
+  describe('text (fixture)', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('xai-text');
+    });
+
+    it('should stream text content', async () => {
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+  });
+
+  describe('tool call (fixture)', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('xai-tool-call');
+    });
+
+    it('should stream tool call content', async () => {
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+  });
+
+  it('should expose the raw response headers', async () => {
+    prepareChunksFixtureResponse('xai-text', {
+      headers: { 'test-header': 'test-value' },
+    });
+
+    const { response } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(response?.headers).toMatchInlineSnapshot(`
+      {
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream",
+        "test-header": "test-value",
+      }
+    `);
+  });
 
   it('should respect the includeUsage option', async () => {
     prepareStreamResponse({
@@ -1067,71 +1568,10 @@ describe('doStream', () => {
     const body = await server.calls[0].requestBodyJson;
 
     expect(body.stream).toBe(true);
-    expect(body.stream_options).toStrictEqual({ include_usage: true });
-  });
-
-  it('should stream text deltas', async () => {
-    prepareStreamResponse({
-      content: ['Hello', ', ', 'World!'],
-      finish_reason: 'stop',
-    });
-
-    const { stream } = await model.doStream({
-      prompt: TEST_PROMPT,
-      includeRawChunks: false,
-    });
-
-    // note: space moved to last chunk bc of trimming
-    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
-      [
-        {
-          "type": "stream-start",
-          "warnings": [],
-        },
-        {
-          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
-          "timestamp": 2023-12-15T16:17:00.000Z,
-          "type": "response-metadata",
-        },
-        {
-          "id": "txt-0",
-          "type": "text-start",
-        },
-        {
-          "delta": "Hello",
-          "id": "txt-0",
-          "type": "text-delta",
-        },
-        {
-          "delta": ", ",
-          "id": "txt-0",
-          "type": "text-delta",
-        },
-        {
-          "delta": "World!",
-          "id": "txt-0",
-          "type": "text-delta",
-        },
-        {
-          "id": "txt-0",
-          "type": "text-end",
-        },
-        {
-          "finishReason": "stop",
-          "providerMetadata": {
-            "test-provider": {},
-          },
-          "type": "finish",
-          "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 18,
-            "outputTokens": 439,
-            "reasoningTokens": undefined,
-            "totalTokens": 457,
-          },
-        },
-      ]
+    expect(body.stream_options).toMatchInlineSnapshot(`
+      {
+        "include_usage": true,
+      }
     `);
   });
 
@@ -1139,15 +1579,15 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":"", "reasoning_content":"Let me think"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"", "reasoning_content":" about this"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"Here's"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":" my response"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
           `"usage":{"prompt_tokens":18,"completion_tokens":439}}\n\n`,
         'data: [DONE]\n\n',
@@ -1167,7 +1607,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -1186,6 +1626,10 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
           "id": "txt-0",
           "type": "text-start",
         },
@@ -1200,25 +1644,34 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
-          "id": "reasoning-0",
-          "type": "reasoning-end",
-        },
-        {
           "id": "txt-0",
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 18,
-            "outputTokens": 439,
-            "reasoningTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 18,
+              "total": 18,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 439,
+              "total": 439,
+            },
+            "raw": {
+              "completion_tokens": 439,
+              "prompt_tokens": 18,
+            },
           },
         },
       ]
@@ -1229,15 +1682,15 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":"", "reasoning":"Let me consider"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"", "reasoning":" this carefully"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"My answer is"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":" correct"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
           `"usage":{"prompt_tokens":18,"completion_tokens":439}}\n\n`,
         'data: [DONE]\n\n',
@@ -1257,7 +1710,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -1276,6 +1729,10 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
           "id": "txt-0",
           "type": "text-start",
         },
@@ -1290,25 +1747,34 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
-          "id": "reasoning-0",
-          "type": "reasoning-end",
-        },
-        {
           "id": "txt-0",
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 18,
-            "outputTokens": 439,
-            "reasoningTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 18,
+              "total": 18,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 439,
+              "total": 439,
+            },
+            "raw": {
+              "completion_tokens": 439,
+              "prompt_tokens": 18,
+            },
           },
         },
       ]
@@ -1319,11 +1785,11 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":"", "reasoning_content":"From reasoning_content", "reasoning":"From reasoning"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"Final response"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
           `"usage":{"prompt_tokens":18,"completion_tokens":439}}\n\n`,
         'data: [DONE]\n\n',
@@ -1343,7 +1809,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -1357,6 +1823,10 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
           "id": "txt-0",
           "type": "text-start",
         },
@@ -1366,25 +1836,34 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
-          "id": "reasoning-0",
-          "type": "reasoning-end",
-        },
-        {
           "id": "txt-0",
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 18,
-            "outputTokens": 439,
-            "reasoningTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 18,
+              "total": 18,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 439,
+              "total": 439,
+            },
+            "raw": {
+              "completion_tokens": 439,
+              "prompt_tokens": 18,
+            },
           },
         },
       ]
@@ -1395,32 +1874,32 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
           `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":""}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\""}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"value"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
           `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
           `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
@@ -1454,7 +1933,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -1509,53 +1988,209 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 18,
-            "outputTokens": 439,
-            "reasoningTokens": undefined,
-            "totalTokens": 457,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 18,
+              "total": 18,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 439,
+              "total": 439,
+            },
+            "raw": {
+              "completion_time": 0.798181818,
+              "completion_tokens": 439,
+              "prompt_time": 0.000211569,
+              "prompt_tokens": 18,
+              "queue_time": 0.061348671,
+              "total_time": 0.798393387,
+              "total_tokens": 457,
+            },
           },
         },
       ]
     `);
   });
 
+  it('should stream tool call with thought signature from extra_content', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        // First chunk with tool call start and thought signature in extra_content
+        `data: {"id":"chatcmpl-gemini-thought","object":"chat.completion.chunk","created":1711357598,"model":"gemini-3-pro",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
+          `"tool_calls":[{"index":0,"id":"function-call-1","type":"function","function":{"name":"check_flight","arguments":""},` +
+          `"extra_content":{"google":{"thought_signature":"<Signature A>"}}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        // Subsequent chunks with arguments
+        `data: {"id":"chatcmpl-gemini-thought","object":"chat.completion.chunk","created":1711357598,"model":"gemini-3-pro",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\"flight\\":"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-gemini-thought","object":"chat.completion.chunk","created":1711357598,"model":"gemini-3-pro",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"AA100\\"}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-gemini-thought","object":"chat.completion.chunk","created":1711357598,"model":"gemini-3-pro",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
+          `"usage":{"prompt_tokens":10,"completion_tokens":20,"total_tokens":30}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'check_flight',
+          inputSchema: {
+            type: 'object',
+            properties: { flight: { type: 'string' } },
+            required: ['flight'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+
+    // Find the tool-call event and verify it has the thought signature in providerMetadata
+    const toolCallEvent = result.find(
+      (event: { type: string }) => event.type === 'tool-call',
+    );
+    expect(toolCallEvent).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'function-call-1',
+      toolName: 'check_flight',
+      input: '{"flight":"AA100"}',
+      providerMetadata: {
+        'test-provider': {
+          thoughtSignature: '<Signature A>',
+        },
+      },
+    });
+  });
+
+  it('should stream parallel tool calls with signature only on first call', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        // First chunk with two tool calls - only first has thought signature
+        `data: {"id":"chatcmpl-gemini-parallel","object":"chat.completion.chunk","created":1711357598,"model":"gemini-3-pro",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
+          `"tool_calls":[` +
+          `{"index":0,"id":"call-paris","type":"function","function":{"name":"get_weather","arguments":""},` +
+          `"extra_content":{"google":{"thought_signature":"<Signature A>"}}},` +
+          `{"index":1,"id":"call-london","type":"function","function":{"name":"get_weather","arguments":""}}` +
+          `]},` +
+          `"finish_reason":null}]}\n\n`,
+        // Arguments for first call
+        `data: {"id":"chatcmpl-gemini-parallel","object":"chat.completion.chunk","created":1711357598,"model":"gemini-3-pro",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\"location\\":\\"Paris\\"}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        // Arguments for second call
+        `data: {"id":"chatcmpl-gemini-parallel","object":"chat.completion.chunk","created":1711357598,"model":"gemini-3-pro",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":1,"function":{"arguments":"{\\"location\\":\\"London\\"}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-gemini-parallel","object":"chat.completion.chunk","created":1711357598,"model":"gemini-3-pro",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
+          `"usage":{"prompt_tokens":10,"completion_tokens":20,"total_tokens":30}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+            required: ['location'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+
+    const toolCallEvents = result.filter(
+      (event: { type: string }) => event.type === 'tool-call',
+    );
+
+    expect(toolCallEvents).toHaveLength(2);
+
+    // First tool call should have thought signature
+    expect(toolCallEvents[0]).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'call-paris',
+      toolName: 'get_weather',
+      providerMetadata: {
+        'test-provider': {
+          thoughtSignature: '<Signature A>',
+        },
+      },
+    });
+
+    // Second tool call should NOT have thought signature
+    expect(toolCallEvents[1]).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'call-london',
+      toolName: 'get_weather',
+    });
+    expect(
+      (toolCallEvents[1] as { providerMetadata?: unknown }).providerMetadata,
+    ).toBeUndefined();
+  });
+
   it('should stream tool call deltas when tool call arguments are passed in the first chunk', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
           `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\""}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"va"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"lue"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
           `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
           `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
@@ -1589,7 +2224,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -1649,17 +2284,35 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 18,
-            "outputTokens": 439,
-            "reasoningTokens": undefined,
-            "totalTokens": 457,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 18,
+              "total": 18,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 439,
+              "total": 439,
+            },
+            "raw": {
+              "completion_time": 0.798181818,
+              "completion_tokens": 439,
+              "prompt_time": 0.000211569,
+              "prompt_tokens": 18,
+              "queue_time": 0.061348671,
+              "total_time": 0.798393387,
+              "total_tokens": 457,
+            },
           },
         },
       ]
@@ -1780,17 +2433,31 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 226,
-            "outputTokens": 20,
-            "reasoningTokens": undefined,
-            "totalTokens": 246,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 226,
+              "total": 226,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 20,
+              "total": 20,
+            },
+            "raw": {
+              "completion_tokens": 20,
+              "prompt_tokens": 226,
+              "total_tokens": 246,
+            },
           },
         },
       ]
@@ -1801,11 +2468,11 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
           `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\"value\\":\\"Sparkle Day\\"}"}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
           `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
           `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
@@ -1839,7 +2506,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -1864,17 +2531,35 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 18,
-            "outputTokens": 439,
-            "reasoningTokens": undefined,
-            "totalTokens": 457,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 18,
+              "total": 18,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 439,
+              "total": 439,
+            },
+            "raw": {
+              "completion_time": 0.798181818,
+              "completion_tokens": 439,
+              "prompt_time": 0.000211569,
+              "prompt_tokens": 18,
+              "queue_time": 0.061348671,
+              "total_time": 0.798393387,
+              "total_tokens": 457,
+            },
           },
         },
       ]
@@ -1885,11 +2570,11 @@ describe('doStream', () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
           `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":""}}]},` +
           `"finish_reason":null}]}\n\n`,
-        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
           `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
           `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
           `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
@@ -1922,7 +2607,7 @@ describe('doStream', () => {
         },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
-          "modelId": "grok-beta",
+          "modelId": "grok-3",
           "timestamp": 2024-03-25T09:06:38.000Z,
           "type": "response-metadata",
         },
@@ -1942,17 +2627,35 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 18,
-            "outputTokens": 439,
-            "reasoningTokens": undefined,
-            "totalTokens": 457,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 18,
+              "total": 18,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 439,
+              "total": 439,
+            },
+            "raw": {
+              "completion_time": 0.798181818,
+              "completion_tokens": 439,
+              "prompt_time": 0.000211569,
+              "prompt_tokens": 18,
+              "queue_time": 0.061348671,
+              "total_time": 0.798393387,
+              "total_tokens": 457,
+            },
           },
         },
       ]
@@ -1984,17 +2687,27 @@ describe('doStream', () => {
           "type": "error",
         },
         {
-          "finishReason": "error",
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "reasoningTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -2026,44 +2739,33 @@ describe('doStream', () => {
             "type": "error",
           },
           {
-            "finishReason": "error",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "error",
+            },
             "providerMetadata": {
               "test-provider": {},
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokens": undefined,
-              "outputTokens": undefined,
-              "reasoningTokens": undefined,
-              "totalTokens": undefined,
+              "inputTokens": {
+                "cacheRead": undefined,
+                "cacheWrite": undefined,
+                "noCache": undefined,
+                "total": undefined,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": undefined,
+              },
+              "raw": undefined,
             },
           },
         ]
       `);
     },
   );
-
-  it('should expose the raw response headers', async () => {
-    prepareStreamResponse({
-      headers: { 'test-header': 'test-value' },
-    });
-
-    const { response } = await model.doStream({
-      prompt: TEST_PROMPT,
-      includeRawChunks: false,
-    });
-
-    expect(response?.headers).toStrictEqual({
-      // default headers:
-      'content-type': 'text/event-stream',
-      'cache-control': 'no-cache',
-      connection: 'keep-alive',
-
-      // custom header
-      'test-header': 'test-value',
-    });
-  });
 
   it('should pass the messages and the model', async () => {
     prepareStreamResponse({ content: [] });
@@ -2073,11 +2775,18 @@ describe('doStream', () => {
       includeRawChunks: false,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      stream: true,
-      model: 'grok-beta',
-      messages: [{ role: 'user', content: 'Hello' }],
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "grok-3",
+        "stream": true,
+      }
+    `);
   });
 
   it('should pass headers', async () => {
@@ -2092,7 +2801,7 @@ describe('doStream', () => {
       },
     });
 
-    await provider('grok-beta').doStream({
+    await provider('grok-3').doStream({
       prompt: TEST_PROMPT,
       includeRawChunks: false,
       headers: {
@@ -2100,18 +2809,20 @@ describe('doStream', () => {
       },
     });
 
-    expect(await server.calls[0].requestHeaders).toStrictEqual({
-      authorization: 'Bearer test-api-key',
-      'content-type': 'application/json',
-      'custom-provider-header': 'provider-header-value',
-      'custom-request-header': 'request-header-value',
-    });
+    expect(await server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+      {
+        "authorization": "Bearer test-api-key",
+        "content-type": "application/json",
+        "custom-provider-header": "provider-header-value",
+        "custom-request-header": "request-header-value",
+      }
+    `);
   });
 
   it('should include provider-specific options', async () => {
     prepareStreamResponse({ content: [] });
 
-    await provider('grok-beta').doStream({
+    await provider('grok-3').doStream({
       providerOptions: {
         'test-provider': {
           someCustomOption: 'test-value',
@@ -2121,18 +2832,25 @@ describe('doStream', () => {
       includeRawChunks: false,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      stream: true,
-      model: 'grok-beta',
-      messages: [{ role: 'user', content: 'Hello' }],
-      someCustomOption: 'test-value',
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "grok-3",
+        "someCustomOption": "test-value",
+        "stream": true,
+      }
+    `);
   });
 
   it('should not include provider-specific options for different provider', async () => {
     prepareStreamResponse({ content: [] });
 
-    await provider('grok-beta').doStream({
+    await provider('grok-3').doStream({
       providerOptions: {
         notThisProviderName: {
           someCustomOption: 'test-value',
@@ -2142,11 +2860,18 @@ describe('doStream', () => {
       includeRawChunks: false,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      stream: true,
-      model: 'grok-beta',
-      messages: [{ role: 'user', content: 'Hello' }],
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "grok-3",
+        "stream": true,
+      }
+    `);
   });
 
   it('should send request body', async () => {
@@ -2168,7 +2893,7 @@ describe('doStream', () => {
               "role": "user",
             },
           ],
-          "model": "grok-beta",
+          "model": "grok-3",
           "presence_penalty": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
@@ -2214,7 +2939,10 @@ describe('doStream', () => {
 
       expect(finishPart).toMatchInlineSnapshot(`
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "test-provider": {
               "acceptedPredictionTokens": 15,
@@ -2223,11 +2951,29 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": 5,
-            "inputTokens": 20,
-            "outputTokens": 30,
-            "reasoningTokens": 10,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": 5,
+              "cacheWrite": undefined,
+              "noCache": 15,
+              "total": 20,
+            },
+            "outputTokens": {
+              "reasoning": 10,
+              "text": 20,
+              "total": 30,
+            },
+            "raw": {
+              "completion_tokens": 30,
+              "completion_tokens_details": {
+                "accepted_prediction_tokens": 15,
+                "reasoning_tokens": 10,
+                "rejected_prediction_tokens": 5,
+              },
+              "prompt_tokens": 20,
+              "prompt_tokens_details": {
+                "cached_tokens": 5,
+              },
+            },
           },
         }
       `);
@@ -2252,7 +2998,9 @@ describe('doStream', () => {
       const parts = await convertReadableStreamToArray(stream);
       const finishPart = parts.find(part => part.type === 'finish');
 
-      expect(finishPart?.providerMetadata!['test-provider']).toStrictEqual({});
+      expect(
+        finishPart?.providerMetadata!['test-provider'],
+      ).toMatchInlineSnapshot(`{}`);
     });
 
     it('should handle partial token details in stream', async () => {
@@ -2279,17 +3027,37 @@ describe('doStream', () => {
 
       expect(finishPart).toMatchInlineSnapshot(`
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": 5,
-            "inputTokens": 20,
-            "outputTokens": 30,
-            "reasoningTokens": 10,
-            "totalTokens": 50,
+            "inputTokens": {
+              "cacheRead": 5,
+              "cacheWrite": undefined,
+              "noCache": 15,
+              "total": 20,
+            },
+            "outputTokens": {
+              "reasoning": 10,
+              "text": 20,
+              "total": 30,
+            },
+            "raw": {
+              "completion_tokens": 30,
+              "completion_tokens_details": {
+                "reasoning_tokens": 10,
+              },
+              "prompt_tokens": 20,
+              "prompt_tokens_details": {
+                "cached_tokens": 5,
+              },
+              "total_tokens": 50,
+            },
           },
         }
       `);
@@ -2348,7 +3116,7 @@ describe('metadata extraction', () => {
         id: 'chatcmpl-123',
         object: 'chat.completion',
         created: 1711115037,
-        model: 'gpt-4',
+        model: 'gpt-5',
         choices: [
           {
             index: 0,
@@ -2362,7 +3130,7 @@ describe('metadata extraction', () => {
       },
     };
 
-    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
       provider: 'test-provider',
       url: () => 'https://my.api.com/v1/chat/completions',
       headers: () => ({}),
@@ -2379,10 +3147,17 @@ describe('metadata extraction', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'gpt-4',
-      messages: [{ role: 'user', content: 'Hello' }],
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gpt-5",
+      }
+    `);
   });
 
   it('should process metadata from streaming response', async () => {
@@ -2395,7 +3170,7 @@ describe('metadata extraction', () => {
       ],
     };
 
-    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
       provider: 'test-provider',
       url: () => 'https://my.api.com/v1/chat/completions',
       headers: () => ({}),
@@ -2416,11 +3191,18 @@ describe('metadata extraction', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'gpt-4',
-      messages: [{ role: 'user', content: 'Hello' }],
-      stream: true,
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gpt-5",
+        "stream": true,
+      }
+    `);
   });
 });
 
@@ -2490,20 +3272,162 @@ describe('raw chunks', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "reasoningTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
     `);
+  });
+});
+
+describe('transformRequestBody', () => {
+  function prepareTransformJsonResponse() {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-test',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'grok-3',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'Hello!',
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+        },
+      },
+    };
+  }
+
+  function prepareTransformStreamResponse() {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"grok-3","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"grok-3","choices":[{"index":0,"delta":{"content":"!"},"finish_reason":"stop"}],"usage":{"prompt_tokens":4,"completion_tokens":2,"total_tokens":6}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+  }
+
+  it('should transform request body in doGenerate when transformRequestBody is provided', async () => {
+    const transformFn = vi.fn((body: Record<string, any>) => ({
+      ...body,
+      custom_field: 'added-by-transform',
+    }));
+
+    prepareTransformJsonResponse();
+
+    const model = new OpenAICompatibleChatLanguageModel('grok-3', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://my.api.com/v1${path}`,
+      headers: () => ({}),
+      transformRequestBody: transformFn,
+    });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    // Verify transform was called
+    expect(transformFn).toHaveBeenCalledOnce();
+    expect(transformFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'grok-3',
+        messages: [{ role: 'user', content: 'Hello' }],
+      }),
+    );
+
+    // Verify transformed body was sent
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      custom_field: 'added-by-transform',
+    });
+  });
+
+  it('should transform request body in doStream when transformRequestBody is provided', async () => {
+    const transformFn = vi.fn((body: Record<string, any>) => ({
+      ...body,
+      custom_field: 'added-by-transform',
+    }));
+
+    prepareTransformStreamResponse();
+
+    const model = new OpenAICompatibleChatLanguageModel('grok-3', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://my.api.com/v1${path}`,
+      headers: () => ({}),
+      transformRequestBody: transformFn,
+    });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    // Consume the stream
+    await convertReadableStreamToArray(stream);
+
+    // Verify transform was called
+    expect(transformFn).toHaveBeenCalledOnce();
+    expect(transformFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'grok-3',
+        messages: [{ role: 'user', content: 'Hello' }],
+        stream: true,
+      }),
+    );
+
+    // Verify transformed body was sent
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      custom_field: 'added-by-transform',
+    });
+  });
+
+  it('should work without transformRequestBody', async () => {
+    prepareTransformJsonResponse();
+
+    const model = new OpenAICompatibleChatLanguageModel('grok-3', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://my.api.com/v1${path}`,
+      headers: () => ({}),
+    });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      model: 'grok-3',
+    });
+    expect(requestBody).not.toHaveProperty('custom_field');
   });
 });

@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
@@ -13,7 +13,7 @@ vi.mock('../version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -126,6 +126,7 @@ function prepareChunksFixtureResponse(filename: string) {
   const chunks = fs
     .readFileSync(`src/chat/__fixtures__/${filename}.chunks.txt`, 'utf8')
     .split('\n')
+    .filter(line => line.trim().length > 0)
     .map(line => `data: ${line}\n\n`);
   chunks.push('data: [DONE]\n\n');
 
@@ -135,102 +136,42 @@ function prepareChunksFixtureResponse(filename: string) {
   };
 }
 
+function prepareJsonFixtureResponse(filename: string) {
+  server.urls['https://api.openai.com/v1/chat/completions'].response = {
+    type: 'json-value',
+    body: JSON.parse(
+      fs.readFileSync(`src/chat/__fixtures__/${filename}.json`, 'utf8'),
+    ),
+  };
+}
+
 describe('doGenerate', () => {
-  function prepareJsonResponse({
-    content = '',
-    tool_calls,
-    function_call,
-    annotations,
-    usage = {
-      prompt_tokens: 4,
-      total_tokens: 34,
-      completion_tokens: 30,
-    },
-    finish_reason = 'stop',
-    id = 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-    created = 1711115037,
-    model = 'gpt-3.5-turbo-0125',
-    logprobs = null,
-    headers,
-  }: {
-    content?: string;
-    tool_calls?: Array<{
-      id: string;
-      type: 'function';
-      function: {
-        name: string;
-        arguments: string;
-      };
-    }>;
-    function_call?: {
-      name: string;
-      arguments: string;
-    };
-    annotations?: Array<{
-      type: 'url_citation';
-      start_index: number;
-      end_index: number;
-      url: string;
-      title: string;
-    }>;
-    logprobs?: {
-      content:
-        | {
-            token: string;
-            logprob: number;
-            top_logprobs: { token: string; logprob: number }[];
-          }[]
-        | null;
-    } | null;
-    usage?: {
-      prompt_tokens?: number;
-      total_tokens?: number;
-      completion_tokens?: number;
-      completion_tokens_details?: {
-        reasoning_tokens?: number;
-        accepted_prediction_tokens?: number;
-        rejected_prediction_tokens?: number;
-      };
-      prompt_tokens_details?: {
-        cached_tokens?: number;
-      };
-    };
-    finish_reason?: string;
-    created?: number;
-    id?: string;
-    model?: string;
-    headers?: Record<string, string>;
-  } = {}) {
+  it('should extract text response', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'json-value',
-      headers,
       body: {
-        id,
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
         object: 'chat.completion',
-        created,
-        model,
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
         choices: [
           {
             index: 0,
             message: {
               role: 'assistant',
-              content,
-              tool_calls,
-              function_call,
-              annotations,
+              content: 'Hello, World!',
             },
-            ...(logprobs ? { logprobs } : {}),
-            finish_reason,
+            finish_reason: 'stop',
           },
         ],
-        usage,
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+        },
         system_fingerprint: 'fp_3bc1b5746c',
       },
     };
-  }
-
-  it('should extract text response', async () => {
-    prepareJsonResponse({ content: 'Hello, World!' });
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -247,9 +188,24 @@ describe('doGenerate', () => {
   });
 
   it('should extract usage', async () => {
-    prepareJsonResponse({
-      usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
-    });
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const { usage } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -257,17 +213,28 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
-        "cachedInputTokens": undefined,
-        "inputTokens": 20,
-        "outputTokens": 5,
-        "reasoningTokens": undefined,
-        "totalTokens": 25,
+        "inputTokens": {
+          "cacheRead": 0,
+          "cacheWrite": undefined,
+          "noCache": 20,
+          "total": 20,
+        },
+        "outputTokens": {
+          "reasoning": 0,
+          "text": 5,
+          "total": 5,
+        },
+        "raw": {
+          "completion_tokens": 5,
+          "prompt_tokens": 20,
+          "total_tokens": 25,
+        },
       }
     `);
   });
 
   it('should send request body', async () => {
-    prepareJsonResponse({});
+    prepareJsonFixtureResponse('openai-text');
 
     const { request } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -314,11 +281,28 @@ describe('doGenerate', () => {
   });
 
   it('should send additional response information', async () => {
-    prepareJsonResponse({
-      id: 'test-id',
-      created: 123,
-      model: 'test-model',
-    });
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'test-id',
+        object: 'chat.completion',
+        created: 123,
+        model: 'test-model',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+        },
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const { response } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -360,9 +344,24 @@ describe('doGenerate', () => {
   });
 
   it('should support partial usage', async () => {
-    prepareJsonResponse({
-      usage: { prompt_tokens: 20, total_tokens: 20 },
-    });
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 20, total_tokens: 20 },
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const { usage } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -370,19 +369,49 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
-        "cachedInputTokens": undefined,
-        "inputTokens": 20,
-        "outputTokens": undefined,
-        "reasoningTokens": undefined,
-        "totalTokens": 20,
+        "inputTokens": {
+          "cacheRead": 0,
+          "cacheWrite": undefined,
+          "noCache": 20,
+          "total": 20,
+        },
+        "outputTokens": {
+          "reasoning": 0,
+          "text": 0,
+          "total": 0,
+        },
+        "raw": {
+          "prompt_tokens": 20,
+          "total_tokens": 20,
+        },
       }
     `);
   });
 
   it('should extract logprobs', async () => {
-    prepareJsonResponse({
-      logprobs: TEST_LOGPROBS,
-    });
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            logprobs: TEST_LOGPROBS,
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+        },
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const response = await provider.chat('gpt-3.5-turbo').doGenerate({
       prompt: TEST_PROMPT,
@@ -398,33 +427,101 @@ describe('doGenerate', () => {
   });
 
   it('should extract finish reason', async () => {
-    prepareJsonResponse({
-      finish_reason: 'stop',
-    });
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+        },
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const response = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(response.finishReason).toStrictEqual('stop');
+    expect(response.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "stop",
+        "unified": "stop",
+      }
+    `);
   });
 
   it('should support unknown finish reason', async () => {
-    prepareJsonResponse({
-      finish_reason: 'eos',
-    });
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'eos',
+          },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+        },
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const response = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(response.finishReason).toStrictEqual('unknown');
+    expect(response.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "eos",
+        "unified": "other",
+      }
+    `);
   });
 
   it('should expose the raw response headers', async () => {
-    prepareJsonResponse({
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
       headers: { 'test-header': 'test-value' },
-    });
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+        },
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const { response } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -440,7 +537,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass the model and the messages', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -453,7 +550,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass settings', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     await provider.chat('gpt-3.5-turbo').doGenerate({
       prompt: TEST_PROMPT,
@@ -485,7 +582,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass reasoningEffort setting from provider metadata', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('o4-mini');
 
@@ -504,7 +601,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass reasoningEffort setting from settings', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('o4-mini');
 
@@ -522,8 +619,27 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass reasoningEffort xhigh setting', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('gpt-5.1-codex-max');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: { reasoningEffort: 'xhigh' },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-5.1-codex-max',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'xhigh',
+    });
+  });
+
   it('should pass textVerbosity setting from provider options', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-4o');
 
@@ -542,7 +658,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass tools and toolChoice', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     await model.doGenerate({
       tools: [
@@ -597,7 +713,6 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": false,
             },
             "type": "function",
           },
@@ -607,7 +722,7 @@ describe('doGenerate', () => {
   });
 
   it('should pass headers', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     const provider = createOpenAI({
       apiKey: 'test-api-key',
@@ -639,18 +754,41 @@ describe('doGenerate', () => {
   });
 
   it('should parse tool results', async () => {
-    prepareJsonResponse({
-      tool_calls: [
-        {
-          id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            arguments: '{"value":"Spark"}',
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: '',
+              tool_calls: [
+                {
+                  id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                  type: 'function',
+                  function: {
+                    name: 'test-tool',
+                    arguments: '{"value":"Spark"}',
+                  },
+                },
+              ],
+            },
+            finish_reason: 'stop',
           },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
         },
-      ],
-    });
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const result = await model.doGenerate({
       tools: [
@@ -686,18 +824,43 @@ describe('doGenerate', () => {
   });
 
   it('should parse annotations/citations', async () => {
-    prepareJsonResponse({
-      content: 'Based on the search results [doc1], I found information.',
-      annotations: [
-        {
-          type: 'url_citation',
-          start_index: 24,
-          end_index: 29,
-          url: 'https://example.com/doc1.pdf',
-          title: 'Document 1',
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content:
+                'Based on the search results [doc1], I found information.',
+              annotations: [
+                {
+                  type: 'url_citation',
+                  url_citation: {
+                    start_index: 24,
+                    end_index: 29,
+                    url: 'https://example.com/doc1.pdf',
+                    title: 'Document 1',
+                  },
+                },
+              ],
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
         },
-      ],
-    });
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const result = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -720,7 +883,7 @@ describe('doGenerate', () => {
 
   describe('response format', () => {
     it('should not send a response_format when response format is text', async () => {
-      prepareJsonResponse({ content: '{"value":"Spark"}' });
+      prepareJsonFixtureResponse('openai-text');
 
       const model = provider.chat('gpt-4o-2024-08-06');
 
@@ -736,7 +899,7 @@ describe('doGenerate', () => {
     });
 
     it('should forward json response format as "json_object" without schema', async () => {
-      prepareJsonResponse({ content: '{"value":"Spark"}' });
+      prepareJsonFixtureResponse('openai-text');
 
       const model = provider.chat('gpt-4o-2024-08-06');
 
@@ -752,57 +915,8 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should forward json response format as "json_object" and omit schema when structuredOutputs are disabled', async () => {
-      prepareJsonResponse({ content: '{"value":"Spark"}' });
-
-      const model = provider.chat('gpt-4o-2024-08-06');
-
-      const { warnings } = await model.doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          openai: {
-            structuredOutputs: false,
-          },
-        },
-        responseFormat: {
-          type: 'json',
-          schema: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
-          },
-        },
-      });
-
-      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-        {
-          "messages": [
-            {
-              "content": "Hello",
-              "role": "user",
-            },
-          ],
-          "model": "gpt-4o-2024-08-06",
-          "response_format": {
-            "type": "json_object",
-          },
-        }
-      `);
-
-      expect(warnings).toEqual([
-        {
-          details:
-            'JSON response format schema is only supported with structuredOutputs',
-          setting: 'responseFormat',
-          type: 'unsupported-setting',
-        },
-      ]);
-    });
-
-    it('should forward json response format as "json_object" and include schema when structuredOutputs are enabled', async () => {
-      prepareJsonResponse({ content: '{"value":"Spark"}' });
+    it('should forward json response format as "json_object" and include schema', async () => {
+      prepareJsonFixtureResponse('openai-text');
 
       const model = provider.chat('gpt-4o-2024-08-06');
 
@@ -845,7 +959,7 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": false,
+              "strict": true,
             },
             "type": "json_schema",
           },
@@ -855,8 +969,8 @@ describe('doGenerate', () => {
       expect(warnings).toEqual([]);
     });
 
-    it('should use json_schema & strict with responseFormat json when structuredOutputs are enabled', async () => {
-      prepareJsonResponse({ content: '{"value":"Spark"}' });
+    it('should use json_schema & strict with responseFormat json', async () => {
+      prepareJsonFixtureResponse('openai-text');
 
       const model = provider.chat('gpt-4o-2024-08-06');
 
@@ -899,7 +1013,7 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": false,
+              "strict": true,
             },
             "type": "json_schema",
           },
@@ -907,8 +1021,8 @@ describe('doGenerate', () => {
       `);
     });
 
-    it('should set name & description with responseFormat json when structuredOutputs are enabled', async () => {
-      prepareJsonResponse({ content: '{"value":"Spark"}' });
+    it('should set name & description with responseFormat json', async () => {
+      prepareJsonFixtureResponse('openai-text');
 
       const model = provider.chat('gpt-4o-2024-08-06');
 
@@ -954,7 +1068,7 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": false,
+              "strict": true,
             },
             "type": "json_schema",
           },
@@ -963,7 +1077,7 @@ describe('doGenerate', () => {
     });
 
     it('should allow for undefined schema with responseFormat json when structuredOutputs are enabled', async () => {
-      prepareJsonResponse({ content: '{"value":"Spark"}' });
+      prepareJsonFixtureResponse('openai-text');
 
       const model = provider.chat('gpt-4o-2024-08-06');
 
@@ -985,19 +1099,42 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should set strict with tool calls when structuredOutputs are enabled', async () => {
-      prepareJsonResponse({
-        tool_calls: [
-          {
-            id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-            type: 'function',
-            function: {
-              name: 'test-tool',
-              arguments: '{"value":"Spark"}',
+    it('should set strict with tool call', async () => {
+      server.urls['https://api.openai.com/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+          object: 'chat.completion',
+          created: 1711115037,
+          model: 'gpt-3.5-turbo-0125',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: '',
+                tool_calls: [
+                  {
+                    id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                    type: 'function',
+                    function: {
+                      name: 'test-tool',
+                      arguments: '{"value":"Spark"}',
+                    },
+                  },
+                ],
+              },
+              finish_reason: 'stop',
             },
+          ],
+          usage: {
+            prompt_tokens: 4,
+            total_tokens: 34,
+            completion_tokens: 30,
           },
-        ],
-      });
+          system_fingerprint: 'fp_3bc1b5746c',
+        },
+      };
 
       const model = provider.chat('gpt-4o-2024-08-06');
 
@@ -1048,7 +1185,6 @@ describe('doGenerate', () => {
                   ],
                   "type": "object",
                 },
-                "strict": false,
               },
               "type": "function",
             },
@@ -1069,19 +1205,42 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should set strict for tool usage when structuredOutputs are enabled', async () => {
-    prepareJsonResponse({
-      tool_calls: [
-        {
-          id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            arguments: '{"value":"Spark"}',
+  it('should set strict for tool usage', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: '',
+              tool_calls: [
+                {
+                  id: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                  type: 'function',
+                  function: {
+                    name: 'test-tool',
+                    arguments: '{"value":"Spark"}',
+                  },
+                },
+              ],
+            },
+            finish_reason: 'stop',
           },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
         },
-      ],
-    });
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const model = provider.chat('gpt-4o-2024-08-06');
 
@@ -1138,7 +1297,6 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": false,
             },
             "type": "function",
           },
@@ -1159,16 +1317,31 @@ describe('doGenerate', () => {
   });
 
   it('should return cached_tokens in prompt_details_tokens', async () => {
-    prepareJsonResponse({
-      usage: {
-        prompt_tokens: 15,
-        completion_tokens: 20,
-        total_tokens: 35,
-        prompt_tokens_details: {
-          cached_tokens: 1152,
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 15,
+          completion_tokens: 20,
+          total_tokens: 35,
+          prompt_tokens_details: {
+            cached_tokens: 1152,
+          },
         },
+        system_fingerprint: 'fp_3bc1b5746c',
       },
-    });
+    };
 
     const model = provider.chat('gpt-4o-mini');
 
@@ -1178,27 +1351,56 @@ describe('doGenerate', () => {
 
     expect(result.usage).toMatchInlineSnapshot(`
       {
-        "cachedInputTokens": 1152,
-        "inputTokens": 15,
-        "outputTokens": 20,
-        "reasoningTokens": undefined,
-        "totalTokens": 35,
+        "inputTokens": {
+          "cacheRead": 1152,
+          "cacheWrite": undefined,
+          "noCache": -1137,
+          "total": 15,
+        },
+        "outputTokens": {
+          "reasoning": 0,
+          "text": 20,
+          "total": 20,
+        },
+        "raw": {
+          "completion_tokens": 20,
+          "prompt_tokens": 15,
+          "prompt_tokens_details": {
+            "cached_tokens": 1152,
+          },
+          "total_tokens": 35,
+        },
       }
     `);
   });
 
   it('should return accepted_prediction_tokens and rejected_prediction_tokens in completion_details_tokens', async () => {
-    prepareJsonResponse({
-      usage: {
-        prompt_tokens: 15,
-        completion_tokens: 20,
-        total_tokens: 35,
-        completion_tokens_details: {
-          accepted_prediction_tokens: 123,
-          rejected_prediction_tokens: 456,
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 15,
+          completion_tokens: 20,
+          total_tokens: 35,
+          completion_tokens_details: {
+            accepted_prediction_tokens: 123,
+            rejected_prediction_tokens: 456,
+          },
         },
+        system_fingerprint: 'fp_3bc1b5746c',
       },
-    });
+    };
 
     const model = provider.chat('gpt-4o-mini');
 
@@ -1216,7 +1418,7 @@ describe('doGenerate', () => {
 
   describe('reasoning models', () => {
     it('should clear out temperature, top_p, frequency_penalty, presence_penalty and return warnings', async () => {
-      prepareJsonResponse();
+      prepareJsonFixtureResponse('openai-text');
 
       const model = provider.chat('o4-mini');
 
@@ -1233,32 +1435,34 @@ describe('doGenerate', () => {
         messages: [{ role: 'user', content: 'Hello' }],
       });
 
-      expect(result.warnings).toStrictEqual([
-        {
-          type: 'unsupported-setting',
-          setting: 'temperature',
-          details: 'temperature is not supported for reasoning models',
-        },
-        {
-          type: 'unsupported-setting',
-          setting: 'topP',
-          details: 'topP is not supported for reasoning models',
-        },
-        {
-          type: 'unsupported-setting',
-          setting: 'frequencyPenalty',
-          details: 'frequencyPenalty is not supported for reasoning models',
-        },
-        {
-          type: 'unsupported-setting',
-          setting: 'presencePenalty',
-          details: 'presencePenalty is not supported for reasoning models',
-        },
-      ]);
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "temperature is not supported for reasoning models",
+            "feature": "temperature",
+            "type": "unsupported",
+          },
+          {
+            "details": "topP is not supported for reasoning models",
+            "feature": "topP",
+            "type": "unsupported",
+          },
+          {
+            "details": "frequencyPenalty is not supported for reasoning models",
+            "feature": "frequencyPenalty",
+            "type": "unsupported",
+          },
+          {
+            "details": "presencePenalty is not supported for reasoning models",
+            "feature": "presencePenalty",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('should convert maxOutputTokens to max_completion_tokens', async () => {
-      prepareJsonResponse();
+      prepareJsonFixtureResponse('openai-text');
 
       const model = provider.chat('o4-mini');
 
@@ -1275,8 +1479,73 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should allow forcing reasoning behavior for unrecognized model IDs via providerOptions', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('stealth-reasoning-model');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      temperature: 0.5,
+      topP: 0.7,
+      providerOptions: {
+        openai: {
+          forceReasoning: true,
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'stealth-reasoning-model',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "temperature is not supported for reasoning models",
+          "feature": "temperature",
+          "type": "unsupported",
+        },
+        {
+          "details": "topP is not supported for reasoning models",
+          "feature": "topP",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
+  it('should default systemMessageMode to developer when forcing reasoning', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('stealth-reasoning-model');
+
+    const result = await model.doGenerate({
+      prompt: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      ],
+      providerOptions: {
+        openai: {
+          forceReasoning: true,
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'stealth-reasoning-model',
+      messages: [
+        { role: 'developer', content: 'You are a helpful assistant.' },
+        { role: 'user', content: 'Hello' },
+      ],
+    });
+
+    expect(result.warnings).toStrictEqual([]);
+  });
+
   it('should use developer messages for o1', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('o1');
 
@@ -1298,17 +1567,83 @@ describe('doGenerate', () => {
     expect(result.warnings).toStrictEqual([]);
   });
 
-  it('should return the reasoning tokens in the provider metadata', async () => {
-    prepareJsonResponse({
-      usage: {
-        prompt_tokens: 15,
-        completion_tokens: 20,
-        total_tokens: 35,
-        completion_tokens_details: {
-          reasoning_tokens: 10,
+  it('should allow overriding systemMessageMode via providerOptions', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('gpt-4o');
+
+    const result = await model.doGenerate({
+      prompt: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      ],
+      providerOptions: {
+        openai: {
+          systemMessageMode: 'developer',
         },
       },
     });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'developer', content: 'You are a helpful assistant.' },
+        { role: 'user', content: 'Hello' },
+      ],
+    });
+
+    expect(result.warnings).toStrictEqual([]);
+  });
+
+  it('should use default systemMessageMode when not overridden', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('gpt-4o');
+
+    const result = await model.doGenerate({
+      prompt: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: 'Hello' },
+      ],
+    });
+
+    expect(result.warnings).toStrictEqual([]);
+  });
+
+  it('should return the reasoning tokens in the provider metadata', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 15,
+          completion_tokens: 20,
+          total_tokens: 35,
+          completion_tokens_details: {
+            reasoning_tokens: 10,
+          },
+        },
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const model = provider.chat('o4-mini');
 
@@ -1318,17 +1653,52 @@ describe('doGenerate', () => {
 
     expect(result.usage).toMatchInlineSnapshot(`
       {
-        "cachedInputTokens": undefined,
-        "inputTokens": 15,
-        "outputTokens": 20,
-        "reasoningTokens": 10,
-        "totalTokens": 35,
+        "inputTokens": {
+          "cacheRead": 0,
+          "cacheWrite": undefined,
+          "noCache": 15,
+          "total": 15,
+        },
+        "outputTokens": {
+          "reasoning": 10,
+          "text": 10,
+          "total": 20,
+        },
+        "raw": {
+          "completion_tokens": 20,
+          "completion_tokens_details": {
+            "reasoning_tokens": 10,
+          },
+          "prompt_tokens": 15,
+          "total_tokens": 35,
+        },
       }
     `);
   });
 
   it('should send max_completion_tokens extension setting', async () => {
-    prepareJsonResponse({ model: 'o4-mini' });
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'o4-mini',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+        },
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
+    };
 
     const model = provider.chat('o4-mini');
 
@@ -1349,7 +1719,7 @@ describe('doGenerate', () => {
   });
 
   it('should send prediction extension setting', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1374,7 +1744,7 @@ describe('doGenerate', () => {
   });
 
   it('should send store extension setting', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1393,7 +1763,7 @@ describe('doGenerate', () => {
   });
 
   it('should send metadata extension values', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1416,7 +1786,7 @@ describe('doGenerate', () => {
   });
 
   it('should send promptCacheKey extension value', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1435,7 +1805,7 @@ describe('doGenerate', () => {
   });
 
   it('should send promptCacheRetention extension value', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1454,7 +1824,7 @@ describe('doGenerate', () => {
   });
 
   it('should send safetyIdentifier extension value', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -1473,7 +1843,7 @@ describe('doGenerate', () => {
   });
 
   it('should remove temperature setting for gpt-4o-search-preview and add warning', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-4o-search-preview');
 
@@ -1486,16 +1856,19 @@ describe('doGenerate', () => {
     expect(requestBody.model).toBe('gpt-4o-search-preview');
     expect(requestBody.temperature).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'temperature',
-      details:
-        'temperature is not supported for the search preview models and has been removed.',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "temperature is not supported for the search preview models and has been removed.",
+          "feature": "temperature",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should remove temperature setting for gpt-4o-mini-search-preview and add warning', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-4o-mini-search-preview');
 
@@ -1508,16 +1881,19 @@ describe('doGenerate', () => {
     expect(requestBody.model).toBe('gpt-4o-mini-search-preview');
     expect(requestBody.temperature).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'temperature',
-      details:
-        'temperature is not supported for the search preview models and has been removed.',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "temperature is not supported for the search preview models and has been removed.",
+          "feature": "temperature",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should remove temperature setting for gpt-4o-mini-search-preview-2025-03-11 and add warning', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-4o-mini-search-preview-2025-03-11');
 
@@ -1530,16 +1906,19 @@ describe('doGenerate', () => {
     expect(requestBody.model).toBe('gpt-4o-mini-search-preview-2025-03-11');
     expect(requestBody.temperature).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'temperature',
-      details:
-        'temperature is not supported for the search preview models and has been removed.',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "temperature is not supported for the search preview models and has been removed.",
+          "feature": "temperature",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should send serviceTier flex processing setting', async () => {
-    prepareJsonResponse({ content: '' });
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('o4-mini');
 
@@ -1567,7 +1946,7 @@ describe('doGenerate', () => {
   });
 
   it('should show warning when using flex processing with unsupported model', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-4o-mini');
 
@@ -1583,16 +1962,19 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.service_tier).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'serviceTier',
-      details:
-        'flex processing is only available for o3, o4-mini, and gpt-5 models',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "flex processing is only available for o3, o4-mini, and gpt-5 models",
+          "feature": "serviceTier",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should allow flex processing with o4-mini model without warnings', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('o4-mini');
 
@@ -1611,7 +1993,7 @@ describe('doGenerate', () => {
   });
 
   it('should send serviceTier priority processing setting', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-4o-mini');
 
@@ -1639,7 +2021,7 @@ describe('doGenerate', () => {
   });
 
   it('should show warning when using priority processing with unsupported model', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-3.5-turbo');
 
@@ -1655,16 +2037,19 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.service_tier).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'serviceTier',
-      details:
-        'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported",
+          "feature": "serviceTier",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should allow priority processing with gpt-4o model without warnings', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-4o');
 
@@ -1683,7 +2068,7 @@ describe('doGenerate', () => {
   });
 
   it('should allow priority processing with o3 model without warnings', async () => {
-    prepareJsonResponse();
+    prepareJsonFixtureResponse('openai-text');
 
     const model = provider.chat('o4-mini');
 
@@ -1703,81 +2088,19 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
-  function prepareStreamResponse({
-    content = [],
-    usage = {
-      prompt_tokens: 17,
-      total_tokens: 244,
-      completion_tokens: 227,
-    },
-    logprobs = null,
-    finish_reason = 'stop',
-    model = 'gpt-3.5-turbo-0613',
-    headers,
-  }: {
-    content?: string[];
-    usage?: {
-      prompt_tokens: number;
-      total_tokens: number;
-      completion_tokens: number;
-      prompt_tokens_details?: {
-        cached_tokens?: number;
-      };
-      completion_tokens_details?: {
-        reasoning_tokens?: number;
-        accepted_prediction_tokens?: number;
-        rejected_prediction_tokens?: number;
-      };
-    };
-    logprobs?: {
-      content:
-        | {
-            token: string;
-            logprob: number;
-            top_logprobs: { token: string; logprob: number }[];
-          }[]
-        | null;
-    } | null;
-    finish_reason?: string;
-    model?: string;
-    headers?: Record<string, string>;
-  }) {
+  it('should stream text deltas', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
-      headers,
       chunks: [
-        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"${model}",` +
-          `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
-        ...content.map(text => {
-          return (
-            `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"${model}",` +
-            `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"${text}"},"finish_reason":null}]}\n\n`
-          );
-        }),
-        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"${model}",` +
-          `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}","logprobs":${JSON.stringify(
-            logprobs,
-          )}}]}\n\n`,
-        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"${model}",` +
-          `"system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":${JSON.stringify(
-            usage,
-          )}}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":1,"delta":{"content":", "},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"World!"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":${JSON.stringify(TEST_LOGPROBS)}}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":17,"total_tokens":244,"completion_tokens":227}}\n\n`,
         'data: [DONE]\n\n',
       ],
     };
-  }
-
-  it('should stream text deltas', async () => {
-    prepareStreamResponse({
-      content: ['Hello', ', ', 'World!'],
-      finish_reason: 'stop',
-      usage: {
-        prompt_tokens: 17,
-        total_tokens: 244,
-        completion_tokens: 227,
-      },
-      logprobs: TEST_LOGPROBS,
-    });
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
@@ -1825,7 +2148,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "openai": {
               "logprobs": [
@@ -1924,11 +2250,22 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 17,
-            "outputTokens": 227,
-            "reasoningTokens": undefined,
-            "totalTokens": 244,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 17,
+              "total": 17,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 227,
+              "total": 227,
+            },
+            "raw": {
+              "completion_tokens": 227,
+              "prompt_tokens": 17,
+              "total_tokens": 244,
+            },
           },
         },
       ]
@@ -1944,7 +2281,7 @@ describe('doStream', () => {
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
           `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Based on search results"},"finish_reason":null}]}\n\n`,
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
-          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"annotations":[{"type":"url_citation","start_index":24,"end_index":29,"url":"https://example.com/doc1.pdf","title":"Document 1"}]},"finish_reason":null}]}\n\n`,
+          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"annotations":[{"type":"url_citation","url_citation":{"start_index":24,"end_index":29,"url":"https://example.com/doc1.pdf","title":"Document 1"}}]},"finish_reason":null}]}\n\n`,
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
           `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
@@ -1980,7 +2317,7 @@ describe('doStream', () => {
         { type: 'text-end', id: '0' },
         expect.objectContaining({
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
         }),
       ]),
     );
@@ -2104,17 +2441,31 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "openai": {},
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 53,
-            "outputTokens": 17,
-            "reasoningTokens": undefined,
-            "totalTokens": 70,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 53,
+              "total": 53,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 17,
+              "total": 17,
+            },
+            "raw": {
+              "completion_tokens": 17,
+              "prompt_tokens": 53,
+              "total_tokens": 70,
+            },
           },
         },
       ]
@@ -2244,17 +2595,31 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "openai": {},
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 53,
-            "outputTokens": 17,
-            "reasoningTokens": undefined,
-            "totalTokens": 70,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 53,
+              "total": 53,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 17,
+              "total": 17,
+            },
+            "raw": {
+              "completion_tokens": 17,
+              "prompt_tokens": 53,
+              "total_tokens": 70,
+            },
           },
         },
       ]
@@ -2388,21 +2753,90 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "openai": {},
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 226,
-            "outputTokens": 20,
-            "reasoningTokens": undefined,
-            "totalTokens": 246,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 226,
+              "total": 226,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 20,
+              "total": 20,
+            },
+            "raw": {
+              "completion_tokens": 20,
+              "prompt_tokens": 226,
+              "total_tokens": 246,
+            },
           },
         },
       ]
     `);
+  });
+
+  it('should stream tool call with missing type field (Azure AI Foundry / Mistral)', async () => {
+    // Azure AI Foundry and Mistral omit the `type` field in streaming tool call deltas.
+    // The parser should accept null/undefined type as equivalent to "function".
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-azure-001","object":"chat.completion.chunk","created":1711357598,"model":"mistral-large",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
+          `"tool_calls":[{"index":0,"id":"call_abc123","function":{"name":"test-tool","arguments":""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-azure-001","object":"chat.completion.chunk","created":1711357598,"model":"mistral-large",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\"value\\""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-azure-001","object":"chat.completion.chunk","created":1711357598,"model":"mistral-large",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":":\\"hello\\"}"}}]},` +
+          `"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15}}\n\n`,
+        `data: [DONE]\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+    const toolInputStart = chunks.find(c => c.type === 'tool-input-start');
+    const toolCall = chunks.find(c => c.type === 'tool-call');
+
+    expect(toolInputStart).toMatchObject({
+      type: 'tool-input-start',
+      id: 'call_abc123',
+      toolName: 'test-tool',
+    });
+    expect(toolCall).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'call_abc123',
+      toolName: 'test-tool',
+      input: '{"value":"hello"}',
+    });
   });
 
   it('should stream tool call that is sent in one chunk', async () => {
@@ -2472,17 +2906,31 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "openai": {},
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 53,
-            "outputTokens": 17,
-            "reasoningTokens": undefined,
-            "totalTokens": 70,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 53,
+              "total": 53,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 17,
+              "total": 17,
+            },
+            "raw": {
+              "completion_tokens": 17,
+              "prompt_tokens": 53,
+              "total_tokens": 70,
+            },
           },
         },
       ]
@@ -2520,15 +2968,27 @@ describe('doStream', () => {
           "type": "error",
         },
         {
-          "finishReason": "error",
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
           "providerMetadata": {
             "openai": {},
           },
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -2560,15 +3020,27 @@ describe('doStream', () => {
             "type": "error",
           },
           {
-            "finishReason": "error",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "error",
+            },
             "providerMetadata": {
               "openai": {},
             },
             "type": "finish",
             "usage": {
-              "inputTokens": undefined,
-              "outputTokens": undefined,
-              "totalTokens": undefined,
+              "inputTokens": {
+                "cacheRead": undefined,
+                "cacheWrite": undefined,
+                "noCache": undefined,
+                "total": undefined,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": undefined,
+              },
+              "raw": undefined,
             },
           },
         ]
@@ -2577,7 +3049,7 @@ describe('doStream', () => {
   );
 
   it('should send request body', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareChunksFixtureResponse('openai-text');
 
     const { request } = await model.doStream({
       prompt: TEST_PROMPT,
@@ -2629,9 +3101,16 @@ describe('doStream', () => {
   });
 
   it('should expose the raw response headers', async () => {
-    prepareStreamResponse({
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
       headers: { 'test-header': 'test-value' },
-    });
+      chunks: [
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":17,"total_tokens":244,"completion_tokens":227}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
 
     const { response } = await model.doStream({
       prompt: TEST_PROMPT,
@@ -2650,7 +3129,7 @@ describe('doStream', () => {
   });
 
   it('should pass the messages and the model', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareChunksFixtureResponse('openai-text');
 
     await model.doStream({
       prompt: TEST_PROMPT,
@@ -2666,7 +3145,7 @@ describe('doStream', () => {
   });
 
   it('should pass headers', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareChunksFixtureResponse('openai-text');
 
     const provider = createOpenAI({
       apiKey: 'test-api-key',
@@ -2696,17 +3175,15 @@ describe('doStream', () => {
   });
 
   it('should return cached tokens in providerMetadata', async () => {
-    prepareStreamResponse({
-      content: [],
-      usage: {
-        prompt_tokens: 15,
-        completion_tokens: 20,
-        total_tokens: 35,
-        prompt_tokens_details: {
-          cached_tokens: 1152,
-        },
-      },
-    });
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":15,"completion_tokens":20,"total_tokens":35,"prompt_tokens_details":{"cached_tokens":1152}}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
@@ -2723,35 +3200,49 @@ describe('doStream', () => {
     expect((await convertReadableStreamToArray(stream)).at(-1))
       .toMatchInlineSnapshot(`
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "openai": {},
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": 1152,
-            "inputTokens": 15,
-            "outputTokens": 20,
-            "reasoningTokens": undefined,
-            "totalTokens": 35,
+            "inputTokens": {
+              "cacheRead": 1152,
+              "cacheWrite": undefined,
+              "noCache": -1137,
+              "total": 15,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 20,
+              "total": 20,
+            },
+            "raw": {
+              "completion_tokens": 20,
+              "prompt_tokens": 15,
+              "prompt_tokens_details": {
+                "cached_tokens": 1152,
+              },
+              "total_tokens": 35,
+            },
           },
         }
       `);
   });
 
   it('should return accepted_prediction_tokens and rejected_prediction_tokens in providerMetadata', async () => {
-    prepareStreamResponse({
-      content: [],
-      usage: {
-        prompt_tokens: 15,
-        completion_tokens: 20,
-        total_tokens: 35,
-        completion_tokens_details: {
-          accepted_prediction_tokens: 123,
-          rejected_prediction_tokens: 456,
-        },
-      },
-    });
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":null}]}\n\n`,
+        `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":15,"completion_tokens":20,"total_tokens":35,"completion_tokens_details":{"accepted_prediction_tokens":123,"rejected_prediction_tokens":456}}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
@@ -2768,7 +3259,10 @@ describe('doStream', () => {
     expect((await convertReadableStreamToArray(stream)).at(-1))
       .toMatchInlineSnapshot(`
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "openai": {
               "acceptedPredictionTokens": 123,
@@ -2777,18 +3271,33 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 15,
-            "outputTokens": 20,
-            "reasoningTokens": undefined,
-            "totalTokens": 35,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 15,
+              "total": 15,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 20,
+              "total": 20,
+            },
+            "raw": {
+              "completion_tokens": 20,
+              "completion_tokens_details": {
+                "accepted_prediction_tokens": 123,
+                "rejected_prediction_tokens": 456,
+              },
+              "prompt_tokens": 15,
+              "total_tokens": 35,
+            },
           },
         }
       `);
   });
 
   it('should send store extension setting', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareChunksFixtureResponse('openai-text');
 
     await model.doStream({
       prompt: TEST_PROMPT,
@@ -2810,7 +3319,7 @@ describe('doStream', () => {
   });
 
   it('should send metadata extension values', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareChunksFixtureResponse('openai-text');
 
     await model.doStream({
       prompt: TEST_PROMPT,
@@ -2836,7 +3345,7 @@ describe('doStream', () => {
   });
 
   it('should send serviceTier flex processing setting in streaming', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareChunksFixtureResponse('openai-text');
 
     const model = provider.chat('o4-mini');
 
@@ -2869,7 +3378,7 @@ describe('doStream', () => {
   });
 
   it('should send serviceTier priority processing setting in streaming', async () => {
-    prepareStreamResponse({ content: [] });
+    prepareChunksFixtureResponse('openai-text');
 
     const model = provider.chat('gpt-4o-mini');
 
@@ -2913,10 +3422,16 @@ describe('doStream', () => {
 
   describe('reasoning models', () => {
     it('should stream text delta', async () => {
-      prepareStreamResponse({
-        content: ['Hello, World!'],
-        model: 'o4-mini',
-      });
+      server.urls['https://api.openai.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"o4-mini","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"o4-mini","system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Hello, World!"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"o4-mini","system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"o4-mini","system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":17,"total_tokens":244,"completion_tokens":227}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
 
       const model = provider.chat('o4-mini');
 
@@ -2956,17 +3471,31 @@ describe('doStream', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {},
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokens": 17,
-              "outputTokens": 227,
-              "reasoningTokens": undefined,
-              "totalTokens": 244,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 17,
+                "total": 17,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 227,
+                "total": 227,
+              },
+              "raw": {
+                "completion_tokens": 227,
+                "prompt_tokens": 17,
+                "total_tokens": 244,
+              },
             },
           },
         ]
@@ -2974,18 +3503,16 @@ describe('doStream', () => {
     });
 
     it('should send reasoning tokens', async () => {
-      prepareStreamResponse({
-        content: ['Hello, World!'],
-        model: 'o4-mini',
-        usage: {
-          prompt_tokens: 15,
-          completion_tokens: 20,
-          total_tokens: 35,
-          completion_tokens_details: {
-            reasoning_tokens: 10,
-          },
-        },
-      });
+      server.urls['https://api.openai.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"o4-mini","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"o4-mini","system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Hello, World!"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"o4-mini","system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"o4-mini","system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":15,"completion_tokens":20,"total_tokens":35,"completion_tokens_details":{"reasoning_tokens":10}}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
 
       const model = provider.chat('o4-mini');
 
@@ -3025,17 +3552,34 @@ describe('doStream', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {},
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokens": 15,
-              "outputTokens": 20,
-              "reasoningTokens": 10,
-              "totalTokens": 35,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 15,
+                "total": 15,
+              },
+              "outputTokens": {
+                "reasoning": 10,
+                "text": 10,
+                "total": 20,
+              },
+              "raw": {
+                "completion_tokens": 20,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 10,
+                },
+                "prompt_tokens": 15,
+                "total_tokens": 35,
+              },
             },
           },
         ]
@@ -3045,9 +3589,17 @@ describe('doStream', () => {
 
   describe('raw chunks', () => {
     it('should include raw chunks when includeRawChunks is enabled', async () => {
-      prepareStreamResponse({
-        content: ['Hello', ' World!'],
-      });
+      server.urls['https://api.openai.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":1,"delta":{"content":" World!"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":17,"total_tokens":244,"completion_tokens":227}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
@@ -3156,9 +3708,17 @@ describe('doStream', () => {
     });
 
     it('should not include raw chunks when includeRawChunks is false', async () => {
-      prepareStreamResponse({
-        content: ['Hello', ' World!'],
-      });
+      server.urls['https://api.openai.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":1,"delta":{"content":" World!"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop","logprobs":null}]}\n\n`,
+          `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0613","system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":{"prompt_tokens":17,"total_tokens":244,"completion_tokens":227}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
 
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,

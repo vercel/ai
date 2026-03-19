@@ -1,5 +1,5 @@
 import {
-  createProviderDefinedToolFactory,
+  createProviderToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -13,13 +13,14 @@ const textEditor_20241022InputSchema = lazySchema(() =>
       file_text: z.string().optional(),
       insert_line: z.number().int().optional(),
       new_str: z.string().optional(),
+      insert_text: z.string().optional(),
       old_str: z.string().optional(),
       view_range: z.array(z.number().int()).optional(),
     }),
   ),
 );
 
-export const textEditor_20241022 = createProviderDefinedToolFactory<
+export const textEditor_20241022 = createProviderToolFactory<
   {
     /**
      * The commands to run. Allowed options are: `view`, `create`, `str_replace`, `insert`, `undo_edit`.
@@ -42,9 +43,14 @@ export const textEditor_20241022 = createProviderDefinedToolFactory<
     insert_line?: number;
 
     /**
-     * Optional parameter of `str_replace` command containing the new string (if not given, no string will be added). Required parameter of `insert` command containing the string to insert.
+     * Optional parameter of `str_replace` command containing the new string (if not given, no string will be added).
      */
     new_str?: string;
+
+    /**
+     * Required parameter of `insert` command containing the text to insert.
+     */
+    insert_text?: string;
 
     /**
      * Required parameter of `str_replace` command containing the string in `path` to replace.
@@ -59,6 +65,5 @@ export const textEditor_20241022 = createProviderDefinedToolFactory<
   {}
 >({
   id: 'anthropic.text_editor_20241022',
-  name: 'str_replace_editor',
   inputSchema: textEditor_20241022InputSchema,
 });

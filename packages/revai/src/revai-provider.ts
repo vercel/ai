@@ -1,6 +1,6 @@
 import {
-  TranscriptionModelV3,
-  ProviderV3,
+  TranscriptionModelV4,
+  ProviderV4,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
@@ -12,7 +12,7 @@ import { RevaiTranscriptionModel } from './revai-transcription-model';
 import { RevaiTranscriptionModelId } from './revai-transcription-options';
 import { VERSION } from './version';
 
-export interface RevaiProvider extends ProviderV3 {
+export interface RevaiProvider extends ProviderV4 {
   (
     modelId: 'machine',
     settings?: {},
@@ -21,31 +21,36 @@ export interface RevaiProvider extends ProviderV3 {
   };
 
   /**
-Creates a model for transcription.
+   * Creates a model for transcription.
    */
-  transcription(modelId: RevaiTranscriptionModelId): TranscriptionModelV3;
+  transcription(modelId: RevaiTranscriptionModelId): TranscriptionModelV4;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface RevaiProviderSettings {
   /**
-API key for authenticating requests.
-     */
+   * API key for authenticating requests.
+   */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 /**
-Create a Rev.ai provider instance.
+ * Create a Rev.ai provider instance.
  */
 export function createRevai(
   options: RevaiProviderSettings = {},
@@ -77,7 +82,7 @@ export function createRevai(
     };
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 
@@ -89,13 +94,14 @@ export function createRevai(
     });
   };
 
-  provider.textEmbeddingModel = () => {
+  provider.embeddingModel = () => {
     throw new NoSuchModelError({
       modelId: 'unknown',
-      modelType: 'textEmbeddingModel',
+      modelType: 'embeddingModel',
       message: 'Rev.ai does not provide text embedding models',
     });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
 
   provider.imageModel = () => {
     throw new NoSuchModelError({
@@ -109,6 +115,6 @@ export function createRevai(
 }
 
 /**
-Default Rev.ai provider instance.
+ * Default Rev.ai provider instance.
  */
 export const revai = createRevai();

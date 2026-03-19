@@ -1,8 +1,9 @@
 import {
-  EmbeddingModelV3,
-  LanguageModelV3,
-  ProviderV3,
-  ImageModelV3,
+  EmbeddingModelV4,
+  Experimental_VideoModelV4,
+  ImageModelV4,
+  LanguageModelV4,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -23,72 +24,93 @@ import {
   GoogleGenerativeAIImageModelId,
 } from './google-generative-ai-image-settings';
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
+import { GoogleGenerativeAIVideoModel } from './google-generative-ai-video-model';
+import { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
 
-export interface GoogleGenerativeAIProvider extends ProviderV3 {
-  (modelId: GoogleGenerativeAIModelId): LanguageModelV3;
+export interface GoogleGenerativeAIProvider extends ProviderV4 {
+  (modelId: GoogleGenerativeAIModelId): LanguageModelV4;
 
-  languageModel(modelId: GoogleGenerativeAIModelId): LanguageModelV3;
+  languageModel(modelId: GoogleGenerativeAIModelId): LanguageModelV4;
 
-  chat(modelId: GoogleGenerativeAIModelId): LanguageModelV3;
+  chat(modelId: GoogleGenerativeAIModelId): LanguageModelV4;
 
   /**
-Creates a model for image generation.
- */
+   * Creates a model for image generation.
+   */
   image(
     modelId: GoogleGenerativeAIImageModelId,
     settings?: GoogleGenerativeAIImageSettings,
-  ): ImageModelV3;
+  ): ImageModelV4;
 
   /**
    * @deprecated Use `chat()` instead.
    */
-  generativeAI(modelId: GoogleGenerativeAIModelId): LanguageModelV3;
+  generativeAI(modelId: GoogleGenerativeAIModelId): LanguageModelV4;
 
   /**
-@deprecated Use `textEmbedding()` instead.
+   * Creates a model for text embeddings.
    */
-  embedding(
-    modelId: GoogleGenerativeAIEmbeddingModelId,
-  ): EmbeddingModelV3<string>;
+  embedding(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV4;
 
-  textEmbedding(
-    modelId: GoogleGenerativeAIEmbeddingModelId,
-  ): EmbeddingModelV3<string>;
+  /**
+   * Creates a model for text embeddings.
+   */
+  embeddingModel(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV4;
 
+  /**
+   * @deprecated Use `embedding` instead.
+   */
+  textEmbedding(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV4;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
   textEmbeddingModel(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-  ): EmbeddingModelV3<string>;
+  ): EmbeddingModelV4;
+
+  /**
+   * Creates a model for video generation.
+   */
+  video(modelId: GoogleGenerativeAIVideoModelId): Experimental_VideoModelV4;
+
+  /**
+   * Creates a model for video generation.
+   */
+  videoModel(
+    modelId: GoogleGenerativeAIVideoModelId,
+  ): Experimental_VideoModelV4;
 
   tools: typeof googleTools;
 }
 
 export interface GoogleGenerativeAIProviderSettings {
   /**
-Use a different URL prefix for API calls, e.g. to use proxy servers.
-The default prefix is `https://generativelanguage.googleapis.com/v1beta`.
+   * Use a different URL prefix for API calls, e.g. to use proxy servers.
+   * The default prefix is `https://generativelanguage.googleapis.com/v1beta`.
    */
   baseURL?: string;
 
   /**
-API key that is being send using the `x-goog-api-key` header.
-It defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable.
+   * API key that is being send using the `x-goog-api-key` header.
+   * It defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable.
    */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string | undefined>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   /**
-Optional function to generate a unique ID for each request.
-     */
+   * Optional function to generate a unique ID for each request.
+   */
   generateId?: () => string;
 
   /**
@@ -99,7 +121,7 @@ Optional function to generate a unique ID for each request.
 }
 
 /**
-Create a Google Generative AI provider instance.
+ * Create a Google Generative AI provider instance.
  */
 export function createGoogleGenerativeAI(
   options: GoogleGenerativeAIProviderSettings = {},
@@ -163,6 +185,15 @@ export function createGoogleGenerativeAI(
       fetch: options.fetch,
     });
 
+  const createVideoModel = (modelId: GoogleGenerativeAIVideoModelId) =>
+    new GoogleGenerativeAIVideoModel(modelId, {
+      provider: providerName,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      generateId: options.generateId ?? generateId,
+    });
+
   const provider = function (modelId: GoogleGenerativeAIModelId) {
     if (new.target) {
       throw new Error(
@@ -173,20 +204,24 @@ export function createGoogleGenerativeAI(
     return createChatModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.generativeAI = createChatModel;
   provider.embedding = createEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
+  provider.video = createVideoModel;
+  provider.videoModel = createVideoModel;
   provider.tools = googleTools;
+
   return provider as GoogleGenerativeAIProvider;
 }
 
 /**
-Default Google Generative AI provider instance.
+ * Default Google Generative AI provider instance.
  */
 export const google = createGoogleGenerativeAI();

@@ -86,7 +86,7 @@ You can configure how the reasoning is exposed in the generated text by using th
 It supports the options `parsed`, `hidden`, and `raw`.
 
 ```ts
-import { groq } from '@ai-sdk/groq';
+import { groq, type GroqLanguageModelOptions } from '@ai-sdk/groq';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -98,7 +98,7 @@ const result = await generateText({
       parallelToolCalls: true, // Enable parallel function calling (default: true)
       user: 'user-123', // Unique identifier for end-user (optional)
       serviceTier: 'flex', // Use flex tier for higher throughput (optional)
-    },
+    } satisfies GroqLanguageModelOptions,
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
 });
@@ -112,7 +112,7 @@ The following optional provider options are available for Groq language models:
 
   For a complete list of reasoning models and their capabilities, see [Groq's reasoning models documentation](https://console.groq.com/docs/reasoning).
 
-- **reasoningEffort** _'low' | 'meduim' | 'high' | 'none' | 'default'_
+- **reasoningEffort** _'low' | 'medium' | 'high' | 'none' | 'default'_
 
   Controls the level of effort the model will put into reasoning.
 
@@ -135,6 +135,14 @@ The following optional provider options are available for Groq language models:
   Defaults to `true`.
 
   When enabled, object generation will use the `json_schema` format instead of `json_object` format, providing more reliable structured outputs.
+
+- **strictJsonSchema** _boolean_
+
+  Whether to use strict JSON schema validation. When `true`, the model uses constrained decoding to guarantee schema compliance.
+
+  Defaults to `true`.
+
+  Only used when `structuredOutputs` is enabled and a schema is provided. See [Groq's Structured Outputs documentation](https://console.groq.com/docs/structured-outputs) for details on strict mode limitations.
 
 - **parallelToolCalls** _boolean_
 
@@ -163,49 +171,53 @@ You can disable them by setting the `structuredOutputs` option to `false`.
 
 ```ts
 import { groq } from '@ai-sdk/groq';
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
-const result = await generateObject({
+const result = await generateText({
   model: groq('moonshotai/kimi-k2-instruct-0905'),
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(z.string()),
-      instructions: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(z.string()),
+        instructions: z.array(z.string()),
+      }),
     }),
   }),
   prompt: 'Generate a simple pasta recipe.',
 });
 
-console.log(JSON.stringify(result.object, null, 2));
+console.log(JSON.stringify(result.output, null, 2));
 ```
 
 You can disable structured outputs for models that don't support them:
 
 ```ts highlight="9"
-import { groq } from '@ai-sdk/groq';
-import { generateObject } from 'ai';
+import { groq, type GroqLanguageModelOptions } from '@ai-sdk/groq';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
-const result = await generateObject({
+const result = await generateText({
   model: groq('gemma2-9b-it'),
   providerOptions: {
     groq: {
       structuredOutputs: false,
-    },
+    } satisfies GroqLanguageModelOptions,
   },
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(z.string()),
-      instructions: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(z.string()),
+        instructions: z.array(z.string()),
+      }),
     }),
   }),
   prompt: 'Generate a simple pasta recipe in JSON format.',
 });
 
-console.log(JSON.stringify(result.object, null, 2));
+console.log(JSON.stringify(result.output, null, 2));
 ```
 
 <Note type="warning">
@@ -288,7 +300,7 @@ const { text } = await generateText({
 | `gemma2-9b-it`                                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `llama-3.1-8b-instant`                          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `llama-3.3-70b-versatile`                       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `meta-llama/llama-guard-4-12b`                  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `meta-llama/llama-guard-4-12b`                  | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `deepseek-r1-distill-llama-70b`                 | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `meta-llama/llama-4-maverick-17b-128e-instruct` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `meta-llama/llama-4-scout-17b-16e-instruct`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -425,13 +437,15 @@ You can also pass additional provider-specific options using the `providerOption
 
 ```ts highlight="6"
 import { experimental_transcribe as transcribe } from 'ai';
-import { groq } from '@ai-sdk/groq';
+import { groq, type GroqTranscriptionModelOptions } from '@ai-sdk/groq';
 import { readFile } from 'fs/promises';
 
 const result = await transcribe({
   model: groq.transcription('whisper-large-v3'),
   audio: await readFile('audio.mp3'),
-  providerOptions: { groq: { language: 'en' } },
+  providerOptions: {
+    groq: { language: 'en' } satisfies GroqTranscriptionModelOptions,
+  },
 });
 ```
 
@@ -442,6 +456,12 @@ The following provider options are available:
   Defaults to `['segment']`.
   Possible values are `['word']`, `['segment']`, and `['word', 'segment']`.
   Note: There is no additional latency for segment timestamps, but generating word timestamps incurs additional latency.
+  **Important:** Requires `responseFormat` to be set to `'verbose_json'`.
+
+- **responseFormat** _string_
+  The format of the response. Set to `'verbose_json'` to receive timestamps for audio segments and enable `timestampGranularities`.
+  Set to `'text'` to return only the transcribed text.
+  Optional.
 
 - **language** _string_
   The language of the input audio. Supplying the input language in ISO-639-1 format (e.g. 'en') will improve accuracy and latency.
@@ -458,8 +478,7 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                        | Transcription       | Duration            | Segments            | Language            |
-| ---------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `whisper-large-v3`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `whisper-large-v3-turbo`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `distil-whisper-large-v3-en` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                    | Transcription       | Duration            | Segments            | Language            |
+| ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
+| `whisper-large-v3`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `whisper-large-v3-turbo` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

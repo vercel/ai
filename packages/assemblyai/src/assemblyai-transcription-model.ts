@@ -1,7 +1,4 @@
-import {
-  TranscriptionModelV3,
-  TranscriptionModelV3CallWarning,
-} from '@ai-sdk/provider';
+import { TranscriptionModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -17,7 +14,7 @@ import { AssemblyAITranscriptionModelId } from './assemblyai-transcription-setti
 import { AssemblyAITranscriptionAPITypes } from './assemblyai-api-types';
 
 // https://www.assemblyai.com/docs/api-reference/transcripts/submit
-const assemblyaiProviderOptionsSchema = z.object({
+const assemblyaiTranscriptionModelOptionsSchema = z.object({
   /**
    * End time of the audio in milliseconds.
    */
@@ -164,8 +161,8 @@ const assemblyaiProviderOptionsSchema = z.object({
   wordBoost: z.array(z.string()).nullish(),
 });
 
-export type AssemblyAITranscriptionCallOptions = z.infer<
-  typeof assemblyaiProviderOptionsSchema
+export type AssemblyAITranscriptionModelOptions = z.infer<
+  typeof assemblyaiTranscriptionModelOptionsSchema
 >;
 
 interface AssemblyAITranscriptionModelConfig extends AssemblyAIConfig {
@@ -178,8 +175,8 @@ interface AssemblyAITranscriptionModelConfig extends AssemblyAIConfig {
   pollingInterval?: number;
 }
 
-export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
-  readonly specificationVersion = 'v3';
+export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
+  readonly specificationVersion = 'v4';
   private readonly POLLING_INTERVAL_MS = 3000;
 
   get provider(): string {
@@ -193,14 +190,14 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
 
   private async getArgs({
     providerOptions,
-  }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
-    const warnings: TranscriptionModelV3CallWarning[] = [];
+  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const assemblyaiOptions = await parseProviderOptions({
       provider: 'assemblyai',
       providerOptions,
-      schema: assemblyaiProviderOptionsSchema,
+      schema: assemblyaiTranscriptionModelOptionsSchema,
     });
 
     const body: Omit<AssemblyAITranscriptionAPITypes, 'audio_url'> = {
@@ -332,8 +329,8 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
     const { value: uploadResponse } = await postToApi({

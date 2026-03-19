@@ -1,4 +1,4 @@
-import { LanguageModelV3CallOptions } from '@ai-sdk/provider';
+import { LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import { tool } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -6,13 +6,13 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createAgentUIStreamResponse } from './create-agent-ui-stream-response';
 import { ToolLoopAgent } from './tool-loop-agent';
 
 describe('createAgentUIStreamResponse', () => {
   describe('when using tools toModelOutput', () => {
-    let recordedInputs: LanguageModelV3CallOptions[];
+    let recordedInputs: LanguageModelV4CallOptions[];
     let response: Response;
     let decodedChunks: string[];
 
@@ -20,7 +20,7 @@ describe('createAgentUIStreamResponse', () => {
       recordedInputs = [];
 
       const agent = new ToolLoopAgent({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async input => {
             recordedInputs.push(input);
             return {
@@ -42,11 +42,19 @@ describe('createAgentUIStreamResponse', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: {
-                    inputTokens: 10,
-                    outputTokens: 10,
-                    totalTokens: 20,
+                    inputTokens: {
+                      total: 10,
+                      noCache: 10,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 10,
+                      text: 10,
+                      reasoning: undefined,
+                    },
                   },
                   providerMetadata: {
                     testProvider: { testKey: 'testValue' },
@@ -66,7 +74,7 @@ describe('createAgentUIStreamResponse', () => {
               value: z.string(),
             }),
             // important: tool has toModelOutput that needs to be called
-            toModelOutput: output => ({
+            toModelOutput: ({ output }) => ({
               type: 'content',
               value: [{ type: 'text', text: output.value }],
             }),
@@ -76,7 +84,7 @@ describe('createAgentUIStreamResponse', () => {
 
       response = await createAgentUIStreamResponse({
         agent,
-        messages: [
+        uiMessages: [
           {
             role: 'user',
             id: 'msg-1',
@@ -213,7 +221,7 @@ describe('createAgentUIStreamResponse', () => {
     it('should return the UI message stream response', () => {
       expect(decodedChunks).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start"}
+          "data: {"type":"start","messageId":"msg-2"}
 
         ",
           "data: {"type":"start-step"}
@@ -245,6 +253,107 @@ describe('createAgentUIStreamResponse', () => {
         ",
         ]
       `);
+    });
+  });
+
+  describe('when using onFinish without originalMessages', () => {
+    it('should call onFinish callback and complete stream without errors', async () => {
+      let onFinishCalled = false;
+      let finishMessages: unknown[] | undefined;
+
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'stream-start',
+                  warnings: [],
+                },
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Done!' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: {
+                    inputTokens: {
+                      total: 5,
+                      noCache: 5,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 5,
+                      text: 5,
+                      reasoning: undefined,
+                    },
+                  },
+                  providerMetadata: undefined,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          testTool: tool({
+            description: 'Test tool',
+            inputSchema: z.object({ value: z.string() }),
+            outputSchema: z.object({ result: z.string() }),
+          }),
+        },
+      });
+
+      const response = await createAgentUIStreamResponse({
+        agent,
+        uiMessages: [
+          {
+            role: 'user',
+            id: 'msg-1',
+            parts: [{ type: 'text' as const, text: 'Run test tool' }],
+          },
+          {
+            role: 'assistant',
+            id: 'msg-2',
+            parts: [
+              {
+                type: 'tool-testTool' as const,
+                toolCallId: 'call-1',
+                state: 'output-available',
+                input: { value: 'test' },
+                output: { result: 'success' },
+              },
+            ],
+          },
+        ],
+        // Note: originalMessages is NOT provided, relying on auto-population
+        onFinish: ({ messages }) => {
+          onFinishCalled = true;
+          finishMessages = messages;
+        },
+      });
+
+      // Consume the response to trigger onFinish
+      const decoder = new TextDecoder();
+      const encodedStream = response.body!;
+      const chunks = await convertReadableStreamToArray(encodedStream);
+      const decodedChunks = chunks.map(chunk => decoder.decode(chunk));
+
+      // Verify stream completed successfully
+      expect(
+        decodedChunks.some(chunk => chunk.includes('"type":"finish"')),
+      ).toBe(true);
+
+      // Verify onFinish was called with messages
+      expect(onFinishCalled).toBe(true);
+      expect(finishMessages).toBeDefined();
+      expect(finishMessages!.length).toBe(2);
     });
   });
 });

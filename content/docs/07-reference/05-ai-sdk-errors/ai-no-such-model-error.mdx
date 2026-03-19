@@ -10,8 +10,8 @@ This error occurs when a model ID is not found.
 ## Properties
 
 - `modelId`: The ID of the model that was not found
-- `modelType`: The type of model
-- `message`: The error message
+- `modelType`: The type of model (`'languageModel'`, `'embeddingModel'`, `'imageModel'`, `'transcriptionModel'`, `'speechModel'`, or `'rerankingModel'`)
+- `message`: The error message (optional, auto-generated from `modelId` and `modelType`)
 
 ## Checking for this Error
 

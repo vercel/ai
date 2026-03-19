@@ -1,7 +1,14 @@
 import { delay } from '@ai-sdk/provider-utils';
 import { JSONRPCMessage } from './json-rpc-message';
 import { MCPTransport } from './mcp-transport';
-import { MCPTool, MCPResource, MCPPrompt, GetPromptResult } from './types';
+import {
+  MCPTool,
+  MCPResource,
+  MCPPrompt,
+  GetPromptResult,
+  CallToolResult,
+  LATEST_PROTOCOL_VERSION,
+} from './types';
 
 const DEFAULT_TOOLS: MCPTool[] = [
   {
@@ -33,6 +40,7 @@ export class MockMCPTransport implements MCPTransport {
   private failOnInvalidToolParams;
   private initializeResult;
   private sendError;
+  private toolCallResults;
 
   onmessage?: (message: JSONRPCMessage) => void;
   onclose?: () => void;
@@ -90,6 +98,7 @@ export class MockMCPTransport implements MCPTransport {
     failOnInvalidToolParams = false,
     initializeResult,
     sendError = false,
+    toolCallResults = {} as Record<string, CallToolResult>,
   }: {
     overrideTools?: MCPTool[];
     resources?: MCPResource[];
@@ -118,6 +127,7 @@ export class MockMCPTransport implements MCPTransport {
     failOnInvalidToolParams?: boolean;
     initializeResult?: Record<string, unknown>;
     sendError?: boolean;
+    toolCallResults?: Record<string, CallToolResult>;
   } = {}) {
     this.tools = overrideTools;
     this.resources = resources;
@@ -128,6 +138,7 @@ export class MockMCPTransport implements MCPTransport {
     this.failOnInvalidToolParams = failOnInvalidToolParams;
     this.initializeResult = initializeResult;
     this.sendError = sendError;
+    this.toolCallResults = toolCallResults;
   }
 
   async start(): Promise<void> {
@@ -148,7 +159,7 @@ export class MockMCPTransport implements MCPTransport {
           jsonrpc: '2.0',
           id: message.id,
           result: this.initializeResult || {
-            protocolVersion: '2025-06-18',
+            protocolVersion: LATEST_PROTOCOL_VERSION,
             serverInfo: {
               name: 'mock-mcp-server',
               version: '1.0.0',
@@ -302,6 +313,16 @@ export class MockMCPTransport implements MCPTransport {
                 receivedArguments: message.params?.arguments,
               },
             },
+          });
+          return;
+        }
+
+        const customResult = this.toolCallResults[toolName as string];
+        if (customResult) {
+          this.onmessage?.({
+            jsonrpc: '2.0',
+            id: message.id,
+            result: customResult,
           });
           return;
         }

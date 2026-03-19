@@ -1,17 +1,17 @@
 import {
-  LanguageModelV3CallWarning,
-  LanguageModelV3Prompt,
+  SharedV4Warning,
+  LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 import { XaiChatPrompt } from './xai-chat-prompt';
 
-export function convertToXaiChatMessages(prompt: LanguageModelV3Prompt): {
+export function convertToXaiChatMessages(prompt: LanguageModelV4Prompt): {
   messages: XaiChatPrompt;
-  warnings: Array<LanguageModelV3CallWarning>;
+  warnings: Array<SharedV4Warning>;
 } {
   const messages: XaiChatPrompt = [];
-  const warnings: Array<LanguageModelV3CallWarning> = [];
+  const warnings: Array<SharedV4Warning> = [];
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -101,6 +101,9 @@ export function convertToXaiChatMessages(prompt: LanguageModelV3Prompt): {
 
       case 'tool': {
         for (const toolResponse of content) {
+          if (toolResponse.type === 'tool-approval-response') {
+            continue;
+          }
           const output = toolResponse.output;
 
           let contentValue: string;

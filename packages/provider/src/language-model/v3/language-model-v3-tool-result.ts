@@ -2,7 +2,7 @@ import { JSONValue } from '../../json-value';
 import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
 
 /**
-Result of a tool call that has been executed by the provider.
+ * Result of a tool call that has been executed by the provider.
  */
 export type LanguageModelV3ToolResult = {
   type: 'tool-result';

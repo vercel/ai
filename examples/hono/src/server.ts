@@ -85,7 +85,7 @@ app.post('/chat', async c => {
 
   return createAgentUIStreamResponse({
     agent: openaiWebSearchAgent,
-    messages,
+    uiMessages: messages,
   });
 });
 

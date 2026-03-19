@@ -1,4 +1,4 @@
-import { SpeechModelV3, SpeechModelV3CallWarning } from '@ai-sdk/provider';
+import { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -14,7 +14,7 @@ import { falFailedResponseHandler } from './fal-error';
 import { FAL_EMOTIONS, FAL_LANGUAGE_BOOSTS } from './fal-api-types';
 import { FalSpeechModelId } from './fal-speech-settings';
 
-const falSpeechProviderOptionsSchema = z.looseObject({
+const falSpeechModelOptionsSchema = z.looseObject({
   voice_setting: z
     .object({
       speed: z.number().nullish(),
@@ -31,9 +31,7 @@ const falSpeechProviderOptionsSchema = z.looseObject({
   pronunciation_dict: z.record(z.string(), z.string()).nullish(),
 });
 
-export type FalSpeechCallOptions = z.infer<
-  typeof falSpeechProviderOptionsSchema
->;
+export type FalSpeechModelOptions = z.infer<typeof falSpeechModelOptionsSchema>;
 
 interface FalSpeechModelConfig extends FalConfig {
   _internal?: {
@@ -41,8 +39,8 @@ interface FalSpeechModelConfig extends FalConfig {
   };
 }
 
-export class FalSpeechModel implements SpeechModelV3 {
-  readonly specificationVersion = 'v3';
+export class FalSpeechModel implements SpeechModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
@@ -60,13 +58,13 @@ export class FalSpeechModel implements SpeechModelV3 {
     speed,
     language,
     providerOptions,
-  }: Parameters<SpeechModelV3['doGenerate']>[0]) {
-    const warnings: SpeechModelV3CallWarning[] = [];
+  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     const falOptions = await parseProviderOptions({
       provider: 'fal',
       providerOptions,
-      schema: falSpeechProviderOptionsSchema,
+      schema: falSpeechModelOptionsSchema,
     });
 
     const requestBody = {
@@ -80,8 +78,8 @@ export class FalSpeechModel implements SpeechModelV3 {
     // Language is not directly supported; warn and ignore
     if (language) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'language',
+        type: 'unsupported',
+        feature: 'language',
         details:
           "fal speech models don't support 'language' directly; consider providerOptions.fal.language_boost",
       });
@@ -90,9 +88,9 @@ export class FalSpeechModel implements SpeechModelV3 {
     // warn on invalid values (and on hex until we support hex response handling)
     if (outputFormat && outputFormat !== 'url' && outputFormat !== 'hex') {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'outputFormat',
-        details: `Unsupported or unhandled outputFormat: ${outputFormat}. Using 'url' instead.`,
+        type: 'unsupported',
+        feature: 'outputFormat',
+        details: `Unsupported outputFormat: ${outputFormat}. Using 'url' instead.`,
       });
     }
 
@@ -100,8 +98,8 @@ export class FalSpeechModel implements SpeechModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV3['doGenerate']>>> {
+    options: Parameters<SpeechModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = await this.getArgs(options);
 

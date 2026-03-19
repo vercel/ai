@@ -1,7 +1,7 @@
 import {
-  LanguageModelV3FunctionTool,
-  LanguageModelV3ProviderDefinedTool,
-  LanguageModelV3ToolChoice,
+  LanguageModelV4FunctionTool,
+  LanguageModelV4ProviderTool,
+  LanguageModelV4ToolChoice,
 } from '@ai-sdk/provider';
 import { asSchema } from '@ai-sdk/provider-utils';
 import { isNonEmptyObject } from '../util/is-non-empty-object';
@@ -18,9 +18,9 @@ export async function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
   activeTools: Array<keyof TOOLS> | undefined;
 }): Promise<{
   tools:
-    | Array<LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool>
+    | Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool>
     | undefined;
-  toolChoice: LanguageModelV3ToolChoice | undefined;
+  toolChoice: LanguageModelV4ToolChoice | undefined;
 }> {
   if (!isNonEmptyObject(tools)) {
     return {
@@ -38,7 +38,7 @@ export async function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
       : Object.entries(tools);
 
   const languageModelTools: Array<
-    LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool
+    LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
   > = [];
   for (const [name, tool] of filteredTools) {
     const toolType = tool.type;
@@ -52,12 +52,16 @@ export async function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
           name,
           description: tool.description,
           inputSchema: await asSchema(tool.inputSchema).jsonSchema,
+          ...(tool.inputExamples != null
+            ? { inputExamples: tool.inputExamples }
+            : {}),
           providerOptions: tool.providerOptions,
+          ...(tool.strict != null ? { strict: tool.strict } : {}),
         });
         break;
-      case 'provider-defined':
+      case 'provider':
         languageModelTools.push({
-          type: 'provider-defined' as const,
+          type: 'provider' as const,
           name,
           id: tool.id,
           args: tool.args,

@@ -1,4 +1,4 @@
-import { SpeechModelV3, ProviderV3 } from '@ai-sdk/provider';
+import { SpeechModelV4, ProviderV4 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
@@ -8,7 +8,7 @@ import { LMNTSpeechModel } from './lmnt-speech-model';
 import { LMNTSpeechModelId } from './lmnt-speech-options';
 import { VERSION } from './version';
 
-export interface LMNTProvider extends Pick<ProviderV3, 'speechModel'> {
+export interface LMNTProvider extends Pick<ProviderV4, 'speechModel'> {
   (
     modelId: 'aurora',
     settings?: {},
@@ -17,31 +17,31 @@ export interface LMNTProvider extends Pick<ProviderV3, 'speechModel'> {
   };
 
   /**
-Creates a model for speech synthesis.
+   * Creates a model for speech synthesis.
    */
-  speech(modelId: LMNTSpeechModelId): SpeechModelV3;
+  speech(modelId: LMNTSpeechModelId): SpeechModelV4;
 }
 
 export interface LMNTProviderSettings {
   /**
-API key for authenticating requests.
-     */
+   * API key for authenticating requests.
+   */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 /**
-Create an LMNT provider instance.
+ * Create an LMNT provider instance.
  */
 export function createLMNT(options: LMNTProviderSettings = {}): LMNTProvider {
   const getHeaders = () =>
@@ -78,6 +78,6 @@ export function createLMNT(options: LMNTProviderSettings = {}): LMNTProvider {
 }
 
 /**
-Default LMNT provider instance.
+ * Default LMNT provider instance.
  */
 export const lmnt = createLMNT();

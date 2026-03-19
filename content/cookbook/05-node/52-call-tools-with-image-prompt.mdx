@@ -10,11 +10,10 @@ Some language models that support vision capabilities accept images as part of t
 
 ```ts
 import { generateText, tool } from 'ai';
-import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 const result = await generateText({
-  model: openai('gpt-4.1'),
+  model: 'openai/gpt-4.1',
   messages: [
     {
       role: 'user',

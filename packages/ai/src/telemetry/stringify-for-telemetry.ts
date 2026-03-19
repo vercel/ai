@@ -1,18 +1,18 @@
 import {
-  LanguageModelV3Message,
-  LanguageModelV3Prompt,
+  LanguageModelV4Message,
+  LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import { convertDataContentToBase64String } from '../prompt/data-content';
 
 /**
  * Helper utility to serialize prompt content for OpenTelemetry tracing.
- * It is initially created because normalized LanguageModelV1Prompt carries
+ * It is initially created because normalized LanguageModelV4Prompt carries
  * images as Uint8Arrays, on which JSON.stringify acts weirdly, converting
  * them to objects with stringified indices as keys, e.g. {"0": 42, "1": 69 }.
  */
-export function stringifyForTelemetry(prompt: LanguageModelV3Prompt): string {
+export function stringifyForTelemetry(prompt: LanguageModelV4Prompt): string {
   return JSON.stringify(
-    prompt.map((message: LanguageModelV3Message) => ({
+    prompt.map((message: LanguageModelV4Message) => ({
       ...message,
       content:
         typeof message.content === 'string'

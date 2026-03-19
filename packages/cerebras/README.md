@@ -10,6 +10,14 @@ The Cerebras provider is available in the `@ai-sdk/cerebras` module. You can ins
 npm i @ai-sdk/cerebras
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 You can import the default provider instance `cerebras` from `@ai-sdk/cerebras`:

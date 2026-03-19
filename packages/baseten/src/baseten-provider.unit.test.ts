@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { createBaseten } from './baseten-provider';
 import {
-  LanguageModelV3,
-  EmbeddingModelV3,
+  LanguageModelV4,
+  EmbeddingModelV4,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
@@ -49,10 +49,12 @@ vi.mock('@ai-sdk/provider-utils', async () => {
 });
 
 vi.mock('@basetenlabs/performance-client', () => ({
-  PerformanceClient: vi.fn().mockImplementation(() => ({
-    embed: vi.fn(),
-    embedBatch: vi.fn(),
-  })),
+  PerformanceClient: vi.fn(function () {
+    return {
+      embed: vi.fn(),
+      embedBatch: vi.fn(),
+    };
+  }),
 }));
 
 vi.mock('./version', () => ({
@@ -221,7 +223,7 @@ describe('BasetenProvider', () => {
       const provider = createBaseten();
 
       expect(() => {
-        provider.textEmbeddingModel();
+        provider.embeddingModel();
       }).toThrow(
         'No model URL provided for embeddings. Please set modelURL option for embeddings.',
       );
@@ -233,7 +235,7 @@ describe('BasetenProvider', () => {
           'https://model-123.api.baseten.co/environments/production/sync',
       });
 
-      const model = provider.textEmbeddingModel();
+      const model = provider.embeddingModel();
 
       expect(model).toBeInstanceOf(OpenAICompatibleEmbeddingModel);
       expect(OpenAICompatibleEmbeddingModelMock).toHaveBeenCalledWith(
@@ -261,7 +263,7 @@ describe('BasetenProvider', () => {
       });
 
       expect(() => {
-        provider.textEmbeddingModel();
+        provider.embeddingModel();
       }).toThrow(
         'Not supported. You must use a /sync or /sync/v1 endpoint for embeddings.',
       );
@@ -273,7 +275,7 @@ describe('BasetenProvider', () => {
           'https://model-123.api.baseten.co/environments/production/sync/v1',
       });
 
-      const model = provider.textEmbeddingModel();
+      const model = provider.embeddingModel();
 
       expect(model).toBeInstanceOf(OpenAICompatibleEmbeddingModel);
       expect(OpenAICompatibleEmbeddingModelMock).toHaveBeenCalledWith(
@@ -288,7 +290,7 @@ describe('BasetenProvider', () => {
           'https://model-123.api.baseten.co/environments/production/sync',
       });
 
-      const model = provider.textEmbeddingModel();
+      const model = provider.embeddingModel();
 
       expect(model).toBeInstanceOf(OpenAICompatibleEmbeddingModel);
       expect(OpenAICompatibleEmbeddingModelMock).toHaveBeenCalledWith(
@@ -407,7 +409,7 @@ describe('BasetenProvider', () => {
       const provider = createBaseten();
 
       expect(() => {
-        provider.textEmbeddingModel();
+        provider.embeddingModel();
       }).toThrow(
         'No model URL provided for embeddings. Please set modelURL option for embeddings.',
       );
@@ -429,7 +431,7 @@ describe('BasetenProvider', () => {
       expect(typeof provider).toBe('function');
       expect(typeof provider.chatModel).toBe('function');
       expect(typeof provider.languageModel).toBe('function');
-      expect(typeof provider.textEmbeddingModel).toBe('function');
+      expect(typeof provider.embeddingModel).toBe('function');
       expect(typeof provider.imageModel).toBe('function');
     });
 

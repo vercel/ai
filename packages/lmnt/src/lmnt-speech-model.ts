@@ -1,4 +1,4 @@
-import { SpeechModelV3, SpeechModelV3CallWarning } from '@ai-sdk/provider';
+import { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -12,7 +12,7 @@ import { LMNTSpeechModelId } from './lmnt-speech-options';
 import { LMNTSpeechAPITypes } from './lmnt-api-types';
 
 // https://docs.lmnt.com/api-reference/speech/synthesize-speech-bytes
-const lmntSpeechCallOptionsSchema = z.object({
+const lmntSpeechModelOptionsSchema = z.object({
   /**
    * The model to use for speech synthesis e.g. 'aurora' or 'blizzard'.
    * @default 'aurora'
@@ -75,7 +75,9 @@ const lmntSpeechCallOptionsSchema = z.object({
   temperature: z.number().min(0).nullish().default(1),
 });
 
-export type LMNTSpeechCallOptions = z.infer<typeof lmntSpeechCallOptionsSchema>;
+export type LMNTSpeechModelOptions = z.infer<
+  typeof lmntSpeechModelOptionsSchema
+>;
 
 interface LMNTSpeechModelConfig extends LMNTConfig {
   _internal?: {
@@ -83,8 +85,8 @@ interface LMNTSpeechModelConfig extends LMNTConfig {
   };
 }
 
-export class LMNTSpeechModel implements SpeechModelV3 {
-  readonly specificationVersion = 'v3';
+export class LMNTSpeechModel implements SpeechModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
@@ -102,14 +104,14 @@ export class LMNTSpeechModel implements SpeechModelV3 {
     speed,
     language,
     providerOptions,
-  }: Parameters<SpeechModelV3['doGenerate']>[0]) {
-    const warnings: SpeechModelV3CallWarning[] = [];
+  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const lmntOptions = await parseProviderOptions({
       provider: 'lmnt',
       providerOptions,
-      schema: lmntSpeechCallOptionsSchema,
+      schema: lmntSpeechModelOptionsSchema,
     });
 
     // Create request body
@@ -126,8 +128,8 @@ export class LMNTSpeechModel implements SpeechModelV3 {
         requestBody.response_format = outputFormat;
       } else {
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'outputFormat',
+          type: 'unsupported',
+          feature: 'outputFormat',
           details: `Unsupported output format: ${outputFormat}. Using mp3 instead.`,
         });
       }
@@ -167,8 +169,8 @@ export class LMNTSpeechModel implements SpeechModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV3['doGenerate']>>> {
+    options: Parameters<SpeechModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = await this.getArgs(options);
 

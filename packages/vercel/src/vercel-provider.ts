@@ -1,7 +1,7 @@
 import {
-  LanguageModelV3,
+  LanguageModelV4,
   NoSuchModelError,
-  ProviderV3,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
@@ -15,34 +15,39 @@ import { VERSION } from './version';
 
 export interface VercelProviderSettings {
   /**
-Vercel API key.
-*/
+   * Vercel API key.
+   */
   apiKey?: string;
   /**
-Base URL for the API calls.
-*/
+   * Base URL for the API calls.
+   */
   baseURL?: string;
   /**
-Custom headers to include in the requests.
-*/
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-*/
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
-export interface VercelProvider extends ProviderV3 {
+export interface VercelProvider extends ProviderV4 {
   /**
-Creates a model for text generation.
-*/
-  (modelId: VercelChatModelId): LanguageModelV3;
+   * Creates a model for text generation.
+   */
+  (modelId: VercelChatModelId): LanguageModelV4;
 
   /**
-Creates a language model for text generation.
-*/
-  languageModel(modelId: VercelChatModelId): LanguageModelV3;
+   * Creates a language model for text generation.
+   */
+  languageModel(modelId: VercelChatModelId): LanguageModelV4;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export function createVercel(
@@ -86,11 +91,12 @@ export function createVercel(
 
   const provider = (modelId: VercelChatModelId) => createChatModel(modelId);
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
-  provider.textEmbeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  provider.embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };

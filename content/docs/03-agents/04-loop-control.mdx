@@ -26,9 +26,10 @@ The AI SDK provides several built-in stopping conditions:
 
 ```ts
 import { ToolLoopAgent, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: __MODEL__,
   tools: {
     // your tools
   },
@@ -46,9 +47,10 @@ Combine multiple stopping conditions. The loop stops when it meets any condition
 
 ```ts
 import { ToolLoopAgent, stepCountIs, hasToolCall } from 'ai';
+__PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: __MODEL__,
   tools: {
     // your tools
   },
@@ -69,6 +71,7 @@ Build custom stopping conditions for specific requirements:
 
 ```ts
 import { ToolLoopAgent, StopCondition, ToolSet } from 'ai';
+__PROVIDER_IMPORT__;
 
 const tools = {
   // your tools
@@ -80,7 +83,7 @@ const hasAnswer: StopCondition<typeof tools> = ({ steps }) => {
 };
 
 const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: __MODEL__,
   tools,
   stopWhen: hasAnswer,
 });
@@ -118,6 +121,7 @@ Switch models based on step requirements:
 
 ```ts
 import { ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o-mini', // Default model
@@ -128,7 +132,7 @@ const agent = new ToolLoopAgent({
     // Use a stronger model for complex reasoning after initial steps
     if (stepNumber > 2 && messages.length > 10) {
       return {
-        model: 'openai/gpt-4o',
+        model: __MODEL__,
       };
     }
     // Continue with default settings
@@ -147,9 +151,10 @@ Manage growing conversation history in long-running loops:
 
 ```ts
 import { ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: __MODEL__,
   tools: {
     // your tools
   },
@@ -178,9 +183,10 @@ Control which tools are available at each step:
 
 ```ts
 import { ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: __MODEL__,
   tools: {
     search: searchTool,
     analyze: analyzeTool,
@@ -243,9 +249,10 @@ Transform messages before sending them to the model:
 
 ```ts
 import { ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: __MODEL__,
   tools: {
     // your tools
   },
@@ -296,6 +303,50 @@ prepareStep: async ({
 },
 ```
 
+## Forced Tool Calling
+
+You can force the agent to always use tools by combining `toolChoice: 'required'` with a `done` tool that has no `execute` function. This pattern ensures the agent uses tools for every step and stops only when it explicitly signals completion.
+
+```ts
+import { ToolLoopAgent, tool } from 'ai';
+import { z } from 'zod';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: {
+    search: searchTool,
+    analyze: analyzeTool,
+    done: tool({
+      description: 'Signal that you have finished your work',
+      inputSchema: z.object({
+        answer: z.string().describe('The final answer'),
+      }),
+      // No execute function - stops the agent when called
+    }),
+  },
+  toolChoice: 'required', // Force tool calls at every step
+});
+
+const result = await agent.generate({
+  prompt: 'Research and analyze this topic, then provide your answer.',
+});
+
+// extract answer from done tool call
+const toolCall = result.staticToolCalls[0]; // tool call from final step
+if (toolCall?.toolName === 'done') {
+  console.log(toolCall.input.answer);
+}
+```
+
+Key aspects of this pattern:
+
+- **`toolChoice: 'required'`**: Forces the model to call a tool at every step instead of generating text directly. This ensures the agent follows a structured workflow.
+- **`done` tool without `execute`**: A tool that has no `execute` function acts as a termination signal. When the agent calls this tool, the loop stops because there's no function to execute.
+- **Accessing results**: The final answer is available in `result.staticToolCalls`, which contains tool calls that weren't executed.
+
+This pattern is useful when you want the agent to always use specific tools for operations (like code execution or data retrieval) rather than attempting to answer directly.
+
 ## Manual Loop Control
 
 For scenarios requiring complete control over the agent loop, you can use AI SDK Core functions (`generateText` and `streamText`) to implement your own loop management instead of using `stopWhen` and `prepareStep`. This approach provides maximum flexibility for complex workflows.
@@ -306,6 +357,7 @@ Build your own agent loop when you need full control over execution:
 
 ```ts
 import { generateText, ModelMessage } from 'ai';
+__PROVIDER_IMPORT__;
 
 const messages: ModelMessage[] = [{ role: 'user', content: '...' }];
 
@@ -314,7 +366,7 @@ const maxSteps = 10;
 
 while (step < maxSteps) {
   const result = await generateText({
-    model: 'openai/gpt-4o',
+    model: __MODEL__,
     messages,
     tools: {
       // your tools here

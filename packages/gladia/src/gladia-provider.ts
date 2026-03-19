@@ -1,6 +1,6 @@
 import {
-  TranscriptionModelV3,
-  ProviderV3,
+  TranscriptionModelV4,
+  ProviderV4,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
@@ -11,37 +11,42 @@ import {
 import { GladiaTranscriptionModel } from './gladia-transcription-model';
 import { VERSION } from './version';
 
-export interface GladiaProvider extends ProviderV3 {
+export interface GladiaProvider extends ProviderV4 {
   (): {
     transcription: GladiaTranscriptionModel;
   };
 
   /**
-Creates a model for transcription.
+   * Creates a model for transcription.
    */
-  transcription(): TranscriptionModelV3;
+  transcription(): TranscriptionModelV4;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface GladiaProviderSettings {
   /**
-API key for authenticating requests.
-     */
+   * API key for authenticating requests.
+   */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 /**
-Create a Gladia provider instance.
+ * Create a Gladia provider instance.
  */
 export function createGladia(
   options: GladiaProviderSettings = {},
@@ -73,30 +78,31 @@ export function createGladia(
     };
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 
-  // Required ProviderV3 methods that are not supported
-  provider.languageModel = () => {
+  // Required ProviderV4 methods that are not supported
+  provider.languageModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
+      modelId,
       modelType: 'languageModel',
       message: 'Gladia does not provide language models',
     });
   };
 
-  provider.textEmbeddingModel = () => {
+  provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'textEmbeddingModel',
-      message: 'Gladia does not provide text embedding models',
+      modelId,
+      modelType: 'embeddingModel',
+      message: 'Gladia does not provide embedding models',
     });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
 
-  provider.imageModel = () => {
+  provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
+      modelId,
       modelType: 'imageModel',
       message: 'Gladia does not provide image models',
     });
@@ -106,6 +112,6 @@ export function createGladia(
 }
 
 /**
-Default Gladia provider instance.
+ * Default Gladia provider instance.
  */
 export const gladia = createGladia();

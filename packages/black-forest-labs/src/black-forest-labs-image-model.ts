@@ -1,4 +1,4 @@
-import type { ImageModelV3, ImageModelV3CallWarning } from '@ai-sdk/provider';
+import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import type { InferSchema, Resolvable } from '@ai-sdk/provider-utils';
 import {
   FetchFunction,
@@ -28,11 +28,11 @@ interface BlackForestLabsImageModelConfig {
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   /**
-   Poll interval in milliseconds between status checks. Defaults to 500ms.
+   * Poll interval in milliseconds between status checks. Defaults to 500ms.
    */
   pollIntervalMillis?: number;
   /**
-   Overall timeout in milliseconds for polling before giving up. Defaults to 60s.
+   * Overall timeout in milliseconds for polling before giving up. Defaults to 60s.
    */
   pollTimeoutMillis?: number;
   _internal?: {
@@ -40,8 +40,8 @@ interface BlackForestLabsImageModelConfig {
   };
 }
 
-export class BlackForestLabsImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class BlackForestLabsImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
   get provider(): string {
@@ -55,46 +55,91 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
 
   private async getArgs({
     prompt,
+    files,
+    mask,
     size,
     aspectRatio,
     seed,
     providerOptions,
-  }: Parameters<ImageModelV3['doGenerate']>[0]) {
-    const warnings: Array<ImageModelV3CallWarning> = [];
+  }: Parameters<ImageModelV4['doGenerate']>[0]) {
+    const warnings: Array<SharedV4Warning> = [];
 
     const finalAspectRatio =
       aspectRatio ?? (size ? convertSizeToAspectRatio(size) : undefined);
 
     if (size && !aspectRatio) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'size',
-        details: 'Deriving aspect_ratio from size.',
+        type: 'unsupported',
+        feature: 'size',
+        details:
+          'Deriving aspect_ratio from size. Use the width and height provider options to specify dimensions for models that support them.',
       });
     } else if (size && aspectRatio) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'size',
-        details: 'Black Forest Labs ignores size when aspectRatio is provided.',
+        type: 'unsupported',
+        feature: 'size',
+        details:
+          'Black Forest Labs ignores size when aspectRatio is provided. Use the width and height provider options to specify dimensions for models that support them',
       });
     }
 
     const bflOptions = await parseProviderOptions({
       provider: 'blackForestLabs',
       providerOptions,
-      schema: blackForestLabsImageProviderOptionsSchema,
+      schema: blackForestLabsImageModelOptionsSchema,
     });
 
     const [widthStr, heightStr] = size?.split('x') ?? [];
+
+    const inputImages: string[] =
+      files?.map(file => {
+        if (file.type === 'url') {
+          return file.url;
+        }
+
+        if (typeof file.data === 'string') {
+          return file.data;
+        }
+
+        return Buffer.from(file.data).toString('base64');
+      }) || [];
+
+    if (inputImages.length > 10) {
+      throw new Error('Black Forest Labs supports up to 10 input images.');
+    }
+
+    const inputImagesObj: Record<string, string> = inputImages.reduce<
+      Record<string, string>
+    >((acc, img, index) => {
+      acc[`input_image${index === 0 ? '' : `_${index + 1}`}`] = img;
+      return acc;
+    }, {});
+
+    let maskValue: string | undefined;
+    if (mask) {
+      if (mask.type === 'url') {
+        maskValue = mask.url;
+      } else {
+        if (typeof mask.data === 'string') {
+          maskValue = mask.data;
+        } else {
+          maskValue = Buffer.from(mask.data).toString('base64');
+        }
+      }
+    }
 
     const body: Record<string, unknown> = {
       prompt,
       seed,
       aspect_ratio: finalAspectRatio,
-      ...(size && { width: Number(widthStr), height: Number(heightStr) }),
+      width: bflOptions?.width ?? (size ? Number(widthStr) : undefined),
+      height: bflOptions?.height ?? (size ? Number(heightStr) : undefined),
+      steps: bflOptions?.steps,
+      guidance: bflOptions?.guidance,
       image_prompt_strength: bflOptions?.imagePromptStrength,
       image_prompt: bflOptions?.imagePrompt,
-      input_image: bflOptions?.inputImage,
+      ...inputImagesObj,
+      mask: maskValue,
       output_format: bflOptions?.outputFormat,
       prompt_upsampling: bflOptions?.promptUpsampling,
       raw: bflOptions?.raw,
@@ -108,17 +153,21 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
 
   async doGenerate({
     prompt,
+    files,
+    mask,
     size,
     aspectRatio,
     seed,
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
     const { body, warnings } = await this.getArgs({
       prompt,
+      files,
+      mask,
       size,
       aspectRatio,
       seed,
@@ -126,12 +175,12 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       n: 1,
       headers,
       abortSignal,
-    } as Parameters<ImageModelV3['doGenerate']>[0]);
+    } as Parameters<ImageModelV4['doGenerate']>[0]);
 
     const bflOptions = await parseProviderOptions({
       provider: 'blackForestLabs',
       providerOptions,
-      schema: blackForestLabsImageProviderOptionsSchema,
+      schema: blackForestLabsImageModelOptionsSchema,
     });
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
@@ -190,6 +239,13 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
               ...(resultStartTime != null && { start_time: resultStartTime }),
               ...(resultEndTime != null && { end_time: resultEndTime }),
               ...(resultDuration != null && { duration: resultDuration }),
+              ...(submit.value.cost != null && { cost: submit.value.cost }),
+              ...(submit.value.input_mp != null && {
+                inputMegapixels: submit.value.input_mp,
+              }),
+              ...(submit.value.output_mp != null && {
+                outputMegapixels: submit.value.output_mp,
+              }),
             },
           ],
         },
@@ -277,12 +333,35 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
   }
 }
 
-export const blackForestLabsImageProviderOptionsSchema = lazySchema(() =>
+export const blackForestLabsImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       imagePrompt: z.string().optional(),
       imagePromptStrength: z.number().min(0).max(1).optional(),
+      /** @deprecated use prompt.images instead */
       inputImage: z.string().optional(),
+      /** @deprecated use prompt.images instead */
+      inputImage2: z.string().optional(),
+      /** @deprecated use prompt.images instead */
+      inputImage3: z.string().optional(),
+      /** @deprecated use prompt.images instead */
+      inputImage4: z.string().optional(),
+      /** @deprecated use prompt.images instead */
+      inputImage5: z.string().optional(),
+      /** @deprecated use prompt.images instead */
+      inputImage6: z.string().optional(),
+      /** @deprecated use prompt.images instead */
+      inputImage7: z.string().optional(),
+      /** @deprecated use prompt.images instead */
+      inputImage8: z.string().optional(),
+      /** @deprecated use prompt.images instead */
+      inputImage9: z.string().optional(),
+      /** @deprecated use prompt.images instead */
+      inputImage10: z.string().optional(),
+      steps: z.number().int().positive().optional(),
+      guidance: z.number().min(0).optional(),
+      width: z.number().int().min(256).max(1920).optional(),
+      height: z.number().int().min(256).max(1920).optional(),
       outputFormat: z.enum(['jpeg', 'png']).optional(),
       promptUpsampling: z.boolean().optional(),
       raw: z.boolean().optional(),
@@ -295,8 +374,8 @@ export const blackForestLabsImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type BlackForestLabsImageProviderOptions = InferSchema<
-  typeof blackForestLabsImageProviderOptionsSchema
+export type BlackForestLabsImageModelOptions = InferSchema<
+  typeof blackForestLabsImageModelOptionsSchema
 >;
 
 function convertSizeToAspectRatio(
@@ -331,6 +410,9 @@ function gcd(a: number, b: number): number {
 const bflSubmitSchema = z.object({
   id: z.string(),
   polling_url: z.url(),
+  cost: z.number().nullish(),
+  input_mp: z.number().nullish(),
+  output_mp: z.number().nullish(),
 });
 
 const bflStatus = z.union([
@@ -338,12 +420,14 @@ const bflStatus = z.union([
   z.literal('Ready'),
   z.literal('Error'),
   z.literal('Failed'),
+  z.literal('Request Moderated'),
 ]);
 
 const bflPollSchema = z
   .object({
     status: bflStatus.optional(),
     state: bflStatus.optional(),
+    details: z.unknown().optional(),
     result: z
       .object({
         sample: z.url(),

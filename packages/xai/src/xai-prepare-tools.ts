@@ -1,6 +1,6 @@
 import {
-  LanguageModelV3CallOptions,
-  LanguageModelV3CallWarning,
+  LanguageModelV4CallOptions,
+  SharedV4Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { XaiToolChoice } from './xai-chat-prompt';
@@ -9,8 +9,8 @@ export function prepareTools({
   tools,
   toolChoice,
 }: {
-  tools: LanguageModelV3CallOptions['tools'];
-  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
+  tools: LanguageModelV4CallOptions['tools'];
+  toolChoice?: LanguageModelV4CallOptions['toolChoice'];
 }): {
   tools:
     | Array<{
@@ -19,16 +19,17 @@ export function prepareTools({
           name: string;
           description: string | undefined;
           parameters: unknown;
+          strict?: boolean;
         };
       }>
     | undefined;
   toolChoice: XaiToolChoice | undefined;
-  toolWarnings: LanguageModelV3CallWarning[];
+  toolWarnings: SharedV4Warning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: LanguageModelV3CallWarning[] = [];
+  const toolWarnings: SharedV4Warning[] = [];
 
   if (tools == null) {
     return { tools: undefined, toolChoice: undefined, toolWarnings };
@@ -41,12 +42,16 @@ export function prepareTools({
       name: string;
       description: string | undefined;
       parameters: unknown;
+      strict?: boolean;
     };
   }> = [];
 
   for (const tool of tools) {
-    if (tool.type === 'provider-defined') {
-      toolWarnings.push({ type: 'unsupported-tool', tool });
+    if (tool.type === 'provider') {
+      toolWarnings.push({
+        type: 'unsupported',
+        feature: `provider-defined tool ${tool.name}`,
+      });
     } else {
       xaiTools.push({
         type: 'function',
@@ -54,6 +59,7 @@ export function prepareTools({
           name: tool.name,
           description: tool.description,
           parameters: tool.inputSchema,
+          ...(tool.strict != null ? { strict: tool.strict } : {}),
         },
       });
     }

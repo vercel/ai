@@ -111,7 +111,7 @@ export async function submitUserMessage(input: string) {
       },
       lookupFlight: {
         description: 'lookup details for a flight',
-        parameters: z.object({
+        inputSchema: z.object({
           flightNumber: z.string().describe('The flight number'),
         }),
         generate: async function* ({ flightNumber }) {
@@ -263,7 +263,7 @@ Now, update your `searchFlights` tool to render the new `<Flights />` component.
 ...
 searchFlights: {
   description: 'search for flights',
-  parameters: z.object({
+  inputSchema: z.object({
     source: z.string().describe('The origin of the flight'),
     destination: z.string().describe('The destination of the flight'),
     date: z.string().describe('The date of the flight'),

@@ -9,6 +9,8 @@ export type OpenAIChatModelId =
   | 'o3-mini-2025-01-31'
   | 'o3'
   | 'o3-2025-04-16'
+  | 'o4-mini'
+  | 'o4-mini-2025-04-16'
   | 'gpt-4.1'
   | 'gpt-4.1-2025-04-14'
   | 'gpt-4.1-mini'
@@ -19,18 +21,21 @@ export type OpenAIChatModelId =
   | 'gpt-4o-2024-05-13'
   | 'gpt-4o-2024-08-06'
   | 'gpt-4o-2024-11-20'
+  | 'gpt-4o-audio-preview'
+  | 'gpt-4o-audio-preview-2024-12-17'
+  | 'gpt-4o-audio-preview-2025-06-03'
   | 'gpt-4o-mini'
   | 'gpt-4o-mini-2024-07-18'
-  | 'gpt-4-turbo'
-  | 'gpt-4-turbo-2024-04-09'
-  | 'gpt-4'
-  | 'gpt-4-0613'
-  | 'gpt-4.5-preview'
-  | 'gpt-4.5-preview-2025-02-27'
+  | 'gpt-4o-mini-audio-preview'
+  | 'gpt-4o-mini-audio-preview-2024-12-17'
+  | 'gpt-4o-search-preview'
+  | 'gpt-4o-search-preview-2025-03-11'
+  | 'gpt-4o-mini-search-preview'
+  | 'gpt-4o-mini-search-preview-2025-03-11'
   | 'gpt-3.5-turbo-0125'
   | 'gpt-3.5-turbo'
   | 'gpt-3.5-turbo-1106'
-  | 'chatgpt-4o-latest'
+  | 'gpt-3.5-turbo-16k'
   | 'gpt-5'
   | 'gpt-5-2025-08-07'
   | 'gpt-5-mini'
@@ -39,10 +44,21 @@ export type OpenAIChatModelId =
   | 'gpt-5-nano-2025-08-07'
   | 'gpt-5-chat-latest'
   | 'gpt-5.1'
+  | 'gpt-5.1-2025-11-13'
   | 'gpt-5.1-chat-latest'
+  | 'gpt-5.2'
+  | 'gpt-5.2-2025-12-11'
+  | 'gpt-5.2-chat-latest'
+  | 'gpt-5.2-pro'
+  | 'gpt-5.2-pro-2025-12-11'
+  | 'gpt-5.3-chat-latest'
+  | 'gpt-5.4'
+  | 'gpt-5.4-2026-03-05'
+  | 'gpt-5.4-pro'
+  | 'gpt-5.4-pro-2026-03-05'
   | (string & {});
 
-export const openaiChatLanguageModelOptions = lazySchema(() =>
+export const openaiLanguageModelChatOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -79,7 +95,7 @@ export const openaiChatLanguageModelOptions = lazySchema(() =>
        * Reasoning effort for reasoning models. Defaults to `medium`.
        */
       reasoningEffort: z
-        .enum(['none', 'minimal', 'low', 'medium', 'high'])
+        .enum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh'])
         .optional(),
 
       /**
@@ -103,13 +119,6 @@ export const openaiChatLanguageModelOptions = lazySchema(() =>
       prediction: z.record(z.string(), z.any()).optional(),
 
       /**
-       * Whether to use structured outputs.
-       *
-       * @default true
-       */
-      structuredOutputs: z.boolean().optional(),
-
-      /**
        * Service tier for the request.
        * - 'auto': Default service tier. The request will be processed with the service tier configured in the
        *           Project settings. Unless otherwise configured, the Project will use 'default'.
@@ -124,7 +133,7 @@ export const openaiChatLanguageModelOptions = lazySchema(() =>
       /**
        * Whether to use strict JSON schema validation.
        *
-       * @default false
+       * @default true
        */
       strictJsonSchema: z.boolean().optional(),
 
@@ -158,10 +167,31 @@ export const openaiChatLanguageModelOptions = lazySchema(() =>
        * information.
        */
       safetyIdentifier: z.string().optional(),
+
+      /**
+       * Override the system message mode for this model.
+       * - 'system': Use the 'system' role for system messages (default for most models)
+       * - 'developer': Use the 'developer' role for system messages (used by reasoning models)
+       * - 'remove': Remove system messages entirely
+       *
+       * If not specified, the mode is automatically determined based on the model.
+       */
+      systemMessageMode: z.enum(['system', 'developer', 'remove']).optional(),
+
+      /**
+       * Force treating this model as a reasoning model.
+       *
+       * This is useful for "stealth" reasoning models (e.g. via a custom baseURL)
+       * where the model ID is not recognized by the SDK's allowlist.
+       *
+       * When enabled, the SDK applies reasoning-model parameter compatibility rules
+       * and defaults `systemMessageMode` to `developer` unless overridden.
+       */
+      forceReasoning: z.boolean().optional(),
     }),
   ),
 );
 
-export type OpenAIChatLanguageModelOptions = InferSchema<
-  typeof openaiChatLanguageModelOptions
+export type OpenAILanguageModelChatOptions = InferSchema<
+  typeof openaiLanguageModelChatOptions
 >;

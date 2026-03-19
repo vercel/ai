@@ -1,4 +1,9 @@
-import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import {
+  createIdGenerator,
+  ProviderOptions,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
+import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
@@ -7,23 +12,37 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { EmbeddingModel } from '../types';
+import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
+import type { EmbedOnFinishEvent, EmbedOnStartEvent } from './embed-events';
 import { EmbedResult } from './embed-result';
 import { VERSION } from '../version';
+import type { Listener } from '../util/notify';
+
+const originalGenerateCallId = createIdGenerator({
+  prefix: 'call',
+  size: 24,
+});
 
 /**
-Embed a value using an embedding model. The type of the value is defined by the embedding model.
-
-@param model - The embedding model to use.
-@param value - The value that should be embedded.
-
-@param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
-@param abortSignal - An optional abort signal that can be used to cancel the call.
-@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
-
-@returns A result object that contains the embedding, the value, and additional information.
+ * Embed a value using an embedding model. The type of the value is defined by the embedding model.
+ *
+ * @param model - The embedding model to use.
+ * @param value - The value that should be embedded.
+ *
+ * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+ * @param abortSignal - An optional abort signal that can be used to cancel the call.
+ * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+ *
+ * @param experimental_telemetry - Optional telemetry configuration (experimental).
+ *
+ * @param providerOptions - Additional provider-specific options. They are passed through
+ * to the provider from the AI SDK and enable provider-specific
+ * functionality that can be fully encapsulated in the provider.
+ *
+ * @returns A result object that contains the embedding, the value, and additional information.
  */
-export async function embed<VALUE = string>({
+export async function embed({
   model: modelArg,
   value,
   providerOptions,
@@ -31,48 +50,70 @@ export async function embed<VALUE = string>({
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
+  experimental_onStart: onStart,
+  experimental_onFinish: onFinish,
+  _internal: { generateCallId = originalGenerateCallId } = {},
 }: {
   /**
-The embedding model to use.
-     */
-  model: EmbeddingModel<VALUE>;
-
-  /**
-The value that should be embedded.
+   * The embedding model to use.
    */
-  value: VALUE;
+  model: EmbeddingModel;
 
   /**
-Maximum number of retries per embedding model call. Set to 0 to disable retries.
+   * The value that should be embedded.
+   */
+  value: string;
 
-@default 2
+  /**
+   * Maximum number of retries per embedding model call. Set to 0 to disable retries.
+   *
+   * @default 2
    */
   maxRetries?: number;
 
   /**
-Abort signal.
- */
+   * Abort signal.
+   */
   abortSignal?: AbortSignal;
 
   /**
-Additional headers to include in the request.
-Only applicable for HTTP-based providers.
- */
+   * Additional headers to include in the request.
+   * Only applicable for HTTP-based providers.
+   */
   headers?: Record<string, string>;
 
   /**
-  Additional provider-specific options. They are passed through
-  to the provider from the AI SDK and enable provider-specific
-  functionality that can be fully encapsulated in the provider.
-  */
+   * Additional provider-specific options. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
   providerOptions?: ProviderOptions;
 
   /**
    * Optional telemetry configuration (experimental).
    */
   experimental_telemetry?: TelemetrySettings;
-}): Promise<EmbedResult<VALUE>> {
-  const model = resolveEmbeddingModel<VALUE>(modelArg);
+
+  /**
+   * Callback that is called when the embed operation begins,
+   * before the embedding model is called.
+   */
+  experimental_onStart?: Listener<EmbedOnStartEvent>;
+
+  /**
+   * Callback that is called when the embed operation completes,
+   * after the embedding model returns.
+   */
+  experimental_onFinish?: Listener<EmbedOnFinishEvent>;
+
+  /**
+   * Internal. For test use only. May change without notice.
+   */
+  _internal?: {
+    generateCallId?: () => string;
+  };
+}): Promise<EmbedResult> {
+  const model = resolveEmbeddingModel(modelArg);
 
   const { maxRetries, retry } = prepareRetries({
     maxRetries: maxRetriesArg,
@@ -83,6 +124,28 @@ Only applicable for HTTP-based providers.
     headers ?? {},
     `ai/${VERSION}`,
   );
+
+  const callId = generateCallId();
+  const modelInfo = { provider: model.provider, modelId: model.modelId };
+
+  await notify({
+    event: {
+      callId,
+      operationId: 'ai.embed',
+      model: modelInfo,
+      value,
+      maxRetries,
+      abortSignal,
+      headers: headersWithUserAgent,
+      providerOptions,
+      isEnabled: telemetry?.isEnabled,
+      recordInputs: telemetry?.recordInputs,
+      recordOutputs: telemetry?.recordOutputs,
+      functionId: telemetry?.functionId,
+      metadata: telemetry?.metadata,
+    },
+    callbacks: [onStart],
+  });
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model: model,
@@ -105,58 +168,60 @@ Only applicable for HTTP-based providers.
     }),
     tracer,
     fn: async span => {
-      const { embedding, usage, response, providerMetadata } = await retry(() =>
-        // nested spans to align with the embedMany telemetry data:
-        recordSpan({
-          name: 'ai.embed.doEmbed',
-          attributes: selectTelemetryAttributes({
-            telemetry,
-            attributes: {
-              ...assembleOperationName({
-                operationId: 'ai.embed.doEmbed',
-                telemetry,
-              }),
-              ...baseTelemetryAttributes,
-              // specific settings that only make sense on the outer level:
-              'ai.values': { input: () => [JSON.stringify(value)] },
+      const { embedding, usage, warnings, response, providerMetadata } =
+        await retry(() =>
+          // nested spans to align with the embedMany telemetry data:
+          recordSpan({
+            name: 'ai.embed.doEmbed',
+            attributes: selectTelemetryAttributes({
+              telemetry,
+              attributes: {
+                ...assembleOperationName({
+                  operationId: 'ai.embed.doEmbed',
+                  telemetry,
+                }),
+                ...baseTelemetryAttributes,
+                // specific settings that only make sense on the outer level:
+                'ai.values': { input: () => [JSON.stringify(value)] },
+              },
+            }),
+            tracer,
+            fn: async doEmbedSpan => {
+              const modelResponse = await model.doEmbed({
+                values: [value],
+                abortSignal,
+                headers: headersWithUserAgent,
+                providerOptions,
+              });
+
+              const embedding = modelResponse.embeddings[0];
+              const usage = modelResponse.usage ?? { tokens: NaN };
+
+              doEmbedSpan.setAttributes(
+                await selectTelemetryAttributes({
+                  telemetry,
+                  attributes: {
+                    'ai.embeddings': {
+                      output: () =>
+                        modelResponse.embeddings.map(embedding =>
+                          JSON.stringify(embedding),
+                        ),
+                    },
+                    'ai.usage.tokens': usage.tokens,
+                  },
+                }),
+              );
+
+              return {
+                embedding,
+                usage,
+                warnings: modelResponse.warnings,
+                providerMetadata: modelResponse.providerMetadata,
+                response: modelResponse.response,
+              };
             },
           }),
-          tracer,
-          fn: async doEmbedSpan => {
-            const modelResponse = await model.doEmbed({
-              values: [value],
-              abortSignal,
-              headers: headersWithUserAgent,
-              providerOptions,
-            });
-
-            const embedding = modelResponse.embeddings[0];
-            const usage = modelResponse.usage ?? { tokens: NaN };
-
-            doEmbedSpan.setAttributes(
-              await selectTelemetryAttributes({
-                telemetry,
-                attributes: {
-                  'ai.embeddings': {
-                    output: () =>
-                      modelResponse.embeddings.map(embedding =>
-                        JSON.stringify(embedding),
-                      ),
-                  },
-                  'ai.usage.tokens': usage.tokens,
-                },
-              }),
-            );
-
-            return {
-              embedding,
-              usage,
-              providerMetadata: modelResponse.providerMetadata,
-              response: modelResponse.response,
-            };
-          },
-        }),
-      );
+        );
 
       span.setAttributes(
         await selectTelemetryAttributes({
@@ -168,10 +233,33 @@ Only applicable for HTTP-based providers.
         }),
       );
 
+      logWarnings({ warnings, provider: model.provider, model: model.modelId });
+
+      await notify({
+        event: {
+          callId,
+          operationId: 'ai.embed',
+          model: modelInfo,
+          value,
+          embedding,
+          usage,
+          warnings,
+          providerMetadata,
+          response,
+          isEnabled: telemetry?.isEnabled,
+          recordInputs: telemetry?.recordInputs,
+          recordOutputs: telemetry?.recordOutputs,
+          functionId: telemetry?.functionId,
+          metadata: telemetry?.metadata,
+        },
+        callbacks: [onFinish],
+      });
+
       return new DefaultEmbedResult({
         value,
         embedding,
         usage,
+        warnings,
         providerMetadata,
         response,
       });
@@ -179,23 +267,26 @@ Only applicable for HTTP-based providers.
   });
 }
 
-class DefaultEmbedResult<VALUE> implements EmbedResult<VALUE> {
-  readonly value: EmbedResult<VALUE>['value'];
-  readonly embedding: EmbedResult<VALUE>['embedding'];
-  readonly usage: EmbedResult<VALUE>['usage'];
-  readonly providerMetadata: EmbedResult<VALUE>['providerMetadata'];
-  readonly response: EmbedResult<VALUE>['response'];
+class DefaultEmbedResult implements EmbedResult {
+  readonly value: EmbedResult['value'];
+  readonly embedding: EmbedResult['embedding'];
+  readonly usage: EmbedResult['usage'];
+  readonly warnings: EmbedResult['warnings'];
+  readonly providerMetadata: EmbedResult['providerMetadata'];
+  readonly response: EmbedResult['response'];
 
   constructor(options: {
-    value: EmbedResult<VALUE>['value'];
-    embedding: EmbedResult<VALUE>['embedding'];
-    usage: EmbedResult<VALUE>['usage'];
-    providerMetadata?: EmbedResult<VALUE>['providerMetadata'];
-    response?: EmbedResult<VALUE>['response'];
+    value: EmbedResult['value'];
+    embedding: EmbedResult['embedding'];
+    usage: EmbedResult['usage'];
+    warnings: EmbedResult['warnings'];
+    providerMetadata?: EmbedResult['providerMetadata'];
+    response?: EmbedResult['response'];
   }) {
     this.value = options.value;
     this.embedding = options.embedding;
     this.usage = options.usage;
+    this.warnings = options.warnings;
     this.providerMetadata = options.providerMetadata;
     this.response = options.response;
   }

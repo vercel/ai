@@ -1,7 +1,7 @@
 import {
-  TranscriptionModelV3,
-  SpeechModelV3,
-  ProviderV3,
+  TranscriptionModelV4,
+  SpeechModelV4,
+  ProviderV4,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
@@ -15,7 +15,7 @@ import { ElevenLabsSpeechModel } from './elevenlabs-speech-model';
 import { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
 import { VERSION } from './version';
 
-export interface ElevenLabsProvider extends ProviderV3 {
+export interface ElevenLabsProvider extends ProviderV4 {
   (
     modelId: 'scribe_v1',
     settings?: {},
@@ -24,36 +24,41 @@ export interface ElevenLabsProvider extends ProviderV3 {
   };
 
   /**
-Creates a model for transcription.
+   * Creates a model for transcription.
    */
-  transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV3;
+  transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV4;
 
   /**
-Creates a model for speech generation.
+   * Creates a model for speech generation.
    */
-  speech(modelId: ElevenLabsSpeechModelId): SpeechModelV3;
+  speech(modelId: ElevenLabsSpeechModelId): SpeechModelV4;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface ElevenLabsProviderSettings {
   /**
-API key for authenticating requests.
-     */
+   * API key for authenticating requests.
+   */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 /**
-Create an ElevenLabs provider instance.
+ * Create an ElevenLabs provider instance.
  */
 export function createElevenLabs(
   options: ElevenLabsProviderSettings = {},
@@ -93,31 +98,32 @@ export function createElevenLabs(
     };
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
 
-  provider.languageModel = () => {
+  provider.languageModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
+      modelId,
       modelType: 'languageModel',
       message: 'ElevenLabs does not provide language models',
     });
   };
 
-  provider.textEmbeddingModel = () => {
+  provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'textEmbeddingModel',
-      message: 'ElevenLabs does not provide text embedding models',
+      modelId,
+      modelType: 'embeddingModel',
+      message: 'ElevenLabs does not provide embedding models',
     });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
 
-  provider.imageModel = () => {
+  provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
+      modelId,
       modelType: 'imageModel',
       message: 'ElevenLabs does not provide image models',
     });
@@ -127,6 +133,6 @@ export function createElevenLabs(
 }
 
 /**
-Default ElevenLabs provider instance.
+ * Default ElevenLabs provider instance.
  */
 export const elevenlabs = createElevenLabs();

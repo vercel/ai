@@ -1,26 +1,25 @@
 export type GatewayImageModelId =
-  | 'google/imagen-4.0-generate'
-  | 'google/imagen-4.0-ultra-generate'
+  | 'bfl/flux-2-flex'
+  | 'bfl/flux-2-klein-4b'
+  | 'bfl/flux-2-klein-9b'
+  | 'bfl/flux-2-max'
+  | 'bfl/flux-2-pro'
   | 'bfl/flux-kontext-max'
   | 'bfl/flux-kontext-pro'
   | 'bfl/flux-pro-1.0-fill'
   | 'bfl/flux-pro-1.1'
   | 'bfl/flux-pro-1.1-ultra'
+  | 'google/imagen-4.0-fast-generate-001'
+  | 'google/imagen-4.0-generate-001'
+  | 'google/imagen-4.0-ultra-generate-001'
+  | 'openai/gpt-image-1'
+  | 'openai/gpt-image-1-mini'
+  | 'openai/gpt-image-1.5'
+  | 'prodia/flux-fast-schnell'
+  | 'recraft/recraft-v2'
+  | 'recraft/recraft-v3'
+  | 'recraft/recraft-v4'
+  | 'recraft/recraft-v4-pro'
+  | 'xai/grok-imagine-image'
+  | 'xai/grok-imagine-image-pro'
   | (string & {});
-
-/**
-  Default number of images a provider can return per single request.
-  Only include providers that deviate from the default of 4 (e.g. Vertex
-  Imagen is 4).
-*/
-export const DEFAULT_MAX_IMAGES_PER_CALL_BY_PROVIDER: Record<string, number> = {
-  bfl: 1,
-};
-
-export function getDefaultMaxImagesPerCallForModel(
-  modelId: GatewayImageModelId,
-): number | undefined {
-  const providerPrefix =
-    typeof modelId === 'string' ? modelId.split('/')[0] : '';
-  return DEFAULT_MAX_IMAGES_PER_CALL_BY_PROVIDER[providerPrefix];
-}

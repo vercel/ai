@@ -1,6 +1,6 @@
 import {
-  LanguageModelV3DataContent,
-  LanguageModelV3Prompt,
+  LanguageModelV4DataContent,
+  LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { MistralPrompt } from './mistral-chat-prompt';
@@ -10,7 +10,7 @@ function formatFileUrl({
   data,
   mediaType,
 }: {
-  data: LanguageModelV3DataContent;
+  data: LanguageModelV4DataContent;
   mediaType: string;
 }): string {
   return data instanceof URL
@@ -19,7 +19,7 @@ function formatFileUrl({
 }
 
 export function convertToMistralChatMessages(
-  prompt: LanguageModelV3Prompt,
+  prompt: LanguageModelV4Prompt,
 ): MistralPrompt {
   const messages: MistralPrompt = [];
 
@@ -122,6 +122,9 @@ export function convertToMistralChatMessages(
       }
       case 'tool': {
         for (const toolResponse of content) {
+          if (toolResponse.type === 'tool-approval-response') {
+            continue;
+          }
           const output = toolResponse.output;
 
           let contentValue: string;

@@ -9,7 +9,8 @@
     "dist",
     "build",
     "node_modules",
-    "tsup.config.ts"
+    "tsup.config.ts",
+    "anthropic/index.d.ts"
   ],
   "references": [
     {

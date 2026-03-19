@@ -1,6 +1,6 @@
 import {
-  LanguageModelV3CallWarning,
-  LanguageModelV3Prompt,
+  SharedV4Warning,
+  LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { OpenAIChatPrompt } from './openai-chat-prompt';
@@ -10,14 +10,14 @@ export function convertToOpenAIChatMessages({
   prompt,
   systemMessageMode = 'system',
 }: {
-  prompt: LanguageModelV3Prompt;
+  prompt: LanguageModelV4Prompt;
   systemMessageMode?: 'system' | 'developer' | 'remove';
 }): {
   messages: OpenAIChatPrompt;
-  warnings: Array<LanguageModelV3CallWarning>;
+  warnings: Array<SharedV4Warning>;
 } {
   const messages: OpenAIChatPrompt = [];
-  const warnings: Array<LanguageModelV3CallWarning> = [];
+  const warnings: Array<SharedV4Warning> = [];
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -184,6 +184,9 @@ export function convertToOpenAIChatMessages({
 
       case 'tool': {
         for (const toolResponse of content) {
+          if (toolResponse.type === 'tool-approval-response') {
+            continue;
+          }
           const output = toolResponse.output;
 
           let contentValue: string;

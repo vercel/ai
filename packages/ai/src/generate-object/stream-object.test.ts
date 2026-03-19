@@ -1,8 +1,9 @@
 import {
   JSONParseError,
-  LanguageModelV3CallWarning,
-  LanguageModelV3StreamPart,
+  SharedV4Warning,
+  LanguageModelV4StreamPart,
   TypeValidationError,
+  LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import {
@@ -16,21 +17,27 @@ import { z } from 'zod/v4';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import { verifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';
 import * as logWarningsModule from '../logger/log-warnings';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
 import { StreamObjectResult } from './stream-object-result';
+import { asLanguageModelUsage } from '../types/usage';
 
-const testUsage = {
-  inputTokens: 3,
-  outputTokens: 10,
-  totalTokens: 13,
-  reasoningTokens: undefined,
-  cachedInputTokens: undefined,
+const testUsage: LanguageModelV4Usage = {
+  inputTokens: {
+    total: 3,
+    noCache: 3,
+    cacheRead: undefined,
+    cacheWrite: undefined,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: undefined,
+  },
 };
-
 function createTestModel({
   warnings = [],
   stream = convertArrayToReadableStream([
@@ -54,7 +61,7 @@ function createTestModel({
     { type: 'text-end', id: '1' },
     {
       type: 'finish',
-      finishReason: 'stop',
+      finishReason: { unified: 'stop', raw: 'stop' },
       usage: testUsage,
       providerMetadata: {
         testProvider: {
@@ -66,12 +73,12 @@ function createTestModel({
   request = undefined,
   response = undefined,
 }: {
-  stream?: ReadableStream<LanguageModelV3StreamPart>;
+  stream?: ReadableStream<LanguageModelV4StreamPart>;
   request?: { body: string };
   response?: { headers: Record<string, string> };
-  warnings?: LanguageModelV3CallWarning[];
+  warnings?: SharedV4Warning[];
 } = {}) {
-  return new MockLanguageModelV3({
+  return new MockLanguageModelV4({
     doStream: async () => ({ stream, request, response, warnings }),
   });
 }
@@ -202,7 +209,7 @@ describe('streamObject', () => {
 
       it('should suppress error in partialObjectStream', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => {
               throw new Error('test error');
             },
@@ -221,7 +228,7 @@ describe('streamObject', () => {
         const result: Array<{ error: unknown }> = [];
 
         const resultObject = streamObject({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => {
               throw new Error('test error');
             },
@@ -338,7 +345,11 @@ describe('streamObject', () => {
                 delta: '{ "content": "Hello, world!" }',
               },
               { type: 'text-end', id: '1' },
-              { type: 'finish', finishReason: 'stop', usage: testUsage },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
             ]),
           }),
           schema: z.object({ content: z.string() }),
@@ -351,8 +362,18 @@ describe('streamObject', () => {
         expect(await result.usage).toMatchInlineSnapshot(`
           {
             "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
             "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
             "outputTokens": 10,
+            "raw": undefined,
             "reasoningTokens": undefined,
             "totalTokens": 13,
           }
@@ -374,7 +395,7 @@ describe('streamObject', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
                 providerMetadata: {
                   testProvider: { testKey: 'testValue' },
@@ -415,7 +436,7 @@ describe('streamObject', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -440,7 +461,7 @@ describe('streamObject', () => {
     describe('result.request', () => {
       it('should contain request information', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 {
@@ -458,7 +479,7 @@ describe('streamObject', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -481,7 +502,7 @@ describe('streamObject', () => {
     describe('result.object', () => {
       it('should resolve with typed object', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 { type: 'text-start', id: '1' },
@@ -494,7 +515,7 @@ describe('streamObject', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -514,7 +535,7 @@ describe('streamObject', () => {
 
       it('should reject object promise when the streamed object does not match the schema', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 { type: 'text-start', id: '1' },
@@ -527,7 +548,7 @@ describe('streamObject', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -545,7 +566,7 @@ describe('streamObject', () => {
 
       it('should not lead to unhandled promise rejections when the streamed object does not match the schema', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 { type: 'text-start', id: '1' },
@@ -558,7 +579,7 @@ describe('streamObject', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -578,7 +599,7 @@ describe('streamObject', () => {
     describe('result.finishReason', () => {
       it('should resolve with finish reason', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 { type: 'text-start', id: '1' },
@@ -591,7 +612,7 @@ describe('streamObject', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -615,7 +636,7 @@ describe('streamObject', () => {
         >[0];
 
         const { partialObjectStream } = streamObject({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 {
@@ -633,7 +654,7 @@ describe('streamObject', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                   providerMetadata: {
                     testProvider: { testKey: 'testValue' },
@@ -661,7 +682,7 @@ describe('streamObject', () => {
         >[0];
 
         const { partialObjectStream, object } = streamObject({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 {
@@ -680,7 +701,7 @@ describe('streamObject', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -706,7 +727,7 @@ describe('streamObject', () => {
     describe('options.headers', () => {
       it('should pass headers to model', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async ({ headers }) => {
               expect(headers).toStrictEqual({
                 'custom-request-header': 'request-header-value',
@@ -723,7 +744,7 @@ describe('streamObject', () => {
                   { type: 'text-end', id: '1' },
                   {
                     type: 'finish',
-                    finishReason: 'stop',
+                    finishReason: { unified: 'stop', raw: 'stop' },
                     usage: testUsage,
                   },
                 ]),
@@ -744,7 +765,7 @@ describe('streamObject', () => {
     describe('options.providerOptions', () => {
       it('should pass provider options to model', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async ({ providerOptions }) => {
               expect(providerOptions).toStrictEqual({
                 aProvider: { someKey: 'someValue' },
@@ -761,7 +782,7 @@ describe('streamObject', () => {
                   { type: 'text-end', id: '1' },
                   {
                     type: 'finish',
-                    finishReason: 'stop',
+                    finishReason: { unified: 'stop', raw: 'stop' },
                     usage: testUsage,
                   },
                 ]),
@@ -838,7 +859,7 @@ describe('streamObject', () => {
     describe('error handling', () => {
       it('should throw NoObjectGeneratedError when schema validation fails', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 { type: 'text-start', id: '1' },
@@ -852,7 +873,7 @@ describe('streamObject', () => {
                 },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -874,7 +895,7 @@ describe('streamObject', () => {
               timestamp: new Date(123),
               modelId: 'model-1',
             },
-            usage: testUsage,
+            usage: asLanguageModelUsage(testUsage),
             finishReason: 'stop',
           });
         }
@@ -882,7 +903,7 @@ describe('streamObject', () => {
 
       it('should throw NoObjectGeneratedError when parsing fails', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 { type: 'text-start', id: '1' },
@@ -896,7 +917,7 @@ describe('streamObject', () => {
                 },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -918,7 +939,7 @@ describe('streamObject', () => {
               timestamp: new Date(123),
               modelId: 'model-1',
             },
-            usage: testUsage,
+            usage: asLanguageModelUsage(testUsage),
             finishReason: 'stop',
           });
         }
@@ -926,7 +947,7 @@ describe('streamObject', () => {
 
       it('should throw NoObjectGeneratedError when no text is generated', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 {
@@ -937,7 +958,7 @@ describe('streamObject', () => {
                 },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -959,7 +980,7 @@ describe('streamObject', () => {
               timestamp: new Date(123),
               modelId: 'model-1',
             },
-            usage: testUsage,
+            usage: asLanguageModelUsage(testUsage),
             finishReason: 'stop',
           });
         }
@@ -1007,7 +1028,7 @@ describe('streamObject', () => {
               // finish
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -1111,7 +1132,7 @@ describe('streamObject', () => {
               },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -1177,7 +1198,11 @@ describe('streamObject', () => {
           { type: 'text-delta', id: '1', delta: `"` },
           { type: 'text-delta', id: '1', delta: ' }' },
           { type: 'text-end', id: '1' },
-          { type: 'finish', finishReason: 'stop', usage: testUsage },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
         ]),
       });
 
@@ -1223,7 +1248,7 @@ describe('streamObject', () => {
     });
 
     it('should not stream incorrect values', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         doStream: {
           stream: convertArrayToReadableStream([
             { type: 'text-start', id: '1' },
@@ -1236,7 +1261,7 @@ describe('streamObject', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -1267,7 +1292,7 @@ describe('streamObject', () => {
           { type: 'text-delta', id: '1', delta: ' }' },
           {
             type: 'finish',
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
           },
         ]),
@@ -1302,7 +1327,7 @@ describe('streamObject', () => {
           { type: 'text-end', id: '1' },
           {
             type: 'finish',
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
           },
         ]),
@@ -1338,7 +1363,7 @@ describe('streamObject', () => {
           { type: 'text-end', id: '1' },
           {
             type: 'finish',
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
           },
         ]),
@@ -1386,7 +1411,7 @@ describe('streamObject', () => {
 
     it('should not record any telemetry data when not explicitly enabled', async () => {
       const result = streamObject({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -1405,7 +1430,7 @@ describe('streamObject', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -1442,7 +1467,7 @@ describe('streamObject', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
               providerMetadata: {
                 testProvider: {
@@ -1485,7 +1510,7 @@ describe('streamObject', () => {
 
     it('should not record telemetry inputs / outputs when disabled', async () => {
       const result = streamObject({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -1504,7 +1529,7 @@ describe('streamObject', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -1531,7 +1556,7 @@ describe('streamObject', () => {
   describe('options.messages', () => {
     it('should support models that use "this" context in supportedUrls', async () => {
       let supportedUrlsCalled = false;
-      class MockLanguageModelWithImageSupport extends MockLanguageModelV3 {
+      class MockLanguageModelWithImageSupport extends MockLanguageModelV4 {
         constructor() {
           super({
             supportedUrls: () => {
@@ -1553,7 +1578,11 @@ describe('streamObject', () => {
                   delta: '{ "content": "Hello, world!" }',
                 },
                 { type: 'text-end', id: '1' },
-                { type: 'finish', finishReason: 'stop', usage: testUsage },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
               ]),
             }),
           });
@@ -1582,7 +1611,7 @@ describe('streamObject', () => {
   describe('options.experimental_repairText', () => {
     it('should be able to repair a JSONParseError', async () => {
       const result = streamObject({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -1600,7 +1629,7 @@ describe('streamObject', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -1625,7 +1654,7 @@ describe('streamObject', () => {
 
     it('should be able to repair a TypeValidationError', async () => {
       const result = streamObject({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -1643,7 +1672,7 @@ describe('streamObject', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -1670,7 +1699,7 @@ describe('streamObject', () => {
 
     it('should be able to handle repair that returns null', async () => {
       const result = streamObject({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -1688,7 +1717,7 @@ describe('streamObject', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -1715,7 +1744,7 @@ describe('streamObject', () => {
 
     it('should be able to repair JSON wrapped with markdown code blocks', async () => {
       const result = streamObject({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -1733,7 +1762,7 @@ describe('streamObject', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -1765,7 +1794,7 @@ describe('streamObject', () => {
 
     it('should throw NoObjectGeneratedError when parsing fails with repairText', async () => {
       const result = streamObject({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -1779,7 +1808,7 @@ describe('streamObject', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -1802,7 +1831,7 @@ describe('streamObject', () => {
             timestamp: new Date(0),
             modelId: 'mock-model-id',
           },
-          usage: testUsage,
+          usage: asLanguageModelUsage(testUsage),
           finishReason: 'stop',
         });
       }
@@ -1831,10 +1860,10 @@ describe('streamObject', () => {
     });
 
     it('should resolve warnings promise with warnings when warnings are present', async () => {
-      const expectedWarnings: LanguageModelV3CallWarning[] = [
+      const expectedWarnings: SharedV4Warning[] = [
         {
-          type: 'unsupported-setting',
-          setting: 'frequency_penalty',
+          type: 'unsupported',
+          feature: 'frequency_penalty',
           details: 'This model does not support the frequency_penalty setting.',
         },
         {
@@ -1863,14 +1892,14 @@ describe('streamObject', () => {
     });
 
     it('should call logWarnings with the correct warnings', async () => {
-      const expectedWarnings: LanguageModelV3CallWarning[] = [
+      const expectedWarnings: SharedV4Warning[] = [
         {
           type: 'other',
           message: 'Setting is not supported',
         },
         {
-          type: 'unsupported-setting',
-          setting: 'temperature',
+          type: 'unsupported',
+          feature: 'temperature',
           details: 'Temperature parameter not supported',
         },
       ];
