@@ -14,6 +14,8 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   FetchFunction,
+  isCustomReasoning,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
@@ -74,6 +76,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     providerOptions,
     tools,
     toolChoice,
+    reasoning,
   }: LanguageModelV4CallOptions) {
     const warnings: SharedV4Warning[] = [];
 
@@ -139,6 +142,24 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       }
     }
 
+    const resolvedReasoningEffort =
+      options.reasoningEffort ??
+      (isCustomReasoning(reasoning)
+        ? reasoning === 'none'
+          ? undefined
+          : mapReasoningToProviderEffort({
+              reasoning,
+              effortMap: {
+                minimal: 'low',
+                low: 'low',
+                medium: 'medium',
+                high: 'high',
+                xhigh: 'high',
+              },
+              warnings,
+            })
+        : undefined);
+
     const baseArgs: Record<string, unknown> = {
       model: this.modelId,
       input,
@@ -165,11 +186,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               : { type: 'json_object' },
         },
       }),
-      ...((options.reasoningEffort != null ||
+      ...((resolvedReasoningEffort != null ||
         options.reasoningSummary != null) && {
         reasoning: {
-          ...(options.reasoningEffort != null && {
-            effort: options.reasoningEffort,
+          ...(resolvedReasoningEffort != null && {
+            effort: resolvedReasoningEffort,
           }),
           ...(options.reasoningSummary != null && {
             summary: options.reasoningSummary,
