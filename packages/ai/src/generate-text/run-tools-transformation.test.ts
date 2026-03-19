@@ -27,30 +27,32 @@ const testUsage: LanguageModelV4Usage = {
 
 describe('runToolsTransformation', () => {
   it('should handle async tool execution', async () => {
-    const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
-      convertArrayToReadableStream([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'syncTool',
-          input: `{ "value": "test" }`,
-        },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
-      ]);
+    const tools = {
+      syncTool: tool({
+        inputSchema: z.object({ value: z.string() }),
+        execute: async ({ value }) => `${value}-sync-result`,
+      }),
+    };
+
+    const inputStream: ReadableStream<
+      UglyTransformedStreamTextPart<typeof tools>
+    > = convertArrayToReadableStream([
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'syncTool',
+        input: { value: 'test' },
+      },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage: testUsage,
+      },
+    ]);
 
     const transformedStream = runToolsTransformation({
       generateId: mockId({ prefix: 'id' }),
-      tools: {
-        syncTool: {
-          title: 'Sync Tool',
-          inputSchema: z.object({ value: z.string() }),
-          execute: async ({ value }) => `${value}-sync-result`,
-        },
-      },
+      tools,
       generatorStream: inputStream,
       telemetry: undefined,
       callId: 'test-telemetry-call-id',
@@ -68,9 +70,6 @@ describe('runToolsTransformation', () => {
             "input": {
               "value": "test",
             },
-            "providerExecuted": undefined,
-            "providerMetadata": undefined,
-            "title": "Sync Tool",
             "toolCallId": "call-1",
             "toolName": "syncTool",
             "type": "tool-call",
@@ -113,30 +112,32 @@ describe('runToolsTransformation', () => {
   });
 
   it('should handle sync tool execution', async () => {
-    const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
-      convertArrayToReadableStream([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'syncTool',
-          input: `{ "value": "test" }`,
-        },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
-      ]);
+    const tools = {
+      syncTool: tool({
+        inputSchema: z.object({ value: z.string() }),
+        execute: async ({ value }) => `${value}-sync-result`,
+      }),
+    };
+
+    const inputStream: ReadableStream<
+      UglyTransformedStreamTextPart<typeof tools>
+    > = convertArrayToReadableStream([
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'syncTool',
+        input: { value: 'test' },
+      },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage: testUsage,
+      },
+    ]);
 
     const transformedStream = runToolsTransformation({
       generateId: mockId({ prefix: 'id' }),
-      tools: {
-        syncTool: {
-          title: 'Sync Tool',
-          inputSchema: z.object({ value: z.string() }),
-          execute: ({ value }) => `${value}-sync-result`,
-        },
-      },
+      tools,
       generatorStream: inputStream,
       telemetry: undefined,
       callId: 'test-telemetry-call-id',
@@ -154,9 +155,6 @@ describe('runToolsTransformation', () => {
             "input": {
               "value": "test",
             },
-            "providerExecuted": undefined,
-            "providerMetadata": undefined,
-            "title": "Sync Tool",
             "toolCallId": "call-1",
             "toolName": "syncTool",
             "type": "tool-call",
@@ -199,33 +197,35 @@ describe('runToolsTransformation', () => {
   });
 
   it('should hold off on sending finish until the delayed tool result is received', async () => {
-    const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
-      convertArrayToReadableStream([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'delayedTool',
-          input: `{ "value": "test" }`,
+    const tools = {
+      delayedTool: tool({
+        inputSchema: z.object({ value: z.string() }),
+        execute: async ({ value }) => {
+          await delay(0); // Simulate delayed execution
+          return `${value}-delayed-result`;
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
-      ]);
+      }),
+    };
+
+    const inputStream: ReadableStream<
+      UglyTransformedStreamTextPart<typeof tools>
+    > = convertArrayToReadableStream([
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'delayedTool',
+        input: { value: 'test' },
+      },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage: testUsage,
+      },
+    ]);
 
     const transformedStream = runToolsTransformation({
       generateId: mockId({ prefix: 'id' }),
-      tools: {
-        delayedTool: {
-          title: 'Delayed Tool',
-          inputSchema: z.object({ value: z.string() }),
-          execute: async ({ value }) => {
-            await delay(0); // Simulate delayed execution
-            return `${value}-delayed-result`;
-          },
-        },
-      },
+      tools,
       generatorStream: inputStream,
       telemetry: undefined,
       callId: 'test-telemetry-call-id',
@@ -244,9 +244,6 @@ describe('runToolsTransformation', () => {
           "input": {
             "value": "test",
           },
-          "providerExecuted": undefined,
-          "providerMetadata": undefined,
-          "title": "Delayed Tool",
           "toolCallId": "call-1",
           "toolName": "delayedTool",
           "type": "tool-call",
@@ -288,138 +285,47 @@ describe('runToolsTransformation', () => {
     `);
   });
 
-  it('should try to repair tool call when the tool name is not found', async () => {
-    const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
-      convertArrayToReadableStream([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'unknownTool',
-          input: `{ "value": "test" }`,
-        },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
-      ]);
-
-    const transformedStream = runToolsTransformation({
-      generateId: mockId({ prefix: 'id' }),
-      generatorStream: inputStream,
-      telemetry: undefined,
-      callId: 'test-telemetry-call-id',
-      messages: [],
-      system: undefined,
-      abortSignal: undefined,
-      tools: {
-        correctTool: {
-          inputSchema: z.object({ value: z.string() }),
-          execute: async ({ value }) => `${value}-result`,
-        },
-      },
-      repairToolCall: async ({ toolCall, tools, inputSchema, error }) => {
-        expect(NoSuchToolError.isInstance(error)).toBe(true);
-        expect(toolCall).toStrictEqual({
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'unknownTool',
-          input: `{ "value": "test" }`,
-        });
-
-        return { ...toolCall, toolName: 'correctTool' };
-      },
-      experimental_context: undefined,
-    });
-
-    expect(await convertReadableStreamToArray(transformedStream))
-      .toMatchInlineSnapshot(`
-        [
-          {
-            "input": {
-              "value": "test",
-            },
-            "providerExecuted": undefined,
-            "providerMetadata": undefined,
-            "title": undefined,
-            "toolCallId": "call-1",
-            "toolName": "correctTool",
-            "type": "tool-call",
-          },
-          {
-            "dynamic": false,
-            "input": {
-              "value": "test",
-            },
-            "output": "test-result",
-            "toolCallId": "call-1",
-            "toolName": "correctTool",
-            "type": "tool-result",
-          },
-          {
-            "finishReason": "stop",
-            "providerMetadata": undefined,
-            "rawFinishReason": "stop",
-            "type": "finish",
-            "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokenDetails": {
-                "cacheReadTokens": undefined,
-                "cacheWriteTokens": undefined,
-                "noCacheTokens": 3,
-              },
-              "inputTokens": 3,
-              "outputTokenDetails": {
-                "reasoningTokens": undefined,
-                "textTokens": 10,
-              },
-              "outputTokens": 10,
-              "raw": undefined,
-              "reasoningTokens": undefined,
-              "totalTokens": 13,
-            },
-          },
-        ]
-      `);
-  });
-
   it('should not call execute for provider-executed tool calls', async () => {
+    const tools = {
+      providerTool: tool({
+        inputSchema: z.object({ value: z.string() }),
+        execute: async ({ value }) => {
+          toolExecuted = true;
+          return `${value}-should-not-execute`;
+        },
+      }),
+    };
+
     let toolExecuted = false;
 
-    const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
-      convertArrayToReadableStream([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'providerTool',
-          input: `{ "value": "test" }`,
-          providerExecuted: true,
-        },
-        {
-          type: 'tool-result',
-          toolCallId: 'call-1',
-          toolName: 'providerTool',
-          providerExecuted: true,
-          result: { example: 'example' },
-        },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
-      ]);
+    const inputStream: ReadableStream<
+      UglyTransformedStreamTextPart<typeof tools>
+    > = convertArrayToReadableStream([
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'providerTool',
+        input: { value: 'test' },
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'call-1',
+        toolName: 'providerTool',
+        providerExecuted: true,
+        input: { value: 'test' },
+        output: 'example-result',
+      },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage: testUsage,
+      },
+    ]);
 
     const transformedStream = runToolsTransformation({
       generateId: mockId({ prefix: 'id' }),
-      tools: {
-        providerTool: {
-          inputSchema: z.object({ value: z.string() }),
-          execute: async ({ value }) => {
-            toolExecuted = true;
-            return `${value}-should-not-execute`;
-          },
-        },
-      },
+      tools,
       generatorStream: inputStream,
       telemetry: undefined,
       callId: 'test-telemetry-call-id',
@@ -437,37 +343,46 @@ describe('runToolsTransformation', () => {
 
   describe('provider-emitted tool-approval-request (MCP flow)', () => {
     it('should forward provider-emitted tool-approval-request with the correct tool call', async () => {
-      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
-        convertArrayToReadableStream([
-          {
-            type: 'tool-call',
+      const tools = {
+        mcp_tool: tool({
+          type: 'provider',
+          id: 'mcp.mcp_tool',
+          inputSchema: z.object({ query: z.string() }),
+          args: {},
+        }),
+      };
+
+      const inputStream: ReadableStream<
+        UglyTransformedStreamTextPart<typeof tools>
+      > = convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'mcp-call-1',
+          toolName: 'mcp_tool',
+          input: { query: 'test' },
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-approval-request',
+          approvalId: 'mcp-approval-1',
+          toolCallId: 'mcp-call-1',
+          toolCall: {
+            input: { query: 'test' },
             toolCallId: 'mcp-call-1',
             toolName: 'mcp_tool',
-            input: `{ "query": "test" }`,
-            providerExecuted: true,
+            type: 'tool-call',
           },
-          {
-            type: 'tool-approval-request',
-            approvalId: 'mcp-approval-1',
-            toolCallId: 'mcp-call-1',
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'tool-calls', raw: undefined },
-            usage: testUsage,
-          },
-        ]);
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'tool-calls', raw: undefined },
+          usage: testUsage,
+        },
+      ]);
 
       const transformedStream = runToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
-        tools: {
-          mcp_tool: {
-            type: 'provider',
-            id: 'mcp.mcp_tool',
-            inputSchema: z.object({ query: z.string() }),
-            args: {},
-          },
-        },
+        tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
@@ -487,8 +402,6 @@ describe('runToolsTransformation', () => {
               "query": "test",
             },
             "providerExecuted": true,
-            "providerMetadata": undefined,
-            "title": undefined,
             "toolCallId": "mcp-call-1",
             "toolName": "mcp_tool",
             "type": "tool-call",
@@ -499,13 +412,11 @@ describe('runToolsTransformation', () => {
               "input": {
                 "query": "test",
               },
-              "providerExecuted": true,
-              "providerMetadata": undefined,
-              "title": undefined,
               "toolCallId": "mcp-call-1",
               "toolName": "mcp_tool",
               "type": "tool-call",
             },
+            "toolCallId": "mcp-call-1",
             "type": "tool-approval-request",
           },
           {
@@ -535,120 +446,71 @@ describe('runToolsTransformation', () => {
       `);
     });
 
-    it('should emit error when tool call is not found for provider approval request', async () => {
-      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
-        convertArrayToReadableStream([
-          // No tool-call part before the approval request
-          {
-            type: 'tool-approval-request',
-            approvalId: 'mcp-approval-1',
-            toolCallId: 'non-existent-call',
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'stop', raw: undefined },
-            usage: testUsage,
-          },
-        ]);
-
-      const transformedStream = runToolsTransformation({
-        generateId: mockId({ prefix: 'id' }),
-        tools: undefined,
-        generatorStream: inputStream,
-        telemetry: undefined,
-        callId: 'test-telemetry-call-id',
-        messages: [],
-        system: undefined,
-        abortSignal: undefined,
-        repairToolCall: undefined,
-        experimental_context: undefined,
-      });
-
-      const result = await convertReadableStreamToArray(transformedStream);
-
-      expect(result).toMatchInlineSnapshot(`
-        [
-          {
-            "error": [AI_ToolCallNotFoundForApprovalError: Tool call "non-existent-call" not found for approval request "mcp-approval-1".],
-            "type": "error",
-          },
-          {
-            "finishReason": "stop",
-            "providerMetadata": undefined,
-            "rawFinishReason": undefined,
-            "type": "finish",
-            "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokenDetails": {
-                "cacheReadTokens": undefined,
-                "cacheWriteTokens": undefined,
-                "noCacheTokens": 3,
-              },
-              "inputTokens": 3,
-              "outputTokenDetails": {
-                "reasoningTokens": undefined,
-                "textTokens": 10,
-              },
-              "outputTokens": 10,
-              "raw": undefined,
-              "reasoningTokens": undefined,
-              "totalTokens": 13,
-            },
-          },
-        ]
-      `);
-    });
-
     it('should handle multiple provider-executed tool calls with approval requests', async () => {
-      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
-        convertArrayToReadableStream([
-          {
-            type: 'tool-call',
+      const tools = {
+        mcp_search: tool({
+          type: 'provider',
+          id: 'mcp.mcp_search',
+          inputSchema: z.object({ query: z.string() }),
+          args: {},
+        }),
+        mcp_execute: tool({
+          type: 'provider',
+          id: 'mcp.mcp_execute',
+          inputSchema: z.object({ command: z.string() }),
+          args: {},
+        }),
+      };
+
+      const inputStream: ReadableStream<
+        UglyTransformedStreamTextPart<typeof tools>
+      > = convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'mcp-call-1',
+          toolName: 'mcp_search',
+          input: { query: 'first' },
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'mcp-call-2',
+          toolName: 'mcp_execute',
+          input: { command: 'ls' },
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-approval-request',
+          approvalId: 'approval-1',
+          toolCallId: 'mcp-call-1',
+          toolCall: {
+            input: { query: 'first' },
             toolCallId: 'mcp-call-1',
             toolName: 'mcp_search',
-            input: `{ "query": "first" }`,
-            providerExecuted: true,
-          },
-          {
             type: 'tool-call',
+          },
+        },
+        {
+          type: 'tool-approval-request',
+          approvalId: 'approval-2',
+          toolCallId: 'mcp-call-2',
+          toolCall: {
+            input: { command: 'ls' },
             toolCallId: 'mcp-call-2',
             toolName: 'mcp_execute',
-            input: `{ "command": "ls" }`,
-            providerExecuted: true,
+            type: 'tool-call',
           },
-          {
-            type: 'tool-approval-request',
-            approvalId: 'approval-1',
-            toolCallId: 'mcp-call-1',
-          },
-          {
-            type: 'tool-approval-request',
-            approvalId: 'approval-2',
-            toolCallId: 'mcp-call-2',
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'tool-calls', raw: undefined },
-            usage: testUsage,
-          },
-        ]);
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'tool-calls', raw: undefined },
+          usage: testUsage,
+        },
+      ]);
 
       const transformedStream = runToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
-        tools: {
-          mcp_search: {
-            type: 'provider',
-            id: 'mcp.mcp_search',
-            inputSchema: z.object({ query: z.string() }),
-            args: {},
-          },
-          mcp_execute: {
-            type: 'provider',
-            id: 'mcp.mcp_execute',
-            inputSchema: z.object({ command: z.string() }),
-            args: {},
-          },
-        },
+        tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
@@ -668,8 +530,6 @@ describe('runToolsTransformation', () => {
               "query": "first",
             },
             "providerExecuted": true,
-            "providerMetadata": undefined,
-            "title": undefined,
             "toolCallId": "mcp-call-1",
             "toolName": "mcp_search",
             "type": "tool-call",
@@ -679,8 +539,6 @@ describe('runToolsTransformation', () => {
               "command": "ls",
             },
             "providerExecuted": true,
-            "providerMetadata": undefined,
-            "title": undefined,
             "toolCallId": "mcp-call-2",
             "toolName": "mcp_execute",
             "type": "tool-call",
@@ -691,13 +549,11 @@ describe('runToolsTransformation', () => {
               "input": {
                 "query": "first",
               },
-              "providerExecuted": true,
-              "providerMetadata": undefined,
-              "title": undefined,
               "toolCallId": "mcp-call-1",
               "toolName": "mcp_search",
               "type": "tool-call",
             },
+            "toolCallId": "mcp-call-1",
             "type": "tool-approval-request",
           },
           {
@@ -706,13 +562,11 @@ describe('runToolsTransformation', () => {
               "input": {
                 "command": "ls",
               },
-              "providerExecuted": true,
-              "providerMetadata": undefined,
-              "title": undefined,
               "toolCallId": "mcp-call-2",
               "toolName": "mcp_execute",
               "type": "tool-call",
             },
+            "toolCallId": "mcp-call-2",
             "type": "tool-approval-request",
           },
           {
@@ -745,32 +599,35 @@ describe('runToolsTransformation', () => {
 
   describe('Tool.onInputAvailable', () => {
     it('should call onInputAvailable before the tool call is executed', async () => {
+      const tools = {
+        onInputAvailableTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+          onInputAvailable: async ({ input }) => {
+            output.push({ type: 'onInputAvailable', input });
+          },
+        }),
+      };
+
       const output: unknown[] = [];
-      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
-        convertArrayToReadableStream([
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'onInputAvailableTool',
-            input: `{ "value": "test" }`,
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: testUsage,
-          },
-        ]);
+      const inputStream: ReadableStream<
+        UglyTransformedStreamTextPart<typeof tools>
+      > = convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'onInputAvailableTool',
+          input: { value: 'test' },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: testUsage,
+        },
+      ]);
 
       const transformedStream = runToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
-        tools: {
-          onInputAvailableTool: tool({
-            inputSchema: z.object({ value: z.string() }),
-            onInputAvailable: async ({ input }) => {
-              output.push({ type: 'onInputAvailable', input });
-            },
-          }),
-        },
+        tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
@@ -801,9 +658,6 @@ describe('runToolsTransformation', () => {
             "input": {
               "value": "test",
             },
-            "providerExecuted": undefined,
-            "providerMetadata": undefined,
-            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "onInputAvailableTool",
             "type": "tool-call",
@@ -836,33 +690,36 @@ describe('runToolsTransformation', () => {
     });
 
     it('should call onInputAvailable when the tool needs approval', async () => {
+      const tools = {
+        onInputAvailableTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+          onInputAvailable: async ({ input }) => {
+            output.push({ type: 'onInputAvailable', input });
+          },
+          needsApproval: true,
+        }),
+      };
+
       const output: unknown[] = [];
-      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
-        convertArrayToReadableStream([
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'onInputAvailableTool',
-            input: `{ "value": "test" }`,
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: testUsage,
-          },
-        ]);
+      const inputStream: ReadableStream<
+        UglyTransformedStreamTextPart<typeof tools>
+      > = convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'onInputAvailableTool',
+          input: { value: 'test' },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: testUsage,
+        },
+      ]);
 
       const transformedStream = runToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
-        tools: {
-          onInputAvailableTool: tool({
-            inputSchema: z.object({ value: z.string() }),
-            onInputAvailable: async ({ input }) => {
-              output.push({ type: 'onInputAvailable', input });
-            },
-            needsApproval: true,
-          }),
-        },
+        tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
@@ -893,9 +750,6 @@ describe('runToolsTransformation', () => {
             "input": {
               "value": "test",
             },
-            "providerExecuted": undefined,
-            "providerMetadata": undefined,
-            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "onInputAvailableTool",
             "type": "tool-call",
@@ -906,9 +760,6 @@ describe('runToolsTransformation', () => {
               "input": {
                 "value": "test",
               },
-              "providerExecuted": undefined,
-              "providerMetadata": undefined,
-              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "onInputAvailableTool",
               "type": "tool-call",
@@ -945,34 +796,37 @@ describe('runToolsTransformation', () => {
 
   describe('onToolCallStart and onToolCallFinish callbacks', () => {
     it('should call onToolCallStart before tool execution and onToolCallFinish after', async () => {
+      const tools = {
+        testTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => {
+            callOrder.push('execute');
+            return `${value}-result`;
+          },
+        }),
+      };
+
       const callOrder: string[] = [];
 
-      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
-        convertArrayToReadableStream([
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'testTool',
-            input: '{ "value": "hello" }',
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: testUsage,
-          },
-        ]);
+      const inputStream: ReadableStream<
+        UglyTransformedStreamTextPart<typeof tools>
+      > = convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'hello' },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: testUsage,
+        },
+      ]);
 
       const transformedStream = runToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
-        tools: {
-          testTool: {
-            inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }) => {
-              callOrder.push('execute');
-              return `${value}-result`;
-            },
-          },
-        },
+        tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
@@ -999,32 +853,35 @@ describe('runToolsTransformation', () => {
     });
 
     it('should pass stepNumber and model to callbacks', async () => {
+      const tools = {
+        testTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        }),
+      };
+
       const startEvents: unknown[] = [];
       const finishEvents: unknown[] = [];
 
-      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
-        convertArrayToReadableStream([
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'testTool',
-            input: '{ "value": "test" }',
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: testUsage,
-          },
-        ]);
+      const inputStream: ReadableStream<
+        UglyTransformedStreamTextPart<typeof tools>
+      > = convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: testUsage,
+        },
+      ]);
 
       const transformedStream = runToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
-        tools: {
-          testTool: {
-            inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }) => `${value}-result`,
-          },
-        },
+        tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
@@ -1070,31 +927,34 @@ describe('runToolsTransformation', () => {
     });
 
     it('should call onToolCallFinish with success data', async () => {
+      const tools = {
+        testTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        }),
+      };
+
       const finishEvents: unknown[] = [];
 
-      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
-        convertArrayToReadableStream([
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'testTool',
-            input: '{ "value": "abc" }',
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: testUsage,
-          },
-        ]);
+      const inputStream: ReadableStream<
+        UglyTransformedStreamTextPart<typeof tools>
+      > = convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'abc' },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: testUsage,
+        },
+      ]);
 
       const transformedStream = runToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
-        tools: {
-          testTool: {
-            inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }) => `${value}-result`,
-          },
-        },
+        tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
@@ -1123,34 +983,40 @@ describe('runToolsTransformation', () => {
     });
 
     it('should call onToolCallFinish with error data when tool fails', async () => {
+      const tools = {
+        failingTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => {
+            if (value === 'test') {
+              throw new Error('tool failed');
+            }
+            return 'test-result';
+          },
+        }),
+      };
+
       const finishEvents: unknown[] = [];
       const toolError = new Error('tool failed');
 
-      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
-        convertArrayToReadableStream([
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'failingTool',
-            input: '{ "value": "test" }',
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: testUsage,
-          },
-        ]);
+      const inputStream: ReadableStream<
+        UglyTransformedStreamTextPart<typeof tools>
+      > = convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'failingTool',
+          input: { value: 'test' },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: testUsage,
+        },
+      ]);
 
       const transformedStream = runToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
-        tools: {
-          failingTool: {
-            inputSchema: z.object({ value: z.string() }),
-            execute: async () => {
-              throw toolError;
-            },
-          },
-        },
+        tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
@@ -1178,31 +1044,34 @@ describe('runToolsTransformation', () => {
     });
 
     it('should not call callbacks for tools without execute', async () => {
+      const tools = {
+        noExecuteTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+        }),
+      };
+
       const startEvents: unknown[] = [];
       const finishEvents: unknown[] = [];
 
-      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
-        convertArrayToReadableStream([
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'noExecuteTool',
-            input: '{ "value": "test" }',
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: testUsage,
-          },
-        ]);
+      const inputStream: ReadableStream<
+        UglyTransformedStreamTextPart<typeof tools>
+      > = convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'noExecuteTool',
+          input: { value: 'test' },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: testUsage,
+        },
+      ]);
 
       const transformedStream = runToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
-        tools: {
-          noExecuteTool: {
-            inputSchema: z.object({ value: z.string() }),
-          },
-        },
+        tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
@@ -1226,38 +1095,41 @@ describe('runToolsTransformation', () => {
     });
 
     it('should call callbacks for each tool in a multi-tool stream', async () => {
+      const tools = {
+        testTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        }),
+      };
+
       const startEvents: unknown[] = [];
       const finishEvents: unknown[] = [];
 
-      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
-        convertArrayToReadableStream([
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'testTool',
-            input: '{ "value": "a" }',
-          },
-          {
-            type: 'tool-call',
-            toolCallId: 'call-2',
-            toolName: 'testTool',
-            input: '{ "value": "b" }',
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: testUsage,
-          },
-        ]);
+      const inputStream: ReadableStream<
+        UglyTransformedStreamTextPart<typeof tools>
+      > = convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'a' },
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-2',
+          toolName: 'testTool',
+          input: { value: 'b' },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: testUsage,
+        },
+      ]);
 
       const transformedStream = runToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
-        tools: {
-          testTool: {
-            inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }) => `${value}-result`,
-          },
-        },
+        tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
@@ -1281,40 +1153,44 @@ describe('runToolsTransformation', () => {
     });
 
     it('should not call callbacks for provider-executed tools', async () => {
+      const tools = {
+        providerTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+          outputSchema: z.object({ result: z.string() }),
+        }),
+      };
+
       const startEvents: unknown[] = [];
       const finishEvents: unknown[] = [];
 
-      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
-        convertArrayToReadableStream([
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'providerTool',
-            input: '{ "value": "test" }',
-            providerExecuted: true,
-          },
-          {
-            type: 'tool-result',
-            toolCallId: 'call-1',
-            toolName: 'providerTool',
-            providerExecuted: true,
-            result: { example: 'example' },
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: testUsage,
-          },
-        ]);
+      const inputStream: ReadableStream<
+        UglyTransformedStreamTextPart<typeof tools>
+      > = convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'providerTool',
+          input: { value: 'test' },
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'providerTool',
+          providerExecuted: true,
+          input: { value: 'test' },
+          output: { result: 'example' },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: testUsage,
+        },
+      ]);
 
       const transformedStream = runToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
-        tools: {
-          providerTool: {
-            inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }) => `${value}-result`,
-          },
-        },
+        tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
@@ -1340,35 +1216,40 @@ describe('runToolsTransformation', () => {
 
   describe('tool execution error handling', () => {
     it('should handle error thrown in async tool execution', async () => {
-      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
-        convertArrayToReadableStream([
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'failingTool',
-            input: `{ "value": "test" }`,
+      const tools = {
+        failingTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => {
+            await delay(10); // TODO find elegant way to test setTimeout
+            if (value === 'test') {
+              throw toolError;
+            }
+            return 'test-result';
           },
-          {
-            type: 'finish',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: testUsage,
-          },
-        ]);
+        }),
+      };
+
+      const inputStream: ReadableStream<
+        UglyTransformedStreamTextPart<typeof tools>
+      > = convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'failingTool',
+          input: { value: 'test' },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: testUsage,
+        },
+      ]);
 
       const toolError = new Error('Tool execution failed!');
 
       const transformedStream = runToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
-        tools: {
-          failingTool: {
-            title: 'Failing Tool',
-            inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }) => {
-              await delay(10);
-              throw toolError;
-            },
-          },
-        },
+        tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
@@ -1406,34 +1287,39 @@ describe('runToolsTransformation', () => {
     });
 
     it('should handle error thrown in sync tool execution', async () => {
-      const inputStream: ReadableStream<UglyTransformedStreamTextPart> =
-        convertArrayToReadableStream([
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'failingTool',
-            input: `{ "value": "test" }`,
+      const tools = {
+        failingTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: ({ value }) => {
+            if (value === 'test') {
+              throw toolError;
+            }
+            return 'test-result';
           },
-          {
-            type: 'finish',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: testUsage,
-          },
-        ]);
+        }),
+      };
+
+      const inputStream: ReadableStream<
+        UglyTransformedStreamTextPart<typeof tools>
+      > = convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'failingTool',
+          input: { value: 'test' },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: testUsage,
+        },
+      ]);
 
       const toolError = new Error('Sync tool failed!');
 
       const transformedStream = runToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
-        tools: {
-          failingTool: {
-            title: 'Failing Tool',
-            inputSchema: z.object({ value: z.string() }),
-            execute: ({ value }) => {
-              throw toolError;
-            },
-          },
-        },
+        tools,
         generatorStream: inputStream,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
