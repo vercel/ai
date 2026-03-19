@@ -1602,7 +1602,7 @@ class DefaultStreamTextResult<
 
           const streamWithToolResults = languageModelStream
             .pipeThrough(
-              createStreamTextPartTransform<TOOLS>({
+              createStreamTextPartTransform({
                 tools,
                 system,
                 messages: stepInputMessages,
