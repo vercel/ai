@@ -56,7 +56,7 @@ import type {
   OnStepStartEvent,
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
-} from './callback-events';
+} from './core-events';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
@@ -467,8 +467,6 @@ export async function generateText<
     `ai/${VERSION}`,
   );
 
-  const modelInfo = { provider: model.provider, modelId: model.modelId };
-
   const initialPrompt = await standardizePrompt({
     system,
     prompt,
@@ -484,7 +482,8 @@ export async function generateText<
     event: {
       callId,
       operationId: 'ai.generateText',
-      model: modelInfo,
+      provider: model.provider,
+      modelId: model.modelId,
       system,
       prompt,
       messages,
@@ -550,7 +549,8 @@ export async function generateText<
         timeout,
         experimental_context,
         stepNumber: 0,
-        model: modelInfo,
+        provider: model.provider,
+        modelId: model.modelId,
         onToolCallStart: event =>
           notify({
             event,
@@ -678,10 +678,6 @@ export async function generateText<
         const stepModel = resolveLanguageModel(
           prepareStepResult?.model ?? model,
         );
-        const stepModelInfo = {
-          provider: stepModel.provider,
-          modelId: stepModel.modelId,
-        };
 
         const promptMessages = await convertToLanguageModelPrompt({
           prompt: {
@@ -716,7 +712,8 @@ export async function generateText<
         const onStepStartEvent = {
           callId,
           stepNumber: steps.length,
-          model: stepModelInfo,
+          provider: stepModel.provider,
+          modelId: stepModel.modelId,
           system: stepSystem,
           messages: stepMessages,
           tools,
@@ -873,7 +870,8 @@ export async function generateText<
               timeout,
               experimental_context,
               stepNumber: steps.length,
-              model: stepModelInfo,
+              provider: stepModel.provider,
+              modelId: stepModel.modelId,
               onToolCallStart: event =>
                 notify({
                   event,
@@ -969,7 +967,8 @@ export async function generateText<
         const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
           callId,
           stepNumber,
-          model: stepModelInfo,
+          provider: stepModel.provider,
+          modelId: stepModel.modelId,
           functionId: telemetry?.functionId,
           metadata: telemetry?.metadata as Record<string, unknown> | undefined,
           experimental_context,
@@ -985,8 +984,8 @@ export async function generateText<
 
         logWarnings({
           warnings: currentModelResponse.warnings ?? [],
-          provider: stepModelInfo.provider,
-          model: stepModelInfo.modelId,
+          provider: stepModel.provider,
+          model: stepModel.modelId,
         });
 
         steps.push(currentStepResult);
@@ -1106,7 +1105,8 @@ async function executeTools<TOOLS extends ToolSet>({
   timeout,
   experimental_context,
   stepNumber,
-  model,
+  provider,
+  modelId,
   onToolCallStart,
   onToolCallFinish,
   executeToolInTelemetryContext,
@@ -1120,7 +1120,8 @@ async function executeTools<TOOLS extends ToolSet>({
   timeout?: TimeoutConfiguration<TOOLS>;
   experimental_context: unknown;
   stepNumber: number;
-  model: { provider: string; modelId: string };
+  provider: string;
+  modelId: string;
   onToolCallStart?: GenerateTextOnToolCallStartCallback<TOOLS>;
   onToolCallFinish?: GenerateTextOnToolCallFinishCallback<TOOLS>;
   executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
@@ -1137,7 +1138,8 @@ async function executeTools<TOOLS extends ToolSet>({
         timeout,
         experimental_context,
         stepNumber,
-        model,
+        provider,
+        modelId,
         onToolCallStart,
         onToolCallFinish,
         executeToolInTelemetryContext,

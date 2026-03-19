@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.29
+
+### Patch Changes
+
+- 877bf12: fix(ai): flatten model attributes for telemetry
+
 ## 7.0.0-beta.28
 
 ### Major Changes

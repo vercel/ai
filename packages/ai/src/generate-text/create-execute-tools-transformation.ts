@@ -22,7 +22,8 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   experimental_context,
   generateId,
   stepNumber,
-  model,
+  provider,
+  modelId,
   onToolCallStart,
   onToolCallFinish,
   executeToolInTelemetryContext,
@@ -36,7 +37,8 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   experimental_context: unknown;
   generateId: IdGenerator;
   stepNumber?: number;
-  model?: { provider: string; modelId: string };
+  provider?: string;
+  modelId?: string;
   onToolCallStart?:
     | StreamTextOnToolCallStartCallback<TOOLS>
     | Array<StreamTextOnToolCallStartCallback<TOOLS> | undefined | null>;
@@ -81,7 +83,8 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
                   timeout,
                   experimental_context,
                   stepNumber,
-                  model,
+                  provider,
+                  modelId,
                   onToolCallStart,
                   onToolCallFinish,
                   executeToolInTelemetryContext,

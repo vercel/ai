@@ -37,7 +37,8 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   timeout,
   experimental_context,
   stepNumber,
-  model,
+  provider,
+  modelId,
   onPreliminaryToolResult,
   onToolCallStart,
   onToolCallFinish,
@@ -52,7 +53,8 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   timeout?: TimeoutConfiguration<TOOLS>;
   experimental_context: unknown;
   stepNumber?: number;
-  model?: { provider: string; modelId: string };
+  provider?: string;
+  modelId?: string;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
   onToolCallStart?:
     | GenerateTextOnToolCallStartCallback<TOOLS>
@@ -76,7 +78,8 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   const baseCallbackEvent = {
     callId,
     stepNumber,
-    model,
+    provider,
+    modelId,
     toolCall,
     messages,
     abortSignal,

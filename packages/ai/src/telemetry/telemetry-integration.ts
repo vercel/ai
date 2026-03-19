@@ -6,7 +6,7 @@ import type {
   OnStepStartEvent,
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
-} from '../generate-text/callback-events';
+} from '../generate-text/core-events';
 import type { Output } from '../generate-text/output';
 import type { ToolSet } from '../generate-text/tool-set';
 import { Listener } from '../util/notify';
