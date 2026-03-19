@@ -988,6 +988,137 @@ describe('OpenAIResponsesLanguageModel', () => {
         },
       );
 
+      describe('top-level reasoning option', () => {
+        it('should not set reasoning config when reasoning is "provider-default"', async () => {
+          await createModel('o3-mini').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'provider-default',
+          });
+
+          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+            model: 'o3-mini',
+            input: [
+              {
+                role: 'user',
+                content: [{ type: 'input_text', text: 'Hello' }],
+              },
+            ],
+          });
+        });
+
+        it.each(['none', 'minimal', 'low', 'medium', 'high', 'xhigh'] as const)(
+          'should map top-level reasoning=%s to reasoning effort',
+          async reasoningValue => {
+            const { warnings } = await createModel('o3-mini').doGenerate({
+              prompt: TEST_PROMPT,
+              reasoning: reasoningValue,
+            });
+
+            expect(await server.calls[0].requestBodyJson).toStrictEqual({
+              model: 'o3-mini',
+              input: [
+                {
+                  role: 'user',
+                  content: [{ type: 'input_text', text: 'Hello' }],
+                },
+              ],
+              reasoning: {
+                effort: reasoningValue,
+              },
+            });
+
+            if (reasoningValue === 'none') {
+              expect(warnings).toStrictEqual([]);
+            }
+          },
+        );
+
+        it('should let providerOptions.openai.reasoningEffort take precedence over top-level reasoning', async () => {
+          const { warnings } = await createModel('o3-mini').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'low',
+            providerOptions: {
+              openai: {
+                reasoningEffort: 'high',
+              } satisfies OpenAILanguageModelResponsesOptions,
+            },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+            model: 'o3-mini',
+            input: [
+              {
+                role: 'user',
+                content: [{ type: 'input_text', text: 'Hello' }],
+              },
+            ],
+            reasoning: {
+              effort: 'high',
+            },
+          });
+
+          expect(warnings).toStrictEqual([]);
+        });
+
+        it('should strip temperature/topP when top-level reasoning is set to non-none value on reasoning model', async () => {
+          const { warnings } = await createModel('o3-mini').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'medium',
+            temperature: 0.5,
+            topP: 0.7,
+          });
+
+          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+            model: 'o3-mini',
+            input: [
+              {
+                role: 'user',
+                content: [{ type: 'input_text', text: 'Hello' }],
+              },
+            ],
+            reasoning: {
+              effort: 'medium',
+            },
+          });
+
+          expect(warnings).toStrictEqual([
+            {
+              type: 'unsupported',
+              feature: 'temperature',
+              details: 'temperature is not supported for reasoning models',
+            },
+            {
+              type: 'unsupported',
+              feature: 'topP',
+              details: 'topP is not supported for reasoning models',
+            },
+          ]);
+        });
+
+        it('should not strip parameters when top-level reasoning is none', async () => {
+          const { warnings } = await createModel('gpt-4o').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'none',
+            temperature: 0.5,
+            topP: 0.7,
+          });
+
+          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+            model: 'gpt-4o',
+            input: [
+              {
+                role: 'user',
+                content: [{ type: 'input_text', text: 'Hello' }],
+              },
+            ],
+            temperature: 0.5,
+            top_p: 0.7,
+          });
+
+          expect(warnings).toStrictEqual([]);
+        });
+      });
+
       it('should send instructions provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
@@ -4098,7 +4229,6 @@ describe('OpenAIResponsesLanguageModel', () => {
               id: 'openai.custom',
               name: 'write_sql',
               args: {
-                name: 'write_sql',
                 description:
                   'Write a SQL SELECT query to answer the user question.',
                 format: {
@@ -4168,45 +4298,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             "unified": "tool-calls",
           }
         `);
-      });
-
-      it('should map aliased custom tool names in toolChoice and response parsing', async () => {
-        prepareJsonFixtureResponse('openai-custom-tool.1');
-
-        const aliasedResult = await createModel('gpt-5.2-codex').doGenerate({
-          prompt: TEST_PROMPT,
-          toolChoice: { type: 'tool', toolName: 'alias_name' },
-          tools: [
-            {
-              type: 'provider',
-              id: 'openai.custom',
-              name: 'alias_name',
-              args: {
-                name: 'write_sql',
-                description:
-                  'Write a SQL SELECT query to answer the user question.',
-                format: {
-                  type: 'grammar',
-                  syntax: 'regex',
-                  definition: 'SELECT .+',
-                },
-              },
-            },
-          ],
-        });
-
-        expect(
-          (await server.calls.at(-1)!.requestBodyJson).tool_choice,
-        ).toStrictEqual({
-          type: 'custom',
-          name: 'write_sql',
-        });
-
-        const toolCall = aliasedResult.content.find(
-          part => part.type === 'tool-call',
-        );
-        expect(toolCall).toBeDefined();
-        expect((toolCall as { toolName: string }).toolName).toBe('alias_name');
       });
     });
 
@@ -5004,6 +5095,104 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe('compaction', () => {
+      it('should parse compaction output item from real fixture', async () => {
+        prepareJsonFixtureResponse('openai-compaction.1');
+
+        const result = await createModel('gpt-5.2').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              store: false,
+              contextManagement: [
+                { type: 'compaction', compactThreshold: 50000 },
+              ],
+            },
+          },
+        });
+
+        expect(result.content).toMatchSnapshot();
+      });
+
+      it('should send context_management in request body', async () => {
+        prepareJsonFixtureResponse('openai-compaction.1');
+
+        await createModel('gpt-5.2').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              store: false,
+              contextManagement: [
+                { type: 'compaction', compactThreshold: 50000 },
+              ],
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: 'gpt-5.2',
+          store: false,
+          context_management: [
+            { type: 'compaction', compact_threshold: 50000 },
+          ],
+        });
+      });
+
+      it('should include compaction item with encrypted content in content', async () => {
+        prepareJsonFixtureResponse('openai-compaction.1');
+
+        const result = await createModel('gpt-5.2').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              store: false,
+              contextManagement: [
+                { type: 'compaction', compactThreshold: 50000 },
+              ],
+            },
+          },
+        });
+
+        const compactionPart = result.content.find(
+          part =>
+            part.type === 'custom' &&
+            part.providerMetadata?.openai?.type === 'compaction',
+        );
+
+        expect(compactionPart).toBeDefined();
+        expect(compactionPart?.providerMetadata?.openai).toMatchObject({
+          type: 'compaction',
+          itemId: expect.any(String),
+          encryptedContent: expect.any(String),
+        });
+      });
+
+      it('should extract usage from compaction response', async () => {
+        prepareJsonFixtureResponse('openai-compaction.1');
+
+        const result = await createModel('gpt-5.2').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              store: false,
+              contextManagement: [
+                { type: 'compaction', compactThreshold: 50000 },
+              ],
+            },
+          },
+        });
+
+        expect(result.usage).toMatchObject({
+          inputTokens: expect.objectContaining({
+            total: 51097,
+          }),
+          outputTokens: expect.objectContaining({
+            total: 2056,
+          }),
+        });
+      });
+    });
+
     describe('phase', () => {
       it('should include phase in provider metadata for message output items', async () => {
         prepareJsonFixtureResponse('openai-phase.1');
@@ -5766,7 +5955,6 @@ describe('OpenAIResponsesLanguageModel', () => {
               id: 'openai.custom',
               name: 'write_sql',
               args: {
-                name: 'write_sql',
                 description:
                   'Write a SQL SELECT query to answer the user question.',
                 format: {
@@ -5866,47 +6054,6 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
             ]
           `);
-      });
-
-      it('should map aliased custom tool names while streaming', async () => {
-        prepareChunksFixtureResponse('openai-custom-tool.1');
-
-        const { stream } = await createModel('gpt-5.2-codex').doStream({
-          tools: [
-            {
-              type: 'provider',
-              id: 'openai.custom',
-              name: 'alias_name',
-              args: {
-                name: 'write_sql',
-                description:
-                  'Write a SQL SELECT query to answer the user question.',
-                format: {
-                  type: 'grammar',
-                  syntax: 'regex',
-                  definition: 'SELECT .+',
-                },
-              },
-            },
-          ],
-          toolChoice: { type: 'tool', toolName: 'alias_name' },
-          prompt: TEST_PROMPT,
-          includeRawChunks: false,
-        });
-
-        expect(
-          (await server.calls.at(-1)!.requestBodyJson).tool_choice,
-        ).toStrictEqual({
-          type: 'custom',
-          name: 'write_sql',
-        });
-
-        const parts = await convertReadableStreamToArray(stream);
-        const streamToolCall = parts.find(part => part.type === 'tool-call');
-        expect(streamToolCall).toBeDefined();
-        expect((streamToolCall as { toolName: string }).toolName).toBe(
-          'alias_name',
-        );
       });
     });
 
@@ -8876,6 +9023,53 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         ]
       `);
+    });
+
+    describe('compaction', () => {
+      it('should stream compaction output item from real fixture', async () => {
+        prepareChunksFixtureResponse('openai-compaction.1');
+
+        const result = await createModel('gpt-5.2').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              store: false,
+              contextManagement: [
+                { type: 'compaction', compactThreshold: 50000 },
+              ],
+            },
+          },
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+
+      it('should send context_management in streaming request body', async () => {
+        prepareChunksFixtureResponse('openai-compaction.1');
+
+        await createModel('gpt-5.2').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              store: false,
+              contextManagement: [
+                { type: 'compaction', compactThreshold: 50000 },
+              ],
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: 'gpt-5.2',
+          store: false,
+          stream: true,
+          context_management: [
+            { type: 'compaction', compact_threshold: 50000 },
+          ],
+        });
+      });
     });
 
     describe('phase', () => {

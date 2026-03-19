@@ -48,6 +48,13 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           providerOptions: part.providerMetadata,
         });
         break;
+      case 'custom':
+        content.push({
+          type: 'custom',
+          kind: part.kind,
+          providerOptions: part.providerMetadata,
+        });
+        break;
       case 'reasoning':
         content.push({
           type: 'reasoning',

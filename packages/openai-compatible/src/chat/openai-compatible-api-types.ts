@@ -20,8 +20,7 @@ export interface OpenAICompatibleSystemMessage extends JsonRecord {
   content: string;
 }
 
-export interface OpenAICompatibleUserMessage
-  extends JsonRecord<OpenAICompatibleContentPart> {
+export interface OpenAICompatibleUserMessage extends JsonRecord<OpenAICompatibleContentPart> {
   role: 'user';
   content: string | Array<OpenAICompatibleContentPart>;
 }
@@ -62,8 +61,7 @@ export interface OpenAICompatibleContentPartVideoUrl extends JsonRecord {
   video_url: { url: string };
 }
 
-export interface OpenAICompatibleAssistantMessage
-  extends JsonRecord<OpenAICompatibleMessageToolCall> {
+export interface OpenAICompatibleAssistantMessage extends JsonRecord<OpenAICompatibleMessageToolCall> {
   role: 'assistant';
   content?: string | null;
   reasoning_content?: string;

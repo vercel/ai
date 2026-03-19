@@ -217,6 +217,365 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    describe('top-level reasoning (newer models with adaptive thinking)', () => {
+      it('should not set thinking config when reasoning is "provider-default"', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'provider-default',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toBeUndefined();
+        expect(requestBody.output_config).toBeUndefined();
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should map reasoning "none" to thinking disabled', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toBeUndefined();
+        expect(requestBody.output_config).toBeUndefined();
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should map reasoning "low" to adaptive thinking with effort "low"', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'low',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'adaptive' },
+          output_config: { effort: 'low' },
+        });
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should map reasoning "medium" to adaptive thinking with effort "medium"', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'medium',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'adaptive' },
+          output_config: { effort: 'medium' },
+        });
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should map reasoning "high" to adaptive thinking with effort "high"', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'adaptive' },
+          output_config: { effort: 'high' },
+        });
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should map reasoning "xhigh" to adaptive thinking with effort "max"', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'xhigh',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'adaptive' },
+          output_config: { effort: 'max' },
+        });
+        expect(result.warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "xhigh" is not directly supported by this model. mapped to effort "max".',
+        });
+      });
+
+      it('should map reasoning "minimal" to adaptive thinking with effort "low" and emit compatibility warning', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-opus-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'minimal',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'adaptive' },
+          output_config: { effort: 'low' },
+        });
+        expect(result.warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "minimal" is not directly supported by this model. mapped to effort "low".',
+        });
+      });
+
+      it('should strip temperature, topP, topK when reasoning enables thinking', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+          temperature: 0.5,
+          topP: 0.7,
+          topK: 10,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.temperature).toBeUndefined();
+        expect(requestBody.top_p).toBeUndefined();
+        expect(requestBody.top_k).toBeUndefined();
+        expect(result.warnings).toContainEqual({
+          type: 'unsupported',
+          feature: 'temperature',
+          details: 'temperature is not supported when thinking is enabled',
+        });
+        expect(result.warnings).toContainEqual({
+          type: 'unsupported',
+          feature: 'topK',
+          details: 'topK is not supported when thinking is enabled',
+        });
+        expect(result.warnings).toContainEqual({
+          type: 'unsupported',
+          feature: 'topP',
+          details: 'topP is not supported when thinking is enabled',
+        });
+      });
+    });
+
+    describe('top-level reasoning (older models with budget-based thinking)', () => {
+      it('should not set thinking config when reasoning is "provider-default"', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'provider-default',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toBeUndefined();
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should map reasoning "none" to thinking disabled', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toBeUndefined();
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should map reasoning "minimal" to enabled thinking with ~2% budget', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'minimal',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'enabled', budget_tokens: 1280 },
+        });
+      });
+
+      it('should map reasoning "low" to enabled thinking with ~10% budget', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'low',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'enabled', budget_tokens: 6400 },
+        });
+      });
+
+      it('should map reasoning "medium" to enabled thinking with ~30% budget', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'medium',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'enabled', budget_tokens: 19200 },
+        });
+      });
+
+      it('should map reasoning "high" to enabled thinking with ~60% budget', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'enabled', budget_tokens: 38400 },
+        });
+      });
+
+      it('should map reasoning "xhigh" to enabled thinking with ~90% budget', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'xhigh',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'enabled', budget_tokens: 57600 },
+        });
+      });
+
+      it('should clamp budget to minimum 1024 tokens', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-3-haiku-20240307').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'minimal',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'enabled', budget_tokens: 1024 },
+        });
+      });
+
+      it('should adjust max_tokens to include thinking budget', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'low',
+          maxOutputTokens: 10000,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.max_tokens).toBe(16400);
+        expect(requestBody.thinking.budget_tokens).toBe(6400);
+      });
+
+      it('should strip temperature, topP, topK when reasoning enables thinking', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'medium',
+          temperature: 0.5,
+          topP: 0.7,
+          topK: 10,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.temperature).toBeUndefined();
+        expect(requestBody.top_p).toBeUndefined();
+        expect(requestBody.top_k).toBeUndefined();
+        expect(result.warnings).toContainEqual({
+          type: 'unsupported',
+          feature: 'temperature',
+          details: 'temperature is not supported when thinking is enabled',
+        });
+      });
+    });
+
+    describe('top-level reasoning (providerOptions precedence)', () => {
+      it('should let anthropic.thinking take precedence over top-level reasoning', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+          providerOptions: {
+            anthropic: {
+              thinking: { type: 'disabled' },
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toBeUndefined();
+        expect(requestBody.output_config).toBeUndefined();
+      });
+
+      it('should let anthropic.effort take precedence over top-level reasoning', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+          providerOptions: {
+            anthropic: {
+              effort: 'low',
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toBeUndefined();
+        expect(requestBody).toMatchObject({
+          output_config: { effort: 'low' },
+        });
+      });
+
+      it('should not apply top-level reasoning when anthropic.thinking is set', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'xhigh',
+          providerOptions: {
+            anthropic: {
+              thinking: { type: 'enabled', budgetTokens: 5000 },
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'enabled', budget_tokens: 5000 },
+        });
+      });
+    });
+
     describe('json schema response format with json tool response (unsupported model)', () => {
       let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
@@ -8678,9 +9037,8 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       prepareTransformJsonResponse();
 
-      const { AnthropicMessagesLanguageModel } = await import(
-        './anthropic-messages-language-model'
-      );
+      const { AnthropicMessagesLanguageModel } =
+        await import('./anthropic-messages-language-model');
       const model = new AnthropicMessagesLanguageModel(
         'claude-3-haiku-20240307',
         {
@@ -8721,9 +9079,8 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       prepareTransformStreamResponse();
 
-      const { AnthropicMessagesLanguageModel } = await import(
-        './anthropic-messages-language-model'
-      );
+      const { AnthropicMessagesLanguageModel } =
+        await import('./anthropic-messages-language-model');
       const model = new AnthropicMessagesLanguageModel(
         'claude-3-haiku-20240307',
         {
@@ -8763,9 +9120,8 @@ describe('AnthropicMessagesLanguageModel', () => {
     it('should work without transformRequestBody', async () => {
       prepareTransformJsonResponse();
 
-      const { AnthropicMessagesLanguageModel } = await import(
-        './anthropic-messages-language-model'
-      );
+      const { AnthropicMessagesLanguageModel } =
+        await import('./anthropic-messages-language-model');
       const model = new AnthropicMessagesLanguageModel(
         'claude-3-haiku-20240307',
         {

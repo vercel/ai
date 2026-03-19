@@ -19,15 +19,14 @@ exports[`streamText > options.experimental_onStart > should send correct informa
   "metadata": {
     "customKey": "customValue",
   },
-  "model": {
-    "modelId": "mock-model-id",
-    "provider": "mock-provider",
-  },
+  "modelId": "mock-model-id",
   "operationId": "ai.streamText",
   "output": undefined,
   "presencePenalty": undefined,
   "prompt": "test-input",
+  "provider": "mock-provider",
   "providerOptions": undefined,
+  "reasoning": undefined,
   "recordInputs": undefined,
   "recordOutputs": undefined,
   "seed": undefined,
@@ -56,10 +55,8 @@ exports[`streamText > options.experimental_onToolCallStart > should be called wi
     },
   ],
   "metadata": undefined,
-  "model": {
-    "modelId": "mock-model-id",
-    "provider": "mock-provider",
-  },
+  "modelId": "mock-model-id",
+  "provider": "mock-provider",
   "stepNumber": 0,
   "toolCall": {
     "input": {
@@ -310,7 +307,7 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "ai.toolCall.args": "{"value":"VALUE"}",
       "ai.toolCall.id": "call-1",
       "ai.toolCall.name": "tool1",
-      "ai.toolCall.result": ""value-result"",
+      "ai.toolCall.result": ""VALUE-result"",
       "operation.name": "ai.toolCall",
     },
     "events": [],

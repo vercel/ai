@@ -444,6 +444,13 @@ To see `streamText` in action, check out [these examples](#examples).
         'The seed (integer) to use for random sampling. If set and supported by the model, calls will generate deterministic results.',
     },
     {
+      name: 'reasoning',
+      type: "'provider-default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'",
+      isOptional: true,
+      description:
+        "Controls how much reasoning the model performs before generating a response. When omitted, the provider's default behavior is used. `'provider-default'` explicitly requests the provider's default. Providers that do not support reasoning will emit a warning. If reasoning-related `providerOptions` are also set, they take precedence and this parameter is ignored. See the [reasoning guide](/docs/ai-sdk-core/reasoning) for provider-specific mapping details.",
+    },
+    {
       name: 'maxRetries',
       type: 'number',
       isOptional: true,
@@ -459,10 +466,10 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'timeout',
-      type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number }',
+      type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number; toolMs?: number; tools?: { [toolName]Ms?: number } }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, and/or chunkMs properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call), useful for multi-step generations. chunkMs sets the timeout between stream chunks - the call will abort if no new chunk is received within this duration, useful for detecting stalled streams. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, chunkMs, toolMs, and/or tools properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call). chunkMs sets the timeout between stream chunks - the call will abort if no new chunk is received within this duration. toolMs sets the default timeout for all tool executions. tools sets per-tool timeout overrides using the pattern {toolName}Ms (e.g. weatherMs, slowApiMs) that take precedence over toolMs - tool names are type-checked for autocomplete. If a tool takes longer than its timeout, it aborts and returns a tool-error so the model can respond or retry. Can be used alongside abortSignal.',
     },
     {
       name: 'headers',
@@ -834,6 +841,30 @@ To see `streamText` in action, check out [these examples](#examples).
                       name: 'source',
                       type: 'Source',
                       description: 'The source.',
+                    },
+                  ],
+                },
+                {
+                  type: 'TextStreamPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'custom'",
+                      description:
+                        'The type to identify the object as custom content.',
+                    },
+                    {
+                      name: 'kind',
+                      type: 'string',
+                      description:
+                        'The kind of custom content, in the format {provider}-{provider-type} (e.g. openai-compaction).',
+                    },
+                    {
+                      name: 'providerMetadata',
+                      type: 'ProviderMetadata',
+                      isOptional: true,
+                      description:
+                        'Optional provider metadata for the custom content.',
                     },
                   ],
                 },
@@ -2970,6 +3001,29 @@ To see `streamText` in action, check out [these examples](#examples).
                   ],
                 },
               ],
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          description: 'Custom content part from ContentPart<TOOLS>',
+          parameters: [
+            {
+              name: 'type',
+              type: "'custom'",
+              description: 'The type to identify the object as custom content.',
+            },
+            {
+              name: 'kind',
+              type: 'string',
+              description:
+                'The kind of custom content, in the format {provider}-{provider-type} (e.g. openai-compaction).',
+            },
+            {
+              name: 'providerMetadata',
+              type: 'ProviderMetadata',
+              isOptional: true,
+              description: 'Optional provider metadata for the custom content.',
             },
           ],
         },
