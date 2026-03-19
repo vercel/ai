@@ -1,18 +1,7 @@
-import {
-  anthropic,
-  type AnthropicLanguageModelOptions,
-} from '@ai-sdk/anthropic';
-import {
-  consumeStream,
-  convertToModelMessages,
-  ModelMessage,
-  streamText,
-  UIMessage,
-} from 'ai';
+import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
+import { ModelMessage, ToolLoopAgent, InferAgentUIMessage } from 'ai';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-
-export const maxDuration = 60;
 
 const documentCorpus = readFileSync(
   join(process.cwd(), '../ai-functions/data/compaction-data.txt'),
@@ -125,13 +114,6 @@ const preloadedMessages: ModelMessage[] = [
           - Host-based routing
           - Path-based routing
 
-        **Workflow:**
-        1. Development: Use Docker Compose locally
-        2. Build: Create Docker images with CI/CD
-        3. Push: Upload images to container registry
-        4. Deploy: Kubernetes pulls images and manages pods
-        5. Scale: Kubernetes handles replicas and load balancing
-
         Would you like me to explain more about testing or security?`,
       },
     ],
@@ -241,45 +223,31 @@ const preloadedMessages: ModelMessage[] = [
   },
 ];
 
-export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json();
+export const openaiCompactionAgent = new ToolLoopAgent({
+  model: openai.responses('gpt-5.2'),
+  providerOptions: {
+    openai: {
+      store: false,
+      contextManagement: [{ type: 'compaction', compactThreshold: 50000 }],
+    } satisfies OpenAILanguageModelResponsesOptions,
+  },
+  prepareCall: ({ prompt, messages, ...rest }) => {
+    const userMessages = prompt
+      ? Array.isArray(prompt)
+        ? prompt
+        : [{ role: 'user' as const, content: prompt }]
+      : (messages ?? []);
 
-  const userModelMessages = await convertToModelMessages(messages);
+    return {
+      ...rest,
+      messages: [...preloadedMessages, ...userMessages],
+    };
+  },
+  onStepFinish: ({ request }) => {
+    console.dir(request.body, { depth: Infinity });
+  },
+});
 
-  const allMessages = [...preloadedMessages, ...userModelMessages];
-
-  console.log(
-    '\n=== Messages sent to model ===\n',
-    JSON.stringify(allMessages, null, 2),
-  );
-
-  const result = streamText({
-    model: anthropic('claude-opus-4-6'),
-    messages: allMessages,
-    abortSignal: req.signal,
-    providerOptions: {
-      anthropic: {
-        contextManagement: {
-          edits: [
-            {
-              type: 'compact_20260112',
-              trigger: {
-                type: 'input_tokens',
-                value: 50000,
-              },
-            },
-          ],
-        },
-      } satisfies AnthropicLanguageModelOptions,
-    },
-  });
-
-  return result.toUIMessageStreamResponse({
-    onFinish: async ({ isAborted }) => {
-      if (isAborted) {
-        console.log('Aborted');
-      }
-    },
-    consumeSseStream: consumeStream,
-  });
-}
+export type OpenAICompactionMessage = InferAgentUIMessage<
+  typeof openaiCompactionAgent
+>;

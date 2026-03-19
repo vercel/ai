@@ -1,7 +1,4 @@
-import {
-  anthropic,
-  type AnthropicLanguageModelOptions,
-} from '@ai-sdk/anthropic';
+import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
@@ -11,7 +8,7 @@ import { run } from '../../lib/run';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const documentCorpus = readFileSync(
-  join(__dirname, '../../data/compaction-data.txt'),
+  join(__dirname, '../../../data/compaction-data.txt'),
   'utf-8',
 );
 
@@ -34,7 +31,7 @@ ${documentCorpus}
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-opus-4-6'),
+    model: openai.responses('gpt-5.2'),
     messages: [
       {
         role: 'user',
@@ -245,19 +242,10 @@ run(async () => {
       },
     ],
     providerOptions: {
-      anthropic: {
-        contextManagement: {
-          edits: [
-            {
-              type: 'compact_20260112',
-              trigger: {
-                type: 'input_tokens',
-                value: 50000,
-              },
-            },
-          ],
-        },
-      } satisfies AnthropicLanguageModelOptions,
+      openai: {
+        store: false,
+        contextManagement: [{ type: 'compaction', compactThreshold: 50000 }],
+      },
     },
     onError: error => {
       console.error('Stream error:', error);
@@ -270,9 +258,9 @@ run(async () => {
     switch (part.type) {
       case 'text-start': {
         const isCompaction =
-          part.providerMetadata?.anthropic?.type === 'compaction';
+          part.providerMetadata?.openai?.type === 'compaction';
         if (isCompaction) {
-          console.log('\x1b[33m[COMPACTION SUMMARY START]\x1b[0m');
+          console.log('\x1b[33m[COMPACTION START]\x1b[0m');
         }
         break;
       }
@@ -283,6 +271,11 @@ run(async () => {
       }
 
       case 'text-end': {
+        const isCompaction =
+          part.providerMetadata?.openai?.type === 'compaction';
+        if (isCompaction) {
+          console.log('\x1b[33m[COMPACTION END]\x1b[0m');
+        }
         console.log();
         break;
       }
