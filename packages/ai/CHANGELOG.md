@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.30
+
+### Patch Changes
+
+- f5a6f89: README updates
+
 ## 7.0.0-beta.29
 
 ### Patch Changes
