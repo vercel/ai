@@ -112,6 +112,9 @@
     "inference",
     "llm",
     "language-model",
-    "streaming"
+    "streaming",
+    "openai",
+    "anthropic",
+    "gemini"
   ]
 }
