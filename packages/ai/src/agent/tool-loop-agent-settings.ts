@@ -11,7 +11,7 @@ import type {
   OnStepStartEvent,
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
-} from '../generate-text/callback-events';
+} from '../generate-text/core-events';
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
 import { StopCondition } from '../generate-text/stop-condition';
@@ -57,7 +57,7 @@ export type ToolLoopAgentSettings<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
-> = Omit<CallSettings, 'abortSignal'> & {
+> = Omit<CallSettings<TOOLS>, 'abortSignal'> & {
   /**
    * The id of the agent.
    */

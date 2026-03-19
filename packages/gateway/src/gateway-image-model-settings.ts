@@ -1,4 +1,9 @@
 export type GatewayImageModelId =
+  | 'bfl/flux-2-flex'
+  | 'bfl/flux-2-klein-4b'
+  | 'bfl/flux-2-klein-9b'
+  | 'bfl/flux-2-max'
+  | 'bfl/flux-2-pro'
   | 'bfl/flux-kontext-max'
   | 'bfl/flux-kontext-pro'
   | 'bfl/flux-pro-1.0-fill'
@@ -10,6 +15,7 @@ export type GatewayImageModelId =
   | 'openai/gpt-image-1'
   | 'openai/gpt-image-1-mini'
   | 'openai/gpt-image-1.5'
+  | 'prodia/flux-fast-schnell'
   | 'recraft/recraft-v2'
   | 'recraft/recraft-v3'
   | 'recraft/recraft-v4'
