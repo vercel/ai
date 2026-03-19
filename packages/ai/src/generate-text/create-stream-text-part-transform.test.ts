@@ -53,43 +53,46 @@ describe('createStreamTextPartTransform', () => {
       const result = await convertReadableStreamToArray(transformedStream);
 
       expect(result).toMatchInlineSnapshot(`
-      [
-        {
-          "id": "1",
-          "type": "text-start",
-        },
-        {
-          "id": "1",
-          "providerMetadata": undefined,
-          "text": "text",
-          "type": "text-delta",
-        },
-        {
-          "id": "1",
-          "type": "text-end",
-        },
-        {
-          "finishReason": {
-            "raw": "stop",
-            "unified": "stop",
+        [
+          {
+            "id": "1",
+            "type": "text-start",
           },
-          "type": "finish",
-          "usage": {
-            "inputTokens": {
-              "cacheRead": undefined,
-              "cacheWrite": undefined,
-              "noCache": 3,
-              "total": 3,
-            },
-            "outputTokens": {
-              "reasoning": undefined,
-              "text": 10,
-              "total": 10,
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "text",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
             },
           },
-        },
-      ]
-    `);
+        ]
+      `);
     });
   });
 
@@ -162,39 +165,42 @@ describe('createStreamTextPartTransform', () => {
       const result = await convertReadableStreamToArray(transformedStream);
 
       expect(result).toMatchInlineSnapshot(`
-      [
-        {
-          "file": DefaultGeneratedFileWithType {
-            "base64Data": "SGVsbG8gV29ybGQ=",
-            "mediaType": "text/plain",
+        [
+          {
+            "file": DefaultGeneratedFileWithType {
+              "base64Data": "SGVsbG8gV29ybGQ=",
+              "mediaType": "text/plain",
+              "type": "file",
+              "uint8ArrayData": undefined,
+            },
+            "providerMetadata": undefined,
             "type": "file",
-            "uint8ArrayData": undefined,
           },
-          "providerMetadata": undefined,
-          "type": "file",
-        },
-        {
-          "finishReason": {
-            "raw": "stop",
-            "unified": "stop",
-          },
-          "type": "finish",
-          "usage": {
-            "inputTokens": {
-              "cacheRead": undefined,
-              "cacheWrite": undefined,
-              "noCache": 3,
-              "total": 3,
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
             },
-            "outputTokens": {
-              "reasoning": undefined,
-              "text": 10,
-              "total": 10,
-            },
           },
-        },
-      ]
-    `);
+        ]
+      `);
     });
 
     it('should use GeneratedFile with providerMetadata', async () => {
@@ -229,55 +235,58 @@ describe('createStreamTextPartTransform', () => {
       const result = await convertReadableStreamToArray(transformedStream);
 
       expect(result).toMatchInlineSnapshot(`
-      [
-        {
-          "file": DefaultGeneratedFileWithType {
-            "base64Data": undefined,
-            "mediaType": "text/plain",
+        [
+          {
+            "file": DefaultGeneratedFileWithType {
+              "base64Data": undefined,
+              "mediaType": "text/plain",
+              "type": "file",
+              "uint8ArrayData": Uint8Array [
+                72,
+                101,
+                108,
+                108,
+                111,
+                32,
+                87,
+                111,
+                114,
+                108,
+                100,
+              ],
+            },
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "test-signature",
+              },
+            },
             "type": "file",
-            "uint8ArrayData": Uint8Array [
-              72,
-              101,
-              108,
-              108,
-              111,
-              32,
-              87,
-              111,
-              114,
-              108,
-              100,
-            ],
           },
-          "providerMetadata": {
-            "testProvider": {
-              "signature": "test-signature",
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
             },
           },
-          "type": "file",
-        },
-        {
-          "finishReason": {
-            "raw": "stop",
-            "unified": "stop",
-          },
-          "type": "finish",
-          "usage": {
-            "inputTokens": {
-              "cacheRead": undefined,
-              "cacheWrite": undefined,
-              "noCache": 3,
-              "total": 3,
-            },
-            "outputTokens": {
-              "reasoning": undefined,
-              "text": 10,
-              "total": 10,
-            },
-          },
-        },
-      ]
-    `);
+        ]
+      `);
     });
   });
 
@@ -311,38 +320,41 @@ describe('createStreamTextPartTransform', () => {
       const result = await convertReadableStreamToArray(transformedStream);
 
       expect(result).toMatchInlineSnapshot(`
-      [
-        {
-          "kind": "openai-compaction",
-          "providerMetadata": {
-            "openai": {
-              "itemId": "cmp_123",
+        [
+          {
+            "kind": "openai-compaction",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "cmp_123",
+              },
+            },
+            "type": "custom",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
             },
           },
-          "type": "custom",
-        },
-        {
-          "finishReason": {
-            "raw": "stop",
-            "unified": "stop",
-          },
-          "type": "finish",
-          "usage": {
-            "inputTokens": {
-              "cacheRead": undefined,
-              "cacheWrite": undefined,
-              "noCache": 3,
-              "total": 3,
-            },
-            "outputTokens": {
-              "reasoning": undefined,
-              "text": 10,
-              "total": 10,
-            },
-          },
-        },
-      ]
-    `);
+        ]
+      `);
     });
   });
 
@@ -391,40 +403,43 @@ describe('createStreamTextPartTransform', () => {
 
       expect(await convertReadableStreamToArray(transformedStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "input": {
-              "value": "test",
-            },
-            "providerExecuted": undefined,
-            "providerMetadata": undefined,
-            "title": undefined,
-            "toolCallId": "call-1",
-            "toolName": "correctTool",
-            "type": "tool-call",
-          },
-          {
-            "finishReason": {
-              "raw": "stop",
-              "unified": "stop",
-            },
-            "type": "finish",
-            "usage": {
-              "inputTokens": {
-                "cacheRead": undefined,
-                "cacheWrite": undefined,
-                "noCache": 3,
-                "total": 3,
+          [
+            {
+              "input": {
+                "value": "test",
               },
-              "outputTokens": {
-                "reasoning": undefined,
-                "text": 10,
-                "total": 10,
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "correctTool",
+              "type": "tool-call",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "rawFinishReason": "stop",
+              "type": "finish",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
+                "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
+                "outputTokens": 10,
+                "raw": undefined,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
               },
             },
-          },
-        ]
-      `);
+          ]
+        `);
     });
   });
 
@@ -457,33 +472,36 @@ describe('createStreamTextPartTransform', () => {
       const result = await convertReadableStreamToArray(transformedStream);
 
       expect(result).toMatchInlineSnapshot(`
-      [
-        {
-          "error": [AI_ToolCallNotFoundForApprovalError: Tool call "non-existent-call" not found for approval request "mcp-approval-1".],
-          "type": "error",
-        },
-        {
-          "finishReason": {
-            "raw": undefined,
-            "unified": "stop",
+        [
+          {
+            "error": [AI_ToolCallNotFoundForApprovalError: Tool call "non-existent-call" not found for approval request "mcp-approval-1".],
+            "type": "error",
           },
-          "type": "finish",
-          "usage": {
-            "inputTokens": {
-              "cacheRead": undefined,
-              "cacheWrite": undefined,
-              "noCache": 3,
-              "total": 3,
-            },
-            "outputTokens": {
-              "reasoning": undefined,
-              "text": 10,
-              "total": 10,
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "rawFinishReason": undefined,
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
             },
           },
-        },
-      ]
-    `);
+        ]
+      `);
     });
 
     it('should forward provider-emitted tool-approval-request with the correct tool call', async () => {
@@ -557,23 +575,26 @@ describe('createStreamTextPartTransform', () => {
             "type": "tool-approval-request",
           },
           {
-            "finishReason": {
-              "raw": undefined,
-              "unified": "tool-calls",
-            },
+            "finishReason": "tool-calls",
+            "providerMetadata": undefined,
+            "rawFinishReason": undefined,
             "type": "finish",
             "usage": {
-              "inputTokens": {
-                "cacheRead": undefined,
-                "cacheWrite": undefined,
-                "noCache": 3,
-                "total": 3,
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
               },
-              "outputTokens": {
-                "reasoning": undefined,
-                "text": 10,
-                "total": 10,
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
               },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
             },
           },
         ]
@@ -695,23 +716,26 @@ describe('createStreamTextPartTransform', () => {
             "type": "tool-approval-request",
           },
           {
-            "finishReason": {
-              "raw": undefined,
-              "unified": "tool-calls",
-            },
+            "finishReason": "tool-calls",
+            "providerMetadata": undefined,
+            "rawFinishReason": undefined,
             "type": "finish",
             "usage": {
-              "inputTokens": {
-                "cacheRead": undefined,
-                "cacheWrite": undefined,
-                "noCache": 3,
-                "total": 3,
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
               },
-              "outputTokens": {
-                "reasoning": undefined,
-                "text": 10,
-                "total": 10,
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
               },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
             },
           },
         ]

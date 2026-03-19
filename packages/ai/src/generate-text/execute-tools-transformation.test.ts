@@ -1,4 +1,3 @@
-import { LanguageModelV4Usage } from '@ai-sdk/provider';
 import { delay, tool } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -7,21 +6,27 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
+import { asLanguageModelUsage } from '../types/usage';
 import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
 import { executeToolsTransformation } from './execute-tools-transformation';
 
-const testUsage: LanguageModelV4Usage = {
-  inputTokens: {
-    total: 3,
-    noCache: 3,
-    cacheRead: undefined,
-    cacheWrite: undefined,
-  },
-  outputTokens: {
-    total: 10,
-    text: 10,
-    reasoning: undefined,
-  },
+const finishChunk = {
+  type: 'finish' as const,
+  finishReason: 'stop' as const,
+  rawFinishReason: 'stop' as const,
+  usage: asLanguageModelUsage({
+    inputTokens: {
+      total: 3,
+      noCache: 3,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: 10,
+      text: 10,
+      reasoning: undefined,
+    },
+  }),
 };
 
 describe('executeToolsTransformation', () => {
@@ -42,11 +47,7 @@ describe('executeToolsTransformation', () => {
         toolName: 'syncTool',
         input: { value: 'test' },
       },
-      {
-        type: 'finish',
-        finishReason: { unified: 'stop', raw: 'stop' },
-        usage: testUsage,
-      },
+      finishChunk,
     ]);
 
     const transformedStream = executeToolsTransformation({
@@ -84,7 +85,6 @@ describe('executeToolsTransformation', () => {
           },
           {
             "finishReason": "stop",
-            "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
@@ -126,11 +126,7 @@ describe('executeToolsTransformation', () => {
         toolName: 'syncTool',
         input: { value: 'test' },
       },
-      {
-        type: 'finish',
-        finishReason: { unified: 'stop', raw: 'stop' },
-        usage: testUsage,
-      },
+      finishChunk,
     ]);
 
     const transformedStream = executeToolsTransformation({
@@ -168,7 +164,6 @@ describe('executeToolsTransformation', () => {
           },
           {
             "finishReason": "stop",
-            "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
@@ -213,11 +208,7 @@ describe('executeToolsTransformation', () => {
         toolName: 'delayedTool',
         input: { value: 'test' },
       },
-      {
-        type: 'finish',
-        finishReason: { unified: 'stop', raw: 'stop' },
-        usage: testUsage,
-      },
+      finishChunk,
     ]);
 
     const transformedStream = executeToolsTransformation({
@@ -256,7 +247,6 @@ describe('executeToolsTransformation', () => {
         },
         {
           "finishReason": "stop",
-          "providerMetadata": undefined,
           "rawFinishReason": "stop",
           "type": "finish",
           "usage": {
@@ -312,11 +302,7 @@ describe('executeToolsTransformation', () => {
         input: { value: 'test' },
         output: 'example-result',
       },
-      {
-        type: 'finish',
-        finishReason: { unified: 'stop', raw: 'stop' },
-        usage: testUsage,
-      },
+      finishChunk,
     ]);
 
     const transformedStream = executeToolsTransformation({
@@ -357,11 +343,7 @@ describe('executeToolsTransformation', () => {
           toolName: 'onInputAvailableTool',
           input: { value: 'test' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
       const transformedStream = executeToolsTransformation({
@@ -402,7 +384,6 @@ describe('executeToolsTransformation', () => {
           },
           {
             "finishReason": "stop",
-            "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
@@ -448,11 +429,7 @@ describe('executeToolsTransformation', () => {
           toolName: 'onInputAvailableTool',
           input: { value: 'test' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
       const transformedStream = executeToolsTransformation({
@@ -505,7 +482,6 @@ describe('executeToolsTransformation', () => {
           },
           {
             "finishReason": "stop",
-            "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
@@ -554,11 +530,7 @@ describe('executeToolsTransformation', () => {
           toolName: 'testTool',
           input: { value: 'hello' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
       const transformedStream = executeToolsTransformation({
@@ -608,11 +580,7 @@ describe('executeToolsTransformation', () => {
           toolName: 'testTool',
           input: { value: 'test' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
       const transformedStream = executeToolsTransformation({
@@ -680,11 +648,7 @@ describe('executeToolsTransformation', () => {
           toolName: 'testTool',
           input: { value: 'abc' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
       const transformedStream = executeToolsTransformation({
@@ -741,11 +705,7 @@ describe('executeToolsTransformation', () => {
           toolName: 'failingTool',
           input: { value: 'test' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
       const transformedStream = executeToolsTransformation({
@@ -795,11 +755,7 @@ describe('executeToolsTransformation', () => {
           toolName: 'noExecuteTool',
           input: { value: 'test' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
       const transformedStream = executeToolsTransformation({
@@ -852,11 +808,7 @@ describe('executeToolsTransformation', () => {
           toolName: 'testTool',
           input: { value: 'b' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
       const transformedStream = executeToolsTransformation({
@@ -912,11 +864,7 @@ describe('executeToolsTransformation', () => {
           input: { value: 'test' },
           output: { result: 'example' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
       const transformedStream = executeToolsTransformation({
@@ -968,11 +916,7 @@ describe('executeToolsTransformation', () => {
           toolName: 'failingTool',
           input: { value: 'test' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
       const toolError = new Error('Tool execution failed!');
@@ -1037,11 +981,7 @@ describe('executeToolsTransformation', () => {
           toolName: 'failingTool',
           input: { value: 'test' },
         },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
+        finishChunk,
       ]);
 
       const toolError = new Error('Sync tool failed!');
