@@ -112,7 +112,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   | { type: 'error'; error: unknown }
   | { type: 'raw'; rawValue: unknown };
 
-export function runToolsTransformation<TOOLS extends ToolSet>({
+export function executeToolsTransformation<TOOLS extends ToolSet>({
   tools,
   generatorStream,
   telemetry,
