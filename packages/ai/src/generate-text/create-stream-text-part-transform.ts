@@ -4,9 +4,18 @@ import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-f
 import { FinishReason } from '../types/language-model';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { asLanguageModelUsage, LanguageModelUsage } from '../types/usage';
-import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
+import { DefaultGeneratedFileWithType } from './generated-file';
 import { parseToolCall } from './parse-tool-call';
-import { ToolApprovalRequestOutput } from './tool-approval-request-output';
+import {
+  TextStreamFilePart,
+  TextStreamReasoningDeltaPart,
+  TextStreamReasoningFilePart,
+  TextStreamTextDeltaPart,
+  TextStreamToolApprovalRequestPart,
+  TextStreamToolCallPart,
+  TextStreamToolErrorPart,
+  TextStreamToolResultPart,
+} from './stream-text-result';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
@@ -41,32 +50,14 @@ export type UglyTransformedStreamTextPart<TOOLS extends ToolSet> =
           type: 'finish';
         }
     >
-  | {
-      type: 'text-delta';
-      id: string;
-      providerMetadata?: ProviderMetadata;
-      text: string;
-    }
-  | {
-      type: 'reasoning-delta';
-      id: string;
-      providerMetadata?: ProviderMetadata;
-      text: string;
-    }
-  | {
-      type: 'file';
-      file: GeneratedFile;
-      providerMetadata?: ProviderMetadata;
-    }
-  | {
-      type: 'reasoning-file';
-      file: GeneratedFile;
-      providerMetadata?: ProviderMetadata;
-    }
-  | ToolApprovalRequestOutput<TOOLS>
-  | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
-  | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
-  | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
+  | TextStreamTextDeltaPart
+  | TextStreamReasoningDeltaPart
+  | TextStreamFilePart
+  | TextStreamReasoningFilePart
+  | TextStreamToolApprovalRequestPart<TOOLS>
+  | TextStreamToolCallPart<TOOLS>
+  | TextStreamToolResultPart<TOOLS>
+  | TextStreamToolErrorPart<TOOLS>
   | {
       type: 'finish';
       finishReason: FinishReason;
