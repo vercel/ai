@@ -8,6 +8,7 @@ import {
 import { z } from 'zod/v4';
 import { providerMetadataSchema } from '../types/provider-metadata';
 import {
+  customPartSchema,
   filePartSchema,
   imagePartSchema,
   reasoningFilePartSchema,
@@ -44,6 +45,7 @@ export const assistantModelMessageSchema: z.ZodType<AssistantModelMessage> =
       z.array(
         z.union([
           textPartSchema,
+          customPartSchema,
           filePartSchema,
           reasoningPartSchema,
           reasoningFilePartSchema,

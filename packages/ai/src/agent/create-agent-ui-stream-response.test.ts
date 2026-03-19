@@ -1,4 +1,4 @@
-import { LanguageModelV3CallOptions } from '@ai-sdk/provider';
+import { LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import { tool } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -6,13 +6,13 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createAgentUIStreamResponse } from './create-agent-ui-stream-response';
 import { ToolLoopAgent } from './tool-loop-agent';
 
 describe('createAgentUIStreamResponse', () => {
   describe('when using tools toModelOutput', () => {
-    let recordedInputs: LanguageModelV3CallOptions[];
+    let recordedInputs: LanguageModelV4CallOptions[];
     let response: Response;
     let decodedChunks: string[];
 
@@ -20,7 +20,7 @@ describe('createAgentUIStreamResponse', () => {
       recordedInputs = [];
 
       const agent = new ToolLoopAgent({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async input => {
             recordedInputs.push(input);
             return {
@@ -263,7 +263,7 @@ describe('createAgentUIStreamResponse', () => {
       let finishMessages: unknown[] | undefined;
 
       const agent = new ToolLoopAgent({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             return {
               stream: convertArrayToReadableStream([

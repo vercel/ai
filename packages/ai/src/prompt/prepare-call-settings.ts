@@ -1,4 +1,3 @@
-import { LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { CallSettings } from './call-settings';
 
@@ -15,8 +14,8 @@ export function prepareCallSettings({
   seed,
   stopSequences,
   reasoning,
-}: Omit<CallSettings, 'abortSignal' | 'headers' | 'maxRetries'>): Omit<
-  CallSettings,
+}: Omit<CallSettings<any>, 'abortSignal' | 'headers' | 'maxRetries'>): Omit<
+  CallSettings<any>,
   'abortSignal' | 'headers' | 'maxRetries'
 > {
   if (maxOutputTokens != null) {
