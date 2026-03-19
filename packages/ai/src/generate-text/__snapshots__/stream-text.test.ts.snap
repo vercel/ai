@@ -28,6 +28,7 @@ exports[`streamText > options.experimental_onStart > should send correct informa
   "presencePenalty": undefined,
   "prompt": "test-input",
   "providerOptions": undefined,
+  "reasoning": undefined,
   "recordInputs": undefined,
   "recordOutputs": undefined,
   "seed": undefined,

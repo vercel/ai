@@ -3835,6 +3835,42 @@ describe('generateText', () => {
     });
   });
 
+  describe('options.reasoning', () => {
+    it('should pass reasoning to model doGenerate call', async () => {
+      const model = new MockLanguageModelV4({
+        doGenerate: {
+          ...dummyResponseValues,
+          content: [{ type: 'text', text: 'test' }],
+        },
+      });
+
+      await generateText({
+        model,
+        prompt: 'test-input',
+        reasoning: 'high',
+      });
+
+      expect(model.doGenerateCalls[0].reasoning).toBe('high');
+    });
+
+    it('should pass through provider-default', async () => {
+      const model = new MockLanguageModelV4({
+        doGenerate: {
+          ...dummyResponseValues,
+          content: [{ type: 'text', text: 'test' }],
+        },
+      });
+
+      await generateText({
+        model,
+        prompt: 'test-input',
+        reasoning: 'provider-default',
+      });
+
+      expect(model.doGenerateCalls[0].reasoning).toBe('provider-default');
+    });
+  });
+
   describe('options.abortSignal', () => {
     it('should forward abort signal to tool execution', async () => {
       const abortController = new AbortController();
@@ -5179,6 +5215,7 @@ describe('generateText', () => {
               },
             ],
             "providerOptions": undefined,
+            "reasoning": undefined,
             "responseFormat": {
               "type": "text",
             },
@@ -5253,6 +5290,7 @@ describe('generateText', () => {
               },
             ],
             "providerOptions": undefined,
+            "reasoning": undefined,
             "responseFormat": {
               "schema": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
@@ -8984,6 +9022,7 @@ describe('generateText', () => {
               },
             ],
             "providerOptions": undefined,
+            "reasoning": undefined,
             "responseFormat": undefined,
             "seed": undefined,
             "stopSequences": undefined,

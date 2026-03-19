@@ -1,3 +1,4 @@
+import { LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import { ToolSet } from '../generate-text/tool-set';
 
 /**
@@ -138,6 +139,15 @@ export type CallSettings<TOOLS extends ToolSet> = {
    * by the model, calls will generate deterministic results.
    */
   seed?: number;
+
+  /**
+   * Reasoning effort level for the model. Controls how much reasoning
+   * the model performs before generating a response.
+   *
+   * Use `'provider-default'` to use the provider's default reasoning level.
+   * Use `'none'` to disable reasoning (if supported by the provider).
+   */
+  reasoning?: LanguageModelV4CallOptions['reasoning'];
 
   /**
    * Maximum number of retries. Set to 0 to disable retries.
