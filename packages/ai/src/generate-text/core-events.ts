@@ -81,7 +81,7 @@ export interface OnStartEvent<
    * Timeout configuration for the generation.
    * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.
    */
-  readonly timeout: TimeoutConfiguration | undefined;
+  readonly timeout: TimeoutConfiguration<TOOLS> | undefined;
 
   /** Additional HTTP headers sent with the request. */
   readonly headers: Record<string, string | undefined> | undefined;
@@ -189,7 +189,7 @@ export interface OnStepStartEvent<
    * Timeout configuration for the generation.
    * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.
    */
-  readonly timeout: TimeoutConfiguration | undefined;
+  readonly timeout: TimeoutConfiguration<TOOLS> | undefined;
 
   /** Additional HTTP headers sent with the request. */
   readonly headers: Record<string, string | undefined> | undefined;
