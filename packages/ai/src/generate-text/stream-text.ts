@@ -21,7 +21,6 @@ import {
   CallSettings,
   getChunkTimeoutMs,
   getStepTimeoutMs,
-  getToolTimeoutMs,
   getTotalTimeoutMs,
   TimeoutConfiguration,
 } from '../prompt/call-settings';
@@ -335,7 +334,7 @@ export function streamText<
     generateCallId = originalGenerateCallId,
   } = {},
   ...settings
-}: CallSettings &
+}: CallSettings<TOOLS> &
   Prompt & {
     /**
      * The language model to use.
@@ -533,7 +532,6 @@ export function streamText<
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
   const chunkTimeoutMs = getChunkTimeoutMs(timeout);
-  const toolTimeoutMs = getToolTimeoutMs(timeout);
   const stepAbortController =
     stepTimeoutMs != null ? new AbortController() : undefined;
   const chunkAbortController =
@@ -554,7 +552,6 @@ export function streamText<
     stepAbortController,
     chunkTimeoutMs,
     chunkAbortController,
-    toolTimeoutMs,
     system,
     prompt,
     messages,
@@ -691,9 +688,10 @@ function createOutputTransformStream<
   });
 }
 
-class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
-  implements StreamTextResult<TOOLS, OUTPUT>
-{
+class DefaultStreamTextResult<
+  TOOLS extends ToolSet,
+  OUTPUT extends Output,
+> implements StreamTextResult<TOOLS, OUTPUT> {
   private readonly _totalUsage = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, OUTPUT>['usage']>
   >();
@@ -734,7 +732,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     stepAbortController,
     chunkTimeoutMs,
     chunkAbortController,
-    toolTimeoutMs,
     system,
     prompt,
     messages,
@@ -770,14 +767,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     model: LanguageModelV4;
     telemetry: TelemetrySettings | undefined;
     headers: Record<string, string | undefined> | undefined;
-    settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
+    settings: Omit<CallSettings<TOOLS>, 'abortSignal' | 'headers'>;
     maxRetries: number | undefined;
     abortSignal: AbortSignal | undefined;
     stepTimeoutMs: number | undefined;
     stepAbortController: AbortController | undefined;
     chunkTimeoutMs: number | undefined;
     chunkAbortController: AbortController | undefined;
-    toolTimeoutMs: number | undefined;
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
@@ -794,7 +790,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     now: () => number;
     generateId: () => string;
     generateCallId: () => string;
-    timeout: TimeoutConfiguration | undefined;
+    timeout: TimeoutConfiguration<TOOLS> | undefined;
     stopWhen:
       | StopCondition<NoInfer<TOOLS>>
       | Array<StopCondition<NoInfer<TOOLS>>>
@@ -1364,7 +1360,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 callId,
                 messages: initialMessages,
                 abortSignal,
-                toolTimeoutMs,
+                timeout,
                 experimental_context,
                 stepNumber: recordedSteps.length,
                 model: modelInfo,
@@ -1605,7 +1601,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           );
 
           const stream = languageModelStream.pipeThrough(
-            createStreamTextPartTransform(),
+            createStreamTextPartTransform<TOOLS>({
+              tools,
+              system,
+              messages: stepInputMessages,
+              repairToolCall,
+            }),
           );
 
           const streamWithToolResults = runToolsTransformation({
@@ -1617,7 +1618,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             messages: stepInputMessages,
             repairToolCall,
             abortSignal,
-            toolTimeoutMs,
+            timeout,
             experimental_context,
             generateId,
             stepNumber: recordedSteps.length,
