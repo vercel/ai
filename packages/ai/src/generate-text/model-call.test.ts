@@ -25,33 +25,8 @@ const testUsage: LanguageModelV4Usage = {
 };
 
 describe('modelCall', () => {
-  it('should return synchronously', () => {
-    const result = modelCall({
-      model: new MockLanguageModelV4({
-        doStream: async () => ({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
-              usage: testUsage,
-            },
-          ]),
-        }),
-      }),
-      callSettings: {},
-      prompt: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
-      messages: [{ role: 'user', content: 'hello' }],
-    });
-
-    // Should return immediately without awaiting
-    expect(result).toBeDefined();
-    expect(result.stream).toBeInstanceOf(ReadableStream);
-    expect(result.request).toBeInstanceOf(Promise);
-    expect(result.response).toBeInstanceOf(Promise);
-  });
-
   it('should stream text deltas', async () => {
-    const result = modelCall({
+    const result = await modelCall({
       model: new MockLanguageModelV4({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
@@ -78,7 +53,7 @@ describe('modelCall', () => {
   });
 
   it('should emit finish part with normalized usage', async () => {
-    const result = modelCall({
+    const result = await modelCall({
       model: new MockLanguageModelV4({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
@@ -109,7 +84,7 @@ describe('modelCall', () => {
   });
 
   it('should parse tool calls', async () => {
-    const result = modelCall({
+    const result = await modelCall({
       model: new MockLanguageModelV4({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
@@ -141,8 +116,8 @@ describe('modelCall', () => {
     });
   });
 
-  it('should resolve request promise with metadata', async () => {
-    const result = modelCall({
+  it('should resolve request with metadata', async () => {
+    const result = await modelCall({
       model: new MockLanguageModelV4({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
@@ -160,12 +135,11 @@ describe('modelCall', () => {
       messages: [{ role: 'user', content: 'hello' }],
     });
 
-    const request = await result.request;
-    expect(request).toEqual({ body: { model: 'test' } });
+    expect(result.request).toEqual({ body: { model: 'test' } });
   });
 
-  it('should resolve response promise with headers', async () => {
-    const result = modelCall({
+  it('should resolve response with headers', async () => {
+    const result = await modelCall({
       model: new MockLanguageModelV4({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
@@ -183,8 +157,7 @@ describe('modelCall', () => {
       messages: [{ role: 'user', content: 'hello' }],
     });
 
-    const response = await result.response;
-    expect(response?.headers).toEqual({ 'x-request-id': '123' });
+    expect(result.response?.headers).toEqual({ 'x-request-id': '123' });
   });
 
   it('should pass maxRetries to prepareRetries', async () => {
@@ -200,7 +173,7 @@ describe('modelCall', () => {
       }),
     });
 
-    const result = modelCall({
+    const result = await modelCall({
       model,
       callSettings: {},
       maxRetries: 5,
@@ -215,46 +188,20 @@ describe('modelCall', () => {
     expect(model.doStreamCalls).toHaveLength(1);
   });
 
-  it('should propagate errors on stream when doStream fails', async () => {
-    const result = modelCall({
-      model: new MockLanguageModelV4({
-        doStream: async () => {
-          throw new Error('model error');
-        },
+  it('should throw when doStream fails', async () => {
+    await expect(
+      modelCall({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            throw new Error('model error');
+          },
+        }),
+        callSettings: {},
+        maxRetries: 0,
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
+        messages: [{ role: 'user', content: 'hello' }],
       }),
-      callSettings: {},
-      maxRetries: 0,
-      prompt: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
-      messages: [{ role: 'user', content: 'hello' }],
-    });
-
-    // Prevent unhandled rejections from the promises
-    result.request.catch(() => {});
-    result.response.catch(() => {});
-
-    const chunks = await convertReadableStreamToArray(result.stream);
-    expect(chunks).toHaveLength(1);
-    expect(chunks[0].type).toBe('error');
-  });
-
-  it('should reject request/response promises when doStream fails', async () => {
-    const result = modelCall({
-      model: new MockLanguageModelV4({
-        doStream: async () => {
-          throw new Error('model error');
-        },
-      }),
-      callSettings: {},
-      maxRetries: 0,
-      prompt: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
-      messages: [{ role: 'user', content: 'hello' }],
-    });
-
-    // Consume stream to prevent unhandled rejection from stream error
-    convertReadableStreamToArray(result.stream).catch(() => {});
-
-    await expect(result.request).rejects.toThrow('model error');
-    await expect(result.response).rejects.toThrow('model error');
+    ).rejects.toThrow('model error');
   });
 
   it('should pass call settings to doStream', async () => {
@@ -270,7 +217,7 @@ describe('modelCall', () => {
       }),
     });
 
-    const result = modelCall({
+    const result = await modelCall({
       model,
       callSettings: {
         maxOutputTokens: 100,

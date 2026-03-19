@@ -7,13 +7,8 @@ import {
   SharedV4Headers,
   SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
-import {
-  DelayedPromise,
-  ModelMessage,
-  SystemModelMessage,
-} from '@ai-sdk/provider-utils';
+import { ModelMessage, SystemModelMessage } from '@ai-sdk/provider-utils';
 import { LanguageModelRequestMetadata } from '../types';
-import { createStitchableStream } from '../util/create-stitchable-stream';
 import { prepareRetries } from '../util/prepare-retries';
 import {
   createStreamTextPartTransform,
@@ -56,78 +51,48 @@ export type ModelCallOptions<TOOLS extends ToolSet> = {
 
 export type ModelCallResult<TOOLS extends ToolSet> = {
   stream: ReadableStream<UglyTransformedStreamTextPart<TOOLS>>;
-  request: Promise<LanguageModelRequestMetadata>;
-  response: Promise<{ headers?: SharedV4Headers } | undefined>;
+  request: LanguageModelRequestMetadata;
+  response: { headers?: SharedV4Headers } | undefined;
 };
 
-export function modelCall<TOOLS extends ToolSet>(
+export async function modelCall<TOOLS extends ToolSet>(
   options: ModelCallOptions<TOOLS>,
-): ModelCallResult<TOOLS> {
-  const requestPromise = new DelayedPromise<LanguageModelRequestMetadata>();
-  const responsePromise = new DelayedPromise<
-    { headers?: SharedV4Headers } | undefined
-  >();
-
+): Promise<ModelCallResult<TOOLS>> {
   const { retry } = prepareRetries({
     maxRetries: options.maxRetries,
     abortSignal: options.abortSignal,
   });
 
-  const { stream, addStream, close } =
-    createStitchableStream<UglyTransformedStreamTextPart<TOOLS>>();
+  const {
+    stream: rawStream,
+    response,
+    request,
+  } = await retry(() =>
+    options.model.doStream({
+      ...options.callSettings,
+      tools: options.tools,
+      toolChoice: options.toolChoice,
+      responseFormat: options.responseFormat,
+      prompt: options.prompt,
+      providerOptions: options.providerOptions,
+      abortSignal: options.abortSignal,
+      headers: options.headers,
+      includeRawChunks: options.includeRawChunks,
+    }),
+  );
 
-  (async () => {
-    try {
-      const {
-        stream: rawStream,
-        response,
-        request,
-      } = await retry(() =>
-        options.model.doStream({
-          ...options.callSettings,
-          tools: options.tools,
-          toolChoice: options.toolChoice,
-          responseFormat: options.responseFormat,
-          prompt: options.prompt,
-          providerOptions: options.providerOptions,
-          abortSignal: options.abortSignal,
-          headers: options.headers,
-          includeRawChunks: options.includeRawChunks,
-        }),
-      );
-
-      requestPromise.resolve(request ?? {});
-      responsePromise.resolve(response);
-
-      const transformedStream = rawStream.pipeThrough(
-        createStreamTextPartTransform({
-          tools: options.userTools,
-          system: options.system,
-          messages: options.messages,
-          repairToolCall: options.repairToolCall,
-        }),
-      );
-
-      addStream(transformedStream);
-      close();
-    } catch (error) {
-      requestPromise.reject(error);
-      responsePromise.reject(error);
-      addStream(
-        new ReadableStream({
-          start(controller) {
-            controller.enqueue({ type: 'error', error });
-            controller.close();
-          },
-        }),
-      );
-      close();
-    }
-  })();
+  const stream = rawStream.pipeThrough(
+    createStreamTextPartTransform({
+      tools: options.userTools,
+      system: options.system,
+      messages: options.messages,
+      repairToolCall: options.repairToolCall,
+    }),
+  );
 
   return {
     stream,
-    request: requestPromise.promise,
-    response: responsePromise.promise,
+    request: request ?? {},
+    response,
   };
 }

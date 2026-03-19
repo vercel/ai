@@ -1584,9 +1584,9 @@ class DefaultStreamTextResult<
           const stepStartTimestampMs = now();
           const {
             stream: modelStream,
-            response: responsePromise,
-            request: requestPromise,
-          } = modelCall({
+            response,
+            request,
+          } = await modelCall({
             model: stepModel,
             callSettings,
             maxRetries: maxRetriesArg,
@@ -1603,17 +1603,6 @@ class DefaultStreamTextResult<
             messages: stepInputMessages,
             repairToolCall,
           });
-
-          // Prevent unhandled rejection on responsePromise if requestPromise
-          // rejects first (both are rejected together when doStream fails).
-          responsePromise.catch(() => {});
-
-          // Wait for the model call to resolve. If doStream fails,
-          // the error will be re-thrown and caught by the outer catch
-          // handler which adds it to the outer stitchable stream directly
-          // (matching the old behavior where step events are not emitted).
-          const request = await requestPromise;
-          const response = await responsePromise;
 
           const streamWithToolResults = modelStream.pipeThrough(
             createExecuteToolsTransformation({
