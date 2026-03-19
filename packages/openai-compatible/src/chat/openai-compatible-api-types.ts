@@ -6,7 +6,8 @@ export type OpenAICompatibleMessage =
   | OpenAICompatibleSystemMessage
   | OpenAICompatibleUserMessage
   | OpenAICompatibleAssistantMessage
-  | OpenAICompatibleToolMessage;
+  | OpenAICompatibleToolMessage
+  | OpenAICompatibleContentPartVideoUrl;
 
 // Allow for arbitrary additional properties for general purpose
 // provider-metadata-specific extensibility.
@@ -52,6 +53,13 @@ export interface OpenAICompatibleContentPartInputAudio extends JsonRecord {
 export interface OpenAICompatibleContentPartFile extends JsonRecord {
   type: 'file';
   file: { filename: string; file_data: string };
+}
+
+// video_url: vLLM extension for video input (not part of the official OpenAI spec)
+// Reference: https://docs.vllm.ai/en/stable/serving/multimodal_inputs.html
+export interface OpenAICompatibleContentPartVideoUrl extends JsonRecord {
+  type: 'video_url';
+  video_url: { url: string };
 }
 
 export interface OpenAICompatibleAssistantMessage
