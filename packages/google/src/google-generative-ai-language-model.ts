@@ -3,6 +3,7 @@ import {
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
   LanguageModelV4FinishReason,
+  LanguageModelV4FunctionTool,
   LanguageModelV4GenerateResult,
   LanguageModelV4Source,
   LanguageModelV4StreamPart,
@@ -141,13 +142,41 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
       { isGemmaModel, providerOptionsName },
     );
 
+    const { supportsStructuredOutputWithTools } =
+      getGoogleModelCapabilities(this.modelId);
+    const structuredOutputMode =
+      googleOptions?.structuredOutputMode ?? 'auto';
+    const useStructuredOutputWithTools =
+      structuredOutputMode === 'outputFormat' ||
+      (structuredOutputMode === 'auto' && supportsStructuredOutputWithTools);
+
+    const needsJsonToolFallback =
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      tools != null &&
+      tools.length > 0 &&
+      !useStructuredOutputWithTools;
+
+    const jsonResponseTool: LanguageModelV4FunctionTool | undefined =
+      needsJsonToolFallback
+        ? {
+            type: 'function',
+            name: 'json',
+            description: 'Respond with a JSON object.',
+            inputSchema: responseFormat.schema,
+          }
+        : undefined;
+
     const {
       tools: googleTools,
       toolConfig: googleToolConfig,
       toolWarnings,
     } = prepareTools({
-      tools,
-      toolChoice,
+      tools:
+        jsonResponseTool != null
+          ? [...(tools ?? []), jsonResponseTool]
+          : tools,
+      toolChoice: jsonResponseTool != null ? { type: 'required' } : toolChoice,
       modelId: this.modelId,
     });
 
@@ -166,10 +195,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
 
           // response format:
           responseMimeType:
-            responseFormat?.type === 'json' ? 'application/json' : undefined,
+            responseFormat?.type === 'json' && jsonResponseTool == null
+              ? 'application/json'
+              : undefined,
           responseSchema:
             responseFormat?.type === 'json' &&
             responseFormat.schema != null &&
+            jsonResponseTool == null &&
             // Google GenAI does not support all OpenAPI Schema features,
             // so this is needed as an escape hatch:
             // TODO convert into provider option
@@ -205,13 +237,15 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
       },
       warnings: [...warnings, ...toolWarnings],
       providerOptionsName,
+      usesJsonResponseTool: jsonResponseTool != null,
     };
   }
 
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings, providerOptionsName } = await this.getArgs(options);
+    const { args, warnings, providerOptionsName, usesJsonResponseTool } =
+      await this.getArgs(options);
 
     const mergedHeaders = combineHeaders(
       await resolve(this.config.headers),
@@ -272,40 +306,52 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
         // Clear the ID after use to avoid accidental reuse.
         lastCodeExecutionToolCallId = undefined;
       } else if ('text' in part && part.text != null) {
-        const thoughtSignatureMetadata = part.thoughtSignature
-          ? {
-              [providerOptionsName]: {
-                thoughtSignature: part.thoughtSignature,
-              },
-            }
-          : undefined;
-
-        if (part.text.length === 0) {
-          if (thoughtSignatureMetadata != null && content.length > 0) {
-            const lastContent = content[content.length - 1];
-            lastContent.providerMetadata = thoughtSignatureMetadata;
-          }
-        } else {
-          content.push({
-            type: part.thought === true ? 'reasoning' : 'text',
-            text: part.text,
-            providerMetadata: thoughtSignatureMetadata,
-          });
-        }
-      } else if ('functionCall' in part) {
-        content.push({
-          type: 'tool-call' as const,
-          toolCallId: this.config.generateId(),
-          toolName: part.functionCall.name,
-          input: JSON.stringify(part.functionCall.args),
-          providerMetadata: part.thoughtSignature
+        if (!usesJsonResponseTool) {
+          const thoughtSignatureMetadata = part.thoughtSignature
             ? {
                 [providerOptionsName]: {
                   thoughtSignature: part.thoughtSignature,
                 },
               }
-            : undefined,
-        });
+            : undefined;
+
+          if (part.text.length === 0) {
+            if (thoughtSignatureMetadata != null && content.length > 0) {
+              const lastContent = content[content.length - 1];
+              lastContent.providerMetadata = thoughtSignatureMetadata;
+            }
+          } else {
+            content.push({
+              type: part.thought === true ? 'reasoning' : 'text',
+              text: part.text,
+              providerMetadata: thoughtSignatureMetadata,
+            });
+          }
+        }
+      } else if ('functionCall' in part) {
+        const isJsonResponseTool =
+          usesJsonResponseTool && part.functionCall.name === 'json';
+
+        if (isJsonResponseTool) {
+          content.push({
+            type: 'text',
+            text: JSON.stringify(part.functionCall.args),
+          });
+        } else {
+          content.push({
+            type: 'tool-call' as const,
+            toolCallId: this.config.generateId(),
+            toolName: part.functionCall.name,
+            input: JSON.stringify(part.functionCall.args),
+            providerMetadata: part.thoughtSignature
+              ? {
+                  [providerOptionsName]: {
+                    thoughtSignature: part.thoughtSignature,
+                  },
+                }
+              : undefined,
+          });
+        }
       } else if ('inlineData' in part) {
         const hasThought = part.thought === true;
         const hasThoughtSignature = !!part.thoughtSignature;
@@ -369,7 +415,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings, providerOptionsName } = await this.getArgs(options);
+    const { args, warnings, providerOptionsName, usesJsonResponseTool } =
+      await this.getArgs(options);
 
     const headers = combineHeaders(
       await resolve(this.config.headers),
@@ -507,6 +554,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                     lastCodeExecutionToolCallId = undefined;
                   }
                 } else if ('text' in part && part.text != null) {
+                  if (usesJsonResponseTool) {
+                    continue;
+                  }
+
                   const thoughtSignatureMetadata = part.thoughtSignature
                     ? {
                         [providerOptionsName]: {
@@ -622,35 +673,54 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
 
               if (toolCallDeltas != null) {
                 for (const toolCall of toolCallDeltas) {
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCall.toolCallId,
-                    toolName: toolCall.toolName,
-                    providerMetadata: toolCall.providerMetadata,
-                  });
+                  const isJsonResponseTool =
+                    usesJsonResponseTool && toolCall.toolName === 'json';
 
-                  controller.enqueue({
-                    type: 'tool-input-delta',
-                    id: toolCall.toolCallId,
-                    delta: toolCall.args,
-                    providerMetadata: toolCall.providerMetadata,
-                  });
+                  if (isJsonResponseTool) {
+                    if (currentTextBlockId === null) {
+                      currentTextBlockId = String(blockCounter++);
+                      controller.enqueue({
+                        type: 'text-start',
+                        id: currentTextBlockId,
+                      });
+                    }
 
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCall.toolCallId,
-                    providerMetadata: toolCall.providerMetadata,
-                  });
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: currentTextBlockId,
+                      delta: toolCall.args,
+                    });
+                  } else {
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: toolCall.toolCallId,
+                      toolName: toolCall.toolName,
+                      providerMetadata: toolCall.providerMetadata,
+                    });
 
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: toolCall.toolCallId,
-                    toolName: toolCall.toolName,
-                    input: toolCall.args,
-                    providerMetadata: toolCall.providerMetadata,
-                  });
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id: toolCall.toolCallId,
+                      delta: toolCall.args,
+                      providerMetadata: toolCall.providerMetadata,
+                    });
 
-                  hasToolCalls = true;
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: toolCall.toolCallId,
+                      providerMetadata: toolCall.providerMetadata,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallId: toolCall.toolCallId,
+                      toolName: toolCall.toolName,
+                      input: toolCall.args,
+                      providerMetadata: toolCall.providerMetadata,
+                    });
+
+                    hasToolCalls = true;
+                  }
                 }
               }
             }
@@ -704,6 +774,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
       request: { body: args },
     };
   }
+}
+
+function getGoogleModelCapabilities(_modelId: string): {
+  supportsStructuredOutputWithTools: boolean;
+} {
+  // No Google model is currently known to accept responseSchema + tools in the same request.
+  // When documented, set to true for those model ids.
+  return { supportsStructuredOutputWithTools: false };
 }
 
 function getToolCallsFromParts({

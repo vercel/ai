@@ -537,6 +537,84 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should use json tool fallback when responseFormat schema and tools are both present (auto)', async () => {
+    prepareJsonFixtureResponse('groq-text');
+
+    const model = provider('gemma2-9b-it');
+
+    await model.doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { out: { type: 'string' } },
+          required: ['out'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          name: 'test-tool',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: { x: { type: 'string' } },
+            required: ['x'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body.response_format).toBeUndefined();
+    expect(body.tools).toHaveLength(2);
+    const names = body.tools.map(
+      (t: { type: string; function: { name: string } }) => t.function.name,
+    );
+    expect(names.sort()).toEqual(['json', 'test-tool']);
+  });
+
+  it('should use native response_format when structuredOutputMode is outputFormat with schema and tools', async () => {
+    prepareJsonFixtureResponse('groq-text');
+
+    const model = provider('gemma2-9b-it');
+
+    await model.doGenerate({
+      providerOptions: {
+        groq: { structuredOutputMode: 'outputFormat' },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { out: { type: 'string' } },
+          required: ['out'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          name: 'test-tool',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: { x: { type: 'string' } },
+            required: ['x'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body.response_format?.type).toBe('json_schema');
+    expect(body.tools).toHaveLength(1);
+    expect(body.tools[0].function.name).toBe('test-tool');
+  });
+
   it('should pass response format information as json_object when structuredOutputs explicitly disabled', async () => {
     prepareJsonFixtureResponse('groq-text');
 
