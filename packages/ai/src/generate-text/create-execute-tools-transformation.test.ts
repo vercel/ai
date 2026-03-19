@@ -602,18 +602,21 @@ describe('createExecuteToolsTransformation', () => {
           abortSignal: undefined,
           experimental_context: undefined,
           stepNumber: 2,
-          model: { provider: 'test-provider', modelId: 'test-model' },
+          provider: 'test-provider',
+          modelId: 'test-model',
           onToolCallStart: async event => {
             startEvents.push({
               stepNumber: event.stepNumber,
-              model: event.model,
+              provider: event.provider,
+              modelId: event.modelId,
               toolName: event.toolCall.toolName,
             });
           },
           onToolCallFinish: async event => {
             finishEvents.push({
               stepNumber: event.stepNumber,
-              model: event.model,
+              provider: event.provider,
+              modelId: event.modelId,
               toolName: event.toolCall.toolName,
             });
           },
@@ -625,14 +628,16 @@ describe('createExecuteToolsTransformation', () => {
       expect(startEvents).toEqual([
         {
           stepNumber: 2,
-          model: { provider: 'test-provider', modelId: 'test-model' },
+          provider: 'test-provider',
+          modelId: 'test-model',
           toolName: 'testTool',
         },
       ]);
       expect(finishEvents).toEqual([
         {
           stepNumber: 2,
-          model: { provider: 'test-provider', modelId: 'test-model' },
+          provider: 'test-provider',
+          modelId: 'test-model',
           toolName: 'testTool',
         },
       ]);
