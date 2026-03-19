@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.132
+
+### Patch Changes
+
+- 28fd5a5: README updates
+
 ## 6.0.131
 
 ### Patch Changes
