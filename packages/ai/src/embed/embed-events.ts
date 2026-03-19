@@ -1,6 +1,6 @@
 import type { JSONValue } from '@ai-sdk/provider';
 import type { ProviderOptions } from '@ai-sdk/provider-utils';
-import type { ModelEventInfo } from '../generate-text/callback-events';
+import type { ModelEventInfo } from '../generate-text/core-events';
 import type { Embedding, ProviderMetadata } from '../types';
 import type { EmbeddingModelUsage } from '../types/usage';
 import type { Warning } from '../types/warning';
