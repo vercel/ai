@@ -1,13 +1,12 @@
-import { cohere } from '@ai-sdk/cohere';
+import { alibaba } from '@ai-sdk/alibaba';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: cohere('command-a-reasoning-08-2025'),
+    model: alibaba('qwen3-max'),
     reasoning: 'medium',
-    prompt:
-      "Alice has 3 brothers and she also has 2 sisters. How many sisters does Alice's brother have?",
+    prompt: 'How many "r"s are in the word "strawberry"?',
   });
 
   console.log('Reasoning:');
