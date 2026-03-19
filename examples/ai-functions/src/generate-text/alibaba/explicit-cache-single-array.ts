@@ -10,7 +10,7 @@ const __dirname = dirname(__filename);
 
 run(async () => {
   const longUserContent = readFileSync(
-    join(__dirname, '../../../data/anthropic-compaction-data.txt'),
+    join(__dirname, '../../../data/compaction-data.txt'),
     'utf-8',
   );
 

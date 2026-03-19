@@ -4,7 +4,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 const documentCorpus = readFileSync(
-  join(process.cwd(), '../ai-functions/data/anthropic-compaction-data.txt'),
+  join(process.cwd(), '../ai-functions/data/compaction-data.txt'),
   'utf-8',
 );
 
