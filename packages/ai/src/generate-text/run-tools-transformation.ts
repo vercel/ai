@@ -120,7 +120,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   experimental_context,
   generateId,
   stepNumber,
-  model,
+  provider,
+  modelId,
   onToolCallStart,
   onToolCallFinish,
 }: {
@@ -135,7 +136,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   experimental_context: unknown;
   generateId: IdGenerator;
   stepNumber?: number;
-  model?: { provider: string; modelId: string };
+  provider: string;
+  modelId: string;
   onToolCallStart?:
     | StreamTextOnToolCallStartCallback<TOOLS>
     | Array<StreamTextOnToolCallStartCallback<TOOLS> | undefined | null>;
@@ -342,7 +344,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 abortSignal,
                 experimental_context,
                 stepNumber,
-                model,
+                provider,
+                modelId,
                 onToolCallStart,
                 onToolCallFinish,
                 onPreliminaryToolResult: result => {

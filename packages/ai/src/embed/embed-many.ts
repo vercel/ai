@@ -142,13 +142,13 @@ export async function embedMany({
   );
 
   const callId = generateCallId();
-  const modelInfo = { provider: model.provider, modelId: model.modelId };
 
   await notify({
     event: {
       callId,
       operationId: 'ai.embedMany',
-      model: modelInfo,
+      provider: model.provider,
+      modelId: model.modelId,
       value: values,
       maxRetries,
       abortSignal,
@@ -275,7 +275,8 @@ export async function embedMany({
           event: {
             callId,
             operationId: 'ai.embedMany',
-            model: modelInfo,
+            provider: model.provider,
+            modelId: model.modelId,
             value: values,
             embedding: embeddings,
             usage,
@@ -428,7 +429,8 @@ export async function embedMany({
         event: {
           callId,
           operationId: 'ai.embedMany',
-          model: modelInfo,
+          provider: model.provider,
+          modelId: model.modelId,
           value: values,
           embedding: embeddings,
           usage: { tokens },

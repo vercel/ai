@@ -1026,7 +1026,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             stepNumber: recordedSteps.length,
-            model: modelInfo,
+            provider: model.provider,
+            modelId: model.modelId,
             ...callbackTelemetryProps,
             experimental_context,
             content: recordedContent,
@@ -1049,8 +1050,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           logWarnings({
             warnings: recordedWarnings,
-            provider: modelInfo.provider,
-            model: modelInfo.modelId,
+            provider: model.provider,
+            model: model.modelId,
           });
 
           recordedSteps.push(currentStepResult);
@@ -1278,7 +1279,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
     const self = this;
 
-    const modelInfo = { provider: model.provider, modelId: model.modelId };
     const callbackTelemetryProps = {
       functionId: telemetry?.functionId,
       metadata: telemetry?.metadata as Record<string, unknown> | undefined,
@@ -1310,7 +1310,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
         await notify({
           event: {
-            model: modelInfo,
+            provider: model.provider,
+            modelId: model.modelId,
             system,
             prompt,
             messages,
@@ -1410,7 +1411,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   abortSignal,
                   experimental_context,
                   stepNumber: recordedSteps.length,
-                  model: modelInfo,
+                  provider: model.provider,
+                  modelId: model.modelId,
                   onToolCallStart: [
                     onToolCallStart,
                     globalTelemetry.onToolCallStart as
@@ -1560,10 +1562,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             const stepModel = resolveLanguageModel(
               prepareStepResult?.model ?? model,
             );
-            const stepModelInfo = {
-              provider: stepModel.provider,
-              modelId: stepModel.modelId,
-            };
 
             const promptMessages = await convertToLanguageModelPrompt({
               prompt: {
@@ -1601,7 +1599,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             await notify({
               event: {
                 stepNumber: recordedSteps.length,
-                model: stepModelInfo,
+                provider: stepModel.provider,
+                modelId: stepModel.modelId,
                 system: stepSystem,
                 messages: stepMessages,
                 tools,
@@ -1705,7 +1704,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               experimental_context,
               generateId,
               stepNumber: recordedSteps.length,
-              model: stepModelInfo,
+              provider: stepModel.provider,
+              modelId: stepModel.modelId,
               onToolCallStart: [
                 onToolCallStart,
                 globalTelemetry.onToolCallStart as
@@ -1740,7 +1740,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               {
                 id: generateId(),
                 timestamp: new Date(),
-                modelId: modelInfo.modelId,
+                modelId: model.modelId,
               };
 
             // raw text as it comes from the provider. recorded for telemetry.

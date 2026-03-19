@@ -14,16 +14,6 @@ import type { TypedToolCall } from './tool-call';
 import type { ToolSet } from './tool-set';
 
 /**
- * Common model information used across callback events.
- */
-export interface ModelEventInfo {
-  /** The provider identifier (e.g., 'openai', 'anthropic'). */
-  readonly provider: string;
-  /** The specific model identifier (e.g., 'gpt-4o'). */
-  readonly modelId: string;
-}
-
-/**
  * Event passed to the `onStart` callback.
  *
  * Called when the generation operation begins, before any LLM calls.
@@ -33,8 +23,11 @@ export interface OnStartEvent<
   OUTPUT extends Output = Output,
   INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
-  /** The model being used for generation. */
-  readonly model: ModelEventInfo;
+  //** The provider identifier (e.g., 'openai', 'anthropic'). */
+  readonly provider: string;
+
+  /** The specific model identifier (e.g., 'gpt-4o'). */
+  readonly modelId: string;
 
   /** The system message(s) provided to the model. */
   readonly system:
@@ -136,9 +129,11 @@ export interface OnStepStartEvent<
   /** Zero-based index of the current step. */
   readonly stepNumber: number;
 
-  /** The model being used for this step. */
-  readonly model: ModelEventInfo;
+  /** The provider identifier (e.g., 'openai', 'anthropic'). */
+  readonly provider: string;
 
+  /** The specific model identifier (e.g., 'gpt-4o'). */
+  readonly modelId: string;
   /**
    * The system message for this step.
    */
@@ -220,8 +215,11 @@ export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
   /** Zero-based index of the current step where this tool call occurs. */
   readonly stepNumber: number | undefined;
 
-  /** The model being used for this step. */
-  readonly model: ModelEventInfo | undefined;
+  /** The provider identifier (e.g., 'openai', 'anthropic'). */
+  readonly provider: string;
+
+  /** The specific model identifier (e.g., 'gpt-4o'). */
+  readonly modelId: string;
 
   /** The full tool call object. */
   readonly toolCall: TypedToolCall<TOOLS>;
@@ -252,8 +250,11 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
   /** Zero-based index of the current step where this tool call occurred. */
   readonly stepNumber: number | undefined;
 
-  /** The model being used for this step. */
-  readonly model: ModelEventInfo | undefined;
+  /** The provider identifier (e.g., 'openai', 'anthropic'). */
+  readonly provider: string;
+
+  /** The specific model identifier (e.g., 'gpt-4o'). */
+  readonly modelId: string;
 
   /** The full tool call object. */
   readonly toolCall: TypedToolCall<TOOLS>;
