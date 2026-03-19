@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+
 ## 4.0.0-beta.3
 
 ### Major Changes
@@ -93,13 +99,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - dce03c4: feat: tool input examples
@@ -219,13 +225,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 ## 3.0.0-beta.18
@@ -412,13 +418,13 @@
   Before
 
   ```ts
-  import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
+  import { convertUint8ArrayToBase64 } from "@ai-sdk/provider-utils";
 
   // Had to manually convert binary data to base64
   const fileData = new Uint8Array([0, 1, 2, 3]);
   const filePart = {
-    type: 'file',
-    mediaType: 'application/pdf',
+    type: "file",
+    mediaType: "application/pdf",
     data: convertUint8ArrayToBase64(fileData), // Required conversion
   };
   ```
@@ -429,8 +435,8 @@
   // Can use binary data directly
   const fileData = new Uint8Array([0, 1, 2, 3]);
   const filePart = {
-    type: 'file',
-    mediaType: 'application/pdf',
+    type: "file",
+    mediaType: "application/pdf",
     data: fileData, // Direct Uint8Array support
   };
   ```
@@ -446,10 +452,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 
@@ -608,10 +614,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 
