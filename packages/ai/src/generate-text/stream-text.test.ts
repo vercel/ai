@@ -18031,6 +18031,17 @@ describe('streamText', () => {
                 "warnings": [],
               },
               {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "title": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+              {
                 "reason": "This operation was aborted",
                 "type": "abort",
               },
