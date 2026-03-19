@@ -9,10 +9,9 @@ do {
 
  stream = doStream (with language model v4 messages)
 
- // new transform function for user friendly format
+ transform function for user friendly format
 
  run tools transformation on stream
-   transforms spec format to user friendly format
    executes tools and injects tool results into stream
    tool approval?
 
