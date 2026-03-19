@@ -1,5 +1,90 @@
 # ai
 
+## 7.0.0-beta.26
+
+### Patch Changes
+
+- f0b0b20: feat(ai): add per-tool timeout overrides via toolTimeouts
+
+## 7.0.0-beta.25
+
+### Patch Changes
+
+- ff9ce30: feat(ai): introduce experimental callbacks for embed function
+
+## 7.0.0-beta.24
+
+### Major Changes
+
+- 776b617: feat(provider): adding new 'custom' content type
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+  - @ai-sdk/gateway@4.0.0-beta.16
+
+## 7.0.0-beta.23
+
+### Patch Changes
+
+- 80d4dde: fix(ai): include tool input on tool result for provider executed dynamic tools
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+  - @ai-sdk/gateway@4.0.0-beta.15
+
+## 7.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [ead9144]
+  - @ai-sdk/gateway@4.0.0-beta.14
+
+## 7.0.0-beta.21
+
+### Patch Changes
+
+- 34fd051: feat(ai): add toolMs to timeout configuration
+
+## 7.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [2095655]
+  - @ai-sdk/gateway@4.0.0-beta.13
+
+## 7.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+  - @ai-sdk/gateway@4.0.0-beta.12
+
+## 7.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/gateway@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 7.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [4d6ab9a]
+  - @ai-sdk/gateway@4.0.0-beta.10
+
+## 7.0.0-beta.16
+
+### Major Changes
+
+- 5b8c58f: feat(ai): decouple otel from core functions
+
 ## 7.0.0-beta.15
 
 ### Patch Changes
@@ -974,13 +1059,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - b67d224: Fixes an issue where `providerMetadata` and `providerExecuted` were lost when tool input validation failed
@@ -1003,15 +1088,15 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from 'ai';
-  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  import { experimental_createMCPClient } from "ai";
+  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from '@ai-sdk/mcp';
-  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  import { experimental_createMCPClient } from "@ai-sdk/mcp";
+  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
   ```
 
 - 90e5bdd: chore(ai): restructure agent files
@@ -1531,13 +1616,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1884,15 +1969,15 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from 'ai';
-  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  import { experimental_createMCPClient } from "ai";
+  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from '@ai-sdk/mcp';
-  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  import { experimental_createMCPClient } from "@ai-sdk/mcp";
+  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
   ```
 
 ## 6.0.0-beta.71
@@ -2811,7 +2896,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -2824,7 +2909,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -3024,10 +3109,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 
@@ -3690,7 +3775,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -3703,7 +3788,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -3801,10 +3886,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 

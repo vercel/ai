@@ -1,10 +1,10 @@
 import {
   APICallError,
-  LanguageModelV3,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3Prompt,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
+  LanguageModelV4,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4Prompt,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -20,7 +20,7 @@ vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -2202,7 +2202,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('with fixture (multi-turn dice game)', () => {
-        let result: LanguageModelV3GenerateResult;
+        let result: LanguageModelV4GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-programmatic-tool-calling.1');
@@ -2285,7 +2285,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('web search tool', () => {
       describe('with fixture', () => {
-        let result: LanguageModelV3GenerateResult;
+        let result: LanguageModelV4GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-search-tool.1');
@@ -2842,7 +2842,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('web fetch tool', () => {
       describe('text response', () => {
-        let result: LanguageModelV3GenerateResult;
+        let result: LanguageModelV4GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-fetch-tool.1');
@@ -2929,7 +2929,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('20260209 text response', () => {
-        let result: LanguageModelV3GenerateResult;
+        let result: LanguageModelV4GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-fetch-tool-20260209.1');
@@ -2973,7 +2973,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('text response without title', () => {
-        let result: LanguageModelV3GenerateResult;
+        let result: LanguageModelV4GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-fetch-tool.2');
@@ -2997,7 +2997,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('unavailable error', () => {
-        let result: LanguageModelV3GenerateResult;
+        let result: LanguageModelV4GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-fetch-tool.error');
@@ -3023,7 +3023,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('tool search tool', () => {
       describe('regex variant', () => {
-        let result: LanguageModelV3GenerateResult;
+        let result: LanguageModelV4GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-tool-search-regex.1');
@@ -3112,7 +3112,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         it('should include advanced-tool-use beta header', async () => {
           expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
             {
-              "anthropic-beta": "advanced-tool-use-2025-11-20,structured-outputs-2025-11-13",
+              "anthropic-beta": "structured-outputs-2025-11-13",
               "anthropic-version": "2023-06-01",
               "content-type": "application/json",
               "x-api-key": "test-api-key",
@@ -3126,7 +3126,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('bm25 variant', () => {
-        let result: LanguageModelV3GenerateResult;
+        let result: LanguageModelV4GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-tool-search-bm25.1');
@@ -3218,7 +3218,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         it('should include advanced-tool-use beta header', async () => {
           expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
             {
-              "anthropic-beta": "advanced-tool-use-2025-11-20,structured-outputs-2025-11-13",
+              "anthropic-beta": "structured-outputs-2025-11-13",
               "anthropic-version": "2023-06-01",
               "content-type": "application/json",
               "x-api-key": "test-api-key",
@@ -4166,20 +4166,20 @@ describe('AnthropicMessagesLanguageModel', () => {
         body: '{"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}',
       };
 
-      await expect(
-        model.doGenerate({ prompt: TEST_PROMPT }),
-      ).rejects.toThrowError(
-        new APICallError({
-          message: 'Overloaded',
-          url: 'https://api.anthropic.com/v1/messages',
-          requestBodyValues: {},
-          statusCode: 529,
-          responseHeaders: {},
-          responseBody:
-            '{"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}',
-          isRetryable: true,
-        }),
-      );
+      try {
+        await model.doGenerate({ prompt: TEST_PROMPT });
+        expect.fail('Expected an error to be thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(APICallError);
+        const apiCallError = error as APICallError;
+        expect(apiCallError.message).toBe('Overloaded');
+        expect(apiCallError.url).toBe('https://api.anthropic.com/v1/messages');
+        expect(apiCallError.statusCode).toBe(529);
+        expect(apiCallError.responseBody).toBe(
+          '{"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}',
+        );
+        expect(apiCallError.isRetryable).toBe(true);
+      }
     });
 
     describe('temperature clamping', () => {
@@ -5043,7 +5043,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
   describe('doStream', () => {
     describe('json schema response format (unsupported model)', () => {
-      let result: Array<LanguageModelV3StreamPart>;
+      let result: Array<LanguageModelV4StreamPart>;
 
       beforeEach(async () => {
         prepareChunksFixtureResponse('anthropic-json-tool.1');
@@ -5198,7 +5198,7 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     describe('json schema response format with text content prefix', () => {
-      let result: Array<LanguageModelV3StreamPart>;
+      let result: Array<LanguageModelV4StreamPart>;
 
       beforeEach(async () => {
         prepareChunksFixtureResponse('anthropic-json-tool.2');
@@ -6303,7 +6303,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       const signatureParts = result.filter(
         (
           part,
-        ): part is LanguageModelV3StreamPart & {
+        ): part is LanguageModelV4StreamPart & {
           type: 'reasoning-delta';
         } =>
           part.type === 'reasoning-delta' &&
@@ -7835,7 +7835,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         const parts = await convertReadableStreamToArray(stream);
         const toolCall = parts.find(
-          (p): p is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+          (p): p is LanguageModelV4StreamPart & { type: 'tool-call' } =>
             p.type === 'tool-call',
         );
 
@@ -7881,7 +7881,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         const parts = await convertReadableStreamToArray(stream);
         const toolCall = parts.find(
-          (p): p is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+          (p): p is LanguageModelV4StreamPart & { type: 'tool-call' } =>
             p.type === 'tool-call',
         );
 
@@ -7924,7 +7924,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         const parts = await convertReadableStreamToArray(stream);
         const toolCall = parts.find(
-          (p): p is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+          (p): p is LanguageModelV4StreamPart & { type: 'tool-call' } =>
             p.type === 'tool-call',
         );
 
@@ -7973,7 +7973,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         const parts = await convertReadableStreamToArray(stream);
         const toolCall = parts.find(
-          (p): p is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+          (p): p is LanguageModelV4StreamPart & { type: 'tool-call' } =>
             p.type === 'tool-call',
         );
 
@@ -8034,7 +8034,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
           const parts = await convertReadableStreamToArray(result.stream);
           const toolCalls = parts.filter(
-            (p): p is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+            (p): p is LanguageModelV4StreamPart & { type: 'tool-call' } =>
               p.type === 'tool-call',
           );
 
@@ -8156,7 +8156,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('web fetch tool', () => {
       describe('txt response', () => {
-        let result: LanguageModelV3StreamResult;
+        let result: LanguageModelV4StreamResult;
 
         beforeEach(async () => {
           prepareChunksFixtureResponse('anthropic-web-fetch-tool.1');
@@ -8184,7 +8184,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('web fetch 20260209 tool', () => {
       describe('input provided in content_block_start', () => {
-        let result: LanguageModelV3StreamResult;
+        let result: LanguageModelV4StreamResult;
 
         beforeEach(async () => {
           prepareChunksFixtureResponse('anthropic-web-fetch-tool-20260209.1');
@@ -8232,7 +8232,7 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     describe('web search tool', () => {
-      let result: LanguageModelV3StreamResult;
+      let result: LanguageModelV4StreamResult;
 
       beforeEach(async () => {
         prepareChunksFixtureResponse('anthropic-web-search-tool.1');
@@ -8265,7 +8265,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('tool search tool', () => {
       describe('regex variant', () => {
-        let result: LanguageModelV3StreamResult;
+        let result: LanguageModelV4StreamResult;
 
         beforeEach(async () => {
           prepareChunksFixtureResponse('anthropic-tool-search-regex.1');
@@ -8313,7 +8313,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('bm25 variant', () => {
-        let result: LanguageModelV3StreamResult;
+        let result: LanguageModelV4StreamResult;
 
         beforeEach(async () => {
           prepareChunksFixtureResponse('anthropic-tool-search-bm25.1');
@@ -8678,9 +8678,8 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       prepareTransformJsonResponse();
 
-      const { AnthropicMessagesLanguageModel } = await import(
-        './anthropic-messages-language-model'
-      );
+      const { AnthropicMessagesLanguageModel } =
+        await import('./anthropic-messages-language-model');
       const model = new AnthropicMessagesLanguageModel(
         'claude-3-haiku-20240307',
         {
@@ -8721,9 +8720,8 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       prepareTransformStreamResponse();
 
-      const { AnthropicMessagesLanguageModel } = await import(
-        './anthropic-messages-language-model'
-      );
+      const { AnthropicMessagesLanguageModel } =
+        await import('./anthropic-messages-language-model');
       const model = new AnthropicMessagesLanguageModel(
         'claude-3-haiku-20240307',
         {
@@ -8763,9 +8761,8 @@ describe('AnthropicMessagesLanguageModel', () => {
     it('should work without transformRequestBody', async () => {
       prepareTransformJsonResponse();
 
-      const { AnthropicMessagesLanguageModel } = await import(
-        './anthropic-messages-language-model'
-      );
+      const { AnthropicMessagesLanguageModel } =
+        await import('./anthropic-messages-language-model');
       const model = new AnthropicMessagesLanguageModel(
         'claude-3-haiku-20240307',
         {

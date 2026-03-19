@@ -27,7 +27,7 @@ This is a **monorepo** using pnpm workspaces and Turborepo.
 | `examples/`               | Example applications (ai-functions, next-openai, etc.)                               |
 | `content/`                | Documentation source files (MDX)                                                     |
 | `contributing/`           | Contributor guides and documentation                                                 |
-| `tools/`                  | Internal tooling (eslint-config, tsconfig)                                           |
+| `tools/`                  | Internal tooling (tsconfig)                                                          |
 
 ### Core Package Dependencies
 
@@ -60,9 +60,8 @@ pnpm build          # Build all packages
 | `pnpm install`           | Install dependencies                                              |
 | `pnpm build`             | Build all packages                                                |
 | `pnpm test`              | Run all tests (excludes examples)                                 |
-| `pnpm lint`              | Run linting                                                       |
-| `pnpm prettier-fix`      | Fix formatting issues                                             |
-| `pnpm prettier-check`    | Check formatting                                                  |
+| `pnpm check`             | Run linting (oxlint) and formatting (oxfmt) checks               |
+| `pnpm fix`               | Fix linting and formatting issues                                 |
 | `pnpm type-check:full`   | TypeScript type checking (includes examples)                      |
 | `pnpm changeset`         | Add a changeset for your PR                                       |
 | `pnpm update-references` | Update tsconfig.json references after adding package dependencies |
@@ -115,17 +114,17 @@ pnpm tsx src/stream-text/openai/basic.ts    # Run a specific example
 | Tool/schema utilities (`tool`, `jsonSchema`)  | `ai`                                          |
 | Provider implementations                      | `@ai-sdk/<provider>` (e.g., `@ai-sdk/openai`) |
 | Error classes                                 | `ai` (re-exports from `@ai-sdk/provider`)     |
-| Provider type interfaces (`LanguageModelV3`)  | `@ai-sdk/provider`                            |
+| Provider type interfaces (`LanguageModelV4`)  | `@ai-sdk/provider`                            |
 | Provider implementation utilities             | `@ai-sdk/provider-utils`                      |
 
 ## Coding Standards
 
 ### Formatting
 
-- **Tool**: Prettier
-- **Config**: Defined in root `package.json`
-- **Settings**: Single quotes, trailing commas, 2-space indentation, no tabs
-- **Pre-commit hook**: Automatically formats staged files on commit via `lint-staged`. If `package.json` changes are staged, `pnpm install` runs automatically
+- **Formatter**: oxfmt (via `pnpm fix` or `ultracite fix`)
+- **Linter**: oxlint (via `pnpm check` or `ultracite check`)
+- **Config**: `.oxfmtrc.jsonc` (formatter) and `.oxlintrc.json` (linter)
+- **Pre-commit hook**: Runs `pnpm install` if `package.json` changes are staged
 
 ### Testing
 
@@ -215,7 +214,7 @@ For an overview of the project's key philosophies that guide decision making, se
 
 The SDK uses a layered provider architecture following the adapter pattern:
 
-1. **Specifications** (`@ai-sdk/provider`): Defines interfaces like `LanguageModelV3`
+1. **Specifications** (`@ai-sdk/provider`): Defines interfaces like `LanguageModelV4`
 2. **Utilities** (`@ai-sdk/provider-utils`): Shared code for implementing providers
 3. **Providers** (`@ai-sdk/<provider>`): Concrete implementations for each AI service
 4. **Core** (`ai`): High-level functions like `generateText`, `streamText`, `generateObject`

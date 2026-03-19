@@ -1,5 +1,66 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.13
+
+### Major Changes
+
+- 776b617: feat(provider): adding new 'custom' content type
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+  - @ai-sdk/openai-compatible@3.0.0-beta.7
+
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- d20829e: feat(provider/xai): add moderation error, and costInUsdTicks to video model
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+  - @ai-sdk/openai-compatible@3.0.0-beta.6
+
+## 4.0.0-beta.11
+
+### Patch Changes
+
+- f7d4f01: feat(provider): add support for `reasoning-file` type for files that are part of reasoning
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+  - @ai-sdk/openai-compatible@3.0.0-beta.5
+
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/openai-compatible@3.0.0-beta.4
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [8f3e1da]
+  - @ai-sdk/openai-compatible@3.0.0-beta.3
+
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 4799fa5: chore(provider/xai): update provider to use v4 types
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- 0f11f10: add reasoningSummary to responses API provider options
+- 12115e9: fix reasoning text extraction from content in responses doGenerate
+
 ## 4.0.0-beta.6
 
 ### Major Changes

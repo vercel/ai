@@ -26,6 +26,7 @@ export class SseMCPTransport implements MCPTransport {
   private headers?: Record<string, string>;
   private authProvider?: OAuthClientProvider;
   private resourceMetadataUrl?: URL;
+  private redirectMode: RequestRedirect;
 
   onclose?: () => void;
   onerror?: (error: unknown) => void;
@@ -35,14 +36,17 @@ export class SseMCPTransport implements MCPTransport {
     url,
     headers,
     authProvider,
+    redirect = 'error',
   }: {
     url: string;
     headers?: Record<string, string>;
     authProvider?: OAuthClientProvider;
+    redirect?: 'follow' | 'error';
   }) {
     this.url = new URL(url);
     this.headers = headers;
     this.authProvider = authProvider;
+    this.redirectMode = redirect;
   }
 
   private async commonHeaders(
@@ -84,6 +88,7 @@ export class SseMCPTransport implements MCPTransport {
           const response = await fetch(this.url.href, {
             headers,
             signal: this.abortController?.signal,
+            redirect: this.redirectMode,
           });
 
           if (response.status === 401 && this.authProvider && !triedAuth) {
@@ -227,6 +232,7 @@ export class SseMCPTransport implements MCPTransport {
           headers,
           body: JSON.stringify(message),
           signal: this.abortController?.signal,
+          redirect: this.redirectMode,
         };
 
         const response = await fetch(endpoint, init);

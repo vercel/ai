@@ -1,5 +1,5 @@
 import {
-  LanguageModelV3Prompt,
+  LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -10,7 +10,7 @@ import {
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToGoogleGenerativeAIMessages(
-  prompt: LanguageModelV3Prompt,
+  prompt: LanguageModelV4Prompt,
   options?: { isGemmaModel?: boolean; providerOptionsName?: string },
 ): GoogleGenerativeAIPrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
@@ -110,6 +110,24 @@ export function convertToGoogleGenerativeAIMessages(
                         thought: true,
                         thoughtSignature,
                       };
+                }
+
+                case 'reasoning-file': {
+                  if (part.data instanceof URL) {
+                    throw new UnsupportedFunctionalityError({
+                      functionality:
+                        'File data URLs in assistant messages are not supported',
+                    });
+                  }
+
+                  return {
+                    inlineData: {
+                      mimeType: part.mediaType,
+                      data: convertToBase64(part.data),
+                    },
+                    thought: true,
+                    thoughtSignature,
+                  };
                 }
 
                 case 'file': {

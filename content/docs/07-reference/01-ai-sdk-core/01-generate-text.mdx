@@ -156,7 +156,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'content',
-              type: 'string | Array<TextPart | FilePart | ReasoningPart | ToolCallPart>',
+              type: 'string | Array<TextPart | FilePart | ReasoningPart | ReasoningFilePart | ToolCallPart>',
               description: 'The content of the message.',
               properties: [
                 {
@@ -186,6 +186,27 @@ To see `generateText` in action, check out [these examples](#examples).
                       name: 'text',
                       type: 'string',
                       description: 'The reasoning text.',
+                    },
+                  ],
+                },
+                {
+                  type: 'ReasoningFilePart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'reasoning-file'",
+                      description: 'The type of the message part.',
+                    },
+                    {
+                      name: 'data',
+                      type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
+                      description:
+                        'The file data. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
+                    },
+                    {
+                      name: 'mediaType',
+                      type: 'string',
+                      description: 'The IANA media type of the file.',
                     },
                   ],
                 },
@@ -437,10 +458,10 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'timeout',
-      type: 'number | { totalMs?: number; stepMs?: number }',
+      type: 'number | { totalMs?: number; stepMs?: number; toolMs?: number; tools?: { [toolName]Ms?: number } }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs and/or stepMs properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call), useful for multi-step generations. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, toolMs, and/or tools properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call). toolMs sets the default timeout for all tool executions. tools sets per-tool timeout overrides using the pattern {toolName}Ms (e.g. weatherMs, slowApiMs) that take precedence over toolMs - tool names are type-checked for autocomplete. If a tool takes longer than its timeout, it aborts and returns a tool-error so the model can respond or retry. Can be used alongside abortSignal.',
     },
     {
       name: 'headers',
@@ -673,7 +694,7 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_repairToolCall',
-      type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV3ToolCall | null>',
+      type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV4ToolCall | null>',
       isOptional: true,
       description:
         'A function that attempts to repair a tool call that failed to parse. Return either a repaired tool call or null if the tool call cannot be repaired.',
@@ -693,7 +714,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'toolCall',
-              type: 'LanguageModelV3ToolCall',
+              type: 'LanguageModelV4ToolCall',
               description: 'The tool call that failed to parse.',
             },
             {
@@ -1051,7 +1072,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'toolChoice',
-              type: 'LanguageModelV3ToolChoice | undefined',
+              type: 'LanguageModelV4ToolChoice | undefined',
               description: 'The tool choice configuration for this step.',
             },
             {
@@ -1320,7 +1341,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'reasoning',
-              type: 'Array<ReasoningPart>',
+              type: 'Array<ReasoningPart | ReasoningFilePart>',
               description:
                 'The reasoning that was generated during the generation.',
             },
@@ -1974,7 +1995,7 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'reasoning',
-      type: 'Array<ReasoningOutput>',
+      type: 'Array<ReasoningOutput | ReasoningFileOutput>',
       description:
         'The full reasoning that the model has generated in the last step.',
       properties: [
@@ -1995,7 +2016,28 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'providerMetadata',
               type: 'SharedV2ProviderMetadata',
               isOptional: true,
-              description: 'Additional provider metadata for the source.',
+              description: 'Additional provider metadata.',
+            },
+          ],
+        },
+        {
+          type: 'ReasoningFileOutput',
+          parameters: [
+            {
+              name: 'type',
+              type: "'reasoning-file'",
+              description: 'The type of the message part.',
+            },
+            {
+              name: 'file',
+              type: 'GeneratedFile',
+              description: 'The generated file.',
+            },
+            {
+              name: 'providerMetadata',
+              type: 'SharedV2ProviderMetadata',
+              isOptional: true,
+              description: 'Additional provider metadata.',
             },
           ],
         },
@@ -2385,7 +2427,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'reasoning',
-              type: 'Array<ReasoningPart>',
+              type: 'Array<ReasoningPart | ReasoningFilePart>',
               description:
                 'The reasoning that was generated during the generation.',
               properties: [
@@ -2401,6 +2443,27 @@ To see `generateText` in action, check out [these examples](#examples).
                       name: 'text',
                       type: 'string',
                       description: 'The reasoning text.',
+                    },
+                  ],
+                },
+                {
+                  type: 'ReasoningFilePart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'reasoning-file'",
+                      description: 'The type of the message part.',
+                    },
+                    {
+                      name: 'data',
+                      type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
+                      description:
+                        'The file data. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
+                    },
+                    {
+                      name: 'mediaType',
+                      type: 'string',
+                      description: 'The IANA media type of the file.',
                     },
                   ],
                 },

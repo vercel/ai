@@ -1,7 +1,7 @@
 import {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3Warning,
+  ImageModelV4,
+  ImageModelV4File,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -27,8 +27,8 @@ interface DeepInfraImageModelConfig {
   };
 }
 
-export class DeepInfraImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class DeepInfraImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
   get provider(): string {
@@ -51,10 +51,10 @@ export class DeepInfraImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
     // Image editing mode - use OpenAI-compatible /images/edits endpoint
@@ -180,7 +180,7 @@ type DeepInfraFormDataInput = {
   [key: string]: unknown;
 };
 
-async function fileToBlob(file: ImageModelV3File): Promise<Blob> {
+async function fileToBlob(file: ImageModelV4File): Promise<Blob> {
   if (file.type === 'url') {
     return downloadBlob(file.url);
   }

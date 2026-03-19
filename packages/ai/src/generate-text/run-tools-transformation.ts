@@ -1,24 +1,23 @@
-import { LanguageModelV4StreamPart, SharedV4Warning } from '@ai-sdk/provider';
+import { SharedV4Warning } from '@ai-sdk/provider';
+import { TimeoutConfiguration } from '../prompt/call-settings';
 import {
-  getErrorMessage,
   IdGenerator,
   ModelMessage,
   SystemModelMessage,
 } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
-import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
+import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { asLanguageModelUsage } from '../types/usage';
+import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
 import { executeToolCall } from './execute-tool-call';
+import { GeneratedFile } from './generated-file';
+import { isApprovalNeeded } from './is-approval-needed';
 import {
   StreamTextOnToolCallFinishCallback,
   StreamTextOnToolCallStartCallback,
 } from './stream-text';
-import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
-import { isApprovalNeeded } from './is-approval-needed';
-import { parseToolCall } from './parse-tool-call';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
@@ -37,7 +36,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       type: 'text-delta';
       id: string;
       providerMetadata?: ProviderMetadata;
-      delta: string;
+      text: string;
     }
   | {
       type: 'text-end';
@@ -55,11 +54,16 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       type: 'reasoning-delta';
       id: string;
       providerMetadata?: ProviderMetadata;
-      delta: string;
+      text: string;
     }
   | {
       type: 'reasoning-end';
       id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'custom';
+      kind: string;
       providerMetadata?: ProviderMetadata;
     }
 
@@ -87,7 +91,12 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
 
   // Other types:
   | ({ type: 'source' } & Source)
-  | { type: 'file'; file: GeneratedFile; providerMetadata?: ProviderMetadata } // different because of GeneratedFile object
+  | { type: 'file'; file: GeneratedFile; providerMetadata?: ProviderMetadata }
+  | {
+      type: 'reasoning-file';
+      file: GeneratedFile;
+      providerMetadata?: ProviderMetadata;
+    }
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
   | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
   | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
@@ -111,27 +120,30 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
 export function runToolsTransformation<TOOLS extends ToolSet>({
   tools,
   generatorStream,
-  tracer,
   telemetry,
+  callId,
   system,
   messages,
   abortSignal,
   repairToolCall,
+  timeout,
   experimental_context,
   generateId,
   stepNumber,
   model,
   onToolCallStart,
   onToolCallFinish,
+  executeToolInTelemetryContext,
 }: {
   tools: TOOLS | undefined;
-  generatorStream: ReadableStream<LanguageModelV4StreamPart>;
-  tracer: Tracer;
+  generatorStream: ReadableStream<UglyTransformedStreamTextPart<TOOLS>>;
   telemetry: TelemetrySettings | undefined;
+  callId: string;
   system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
+  timeout?: TimeoutConfiguration<TOOLS>;
   experimental_context: unknown;
   generateId: IdGenerator;
   stepNumber?: number;
@@ -142,8 +154,10 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   onToolCallFinish?:
     | StreamTextOnToolCallFinishCallback<TOOLS>
     | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
+  executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
-  // tool results stream
+  // there is a separate stream for tool results, because
+  // tool results might be emitted after the generator stream has finished
   let toolResultsStreamController: ReadableStreamDefaultController<
     SingleRequestTextStreamPart<TOOLS>
   > | null = null;
@@ -157,12 +171,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
   // keep track of outstanding tool results for stream closing:
   const outstandingToolResults = new Set<string>();
-
-  // keep track of tool inputs for provider-side tool results
-  const toolInputs = new Map<string, unknown>();
-
-  // keep track of parsed tool calls so provider-emitted approval requests can reference them
-  const toolCallsByToolCallId = new Map<string, TypedToolCall<TOOLS>>();
 
   let canClose = false;
   let finishChunk:
@@ -185,11 +193,11 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
   // forward stream
   const forwardStream = new TransformStream<
-    LanguageModelV4StreamPart,
+    UglyTransformedStreamTextPart<TOOLS>,
     SingleRequestTextStreamPart<TOOLS>
   >({
     async transform(
-      chunk: LanguageModelV4StreamPart,
+      chunk: UglyTransformedStreamTextPart<TOOLS>,
       controller: TransformStreamDefaultController<
         SingleRequestTextStreamPart<TOOLS>
       >,
@@ -208,25 +216,17 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'tool-input-start':
         case 'tool-input-delta':
         case 'tool-input-end':
+        case 'file':
+        case 'reasoning-file':
         case 'source':
         case 'response-metadata':
         case 'error':
+        case 'tool-approval-request':
+        case 'tool-result':
+        case 'tool-error':
+        case 'custom':
         case 'raw': {
           controller.enqueue(chunk);
-          break;
-        }
-
-        case 'file': {
-          controller.enqueue({
-            type: 'file',
-            file: new DefaultGeneratedFileWithType({
-              data: chunk.data,
-              mediaType: chunk.mediaType,
-            }),
-            ...(chunk.providerMetadata != null
-              ? { providerMetadata: chunk.providerMetadata }
-              : {}),
-          });
           break;
         }
 
@@ -241,55 +241,16 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           break;
         }
 
-        case 'tool-approval-request': {
-          const toolCall = toolCallsByToolCallId.get(chunk.toolCallId);
-          if (toolCall == null) {
-            toolResultsStreamController!.enqueue({
-              type: 'error',
-              error: new ToolCallNotFoundForApprovalError({
-                toolCallId: chunk.toolCallId,
-                approvalId: chunk.approvalId,
-              }),
-            });
-            break;
-          }
-
-          controller.enqueue({
-            type: 'tool-approval-request',
-            approvalId: chunk.approvalId,
-            toolCall,
-          });
-          break;
-        }
-
         // process tool call:
         case 'tool-call': {
           try {
-            const toolCall = await parseToolCall({
-              toolCall: chunk,
-              tools,
-              repairToolCall,
-              system,
-              messages,
-            });
+            controller.enqueue(chunk);
 
-            toolCallsByToolCallId.set(toolCall.toolCallId, toolCall);
-            controller.enqueue(toolCall);
-
-            if (toolCall.invalid) {
-              toolResultsStreamController!.enqueue({
-                type: 'tool-error',
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                input: toolCall.input,
-                error: getErrorMessage(toolCall.error!),
-                dynamic: true,
-                title: toolCall.title,
-              });
+            if (chunk.invalid) {
               break;
             }
 
-            const tool = tools?.[toolCall.toolName];
+            const tool = tools?.[chunk.toolName];
 
             if (tool == null) {
               // ignore tool calls for tools that are not available,
@@ -299,8 +260,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
             if (tool.onInputAvailable != null) {
               await tool.onInputAvailable({
-                input: toolCall.input,
-                toolCallId: toolCall.toolCallId,
+                input: chunk.input,
+                toolCallId: chunk.toolCallId,
                 messages,
                 abortSignal,
                 experimental_context,
@@ -310,7 +271,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             if (
               await isApprovalNeeded({
                 tool,
-                toolCall,
+                toolCall: chunk,
                 messages,
                 experimental_context,
               })
@@ -318,15 +279,13 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               toolResultsStreamController!.enqueue({
                 type: 'tool-approval-request',
                 approvalId: generateId(),
-                toolCall,
+                toolCall: chunk,
               });
               break;
             }
 
-            toolInputs.set(toolCall.toolCallId, toolCall.input);
-
             // Only execute tools that are not provider-executed:
-            if (tool.execute != null && toolCall.providerExecuted !== true) {
+            if (tool.execute != null && chunk.providerExecuted !== true) {
               const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
               outstandingToolResults.add(toolExecutionId);
 
@@ -334,17 +293,19 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               // because we want to process the next chunk as soon as possible.
               // This is important for the case where the tool execution takes a long time.
               executeToolCall({
-                toolCall,
+                toolCall: chunk,
                 tools,
-                tracer,
                 telemetry,
+                callId,
                 messages,
                 abortSignal,
+                timeout,
                 experimental_context,
                 stepNumber,
                 model,
                 onToolCallStart,
                 onToolCallFinish,
+                executeToolInTelemetryContext,
                 onPreliminaryToolResult: result => {
                   toolResultsStreamController!.enqueue(result);
                 },
@@ -367,39 +328,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             toolResultsStreamController!.enqueue({ type: 'error', error });
           }
 
-          break;
-        }
-
-        case 'tool-result': {
-          const toolName = chunk.toolName as keyof TOOLS & string;
-
-          if (chunk.isError) {
-            toolResultsStreamController!.enqueue({
-              type: 'tool-error',
-              toolCallId: chunk.toolCallId,
-              toolName,
-              input: toolInputs.get(chunk.toolCallId),
-              providerExecuted: true,
-              error: chunk.result,
-              dynamic: chunk.dynamic,
-              ...(chunk.providerMetadata != null
-                ? { providerMetadata: chunk.providerMetadata }
-                : {}),
-            } as TypedToolError<TOOLS>);
-          } else {
-            controller.enqueue({
-              type: 'tool-result',
-              toolCallId: chunk.toolCallId,
-              toolName,
-              input: toolInputs.get(chunk.toolCallId),
-              output: chunk.result,
-              providerExecuted: true,
-              dynamic: chunk.dynamic,
-              ...(chunk.providerMetadata != null
-                ? { providerMetadata: chunk.providerMetadata }
-                : {}),
-            } as TypedToolResult<TOOLS>);
-          }
           break;
         }
 

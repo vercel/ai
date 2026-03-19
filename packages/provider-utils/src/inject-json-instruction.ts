@@ -1,7 +1,7 @@
 import {
   JSONSchema7,
-  LanguageModelV3Message,
-  LanguageModelV3Prompt,
+  LanguageModelV4Message,
+  LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 
 const DEFAULT_SCHEMA_PREFIX = 'JSON schema:';
@@ -39,12 +39,12 @@ export function injectJsonInstructionIntoMessages({
   schemaPrefix,
   schemaSuffix,
 }: {
-  messages: LanguageModelV3Prompt;
+  messages: LanguageModelV4Prompt;
   schema?: JSONSchema7;
   schemaPrefix?: string;
   schemaSuffix?: string;
-}): LanguageModelV3Prompt {
-  const systemMessage: LanguageModelV3Message =
+}): LanguageModelV4Prompt {
+  const systemMessage: LanguageModelV4Message =
     messages[0]?.role === 'system'
       ? { ...messages[0] }
       : { role: 'system', content: '' };

@@ -1,4 +1,4 @@
-import { EmbeddingModelV3Embedding } from '@ai-sdk/provider';
+import { EmbeddingModelV4Embedding } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
 import { createGoogleGenerativeAI } from './google-provider';
@@ -29,7 +29,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
     embeddings = dummyEmbeddings,
     headers,
   }: {
-    embeddings?: EmbeddingModelV3Embedding[];
+    embeddings?: EmbeddingModelV4Embedding[];
     headers?: Record<string, string>;
   } = {}) {
     server.urls[URL].response = {
@@ -45,7 +45,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
     embeddings = dummyEmbeddings,
     headers,
   }: {
-    embeddings?: EmbeddingModelV3Embedding[];
+    embeddings?: EmbeddingModelV4Embedding[];
     headers?: Record<string, string>;
   } = {}) {
     server.urls[URL].response = {
