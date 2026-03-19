@@ -322,7 +322,7 @@ describe('createStreamTextPartTransform', () => {
       expect(result).toMatchInlineSnapshot(`
         [
           {
-            "kind": "openaicompaction",
+            "kind": "openai.compaction",
             "providerMetadata": {
               "openai": {
                 "itemId": "cmp_123",
