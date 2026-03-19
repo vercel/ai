@@ -2033,14 +2033,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 ] = 'can-conclude';
               }
             } else if (isResponseFinishedChunk(value)) {
+              const rawFinishReason =
+                value.response.incomplete_details?.reason ?? undefined;
+
               finishReason = {
-                unified: mapOpenAIResponseFinishReason({
-                  finishReason: value.response.incomplete_details?.reason,
-                  hasFunctionCall,
-                }),
-                raw: value.response.incomplete_details?.reason ?? undefined,
+                unified:
+                  value.type === 'response.failed' && rawFinishReason == null
+                    ? 'error'
+                    : mapOpenAIResponseFinishReason({
+                        finishReason: rawFinishReason,
+                        hasFunctionCall,
+                      }),
+                raw: rawFinishReason,
               };
-              usage = value.response.usage;
+              usage = value.response.usage ?? undefined;
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
               }
@@ -2113,6 +2119,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 });
               }
             } else if (isErrorChunk(value)) {
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: value });
             }
           },
@@ -2156,10 +2163,12 @@ function isResponseOutputItemDoneChunk(
 function isResponseFinishedChunk(
   chunk: OpenAIResponsesChunk,
 ): chunk is OpenAIResponsesChunk & {
-  type: 'response.completed' | 'response.incomplete';
+  type: 'response.completed' | 'response.incomplete' | 'response.failed';
 } {
   return (
-    chunk.type === 'response.completed' || chunk.type === 'response.incomplete'
+    chunk.type === 'response.completed' ||
+    chunk.type === 'response.incomplete' ||
+    chunk.type === 'response.failed'
   );
 }
 
