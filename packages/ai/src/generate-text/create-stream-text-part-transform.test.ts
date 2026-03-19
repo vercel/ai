@@ -271,4 +271,62 @@ describe('createStreamTextPartTransform', () => {
       ]
     `);
   });
+
+  it('should forward custom parts', async () => {
+    const inputStream: ReadableStream<LanguageModelV4StreamPart> =
+      convertArrayToReadableStream([
+        {
+          type: 'custom',
+          kind: 'openai-compaction',
+          providerMetadata: {
+            openai: { itemId: 'cmp_123' },
+          },
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: testUsage,
+        },
+      ]);
+
+    const transformedStream = inputStream.pipeThrough(
+      createStreamTextPartTransform(),
+    );
+
+    const result = await convertReadableStreamToArray(transformedStream);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "kind": "openai-compaction",
+          "providerMetadata": {
+            "openai": {
+              "itemId": "cmp_123",
+            },
+          },
+          "type": "custom",
+        },
+        {
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": 3,
+              "total": 3,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": 10,
+              "total": 10,
+            },
+          },
+        },
+      ]
+    `);
+  });
 });

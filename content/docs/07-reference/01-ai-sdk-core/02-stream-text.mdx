@@ -842,6 +842,30 @@ To see `streamText` in action, check out [these examples](#examples).
                   parameters: [
                     {
                       name: 'type',
+                      type: "'custom'",
+                      description:
+                        'The type to identify the object as custom content.',
+                    },
+                    {
+                      name: 'kind',
+                      type: 'string',
+                      description:
+                        'The kind of custom content, in the format {provider}-{provider-type} (e.g. openai-compaction).',
+                    },
+                    {
+                      name: 'providerMetadata',
+                      type: 'ProviderMetadata',
+                      isOptional: true,
+                      description:
+                        'Optional provider metadata for the custom content.',
+                    },
+                  ],
+                },
+                {
+                  type: 'TextStreamPart',
+                  parameters: [
+                    {
+                      name: 'type',
                       type: "'tool-call'",
                       description:
                         'The type to identify the object as tool call.',
@@ -2970,6 +2994,29 @@ To see `streamText` in action, check out [these examples](#examples).
                   ],
                 },
               ],
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          description: 'Custom content part from ContentPart<TOOLS>',
+          parameters: [
+            {
+              name: 'type',
+              type: "'custom'",
+              description: 'The type to identify the object as custom content.',
+            },
+            {
+              name: 'kind',
+              type: 'string',
+              description:
+                'The kind of custom content, in the format {provider}-{provider-type} (e.g. openai-compaction).',
+            },
+            {
+              name: 'providerMetadata',
+              type: 'ProviderMetadata',
+              isOptional: true,
+              description: 'Optional provider metadata for the custom content.',
             },
           ],
         },

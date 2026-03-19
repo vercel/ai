@@ -55,8 +55,7 @@ export class DirectChatTransport<
     never,
     InferUITools<TOOLS>
   >,
-> implements ChatTransport<UI_MESSAGE>
-{
+> implements ChatTransport<UI_MESSAGE> {
   private readonly agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
   private readonly agentOptions: CALL_OPTIONS | undefined;
   private readonly uiMessageStreamOptions: Omit<

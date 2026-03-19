@@ -17,7 +17,7 @@ import { TextStreamPart } from './stream-text-result';
 /**
  * Common model information used across callback events.
  */
-export interface CallbackModelInfo {
+export interface ModelEventInfo {
   /** The provider identifier (e.g., 'openai', 'anthropic'). */
   readonly provider: string;
   /** The specific model identifier (e.g., 'gpt-4o'). */
@@ -41,7 +41,7 @@ export interface OnStartEvent<
   readonly operationId: string;
 
   /** The model being used for generation. */
-  readonly model: CallbackModelInfo;
+  readonly model: ModelEventInfo;
 
   /** The system message(s) provided to the model. */
   readonly system:
@@ -156,7 +156,7 @@ export interface OnStepStartEvent<
   readonly stepNumber: number;
 
   /** The model being used for this step. */
-  readonly model: CallbackModelInfo;
+  readonly model: ModelEventInfo;
 
   /**
    * The system message for this step.
@@ -243,7 +243,7 @@ export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
   readonly stepNumber: number | undefined;
 
   /** The model being used for this step. */
-  readonly model: CallbackModelInfo | undefined;
+  readonly model: ModelEventInfo | undefined;
 
   /** The full tool call object. */
   readonly toolCall: TypedToolCall<TOOLS>;
@@ -278,7 +278,7 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
   readonly stepNumber: number | undefined;
 
   /** The model being used for this step. */
-  readonly model: CallbackModelInfo | undefined;
+  readonly model: ModelEventInfo | undefined;
 
   /** The full tool call object. */
   readonly toolCall: TypedToolCall<TOOLS>;
