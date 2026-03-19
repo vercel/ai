@@ -43,6 +43,7 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
       toolName: string;
       dynamic?: boolean;
       title?: string;
+      _meta?: Record<string, unknown>;
     }
   >;
   finishReason?: FinishReason;
@@ -232,6 +233,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               toolCallId: string;
               providerExecuted?: boolean;
               title?: string;
+              _meta?: Record<string, unknown>;
             } & (
               | {
                   state: 'input-streaming';
@@ -281,6 +283,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               // once providerExecuted is set, it stays for streaming
               anyPart.providerExecuted =
                 anyOptions.providerExecuted ?? part.providerExecuted;
+              // once _meta is set, it stays for streaming
+              if (anyOptions._meta != null) {
+                anyPart._meta = anyOptions._meta;
+              }
 
               const providerMetadata = anyOptions.providerMetadata;
 
@@ -311,6 +317,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 preliminary: anyOptions.preliminary,
                 providerExecuted: anyOptions.providerExecuted,
                 title: options.title,
+                ...(options._meta != null ? { _meta: options._meta } : {}),
                 ...(anyOptions.providerMetadata != null &&
                 (options.state === 'output-available' ||
                   options.state === 'output-error')
@@ -516,6 +523,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 index: toolInvocations.length,
                 dynamic: chunk.dynamic,
                 title: chunk.title,
+                _meta: chunk._meta,
               };
 
               if (chunk.dynamic) {
@@ -526,6 +534,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   input: undefined,
                   providerExecuted: chunk.providerExecuted,
                   title: chunk.title,
+                  _meta: chunk._meta,
                   providerMetadata: chunk.providerMetadata,
                 });
               } else {
@@ -569,6 +578,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   state: 'input-streaming',
                   input: partialArgs,
                   title: partialToolCall.title,
+                  _meta: partialToolCall._meta,
                 });
               } else {
                 updateToolPart({
@@ -594,6 +604,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
                   title: chunk.title,
+                  _meta: chunk._meta,
                 });
               } else {
                 updateToolPart({

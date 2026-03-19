@@ -1800,7 +1800,11 @@ class DefaultStreamTextResult<
                     case 'tool-input-start': {
                       activeToolCallToolNames[chunk.id] = chunk.toolName;
 
-                      const tool = tools?.[chunk.toolName];
+                      const tool = tools?.[chunk.toolName] as
+                        | (ToolSet[string] & {
+                            _meta?: Record<string, unknown>;
+                          })
+                        | undefined;
                       if (tool?.onInputStart != null) {
                         await tool.onInputStart({
                           toolCallId: chunk.id,
@@ -1814,6 +1818,7 @@ class DefaultStreamTextResult<
                         ...chunk,
                         dynamic: chunk.dynamic ?? tool?.type === 'dynamic',
                         title: tool?.title,
+                        ...(tool?._meta != null ? { _meta: tool._meta } : {}),
                       });
                       break;
                     }
@@ -2405,6 +2410,7 @@ class DefaultStreamTextResult<
                   : {}),
                 ...(dynamic != null ? { dynamic } : {}),
                 ...(part.title != null ? { title: part.title } : {}),
+                ...(part._meta != null ? { _meta: part._meta } : {}),
               });
               break;
             }
@@ -2420,6 +2426,13 @@ class DefaultStreamTextResult<
 
             case 'tool-call': {
               const dynamic = isDynamic(part);
+              const toolMeta = (
+                this.tools?.[part.toolName] as
+                  | {
+                      _meta?: Record<string, unknown>;
+                    }
+                  | undefined
+              )?._meta as Record<string, unknown> | undefined;
 
               if (part.invalid) {
                 controller.enqueue({
@@ -2451,6 +2464,7 @@ class DefaultStreamTextResult<
                     : {}),
                   ...(dynamic != null ? { dynamic } : {}),
                   ...(part.title != null ? { title: part.title } : {}),
+                  ...(toolMeta != null ? { _meta: toolMeta } : {}),
                 });
               }
 

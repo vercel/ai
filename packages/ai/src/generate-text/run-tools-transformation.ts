@@ -77,6 +77,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       providerMetadata?: ProviderMetadata;
       dynamic?: boolean;
       title?: string;
+      _meta?: Record<string, unknown>;
     }
   | {
       type: 'tool-input-delta';

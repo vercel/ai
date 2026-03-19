@@ -47,18 +47,31 @@ export type ToolsMessage = UIMessage<
   InferUITools<typeof staticTools>
 >;
 
+const currentLocationTool = {
+  ...dynamicTool({
+    description: 'Get the current location.',
+    title: 'Current Location',
+    inputSchema: z.object({}),
+    execute: async () => {
+      const locations = ['New York', 'London', 'Paris'];
+      return {
+        location: locations[Math.floor(Math.random() * locations.length)],
+      };
+    },
+  }),
+  _meta: {
+    ui: {
+      resourceUri: 'https://example.com/tools/current-location',
+    },
+    example: {
+      displayMode: 'location-card',
+    },
+  },
+};
+
 function dynamicTools(): ToolSet {
   return {
-    currentLocation: dynamicTool({
-      description: 'Get the current location.',
-      inputSchema: z.object({}),
-      execute: async () => {
-        const locations = ['New York', 'London', 'Paris'];
-        return {
-          location: locations[Math.floor(Math.random() * locations.length)],
-        };
-      },
-    }),
+    currentLocation: currentLocationTool,
   };
 }
 

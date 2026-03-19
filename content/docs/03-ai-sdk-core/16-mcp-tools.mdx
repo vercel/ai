@@ -205,6 +205,27 @@ const tools = await mcpClient.tools({
 
 This approach provides full TypeScript type safety and IDE autocompletion, letting you catch parameter mismatches during development. When you define `schemas`, the client only pulls the explicitly defined tools, keeping your application focused on the tools it needs
 
+### Tool Metadata in UI Streams
+
+MCP tool definitions can include `_meta` entries such as UI hints. When these
+tools are used with `streamText` and converted to `UIMessage` parts, the
+metadata is preserved on `dynamic-tool` parts as `part._meta`.
+
+```tsx
+message.parts.map(part => {
+  if (part.type !== 'dynamic-tool') {
+    return null;
+  }
+
+  return (
+    <div key={part.toolCallId}>
+      <div>{part.toolName}</div>
+      {part._meta?.ui && <pre>{JSON.stringify(part._meta.ui, null, 2)}</pre>}
+    </div>
+  );
+});
+```
+
 ### Typed Tool Outputs
 
 When MCP servers return `structuredContent` (per the [MCP specification](https://modelcontextprotocol.io/specification/2025-06-18/server/tools#structured-content)), you can define an `outputSchema` to get typed tool results:

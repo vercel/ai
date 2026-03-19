@@ -213,6 +213,9 @@ When used with useChat (`UIMessage` format), dynamic tools appear as `dynamic-to
         return (
           <div>
             <h4>Tool: {part.toolName}</h4>
+            {part._meta?.ui?.resourceUri && (
+              <div>UI resource: {part._meta.ui.resourceUri}</div>
+            )}
             <pre>{JSON.stringify(part.input, null, 2)}</pre>
           </div>
         );
@@ -221,3 +224,7 @@ When used with useChat (`UIMessage` format), dynamic tools appear as `dynamic-to
   });
 }
 ```
+
+When the underlying tool definition includes `_meta`, that metadata is
+preserved on the `dynamic-tool` UI part. This is commonly used with MCP tools
+to expose rendering hints such as `resourceUri`.
