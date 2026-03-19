@@ -21,17 +21,15 @@ const { text, reasoning, reasoningText } = await generateText({
 
 The `reasoning` parameter accepts the following values:
 
-| Value                | Behavior                                                                       |
-| -------------------- | ------------------------------------------------------------------------------ |
-| `'provider-default'` | Use the provider's default reasoning behavior (same as omitting the parameter) |
-| `'none'`             | Disable reasoning                                                              |
-| `'minimal'`          | Bare-minimum reasoning                                                         |
-| `'low'`              | Fast, concise reasoning                                                        |
-| `'medium'`           | Balanced reasoning                                                             |
-| `'high'`             | Thorough reasoning                                                             |
-| `'xhigh'`            | Maximum reasoning                                                              |
-
-When omitted, the provider's default behavior applies. Providers that do not support reasoning emit a warning and ignore the parameter.
+| Value                | Behavior                                                             |
+| -------------------- | -------------------------------------------------------------------- |
+| `'provider-default'` | Use the provider's default reasoning behavior (default when omitted) |
+| `'none'`             | Disable reasoning                                                    |
+| `'minimal'`          | Bare-minimum reasoning                                               |
+| `'low'`              | Fast, concise reasoning                                              |
+| `'medium'`           | Balanced reasoning                                                   |
+| `'high'`             | Thorough reasoning                                                   |
+| `'xhigh'`            | Maximum reasoning                                                    |
 
 ## Streaming
 

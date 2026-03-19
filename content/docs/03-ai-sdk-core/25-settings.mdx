@@ -88,17 +88,15 @@ If set and supported by the model, calls will generate deterministic results.
 
 Controls how much reasoning the model performs before generating a response.
 
-| Value                | Behavior                                                                    |
-| -------------------- | --------------------------------------------------------------------------- |
-| `'provider-default'` | Explicitly use the provider's default reasoning behavior (same as omitting) |
-| `'none'`             | Disable reasoning                                                           |
-| `'minimal'`          | Bare-minimum reasoning                                                      |
-| `'low'`              | Fast, concise reasoning                                                     |
-| `'medium'`           | Balanced reasoning                                                          |
-| `'high'`             | Thorough reasoning                                                          |
-| `'xhigh'`            | Maximum reasoning                                                           |
-
-When omitted, the provider's default behavior is used. Each provider maps these values to its native reasoning mechanism. Providers that do not support reasoning will emit a warning and ignore the parameter.
+| Value                | Behavior                                                             |
+| -------------------- | -------------------------------------------------------------------- |
+| `'provider-default'` | Use the provider's default reasoning behavior (default when omitted) |
+| `'none'`             | Disable reasoning                                                    |
+| `'minimal'`          | Bare-minimum reasoning                                               |
+| `'low'`              | Fast, concise reasoning                                              |
+| `'medium'`           | Balanced reasoning                                                   |
+| `'high'`             | Thorough reasoning                                                   |
+| `'xhigh'`            | Maximum reasoning                                                    |
 
 If you also set reasoning-related options in `providerOptions` (e.g. `openai.reasoningEffort` or `anthropic.thinking`), the provider-specific options take precedence and the top-level `reasoning` parameter is ignored.
 
