@@ -176,9 +176,9 @@ export type StepResult<TOOLS extends ToolSet> = {
   readonly providerMetadata: ProviderMetadata | undefined;
 };
 
-export class DefaultStepResult<TOOLS extends ToolSet>
-  implements StepResult<TOOLS>
-{
+export class DefaultStepResult<
+  TOOLS extends ToolSet,
+> implements StepResult<TOOLS> {
   readonly callId: StepResult<TOOLS>['callId'];
   readonly stepNumber: StepResult<TOOLS>['stepNumber'];
   readonly model: StepResult<TOOLS>['model'];
