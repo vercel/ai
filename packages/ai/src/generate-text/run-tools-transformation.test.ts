@@ -7,7 +7,6 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
-import { NoSuchToolError } from '../error/no-such-tool-error';
 import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
 import { runToolsTransformation } from './run-tools-transformation';
 

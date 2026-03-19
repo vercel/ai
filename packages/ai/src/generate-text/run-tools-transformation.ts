@@ -1,11 +1,9 @@
 import { SharedV4Warning } from '@ai-sdk/provider';
 import {
-  getErrorMessage,
   IdGenerator,
   ModelMessage,
   SystemModelMessage,
 } from '@ai-sdk/provider-utils';
-import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
@@ -15,7 +13,6 @@ import { UglyTransformedStreamTextPart } from './create-stream-text-part-transfo
 import { executeToolCall } from './execute-tool-call';
 import { GeneratedFile } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
-import { parseToolCall } from './parse-tool-call';
 import {
   StreamTextOnToolCallFinishCallback,
   StreamTextOnToolCallStartCallback,
