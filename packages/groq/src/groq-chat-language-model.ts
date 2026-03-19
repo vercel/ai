@@ -104,11 +104,22 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const jsonResponseTool: LanguageModelV4FunctionTool | undefined =
+    const { supportsStructuredOutputWithTools } =
+      getGroqModelCapabilities(this.modelId);
+    const structuredOutputMode = groqOptions?.structuredOutputMode ?? 'auto';
+    const useStructuredOutputWithTools =
+      structuredOutputMode === 'outputFormat' ||
+      (structuredOutputMode === 'auto' && supportsStructuredOutputWithTools);
+
+    const needsJsonToolFallback =
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       tools != null &&
-      tools.length > 0
+      tools.length > 0 &&
+      !useStructuredOutputWithTools;
+
+    const jsonResponseTool: LanguageModelV4FunctionTool | undefined =
+      needsJsonToolFallback
         ? {
             type: 'function',
             name: 'json',
@@ -414,29 +425,27 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
             }
 
             if (delta.content != null && delta.content.length > 0) {
-              if (usesJsonResponseTool) {
-                return;
-              }
+              if (!usesJsonResponseTool) {
+                // end active reasoning block before text starts
+                if (isActiveReasoning) {
+                  controller.enqueue({
+                    type: 'reasoning-end',
+                    id: 'reasoning-0',
+                  });
+                  isActiveReasoning = false;
+                }
 
-              // end active reasoning block before text starts
-              if (isActiveReasoning) {
+                if (!isActiveText) {
+                  controller.enqueue({ type: 'text-start', id: 'txt-0' });
+                  isActiveText = true;
+                }
+
                 controller.enqueue({
-                  type: 'reasoning-end',
-                  id: 'reasoning-0',
+                  type: 'text-delta',
+                  id: 'txt-0',
+                  delta: delta.content,
                 });
-                isActiveReasoning = false;
               }
-
-              if (!isActiveText) {
-                controller.enqueue({ type: 'text-start', id: 'txt-0' });
-                isActiveText = true;
-              }
-
-              controller.enqueue({
-                type: 'text-delta',
-                id: 'txt-0',
-                delta: delta.content,
-              });
             }
 
             if (delta.tool_calls != null) {
@@ -632,6 +641,14 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
       response: { headers: responseHeaders },
     };
   }
+}
+
+function getGroqModelCapabilities(_modelId: string): {
+  supportsStructuredOutputWithTools: boolean;
+} {
+  // No Groq model is currently known to accept response_format schema + tools in the same request.
+  // When documented, set to true for those model ids.
+  return { supportsStructuredOutputWithTools: false };
 }
 
 // limited version of the schema, focussed on what is needed for the implementation

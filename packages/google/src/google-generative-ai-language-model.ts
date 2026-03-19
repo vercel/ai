@@ -142,11 +142,23 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
       { isGemmaModel, providerOptionsName },
     );
 
-    const jsonResponseTool: LanguageModelV4FunctionTool | undefined =
+    const { supportsStructuredOutputWithTools } =
+      getGoogleModelCapabilities(this.modelId);
+    const structuredOutputMode =
+      googleOptions?.structuredOutputMode ?? 'auto';
+    const useStructuredOutputWithTools =
+      structuredOutputMode === 'outputFormat' ||
+      (structuredOutputMode === 'auto' && supportsStructuredOutputWithTools);
+
+    const needsJsonToolFallback =
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       tools != null &&
-      tools.length > 0
+      tools.length > 0 &&
+      !useStructuredOutputWithTools;
+
+    const jsonResponseTool: LanguageModelV4FunctionTool | undefined =
+      needsJsonToolFallback
         ? {
             type: 'function',
             name: 'json',
@@ -543,7 +555,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                   }
                 } else if ('text' in part && part.text != null) {
                   if (usesJsonResponseTool) {
-                    return;
+                    continue;
                   }
 
                   const thoughtSignatureMetadata = part.thoughtSignature
@@ -762,6 +774,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
       request: { body: args },
     };
   }
+}
+
+function getGoogleModelCapabilities(_modelId: string): {
+  supportsStructuredOutputWithTools: boolean;
+} {
+  // No Google model is currently known to accept responseSchema + tools in the same request.
+  // When documented, set to true for those model ids.
+  return { supportsStructuredOutputWithTools: false };
 }
 
 function getToolCallsFromParts({

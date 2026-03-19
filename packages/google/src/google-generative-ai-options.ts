@@ -80,6 +80,16 @@ export const googleLanguageModelOptions = lazySchema(() =>
       structuredOutputs: z.boolean().optional(),
 
       /**
+       * When using both response schema and tools, how to get structured output.
+       * - `outputFormat`: Use native responseSchema (may fail if model rejects schema+tools).
+       * - `jsonTool`: Use a synthetic 'json' tool as fallback.
+       * - `auto`: Use native when the model supports schema+tools, otherwise jsonTool (default).
+       */
+      structuredOutputMode: z
+        .enum(['outputFormat', 'jsonTool', 'auto'])
+        .optional(),
+
+      /**
        * Optional. A list of unique safety settings for blocking unsafe content.
        */
       safetySettings: z

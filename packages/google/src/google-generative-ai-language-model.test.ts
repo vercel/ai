@@ -920,6 +920,85 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should use json tool fallback when responseFormat schema and tools are both present (auto)', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await provider.languageModel('gemini-pro').doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { out: { type: 'string' } },
+          required: ['out'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          name: 'test-tool',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: { x: { type: 'string' } },
+            required: ['x'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body.generationConfig.responseMimeType).toBeUndefined();
+    expect(body.generationConfig.responseSchema).toBeUndefined();
+    const decls = body.tools[0].functionDeclarations;
+    expect(decls).toHaveLength(2);
+    expect(decls.map((d: { name: string }) => d.name).sort()).toEqual([
+      'json',
+      'test-tool',
+    ]);
+    expect(body.toolConfig.functionCallingConfig.mode).toBe('ANY');
+  });
+
+  it('should use native responseSchema when structuredOutputMode is outputFormat with schema and tools', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await provider.languageModel('gemini-pro').doGenerate({
+      providerOptions: {
+        google: { structuredOutputMode: 'outputFormat' },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { out: { type: 'string' } },
+          required: ['out'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          name: 'test-tool',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: { x: { type: 'string' } },
+            required: ['x'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body.generationConfig.responseMimeType).toBe('application/json');
+    expect(body.generationConfig.responseSchema).toBeDefined();
+    const decls = body.tools[0].functionDeclarations;
+    expect(decls).toHaveLength(1);
+    expect(decls[0].name).toBe('test-tool');
+  });
+
   it('should pass tools and toolChoice', async () => {
     prepareJsonFixtureResponse('google-text');
 
