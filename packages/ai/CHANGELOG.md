@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.131
+
+### Patch Changes
+
+- 14f25f9: feat(ai): introduce experimental callbacks for embed function
+
 ## 6.0.130
 
 ### Patch Changes
