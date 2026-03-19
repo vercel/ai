@@ -27,31 +27,32 @@ const testUsage: LanguageModelV4Usage = {
 };
 
 describe('createStreamTextPartTransform', () => {
-  it('should convert text parts text to delta', async () => {
-    const inputStream: ReadableStream<LanguageModelV4StreamPart> =
-      convertArrayToReadableStream([
-        { type: 'text-start', id: '1' },
-        { type: 'text-delta', id: '1', delta: 'text' },
-        { type: 'text-end', id: '1' },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
-      ]);
+  describe('text parts', () => {
+    it('should convert text to delta', async () => {
+      const inputStream: ReadableStream<LanguageModelV4StreamPart> =
+        convertArrayToReadableStream([
+          { type: 'text-start', id: '1' },
+          { type: 'text-delta', id: '1', delta: 'text' },
+          { type: 'text-end', id: '1' },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]);
 
-    const transformedStream = inputStream.pipeThrough(
-      createStreamTextPartTransform({
-        tools: undefined,
-        system: undefined,
-        messages: [],
-        repairToolCall: undefined,
-      }),
-    );
+      const transformedStream = inputStream.pipeThrough(
+        createStreamTextPartTransform({
+          tools: undefined,
+          system: undefined,
+          messages: [],
+          repairToolCall: undefined,
+        }),
+      );
 
-    const result = await convertReadableStreamToArray(transformedStream);
+      const result = await convertReadableStreamToArray(transformedStream);
 
-    expect(result).toMatchInlineSnapshot(`
+      expect(result).toMatchInlineSnapshot(`
       [
         {
           "id": "1",
@@ -89,28 +90,30 @@ describe('createStreamTextPartTransform', () => {
         },
       ]
     `);
+    });
   });
 
-  it('should convert reasoning parts text to delta', async () => {
-    const inputStream: ReadableStream<LanguageModelV4StreamPart> =
-      convertArrayToReadableStream([
-        { type: 'reasoning-start', id: '1' },
-        { type: 'reasoning-delta', id: '1', delta: 'text' },
-        { type: 'reasoning-end', id: '1' },
-      ]);
+  describe('reasoning parts', () => {
+    it('should convert text to delta', async () => {
+      const inputStream: ReadableStream<LanguageModelV4StreamPart> =
+        convertArrayToReadableStream([
+          { type: 'reasoning-start', id: '1' },
+          { type: 'reasoning-delta', id: '1', delta: 'text' },
+          { type: 'reasoning-end', id: '1' },
+        ]);
 
-    const transformedStream = inputStream.pipeThrough(
-      createStreamTextPartTransform({
-        tools: undefined,
-        system: undefined,
-        messages: [],
-        repairToolCall: undefined,
-      }),
-    );
+      const transformedStream = inputStream.pipeThrough(
+        createStreamTextPartTransform({
+          tools: undefined,
+          system: undefined,
+          messages: [],
+          repairToolCall: undefined,
+        }),
+      );
 
-    const result = await convertReadableStreamToArray(transformedStream);
+      const result = await convertReadableStreamToArray(transformedStream);
 
-    expect(result).toMatchInlineSnapshot(`
+      expect(result).toMatchInlineSnapshot(`
       [
         {
           "id": "1",
@@ -128,35 +131,37 @@ describe('createStreamTextPartTransform', () => {
         },
       ]
     `);
+    });
   });
 
-  it('should forward file parts', async () => {
-    const inputStream: ReadableStream<LanguageModelV4StreamPart> =
-      convertArrayToReadableStream([
-        {
-          type: 'file',
-          data: 'SGVsbG8gV29ybGQ=', // "Hello World" base64-encoded
-          mediaType: 'text/plain',
-        },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
-      ]);
+  describe('file parts', () => {
+    it('should use GeneratedFile', async () => {
+      const inputStream: ReadableStream<LanguageModelV4StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'file',
+            data: 'SGVsbG8gV29ybGQ=', // "Hello World" base64-encoded
+            mediaType: 'text/plain',
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]);
 
-    const transformedStream = inputStream.pipeThrough(
-      createStreamTextPartTransform({
-        tools: undefined,
-        system: undefined,
-        messages: [],
-        repairToolCall: undefined,
-      }),
-    );
+      const transformedStream = inputStream.pipeThrough(
+        createStreamTextPartTransform({
+          tools: undefined,
+          system: undefined,
+          messages: [],
+          repairToolCall: undefined,
+        }),
+      );
 
-    const result = await convertReadableStreamToArray(transformedStream);
+      const result = await convertReadableStreamToArray(transformedStream);
 
-    expect(result).toMatchInlineSnapshot(`
+      expect(result).toMatchInlineSnapshot(`
       [
         {
           "file": DefaultGeneratedFileWithType {
@@ -190,40 +195,40 @@ describe('createStreamTextPartTransform', () => {
         },
       ]
     `);
-  });
+    });
 
-  it('should forward file parts with providerMetadata', async () => {
-    const inputStream: ReadableStream<LanguageModelV4StreamPart> =
-      convertArrayToReadableStream([
-        {
-          type: 'file',
-          data: new Uint8Array([
-            72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100,
-          ]), // "Hello World" as Uint8Array
-          mediaType: 'text/plain',
-          providerMetadata: {
-            testProvider: { signature: 'test-signature' },
+    it('should use GeneratedFile with providerMetadata', async () => {
+      const inputStream: ReadableStream<LanguageModelV4StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'file',
+            data: new Uint8Array([
+              72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100,
+            ]), // "Hello World" as Uint8Array
+            mediaType: 'text/plain',
+            providerMetadata: {
+              testProvider: { signature: 'test-signature' },
+            },
           },
-        },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
-      ]);
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]);
 
-    const transformedStream = inputStream.pipeThrough(
-      createStreamTextPartTransform({
-        tools: undefined,
-        system: undefined,
-        messages: [],
-        repairToolCall: undefined,
-      }),
-    );
+      const transformedStream = inputStream.pipeThrough(
+        createStreamTextPartTransform({
+          tools: undefined,
+          system: undefined,
+          messages: [],
+          repairToolCall: undefined,
+        }),
+      );
 
-    const result = await convertReadableStreamToArray(transformedStream);
+      const result = await convertReadableStreamToArray(transformedStream);
 
-    expect(result).toMatchInlineSnapshot(`
+      expect(result).toMatchInlineSnapshot(`
       [
         {
           "file": DefaultGeneratedFileWithType {
@@ -273,37 +278,39 @@ describe('createStreamTextPartTransform', () => {
         },
       ]
     `);
+    });
   });
 
-  it('should forward custom parts', async () => {
-    const inputStream: ReadableStream<LanguageModelV4StreamPart> =
-      convertArrayToReadableStream([
-        {
-          type: 'custom',
-          kind: 'openai-compaction',
-          providerMetadata: {
-            openai: { itemId: 'cmp_123' },
+  describe('custom parts', () => {
+    it('should forward custom parts', async () => {
+      const inputStream: ReadableStream<LanguageModelV4StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'custom',
+            kind: 'openai-compaction',
+            providerMetadata: {
+              openai: { itemId: 'cmp_123' },
+            },
           },
-        },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
-      ]);
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]);
 
-    const transformedStream = inputStream.pipeThrough(
-      createStreamTextPartTransform({
-        tools: undefined,
-        system: undefined,
-        messages: [],
-        repairToolCall: undefined,
-      }),
-    );
+      const transformedStream = inputStream.pipeThrough(
+        createStreamTextPartTransform({
+          tools: undefined,
+          system: undefined,
+          messages: [],
+          repairToolCall: undefined,
+        }),
+      );
 
-    const result = await convertReadableStreamToArray(transformedStream);
+      const result = await convertReadableStreamToArray(transformedStream);
 
-    expect(result).toMatchInlineSnapshot(`
+      expect(result).toMatchInlineSnapshot(`
       [
         {
           "kind": "openai-compaction",
@@ -336,52 +343,54 @@ describe('createStreamTextPartTransform', () => {
         },
       ]
     `);
+    });
   });
 
-  it('should try to repair tool call when the tool name is not found', async () => {
-    const tools = {
-      correctTool: tool({
-        inputSchema: z.object({ value: z.string() }),
-        execute: async ({ value }) => `${value}-result`,
-      }),
-    };
+  describe('tool-call parts', () => {
+    it('should try to repair tool call when the tool name is not found', async () => {
+      const tools = {
+        correctTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        }),
+      };
 
-    const inputStream: ReadableStream<LanguageModelV4StreamPart> =
-      convertArrayToReadableStream([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'unknownTool',
-          input: `{ "value": "test" }`,
-        },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
-          usage: testUsage,
-        },
-      ]);
-
-    const transformedStream = inputStream.pipeThrough(
-      createStreamTextPartTransform({
-        tools,
-        system: undefined,
-        messages: [],
-        repairToolCall: async ({ toolCall, tools, inputSchema, error }) => {
-          expect(NoSuchToolError.isInstance(error)).toBe(true);
-          expect(toolCall).toStrictEqual({
+      const inputStream: ReadableStream<LanguageModelV4StreamPart> =
+        convertArrayToReadableStream([
+          {
             type: 'tool-call',
             toolCallId: 'call-1',
             toolName: 'unknownTool',
             input: `{ "value": "test" }`,
-          });
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]);
 
-          return { ...toolCall, toolName: 'correctTool' };
-        },
-      }),
-    );
+      const transformedStream = inputStream.pipeThrough(
+        createStreamTextPartTransform({
+          tools,
+          system: undefined,
+          messages: [],
+          repairToolCall: async ({ toolCall, tools, inputSchema, error }) => {
+            expect(NoSuchToolError.isInstance(error)).toBe(true);
+            expect(toolCall).toStrictEqual({
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'unknownTool',
+              input: `{ "value": "test" }`,
+            });
 
-    expect(await convertReadableStreamToArray(transformedStream))
-      .toMatchInlineSnapshot(`
+            return { ...toolCall, toolName: 'correctTool' };
+          },
+        }),
+      );
+
+      expect(await convertReadableStreamToArray(transformedStream))
+        .toMatchInlineSnapshot(`
         [
           {
             "input": {
@@ -416,36 +425,38 @@ describe('createStreamTextPartTransform', () => {
           },
         ]
       `);
+    });
   });
 
-  it('should emit error when tool call is not found for provider approval request', async () => {
-    const inputStream: ReadableStream<LanguageModelV4StreamPart> =
-      convertArrayToReadableStream([
-        // No tool-call part before the approval request
-        {
-          type: 'tool-approval-request',
-          approvalId: 'mcp-approval-1',
-          toolCallId: 'non-existent-call',
-        },
-        {
-          type: 'finish',
-          finishReason: { unified: 'stop', raw: undefined },
-          usage: testUsage,
-        },
-      ]);
+  describe('tool-approval-request parts', () => {
+    it('should emit error when tool call is not found for provider approval request', async () => {
+      const inputStream: ReadableStream<LanguageModelV4StreamPart> =
+        convertArrayToReadableStream([
+          // No tool-call part before the approval request
+          {
+            type: 'tool-approval-request',
+            approvalId: 'mcp-approval-1',
+            toolCallId: 'non-existent-call',
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: undefined },
+            usage: testUsage,
+          },
+        ]);
 
-    const transformedStream = inputStream.pipeThrough(
-      createStreamTextPartTransform({
-        tools: undefined,
-        system: undefined,
-        messages: [],
-        repairToolCall: undefined,
-      }),
-    );
+      const transformedStream = inputStream.pipeThrough(
+        createStreamTextPartTransform({
+          tools: undefined,
+          system: undefined,
+          messages: [],
+          repairToolCall: undefined,
+        }),
+      );
 
-    const result = await convertReadableStreamToArray(transformedStream);
+      const result = await convertReadableStreamToArray(transformedStream);
 
-    expect(result).toMatchInlineSnapshot(`
+      expect(result).toMatchInlineSnapshot(`
       [
         {
           "error": [AI_ToolCallNotFoundForApprovalError: Tool call "non-existent-call" not found for approval request "mcp-approval-1".],
@@ -473,9 +484,8 @@ describe('createStreamTextPartTransform', () => {
         },
       ]
     `);
-  });
+    });
 
-  describe('provider-emitted tool-approval-request (MCP flow)', () => {
     it('should forward provider-emitted tool-approval-request with the correct tool call', async () => {
       const tools = {
         mcp_tool: tool({
