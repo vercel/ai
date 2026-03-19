@@ -82,12 +82,12 @@ import type {
 } from './callback-events';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
+import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
 import {
   createStreamTextPartTransform,
   UglyTransformedStreamTextPart,
 } from './create-stream-text-part-transform';
 import { executeToolCall } from './execute-tool-call';
-import { executeToolsTransformation } from './execute-tools-transformation';
 import { Output, text } from './output';
 import {
   InferCompleteOutput,
@@ -1600,39 +1600,40 @@ class DefaultStreamTextResult<
             }),
           );
 
-          const stream = languageModelStream.pipeThrough(
-            createStreamTextPartTransform<TOOLS>({
-              tools,
-              system,
-              messages: stepInputMessages,
-              repairToolCall,
-            }),
-          );
-
-          const streamWithToolResults = executeToolsTransformation({
-            tools,
-            generatorStream: stream,
-            telemetry,
-            callId,
-            messages: stepInputMessages,
-            abortSignal,
-            timeout,
-            experimental_context,
-            generateId,
-            stepNumber: recordedSteps.length,
-            model: stepModelInfo,
-            onToolCallStart: [
-              onToolCallStart,
-              globalTelemetry.onToolCallStart as
-                | undefined
-                | StreamTextOnToolCallStartCallback<TOOLS>,
-            ],
-            onToolCallFinish: [
-              onToolCallFinish,
-              globalTelemetry.onToolCallFinish,
-            ],
-            executeToolInTelemetryContext: globalTelemetry.executeTool,
-          });
+          const streamWithToolResults = languageModelStream
+            .pipeThrough(
+              createStreamTextPartTransform<TOOLS>({
+                tools,
+                system,
+                messages: stepInputMessages,
+                repairToolCall,
+              }),
+            )
+            .pipeThrough(
+              createExecuteToolsTransformation({
+                tools,
+                telemetry,
+                callId,
+                messages: stepInputMessages,
+                abortSignal,
+                timeout,
+                experimental_context,
+                generateId,
+                stepNumber: recordedSteps.length,
+                model: stepModelInfo,
+                onToolCallStart: [
+                  onToolCallStart,
+                  globalTelemetry.onToolCallStart as
+                    | undefined
+                    | StreamTextOnToolCallStartCallback<TOOLS>,
+                ],
+                onToolCallFinish: [
+                  onToolCallFinish,
+                  globalTelemetry.onToolCallFinish,
+                ],
+                executeToolInTelemetryContext: globalTelemetry.executeTool,
+              }),
+            );
 
           // Conditionally include request.body based on include settings.
           // Large payloads (e.g., base64-encoded images) can cause memory issues.

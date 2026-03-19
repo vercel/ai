@@ -39,6 +39,7 @@ import {
 import { z } from 'zod/v4';
 import { Output } from '..';
 import * as logWarningsModule from '../logger/log-warnings';
+import { OpenTelemetryIntegration } from '../telemetry/open-telemetry-integration';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
@@ -59,7 +60,6 @@ import {
 } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
-import { OpenTelemetryIntegration } from '../telemetry/open-telemetry-integration';
 
 const defaultSettings = () =>
   ({
@@ -17890,7 +17890,7 @@ describe('streamText', () => {
       });
     });
 
-    describe('abort during tool call', () => {
+    describe('abort during tool execution', () => {
       let result: StreamTextResult<any, never>;
       let onErrorCalls: Array<{ error: unknown }> = [];
       let onAbortCalls: Array<{ steps: StepResult<any>[] }> = [];
@@ -18029,6 +18029,17 @@ describe('streamText', () => {
                 "request": {},
                 "type": "start-step",
                 "warnings": [],
+              },
+              {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "title": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
               },
               {
                 "reason": "This operation was aborted",
