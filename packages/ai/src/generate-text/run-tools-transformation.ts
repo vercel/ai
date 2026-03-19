@@ -63,6 +63,11 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       id: string;
       providerMetadata?: ProviderMetadata;
     }
+  | {
+      type: 'custom';
+      kind: string;
+      providerMetadata?: ProviderMetadata;
+    }
 
   // Tool calls:
   | {
@@ -222,6 +227,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'source':
         case 'response-metadata':
         case 'error':
+        case 'custom':
         case 'raw': {
           controller.enqueue(chunk);
           break;

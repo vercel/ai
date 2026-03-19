@@ -1190,6 +1190,42 @@ describe('convertToLanguageModelMessage', () => {
   });
 
   describe('assistant message', () => {
+    it('should include custom parts', () => {
+      const result = convertToLanguageModelMessage({
+        message: {
+          role: 'assistant',
+          content: [
+            {
+              type: 'custom',
+              kind: 'test-provider-compaction',
+              providerOptions: {
+                openai: {
+                  itemId: 'cmp_123',
+                },
+              },
+            },
+          ],
+        },
+        downloadedAssets: {},
+      });
+
+      expect(result).toEqual({
+        role: 'assistant',
+        content: [
+          {
+            type: 'custom',
+            kind: 'test-provider-compaction',
+            providerOptions: {
+              openai: {
+                itemId: 'cmp_123',
+              },
+            },
+          },
+        ],
+        providerOptions: undefined,
+      });
+    });
+
     describe('text parts', () => {
       it('should ignore empty text parts when there are no provider options', async () => {
         const result = convertToLanguageModelMessage({
