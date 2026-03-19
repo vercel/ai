@@ -15,6 +15,7 @@ import {
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  isCustomReasoning,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -59,6 +60,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
     frequencyPenalty,
     presencePenalty,
     stopSequences,
+    reasoning,
     responseFormat,
     seed,
     providerOptions,
@@ -75,6 +77,14 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
 
     if (seed != null) {
       warnings.push({ type: 'unsupported', feature: 'seed' });
+    }
+
+    if (isCustomReasoning(reasoning)) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details: 'This provider does not support reasoning configuration.',
+      });
     }
 
     return {
