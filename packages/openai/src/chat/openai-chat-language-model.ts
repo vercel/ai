@@ -17,6 +17,7 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  isCustomReasoning,
   isParsableJson,
   parseProviderOptions,
   postJsonToApi,
@@ -81,6 +82,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     seed,
     tools,
     toolChoice,
+    reasoning,
     providerOptions,
   }: LanguageModelV4CallOptions) {
     const warnings: SharedV4Warning[] = [];
@@ -94,6 +96,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       })) ?? {};
 
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
+
+    // AI SDK reasoning values map directly to the OpenAI reasoning values.
+    const resolvedReasoningEffort =
+      openaiOptions.reasoningEffort ??
+      (isCustomReasoning(reasoning) ? reasoning : undefined);
+
     const isReasoningModel =
       openaiOptions.forceReasoning ?? modelCapabilities.isReasoningModel;
 
@@ -168,7 +176,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       store: openaiOptions.store,
       metadata: openaiOptions.metadata,
       prediction: openaiOptions.prediction,
-      reasoning_effort: openaiOptions.reasoningEffort,
+      reasoning_effort: resolvedReasoningEffort,
       service_tier: openaiOptions.serviceTier,
       prompt_cache_key: openaiOptions.promptCacheKey,
       prompt_cache_retention: openaiOptions.promptCacheRetention,
@@ -184,7 +192,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       // when reasoning effort is none, gpt-5.1 models allow temperature, topP, logprobs
       //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
       if (
-        openaiOptions.reasoningEffort !== 'none' ||
+        resolvedReasoningEffort !== 'none' ||
         !modelCapabilities.supportsNonReasoningParameters
       ) {
         if (baseArgs.temperature != null) {

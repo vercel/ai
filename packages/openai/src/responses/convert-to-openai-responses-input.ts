@@ -23,15 +23,16 @@ import {
 } from '../tool/local-shell';
 import { shellInputSchema, shellOutputSchema } from '../tool/shell';
 import {
-  toolSearchInputSchema,
-  toolSearchOutputSchema,
-} from '../tool/tool-search';
-import {
+  OpenAIResponsesCompactionItem,
   OpenAIResponsesCustomToolCallOutput,
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
 } from './openai-responses-api';
+import {
+  toolSearchInputSchema,
+  toolSearchOutputSchema,
+} from '../tool/tool-search';
 
 /**
  * Check if a string is a file ID based on the given prefixes
@@ -539,6 +540,36 @@ export async function convertToOpenAIResponsesInput({
                     type: 'other',
                     message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${JSON.stringify(part)}.`,
                   });
+                }
+              }
+              break;
+            }
+
+            case 'custom': {
+              if (part.kind === 'openai-compaction') {
+                const providerOpts =
+                  part.providerOptions?.[providerOptionsName];
+                const id = providerOpts?.itemId as string | undefined;
+
+                if (hasConversation && id != null) {
+                  break;
+                }
+
+                if (store && id != null) {
+                  input.push({ type: 'item_reference', id });
+                  break;
+                }
+
+                const encryptedContent = providerOpts?.encryptedContent as
+                  | string
+                  | undefined;
+
+                if (id != null) {
+                  input.push({
+                    type: 'compaction',
+                    id,
+                    encrypted_content: encryptedContent!,
+                  } satisfies OpenAIResponsesCompactionItem);
                 }
               }
               break;

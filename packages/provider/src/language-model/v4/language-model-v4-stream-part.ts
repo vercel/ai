@@ -1,5 +1,6 @@
 import { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
 import { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
+import { LanguageModelV4CustomContent } from './language-model-v4-custom-content';
 import { LanguageModelV4File } from './language-model-v4-file';
 import { LanguageModelV4FinishReason } from './language-model-v4-finish-reason';
 import { LanguageModelV4ReasoningFile } from './language-model-v4-reasoning-file';
@@ -71,6 +72,7 @@ export type LanguageModelV4StreamPart =
   | LanguageModelV4ToolApprovalRequest
   | LanguageModelV4ToolCall
   | LanguageModelV4ToolResult
+  | LanguageModelV4CustomContent
 
   // Files and sources:
   | LanguageModelV4File

@@ -1,5 +1,9 @@
 import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
 import { notify } from '../util/notify';
+import {
+  getToolTimeoutMs,
+  TimeoutConfiguration,
+} from '../prompt/call-settings';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { now } from '../util/now';
 import {
@@ -30,10 +34,11 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   callId,
   messages,
   abortSignal,
-  toolTimeoutMs,
+  timeout,
   experimental_context,
   stepNumber,
-  model,
+  provider,
+  modelId,
   onPreliminaryToolResult,
   onToolCallStart,
   onToolCallFinish,
@@ -45,10 +50,11 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
-  toolTimeoutMs?: number | undefined;
+  timeout?: TimeoutConfiguration<TOOLS>;
   experimental_context: unknown;
   stepNumber?: number;
-  model?: { provider: string; modelId: string };
+  provider?: string;
+  modelId?: string;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
   onToolCallStart?:
     | GenerateTextOnToolCallStartCallback<TOOLS>
@@ -72,7 +78,8 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   const baseCallbackEvent = {
     callId,
     stepNumber,
-    model,
+    provider,
+    modelId,
     toolCall,
     messages,
     abortSignal,
@@ -84,6 +91,8 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   let output: unknown;
 
   await notify({ event: baseCallbackEvent, callbacks: onToolCallStart });
+
+  const toolTimeoutMs = getToolTimeoutMs<TOOLS>(timeout, toolName);
 
   const toolAbortSignal =
     toolTimeoutMs != null

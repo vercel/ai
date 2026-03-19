@@ -17,11 +17,11 @@ run(async () => {
           content: 'Hi',
         },
       ],
+      reasoning: 'minimal',
       providerOptions: {
         vertex: {
           thinkingConfig: {
             includeThoughts: true,
-            thinkingBudget: 128,
           },
         },
       },
