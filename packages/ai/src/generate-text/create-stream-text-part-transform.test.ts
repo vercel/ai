@@ -287,7 +287,7 @@ describe('createStreamTextPartTransform', () => {
         convertArrayToReadableStream([
           {
             type: 'custom',
-            kind: 'openai-compaction',
+            kind: 'openai.compaction',
             providerMetadata: {
               openai: { itemId: 'cmp_123' },
             },
@@ -313,7 +313,7 @@ describe('createStreamTextPartTransform', () => {
       expect(result).toMatchInlineSnapshot(`
       [
         {
-          "kind": "openai-compaction",
+          "kind": "openai.compaction",
           "providerMetadata": {
             "openai": {
               "itemId": "cmp_123",
