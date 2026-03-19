@@ -104,6 +104,15 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     ('id' in options && chatRef.current.id !== options.id);
 
   if (shouldRecreateChat) {
+    // Stop the previous chat's active stream when the library is replacing
+    // the instance due to an id change. Without this, the old fetch request
+    // continues running, wasting network and memory resources.
+    // Only stop when the library owns the instance (id change), not when
+    // the developer passes an external chat instance.
+    if (!('chat' in options)) {
+      chatRef.current.stop();
+    }
+
     chatRef.current =
       'chat' in options ? options.chat : new Chat(optionsWithCallbacks);
   }
