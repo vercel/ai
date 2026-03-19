@@ -14,7 +14,9 @@ import {
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  isCustomReasoning,
   jsonSchema,
+  mapReasoningToProviderEffort,
   ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -60,6 +62,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
     presencePenalty,
     frequencyPenalty,
     seed,
+    reasoning,
     prompt,
     providerOptions,
     tools,
@@ -127,6 +130,22 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
           }
         : undefined;
 
+    const resolvedReasoningEffort = isCustomReasoning(reasoning)
+      ? reasoning === 'none'
+        ? 'none'
+        : mapReasoningToProviderEffort({
+            reasoning,
+            effortMap: {
+              minimal: 'low',
+              low: 'low',
+              medium: 'medium',
+              high: 'high',
+              xhigh: 'xhigh',
+            },
+            warnings,
+          })
+      : undefined;
+
     return {
       body: {
         model: this.modelId,
@@ -137,6 +156,10 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
         top_p: topP,
         presence_penalty: presencePenalty,
         frequency_penalty: frequencyPenalty,
+        reasoning:
+          resolvedReasoningEffort != null
+            ? { effort: resolvedReasoningEffort }
+            : undefined,
         tools: functionTools?.length ? functionTools : undefined,
         tool_choice: convertedToolChoice,
         ...(textFormat != null && { text: { format: textFormat } }),

@@ -17,6 +17,7 @@ import {
   FetchFunction,
   generateId,
   InferSchema,
+  isCustomReasoning,
   isParsableJson,
   parseProviderOptions,
   ParseResult,
@@ -82,6 +83,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     topK,
     frequencyPenalty,
     presencePenalty,
+    reasoning,
     providerOptions,
     stopSequences,
     responseFormat,
@@ -135,7 +137,9 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         thinking:
           deepseekOptions.thinking?.type != null
             ? { type: deepseekOptions.thinking.type }
-            : undefined,
+            : isCustomReasoning(reasoning)
+              ? { type: reasoning === 'none' ? 'disabled' : 'enabled' }
+              : undefined,
       },
       warnings: [...warnings, ...toolWarnings],
     };

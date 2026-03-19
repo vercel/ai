@@ -99,6 +99,70 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('top-level reasoning', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('groq-text');
+    });
+
+    it('should map top-level reasoning to reasoning_effort', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'high',
+      );
+    });
+
+    it('should coerce top-level reasoning minimal to low', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'minimal',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'low',
+      );
+    });
+
+    it('should coerce top-level reasoning xhigh to high', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'xhigh',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'high',
+      );
+    });
+
+    it('should not pass top-level reasoning none as reasoning_effort', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).reasoning_effort,
+      ).toBeUndefined();
+    });
+
+    it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+        providerOptions: {
+          groq: { reasoningEffort: 'high' },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'high',
+      );
+    });
+  });
+
   it('should extract usage', async () => {
     prepareJsonFixtureResponse('groq-text');
 
