@@ -1683,6 +1683,10 @@ class DefaultStreamTextResult<
                       warnings: warnings ?? [],
                     });
 
+                    // TODO considering changing to onStreamPart listener
+                    // which receives all stream parts as they are
+                    // (and add necessary information to the stream parts
+                    // where needed)
                     void globalTelemetry.onChunk?.({
                       chunk: {
                         type: 'ai.stream.firstChunk',
