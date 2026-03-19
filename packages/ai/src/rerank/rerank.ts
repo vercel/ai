@@ -328,10 +328,10 @@ export async function rerank<VALUE extends JSONObject | string>({
 
       return new DefaultRerankResult({
         originalDocuments: documents,
-        ranking: ranking.map(r => ({
-          originalIndex: r.index,
-          score: r.relevanceScore,
-          document: documents[r.index],
+        ranking: ranking.map(ranking => ({
+          originalIndex: ranking.index,
+          score: ranking.relevanceScore,
+          document: documents[ranking.index],
         })),
         providerMetadata,
         response: {
