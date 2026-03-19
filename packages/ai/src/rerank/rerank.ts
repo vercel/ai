@@ -121,11 +121,6 @@ export async function rerank<VALUE extends JSONObject | string>({
   const callId = generateCallId();
 
   if (documents.length === 0) {
-    const emptyResponse = {
-      timestamp: new Date(),
-      modelId: model.modelId,
-    };
-
     await notify({
       event: {
         callId,
@@ -159,7 +154,10 @@ export async function rerank<VALUE extends JSONObject | string>({
         ranking: [],
         warnings: [],
         providerMetadata: undefined,
-        response: emptyResponse,
+        response: {
+          timestamp: new Date(),
+          modelId: model.modelId,
+        },
         isEnabled: telemetry?.isEnabled,
         recordInputs: telemetry?.recordInputs,
         recordOutputs: telemetry?.recordOutputs,
@@ -173,7 +171,10 @@ export async function rerank<VALUE extends JSONObject | string>({
       originalDocuments: [],
       ranking: [],
       providerMetadata: undefined,
-      response: emptyResponse,
+      response: {
+        timestamp: new Date(),
+        modelId: model.modelId,
+      },
     });
   }
 
@@ -294,20 +295,6 @@ export async function rerank<VALUE extends JSONObject | string>({
         model: model.modelId,
       });
 
-      const resultRanking = ranking.map(r => ({
-        originalIndex: r.index,
-        score: r.relevanceScore,
-        document: documents[r.index],
-      }));
-
-      const resultResponse = {
-        id: response?.id,
-        timestamp: response?.timestamp ?? new Date(),
-        modelId: response?.modelId ?? model.modelId,
-        headers: response?.headers,
-        body: response?.body,
-      };
-
       await notify({
         event: {
           callId,
@@ -316,10 +303,20 @@ export async function rerank<VALUE extends JSONObject | string>({
           modelId: model.modelId,
           documents,
           query,
-          ranking: resultRanking,
+          ranking: ranking.map(r => ({
+            originalIndex: r.index,
+            score: r.relevanceScore,
+            document: documents[r.index],
+          })),
           warnings: warnings ?? [],
           providerMetadata,
-          response: resultResponse,
+          response: {
+            id: response?.id,
+            timestamp: response?.timestamp ?? new Date(),
+            modelId: response?.modelId ?? model.modelId,
+            headers: response?.headers,
+            body: response?.body,
+          },
           isEnabled: telemetry?.isEnabled,
           recordInputs: telemetry?.recordInputs,
           recordOutputs: telemetry?.recordOutputs,
@@ -331,9 +328,19 @@ export async function rerank<VALUE extends JSONObject | string>({
 
       return new DefaultRerankResult({
         originalDocuments: documents,
-        ranking: resultRanking,
+        ranking: ranking.map(r => ({
+          originalIndex: r.index,
+          score: r.relevanceScore,
+          document: documents[r.index],
+        })),
         providerMetadata,
-        response: resultResponse,
+        response: {
+          id: response?.id,
+          timestamp: response?.timestamp ?? new Date(),
+          modelId: response?.modelId ?? model.modelId,
+          headers: response?.headers,
+          body: response?.body,
+        },
       });
     },
   });
