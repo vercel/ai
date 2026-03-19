@@ -143,7 +143,7 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
 
     const useNativeStructuredOutput =
       isAnthropicModel &&
-      isThinkingEnabled &&
+      supportsAnthropicNativeStructuredOutput(this.modelId) &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null;
 
@@ -964,6 +964,16 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
     const encodedModelId = encodeURIComponent(modelId);
     return `${this.config.baseUrl()}/model/${encodedModelId}`;
   }
+}
+
+function supportsAnthropicNativeStructuredOutput(modelId: string): boolean {
+  // only version 4+ supports structured output
+  const v = modelId.indexOf('-4-');
+  if (v < 0) return false;
+
+  // versions before 4-1 don't suport structured outputs yet
+  // reject bedrock style claude-opus-4-20250514-v1:0
+  return modelId[v + 3] !== '-' && modelId[v + 4] === '-';
 }
 
 const BedrockStopReasonSchema = z.union([
