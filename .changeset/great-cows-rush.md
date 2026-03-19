@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-fix(ai): refactor to flatten model attributes
+fix(ai): flatten model attributes for telemetry
