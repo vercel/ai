@@ -510,8 +510,6 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             .object({
               code: z.string().nullish(),
               message: z.string(),
-              param: z.string().nullish(),
-              type: z.string().nullish(),
             })
             .nullish(),
           incomplete_details: z.object({ reason: z.string() }).nullish(),

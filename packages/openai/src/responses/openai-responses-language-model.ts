@@ -2033,23 +2033,29 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 ] = 'can-conclude';
               }
             } else if (isResponseFinishedChunk(value)) {
-              const rawFinishReason =
-                value.response.incomplete_details?.reason ?? undefined;
-
               finishReason = {
-                unified:
-                  value.type === 'response.failed' && rawFinishReason == null
-                    ? 'error'
-                    : mapOpenAIResponseFinishReason({
-                        finishReason: rawFinishReason,
-                        hasFunctionCall,
-                      }),
-                raw: rawFinishReason,
+                unified: mapOpenAIResponseFinishReason({
+                  finishReason: value.response.incomplete_details?.reason,
+                  hasFunctionCall,
+                }),
+                raw: value.response.incomplete_details?.reason ?? undefined,
               };
-              usage = value.response.usage ?? undefined;
+              usage = value.response.usage;
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
               }
+            } else if (isResponseFailedChunk(value)) {
+              finishReason = {
+                unified: mapOpenAIResponseFinishReason({
+                  finishReason: value.response.incomplete_details?.reason,
+                  hasFunctionCall,
+                }),
+                raw:
+                  value.response.incomplete_details?.reason ??
+                  value.response.error?.message ??
+                  undefined,
+              };
+              usage = value.response.usage ?? undefined;
             } else if (isResponseAnnotationAddedChunk(value)) {
               ongoingAnnotations.push(value.annotation);
               if (value.annotation.type === 'url_citation') {
@@ -2119,7 +2125,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 });
               }
             } else if (isErrorChunk(value)) {
-              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: value });
             }
           },
@@ -2163,13 +2168,17 @@ function isResponseOutputItemDoneChunk(
 function isResponseFinishedChunk(
   chunk: OpenAIResponsesChunk,
 ): chunk is OpenAIResponsesChunk & {
-  type: 'response.completed' | 'response.incomplete' | 'response.failed';
+  type: 'response.completed' | 'response.incomplete';
 } {
   return (
-    chunk.type === 'response.completed' ||
-    chunk.type === 'response.incomplete' ||
-    chunk.type === 'response.failed'
+    chunk.type === 'response.completed' || chunk.type === 'response.incomplete'
   );
+}
+
+function isResponseFailedChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.failed' } {
+  return chunk.type === 'response.failed';
 }
 
 function isResponseCreatedChunk(
