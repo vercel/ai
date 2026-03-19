@@ -142,16 +142,14 @@ export function convertToOpenAICompatibleChatMessages(
                 }
 
                 if (part.mediaType.startsWith('video/')) {
-                  if (!(part.data instanceof URL)) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality:
-                        'video file parts with binary data - use a URL instead',
-                    });
-                  }
-
                   return {
                     type: 'video_url',
-                    video_url: { url: part.data.toString() },
+                    video_url: {
+                      url:
+                        part.data instanceof URL
+                          ? part.data.toString()
+                          : `data:${part.mediaType};base64,${convertToBase64(part.data)}`,
+                    },
                     ...partMetadata,
                   };
                 }
