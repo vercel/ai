@@ -140,21 +140,6 @@ describe('prepareCallSettings', () => {
         );
       });
     });
-
-    describe('reasoning', () => {
-      it('should throw InvalidArgumentError if reasoning is not a valid value', () => {
-        expect(() =>
-          prepareCallSettings({ reasoning: 'invalid' as any }),
-        ).toThrow(
-          new InvalidArgumentError({
-            parameter: 'reasoning',
-            value: 'invalid',
-            message:
-              'reasoning must be one of: provider-default, none, minimal, low, medium, high, xhigh',
-          }),
-        );
-      });
-    });
   });
 
   describe('reasoning', () => {
@@ -172,9 +157,9 @@ describe('prepareCallSettings', () => {
       }
     });
 
-    it('should filter provider-default to undefined', () => {
+    it('should pass through provider-default', () => {
       const settings = prepareCallSettings({ reasoning: 'provider-default' });
-      expect(settings.reasoning).toBeUndefined();
+      expect(settings.reasoning).toBe('provider-default');
     });
 
     it('should pass through undefined', () => {

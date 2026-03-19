@@ -17,6 +17,7 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  isCustomReasoning,
   isParsableJson,
   parseProviderOptions,
   postJsonToApi,
@@ -97,7 +98,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
 
     // AI SDK reasoning values map directly to the OpenAI reasoning values.
-    const resolvedReasoningEffort = openaiOptions.reasoningEffort ?? reasoning;
+    const resolvedReasoningEffort =
+      openaiOptions.reasoningEffort ??
+      (isCustomReasoning(reasoning) ? reasoning : undefined);
 
     const isReasoningModel =
       openaiOptions.forceReasoning ?? modelCapabilities.isReasoningModel;

@@ -23,6 +23,7 @@ import {
   FetchFunction,
   generateId,
   InferSchema,
+  isCustomReasoning,
   mapReasoningToProviderBudget,
   mapReasoningToProviderEffort,
   parseProviderOptions,
@@ -346,7 +347,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
      * options don't already specify them. Provider options always take precedence.
      */
     if (
-      reasoning != null &&
+      isCustomReasoning(reasoning) &&
       anthropicOptions?.thinking == null &&
       anthropicOptions?.effort == null
     ) {
@@ -2400,7 +2401,7 @@ function resolveAnthropicReasoningConfig({
   maxOutputTokensForModel: number;
   warnings: SharedV4Warning[];
 }): Pick<AnthropicLanguageModelOptions, 'thinking' | 'effort'> | undefined {
-  if (reasoning == null) {
+  if (!isCustomReasoning(reasoning)) {
     return undefined;
   }
 

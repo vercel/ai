@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { SharedV4Warning } from '@ai-sdk/provider';
 import {
+  isCustomReasoning,
   mapReasoningToProviderBudget,
   mapReasoningToProviderEffort,
 } from './map-reasoning-to-provider';
@@ -77,6 +78,32 @@ describe('mapReasoningToProviderEffort', () => {
         details: 'reasoning "high" is not supported by this model.',
       },
     ]);
+  });
+});
+
+describe('isCustomReasoning', () => {
+  it('returns false for undefined', () => {
+    expect(isCustomReasoning(undefined)).toBe(false);
+  });
+
+  it('returns false for provider-default', () => {
+    expect(isCustomReasoning('provider-default')).toBe(false);
+  });
+
+  it('returns true for none', () => {
+    expect(isCustomReasoning('none')).toBe(true);
+  });
+
+  it('returns true for all reasoning levels', () => {
+    for (const value of [
+      'minimal',
+      'low',
+      'medium',
+      'high',
+      'xhigh',
+    ] as const) {
+      expect(isCustomReasoning(value)).toBe(true);
+    }
   });
 });
 

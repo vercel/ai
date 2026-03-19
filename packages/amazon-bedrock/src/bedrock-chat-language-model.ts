@@ -19,6 +19,7 @@ import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  isCustomReasoning,
   mapReasoningToProviderBudget,
   mapReasoningToProviderEffort,
   parseProviderOptions,
@@ -1160,7 +1161,7 @@ function resolveBedrockReasoningConfig({
   isAnthropicModel: boolean;
   modelId: string;
 }): AmazonBedrockLanguageModelOptions {
-  if (reasoning == null || bedrockOptions.reasoningConfig != null) {
+  if (!isCustomReasoning(reasoning) || bedrockOptions.reasoningConfig != null) {
     return bedrockOptions;
   }
 

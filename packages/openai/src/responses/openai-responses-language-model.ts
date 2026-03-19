@@ -21,6 +21,7 @@ import {
   createToolNameMapping,
   generateId,
   InferSchema,
+  isCustomReasoning,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
@@ -175,7 +176,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const resolvedReasoningEffort = openaiOptions?.reasoningEffort ?? reasoning;
+    const resolvedReasoningEffort =
+      openaiOptions?.reasoningEffort ??
+      (isCustomReasoning(reasoning) ? reasoning : undefined);
 
     const isReasoningModel =
       openaiOptions?.forceReasoning ?? modelCapabilities.isReasoningModel;

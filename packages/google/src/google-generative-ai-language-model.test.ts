@@ -3291,6 +3291,18 @@ describe('doGenerate', () => {
         const body = await server.calls[0].requestBodyJson;
         expect(body.generationConfig.thinkingConfig).toBeUndefined();
       });
+
+      it('should not set thinkingConfig when reasoning is "provider-default"', async () => {
+        prepareJsonFixtureResponse('google-text');
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'provider-default',
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.generationConfig.thinkingConfig).toBeUndefined();
+      });
     });
   });
 

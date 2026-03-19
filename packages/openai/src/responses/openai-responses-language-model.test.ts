@@ -989,6 +989,23 @@ describe('OpenAIResponsesLanguageModel', () => {
       );
 
       describe('top-level reasoning option', () => {
+        it('should not set reasoning config when reasoning is "provider-default"', async () => {
+          await createModel('o3-mini').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'provider-default',
+          });
+
+          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+            model: 'o3-mini',
+            input: [
+              {
+                role: 'user',
+                content: [{ type: 'input_text', text: 'Hello' }],
+              },
+            ],
+          });
+        });
+
         it.each(['none', 'minimal', 'low', 'medium', 'high', 'xhigh'] as const)(
           'should map top-level reasoning=%s to reasoning effort',
           async reasoningValue => {

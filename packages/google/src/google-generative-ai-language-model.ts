@@ -17,6 +17,7 @@ import {
   FetchFunction,
   generateId,
   InferSchema,
+  isCustomReasoning,
   lazySchema,
   mapReasoningToProviderBudget,
   mapReasoningToProviderEffort,
@@ -748,7 +749,7 @@ function resolveThinkingConfig({
   modelId: string;
   warnings: SharedV4Warning[];
 }): Omit<GoogleThinkingConfig, 'includeThoughts'> | undefined {
-  if (reasoning == null) {
+  if (!isCustomReasoning(reasoning)) {
     return undefined;
   }
 
@@ -763,7 +764,10 @@ function resolveGemini3ThinkingConfig({
   reasoning,
   warnings,
 }: {
-  reasoning: NonNullable<LanguageModelV4CallOptions['reasoning']>;
+  reasoning: Exclude<
+    LanguageModelV4CallOptions['reasoning'],
+    'provider-default' | undefined
+  >;
   warnings: SharedV4Warning[];
 }): Pick<GoogleThinkingConfig, 'thinkingLevel'> | undefined {
   if (reasoning === 'none') {
@@ -795,7 +799,10 @@ function resolveGemini25ThinkingConfig({
   modelId,
   warnings,
 }: {
-  reasoning: NonNullable<LanguageModelV4CallOptions['reasoning']>;
+  reasoning: Exclude<
+    LanguageModelV4CallOptions['reasoning'],
+    'provider-default' | undefined
+  >;
   modelId: string;
   warnings: SharedV4Warning[];
 }): Pick<GoogleThinkingConfig, 'thinkingBudget'> | undefined {

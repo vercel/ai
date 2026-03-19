@@ -5476,6 +5476,23 @@ describe('doGenerate', () => {
       },
     };
 
+    it('should not set reasoning config when reasoning is "provider-default" for newer Anthropic models', async () => {
+      server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
+
+      await newerAnthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'provider-default',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.additionalModelRequestFields?.thinking,
+      ).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.output_config,
+      ).toBeUndefined();
+    });
+
     it('should map reasoning to adaptive thinking with effort for newer Anthropic models', async () => {
       server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
 

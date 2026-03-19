@@ -136,10 +136,9 @@ export type CallSettings = {
    * the model performs before generating a response.
    *
    * Use `'provider-default'` to use the provider's default reasoning level.
+   * Use `'none'` to disable reasoning (if supported by the provider).
    */
-  reasoning?:
-    | 'provider-default'
-    | NonNullable<LanguageModelV4CallOptions['reasoning']>;
+  reasoning?: LanguageModelV4CallOptions['reasoning'];
 
   /**
    * Maximum number of retries. Set to 0 to disable retries.

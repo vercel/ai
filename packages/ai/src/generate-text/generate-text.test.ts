@@ -3814,7 +3814,7 @@ describe('generateText', () => {
       expect(model.doGenerateCalls[0].reasoning).toBe('high');
     });
 
-    it('should filter provider-default to undefined', async () => {
+    it('should pass through provider-default', async () => {
       const model = new MockLanguageModelV4({
         doGenerate: {
           ...dummyResponseValues,
@@ -3828,7 +3828,7 @@ describe('generateText', () => {
         reasoning: 'provider-default',
       });
 
-      expect(model.doGenerateCalls[0].reasoning).toBeUndefined();
+      expect(model.doGenerateCalls[0].reasoning).toBe('provider-default');
     });
   });
 

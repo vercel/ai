@@ -26,6 +26,7 @@ export { isNonNullable } from './is-non-nullable';
 export { isUrlSupported } from './is-url-supported';
 export * from './load-api-key';
 export {
+  isCustomReasoning,
   mapReasoningToProviderBudget,
   mapReasoningToProviderEffort,
 } from './map-reasoning-to-provider';

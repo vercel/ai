@@ -218,6 +218,20 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     describe('top-level reasoning (newer models with adaptive thinking)', () => {
+      it('should not set thinking config when reasoning is "provider-default"', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'provider-default',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toBeUndefined();
+        expect(requestBody.output_config).toBeUndefined();
+        expect(result.warnings).toEqual([]);
+      });
+
       it('should map reasoning "none" to thinking disabled', async () => {
         prepareJsonFixtureResponse('anthropic-text');
 
@@ -356,6 +370,19 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     describe('top-level reasoning (older models with budget-based thinking)', () => {
+      it('should not set thinking config when reasoning is "provider-default"', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'provider-default',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.thinking).toBeUndefined();
+        expect(result.warnings).toEqual([]);
+      });
+
       it('should map reasoning "none" to thinking disabled', async () => {
         prepareJsonFixtureResponse('anthropic-text');
 

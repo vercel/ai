@@ -581,6 +581,22 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should not set reasoning_effort when reasoning is "provider-default"', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('o4-mini');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'provider-default',
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'o4-mini',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+  });
+
   it('should pass top-level reasoning as reasoning_effort', async () => {
     prepareJsonFixtureResponse('openai-text');
 

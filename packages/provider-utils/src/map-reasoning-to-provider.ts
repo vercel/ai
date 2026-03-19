@@ -1,9 +1,18 @@
 import { LanguageModelV4CallOptions, SharedV4Warning } from '@ai-sdk/provider';
 
-type ReasoningLevel = Exclude<
+export type ReasoningLevel = Exclude<
   LanguageModelV4CallOptions['reasoning'],
-  'none' | undefined
+  'none' | 'provider-default' | undefined
 >;
+
+export function isCustomReasoning(
+  reasoning: LanguageModelV4CallOptions['reasoning'],
+): reasoning is Exclude<
+  LanguageModelV4CallOptions['reasoning'],
+  'provider-default' | undefined
+> {
+  return reasoning !== undefined && reasoning !== 'provider-default';
+}
 
 /**
  * Maps a top-level reasoning level to a provider-specific effort string using

@@ -12462,7 +12462,7 @@ describe('streamText', () => {
       expect(model.doStreamCalls[0].reasoning).toBe('high');
     });
 
-    it('should filter provider-default to undefined', async () => {
+    it('should pass through provider-default', async () => {
       const model = new MockLanguageModelV4({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
@@ -12486,7 +12486,7 @@ describe('streamText', () => {
 
       await result.text;
 
-      expect(model.doStreamCalls[0].reasoning).toBeUndefined();
+      expect(model.doStreamCalls[0].reasoning).toBe('provider-default');
     });
   });
 
