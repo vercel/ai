@@ -57,7 +57,7 @@ export type ToolLoopAgentSettings<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
-> = Omit<CallSettings, 'abortSignal'> & {
+> = Omit<CallSettings<TOOLS>, 'abortSignal'> & {
   /**
    * The id of the agent.
    */

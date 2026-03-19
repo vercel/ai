@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.26
+
+### Patch Changes
+
+- f0b0b20: feat(ai): add per-tool timeout overrides via toolTimeouts
+
 ## 7.0.0-beta.25
 
 ### Patch Changes
@@ -1053,13 +1059,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - b67d224: Fixes an issue where `providerMetadata` and `providerExecuted` were lost when tool input validation failed
@@ -1082,15 +1088,15 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from 'ai';
-  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  import { experimental_createMCPClient } from "ai";
+  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from '@ai-sdk/mcp';
-  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  import { experimental_createMCPClient } from "@ai-sdk/mcp";
+  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
   ```
 
 - 90e5bdd: chore(ai): restructure agent files
@@ -1610,13 +1616,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1963,15 +1969,15 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from 'ai';
-  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  import { experimental_createMCPClient } from "ai";
+  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from '@ai-sdk/mcp';
-  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  import { experimental_createMCPClient } from "@ai-sdk/mcp";
+  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
   ```
 
 ## 6.0.0-beta.71
@@ -2890,7 +2896,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -2903,7 +2909,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -3103,10 +3109,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 
@@ -3769,7 +3775,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -3782,7 +3788,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -3880,10 +3886,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 
