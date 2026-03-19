@@ -1,10 +1,6 @@
 import { SharedV4Warning } from '@ai-sdk/provider';
+import { IdGenerator, ModelMessage } from '@ai-sdk/provider-utils';
 import { TimeoutConfiguration } from '../prompt/call-settings';
-import {
-  IdGenerator,
-  ModelMessage,
-  SystemModelMessage,
-} from '@ai-sdk/provider-utils';
 import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
@@ -20,7 +16,6 @@ import {
 } from './stream-text';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import { TypedToolCall } from './tool-call';
-import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
@@ -122,10 +117,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   generatorStream,
   telemetry,
   callId,
-  system,
   messages,
   abortSignal,
-  repairToolCall,
   timeout,
   experimental_context,
   generateId,
@@ -139,10 +132,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   generatorStream: ReadableStream<UglyTransformedStreamTextPart<TOOLS>>;
   telemetry: TelemetrySettings | undefined;
   callId: string;
-  system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
-  repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
   experimental_context: unknown;
   generateId: IdGenerator;

@@ -56,9 +56,8 @@ describe('runToolsTransformation', () => {
       telemetry: undefined,
       callId: 'test-telemetry-call-id',
       messages: [],
-      system: undefined,
+      timeout: undefined,
       abortSignal: undefined,
-      repairToolCall: undefined,
       experimental_context: undefined,
     });
 
@@ -141,9 +140,8 @@ describe('runToolsTransformation', () => {
       telemetry: undefined,
       callId: 'test-telemetry-call-id',
       messages: [],
-      system: undefined,
       abortSignal: undefined,
-      repairToolCall: undefined,
+      timeout: undefined,
       experimental_context: undefined,
     });
 
@@ -229,9 +227,8 @@ describe('runToolsTransformation', () => {
       telemetry: undefined,
       callId: 'test-telemetry-call-id',
       messages: [],
-      system: undefined,
       abortSignal: undefined,
-      repairToolCall: undefined,
+      timeout: undefined,
       experimental_context: undefined,
     });
 
@@ -329,9 +326,8 @@ describe('runToolsTransformation', () => {
       telemetry: undefined,
       callId: 'test-telemetry-call-id',
       messages: [],
-      system: undefined,
       abortSignal: undefined,
-      repairToolCall: undefined,
+      timeout: undefined,
       experimental_context: undefined,
     });
 
@@ -375,9 +371,8 @@ describe('runToolsTransformation', () => {
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
+        timeout: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
         experimental_context: undefined,
       });
 
@@ -467,9 +462,8 @@ describe('runToolsTransformation', () => {
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
+        timeout: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
         experimental_context: undefined,
       });
 
@@ -574,9 +568,8 @@ describe('runToolsTransformation', () => {
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
+        timeout: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
         experimental_context: undefined,
         onToolCallStart: async () => {
           callOrder.push('onToolCallStart');
@@ -629,9 +622,8 @@ describe('runToolsTransformation', () => {
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
+        timeout: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
         experimental_context: undefined,
         stepNumber: 2,
         model: { provider: 'test-provider', modelId: 'test-model' },
@@ -702,9 +694,8 @@ describe('runToolsTransformation', () => {
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
+        timeout: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
         experimental_context: undefined,
         onToolCallFinish: async event => {
           finishEvents.push(event);
@@ -764,9 +755,8 @@ describe('runToolsTransformation', () => {
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
+        timeout: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
         experimental_context: undefined,
         onToolCallFinish: async event => {
           finishEvents.push(event);
@@ -819,9 +809,8 @@ describe('runToolsTransformation', () => {
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
+        timeout: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
         experimental_context: undefined,
         onToolCallStart: async event => {
           startEvents.push(event);
@@ -877,9 +866,8 @@ describe('runToolsTransformation', () => {
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
+        timeout: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
         experimental_context: undefined,
         onToolCallStart: async event => {
           startEvents.push(event.toolCall.toolCallId);
@@ -938,9 +926,8 @@ describe('runToolsTransformation', () => {
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
+        timeout: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
         experimental_context: undefined,
         onToolCallStart: async event => {
           startEvents.push(event);
@@ -997,9 +984,8 @@ describe('runToolsTransformation', () => {
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
+        timeout: undefined,
         experimental_context: undefined,
       });
 
@@ -1067,9 +1053,7 @@ describe('runToolsTransformation', () => {
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
-        system: undefined,
         abortSignal: undefined,
-        repairToolCall: undefined,
         experimental_context: undefined,
       });
 
