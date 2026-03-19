@@ -1,7 +1,9 @@
 import { getErrorMessage, LanguageModelV4StreamPart } from '@ai-sdk/provider';
 import { ModelMessage, SystemModelMessage } from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
+import { FinishReason } from '../types/language-model';
 import { ProviderMetadata } from '../types/provider-metadata';
+import { asLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
 import { parseToolCall } from './parse-tool-call';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
@@ -35,6 +37,9 @@ export type UglyTransformedStreamTextPart<TOOLS extends ToolSet> =
       | {
           type: 'tool-call';
         }
+      | {
+          type: 'finish';
+        }
     >
   | {
       type: 'text-delta';
@@ -61,7 +66,14 @@ export type UglyTransformedStreamTextPart<TOOLS extends ToolSet> =
   | ToolApprovalRequestOutput<TOOLS>
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
   | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
-  | ({ type: 'tool-error' } & TypedToolError<TOOLS>);
+  | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
+  | {
+      type: 'finish';
+      finishReason: FinishReason;
+      rawFinishReason: string | undefined;
+      usage: LanguageModelUsage;
+      providerMetadata?: ProviderMetadata;
+    };
 
 export function createStreamTextPartTransform<TOOLS extends ToolSet>({
   tools,
@@ -110,6 +122,17 @@ export function createStreamTextPartTransform<TOOLS extends ToolSet>({
               data: chunk.data,
               mediaType: chunk.mediaType,
             }),
+            providerMetadata: chunk.providerMetadata,
+          });
+          break;
+        }
+
+        case 'finish': {
+          controller.enqueue({
+            type: 'finish',
+            finishReason: chunk.finishReason.unified,
+            rawFinishReason: chunk.finishReason.raw,
+            usage: asLanguageModelUsage(chunk.usage),
             providerMetadata: chunk.providerMetadata,
           });
           break;

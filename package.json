@@ -22,7 +22,7 @@
     "fix": "ultracite fix"
   },
   "lint-staged": {
-    "*": [
+    "*.{js,jsx,ts,tsx,mjs,cjs}": [
       "ultracite fix"
     ]
   },

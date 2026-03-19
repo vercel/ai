@@ -1,15 +1,10 @@
 import { SharedV4Warning } from '@ai-sdk/provider';
+import { IdGenerator, ModelMessage } from '@ai-sdk/provider-utils';
 import { TimeoutConfiguration } from '../prompt/call-settings';
-import {
-  IdGenerator,
-  ModelMessage,
-  SystemModelMessage,
-} from '@ai-sdk/provider-utils';
 import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
-import { asLanguageModelUsage } from '../types/usage';
 import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
 import { executeToolCall } from './execute-tool-call';
 import { GeneratedFile } from './generated-file';
@@ -20,7 +15,6 @@ import {
 } from './stream-text';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import { TypedToolCall } from './tool-call';
-import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
@@ -117,15 +111,13 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   | { type: 'error'; error: unknown }
   | { type: 'raw'; rawValue: unknown };
 
-export function runToolsTransformation<TOOLS extends ToolSet>({
+export function executeToolsTransformation<TOOLS extends ToolSet>({
   tools,
   generatorStream,
   telemetry,
   callId,
-  system,
   messages,
   abortSignal,
-  repairToolCall,
   timeout,
   experimental_context,
   generateId,
@@ -140,10 +132,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   generatorStream: ReadableStream<UglyTransformedStreamTextPart<TOOLS>>;
   telemetry: TelemetrySettings | undefined;
   callId: string;
-  system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
-  repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
   experimental_context: unknown;
   generateId: IdGenerator;
@@ -207,39 +197,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
       const chunkType = chunk.type;
 
       switch (chunkType) {
-        // forward:
-        case 'stream-start':
-        case 'text-start':
-        case 'text-delta':
-        case 'text-end':
-        case 'reasoning-start':
-        case 'reasoning-delta':
-        case 'reasoning-end':
-        case 'tool-input-start':
-        case 'tool-input-delta':
-        case 'tool-input-end':
-        case 'file':
-        case 'reasoning-file':
-        case 'source':
-        case 'response-metadata':
-        case 'error':
-        case 'tool-approval-request':
-        case 'tool-result':
-        case 'tool-error':
-        case 'custom':
-        case 'raw': {
-          controller.enqueue(chunk);
-          break;
-        }
-
         case 'finish': {
-          finishChunk = {
-            type: 'finish',
-            finishReason: chunk.finishReason.unified,
-            rawFinishReason: chunk.finishReason.raw,
-            usage: asLanguageModelUsage(chunk.usage),
-            providerMetadata: chunk.providerMetadata,
-          };
+          // the finish chunk is delayed until all tool results are received
+          finishChunk = chunk;
           break;
         }
 
@@ -335,8 +295,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         }
 
         default: {
-          const _exhaustiveCheck: never = chunkType;
-          throw new Error(`Unhandled chunk type: ${_exhaustiveCheck}`);
+          // forward all other chunks
+          controller.enqueue(chunk);
         }
       }
     },
