@@ -184,7 +184,8 @@ export class DefaultStepResult<TOOLS extends ToolSet>
 
   constructor({
     stepNumber,
-    model,
+    provider,
+    modelId,
     functionId,
     metadata,
     experimental_context,
@@ -198,7 +199,8 @@ export class DefaultStepResult<TOOLS extends ToolSet>
     providerMetadata,
   }: {
     stepNumber: StepResult<TOOLS>['stepNumber'];
-    model: StepResult<TOOLS>['model'];
+    provider: string;
+    modelId: string;
     functionId: StepResult<TOOLS>['functionId'];
     metadata: StepResult<TOOLS>['metadata'];
     experimental_context: StepResult<TOOLS>['experimental_context'];
@@ -212,7 +214,7 @@ export class DefaultStepResult<TOOLS extends ToolSet>
     providerMetadata: StepResult<TOOLS>['providerMetadata'];
   }) {
     this.stepNumber = stepNumber;
-    this.model = model;
+    this.model = { provider, modelId };
     this.functionId = functionId;
     this.metadata = metadata;
     this.experimental_context = experimental_context;

@@ -36,7 +36,8 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   abortSignal,
   experimental_context,
   stepNumber,
-  model,
+  provider,
+  modelId,
   onPreliminaryToolResult,
   onToolCallStart,
   onToolCallFinish,
@@ -49,7 +50,8 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
   stepNumber?: number;
-  model?: { provider: string; modelId: string };
+  provider?: string;
+  modelId?: string;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
   onToolCallStart?:
     | GenerateTextOnToolCallStartCallback<TOOLS>
@@ -67,7 +69,8 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 
   const baseCallbackEvent = {
     stepNumber,
-    model,
+    provider,
+    modelId,
     toolCall,
     messages,
     abortSignal,

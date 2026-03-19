@@ -17,13 +17,19 @@ exports[`streamText > options.experimental_onStart > should send correct informa
   "metadata": {
     "customKey": "customValue",
   },
+<<<<<<< HEAD
   "model": {
     "modelId": "mock-model-id",
     "provider": "mock-provider",
   },
+=======
+  "modelId": "mock-model-id",
+  "operationId": "ai.streamText",
+>>>>>>> 877bf12d8 (fix(ai): refactor to flatten model attributes (#13615))
   "output": undefined,
   "presencePenalty": undefined,
   "prompt": "test-input",
+  "provider": "mock-provider",
   "providerOptions": undefined,
   "seed": undefined,
   "stopSequences": undefined,
@@ -50,10 +56,8 @@ exports[`streamText > options.experimental_onToolCallStart > should be called wi
     },
   ],
   "metadata": undefined,
-  "model": {
-    "modelId": "mock-model-id",
-    "provider": "mock-provider",
-  },
+  "modelId": "mock-model-id",
+  "provider": "mock-provider",
   "stepNumber": 0,
   "toolCall": {
     "input": {

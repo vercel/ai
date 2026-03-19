@@ -15,13 +15,19 @@ exports[`generateText > options.experimental_onStart > should send correct infor
   "metadata": {
     "customKey": "customValue",
   },
+<<<<<<< HEAD
   "model": {
     "modelId": "mock-model-id",
     "provider": "mock-provider",
   },
+=======
+  "modelId": "mock-model-id",
+  "operationId": "ai.generateText",
+>>>>>>> 877bf12d8 (fix(ai): refactor to flatten model attributes (#13615))
   "output": undefined,
   "presencePenalty": undefined,
   "prompt": "test-input",
+  "provider": "mock-provider",
   "providerOptions": undefined,
   "seed": undefined,
   "stopSequences": undefined,
@@ -48,10 +54,8 @@ exports[`generateText > options.experimental_onToolCallStart > should be called 
     },
   ],
   "metadata": undefined,
-  "model": {
-    "modelId": "mock-model-id",
-    "provider": "mock-provider",
-  },
+  "modelId": "mock-model-id",
+  "provider": "mock-provider",
   "stepNumber": 0,
   "toolCall": {
     "input": {

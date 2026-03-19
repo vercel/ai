@@ -5065,10 +5065,8 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(startEvent.model).toEqual({
-        provider: 'mock-provider',
-        modelId: 'mock-model-id',
-      });
+      expect(startEvent.provider).toBe('mock-provider');
+      expect(startEvent.modelId).toBe('mock-model-id');
       expect(startEvent.system).toBe('you are a helpful assistant');
       expect(startEvent.prompt).toBeUndefined();
       expect(startEvent.messages).toEqual([
@@ -5236,10 +5234,8 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(stepStartEvent.stepNumber).toBe(0);
-      expect(stepStartEvent.model).toEqual({
-        provider: 'mock-provider',
-        modelId: 'mock-model-id',
-      });
+      expect(stepStartEvent.provider).toBe('mock-provider');
+      expect(stepStartEvent.modelId).toBe('mock-model-id');
       expect(stepStartEvent.messages).toEqual([
         {
           role: 'user',
@@ -5474,14 +5470,10 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(stepStartEvents[0].model).toEqual({
-        provider: 'mock-provider',
-        modelId: 'mock-model-id',
-      });
-      expect(stepStartEvents[1].model).toEqual({
-        provider: 'alternate-provider',
-        modelId: 'alternate-model-id',
-      });
+      expect(stepStartEvents[0].provider).toBe('mock-provider');
+      expect(stepStartEvents[0].modelId).toBe('mock-model-id');
+      expect(stepStartEvents[1].provider).toBe('alternate-provider');
+      expect(stepStartEvents[1].modelId).toBe('alternate-model-id');
     });
 
     it('should expose providerOptions and experimental_context', async () => {

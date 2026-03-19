@@ -126,13 +126,13 @@ export async function embed({
   );
 
   const callId = generateCallId();
-  const modelInfo = { provider: model.provider, modelId: model.modelId };
 
   await notify({
     event: {
       callId,
       operationId: 'ai.embed',
-      model: modelInfo,
+      provider: model.provider,
+      modelId: model.modelId,
       value,
       maxRetries,
       abortSignal,
@@ -239,7 +239,8 @@ export async function embed({
         event: {
           callId,
           operationId: 'ai.embed',
-          model: modelInfo,
+          provider: model.provider,
+          modelId: model.modelId,
           value,
           embedding,
           usage,

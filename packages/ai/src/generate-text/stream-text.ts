@@ -90,7 +90,12 @@ import type {
   OnStepStartEvent,
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
+<<<<<<< HEAD
 } from './callback-events';
+=======
+} from './core-events';
+import { collectToolApprovals } from './collect-tool-approvals';
+>>>>>>> 877bf12d8 (fix(ai): refactor to flatten model attributes (#13615))
 import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
 import { Output, text } from './output';
@@ -1026,7 +1031,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             stepNumber: recordedSteps.length,
-            model: modelInfo,
+            provider: model.provider,
+            modelId: model.modelId,
             ...callbackTelemetryProps,
             experimental_context,
             content: recordedContent,
@@ -1049,8 +1055,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           logWarnings({
             warnings: recordedWarnings,
-            provider: modelInfo.provider,
-            model: modelInfo.modelId,
+            provider: model.provider,
+            model: model.modelId,
           });
 
           recordedSteps.push(currentStepResult);
@@ -1278,7 +1284,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
     const self = this;
 
+<<<<<<< HEAD
     const modelInfo = { provider: model.provider, modelId: model.modelId };
+=======
+    const callId = generateCallId();
+>>>>>>> 877bf12d8 (fix(ai): refactor to flatten model attributes (#13615))
     const callbackTelemetryProps = {
       functionId: telemetry?.functionId,
       metadata: telemetry?.metadata as Record<string, unknown> | undefined,
@@ -1302,7 +1312,16 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
       fn: async rootSpanArg => {
         rootSpan = rootSpanArg;
 
+<<<<<<< HEAD
         const initialPrompt = await standardizePrompt({
+=======
+      await notify({
+        event: {
+          callId,
+          operationId: 'ai.streamText',
+          provider: model.provider,
+          modelId: model.modelId,
+>>>>>>> 877bf12d8 (fix(ai): refactor to flatten model attributes (#13615))
           system,
           prompt,
           messages,
@@ -1360,11 +1379,49 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             ...deniedToolApprovals,
           ].filter(toolApproval => toolApproval.toolCall.providerExecuted);
 
+<<<<<<< HEAD
           const localApprovedToolApprovals = approvedToolApprovals.filter(
             toolApproval => !toolApproval.toolCall.providerExecuted,
           );
           const localDeniedToolApprovals = deniedToolApprovals.filter(
             toolApproval => !toolApproval.toolCall.providerExecuted,
+=======
+          await Promise.all(
+            localApprovedToolApprovals.map(async toolApproval => {
+              const result = await executeToolCall({
+                toolCall: toolApproval.toolCall,
+                tools,
+                telemetry,
+                callId,
+                messages: initialMessages,
+                abortSignal,
+                timeout,
+                experimental_context,
+                stepNumber: recordedSteps.length,
+                provider: model.provider,
+                modelId: model.modelId,
+                onToolCallStart: [
+                  onToolCallStart,
+                  globalTelemetry.onToolCallStart as
+                    | undefined
+                    | StreamTextOnToolCallStartCallback<TOOLS>,
+                ],
+                onToolCallFinish: [
+                  onToolCallFinish,
+                  globalTelemetry.onToolCallFinish,
+                ],
+                executeToolInTelemetryContext: globalTelemetry.executeTool,
+                onPreliminaryToolResult: result => {
+                  toolExecutionStepStreamController?.enqueue(result);
+                },
+              });
+
+              if (result != null) {
+                toolExecutionStepStreamController?.enqueue(result);
+                toolOutputs.push(result);
+              }
+            }),
+>>>>>>> 877bf12d8 (fix(ai): refactor to flatten model attributes (#13615))
           );
 
           const deniedProviderExecutedToolApprovals =
@@ -1549,12 +1606,45 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
             const stepInputMessages = [...initialMessages, ...responseMessages];
 
+<<<<<<< HEAD
             const prepareStepResult = await prepareStep?.({
               model,
               steps: recordedSteps,
               stepNumber: recordedSteps.length,
               messages: stepInputMessages,
               experimental_context,
+=======
+          const stepInputMessages = [...initialMessages, ...responseMessages];
+
+          const prepareStepResult = await prepareStep?.({
+            model,
+            steps: recordedSteps,
+            stepNumber: recordedSteps.length,
+            messages: stepInputMessages,
+            experimental_context,
+          });
+
+          const stepModel = resolveLanguageModel(
+            prepareStepResult?.model ?? model,
+          );
+
+          const promptMessages = await convertToLanguageModelPrompt({
+            prompt: {
+              system: prepareStepResult?.system ?? initialPrompt.system,
+              messages: prepareStepResult?.messages ?? stepInputMessages,
+            },
+            supportedUrls: await stepModel.supportedUrls,
+            download,
+          });
+
+          const stepActiveTools = prepareStepResult?.activeTools ?? activeTools;
+
+          const { toolChoice: stepToolChoice, tools: stepTools } =
+            await prepareToolsAndToolChoice({
+              tools,
+              toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+              activeTools: stepActiveTools,
+>>>>>>> 877bf12d8 (fix(ai): refactor to flatten model attributes (#13615))
             });
 
             const stepModel = resolveLanguageModel(
@@ -1577,8 +1667,71 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             const stepActiveTools =
               prepareStepResult?.activeTools ?? activeTools;
 
+<<<<<<< HEAD
             const { toolChoice: stepToolChoice, tools: stepTools } =
               await prepareToolsAndToolChoice({
+=======
+          const stepProviderOptions = mergeObjects(
+            providerOptions,
+            prepareStepResult?.providerOptions,
+          );
+
+          await notify({
+            event: {
+              callId,
+              stepNumber: recordedSteps.length,
+              provider: stepModel.provider,
+              modelId: stepModel.modelId,
+              system: stepSystem,
+              messages: stepMessages,
+              tools,
+              toolChoice: stepToolChoice,
+              activeTools: stepActiveTools,
+              steps: [...recordedSteps],
+              providerOptions: stepProviderOptions,
+              timeout,
+              headers,
+              stopWhen,
+              output,
+              abortSignal: originalAbortSignal,
+              include,
+              ...callbackTelemetryProps,
+              experimental_context,
+              promptMessages,
+              stepTools,
+              stepToolChoice,
+            },
+            callbacks: [
+              onStepStart,
+              globalTelemetry.onStepStart as
+                | undefined
+                | StreamTextOnStepStartCallback<TOOLS, OUTPUT>,
+            ],
+          });
+
+          const stepStartTimestampMs = now();
+          const {
+            stream: languageModelStream,
+            response,
+            request,
+          } = await retry(async () =>
+            stepModel.doStream({
+              ...callSettings,
+              tools: stepTools,
+              toolChoice: stepToolChoice,
+              responseFormat: await output?.responseFormat,
+              prompt: promptMessages,
+              providerOptions: stepProviderOptions,
+              abortSignal,
+              headers,
+              includeRawChunks,
+            }),
+          );
+
+          const streamWithToolResults = languageModelStream
+            .pipeThrough(
+              createStreamTextPartTransform({
+>>>>>>> 877bf12d8 (fix(ai): refactor to flatten model attributes (#13615))
                 tools,
                 toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
                 activeTools: stepActiveTools,
@@ -1601,6 +1754,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             await notify({
               event: {
                 stepNumber: recordedSteps.length,
+<<<<<<< HEAD
                 model: stepModelInfo,
                 system: stepSystem,
                 messages: stepMessages,
@@ -1690,6 +1844,21 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     includeRawChunks,
                   }),
                 }),
+=======
+                provider: stepModel.provider,
+                modelId: stepModel.modelId,
+                onToolCallStart: [
+                  onToolCallStart,
+                  globalTelemetry.onToolCallStart as
+                    | undefined
+                    | StreamTextOnToolCallStartCallback<TOOLS>,
+                ],
+                onToolCallFinish: [
+                  onToolCallFinish,
+                  globalTelemetry.onToolCallFinish,
+                ],
+                executeToolInTelemetryContext: globalTelemetry.executeTool,
+>>>>>>> 877bf12d8 (fix(ai): refactor to flatten model attributes (#13615))
               }),
             );
 
@@ -1730,8 +1899,19 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
             const activeToolCallToolNames: Record<string, string> = {};
 
+<<<<<<< HEAD
             let stepFinishReason: FinishReason = 'other';
             let stepRawFinishReason: string | undefined = undefined;
+=======
+          let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
+          let stepProviderMetadata: ProviderMetadata | undefined;
+          let stepFirstChunk = true;
+          let stepResponse: { id: string; timestamp: Date; modelId: string } = {
+            id: generateId(),
+            timestamp: new Date(),
+            modelId: model.modelId,
+          };
+>>>>>>> 877bf12d8 (fix(ai): refactor to flatten model attributes (#13615))
 
             let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
             let stepProviderMetadata: ProviderMetadata | undefined;

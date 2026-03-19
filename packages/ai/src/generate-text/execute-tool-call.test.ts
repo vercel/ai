@@ -196,7 +196,8 @@ describe('executeToolCall', () => {
         abortSignal: undefined,
         experimental_context: { traceId: 'trace-1' },
         stepNumber: 2,
-        model: { provider: 'test-provider', modelId: 'test-model' },
+        provider: 'test-provider',
+        modelId: 'test-model',
         onToolCallStart: async event => {
           executionOrder.push('onToolCallStart');
           startEvents.push(event);
@@ -206,7 +207,8 @@ describe('executeToolCall', () => {
       expect(startEvents).toHaveLength(1);
       expect(startEvents[0]).toEqual({
         stepNumber: 2,
-        model: { provider: 'test-provider', modelId: 'test-model' },
+        provider: 'test-provider',
+        modelId: 'test-model',
         toolCall: createToolCall(),
         messages: [{ role: 'user', content: 'test message' }],
         abortSignal: undefined,
@@ -268,7 +270,8 @@ describe('executeToolCall', () => {
         abortSignal: undefined,
         experimental_context: { traceId: 'trace-1' },
         stepNumber: 3,
-        model: { provider: 'test-provider', modelId: 'test-model' },
+        provider: 'test-provider',
+        modelId: 'test-model',
         onToolCallFinish: async event => {
           finishEvents.push(event);
         },
@@ -277,7 +280,8 @@ describe('executeToolCall', () => {
       expect(finishEvents).toHaveLength(1);
       expect(finishEvents[0]).toEqual({
         stepNumber: 3,
-        model: { provider: 'test-provider', modelId: 'test-model' },
+        provider: 'test-provider',
+        modelId: 'test-model',
         toolCall: createToolCall(),
         messages: [{ role: 'user', content: 'test message' }],
         abortSignal: undefined,
@@ -317,7 +321,8 @@ describe('executeToolCall', () => {
         abortSignal: undefined,
         experimental_context: { spanId: 'span-1' },
         stepNumber: 1,
-        model: { provider: 'provider-1', modelId: 'model-1' },
+        provider: 'provider-1',
+        modelId: 'model-1',
         onToolCallFinish: async event => {
           finishEvents.push(event);
         },
@@ -326,7 +331,8 @@ describe('executeToolCall', () => {
       expect(finishEvents).toHaveLength(1);
       expect(finishEvents[0]).toEqual({
         stepNumber: 1,
-        model: { provider: 'provider-1', modelId: 'model-1' },
+        provider: 'provider-1',
+        modelId: 'model-1',
         toolCall: createToolCall(),
         messages: [],
         abortSignal: undefined,
@@ -541,6 +547,7 @@ describe('executeToolCall', () => {
         telemetry: { isEnabled: true },
         messages: [],
         abortSignal: undefined,
+<<<<<<< HEAD
         experimental_context: undefined,
       });
 
@@ -549,6 +556,34 @@ describe('executeToolCall', () => {
       expect(tracer.spans[0].attributes).toMatchObject({
         'ai.toolCall.name': 'testTool',
         'ai.toolCall.id': 'my-call-id',
+=======
+        experimental_context: { traceId: 'trace-1' },
+        stepNumber: 2,
+        provider: 'test-provider',
+        modelId: 'test-model',
+        onToolCallStart: async event => {
+          startEvents.push(event);
+        },
+        onToolCallFinish: async event => {
+          finishEvents.push(event);
+        },
+      });
+
+      expect(startEvents).toHaveLength(1);
+      expect(startEvents[0]).toMatchObject({
+        callId: 'test-telemetry-call-id',
+        stepNumber: 2,
+        provider: 'test-provider',
+        modelId: 'test-model',
+        toolCall: expect.objectContaining({
+          toolCallId: 'my-call-id',
+          toolName: 'testTool',
+          input: { value: 'test' },
+        }),
+        functionId: 'test-function',
+        metadata: { userId: 'user-1' },
+        experimental_context: { traceId: 'trace-1' },
+>>>>>>> 877bf12d8 (fix(ai): refactor to flatten model attributes (#13615))
       });
     });
 
