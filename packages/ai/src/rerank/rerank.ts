@@ -119,7 +119,6 @@ export async function rerank<VALUE extends JSONObject | string>({
   };
 }): Promise<RerankResult<VALUE>> {
   const callId = generateCallId();
-  const modelInfo = { provider: model.provider, modelId: model.modelId };
 
   if (documents.length === 0) {
     const emptyResponse = {
@@ -131,7 +130,8 @@ export async function rerank<VALUE extends JSONObject | string>({
       event: {
         callId,
         operationId: 'ai.rerank',
-        model: modelInfo,
+        provider: model.provider,
+        modelId: model.modelId,
         documents,
         query,
         topN,
@@ -152,7 +152,8 @@ export async function rerank<VALUE extends JSONObject | string>({
       event: {
         callId,
         operationId: 'ai.rerank',
-        model: modelInfo,
+        provider: model.provider,
+        modelId: model.modelId,
         documents,
         query,
         ranking: [],
@@ -185,7 +186,8 @@ export async function rerank<VALUE extends JSONObject | string>({
     event: {
       callId,
       operationId: 'ai.rerank',
-      model: modelInfo,
+      provider: model.provider,
+      modelId: model.modelId,
       documents,
       query,
       topN,
@@ -310,7 +312,8 @@ export async function rerank<VALUE extends JSONObject | string>({
         event: {
           callId,
           operationId: 'ai.rerank',
-          model: modelInfo,
+          provider: model.provider,
+          modelId: model.modelId,
           documents,
           query,
           ranking: resultRanking,

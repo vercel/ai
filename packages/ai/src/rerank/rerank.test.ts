@@ -516,7 +516,7 @@ describe('rerank', () => {
   });
 
   describe('options.experimental_onStart', () => {
-    const mockModel = new MockRerankingModelV3({
+    const mockModel = new MockRerankingModelV4({
       doRerank: async () => ({
         ranking: [
           { index: 2, relevanceScore: 0.9 },
@@ -605,10 +605,8 @@ describe('rerank', () => {
         },
       });
 
-      expect(startEvent.model).toEqual({
-        provider: 'mock-provider',
-        modelId: 'mock-model-id',
-      });
+      expect(startEvent.provider).toBe('mock-provider');
+      expect(startEvent.modelId).toBe('mock-model-id');
       expect(startEvent.operationId).toBe('ai.rerank');
     });
 
@@ -616,7 +614,7 @@ describe('rerank', () => {
       const callOrder: string[] = [];
 
       await rerank({
-        model: new MockRerankingModelV3({
+        model: new MockRerankingModelV4({
           doRerank: async () => {
             callOrder.push('doRerank');
             return {
@@ -686,7 +684,7 @@ describe('rerank', () => {
   });
 
   describe('options.experimental_onFinish', () => {
-    const mockModel = new MockRerankingModelV3({
+    const mockModel = new MockRerankingModelV4({
       doRerank: async () => ({
         ranking: [
           { index: 2, relevanceScore: 0.9 },
@@ -791,10 +789,8 @@ describe('rerank', () => {
         },
       });
 
-      expect(finishEvent.model).toEqual({
-        provider: 'mock-provider',
-        modelId: 'mock-model-id',
-      });
+      expect(finishEvent.provider).toBe('mock-provider');
+      expect(finishEvent.modelId).toBe('mock-model-id');
       expect(finishEvent.operationId).toBe('ai.rerank');
     });
 
@@ -851,7 +847,7 @@ describe('rerank', () => {
       const callOrder: string[] = [];
 
       await rerank({
-        model: new MockRerankingModelV3({
+        model: new MockRerankingModelV4({
           doRerank: async () => {
             callOrder.push('doRerank');
             return {
@@ -889,7 +885,7 @@ describe('rerank', () => {
   });
 
   describe('options.experimental_onStart and experimental_onFinish together', () => {
-    const mockModel = new MockRerankingModelV3({
+    const mockModel = new MockRerankingModelV4({
       doRerank: async () => ({
         ranking: [
           { index: 2, relevanceScore: 0.9 },
@@ -935,7 +931,7 @@ describe('rerank', () => {
       const callOrder: string[] = [];
 
       await rerank({
-        model: new MockRerankingModelV3({
+        model: new MockRerankingModelV4({
           doRerank: async () => {
             callOrder.push('doRerank');
             return {

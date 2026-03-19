@@ -13,11 +13,9 @@ exports[`rerank > options.experimental_onFinish > should send correct event info
   "metadata": {
     "customKey": "customValue",
   },
-  "model": {
-    "modelId": "mock-model-id",
-    "provider": "mock-provider",
-  },
+  "modelId": "mock-model-id",
   "operationId": "ai.rerank",
+  "provider": "mock-provider",
   "providerMetadata": {
     "aProvider": {
       "someResponseKey": "someResponseValue",
@@ -79,11 +77,9 @@ exports[`rerank > options.experimental_onStart > should send correct event infor
   "metadata": {
     "customKey": "customValue",
   },
-  "model": {
-    "modelId": "mock-model-id",
-    "provider": "mock-provider",
-  },
+  "modelId": "mock-model-id",
   "operationId": "ai.rerank",
+  "provider": "mock-provider",
   "providerOptions": undefined,
   "query": "rainy day",
   "recordInputs": undefined,

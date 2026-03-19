@@ -1,6 +1,5 @@
 import type { JSONObject, JSONValue } from '@ai-sdk/provider';
 import type { ProviderOptions } from '@ai-sdk/provider-utils';
-import type { CallbackModelInfo } from '../generate-text/callback-events';
 import type { ProviderMetadata } from '../types';
 import type { Warning } from '../types/warning';
 
@@ -16,9 +15,11 @@ export interface RerankOnStartEvent {
   /** Identifies the operation type ('ai.rerank'). */
   readonly operationId: string;
 
-  /** The reranking model being used. */
-  readonly model: CallbackModelInfo;
+  //** The provider identifier (e.g., 'openai', 'anthropic'). */
+  readonly provider: string;
 
+  /** The specific model identifier (e.g., 'gpt-4o'). */
+  readonly modelId: string;
   /** The documents being reranked. */
   readonly documents: Array<JSONObject | string>;
 
@@ -68,8 +69,11 @@ export interface RerankOnFinishEvent {
   /** Identifies the operation type ('ai.rerank'). */
   readonly operationId: string;
 
-  /** The reranking model that was used. */
-  readonly model: CallbackModelInfo;
+  //** The provider identifier (e.g., 'openai', 'anthropic'). */
+  readonly provider: string;
+
+  /** The specific model identifier (e.g., 'gpt-4o'). */
+  readonly modelId: string;
 
   /** The documents that were reranked. */
   readonly documents: Array<JSONObject | string>;
