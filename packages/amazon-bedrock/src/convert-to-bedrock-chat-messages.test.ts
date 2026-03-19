@@ -669,7 +669,7 @@ describe('assistant messages', () => {
     });
   });
 
-  it('should trim trailing whitespace from reasoning content when it is the last part', async () => {
+  it('should not trim trailing whitespace from reasoning content when it has a signature', async () => {
     const result = await convertToBedrockChatMessages([
       {
         role: 'user',
@@ -691,6 +691,51 @@ describe('assistant messages', () => {
       },
     ]);
 
+    // When a signature is present, the text must NOT be trimmed because
+    // the signature was computed over the exact original bytes of the reasoning text.
+    // Trimming would invalidate the signature and cause Bedrock to reject the request.
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Explain your reasoning' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              reasoningContent: {
+                reasoningText: {
+                  text: 'This is my reasoning with trailing space    ',
+                  signature: 'test-signature',
+                },
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should trim trailing whitespace from reasoning content when it has no signature', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Explain your reasoning' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'This is my reasoning with trailing space    ',
+          },
+        ],
+      },
+    ]);
+
+    // Without a signature, trimming is safe and helps with Bedrock's whitespace restrictions
     expect(result).toEqual({
       messages: [
         {
@@ -704,7 +749,6 @@ describe('assistant messages', () => {
               reasoningContent: {
                 reasoningText: {
                   text: 'This is my reasoning with trailing space',
-                  signature: 'test-signature',
                 },
               },
             },
