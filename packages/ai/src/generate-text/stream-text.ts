@@ -1601,7 +1601,12 @@ class DefaultStreamTextResult<
           );
 
           const stream = languageModelStream.pipeThrough(
-            createStreamTextPartTransform(),
+            createStreamTextPartTransform<TOOLS>({
+              tools,
+              system,
+              messages: stepInputMessages,
+              repairToolCall,
+            }),
           );
 
           const streamWithToolResults = runToolsTransformation({
