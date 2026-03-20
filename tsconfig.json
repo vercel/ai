@@ -50,6 +50,7 @@
     { "path": "packages/valibot" },
     { "path": "packages/vercel" },
     { "path": "packages/vue" },
+    { "path": "packages/workflow-stream-text" },
     { "path": "packages/xai" }
   ],
   "include": [],

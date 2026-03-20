@@ -14,3 +14,14 @@ export type {
   ModelCallResult,
 } from '../src/generate-text/model-call';
 export { createExecuteToolsTransformation } from '../src/generate-text/create-execute-tools-transformation';
+export { doStreamTextStep } from '../src/generate-text/do-stream-text-step';
+export type {
+  DoStreamTextStepOptions,
+  DoStreamTextStepResult,
+} from '../src/generate-text/do-stream-text-step';
+export { toResponseMessages } from '../src/generate-text/to-response-messages';
+export { DefaultStepResult } from '../src/generate-text/step-result';
+export {
+  isStopConditionMet,
+  stepCountIs,
+} from '../src/generate-text/stop-condition';
