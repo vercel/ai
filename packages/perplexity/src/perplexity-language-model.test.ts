@@ -326,6 +326,7 @@ describe('doGenerate', () => {
     expect(result.providerMetadata).toMatchInlineSnapshot(`
       {
         "perplexity": {
+          "cost": null,
           "images": [
             {
               "height": 100,
@@ -399,6 +400,7 @@ describe('doGenerate', () => {
     expect(result.providerMetadata).toMatchInlineSnapshot(`
       {
         "perplexity": {
+          "cost": null,
           "images": null,
           "usage": {
             "citationTokens": 30,
@@ -597,6 +599,7 @@ describe('doStream', () => {
     expect(finish?.providerMetadata).toMatchInlineSnapshot(`
       {
         "perplexity": {
+          "cost": null,
           "images": [
             {
               "height": 100,
@@ -686,6 +689,7 @@ describe('doStream', () => {
     expect(finish?.providerMetadata).toMatchInlineSnapshot(`
       {
         "perplexity": {
+          "cost": null,
           "images": null,
           "usage": {
             "citationTokens": 30,
@@ -864,6 +868,7 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "perplexity": {
+              "cost": null,
               "images": null,
               "usage": {
                 "citationTokens": null,
