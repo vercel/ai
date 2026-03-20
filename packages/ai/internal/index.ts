@@ -2,6 +2,14 @@
 export { convertAsyncIteratorToReadableStream } from '@ai-sdk/provider-utils';
 
 // internal
+export {
+  chunksToStepResult,
+  normalizeFinishReason,
+  type ChunksToStepResultOptions,
+  type StreamFinishPart,
+} from '../src/generate-text/chunks-to-step-result';
+export type { GeneratedFile } from '../src/generate-text/generated-file';
+export type { ReasoningOutput } from '../src/generate-text/reasoning-output';
 export { convertToLanguageModelPrompt } from '../src/prompt/convert-to-language-model-prompt';
 export { prepareToolsAndToolChoice } from '../src/prompt/prepare-tools-and-tool-choice';
 export { standardizePrompt } from '../src/prompt/standardize-prompt';
