@@ -75,13 +75,13 @@ importers:
         specifier: 4.0.0-beta.13
         version: link:../../packages/azure
       '@ai-sdk/cohere':
-        specifier: 4.0.0-beta.6
+        specifier: 4.0.0-beta.7
         version: link:../../packages/cohere
       '@ai-sdk/deepseek':
-        specifier: 3.0.0-beta.7
+        specifier: 3.0.0-beta.8
         version: link:../../packages/deepseek
       '@ai-sdk/fireworks':
-        specifier: 3.0.0-beta.8
+        specifier: 3.0.0-beta.9
         version: link:../../packages/fireworks
       '@ai-sdk/google':
         specifier: 4.0.0-beta.14
@@ -90,19 +90,19 @@ importers:
         specifier: 5.0.0-beta.19
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
-        specifier: 4.0.0-beta.7
+        specifier: 4.0.0-beta.8
         version: link:../../packages/groq
       '@ai-sdk/mcp':
         specifier: 2.0.0-beta.10
         version: link:../../packages/mcp
       '@ai-sdk/mistral':
-        specifier: 4.0.0-beta.6
+        specifier: 4.0.0-beta.7
         version: link:../../packages/mistral
       '@ai-sdk/openai':
         specifier: 4.0.0-beta.13
         version: link:../../packages/openai
       '@ai-sdk/perplexity':
-        specifier: 4.0.0-beta.7
+        specifier: 4.0.0-beta.8
         version: link:../../packages/perplexity
       '@ai-sdk/provider-utils':
         specifier: 5.0.0-beta.6
@@ -117,7 +117,7 @@ importers:
         specifier: 3.0.0-beta.6
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 4.0.0-beta.14
+        specifier: 4.0.0-beta.15
         version: link:../../packages/xai
       '@modelcontextprotocol/sdk':
         specifier: ^1.26.0

@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- 5259a95: chore: add warning for providers that do not support new reasoning parameter
+
 ## 4.0.0-beta.6
 
 ### Patch Changes

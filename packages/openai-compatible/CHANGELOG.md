@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.0-beta.9
+
+### Patch Changes
+
+- 74d520f: feat: migrate providers to support new top-level `reasoning` parameter
+
 ## 3.0.0-beta.8
 
 ### Patch Changes
