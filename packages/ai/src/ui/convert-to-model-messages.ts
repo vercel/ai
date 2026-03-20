@@ -204,8 +204,20 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     toolName,
                     input:
                       part.state === 'output-error'
-                        ? (part.input ??
-                          ('rawInput' in part ? part.rawInput : undefined))
+                        ? (() => {
+                            if (part.input != null) return part.input;
+                            if ('rawInput' in part && part.rawInput != null) {
+                              if (typeof part.rawInput === 'string') {
+                                try {
+                                  return JSON.parse(part.rawInput);
+                                } catch {
+                                  return {};
+                                }
+                              }
+                              return part.rawInput;
+                            }
+                            return undefined;
+                          })()
                         : part.input,
                     providerExecuted: part.providerExecuted,
                     ...(part.callProviderMetadata != null

@@ -720,6 +720,130 @@ describe('convertToModelMessages', () => {
         ]
       `);
       });
+
+      it('should handle tool output error with rawInput as string by returning empty object', async () => {
+        const result = await convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'text',
+                text: 'Let me send an email.',
+                state: 'done',
+              },
+              {
+                type: 'tool-send-email',
+                state: 'output-error',
+                toolCallId: 'call1',
+                errorText: 'SyntaxError: Unexpected token',
+                input: undefined,
+                rawInput: '{"to": "John Doe <john@example.com>"',
+              },
+            ],
+          },
+        ]);
+
+        expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Let me send an email.",
+                "type": "text",
+              },
+              {
+                "input": {},
+                "providerExecuted": undefined,
+                "toolCallId": "call1",
+                "toolName": "send-email",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "SyntaxError: Unexpected token",
+                },
+                "toolCallId": "call1",
+                "toolName": "send-email",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+      });
+
+      it('should handle tool output error with valid JSON string rawInput by parsing it', async () => {
+        const result = await convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'text',
+                text: 'Let me calculate that for you.',
+                state: 'done',
+              },
+              {
+                type: 'tool-calculator',
+                state: 'output-error',
+                toolCallId: 'call1',
+                errorText: 'Execution error',
+                input: undefined,
+                rawInput: '{"operation":"add","numbers":[1,2]}',
+              },
+            ],
+          },
+        ]);
+
+        expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Let me calculate that for you.",
+                "type": "text",
+              },
+              {
+                "input": {
+                  "numbers": [
+                    1,
+                    2,
+                  ],
+                  "operation": "add",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "Execution error",
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+      });
     });
 
     it('should handle assistant message with provider-executed tool output available', async () => {
