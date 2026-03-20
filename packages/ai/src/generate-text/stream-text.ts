@@ -116,6 +116,7 @@ import { ToolOutput } from './tool-output';
 import { StaticToolOutputDenied } from './tool-output-denied';
 import { ToolSet } from './tool-set';
 import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
+import { streamModelCall } from './stream-model-call';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1242,7 +1243,7 @@ class DefaultStreamTextResult<
       .pipeThrough(createOutputTransformStream(output ?? text()))
       .pipeThrough(eventProcessor);
 
-    const { maxRetries, retry } = prepareRetries({
+    const { maxRetries } = prepareRetries({
       maxRetries: maxRetriesArg,
       abortSignal,
     });
@@ -1527,15 +1528,6 @@ class DefaultStreamTextResult<
             prepareStepResult?.model ?? model,
           );
 
-          const promptMessages = await convertToLanguageModelPrompt({
-            prompt: {
-              system: prepareStepResult?.system ?? initialPrompt.system,
-              messages: prepareStepResult?.messages ?? stepInputMessages,
-            },
-            supportedUrls: await stepModel.supportedUrls,
-            download,
-          });
-
           const stepActiveTools = prepareStepResult?.activeTools ?? activeTools;
 
           const { toolChoice: stepToolChoice, tools: stepTools } =
@@ -1557,66 +1549,64 @@ class DefaultStreamTextResult<
             prepareStepResult?.providerOptions,
           );
 
-          await notify({
-            event: {
-              callId,
-              stepNumber: recordedSteps.length,
-              provider: stepModel.provider,
-              modelId: stepModel.modelId,
-              system: stepSystem,
-              messages: stepMessages,
-              tools,
-              toolChoice: stepToolChoice,
-              activeTools: stepActiveTools,
-              steps: [...recordedSteps],
-              providerOptions: stepProviderOptions,
-              timeout,
-              headers,
-              stopWhen,
-              output,
-              abortSignal: originalAbortSignal,
-              include,
-              ...callbackTelemetryProps,
-              experimental_context,
-              promptMessages,
-              stepTools,
-              stepToolChoice,
-            },
-            callbacks: [
-              onStepStart,
-              globalTelemetry.onStepStart as
-                | undefined
-                | StreamTextOnStepStartCallback<TOOLS, OUTPUT>,
-            ],
-          });
-
           const stepStartTimestampMs = now();
-          const {
-            stream: languageModelStream,
-            response,
-            request,
-          } = await retry(async () =>
-            stepModel.doStream({
-              ...callSettings,
-              tools: stepTools,
-              toolChoice: stepToolChoice,
-              responseFormat: await output?.responseFormat,
-              prompt: promptMessages,
-              providerOptions: stepProviderOptions,
-              abortSignal,
-              headers,
-              includeRawChunks,
-            }),
-          );
 
-          const stream1 = languageModelStream.pipeThrough(
-            createStreamTextPartTransform({
-              tools,
-              system,
-              messages: stepInputMessages,
-              repairToolCall,
-            }),
-          );
+          const {
+            stream: stream1,
+            request,
+            response,
+          } = await streamModelCall({
+            model: prepareStepResult?.model ?? model,
+            tools,
+            activeTools: prepareStepResult?.activeTools ?? activeTools,
+            toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+            system: prepareStepResult?.system ?? initialPrompt.system,
+            messages: prepareStepResult?.messages ?? stepInputMessages,
+            repairToolCall,
+            abortSignal,
+            headers,
+            includeRawChunks,
+            providerOptions:
+              prepareStepResult?.providerOptions ?? providerOptions,
+            download,
+            maxRetries,
+            output,
+            onStart: async ({ promptMessages }) => {
+              await notify({
+                event: {
+                  callId,
+                  stepNumber: recordedSteps.length,
+                  provider: stepModel.provider,
+                  modelId: stepModel.modelId,
+                  system: stepSystem,
+                  messages: stepMessages,
+                  tools,
+                  toolChoice: stepToolChoice,
+                  activeTools: stepActiveTools,
+                  steps: [...recordedSteps],
+                  providerOptions: stepProviderOptions,
+                  timeout,
+                  headers,
+                  stopWhen,
+                  output,
+                  abortSignal: originalAbortSignal,
+                  include,
+                  ...callbackTelemetryProps,
+                  experimental_context,
+                  promptMessages,
+                  stepTools,
+                  stepToolChoice,
+                },
+                callbacks: [
+                  onStepStart,
+                  globalTelemetry.onStepStart as
+                    | undefined
+                    | StreamTextOnStepStartCallback<TOOLS, OUTPUT>,
+                ],
+              });
+            },
+            ...callSettings,
+          });
 
           const stream2 = invokeToolCallbacksFromStream({
             stream: stream1,
