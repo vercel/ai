@@ -276,6 +276,7 @@ describe('doGenerate', () => {
           ],
           "model": "mistral-small-latest",
           "random_seed": undefined,
+          "reasoning_effort": undefined,
           "response_format": undefined,
           "safe_prompt": undefined,
           "temperature": undefined,
@@ -320,6 +321,7 @@ describe('doGenerate', () => {
           ],
           "model": "mistral-small-latest",
           "random_seed": undefined,
+          "reasoning_effort": undefined,
           "response_format": {
             "type": "json_object",
           },
@@ -368,6 +370,7 @@ describe('doGenerate', () => {
           ],
           "model": "mistral-small-latest",
           "random_seed": undefined,
+          "reasoning_effort": undefined,
           "response_format": {
             "json_schema": {
               "description": undefined,
@@ -684,6 +687,129 @@ describe('doGenerate', () => {
       ]
     `);
   });
+
+  describe('warnings', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('mistral-text');
+    });
+
+    it('should warn about unsupported reasoning for non-supporting models', async () => {
+      const unsupportedModel = provider.chat('mistral-large-latest');
+      const result = await unsupportedModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'reasoning',
+        }),
+      );
+    });
+
+    it('should emit compatibility warning for reasoning medium on supporting model', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'compatibility',
+          feature: 'reasoning',
+        }),
+      );
+    });
+
+    it('should not warn for reasoning high on supporting model', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({
+          feature: 'reasoning',
+        }),
+      );
+    });
+  });
+
+  describe('reasoning_effort', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('mistral-text');
+    });
+
+    it('should send reasoning_effort high for reasoning high', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        reasoning_effort: 'high',
+      });
+    });
+
+    it('should send reasoning_effort high for reasoning medium', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        reasoning_effort: 'high',
+      });
+    });
+
+    it('should send reasoning_effort high for reasoning minimal', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'minimal',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        reasoning_effort: 'high',
+      });
+    });
+
+    it('should send reasoning_effort none for reasoning none', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        reasoning_effort: 'none',
+      });
+    });
+
+    it('should allow provider option to override reasoning', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+        providerOptions: {
+          mistral: { reasoningEffort: 'none' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        reasoning_effort: 'none',
+      });
+    });
+
+    it('should not send reasoning_effort for non-supporting models', async () => {
+      const unsupportedModel = provider.chat('mistral-large-latest');
+      await unsupportedModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('reasoning_effort');
+    });
+  });
 });
 
 describe('doStream', () => {
@@ -840,6 +966,7 @@ describe('doStream', () => {
           ],
           "model": "mistral-small-latest",
           "random_seed": undefined,
+          "reasoning_effort": undefined,
           "response_format": undefined,
           "safe_prompt": undefined,
           "stream": true,

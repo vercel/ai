@@ -165,6 +165,59 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('top-level reasoning', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('cohere-text');
+    });
+
+    it('should map top-level reasoning to thinking enabled with budget', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.thinking).toBeDefined();
+      expect(body.thinking.type).toBe('enabled');
+      expect(body.thinking.token_budget).toBeTypeOf('number');
+      expect(body.thinking.token_budget).toBeGreaterThan(0);
+    });
+
+    it('should map top-level reasoning none to thinking disabled', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.thinking).toStrictEqual({ type: 'disabled' });
+    });
+
+    it('should prefer providerOptions over top-level reasoning', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+        providerOptions: {
+          cohere: {
+            thinking: { type: 'enabled' },
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.thinking.type).toBe('enabled');
+    });
+
+    it('should not set thinking when reasoning is not specified', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.thinking).toBeUndefined();
+    });
+  });
+
   describe('citations', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('cohere-citations');

@@ -19,7 +19,10 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  type InferSchema,
+  isCustomReasoning,
   isParsableJson,
+  mapReasoningToProviderBudget,
   parseProviderOptions,
   postJsonToApi,
   type ParseResult,
@@ -78,6 +81,7 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
     stopSequences,
     responseFormat,
     seed,
+    reasoning,
     providerOptions,
     tools,
     toolChoice,
@@ -121,13 +125,11 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
             : { type: 'json_object' }
           : undefined,
 
-      // Alibaba-specific options
-      ...(alibabaOptions?.enableThinking != null
-        ? { enable_thinking: alibabaOptions.enableThinking }
-        : {}),
-      ...(alibabaOptions?.thinkingBudget != null
-        ? { thinking_budget: alibabaOptions.thinkingBudget }
-        : {}),
+      ...resolveAlibabaThinking({
+        reasoning,
+        alibabaOptions,
+        warnings,
+      }),
 
       // Convert messages with cache control support
       messages: convertToAlibabaChatMessages({
@@ -517,6 +519,50 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
       response: { headers: responseHeaders },
     };
   }
+}
+
+function resolveAlibabaThinking({
+  reasoning,
+  alibabaOptions,
+  warnings,
+}: {
+  reasoning: LanguageModelV4CallOptions['reasoning'];
+  alibabaOptions: InferSchema<typeof alibabaLanguageModelOptions> | undefined;
+  warnings: SharedV4Warning[];
+}): { enable_thinking?: boolean; thinking_budget?: number } {
+  if (
+    alibabaOptions?.enableThinking != null ||
+    alibabaOptions?.thinkingBudget != null
+  ) {
+    return {
+      ...(alibabaOptions.enableThinking != null
+        ? { enable_thinking: alibabaOptions.enableThinking }
+        : {}),
+      ...(alibabaOptions.thinkingBudget != null
+        ? { thinking_budget: alibabaOptions.thinkingBudget }
+        : {}),
+    };
+  }
+
+  if (!isCustomReasoning(reasoning)) {
+    return {};
+  }
+
+  if (reasoning === 'none') {
+    return { enable_thinking: false };
+  }
+
+  const thinkingBudget = mapReasoningToProviderBudget({
+    reasoning,
+    maxOutputTokens: 16384,
+    maxReasoningBudget: 16384,
+    warnings,
+  });
+
+  return {
+    enable_thinking: true,
+    ...(thinkingBudget != null ? { thinking_budget: thinkingBudget } : {}),
+  };
 }
 
 /**

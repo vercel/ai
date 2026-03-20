@@ -1,5 +1,27 @@
 # @ai-sdk/rsc
 
+## 3.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [caf1b6f]
+  - ai@7.0.0-beta.33
+
+## 3.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [4b46062]
+  - ai@7.0.0-beta.32
+
+## 3.0.0-beta.32
+
+### Patch Changes
+
+- e79e644: chore(ai/core): remove `timeout` from `CallSettings` as it was effectively unused there
+- Updated dependencies [e79e644]
+  - ai@7.0.0-beta.31
+
 ## 3.0.0-beta.31
 
 ### Patch Changes

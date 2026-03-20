@@ -17,7 +17,9 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  isCustomReasoning,
   isParsableJson,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -68,6 +70,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
     stopSequences,
     responseFormat,
     seed,
+    reasoning,
     stream,
     tools,
     toolChoice,
@@ -145,7 +148,21 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
 
         // provider options:
         reasoning_format: groqOptions?.reasoningFormat,
-        reasoning_effort: groqOptions?.reasoningEffort,
+        reasoning_effort:
+          groqOptions?.reasoningEffort ??
+          (isCustomReasoning(reasoning) && reasoning !== 'none'
+            ? mapReasoningToProviderEffort({
+                reasoning,
+                effortMap: {
+                  minimal: 'low',
+                  low: 'low',
+                  medium: 'medium',
+                  high: 'high',
+                  xhigh: 'high',
+                },
+                warnings,
+              })
+            : undefined),
         service_tier: groqOptions?.serviceTier,
 
         // messages:
