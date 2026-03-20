@@ -123,6 +123,60 @@ describe('DeepSeekChatLanguageModel', () => {
       });
     });
 
+    describe('top-level reasoning', () => {
+      beforeEach(() => {
+        prepareJsonFixtureResponse('deepseek-text');
+      });
+
+      it('should map top-level reasoning to thinking enabled', async () => {
+        await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+        });
+
+        expect((await server.calls[0].requestBodyJson).thinking).toStrictEqual({
+          type: 'enabled',
+        });
+      });
+
+      it('should map top-level reasoning none to thinking disabled', async () => {
+        await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+        });
+
+        expect((await server.calls[0].requestBodyJson).thinking).toStrictEqual({
+          type: 'disabled',
+        });
+      });
+
+      it('should prefer providerOptions thinking over top-level reasoning', async () => {
+        await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+          providerOptions: {
+            deepseek: {
+              thinking: { type: 'enabled' },
+            } satisfies DeepSeekLanguageModelOptions,
+          },
+        });
+
+        expect((await server.calls[0].requestBodyJson).thinking).toStrictEqual({
+          type: 'enabled',
+        });
+      });
+
+      it('should not set thinking when reasoning is not specified', async () => {
+        await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).thinking,
+        ).toBeUndefined();
+      });
+    });
+
     describe('tool call', () => {
       beforeEach(() => {
         prepareJsonFixtureResponse('deepseek-tool-call');

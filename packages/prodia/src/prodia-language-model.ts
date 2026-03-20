@@ -8,6 +8,7 @@ import type {
 import type { InferSchema } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
+  isCustomReasoning,
   convertBase64ToUint8Array,
   generateId,
   lazySchema,
@@ -77,6 +78,14 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
       options.responseFormat.type !== 'text'
     ) {
       warnings.push({ type: 'unsupported', feature: 'responseFormat' });
+    }
+
+    if (isCustomReasoning(options.reasoning)) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details: 'This provider does not support reasoning configuration.',
+      });
     }
 
     const prodiaOptions = await parseProviderOptions({

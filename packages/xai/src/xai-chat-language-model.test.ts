@@ -1231,6 +1231,74 @@ describe('XaiChatLanguageModel', () => {
       `);
     });
 
+    it('should map top-level reasoning to reasoning_effort', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'high',
+      );
+    });
+
+    it('should coerce top-level reasoning medium to low', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'low',
+      );
+    });
+
+    it('should coerce top-level reasoning xhigh to high', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'xhigh',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'high',
+      );
+    });
+
+    it('should not set reasoning_effort for top-level reasoning none', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).reasoning_effort,
+      ).toBeUndefined();
+    });
+
+    it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
+      prepareJsonFixtureResponse('xai-text');
+
+      await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+        providerOptions: {
+          xai: { reasoningEffort: 'high' },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'high',
+      );
+    });
+
     it('should extract reasoning content', async () => {
       prepareJsonFixtureResponse('xai-text');
 

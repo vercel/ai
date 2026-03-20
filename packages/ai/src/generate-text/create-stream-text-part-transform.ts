@@ -220,6 +220,17 @@ export function createStreamTextPartTransform<TOOLS extends ToolSet>({
           break;
         }
 
+        case 'tool-input-start': {
+          const tool = tools?.[chunk.toolName];
+
+          controller.enqueue({
+            ...chunk,
+            dynamic: chunk.dynamic ?? tool?.type === 'dynamic',
+            title: tool?.title,
+          });
+          break;
+        }
+
         default:
           controller.enqueue(chunk);
           break;

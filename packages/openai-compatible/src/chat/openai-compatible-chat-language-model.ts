@@ -18,6 +18,7 @@ import {
   createJsonResponseHandler,
   FetchFunction,
   generateId,
+  isCustomReasoning,
   isParsableJson,
   parseProviderOptions,
   ParseResult,
@@ -119,6 +120,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     topK,
     frequencyPenalty,
     presencePenalty,
+    reasoning,
     providerOptions,
     stopSequences,
     responseFormat,
@@ -227,7 +229,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
           ),
         ),
 
-        reasoning_effort: compatibleOptions.reasoningEffort,
+        reasoning_effort:
+          compatibleOptions.reasoningEffort ??
+          (isCustomReasoning(reasoning) && reasoning !== 'none'
+            ? reasoning
+            : undefined),
         verbosity: compatibleOptions.textVerbosity,
 
         // messages:
