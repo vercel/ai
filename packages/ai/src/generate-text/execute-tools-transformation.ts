@@ -163,13 +163,21 @@ export function executeToolsTransformation<TOOLS extends ToolSet>({
   const outstandingToolResults = new Set<string>();
 
   let canClose = false;
+  let isClosed = false;
   let finishChunk:
     | (SingleRequestTextStreamPart<TOOLS> & { type: 'finish' })
     | undefined = undefined;
 
   function attemptClose() {
+    // Guard against multiple close attempts from concurrent tool completions
+    if (isClosed) {
+      return;
+    }
+
     // close the tool results controller if no more outstanding tool calls
     if (canClose && outstandingToolResults.size === 0) {
+      isClosed = true;
+
       // we delay sending the finish chunk until all tool results (incl. delayed ones)
       // are received to ensure that the frontend receives tool results before a message
       // finish event arrives.
