@@ -115,6 +115,7 @@ import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolOutput } from './tool-output';
 import { StaticToolOutputDenied } from './tool-output-denied';
 import { ToolSet } from './tool-set';
+import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1600,41 +1601,49 @@ class DefaultStreamTextResult<
             }),
           );
 
-          const streamWithToolResults = languageModelStream
-            .pipeThrough(
-              createStreamTextPartTransform({
-                tools,
-                system,
-                messages: stepInputMessages,
-                repairToolCall,
-              }),
-            )
-            .pipeThrough(
-              createExecuteToolsTransformation({
-                tools,
-                telemetry,
-                callId,
-                messages: stepInputMessages,
-                abortSignal,
-                timeout,
-                experimental_context,
-                generateId,
-                stepNumber: recordedSteps.length,
-                provider: stepModel.provider,
-                modelId: stepModel.modelId,
-                onToolCallStart: [
-                  onToolCallStart,
-                  globalTelemetry.onToolCallStart as
-                    | undefined
-                    | StreamTextOnToolCallStartCallback<TOOLS>,
-                ],
-                onToolCallFinish: [
-                  onToolCallFinish,
-                  globalTelemetry.onToolCallFinish,
-                ],
-                executeToolInTelemetryContext: globalTelemetry.executeTool,
-              }),
-            );
+          const stream1 = languageModelStream.pipeThrough(
+            createStreamTextPartTransform({
+              tools,
+              system,
+              messages: stepInputMessages,
+              repairToolCall,
+            }),
+          );
+
+          const stream2 = invokeToolCallbacksFromStream({
+            stream: stream1,
+            tools,
+            stepInputMessages,
+            abortSignal,
+            experimental_context,
+          });
+
+          const streamWithToolResults = stream2.pipeThrough(
+            createExecuteToolsTransformation({
+              tools,
+              telemetry,
+              callId,
+              messages: stepInputMessages,
+              abortSignal,
+              timeout,
+              experimental_context,
+              generateId,
+              stepNumber: recordedSteps.length,
+              provider: stepModel.provider,
+              modelId: stepModel.modelId,
+              onToolCallStart: [
+                onToolCallStart,
+                globalTelemetry.onToolCallStart as
+                  | undefined
+                  | StreamTextOnToolCallStartCallback<TOOLS>,
+              ],
+              onToolCallFinish: [
+                onToolCallFinish,
+                globalTelemetry.onToolCallFinish,
+              ],
+              executeToolInTelemetryContext: globalTelemetry.executeTool,
+            }),
+          );
 
           // Conditionally include request.body based on include settings.
           // Large payloads (e.g., base64-encoded images) can cause memory issues.
@@ -1645,8 +1654,6 @@ class DefaultStreamTextResult<
           const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
           let warnings: SharedV4Warning[] | undefined;
-
-          const activeToolCallToolNames: Record<string, string> = {};
 
           let stepFinishReason: FinishReason = 'other';
           let stepRawFinishReason: string | undefined = undefined;
@@ -1801,47 +1808,9 @@ class DefaultStreamTextResult<
                       break;
                     }
 
-                    case 'tool-input-start': {
-                      activeToolCallToolNames[chunk.id] = chunk.toolName;
-
-                      const tool = tools?.[chunk.toolName];
-                      if (tool?.onInputStart != null) {
-                        await tool.onInputStart({
-                          toolCallId: chunk.id,
-                          messages: stepInputMessages,
-                          abortSignal,
-                          experimental_context,
-                        });
-                      }
-
-                      controller.enqueue({
-                        ...chunk,
-                        dynamic: chunk.dynamic ?? tool?.type === 'dynamic',
-                        title: tool?.title,
-                      });
-                      break;
-                    }
-
-                    case 'tool-input-end': {
-                      delete activeToolCallToolNames[chunk.id];
-                      controller.enqueue(chunk);
-                      break;
-                    }
-
+                    case 'tool-input-start':
+                    case 'tool-input-end':
                     case 'tool-input-delta': {
-                      const toolName = activeToolCallToolNames[chunk.id];
-                      const tool = tools?.[toolName];
-
-                      if (tool?.onInputDelta != null) {
-                        await tool.onInputDelta({
-                          inputTextDelta: chunk.delta,
-                          toolCallId: chunk.id,
-                          messages: stepInputMessages,
-                          abortSignal,
-                          experimental_context,
-                        });
-                      }
-
                       controller.enqueue(chunk);
                       break;
                     }
