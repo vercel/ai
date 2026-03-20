@@ -8,3 +8,9 @@ export { standardizePrompt } from '../src/prompt/standardize-prompt';
 export { prepareCallSettings } from '../src/prompt/prepare-call-settings';
 export { prepareRetries } from '../src/util/prepare-retries';
 export { asLanguageModelUsage } from '../src/types/usage';
+export { modelCall } from '../src/generate-text/model-call';
+export type {
+  ModelCallOptions,
+  ModelCallResult,
+} from '../src/generate-text/model-call';
+export { createExecuteToolsTransformation } from '../src/generate-text/create-execute-tools-transformation';

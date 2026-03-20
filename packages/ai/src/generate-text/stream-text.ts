@@ -72,21 +72,21 @@ import { mergeObjects } from '../util/merge-objects';
 import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
+import { modelCall } from './model-call';
 import type {
   OnFinishEvent,
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
+  OnToolCallFinishCallback,
   OnToolCallFinishEvent,
+  OnToolCallStartCallback,
   OnToolCallStartEvent,
 } from './core-events';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
-import {
-  createStreamTextPartTransform,
-  UglyTransformedStreamTextPart,
-} from './create-stream-text-part-transform';
+import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
 import { executeToolCall } from './execute-tool-call';
 import { Output, text } from './output';
 import {
@@ -237,11 +237,11 @@ export type StreamTextOnStepStartCallback<
 ) => PromiseLike<void> | void;
 
 export type StreamTextOnToolCallStartCallback<TOOLS extends ToolSet = ToolSet> =
-  (event: OnToolCallStartEvent<TOOLS>) => PromiseLike<void> | void;
+  OnToolCallStartCallback<TOOLS>;
 
 export type StreamTextOnToolCallFinishCallback<
   TOOLS extends ToolSet = ToolSet,
-> = (event: OnToolCallFinishEvent<TOOLS>) => PromiseLike<void> | void;
+> = OnToolCallFinishCallback<TOOLS>;
 
 /**
  * Generate a text and call tools for a given prompt using a language model.
@@ -1233,7 +1233,7 @@ class DefaultStreamTextResult<
       .pipeThrough(createOutputTransformStream(output ?? text()))
       .pipeThrough(eventProcessor);
 
-    const { maxRetries, retry } = prepareRetries({
+    const { maxRetries } = prepareRetries({
       maxRetries: maxRetriesArg,
       abortSignal,
     });
@@ -1583,58 +1583,26 @@ class DefaultStreamTextResult<
 
           const stepStartTimestampMs = now();
           const {
-            stream: languageModelStream,
+            stream: modelStream,
             response,
             request,
-          } = await retry(async () =>
-            stepModel.doStream({
-              ...callSettings,
-              tools: stepTools,
-              toolChoice: stepToolChoice,
-              responseFormat: await output?.responseFormat,
-              prompt: promptMessages,
-              providerOptions: stepProviderOptions,
-              abortSignal,
-              headers,
-              includeRawChunks,
-            }),
-          );
-
-          const streamWithToolResults = languageModelStream
-            .pipeThrough(
-              createStreamTextPartTransform({
-                tools,
-                system,
-                messages: stepInputMessages,
-                repairToolCall,
-              }),
-            )
-            .pipeThrough(
-              createExecuteToolsTransformation({
-                tools,
-                telemetry,
-                callId,
-                messages: stepInputMessages,
-                abortSignal,
-                timeout,
-                experimental_context,
-                generateId,
-                stepNumber: recordedSteps.length,
-                provider: stepModel.provider,
-                modelId: stepModel.modelId,
-                onToolCallStart: [
-                  onToolCallStart,
-                  globalTelemetry.onToolCallStart as
-                    | undefined
-                    | StreamTextOnToolCallStartCallback<TOOLS>,
-                ],
-                onToolCallFinish: [
-                  onToolCallFinish,
-                  globalTelemetry.onToolCallFinish,
-                ],
-                executeToolInTelemetryContext: globalTelemetry.executeTool,
-              }),
-            );
+          } = await modelCall({
+            model: stepModel,
+            callSettings,
+            maxRetries: maxRetriesArg,
+            tools: stepTools,
+            toolChoice: stepToolChoice,
+            responseFormat: await output?.responseFormat,
+            prompt: promptMessages,
+            providerOptions: stepProviderOptions,
+            abortSignal,
+            headers,
+            includeRawChunks,
+            userTools: tools,
+            system,
+            messages: stepInputMessages,
+            repairToolCall,
+          });
 
           // Conditionally include request.body based on include settings.
           // Large payloads (e.g., base64-encoded images) can cause memory issues.
@@ -1642,6 +1610,34 @@ class DefaultStreamTextResult<
             (include?.requestBody ?? true)
               ? (request ?? {})
               : { ...request, body: undefined };
+
+          const streamWithToolResults = modelStream.pipeThrough(
+            createExecuteToolsTransformation({
+              tools,
+              telemetry,
+              callId,
+              messages: stepInputMessages,
+              abortSignal,
+              timeout,
+              experimental_context,
+              generateId,
+              stepNumber: recordedSteps.length,
+              provider: stepModel.provider,
+              modelId: stepModel.modelId,
+              onToolCallStart: [
+                onToolCallStart,
+                globalTelemetry.onToolCallStart as
+                  | undefined
+                  | StreamTextOnToolCallStartCallback<TOOLS>,
+              ],
+              onToolCallFinish: [
+                onToolCallFinish,
+                globalTelemetry.onToolCallFinish,
+              ],
+              executeToolInTelemetryContext: globalTelemetry.executeTool,
+            }),
+          );
+
           const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
           let warnings: SharedV4Warning[] | undefined;

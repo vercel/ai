@@ -6,9 +6,9 @@ import { UglyTransformedStreamTextPart } from './create-stream-text-part-transfo
 import { executeToolCall } from './execute-tool-call';
 import { isApprovalNeeded } from './is-approval-needed';
 import {
-  StreamTextOnToolCallFinishCallback,
-  StreamTextOnToolCallStartCallback,
-} from './stream-text';
+  OnToolCallFinishCallback,
+  OnToolCallStartCallback,
+} from './core-events';
 import { ToolSet } from './tool-set';
 import { TypedToolCall } from './tool-call';
 
@@ -40,11 +40,11 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   provider?: string;
   modelId?: string;
   onToolCallStart?:
-    | StreamTextOnToolCallStartCallback<TOOLS>
-    | Array<StreamTextOnToolCallStartCallback<TOOLS> | undefined | null>;
+    | OnToolCallStartCallback<TOOLS>
+    | Array<OnToolCallStartCallback<TOOLS> | undefined | null>;
   onToolCallFinish?:
-    | StreamTextOnToolCallFinishCallback<TOOLS>
-    | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
+    | OnToolCallFinishCallback<TOOLS>
+    | Array<OnToolCallFinishCallback<TOOLS> | undefined | null>;
   executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
 }): TransformStream<
   UglyTransformedStreamTextPart<TOOLS>,

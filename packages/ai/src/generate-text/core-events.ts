@@ -388,3 +388,17 @@ export type OnFinishEvent<TOOLS extends ToolSet = ToolSet> =
     /** Additional metadata from telemetry settings. */
     readonly metadata: Record<string, unknown> | undefined;
   };
+
+/**
+ * Callback type for tool call start events.
+ */
+export type OnToolCallStartCallback<TOOLS extends ToolSet = ToolSet> = (
+  event: OnToolCallStartEvent<TOOLS>,
+) => PromiseLike<void> | void;
+
+/**
+ * Callback type for tool call finish events.
+ */
+export type OnToolCallFinishCallback<TOOLS extends ToolSet = ToolSet> = (
+  event: OnToolCallFinishEvent<TOOLS>,
+) => PromiseLike<void> | void;

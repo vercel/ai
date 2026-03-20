@@ -15731,6 +15731,12 @@ describe('streamText', () => {
                 },
                 "type": "finish",
               },
+              {
+                "id": "1",
+                "providerMetadata": undefined,
+                "text": " World",
+                "type": "text-delta",
+              },
             ]
           `);
       });
@@ -15774,7 +15780,7 @@ describe('streamText', () => {
             "content": [
               {
                 "providerMetadata": undefined,
-                "text": "Hello, ",
+                "text": "Hello,  World",
                 "type": "text",
               },
             ],
@@ -17525,6 +17531,10 @@ describe('streamText', () => {
                 "warnings": [],
               },
               {
+                "id": "1",
+                "type": "text-start",
+              },
+              {
                 "reason": "This operation was aborted",
                 "type": "abort",
               },
@@ -17541,6 +17551,10 @@ describe('streamText', () => {
               },
               {
                 "type": "start-step",
+              },
+              {
+                "id": "1",
+                "type": "text-start",
               },
               {
                 "reason": "This operation was aborted",
