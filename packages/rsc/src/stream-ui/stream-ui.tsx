@@ -110,7 +110,7 @@ export async function streamUI<
   providerOptions,
   onFinish,
   ...settings
-}: CallSettings<any> &
+}: CallSettings &
   Prompt & {
     /**
      * The language model to use.
