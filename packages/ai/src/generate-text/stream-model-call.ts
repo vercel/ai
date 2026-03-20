@@ -1,3 +1,4 @@
+import { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings } from '../prompt';
@@ -6,14 +7,11 @@ import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choi
 import { StandardizedPrompt } from '../prompt/standardize-prompt';
 import { LanguageModel, ToolChoice } from '../types/language-model';
 import { DownloadFunction } from '../util/download/download-function';
+import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
-import { createStreamTextPartTransform } from './create-stream-text-part-transform';
 import { Output } from './output';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolSet } from './tool-set';
-import { StreamTextOnStepStartCallback } from './stream-text';
-import { notify } from '../util/notify';
-import { LanguageModelV4Prompt } from '@ai-sdk/provider';
 
 export async function streamModelCall<
   TOOLS extends ToolSet,
@@ -72,9 +70,7 @@ export async function streamModelCall<
     });
 
   await notify({
-    event: {
-      promptMessages,
-    },
+    event: { promptMessages },
     callbacks: onStart,
   });
 
@@ -96,17 +92,8 @@ export async function streamModelCall<
     }),
   );
 
-  const stream1 = languageModelStream.pipeThrough(
-    createStreamTextPartTransform({
-      tools,
-      system,
-      messages,
-      repairToolCall,
-    }),
-  );
-
   return {
-    stream: stream1,
+    stream: languageModelStream,
     response,
     request,
   };

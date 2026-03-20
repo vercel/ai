@@ -1552,7 +1552,7 @@ class DefaultStreamTextResult<
           const stepStartTimestampMs = now();
 
           const {
-            stream: stream1,
+            stream: languageModelStream,
             request,
             response,
           } = await streamModelCall({
@@ -1560,14 +1560,13 @@ class DefaultStreamTextResult<
             tools,
             activeTools: prepareStepResult?.activeTools ?? activeTools,
             toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-            system: prepareStepResult?.system ?? initialPrompt.system,
-            messages: prepareStepResult?.messages ?? stepInputMessages,
+            system: stepSystem,
+            messages: stepMessages,
             repairToolCall,
             abortSignal,
             headers,
             includeRawChunks,
-            providerOptions:
-              prepareStepResult?.providerOptions ?? providerOptions,
+            providerOptions: stepProviderOptions,
             download,
             maxRetries,
             output,
@@ -1607,6 +1606,15 @@ class DefaultStreamTextResult<
             },
             ...callSettings,
           });
+
+          const stream1 = languageModelStream.pipeThrough(
+            createStreamTextPartTransform({
+              tools,
+              system,
+              messages: stepMessages,
+              repairToolCall,
+            }),
+          );
 
           const stream2 = invokeToolCallbacksFromStream({
             stream: stream1,
