@@ -48,9 +48,7 @@ type OpenAICompatibleCompletionConfig = {
   supportedUrls?: () => LanguageModelV3['supportedUrls'];
 };
 
-export class OpenAICompatibleCompletionLanguageModel
-  implements LanguageModelV3
-{
+export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
 
   readonly modelId: OpenAICompatibleCompletionModelId;

@@ -27,7 +27,7 @@ This is a **monorepo** using pnpm workspaces and Turborepo.
 | `examples/`               | Example applications (ai-functions, next-openai, etc.)                               |
 | `content/`                | Documentation source files (MDX)                                                     |
 | `contributing/`           | Contributor guides and documentation                                                 |
-| `tools/`                  | Internal tooling (eslint-config, tsconfig)                                           |
+| `tools/`                  | Internal tooling (tsconfig)                                                          |
 
 ### Core Package Dependencies
 
@@ -60,9 +60,8 @@ pnpm build          # Build all packages
 | `pnpm install`           | Install dependencies                                              |
 | `pnpm build`             | Build all packages                                                |
 | `pnpm test`              | Run all tests (excludes examples)                                 |
-| `pnpm lint`              | Run linting                                                       |
-| `pnpm prettier-fix`      | Fix formatting issues                                             |
-| `pnpm prettier-check`    | Check formatting                                                  |
+| `pnpm check`             | Run linting (oxlint) and formatting (oxfmt) checks               |
+| `pnpm fix`               | Fix linting and formatting issues                                 |
 | `pnpm type-check:full`   | TypeScript type checking (includes examples)                      |
 | `pnpm changeset`         | Add a changeset for your PR                                       |
 | `pnpm update-references` | Update tsconfig.json references after adding package dependencies |
@@ -122,10 +121,10 @@ pnpm tsx src/stream-text/openai/basic.ts    # Run a specific example
 
 ### Formatting
 
-- **Tool**: Prettier
-- **Config**: Defined in root `package.json`
-- **Settings**: Single quotes, trailing commas, 2-space indentation, no tabs
-- **Pre-commit hook**: Automatically formats staged files on commit via `lint-staged`. If `package.json` changes are staged, `pnpm install` runs automatically
+- **Formatter**: oxfmt (via `pnpm fix` or `ultracite fix`)
+- **Linter**: oxlint (via `pnpm check` or `ultracite check`)
+- **Config**: `.oxfmtrc.jsonc` (formatter) and `.oxlintrc.json` (linter)
+- **Pre-commit hook**: Runs `pnpm install` if `package.json` changes are staged
 
 ### Testing
 
