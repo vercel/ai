@@ -1,5 +1,15 @@
 # ai
 
+## 6.0.133
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [d99eb91]
+- Updated dependencies [055cd68]
+  - @ai-sdk/gateway@3.0.77
+  - @ai-sdk/provider-utils@4.0.21
+
 ## 6.0.132
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @ai-sdk/gateway
 
+## 3.0.77
+
+### Patch Changes
+
+- d99eb91: Backport: chore(provider/gateway): update gateway model settings files
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+  - @ai-sdk/provider-utils@4.0.21
+
 ## 3.0.76
 
 ### Patch Changes

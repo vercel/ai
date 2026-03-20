@@ -1,5 +1,16 @@
 # @ai-sdk/google-vertex
 
+## 4.0.93
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+- Updated dependencies [47114a3]
+  - @ai-sdk/provider-utils@4.0.21
+  - @ai-sdk/anthropic@3.0.63
+  - @ai-sdk/google@3.0.52
+
 ## 4.0.92
 
 ### Patch Changes

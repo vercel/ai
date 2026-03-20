@@ -1,5 +1,20 @@
 # @ai-sdk/google
 
+## 3.0.52
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- 47114a3: feat(provider/google): Add multimodal tool-result support for Google function responses.
+
+  Tool results with `output.type = 'content'` now map media parts into
+  `functionResponse.parts` for Google models, including `image-data`,
+  `file-data`, and base64 `data:` URLs in URL-style content parts.
+  Remote HTTP(S) URLs in URL-style tool-result parts are not supported.
+
+- Updated dependencies [055cd68]
+  - @ai-sdk/provider-utils@4.0.21
+
 ## 3.0.51
 
 ### Patch Changes

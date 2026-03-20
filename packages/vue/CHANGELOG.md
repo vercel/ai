@@ -1,5 +1,14 @@
 # @ai-sdk/vue
 
+## 3.0.133
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+  - @ai-sdk/provider-utils@4.0.21
+  - ai@6.0.133
+
 ## 3.0.132
 
 ### Patch Changes

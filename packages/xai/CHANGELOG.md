@@ -1,5 +1,14 @@
 # @ai-sdk/xai
 
+## 3.0.72
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+  - @ai-sdk/openai-compatible@2.0.37
+  - @ai-sdk/provider-utils@4.0.21
+
 ## 3.0.71
 
 ### Patch Changes
