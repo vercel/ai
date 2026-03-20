@@ -7,18 +7,12 @@ run(async () => {
   const readPDFDocument = tool({
     description: `Read and return a PDF document by URL`,
     inputSchema: z.object({}),
-    execute: async () => {
-      try {
-        return {
-          success: true,
-          description: 'Successfully loaded PDF document',
-          pdfUrl:
-            'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf?raw=true',
-        };
-      } catch (error) {
-        throw new Error(`Failed to load PDF: ${error}`);
-      }
-    },
+    execute: async () => ({
+      success: true,
+      description: 'Successfully loaded PDF document',
+      pdfUrl:
+        'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf?raw=true',
+    }),
     toModelOutput({ output }) {
       return {
         type: 'content',
@@ -44,7 +38,7 @@ run(async () => {
   });
 
   const result = await generateText({
-    model: openai.responses('gpt-5-mini'),
+    model: openai.responses('gpt-4.1-mini'),
     prompt:
       'Please read the PDF document using the tool provided and return a summary of it.',
     tools: {
