@@ -458,4 +458,32 @@ describe('prepareToolsAndToolChoice', () => {
       }
     `);
   });
+
+  it('should support parameters as alias for inputSchema', async () => {
+    const result = await prepareToolsAndToolChoice({
+      tools: {
+        tool1: tool({
+          description: 'Tool 1 description',
+          parameters: z.object({ city: z.string() }),
+        } as any),
+      },
+      toolChoice: undefined,
+      activeTools: undefined,
+    });
+
+    expect(result.tools).toHaveLength(1);
+    expect(result.tools?.[0]).toMatchObject({
+      name: 'tool1',
+      description: 'Tool 1 description',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          city: {
+            type: 'string',
+          },
+        },
+        required: ['city'],
+      },
+    });
+  });
 });
