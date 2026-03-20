@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 737b8f4: feat(provider/mistral): add support for reasoning configuration (mistral-small-latest)
+
 ## 4.0.0-beta.7
 
 ### Patch Changes
