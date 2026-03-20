@@ -1,4 +1,4 @@
-import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -12,7 +12,7 @@ vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -684,6 +684,26 @@ describe('doGenerate', () => {
       ]
     `);
   });
+
+  describe('warnings', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('mistral-text');
+    });
+
+    it('should warn about unsupported reasoning', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'reasoning',
+        }),
+      );
+    });
+  });
 });
 
 describe('doStream', () => {
@@ -1261,7 +1281,7 @@ describe('doStream', () => {
 });
 
 describe('tool result format support', () => {
-  it('should handle new LanguageModelV3ToolResultOutput format', async () => {
+  it('should handle new LanguageModelV4ToolResultOutput format', async () => {
     server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'json-value',
       body: {

@@ -930,6 +930,154 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should convert reasoning-file parts with thought flag and signature', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning-file',
+            data: 'AAECAw==',
+            mediaType: 'image/png',
+            providerOptions: {
+              google: { thoughtSignature: 'sig_reasoning_file' },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "inlineData": {
+                  "data": "AAECAw==",
+                  "mimeType": "image/png",
+                },
+                "thought": true,
+                "thoughtSignature": "sig_reasoning_file",
+              },
+            ],
+            "role": "model",
+          },
+        ],
+        "systemInstruction": undefined,
+      }
+    `);
+  });
+
+  it('should convert reasoning-file parts without thoughtSignature', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning-file',
+            data: 'BAUG',
+            mediaType: 'image/jpeg',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "inlineData": {
+                  "data": "BAUG",
+                  "mimeType": "image/jpeg",
+                },
+                "thought": true,
+                "thoughtSignature": undefined,
+              },
+            ],
+            "role": "model",
+          },
+        ],
+        "systemInstruction": undefined,
+      }
+    `);
+  });
+
+  it('should throw error for URL file data in reasoning-file assistant messages', async () => {
+    expect(() =>
+      convertToGoogleGenerativeAIMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning-file',
+              data: new URL('https://example.com/image.png'),
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ]),
+    ).toThrow('File data URLs in assistant messages are not supported');
+  });
+
+  it('should handle mixed reasoning, reasoning-file, text, and tool-call parts', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'Thinking about this...',
+            providerOptions: { google: { thoughtSignature: 'sig1' } },
+          },
+          {
+            type: 'reasoning-file',
+            data: 'AAECAw==',
+            mediaType: 'image/png',
+            providerOptions: { google: { thoughtSignature: 'sig2' } },
+          },
+          {
+            type: 'text',
+            text: 'Here is my response',
+            providerOptions: { google: { thoughtSignature: 'sig3' } },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Thinking about this...",
+                "thought": true,
+                "thoughtSignature": "sig1",
+              },
+              {
+                "inlineData": {
+                  "data": "AAECAw==",
+                  "mimeType": "image/png",
+                },
+                "thought": true,
+                "thoughtSignature": "sig2",
+              },
+              {
+                "text": "Here is my response",
+                "thoughtSignature": "sig3",
+              },
+            ],
+            "role": "model",
+          },
+        ],
+        "systemInstruction": undefined,
+      }
+    `);
+  });
+
   it('should throw error for URL file data in assistant messages', async () => {
     expect(() =>
       convertToGoogleGenerativeAIMessages([

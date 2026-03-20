@@ -1,7 +1,4 @@
-import {
-  type AnthropicLanguageModelOptions,
-  createAnthropic,
-} from '@ai-sdk/anthropic';
+import { createAnthropic } from '@ai-sdk/anthropic';
 import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
@@ -51,11 +48,7 @@ run(async () => {
       },
       stopWhen: stepCountIs(5),
       maxRetries: 0,
-      providerOptions: {
-        anthropic: {
-          thinking: { type: 'enabled', budgetTokens: 12000 },
-        } satisfies AnthropicLanguageModelOptions,
-      },
+      reasoning: 'medium',
       onError: error => {
         console.error(error);
       },

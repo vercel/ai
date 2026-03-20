@@ -42,6 +42,11 @@ const uiMessagesSchema = lazySchema(() =>
                   providerMetadata: providerMetadataSchema.optional(),
                 }),
                 z.object({
+                  type: z.literal('custom'),
+                  kind: z.string(),
+                  providerMetadata: providerMetadataSchema.optional(),
+                }),
+                z.object({
                   type: z.literal('source-url'),
                   sourceId: z.string(),
                   url: z.string(),
@@ -60,6 +65,12 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('file'),
                   mediaType: z.string(),
                   filename: z.string().optional(),
+                  url: z.string(),
+                  providerMetadata: providerMetadataSchema.optional(),
+                }),
+                z.object({
+                  type: z.literal('reasoning-file'),
+                  mediaType: z.string(),
                   url: z.string(),
                   providerMetadata: providerMetadataSchema.optional(),
                 }),
