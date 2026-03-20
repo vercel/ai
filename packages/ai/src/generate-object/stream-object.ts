@@ -173,16 +173,13 @@ export type StreamObjectOnFinishCallback<RESULT> = (event: {
  */
 export function streamObject<
   SCHEMA extends FlexibleSchema<unknown> = FlexibleSchema<JSONValue>,
-  OUTPUT extends
-    | 'object'
-    | 'array'
-    | 'enum'
-    | 'no-schema' = InferSchema<SCHEMA> extends string ? 'enum' : 'object',
+  OUTPUT extends 'object' | 'array' | 'enum' | 'no-schema' =
+    InferSchema<SCHEMA> extends string ? 'enum' : 'object',
   RESULT = OUTPUT extends 'array'
     ? Array<InferSchema<SCHEMA>>
     : InferSchema<SCHEMA>,
 >(
-  options: Omit<CallSettings, 'stopSequences'> &
+  options: Omit<CallSettings<any>, 'stopSequences'> &
     Prompt &
     (OUTPUT extends 'enum'
       ? {
@@ -353,9 +350,11 @@ export function streamObject<
   });
 }
 
-class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
-  implements StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
-{
+class DefaultStreamObjectResult<
+  PARTIAL,
+  RESULT,
+  ELEMENT_STREAM,
+> implements StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM> {
   private readonly _object = new DelayedPromise<RESULT>();
   private readonly _usage = new DelayedPromise<LanguageModelUsage>();
   private readonly _providerMetadata = new DelayedPromise<
@@ -401,7 +400,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     model: LanguageModel;
     telemetry: TelemetrySettings | undefined;
     headers: Record<string, string | undefined> | undefined;
-    settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
+    settings: Omit<CallSettings<any>, 'abortSignal' | 'headers'>;
     maxRetries: number | undefined;
     abortSignal: AbortSignal | undefined;
     outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
@@ -695,7 +694,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     }
 
                     // store finish reason for telemetry:
-                    finishReason = chunk.finishReason.unified;
+                    finishReason = chunk.finishReason?.unified;
 
                     // store usage and metadata for promises and onFinish callback:
                     usage = asLanguageModelUsage(chunk.usage);
@@ -703,7 +702,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
                     controller.enqueue({
                       ...chunk,
-                      finishReason: chunk.finishReason.unified,
+                      finishReason: chunk.finishReason?.unified,
                       usage,
                       response: fullResponse,
                     });

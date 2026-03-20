@@ -112,16 +112,13 @@ const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
  */
 export async function generateObject<
   SCHEMA extends FlexibleSchema<unknown> = FlexibleSchema<JSONValue>,
-  OUTPUT extends
-    | 'object'
-    | 'array'
-    | 'enum'
-    | 'no-schema' = InferSchema<SCHEMA> extends string ? 'enum' : 'object',
+  OUTPUT extends 'object' | 'array' | 'enum' | 'no-schema' =
+    InferSchema<SCHEMA> extends string ? 'enum' : 'object',
   RESULT = OUTPUT extends 'array'
     ? Array<InferSchema<SCHEMA>>
     : InferSchema<SCHEMA>,
 >(
-  options: Omit<CallSettings, 'stopSequences'> &
+  options: Omit<CallSettings<any>, 'stopSequences'> &
     Prompt &
     (OUTPUT extends 'enum'
       ? {
@@ -366,7 +363,7 @@ export async function generateObject<
                     'No object generated: the model did not return a response.',
                   response: responseData,
                   usage: asLanguageModelUsage(result.usage),
-                  finishReason: result.finishReason.unified,
+                  finishReason: result.finishReason?.unified,
                 });
               }
 
@@ -375,7 +372,7 @@ export async function generateObject<
                 await selectTelemetryAttributes({
                   telemetry,
                   attributes: {
-                    'ai.response.finishReason': result.finishReason.unified,
+                    'ai.response.finishReason': result.finishReason?.unified,
                     'ai.response.object': { output: () => text },
                     'ai.response.id': responseData.id,
                     'ai.response.model': responseData.modelId,
@@ -392,7 +389,7 @@ export async function generateObject<
 
                     // standardized gen-ai llm span attributes:
                     'gen_ai.response.finish_reasons': [
-                      result.finishReason.unified,
+                      result.finishReason?.unified,
                     ],
                     'gen_ai.response.id': responseData.id,
                     'gen_ai.response.model': responseData.modelId,
@@ -414,7 +411,7 @@ export async function generateObject<
         );
 
         result = generateResult.objectText;
-        finishReason = generateResult.finishReason.unified;
+        finishReason = generateResult.finishReason?.unified;
         usage = asLanguageModelUsage(generateResult.usage);
         warnings = generateResult.warnings;
         resultProviderMetadata = generateResult.providerMetadata;
