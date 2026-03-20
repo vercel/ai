@@ -15,11 +15,6 @@ import {
   FetchFunction,
   generateId,
   injectJsonInstructionIntoMessages,
-<<<<<<< HEAD
-=======
-  isCustomReasoning,
-  mapReasoningToProviderEffort,
->>>>>>> 737b8f4f0 (feat(provider/mistral): add support for reasoning configuration (mistral-small-latest) (#13688))
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
@@ -106,40 +101,6 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
-<<<<<<< HEAD
-=======
-    const supportsReasoningEffort =
-      this.modelId === 'mistral-small-latest' ||
-      this.modelId === 'mistral-small-2603';
-
-    let resolvedReasoningEffort: string | undefined;
-    if (supportsReasoningEffort) {
-      resolvedReasoningEffort =
-        options.reasoningEffort ??
-        (isCustomReasoning(reasoning)
-          ? reasoning === 'none'
-            ? 'none'
-            : mapReasoningToProviderEffort({
-                reasoning,
-                effortMap: {
-                  minimal: 'high',
-                  low: 'high',
-                  medium: 'high',
-                  high: 'high',
-                  xhigh: 'high',
-                },
-                warnings,
-              })
-          : undefined);
-    } else if (isCustomReasoning(reasoning)) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'reasoning',
-        details: 'This model does not support reasoning configuration.',
-      });
-    }
-
->>>>>>> 737b8f4f0 (feat(provider/mistral): add support for reasoning configuration (mistral-small-latest) (#13688))
     const structuredOutputs = options.structuredOutputs ?? true;
     const strictJsonSchema = options.strictJsonSchema ?? false;
 
@@ -164,7 +125,7 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       temperature,
       top_p: topP,
       random_seed: seed,
-      reasoning_effort: resolvedReasoningEffort,
+      reasoning_effort: options.reasoningEffort,
 
       // response format:
       response_format:
