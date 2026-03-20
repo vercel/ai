@@ -121,9 +121,9 @@ export type HttpChatTransportInitOptions<UI_MESSAGE extends UIMessage> = {
   prepareReconnectToStreamRequest?: PrepareReconnectToStreamRequest;
 };
 
-export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
-  implements ChatTransport<UI_MESSAGE>
-{
+export abstract class HttpChatTransport<
+  UI_MESSAGE extends UIMessage,
+> implements ChatTransport<UI_MESSAGE> {
   protected api: string;
   protected credentials: HttpChatTransportInitOptions<UI_MESSAGE>['credentials'];
   protected headers: HttpChatTransportInitOptions<UI_MESSAGE>['headers'];

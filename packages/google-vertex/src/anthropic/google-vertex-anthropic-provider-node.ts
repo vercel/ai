@@ -9,8 +9,7 @@ import {
 
 export type { GoogleVertexAnthropicProvider };
 
-export interface GoogleVertexAnthropicProviderSettings
-  extends GoogleVertexAnthropicProviderSettingsOriginal {
+export interface GoogleVertexAnthropicProviderSettings extends GoogleVertexAnthropicProviderSettingsOriginal {
   /**
  Optional. The Authentication options provided by google-auth-library.
 Complete list of authentication options is documented in the

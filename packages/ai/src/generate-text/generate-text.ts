@@ -732,9 +732,10 @@ async function executeTools<TOOLS extends ToolSet>({
   );
 }
 
-class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
-  implements GenerateTextResult<TOOLS, OUTPUT>
-{
+class DefaultGenerateTextResult<
+  TOOLS extends ToolSet,
+  OUTPUT,
+> implements GenerateTextResult<TOOLS, OUTPUT> {
   readonly steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
 
   private readonly resolvedOutput: OUTPUT;
