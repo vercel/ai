@@ -179,7 +179,7 @@ const modelWithCustom = new MockLanguageModelV4({
       { type: 'text-end', id: '1' },
       {
         type: 'custom',
-        kind: 'openai-compaction',
+        kind: 'openai.compaction',
         providerMetadata: {
           openai: { itemId: 'cmp_123' },
         },
@@ -1039,7 +1039,7 @@ describe('streamText', () => {
               "type": "text-end",
             },
             {
-              "kind": "openai-compaction",
+              "kind": "openai.compaction",
               "providerMetadata": {
                 "openai": {
                   "itemId": "cmp_123",
@@ -3559,7 +3559,7 @@ describe('streamText', () => {
               "type": "text-end",
             },
             {
-              "kind": "openai-compaction",
+              "kind": "openai.compaction",
               "providerMetadata": {
                 "openai": {
                   "itemId": "cmp_123",
@@ -7007,7 +7007,7 @@ describe('streamText', () => {
           type: 'text-delta',
         },
         {
-          kind: 'openai-compaction',
+          kind: 'openai.compaction',
           providerMetadata: {
             openai: { itemId: 'cmp_123' },
           },
@@ -7644,7 +7644,7 @@ describe('streamText', () => {
           type: 'text',
         },
         {
-          kind: 'openai-compaction',
+          kind: 'openai.compaction',
           providerMetadata: {
             openai: { itemId: 'cmp_123' },
           },
