@@ -15,6 +15,7 @@ import {
   FetchFunction,
   generateId,
   injectJsonInstructionIntoMessages,
+  isCustomReasoning,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
@@ -69,6 +70,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
     topK,
     frequencyPenalty,
     presencePenalty,
+    reasoning,
     stopSequences,
     responseFormat,
     seed,
@@ -99,6 +101,14 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
 
     if (stopSequences != null) {
       warnings.push({ type: 'unsupported', feature: 'stopSequences' });
+    }
+
+    if (isCustomReasoning(reasoning)) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details: 'This provider does not support reasoning configuration.',
+      });
     }
 
     const structuredOutputs = options.structuredOutputs ?? true;

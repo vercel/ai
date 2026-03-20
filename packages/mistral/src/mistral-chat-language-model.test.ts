@@ -684,6 +684,26 @@ describe('doGenerate', () => {
       ]
     `);
   });
+
+  describe('warnings', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('mistral-text');
+    });
+
+    it('should warn about unsupported reasoning', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'reasoning',
+        }),
+      );
+    });
+  });
 });
 
 describe('doStream', () => {
