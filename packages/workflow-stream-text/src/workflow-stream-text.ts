@@ -16,12 +16,14 @@ import {
   toResponseMessages,
 } from 'ai/internal';
 import type {
+  AssistantModelMessage,
   LanguageModel,
   PrepareStepFunction,
   StepResult,
   StopCondition,
   TextStreamPart,
   ToolChoice,
+  ToolModelMessage,
   ToolSet,
 } from 'ai';
 
@@ -223,10 +225,7 @@ export async function* workflowStreamText<TOOLS extends ToolSet>(
 
   const callId = generateCallId();
   const recordedSteps: StepResult<TOOLS>[] = [];
-  const responseMessages: Array<
-    | import('@ai-sdk/provider-utils').AssistantModelMessage
-    | import('@ai-sdk/provider-utils').ToolModelMessage
-  > = [];
+  const responseMessages: Array<AssistantModelMessage | ToolModelMessage> = [];
 
   let stepNumber = 0;
 
