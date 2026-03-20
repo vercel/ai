@@ -1,13 +1,12 @@
-import { cohere } from '@ai-sdk/cohere';
+import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: cohere('command-a-reasoning-08-2025'),
-    reasoning: 'medium',
-    prompt:
-      "Alice has 3 brothers and she also has 2 sisters. How many sisters does Alice's brother have?",
+    model: xai.responses('grok-3-mini-latest'),
+    reasoning: 'xhigh',
+    prompt: 'How many "r"s are in the word "strawberry"?',
   });
 
   console.log('Reasoning:');

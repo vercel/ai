@@ -1,13 +1,12 @@
-import { cohere } from '@ai-sdk/cohere';
+import { fireworks } from '@ai-sdk/fireworks';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: cohere('command-a-reasoning-08-2025'),
+    model: fireworks('accounts/fireworks/models/gpt-oss-120b'),
     reasoning: 'medium',
-    prompt:
-      "Alice has 3 brothers and she also has 2 sisters. How many sisters does Alice's brother have?",
+    prompt: 'How many "r"s are in the word "strawberry"?',
   });
 
   let enteredReasoning = false;

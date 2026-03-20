@@ -1,13 +1,15 @@
-import { cohere } from '@ai-sdk/cohere';
+import { groq, type GroqLanguageModelOptions } from '@ai-sdk/groq';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: cohere('command-a-reasoning-08-2025'),
+    model: groq('openai/gpt-oss-120b'),
     reasoning: 'medium',
-    prompt:
-      "Alice has 3 brothers and she also has 2 sisters. How many sisters does Alice's brother have?",
+    providerOptions: {
+      groq: { reasoningFormat: 'parsed' } satisfies GroqLanguageModelOptions,
+    },
+    prompt: 'How many "r"s are in the word "strawberry"?',
   });
 
   console.log('Reasoning:');
