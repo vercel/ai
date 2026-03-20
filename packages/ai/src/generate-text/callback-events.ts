@@ -16,7 +16,7 @@ import type { ToolSet } from './tool-set';
 /**
  * Common model information used across callback events.
  */
-export interface ModelEventInfo {
+export interface CallbackModelInfo {
   /** The provider identifier (e.g., 'openai', 'anthropic'). */
   readonly provider: string;
   /** The specific model identifier (e.g., 'gpt-4o'). */
@@ -34,7 +34,7 @@ export interface OnStartEvent<
   INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
   /** The model being used for generation. */
-  readonly model: ModelEventInfo;
+  readonly model: CallbackModelInfo;
 
   /** The system message(s) provided to the model. */
   readonly system:
@@ -137,7 +137,7 @@ export interface OnStepStartEvent<
   readonly stepNumber: number;
 
   /** The model being used for this step. */
-  readonly model: ModelEventInfo;
+  readonly model: CallbackModelInfo;
 
   /**
    * The system message for this step.
@@ -221,7 +221,7 @@ export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
   readonly stepNumber: number | undefined;
 
   /** The model being used for this step. */
-  readonly model: ModelEventInfo | undefined;
+  readonly model: CallbackModelInfo | undefined;
 
   /** The full tool call object. */
   readonly toolCall: TypedToolCall<TOOLS>;
@@ -253,7 +253,7 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
   readonly stepNumber: number | undefined;
 
   /** The model being used for this step. */
-  readonly model: ModelEventInfo | undefined;
+  readonly model: CallbackModelInfo | undefined;
 
   /** The full tool call object. */
   readonly toolCall: TypedToolCall<TOOLS>;
