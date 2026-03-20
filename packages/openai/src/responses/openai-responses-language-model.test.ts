@@ -7141,8 +7141,8 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "finishReason": {
-                  "raw": undefined,
-                  "unified": "other",
+                  "raw": "error",
+                  "unified": "error",
                 },
                 "providerMetadata": {
                   "openai": {
@@ -7167,6 +7167,55 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
             ]
           `);
+      });
+
+      it('should expose raw finish reason from response.failed incomplete details', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","sequence_number":0,"response":{"id":"resp_failed_with_reason","created_at":1741269019,"model":"gpt-4o-2024-07-18","service_tier":null}}\n\n`,
+            `data:{"type":"error","sequence_number":1,"error":{"type":"server_error","code":"server_error","message":"response failed","param":null}}\n\n`,
+            `data:{"type":"response.failed","sequence_number":2,"response":{"error":{"code":"server_error","message":"response failed"},"incomplete_details":{"reason":"max_output_tokens"},"usage":null,"service_tier":null}}\n\n`,
+          ],
+        };
+
+        const { stream } = await createModel('gpt-4o-mini').doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+        const finishEvent = events.find(
+          (
+            event,
+          ): event is Extract<LanguageModelV4StreamPart, { type: 'finish' }> =>
+            event.type === 'finish',
+        );
+
+        const errorEvent = events.find(
+          (
+            event,
+          ): event is Extract<LanguageModelV4StreamPart, { type: 'error' }> =>
+            event.type === 'error',
+        );
+        expect(finishEvent).toMatchObject({
+          type: 'finish',
+          finishReason: {
+            unified: 'length',
+            raw: 'max_output_tokens',
+          },
+        });
+
+        expect(errorEvent).toMatchObject({
+          type: 'error',
+          error: {
+            type: 'error',
+            error: {
+              code: 'server_error',
+              message: 'response failed',
+            },
+          },
+        });
       });
     });
 
