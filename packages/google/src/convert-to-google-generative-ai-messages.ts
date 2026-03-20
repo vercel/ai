@@ -42,6 +42,80 @@ function convertUrlToolResultPart(
   };
 }
 
+/*
+ * Appends tool result content parts to the message using the functionResponse
+ * format with support for multimodal parts (e.g. inline images/files alongside
+ * text). This format is supported by Gemini 3+ models.
+ */
+function appendToolResultParts(
+  parts: GoogleGenerativeAIContentPart[],
+  toolName: string,
+  outputValue: Array<{
+    type: string;
+    [key: string]: unknown;
+  }>,
+): void {
+  const functionResponseParts: GoogleGenerativeAIFunctionResponsePart[] = [];
+  const responseTextParts: string[] = [];
+
+  for (const contentPart of outputValue) {
+    switch (contentPart.type) {
+      case 'text': {
+        responseTextParts.push(contentPart.text as string);
+        break;
+      }
+      case 'image-data':
+      case 'file-data': {
+        functionResponseParts.push({
+          inlineData: {
+            mimeType: contentPart.mediaType as string,
+            data: contentPart.data as string,
+          },
+        });
+        break;
+      }
+      case 'image-url':
+      case 'file-url': {
+        const functionResponsePart = convertUrlToolResultPart(
+          contentPart.url as string,
+        );
+
+        if (functionResponsePart != null) {
+          functionResponseParts.push(functionResponsePart);
+        } else {
+          responseTextParts.push(JSON.stringify(contentPart));
+        }
+        break;
+      }
+      default: {
+        responseTextParts.push(JSON.stringify(contentPart));
+        break;
+      }
+    }
+  }
+
+  parts.push({
+    functionResponse: {
+      name: toolName,
+      response: {
+        name: toolName,
+        content:
+          responseTextParts.length > 0
+            ? responseTextParts.join('\n')
+            : 'Tool executed successfully.',
+      },
+      ...(functionResponseParts.length > 0
+        ? { parts: functionResponseParts }
+        : {}),
+    },
+  });
+}
+
+/*
+ * Appends tool result content parts using a legacy format for pre-Gemini 3
+ * models that do not support multimodal parts within functionResponse. Instead,
+ * non-text content like images is sent as separate top-level inlineData parts.
+ */
 function appendLegacyToolResultParts(
   parts: GoogleGenerativeAIContentPart[],
   toolName: string,
@@ -258,66 +332,11 @@ export function convertToGoogleGenerativeAIMessages(
           const output = part.output;
 
           if (output.type === 'content') {
-            if (!supportsFunctionResponseParts) {
+            if (supportsFunctionResponseParts) {
+              appendToolResultParts(parts, part.toolName, output.value);
+            } else {
               appendLegacyToolResultParts(parts, part.toolName, output.value);
-              continue;
             }
-
-            const functionResponseParts: GoogleGenerativeAIFunctionResponsePart[] =
-              [];
-            const responseTextParts: string[] = [];
-
-            for (const contentPart of output.value) {
-              switch (contentPart.type) {
-                case 'text': {
-                  responseTextParts.push(contentPart.text);
-                  break;
-                }
-                case 'image-data':
-                case 'file-data': {
-                  functionResponseParts.push({
-                    inlineData: {
-                      mimeType: contentPart.mediaType,
-                      data: contentPart.data,
-                    },
-                  });
-                  break;
-                }
-                case 'image-url':
-                case 'file-url': {
-                  const functionResponsePart = convertUrlToolResultPart(
-                    contentPart.url,
-                  );
-
-                  if (functionResponsePart != null) {
-                    functionResponseParts.push(functionResponsePart);
-                  } else {
-                    responseTextParts.push(JSON.stringify(contentPart));
-                  }
-                  break;
-                }
-                default: {
-                  responseTextParts.push(JSON.stringify(contentPart));
-                  break;
-                }
-              }
-            }
-
-            parts.push({
-              functionResponse: {
-                name: part.toolName,
-                response: {
-                  name: part.toolName,
-                  content:
-                    responseTextParts.length > 0
-                      ? responseTextParts.join('\n')
-                      : 'Tool executed successfully.',
-                },
-                ...(functionResponseParts.length > 0
-                  ? { parts: functionResponseParts }
-                  : {}),
-              },
-            });
           } else {
             parts.push({
               functionResponse: {
