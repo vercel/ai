@@ -3,17 +3,17 @@ import { ToolSet } from './tool-set';
 import { ModelMessage } from '@ai-sdk/provider-utils';
 
 export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
-  stepInputMessages,
   stream,
   tools,
+  stepInputMessages,
   abortSignal,
   experimental_context,
 }: {
+  stream: ReadableStream<UglyTransformedStreamTextPart<TOOLS>>;
+  tools: TOOLS | undefined;
   stepInputMessages: Array<ModelMessage>;
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
-  stream: ReadableStream<UglyTransformedStreamTextPart<TOOLS>>;
-  tools: TOOLS | undefined;
 }): ReadableStream<UglyTransformedStreamTextPart<TOOLS>> {
   if (tools == null) return stream;
 
@@ -22,6 +22,8 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
   return stream.pipeThrough(
     new TransformStream({
       async transform(chunk, controller) {
+        controller.enqueue(chunk);
+
         switch (chunk.type) {
           case 'tool-input-start': {
             ongoingToolCallToolNames[chunk.id] = chunk.toolName;
@@ -36,18 +38,11 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
               });
             }
 
-            // TODO MIGRATE
-            controller.enqueue({
-              ...chunk,
-              dynamic: chunk.dynamic ?? tool?.type === 'dynamic',
-              title: tool?.title,
-            });
             break;
           }
 
           case 'tool-input-end': {
             delete ongoingToolCallToolNames[chunk.id];
-            controller.enqueue(chunk);
             break;
           }
 
@@ -65,12 +60,6 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
               });
             }
 
-            controller.enqueue(chunk);
-            break;
-          }
-
-          default: {
-            controller.enqueue(chunk);
             break;
           }
         }

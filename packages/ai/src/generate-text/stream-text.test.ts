@@ -18991,6 +18991,7 @@ describe('streamText', () => {
                     "serverName": "echo",
                   },
                 },
+                "title": undefined,
                 "toolName": "cityAttractions",
                 "type": "tool-input-start",
               },
