@@ -1,5 +1,13 @@
 # @ai-sdk/alibaba
 
+## 2.0.0-beta.11
+
+### Patch Changes
+
+- 74d520f: feat: migrate providers to support new top-level `reasoning` parameter
+- Updated dependencies [74d520f]
+  - @ai-sdk/openai-compatible@3.0.0-beta.9
+
 ## 2.0.0-beta.10
 
 ### Patch Changes
