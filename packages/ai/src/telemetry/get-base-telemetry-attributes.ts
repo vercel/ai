@@ -9,7 +9,7 @@ export function getBaseTelemetryAttributes({
   headers,
 }: {
   model: { modelId: string; provider: string };
-  settings: Omit<CallSettings, 'abortSignal' | 'headers' | 'temperature'>;
+  settings: Omit<CallSettings<any>, 'abortSignal' | 'headers' | 'temperature'>;
   telemetry: TelemetrySettings | undefined;
   headers: Record<string, string | undefined> | undefined;
 }): Attributes {
@@ -36,7 +36,9 @@ export function getBaseTelemetryAttributes({
     // add metadata as attributes:
     ...Object.entries(telemetry?.metadata ?? {}).reduce(
       (attributes, [key, value]) => {
-        attributes[`ai.telemetry.metadata.${key}`] = value;
+        if (value != undefined) {
+          attributes[`ai.telemetry.metadata.${key}`] = value as AttributeValue;
+        }
         return attributes;
       },
       {} as Attributes,

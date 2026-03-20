@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV3,
-  type SharedV3Warning,
+  type Experimental_VideoModelV4,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -115,8 +115,8 @@ interface ByteDanceVideoModelConfig extends ByteDanceConfig {
   };
 }
 
-export class ByteDanceVideoModel implements Experimental_VideoModelV3 {
-  readonly specificationVersion = 'v3';
+export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
   get provider(): string {
@@ -129,10 +129,10 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV3 {
   ) {}
 
   async doGenerate(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
+    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
 
     const byteDanceOptions = (await parseProviderOptions({
       provider: 'bytedance',

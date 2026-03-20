@@ -1,8 +1,8 @@
 import {
-  LanguageModelV3,
-  LanguageModelV3StreamResult,
-  LanguageModelV3Usage,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4StreamResult,
+  LanguageModelV4Usage,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   InferSchema,
@@ -85,7 +85,7 @@ type RenderText = Renderer<
 
 type RenderResult = {
   value: ReactNode;
-} & LanguageModelV3StreamResult;
+} & LanguageModelV4StreamResult;
 
 const defaultTextRenderer: RenderText = ({ content }: { content: string }) =>
   content;
@@ -110,12 +110,12 @@ export async function streamUI<
   providerOptions,
   onFinish,
   ...settings
-}: CallSettings &
+}: CallSettings<any> &
   Prompt & {
     /**
      * The language model to use.
      */
-    model: LanguageModelV3;
+    model: LanguageModelV4;
 
     /**
      * The tools that the model can call. The model needs to support calling tools.
@@ -206,7 +206,7 @@ export async function streamUI<
 
   let finishEvent: {
     finishReason: FinishReason;
-    usage: LanguageModelV3Usage;
+    usage: LanguageModelV4Usage;
     warnings?: CallWarning[];
     response?: {
       headers?: Record<string, string>;
@@ -296,7 +296,7 @@ export async function streamUI<
     try {
       let content = '';
       let hasToolCall = false;
-      let warnings: SharedV3Warning[] | undefined;
+      let warnings: SharedV4Warning[] | undefined;
 
       const reader = forkedStream.getReader();
       while (true) {

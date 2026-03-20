@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV3,
+  EmbeddingModelV4,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -26,8 +26,8 @@ type GoogleGenerativeAIEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
-  readonly specificationVersion = 'v3';
+export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV4 {
+  readonly specificationVersion = 'v4';
   readonly modelId: GoogleGenerativeAIEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
@@ -50,8 +50,8 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
+  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
   > {
     // Parse provider options
     const googleOptions = await parseProviderOptions({
@@ -74,14 +74,24 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
       headers,
     );
 
-    const multimodalContent = googleOptions?.content ?? [];
+    const multimodalContent = googleOptions?.content;
+
+    if (
+      multimodalContent != null &&
+      multimodalContent.length !== values.length
+    ) {
+      throw new Error(
+        `The number of multimodal content entries (${multimodalContent.length}) must match the number of values (${values.length}).`,
+      );
+    }
 
     // For single embeddings, use the single endpoint
     if (values.length === 1) {
+      const valueParts = multimodalContent?.[0];
       const textPart = values[0] ? [{ text: values[0] }] : [];
       const parts =
-        multimodalContent.length > 0
-          ? [...textPart, ...multimodalContent]
+        valueParts != null
+          ? [...textPart, ...valueParts]
           : [{ text: values[0] }];
 
       const {
@@ -116,7 +126,6 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
     }
 
     // For multiple values, use the batch endpoint
-    // If multimodal content is provided, merge it into each request's parts
     const {
       responseHeaders,
       value: response,
@@ -125,15 +134,16 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
       url: `${this.config.baseURL}/models/${this.modelId}:batchEmbedContents`,
       headers: mergedHeaders,
       body: {
-        requests: values.map(value => {
+        requests: values.map((value, index) => {
+          const valueParts = multimodalContent?.[index];
           const textPart = value ? [{ text: value }] : [];
           return {
             model: `models/${this.modelId}`,
             content: {
               role: 'user',
               parts:
-                multimodalContent.length > 0
-                  ? [...textPart, ...multimodalContent]
+                valueParts != null
+                  ? [...textPart, ...valueParts]
                   : [{ text: value }],
             },
             outputDimensionality: googleOptions?.outputDimensionality,
