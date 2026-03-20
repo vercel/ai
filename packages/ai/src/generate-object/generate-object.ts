@@ -112,16 +112,13 @@ const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
  */
 export async function generateObject<
   SCHEMA extends FlexibleSchema<unknown> = FlexibleSchema<JSONValue>,
-  OUTPUT extends
-    | 'object'
-    | 'array'
-    | 'enum'
-    | 'no-schema' = InferSchema<SCHEMA> extends string ? 'enum' : 'object',
+  OUTPUT extends 'object' | 'array' | 'enum' | 'no-schema' =
+    InferSchema<SCHEMA> extends string ? 'enum' : 'object',
   RESULT = OUTPUT extends 'array'
     ? Array<InferSchema<SCHEMA>>
     : InferSchema<SCHEMA>,
 >(
-  options: Omit<CallSettings, 'stopSequences'> &
+  options: Omit<CallSettings<any>, 'stopSequences'> &
     Prompt &
     (OUTPUT extends 'enum'
       ? {

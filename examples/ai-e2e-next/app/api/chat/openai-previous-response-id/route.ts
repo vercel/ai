@@ -50,9 +50,9 @@ export async function POST(req: Request) {
         messages: await convertToModelMessages([message]),
         tools,
         stopWhen: stepCountIs(20),
+        reasoning: 'low',
         providerOptions: {
           openai: {
-            reasoningEffort: 'low',
             reasoningSummary: 'auto',
             store: true,
             // Enable history lookup by passing the responseId from the previous call.

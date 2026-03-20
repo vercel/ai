@@ -8,7 +8,6 @@ run(async () => {
     model: openai.responses('gpt-5.2-codex'),
     tools: {
       write_sql: openai.tools.customTool({
-        name: 'write_sql',
         description: 'Write a SQL SELECT query to answer the user question.',
         format: {
           type: 'grammar',

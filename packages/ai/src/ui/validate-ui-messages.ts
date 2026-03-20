@@ -42,6 +42,11 @@ const uiMessagesSchema = lazySchema(() =>
                   providerMetadata: providerMetadataSchema.optional(),
                 }),
                 z.object({
+                  type: z.literal('custom'),
+                  kind: z.string(),
+                  providerMetadata: providerMetadataSchema.optional(),
+                }),
+                z.object({
                   type: z.literal('source-url'),
                   sourceId: z.string(),
                   url: z.string(),

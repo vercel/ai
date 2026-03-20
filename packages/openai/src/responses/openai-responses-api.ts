@@ -34,7 +34,8 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesToolSearchCall
   | OpenAIResponsesToolSearchOutput
   | OpenAIResponsesReasoning
-  | OpenAIResponsesItemReference;
+  | OpenAIResponsesItemReference
+  | OpenAIResponsesCompactionItem;
 
 export type OpenAIResponsesIncludeValue =
   | 'web_search_call.action.sources'
@@ -233,6 +234,12 @@ export type OpenAIResponsesToolSearchOutput = {
 export type OpenAIResponsesItemReference = {
   type: 'item_reference';
   id: string;
+};
+
+export type OpenAIResponsesCompactionItem = {
+  type: 'compaction';
+  id: string;
+  encrypted_content: string;
 };
 
 /**
@@ -612,6 +619,11 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             }),
           }),
           z.object({
+            type: z.literal('compaction'),
+            id: z.string(),
+            encrypted_content: z.string().nullish(),
+          }),
+          z.object({
             type: z.literal('shell_call_output'),
             id: z.string(),
             call_id: z.string(),
@@ -849,6 +861,11 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             action: z.object({
               commands: z.array(z.string()),
             }),
+          }),
+          z.object({
+            type: z.literal('compaction'),
+            id: z.string(),
+            encrypted_content: z.string(),
           }),
           z.object({
             type: z.literal('shell_call_output'),
@@ -1288,6 +1305,11 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               action: z.object({
                 commands: z.array(z.string()),
               }),
+            }),
+            z.object({
+              type: z.literal('compaction'),
+              id: z.string(),
+              encrypted_content: z.string(),
             }),
             z.object({
               type: z.literal('shell_call_output'),
