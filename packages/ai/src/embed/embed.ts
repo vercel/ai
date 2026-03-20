@@ -1,8 +1,4 @@
-import {
-  createIdGenerator,
-  ProviderOptions,
-  withUserAgentSuffix,
-} from '@ai-sdk/provider-utils';
+import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -12,17 +8,9 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { EmbeddingModel } from '../types';
-import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
-import type { EmbedOnFinishEvent, EmbedOnStartEvent } from './embed-events';
 import { EmbedResult } from './embed-result';
 import { VERSION } from '../version';
-import type { Listener } from '../util/notify';
-
-const originalGenerateCallId = createIdGenerator({
-  prefix: 'call',
-  size: 24,
-});
 
 /**
  * Embed a value using an embedding model. The type of the value is defined by the embedding model.
@@ -50,9 +38,6 @@ export async function embed({
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
-  experimental_onStart: onStart,
-  experimental_onFinish: onFinish,
-  _internal: { generateCallId = originalGenerateCallId } = {},
 }: {
   /**
    * The embedding model to use.
@@ -93,25 +78,6 @@ export async function embed({
    * Optional telemetry configuration (experimental).
    */
   experimental_telemetry?: TelemetrySettings;
-
-  /**
-   * Callback that is called when the embed operation begins,
-   * before the embedding model is called.
-   */
-  experimental_onStart?: Listener<EmbedOnStartEvent>;
-
-  /**
-   * Callback that is called when the embed operation completes,
-   * after the embedding model returns.
-   */
-  experimental_onFinish?: Listener<EmbedOnFinishEvent>;
-
-  /**
-   * Internal. For test use only. May change without notice.
-   */
-  _internal?: {
-    generateCallId?: () => string;
-  };
 }): Promise<EmbedResult> {
   const model = resolveEmbeddingModel(modelArg);
 
@@ -124,28 +90,6 @@ export async function embed({
     headers ?? {},
     `ai/${VERSION}`,
   );
-
-  const callId = generateCallId();
-  const modelInfo = { provider: model.provider, modelId: model.modelId };
-
-  await notify({
-    event: {
-      callId,
-      operationId: 'ai.embed',
-      model: modelInfo,
-      value,
-      maxRetries,
-      abortSignal,
-      headers: headersWithUserAgent,
-      providerOptions,
-      isEnabled: telemetry?.isEnabled,
-      recordInputs: telemetry?.recordInputs,
-      recordOutputs: telemetry?.recordOutputs,
-      functionId: telemetry?.functionId,
-      metadata: telemetry?.metadata,
-    },
-    callbacks: [onStart],
-  });
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model: model,
@@ -234,26 +178,6 @@ export async function embed({
       );
 
       logWarnings({ warnings, provider: model.provider, model: model.modelId });
-
-      await notify({
-        event: {
-          callId,
-          operationId: 'ai.embed',
-          model: modelInfo,
-          value,
-          embedding,
-          usage,
-          warnings,
-          providerMetadata,
-          response,
-          isEnabled: telemetry?.isEnabled,
-          recordInputs: telemetry?.recordInputs,
-          recordOutputs: telemetry?.recordOutputs,
-          functionId: telemetry?.functionId,
-          metadata: telemetry?.metadata,
-        },
-        callbacks: [onFinish],
-      });
 
       return new DefaultEmbedResult({
         value,
