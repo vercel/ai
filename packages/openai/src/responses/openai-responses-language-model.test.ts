@@ -7141,8 +7141,8 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "finishReason": {
-                  "raw": "You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.",
-                  "unified": "stop",
+                  "raw": "error",
+                  "unified": "error",
                 },
                 "providerMetadata": {
                   "openai": {
@@ -7192,11 +7192,28 @@ describe('OpenAIResponsesLanguageModel', () => {
             event.type === 'finish',
         );
 
+        const errorEvent = events.find(
+          (
+            event,
+          ): event is Extract<LanguageModelV4StreamPart, { type: 'error' }> =>
+            event.type === 'error',
+        );
         expect(finishEvent).toMatchObject({
           type: 'finish',
           finishReason: {
             unified: 'length',
             raw: 'max_output_tokens',
+          },
+        });
+
+        expect(errorEvent).toMatchObject({
+          type: 'error',
+          error: {
+            type: 'error',
+            error: {
+              code: 'server_error',
+              message: 'response failed',
+            },
           },
         });
       });

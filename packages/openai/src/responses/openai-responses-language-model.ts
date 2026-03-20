@@ -2045,15 +2045,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 serviceTier = value.response.service_tier;
               }
             } else if (isResponseFailedChunk(value)) {
+              const incompleteReason =
+                value.response.incomplete_details?.reason;
               finishReason = {
-                unified: mapOpenAIResponseFinishReason({
-                  finishReason: value.response.incomplete_details?.reason,
-                  hasFunctionCall,
-                }),
-                raw:
-                  value.response.incomplete_details?.reason ??
-                  value.response.error?.message ??
-                  undefined,
+                unified: incompleteReason
+                  ? mapOpenAIResponseFinishReason({
+                      finishReason: incompleteReason,
+                      hasFunctionCall,
+                    })
+                  : 'error',
+                raw: incompleteReason ?? 'error',
               };
               usage = value.response.usage ?? undefined;
             } else if (isResponseAnnotationAddedChunk(value)) {
