@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.21
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+
 ## 4.0.20
 
 ### Patch Changes

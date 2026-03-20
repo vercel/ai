@@ -1,5 +1,13 @@
 # @ai-sdk/langchain
 
+## 2.0.139
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+  - ai@6.0.133
+
 ## 2.0.138
 
 ### Patch Changes

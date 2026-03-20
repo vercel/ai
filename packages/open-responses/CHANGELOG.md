@@ -1,5 +1,13 @@
 # @ai-sdk/open-responses
 
+## 1.0.8
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+  - @ai-sdk/provider-utils@4.0.21
+
 ## 1.0.7
 
 ### Patch Changes

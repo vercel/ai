@@ -1,5 +1,14 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.82
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+  - @ai-sdk/provider-utils@4.0.21
+  - @ai-sdk/anthropic@3.0.63
+
 ## 4.0.81
 
 ### Patch Changes
