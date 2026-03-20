@@ -161,17 +161,12 @@ function appendLegacyToolResultParts(
 }
 
 export function convertToGoogleGenerativeAIMessages(
-<<<<<<< HEAD
   prompt: LanguageModelV3Prompt,
-  options?: { isGemmaModel?: boolean; providerOptionsName?: string },
-=======
-  prompt: LanguageModelV4Prompt,
   options?: {
     isGemmaModel?: boolean;
     providerOptionsName?: string;
     supportsFunctionResponseParts?: boolean;
   },
->>>>>>> 18c1970e8 (fix(provider/google): support multimodal tool-result parts in function responses (#12777))
 ): GoogleGenerativeAIPrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
   const contents: Array<GoogleGenerativeAIContent> = [];
