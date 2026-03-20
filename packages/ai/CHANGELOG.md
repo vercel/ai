@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.31
+
+### Patch Changes
+
+- e79e644: chore(ai/core): remove `timeout` from `CallSettings` as it was effectively unused there
+
 ## 7.0.0-beta.30
 
 ### Patch Changes
