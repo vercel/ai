@@ -12,9 +12,9 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { delay } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
 
-class TestChatState<UI_MESSAGE extends UIMessage>
-  implements ChatState<UI_MESSAGE>
-{
+class TestChatState<
+  UI_MESSAGE extends UIMessage,
+> implements ChatState<UI_MESSAGE> {
   history: UI_MESSAGE[][] = [];
 
   status: ChatStatus = 'ready';
