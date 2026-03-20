@@ -41,11 +41,6 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
             break;
           }
 
-          case 'tool-input-end': {
-            delete ongoingToolCallToolNames[chunk.id];
-            break;
-          }
-
           case 'tool-input-delta': {
             const toolName = ongoingToolCallToolNames[chunk.id];
             const tool = tools?.[toolName];
@@ -61,6 +56,23 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
             }
 
             break;
+          }
+
+          case 'tool-call': {
+            const toolName = ongoingToolCallToolNames[chunk.toolCallId];
+            const tool = tools?.[toolName];
+
+            delete ongoingToolCallToolNames[chunk.toolCallId];
+
+            if (tool?.onInputAvailable != null) {
+              await tool.onInputAvailable({
+                input: chunk.input,
+                toolCallId: chunk.toolCallId,
+                messages: stepInputMessages,
+                abortSignal,
+                experimental_context,
+              });
+            }
           }
         }
       },

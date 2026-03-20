@@ -124,16 +124,6 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
             break;
           }
 
-          if (tool.onInputAvailable != null) {
-            await tool.onInputAvailable({
-              input: chunk.input,
-              toolCallId: chunk.toolCallId,
-              messages,
-              abortSignal,
-              experimental_context,
-            });
-          }
-
           if (
             await isApprovalNeeded({
               tool,
