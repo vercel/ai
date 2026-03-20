@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.33
+
+### Patch Changes
+
+- caf1b6f: feat(ai): introduce experimental callbacks for rerank function
+
 ## 7.0.0-beta.32
 
 ### Major Changes
