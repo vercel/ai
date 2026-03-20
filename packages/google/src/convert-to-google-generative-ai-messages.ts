@@ -29,6 +29,9 @@ function parseBase64DataUrl(
 function convertUrlToolResultPart(
   url: string,
 ): GoogleGenerativeAIFunctionResponsePart | undefined {
+  // Per https://ai.google.dev/api/caching#FunctionResponsePart, only inline data is supported.
+  // https://docs.cloud.google.com/vertex-ai/generative-ai/docs/model-reference/function-calling#functionresponsepart suggests that this
+  // may be different for Vertex, but this needs to be confirmed and further tested for both APIs.
   const parsedDataUrl = parseBase64DataUrl(url);
   if (parsedDataUrl == null) {
     return undefined;

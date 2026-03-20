@@ -1,5 +1,7 @@
 import { google } from '@ai-sdk/google';
 import { generateText, stepCountIs, tool } from 'ai';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { run } from '../../lib/run';
 import { z } from 'zod';
 
@@ -8,14 +10,19 @@ run(async () => {
     description: `Read and return an image`,
     inputSchema: z.object({}),
     execute: async () => {
-      return {
-        description: 'Successfully loaded image',
-        // This example currently does not work, neither with `google` nor with `vertex`, despite
-        // https://docs.cloud.google.com/vertex-ai/generative-ai/docs/model-reference/function-calling#functionresponsepart docs.
-        // The API doesn't error, but the model clearly doesn't see the image because it makes up something else.
-        imageUrl:
-          'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
-      };
+      try {
+        const imagePath = path.join(__dirname, '../../../data/comic-cat.png');
+        const imageData = await fs.readFile(imagePath);
+        const base64Data = imageData.toString('base64');
+
+        return {
+          success: true,
+          description: 'Successfully loaded image',
+          imageUrl: `data:image/png;base64,${base64Data}`,
+        };
+      } catch (error) {
+        throw new Error(`Failed to analyze image: ${error}`);
+      }
     },
     toModelOutput({ output }) {
       return {

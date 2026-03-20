@@ -1,5 +1,7 @@
 import { google } from '@ai-sdk/google';
 import { generateText, stepCountIs, tool } from 'ai';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { run } from '../../lib/run';
 import { z } from 'zod';
 
@@ -8,14 +10,19 @@ run(async () => {
     description: `Read and return a PDF document`,
     inputSchema: z.object({}),
     execute: async () => {
-      return {
-        description: 'Successfully loaded PDF document',
-        // This example currently does not work, neither with `google` nor with `vertex`, despite
-        // https://docs.cloud.google.com/vertex-ai/generative-ai/docs/model-reference/function-calling#functionresponsepart docs.
-        // The API doesn't error, but the model clearly doesn't see the image because it makes up something else.
-        pdfUrl:
-          'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf?raw=true',
-      };
+      try {
+        const pdfPath = path.join(__dirname, '../../../data/ai.pdf');
+        const pdfData = await fs.readFile(pdfPath);
+        const base64Data = pdfData.toString('base64');
+
+        return {
+          success: true,
+          description: 'Successfully loaded PDF document',
+          pdfUrl: `data:application/pdf;base64,${base64Data}`,
+        };
+      } catch (error) {
+        throw new Error(`Failed to analyze PDF: ${error}`);
+      }
     },
     toModelOutput({ output }) {
       return {
