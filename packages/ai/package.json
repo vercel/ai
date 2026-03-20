@@ -1,7 +1,7 @@
 {
   "name": "ai",
   "version": "5.0.157",
-  "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
+  "description": "AI SDK by Vercel - build apps like ChatGPT, Claude, Gemini, and more with a single interface for any model using the Vercel AI Gateway or go direct to OpenAI, Anthropic, Google, or any other model provider.",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
