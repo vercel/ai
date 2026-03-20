@@ -50,6 +50,20 @@ export function convertToGoogleGenerativeAIMessages(
               const mediaType =
                 part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
 
+              const providerOpts =
+                part.providerOptions?.[providerOptionsName] ??
+                (providerOptionsName !== 'google'
+                  ? part.providerOptions?.google
+                  : undefined);
+
+              const videoMetadata = providerOpts?.videoMetadata as
+                | {
+                    startOffset?: string;
+                    endOffset?: string;
+                    fps?: number;
+                  }
+                | undefined;
+
               parts.push(
                 part.data instanceof URL
                   ? {
@@ -57,12 +71,14 @@ export function convertToGoogleGenerativeAIMessages(
                         mimeType: mediaType,
                         fileUri: part.data.toString(),
                       },
+                      ...(videoMetadata != null ? { videoMetadata } : {}),
                     }
                   : {
                       inlineData: {
                         mimeType: mediaType,
                         data: convertToBase64(part.data),
                       },
+                      ...(videoMetadata != null ? { videoMetadata } : {}),
                     },
               );
 
