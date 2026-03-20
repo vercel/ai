@@ -1,4 +1,4 @@
-import { mistral, MistralLanguageModelOptions } from '@ai-sdk/mistral';
+import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
