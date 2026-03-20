@@ -23,7 +23,7 @@ import type {
   StreamTextTransform,
   TelemetrySettings,
 } from './durable-agent.js';
-import { toolsToModelTools } from './tools-to-model-tools.js';
+import { getToolDescriptors } from 'ai/internal';
 import type { CompatibleLanguageModel } from './types.js';
 
 // Re-export for consumers
@@ -264,7 +264,7 @@ export async function* streamTextIterator({
         conversationPrompt,
         currentModel,
         writable,
-        await toolsToModelTools(effectiveTools),
+        await getToolDescriptors(effectiveTools),
         {
           sendStart: sendStart && isFirstIteration,
           ...currentGenerationSettings,
