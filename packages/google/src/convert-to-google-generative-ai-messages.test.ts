@@ -353,62 +353,187 @@ describe('assistant messages', () => {
     ).toThrow('File data URLs in assistant messages are not supported');
   });
 
-  it('should convert tool result messages with content type (multipart with images)', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolName: 'imageGenerator',
-            toolCallId: 'testCallId',
-            output: {
-              type: 'content',
-              value: [
-                {
-                  type: 'text',
-                  text: 'Here is the generated image:',
-                },
-                {
-                  type: 'media',
-                  data: 'base64encodedimagedata',
-                  mediaType: 'image/jpeg',
-                },
-              ],
-            },
-          },
-        ],
-      },
-    ]);
-
-    expect(result).toEqual({
-      systemInstruction: undefined,
-      contents: [
+  it('should convert media tool result into functionResponse with parts (new path)', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
         {
-          role: 'user',
-          parts: [
+          role: 'tool',
+          content: [
             {
-              functionResponse: {
-                name: 'imageGenerator',
-                response: {
-                  name: 'imageGenerator',
-                  content: 'Here is the generated image:',
-                },
+              type: 'tool-result',
+              toolName: 'imageGenerator',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'media',
+                    data: 'base64encodedimagedata',
+                    mediaType: 'image/jpeg',
+                  },
+                ],
               },
-            },
-            {
-              inlineData: {
-                mimeType: 'image/jpeg',
-                data: 'base64encodedimagedata',
-              },
-            },
-            {
-              text: 'Tool executed successfully and returned this image as a response',
             },
           ],
         },
       ],
-    });
+      { supportsFunctionResponseParts: true },
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "functionResponse": {
+                  "name": "imageGenerator",
+                  "parts": [
+                    {
+                      "inlineData": {
+                        "data": "base64encodedimagedata",
+                        "mimeType": "image/jpeg",
+                      },
+                    },
+                  ],
+                  "response": {
+                    "content": "Tool executed successfully.",
+                    "name": "imageGenerator",
+                  },
+                },
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "systemInstruction": undefined,
+      }
+    `);
+  });
+
+  it('should convert text + media tool result into functionResponse with parts (new path)', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'imageGenerator',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'text',
+                    text: 'Here is the generated image:',
+                  },
+                  {
+                    type: 'media',
+                    data: 'base64encodedimagedata',
+                    mediaType: 'image/jpeg',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      { supportsFunctionResponseParts: true },
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "functionResponse": {
+                  "name": "imageGenerator",
+                  "parts": [
+                    {
+                      "inlineData": {
+                        "data": "base64encodedimagedata",
+                        "mimeType": "image/jpeg",
+                      },
+                    },
+                  ],
+                  "response": {
+                    "content": "Here is the generated image:",
+                    "name": "imageGenerator",
+                  },
+                },
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "systemInstruction": undefined,
+      }
+    `);
+  });
+
+  it('should convert tool result messages with content type using legacy path', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'imageGenerator',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'text',
+                    text: 'Here is the generated image:',
+                  },
+                  {
+                    type: 'media',
+                    data: 'base64encodedimagedata',
+                    mediaType: 'image/jpeg',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      { supportsFunctionResponseParts: false },
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "functionResponse": {
+                  "name": "imageGenerator",
+                  "response": {
+                    "content": "Here is the generated image:",
+                    "name": "imageGenerator",
+                  },
+                },
+              },
+              {
+                "inlineData": {
+                  "data": "base64encodedimagedata",
+                  "mimeType": "image/jpeg",
+                },
+              },
+              {
+                "text": "Tool executed successfully and returned this image as a response",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "systemInstruction": undefined,
+      }
+    `);
   });
 });
 

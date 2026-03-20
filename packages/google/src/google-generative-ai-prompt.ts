@@ -22,8 +22,12 @@ export type GoogleGenerativeAIContentPart =
   | { text: string; thought?: boolean; thoughtSignature?: string }
   | { inlineData: { mimeType: string; data: string } }
   | { functionCall: { name: string; args: unknown }; thoughtSignature?: string }
-  | { functionResponse: { name: string; response: unknown } }
+  | { functionResponse: { name: string; response: unknown; parts?: Array<GoogleGenerativeAIFunctionResponsePart> } }
   | { fileData: { mimeType: string; fileUri: string } };
+
+export type GoogleGenerativeAIFunctionResponsePart = {
+  inlineData: { mimeType: string; data: string };
+};
 
 export type GoogleGenerativeAIGroundingMetadata = GroundingMetadataSchema;
 
