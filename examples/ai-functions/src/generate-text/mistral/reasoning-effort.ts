@@ -1,12 +1,16 @@
-import { mistral } from '@ai-sdk/mistral';
+import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
     model: mistral('mistral-small-2603'),
-    reasoning: 'high',
     prompt: 'What is 2 + 2?',
+    providerOptions: {
+      mistral: {
+        reasoningEffort: 'high',
+      } satisfies MistralLanguageModelOptions,
+    },
   });
 
   console.log('Reasoning content:');
