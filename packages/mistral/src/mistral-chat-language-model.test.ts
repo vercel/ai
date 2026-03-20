@@ -276,6 +276,7 @@ describe('doGenerate', () => {
           ],
           "model": "mistral-small-latest",
           "random_seed": undefined,
+          "reasoning_effort": undefined,
           "response_format": undefined,
           "safe_prompt": undefined,
           "temperature": undefined,
@@ -320,6 +321,7 @@ describe('doGenerate', () => {
           ],
           "model": "mistral-small-latest",
           "random_seed": undefined,
+          "reasoning_effort": undefined,
           "response_format": {
             "type": "json_object",
           },
@@ -368,6 +370,7 @@ describe('doGenerate', () => {
           ],
           "model": "mistral-small-latest",
           "random_seed": undefined,
+          "reasoning_effort": undefined,
           "response_format": {
             "json_schema": {
               "description": undefined,
@@ -840,6 +843,7 @@ describe('doStream', () => {
           ],
           "model": "mistral-small-latest",
           "random_seed": undefined,
+          "reasoning_effort": undefined,
           "response_format": undefined,
           "safe_prompt": undefined,
           "stream": true,
