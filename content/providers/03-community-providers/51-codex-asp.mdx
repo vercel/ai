@@ -1,0 +1,232 @@
+---
+title: Codex ASP
+description: Learn how to use the Codex ASP provider for direct AI SDK tool support, thread continuation, and human-in-the-loop approvals with Codex app-server mode.
+---
+
+# Codex ASP Provider
+
+The [@janole/ai-sdk-provider-codex-asp](https://github.com/janole/ai-sdk-provider-codex-asp) community provider wraps [Codex](https://github.com/openai/codex) in app-server mode as a fully AI SDK v6-compatible language model.
+
+It bridges the gap between the AI SDK tool ecosystem and Codex's agentic capabilities, so you can use standard `tool()` definitions, streaming, and multi-turn conversations — all backed by Codex.
+
+### Key Differentiators
+
+- **AI SDK `tool()` support** — define tools with the standard AI SDK `tool()` API; the provider automatically injects them into Codex via dynamic tools and routes results back
+- **Thread continuation** — persistent worker pools enable multi-turn sessions that preserve full context, even across process restarts
+- **Human-in-the-loop approvals** — intercept Codex command execution and file changes through approval callbacks
+- **Streaming & non-streaming** — full support for both `streamText` and `generateText`
+
+## Setup
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @janole/ai-sdk-provider-codex-asp ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @janole/ai-sdk-provider-codex-asp ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @janole/ai-sdk-provider-codex-asp ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @janole/ai-sdk-provider-codex-asp ai" dark />
+  </Tab>
+</Tabs>
+
+You also need [Codex CLI](https://github.com/openai/codex) v0.106.0 or above (with app-server support) available in your `PATH`.
+
+## Provider Instance
+
+Create a provider instance with `createCodexAppServer`:
+
+```ts
+import { createCodexAppServer } from '@janole/ai-sdk-provider-codex-asp';
+
+const codex = createCodexAppServer();
+```
+
+The provider instance is also a function shorthand for creating language models:
+
+```ts
+const model = codex('gpt-5.3-codex');
+```
+
+## Quick Start
+
+```ts
+import { generateText } from 'ai';
+import { createCodexAppServer } from '@janole/ai-sdk-provider-codex-asp';
+
+const codex = createCodexAppServer();
+
+const { text } = await generateText({
+  model: codex('gpt-5.3-codex'),
+  prompt: 'Explain what Codex app-server mode does in one sentence.',
+});
+
+console.log(text);
+```
+
+## AI SDK Tools
+
+Use standard AI SDK `tool()` definitions — the provider injects them into Codex as dynamic tools and routes results back within the same session. No Codex-specific API required.
+
+Tool support requires a persistent transport so results can flow back:
+
+```ts
+import { stepCountIs, streamText, tool } from 'ai';
+import { z } from 'zod';
+import { createCodexAppServer } from '@janole/ai-sdk-provider-codex-asp';
+
+const codex = createCodexAppServer({
+  persistent: { scope: 'global', poolSize: 1, idleTimeoutMs: 60_000 },
+});
+
+const result = streamText({
+  model: codex('gpt-5.3-codex'),
+  prompt: 'Check ticket TICK-42 and the weather in Berlin.',
+  tools: {
+    lookupTicket: tool({
+      description: 'Get a support ticket by ID.',
+      inputSchema: z.object({ id: z.string() }),
+      execute: async ({ id }) =>
+        `Ticket ${id} is open, assigned to team Alpha.`,
+    }),
+    checkWeather: tool({
+      description: 'Get the current weather for a location.',
+      inputSchema: z.object({ location: z.string() }),
+      execute: async ({ location }) => `${location}: 22 °C, sunny.`,
+    }),
+  },
+  stopWhen: stepCountIs(5),
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+
+await codex.shutdown();
+```
+
+## Thread Continuation
+
+The provider embeds a `threadId` in the response's `providerMetadata`. When you pass `response.messages` back in subsequent calls, the provider picks up the threadId automatically and resumes the Codex thread. This works even across process restarts, since Codex persists threads to disk:
+
+```ts
+import { generateText } from 'ai';
+import { createCodexAppServer } from '@janole/ai-sdk-provider-codex-asp';
+
+const codex = createCodexAppServer();
+const model = codex('gpt-5.3-codex');
+
+const messages = [];
+
+// Turn 1
+messages.push({
+  role: 'user',
+  content: 'My secret number is 42. Remember it.',
+});
+const turn1 = await generateText({ model, messages });
+messages.push(...turn1.response.messages);
+
+// Turn 2 — threadId flows through automatically
+messages.push({ role: 'user', content: 'What was my secret number?' });
+const turn2 = await generateText({ model, messages });
+
+console.log(turn2.text); // 42
+
+await codex.shutdown();
+```
+
+Thread continuation works with both `streamText` and `generateText` — just pass `response.messages` back and the provider handles the rest.
+
+## Human-in-the-Loop Approvals
+
+Intercept Codex tool execution and file change actions through approval callbacks, enabling review workflows before the agent acts:
+
+```ts
+const codex = createCodexAppServer({
+  approvals: {
+    onCommandApproval: req => {
+      console.log('Command approval requested:', req.command);
+      return 'accept'; // or 'decline', 'acceptForSession', 'cancel'
+    },
+    onFileChangeApproval: req => {
+      console.log('File change approval requested:', req.reason);
+      return 'accept'; // or 'decline', 'acceptForSession', 'cancel'
+    },
+  },
+});
+```
+
+## Configuration
+
+```ts
+const codex = createCodexAppServer({
+  defaultModel: 'gpt-5.3-codex',
+  clientInfo: { name: 'my-app', version: '1.0.0' },
+  transport: { type: 'stdio' }, // 'stdio' (default) or 'websocket'
+  persistent: {
+    scope: 'global', // 'global' or 'keyed'
+    poolSize: 1,
+    idleTimeoutMs: 60_000,
+  },
+  compaction: {
+    shouldCompactOnResume: true, // compact context on resumed threads
+  },
+  defaultTurnSettings: {
+    approvalPolicy: 'on-request',
+    sandboxPolicy: { type: 'externalSandbox', networkAccess: 'enabled' },
+  },
+  toolTimeoutMs: 30_000,
+  interruptTimeoutMs: 10_000,
+});
+```
+
+## Model Capabilities
+
+The provider passes the model ID to Codex, so any model supported by your Codex installation works. Common models:
+
+| Model                | Streaming           | AI SDK Tools        | Thread Continuation | HITL Approvals      |
+| -------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-5.3-codex`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.1-codex-max`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.1-codex-mini` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+## Model Discovery
+
+Query available models directly from your Codex installation:
+
+```ts
+const codex = createCodexAppServer();
+
+const models = await codex.listModels();
+
+for (const model of models) {
+  console.log(`${model.id}: ${model.description}`);
+}
+```
+
+## Additional Features
+
+The provider also supports:
+
+- **Structured output** — forward JSON schemas to Codex for structured responses via `generateObject`
+- **Image and file inputs** — pass images and files in prompts; the provider resolves them for Codex automatically
+- **Session access via `onSessionCreated`** — get a live session handle for mid-turn message injection or interruption
+- **MCP server configuration** — pass MCP server configs through provider settings
+- **Context compaction** — optionally compact thread context on resumed sessions to stay within token limits
+
+See the [examples directory](https://github.com/janole/ai-sdk-provider-codex-asp/tree/main/examples) for working code for each feature.
+
+## Requirements
+
+- Node.js 18+
+- [Codex CLI](https://github.com/openai/codex) with app-server support in `PATH`
+- AI SDK v6
+
+## Links
+
+- [GitHub Repository](https://github.com/janole/ai-sdk-provider-codex-asp)
+- [npm Package](https://www.npmjs.com/package/@janole/ai-sdk-provider-codex-asp)
+- [Examples](https://github.com/janole/ai-sdk-provider-codex-asp/tree/main/examples)
