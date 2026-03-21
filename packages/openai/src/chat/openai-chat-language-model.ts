@@ -14,6 +14,7 @@ import {
   FetchFunction,
   ParseResult,
   combineHeaders,
+  convertOneOfToAnyOf,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
@@ -158,7 +159,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
             ? {
                 type: 'json_schema',
                 json_schema: {
-                  schema: responseFormat.schema,
+                  schema: convertOneOfToAnyOf(responseFormat.schema),
                   strict: strictJsonSchema,
                   name: responseFormat.name ?? 'response',
                   description: responseFormat.description,
