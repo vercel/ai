@@ -4402,7 +4402,6 @@ describe('convertToOpenAIResponsesInput', () => {
             content: [
               {
                 type: 'tool-call',
-                toolCallType: 'function',
                 toolCallId: 'fc_duplicate_123',
                 toolName: 'get_weather',
                 input: { city: 'NYC' },
@@ -4414,7 +4413,6 @@ describe('convertToOpenAIResponsesInput', () => {
             content: [
               {
                 type: 'tool-result',
-                toolCallType: 'function',
                 toolCallId: 'fc_duplicate_123',
                 toolName: 'get_weather',
                 output: { type: 'text', value: 'Sunny' },
@@ -4426,7 +4424,6 @@ describe('convertToOpenAIResponsesInput', () => {
             content: [
               {
                 type: 'tool-call',
-                toolCallType: 'function',
                 toolCallId: 'fc_duplicate_123',
                 toolName: 'get_weather',
                 input: { city: 'NYC' },
@@ -4455,7 +4452,6 @@ describe('convertToOpenAIResponsesInput', () => {
             content: [
               {
                 type: 'tool-call',
-                toolCallType: 'function',
                 toolCallId: 'fc_stored_456',
                 toolName: 'search',
                 input: { q: 'test' },
@@ -4470,7 +4466,6 @@ describe('convertToOpenAIResponsesInput', () => {
             content: [
               {
                 type: 'tool-result',
-                toolCallType: 'function',
                 toolCallId: 'fc_stored_456',
                 toolName: 'search',
                 output: { type: 'text', value: 'results' },
@@ -4485,7 +4480,6 @@ describe('convertToOpenAIResponsesInput', () => {
             content: [
               {
                 type: 'tool-call',
-                toolCallType: 'function',
                 toolCallId: 'fc_stored_456',
                 toolName: 'search',
                 input: { q: 'test' },
@@ -4516,7 +4510,6 @@ describe('convertToOpenAIResponsesInput', () => {
             content: [
               {
                 type: 'tool-call',
-                toolCallType: 'function',
                 toolCallId: 'call_custom_dup',
                 toolName: 'my_tool',
                 input: { data: 'test' },
@@ -4528,7 +4521,6 @@ describe('convertToOpenAIResponsesInput', () => {
             content: [
               {
                 type: 'tool-call',
-                toolCallType: 'function',
                 toolCallId: 'call_custom_dup',
                 toolName: 'my_tool',
                 input: { data: 'test' },
