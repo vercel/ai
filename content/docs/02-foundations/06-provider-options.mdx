@@ -137,6 +137,33 @@ console.log('Reasoning:', result.reasoning);
 | `'auto'`     | Condensed summary of reasoning |
 | `'detailed'` | Comprehensive reasoning output |
 
+### Context Management
+
+Control how the Responses API manages conversation context over time. The SDK currently supports OpenAI's `compaction` policy, and `compactThreshold` lets you choose when compaction starts.
+
+```ts
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-5.2'),
+  prompt: 'Summarize our conversation so far.',
+  providerOptions: {
+    openai: {
+      contextManagement: [
+        {
+          type: 'compaction',
+          compactThreshold: 20000,
+        },
+      ],
+    } satisfies OpenAILanguageModelResponsesOptions,
+  },
+});
+```
+
 ### Text Verbosity
 
 Control the length and detail of the model's text response independently of reasoning:
