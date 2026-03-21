@@ -265,10 +265,15 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               }
             }
 
-            modelMessages.push({
-              role: 'assistant',
-              content,
-            });
+            // Only push assistant message if it has actual content.
+            // Data parts before step-start may produce empty content
+            // when convertDataPart is not provided or returns null.
+            if (content.length > 0) {
+              modelMessages.push({
+                role: 'assistant',
+                content,
+              });
+            }
 
             // check if there are tool invocations with results in the block
             // Include non-provider-executed tools, OR provider-executed tools with approval responses
