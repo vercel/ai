@@ -245,6 +245,12 @@ export function streamObject<
       providerOptions?: ProviderOptions;
 
       /**
+       * Optional name for the run. Used by devtools and telemetry to identify
+       * the run (e.g. "Generate summary of document").
+       */
+      runName?: string;
+
+      /**
        * Callback that is invoked when an error occurs during streaming.
        * You can use it to log errors.
        * The stream processing will pause until the callback promise is resolved.
@@ -291,6 +297,7 @@ export function streamObject<
     experimental_telemetry: telemetry,
     experimental_download: download,
     providerOptions,
+    runName,
     onError = ({ error }: { error: unknown }) => {
       console.error(error);
     },
@@ -347,6 +354,7 @@ export function streamObject<
     generateId,
     currentDate,
     now,
+    runName,
   });
 }
 
@@ -396,6 +404,7 @@ class DefaultStreamObjectResult<
     generateId,
     currentDate,
     now,
+    runName,
   }: {
     model: LanguageModel;
     telemetry: TelemetrySettings | undefined;
@@ -417,6 +426,7 @@ class DefaultStreamObjectResult<
     generateId: () => string;
     currentDate: () => Date;
     now: () => number;
+    runName: string | undefined;
   }) {
     const model = resolveLanguageModel(modelArg);
 
@@ -504,6 +514,7 @@ class DefaultStreamObjectResult<
           abortSignal,
           headers,
           includeRawChunks: false,
+          runName,
         };
 
         const transformer: Transformer<

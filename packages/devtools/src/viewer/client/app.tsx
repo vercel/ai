@@ -43,6 +43,7 @@ interface Run {
   started_at: string;
   stepCount: number;
   firstMessage?: string;
+  run_name?: string;
   hasError?: boolean;
   isInProgress?: boolean;
   type?: 'generate' | 'stream';
@@ -68,7 +69,12 @@ interface Step {
 }
 
 interface RunDetail {
-  run: { id: string; started_at: string; isInProgress?: boolean };
+  run: {
+    id: string;
+    started_at: string;
+    isInProgress?: boolean;
+    run_name?: string;
+  };
   steps: Step[];
 }
 
@@ -543,7 +549,7 @@ function App() {
                           <MessageSquare className="size-3.5 text-muted-foreground mt-0.5 shrink-0" />
                         )}
                         <span className="text-[13px] text-foreground leading-tight line-clamp-1 break-all">
-                          {run.firstMessage || 'Loading...'}
+                          {run.run_name || run.firstMessage || 'Loading...'}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 ml-5.5 text-[11px] text-muted-foreground">
@@ -594,7 +600,8 @@ function App() {
                 <div className="flex items-center justify-between mb-5">
                   <div className="flex items-center gap-3">
                     <h2 className="text-sm font-medium text-foreground">
-                      {getFirstUserMessage(selectedRun.steps)}
+                      {selectedRun.run.run_name ||
+                        getFirstUserMessage(selectedRun.steps)}
                     </h2>
                     {selectedRun.run.isInProgress && (
                       <Badge

@@ -135,4 +135,11 @@ export type LanguageModelV4CallOptions = {
    * functionality that can be fully encapsulated in the provider.
    */
   providerOptions?: SharedV4ProviderOptions;
+
+  /**
+   * Optional name for the run. Used by devtools and telemetry to identify
+   * the run (e.g. "Generate summary of document") instead of showing
+   * the beginning of the prompt.
+   */
+  runName?: string;
 };

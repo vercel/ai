@@ -183,6 +183,12 @@ export async function generateObject<
       providerOptions?: ProviderOptions;
 
       /**
+       * Optional name for the run. Used by devtools and telemetry to identify
+       * the run (e.g. "Generate summary of document").
+       */
+      runName?: string;
+
+      /**
        * Internal. For test use only. May change without notice.
        */
       _internal?: {
@@ -204,6 +210,7 @@ export async function generateObject<
     experimental_telemetry: telemetry,
     experimental_download: download,
     providerOptions,
+    runName,
     _internal: {
       generateId = originalGenerateId,
       currentDate = () => new Date(),
@@ -344,6 +351,7 @@ export async function generateObject<
                 providerOptions,
                 abortSignal,
                 headers: headersWithUserAgent,
+                runName,
               });
 
               const responseData = {

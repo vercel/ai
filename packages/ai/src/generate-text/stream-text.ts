@@ -329,6 +329,7 @@ export function streamText<
   experimental_onToolCallFinish: onToolCallFinish,
   experimental_context,
   experimental_include: include,
+  runName,
   _internal: {
     now = originalNow,
     generateId = originalGenerateId,
@@ -476,6 +477,12 @@ export function streamText<
     onStepFinish?: StreamTextOnStepFinishCallback<TOOLS>;
 
     /**
+     * Optional name for the run. Used by devtools and telemetry to identify
+     * the run (e.g. "Generate summary of document").
+     */
+    runName?: string;
+
+    /**
      * Callback that is called when the streamText operation begins,
      * before any LLM calls are made.
      */
@@ -592,6 +599,7 @@ export function streamText<
     experimental_context,
     download,
     include,
+    runName,
   });
 }
 
@@ -772,6 +780,7 @@ class DefaultStreamTextResult<
     experimental_context,
     download,
     include,
+    runName,
   }: {
     model: LanguageModelV4;
     telemetry: TelemetrySettings | undefined;
@@ -808,6 +817,7 @@ class DefaultStreamTextResult<
     experimental_context: unknown;
     download: DownloadFunction | undefined;
     include: { requestBody?: boolean } | undefined;
+    runName: string | undefined;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
@@ -1606,6 +1616,7 @@ class DefaultStreamTextResult<
               abortSignal,
               headers,
               includeRawChunks,
+              runName,
             }),
           );
 
