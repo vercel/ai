@@ -128,7 +128,9 @@ export async function convertToOpenAIResponsesInput({
                           isFileId(part.data, fileIdPrefixes)
                         ? { file_id: part.data }
                         : {
-                            image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
+                            image_url: `data:${mediaType};base64,${convertToBase64(
+                              part.data,
+                            )}`,
                           }),
                     detail:
                       part.providerOptions?.[providerOptionsName]?.imageDetail,
@@ -147,7 +149,9 @@ export async function convertToOpenAIResponsesInput({
                       ? { file_id: part.data }
                       : {
                           filename: part.filename ?? `part-${index}.pdf`,
-                          file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
+                          file_data: `data:application/pdf;base64,${convertToBase64(
+                            part.data,
+                          )}`,
                         }),
                   };
                 } else {
@@ -506,7 +510,9 @@ export async function convertToOpenAIResponsesInput({
                   } else if (reasoningMessage !== undefined) {
                     warnings.push({
                       type: 'other',
-                      message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                      message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(
+                        part,
+                      )}.`,
                     });
                   }
 
@@ -557,7 +563,9 @@ export async function convertToOpenAIResponsesInput({
                 } else {
                   warnings.push({
                     type: 'other',
-                    message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                    message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${JSON.stringify(
+                      part,
+                    )}.`,
                   });
                 }
               }
