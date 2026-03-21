@@ -3,4 +3,4 @@
 "@ai-sdk/azure": patch
 ---
 
-feat(provider/azure):add webSearch tool
+feat(provider/azure):web search tool in the Azure OpenAI Responses API.
