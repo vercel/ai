@@ -36,6 +36,7 @@ export const notifyServerAsync = async (
 export interface Run {
   id: string;
   started_at: string;
+  run_name?: string;
 }
 
 export interface Step {
@@ -145,17 +146,19 @@ export const reloadDb = async (): Promise<void> => {
   dbCache = readDb();
 };
 
-export const createRun = async (id: string): Promise<Run> => {
+export const createRun = async (
+  id: string,
+  runName?: string,
+): Promise<Run> => {
   const db = getDb();
   const started_at = new Date().toISOString();
 
-  // Check if run already exists
   const existing = db.runs.find(r => r.id === id);
   if (existing) {
     return existing;
   }
 
-  const run: Run = { id, started_at };
+  const run: Run = { id, started_at, run_name: runName };
   db.runs.push(run);
   saveDb(db);
   notifyServer('run');

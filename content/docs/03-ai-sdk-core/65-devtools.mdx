@@ -54,6 +54,7 @@ import { generateText } from 'ai';
 const result = await generateText({
   model, // wrapped model with DevTools
   prompt: 'What cities are in the United States?',
+  runName: 'List US cities', // optional: displayed as run title in DevTools
 });
 ```
 
@@ -82,6 +83,8 @@ DevTools organizes captured data into runs and steps:
 
 - **Run**: A complete multi-step AI interaction, grouped by the initial prompt
 - **Step**: A single LLM call within a run (e.g., one `generateText` or `streamText` call)
+
+Use the optional `runName` parameter in `generateText`, `streamText`, `generateObject`, or `streamObject` to give your run a descriptive title (e.g. "Generate summary of document"). When set, DevTools displays this instead of the prompt preview in the run list.
 
 Multi-step interactions, such as those created by tool calling or agent loops, are grouped together as a single run with multiple steps.
 

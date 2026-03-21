@@ -112,9 +112,9 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
   let runCreated = false;
   let stepCounter = 0;
 
-  const ensureRunCreated = async () => {
+  const ensureRunCreated = async (runName?: string) => {
     if (!runCreated) {
-      await createRun(runId);
+      await createRun(runId, runName);
       runCreated = true;
     }
   };
@@ -131,7 +131,7 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
       const startTime = Date.now();
       const stepId = generateId();
       const stepNumber = getNextStepNumber();
-      await ensureRunCreated();
+      await ensureRunCreated(params.runName);
 
       // Log step start
       await createStep({
@@ -201,7 +201,7 @@ export const devToolsMiddleware = (): LanguageModelV4Middleware => {
       const startTime = Date.now();
       const stepId = generateId();
       const stepNumber = getNextStepNumber();
-      await ensureRunCreated();
+      await ensureRunCreated(params.runName);
 
       // Store original setting before overriding
       const userRequestedRawChunks = params.includeRawChunks === true;

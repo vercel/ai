@@ -278,6 +278,7 @@ export async function generateText<
   experimental_onToolCallFinish: onToolCallFinish,
   onStepFinish,
   onFinish,
+  runName,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -409,6 +410,12 @@ export async function generateText<
      * Callback that is called when all steps are finished and the response is complete.
      */
     onFinish?: GenerateTextOnFinishCallback<NoInfer<TOOLS>>;
+
+    /**
+     * Optional name for the run. Used by devtools and telemetry to identify
+     * the run (e.g. "Generate summary of document").
+     */
+    runName?: string;
 
     /**
      * Context that is passed into tool execution.
@@ -763,6 +770,7 @@ export async function generateText<
             providerOptions: stepProviderOptions,
             abortSignal: mergedAbortSignal,
             headers: headersWithUserAgent,
+            runName,
           });
 
           const responseData = {
