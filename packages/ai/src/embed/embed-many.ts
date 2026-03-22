@@ -1,4 +1,8 @@
-import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import {
+  createIdGenerator,
+  ProviderOptions,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -9,10 +13,18 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
 import { Warning } from '../types/warning';
+import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { splitArray } from '../util/split-array';
+import type { EmbedOnFinishEvent, EmbedOnStartEvent } from './embed-events';
 import { EmbedManyResult } from './embed-many-result';
 import { VERSION } from '../version';
+import type { Listener } from '../util/notify';
+
+const originalGenerateCallId = createIdGenerator({
+  prefix: 'call',
+  size: 24,
+});
 
 /**
  * Embed several values using an embedding model. The type of the value is defined
@@ -47,6 +59,9 @@ export async function embedMany({
   headers,
   providerOptions,
   experimental_telemetry: telemetry,
+  experimental_onStart: onStart,
+  experimental_onFinish: onFinish,
+  _internal: { generateCallId = originalGenerateCallId } = {},
 }: {
   /**
    * The embedding model to use.
@@ -94,6 +109,25 @@ export async function embedMany({
    * @default Infinity
    */
   maxParallelCalls?: number;
+
+  /**
+   * Callback that is called when the embedMany operation begins,
+   * before the embedding model is called.
+   */
+  experimental_onStart?: Listener<EmbedOnStartEvent>;
+
+  /**
+   * Callback that is called when the embedMany operation completes,
+   * after all embedding model calls return.
+   */
+  experimental_onFinish?: Listener<EmbedOnFinishEvent>;
+
+  /**
+   * Internal. For test use only. May change without notice.
+   */
+  _internal?: {
+    generateCallId?: () => string;
+  };
 }): Promise<EmbedManyResult> {
   const model = resolveEmbeddingModel(modelArg);
 
@@ -106,6 +140,28 @@ export async function embedMany({
     headers ?? {},
     `ai/${VERSION}`,
   );
+
+  const callId = generateCallId();
+
+  await notify({
+    event: {
+      callId,
+      operationId: 'ai.embedMany',
+      provider: model.provider,
+      modelId: model.modelId,
+      value: values,
+      maxRetries,
+      abortSignal,
+      headers: headersWithUserAgent,
+      providerOptions,
+      isEnabled: telemetry?.isEnabled,
+      recordInputs: telemetry?.recordInputs,
+      recordOutputs: telemetry?.recordOutputs,
+      functionId: telemetry?.functionId,
+      metadata: telemetry?.metadata,
+    },
+    callbacks: [onStart],
+  });
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
@@ -213,6 +269,27 @@ export async function embedMany({
           warnings,
           provider: model.provider,
           model: model.modelId,
+        });
+
+        await notify({
+          event: {
+            callId,
+            operationId: 'ai.embedMany',
+            provider: model.provider,
+            modelId: model.modelId,
+            value: values,
+            embedding: embeddings,
+            usage,
+            warnings,
+            providerMetadata,
+            response: [response],
+            isEnabled: telemetry?.isEnabled,
+            recordInputs: telemetry?.recordInputs,
+            recordOutputs: telemetry?.recordOutputs,
+            functionId: telemetry?.functionId,
+            metadata: telemetry?.metadata,
+          },
+          callbacks: [onFinish],
         });
 
         return new DefaultEmbedManyResult({
@@ -346,6 +423,27 @@ export async function embedMany({
         warnings,
         provider: model.provider,
         model: model.modelId,
+      });
+
+      await notify({
+        event: {
+          callId,
+          operationId: 'ai.embedMany',
+          provider: model.provider,
+          modelId: model.modelId,
+          value: values,
+          embedding: embeddings,
+          usage: { tokens },
+          warnings,
+          providerMetadata,
+          response: responses,
+          isEnabled: telemetry?.isEnabled,
+          recordInputs: telemetry?.recordInputs,
+          recordOutputs: telemetry?.recordOutputs,
+          functionId: telemetry?.functionId,
+          metadata: telemetry?.metadata,
+        },
+        callbacks: [onFinish],
       });
 
       return new DefaultEmbedManyResult({

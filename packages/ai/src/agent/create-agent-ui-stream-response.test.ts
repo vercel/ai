@@ -1,4 +1,4 @@
-import { LanguageModelV3CallOptions } from '@ai-sdk/provider';
+import { LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import { tool } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -6,13 +6,13 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createAgentUIStreamResponse } from './create-agent-ui-stream-response';
 import { ToolLoopAgent } from './tool-loop-agent';
 
 describe('createAgentUIStreamResponse', () => {
   describe('when using tools toModelOutput', () => {
-    let recordedInputs: LanguageModelV3CallOptions[];
+    let recordedInputs: LanguageModelV4CallOptions[];
     let response: Response;
     let decodedChunks: string[];
 
@@ -20,7 +20,7 @@ describe('createAgentUIStreamResponse', () => {
       recordedInputs = [];
 
       const agent = new ToolLoopAgent({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async input => {
             recordedInputs.push(input);
             return {
@@ -124,98 +124,99 @@ describe('createAgentUIStreamResponse', () => {
 
     it('should have a single call that contains the tool result as text', () => {
       expect(recordedInputs).toMatchInlineSnapshot(`
-          [
-            {
-              "abortSignal": undefined,
-              "frequencyPenalty": undefined,
-              "headers": undefined,
-              "includeRawChunks": false,
-              "maxOutputTokens": undefined,
-              "presencePenalty": undefined,
-              "prompt": [
-                {
-                  "content": [
-                    {
-                      "providerOptions": undefined,
-                      "text": "Hello, world!",
-                      "type": "text",
-                    },
-                  ],
-                  "providerOptions": undefined,
-                  "role": "user",
-                },
-                {
-                  "content": [
-                    {
-                      "input": {
-                        "input": "Hello, world!",
-                      },
-                      "providerExecuted": undefined,
-                      "providerOptions": undefined,
-                      "toolCallId": "call-1",
-                      "toolName": "example",
-                      "type": "tool-call",
-                    },
-                  ],
-                  "providerOptions": undefined,
-                  "role": "assistant",
-                },
-                {
-                  "content": [
-                    {
-                      "output": {
-                        "type": "content",
-                        "value": [
-                          {
-                            "text": "Example tool: Hello, world!",
-                            "type": "text",
-                          },
-                        ],
-                      },
-                      "providerOptions": undefined,
-                      "toolCallId": "call-1",
-                      "toolName": "example",
-                      "type": "tool-result",
-                    },
-                  ],
-                  "providerOptions": undefined,
-                  "role": "tool",
-                },
-              ],
-              "providerOptions": undefined,
-              "responseFormat": undefined,
-              "seed": undefined,
-              "stopSequences": undefined,
-              "temperature": undefined,
-              "toolChoice": {
-                "type": "auto",
-              },
-              "tools": [
-                {
-                  "description": "Example tool",
-                  "inputSchema": {
-                    "$schema": "http://json-schema.org/draft-07/schema#",
-                    "additionalProperties": false,
-                    "properties": {
-                      "input": {
-                        "type": "string",
-                      },
-                    },
-                    "required": [
-                      "input",
-                    ],
-                    "type": "object",
+        [
+          {
+            "abortSignal": undefined,
+            "frequencyPenalty": undefined,
+            "headers": undefined,
+            "includeRawChunks": false,
+            "maxOutputTokens": undefined,
+            "presencePenalty": undefined,
+            "prompt": [
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "Hello, world!",
+                    "type": "text",
                   },
-                  "name": "example",
-                  "providerOptions": undefined,
-                  "type": "function",
-                },
-              ],
-              "topK": undefined,
-              "topP": undefined,
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "input": "Hello, world!",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "example",
+                    "type": "tool-call",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "content",
+                      "value": [
+                        {
+                          "text": "Example tool: Hello, world!",
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "example",
+                    "type": "tool-result",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "tool",
+              },
+            ],
+            "providerOptions": undefined,
+            "reasoning": undefined,
+            "responseFormat": undefined,
+            "seed": undefined,
+            "stopSequences": undefined,
+            "temperature": undefined,
+            "toolChoice": {
+              "type": "auto",
             },
-          ]
-        `);
+            "tools": [
+              {
+                "description": "Example tool",
+                "inputSchema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "input": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "input",
+                  ],
+                  "type": "object",
+                },
+                "name": "example",
+                "providerOptions": undefined,
+                "type": "function",
+              },
+            ],
+            "topK": undefined,
+            "topP": undefined,
+          },
+        ]
+      `);
     });
 
     it('should return the UI message stream response', () => {
@@ -262,7 +263,7 @@ describe('createAgentUIStreamResponse', () => {
       let finishMessages: unknown[] | undefined;
 
       const agent = new ToolLoopAgent({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             return {
               stream: convertArrayToReadableStream([

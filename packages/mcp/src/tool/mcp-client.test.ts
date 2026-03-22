@@ -644,7 +644,8 @@ describe('MCPClient', () => {
         "messages": [
           {
             "content": {
-              "text": "Please review this code:\nfunction add(a, b) { return a + b; }",
+              "text": "Please review this code:
+      function add(a, b) { return a + b; }",
               "type": "text",
             },
             "role": "user",
@@ -857,6 +858,60 @@ describe('MCPClient', () => {
         transport: { type: 'sse', url: 'https://example.com/sse' },
       }),
     ).rejects.toThrowError(MCPClientError);
+  });
+
+  it('should accept server responding with 2025-11-25 protocol version', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          initializeResult: {
+            protocolVersion: '2025-11-25',
+            serverInfo: {
+              name: 'mock-mcp-server',
+              version: '1.0.0',
+            },
+            capabilities: {
+              tools: {},
+            },
+          },
+        }),
+    );
+
+    const client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const tools = await client.tools();
+    expect(tools).toBeDefined();
+    await client.close();
+  });
+
+  it('should accept server responding with older supported protocol versions', async () => {
+    for (const version of ['2025-06-18', '2025-03-26', '2024-11-05']) {
+      createMockTransport.mockImplementation(
+        () =>
+          new MockMCPTransport({
+            initializeResult: {
+              protocolVersion: version,
+              serverInfo: {
+                name: 'mock-mcp-server',
+                version: '1.0.0',
+              },
+              capabilities: {
+                tools: {},
+              },
+            },
+          }),
+      );
+
+      const client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+
+      const tools = await client.tools();
+      expect(tools).toBeDefined();
+      await client.close();
+    }
   });
 
   it('should close transport when client is closed', async () => {

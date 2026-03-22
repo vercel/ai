@@ -42,7 +42,7 @@
 - **Use `Experimental_` prefixes to explore new features outside of major releases.** When a new feature needs to be explored outside of a major release cycle, use code structures explicitly marked as experimental (e.g. `Experimental_*` prefix for types, `experimental_*` prefix for functions). This allows iteration without committing to a stable API contract.
 
   - It is acceptable for `@ai-sdk/provider` to export `Experimental_*` types for this purpose. These types may have breaking changes outside of major releases.
-  - Non-experimental types must NEVER include references to experimental types (e.g., do not add a reference to something like `Experimental_VideoModelV3` to `ProviderV3`).
+  - Non-experimental types must NEVER include references to experimental types (e.g., do not add a reference to something like `Experimental_VideoModelV4` to `ProviderV4`).
   - Experimental features must remain fully isolated until they are promoted to stable.
   - Adding a new experimental feature requires broad consensus between the maintainers. Use it with caution. Do not use experimental code as a way out when you're unsure about stability.
 

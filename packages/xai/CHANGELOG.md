@@ -1,5 +1,123 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- 74d520f: feat: migrate providers to support new top-level `reasoning` parameter
+- Updated dependencies [74d520f]
+  - @ai-sdk/openai-compatible@3.0.0-beta.9
+
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/provider@4.0.0-beta.4
+  - @ai-sdk/openai-compatible@3.0.0-beta.8
+
+## 4.0.0-beta.13
+
+### Major Changes
+
+- 776b617: feat(provider): adding new 'custom' content type
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+  - @ai-sdk/openai-compatible@3.0.0-beta.7
+
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- d20829e: feat(provider/xai): add moderation error, and costInUsdTicks to video model
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+  - @ai-sdk/openai-compatible@3.0.0-beta.6
+
+## 4.0.0-beta.11
+
+### Patch Changes
+
+- f7d4f01: feat(provider): add support for `reasoning-file` type for files that are part of reasoning
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+  - @ai-sdk/openai-compatible@3.0.0-beta.5
+
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/openai-compatible@3.0.0-beta.4
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [8f3e1da]
+  - @ai-sdk/openai-compatible@3.0.0-beta.3
+
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 4799fa5: chore(provider/xai): update provider to use v4 types
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- 0f11f10: add reasoningSummary to responses API provider options
+- 12115e9: fix reasoning text extraction from content in responses doGenerate
+
+## 4.0.0-beta.6
+
+### Major Changes
+
+- f62681f: feat(provider/xai): make responses api the default
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- aa5a583: chore(provider/xai): remove obsolete Grok 2 models now that they are shut down in their API
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- 25f1837: feat(xai): add b64_json response format, usage cost tracking, and quality/user parameters for image models
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- f5181ad: feat(provider/xai): support multiple input images for image editing
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [45b3d76]
+- Updated dependencies [f7295cb]
+  - @ai-sdk/openai-compatible@3.0.0-beta.2
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+  - @ai-sdk/openai-compatible@3.0.0-beta.1
+
 ## 4.0.0-beta.0
 
 ### Major Changes
@@ -508,13 +626,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 2625a04: feat(openai); update spec for mcp approval
@@ -772,13 +890,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 8514146: add grok-4-1 model IDs
@@ -1321,7 +1439,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1334,7 +1452,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -1650,7 +1768,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1663,7 +1781,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
