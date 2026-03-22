@@ -1,4 +1,4 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import { LanguageModelV4Usage } from '@ai-sdk/provider';
 
 export type OpenAIChatUsage = {
   prompt_tokens?: number | null;
@@ -16,7 +16,7 @@ export type OpenAIChatUsage = {
 
 export function convertOpenAIChatUsage(
   usage: OpenAIChatUsage | undefined | null,
-): LanguageModelV3Usage {
+): LanguageModelV4Usage {
   if (usage == null) {
     return {
       inputTokens: {

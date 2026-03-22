@@ -48,11 +48,7 @@ run(async () => {
       },
       stopWhen: stepCountIs(5),
       maxRetries: 0,
-      providerOptions: {
-        bedrock: {
-          reasoningConfig: { type: 'enabled', budgetTokens: 2048 },
-        },
-      },
+      reasoning: 'low',
       onError: error => {
         console.error(error);
       },

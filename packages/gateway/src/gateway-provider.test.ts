@@ -19,7 +19,7 @@ import {
 import { fail } from 'node:assert';
 
 vi.mock('./gateway-language-model', () => ({
-  GatewayLanguageModel: vi.fn(),
+  GatewayLanguageModel: vi.fn(function () {}),
 }));
 
 // Mock the gateway fetch metadata to prevent actual network calls
@@ -27,22 +27,24 @@ vi.mock('./gateway-language-model', () => ({
 const mockGetAvailableModels = vi.fn();
 const mockGetCredits = vi.fn();
 vi.mock('./gateway-fetch-metadata', () => ({
-  GatewayFetchMetadata: vi.fn().mockImplementation((config: any) => ({
-    getAvailableModels: async () => {
-      // Call the headers function to trigger authentication logic
-      if (config.headers && typeof config.headers === 'function') {
-        await config.headers();
-      }
-      return mockGetAvailableModels();
-    },
-    getCredits: async () => {
-      // Call the headers function to trigger authentication logic
-      if (config.headers && typeof config.headers === 'function') {
-        await config.headers();
-      }
-      return mockGetCredits();
-    },
-  })),
+  GatewayFetchMetadata: vi.fn(function (config: any) {
+    return {
+      getAvailableModels: async () => {
+        // Call the headers function to trigger authentication logic
+        if (config.headers && typeof config.headers === 'function') {
+          await config.headers();
+        }
+        return mockGetAvailableModels();
+      },
+      getCredits: async () => {
+        // Call the headers function to trigger authentication logic
+        if (config.headers && typeof config.headers === 'function') {
+          await config.headers();
+        }
+        return mockGetCredits();
+      },
+    };
+  }),
 }));
 
 vi.mock('./vercel-environment', () => ({
@@ -915,23 +917,24 @@ describe('GatewayProvider', () => {
         );
         vi.mocked(getVercelOidcToken).mockRejectedValue(oidcError);
 
-        vi.mocked(GatewayFetchMetadata).mockImplementation(
-          (config: any) =>
-            ({
-              getAvailableModels: async () => {
-                if (config.headers && typeof config.headers === 'function') {
-                  await config.headers();
-                }
-                return mockGetAvailableModels();
-              },
-              getCredits: async () => {
-                if (config.headers && typeof config.headers === 'function') {
-                  await config.headers();
-                }
-                return mockGetCredits();
-              },
-            }) as any,
-        );
+        vi.mocked(GatewayFetchMetadata).mockImplementation(function (
+          config: any,
+        ) {
+          return {
+            getAvailableModels: async () => {
+              if (config.headers && typeof config.headers === 'function') {
+                await config.headers();
+              }
+              return mockGetAvailableModels();
+            },
+            getCredits: async () => {
+              if (config.headers && typeof config.headers === 'function') {
+                await config.headers();
+              }
+              return mockGetCredits();
+            },
+          } as any;
+        });
 
         const provider = createGatewayProvider();
 

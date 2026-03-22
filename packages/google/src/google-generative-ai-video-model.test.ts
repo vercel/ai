@@ -135,7 +135,7 @@ describe('GoogleGenerativeAIVideoModel', () => {
 
       expect(model.provider).toBe('google.generative-ai');
       expect(model.modelId).toBe('veo-3.1-generate-preview');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxVideosPerCall).toBe(4);
     });
 

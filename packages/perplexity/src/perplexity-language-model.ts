@@ -1,12 +1,12 @@
 import {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -15,6 +15,7 @@ import {
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  isCustomReasoning,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -30,8 +31,8 @@ type PerplexityChatConfig = {
   fetch?: FetchFunction;
 };
 
-export class PerplexityLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class PerplexityLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly provider = 'perplexity';
 
   readonly modelId: PerplexityLanguageModelId;
@@ -59,11 +60,12 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
     frequencyPenalty,
     presencePenalty,
     stopSequences,
+    reasoning,
     responseFormat,
     seed,
     providerOptions,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -75,6 +77,14 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
 
     if (seed != null) {
       warnings.push({ type: 'unsupported', feature: 'seed' });
+    }
+
+    if (isCustomReasoning(reasoning)) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details: 'This provider does not support reasoning configuration.',
+      });
     }
 
     return {
@@ -110,8 +120,8 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args: body, warnings } = this.getArgs(options);
 
     const {
@@ -134,7 +144,7 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // text content:
     const text = choice.message.content;
@@ -181,14 +191,23 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
             citationTokens: response.usage?.citation_tokens ?? null,
             numSearchQueries: response.usage?.num_search_queries ?? null,
           },
+          cost: response.usage?.cost
+            ? {
+                inputTokensCost: response.usage.cost.input_tokens_cost ?? null,
+                outputTokensCost:
+                  response.usage.cost.output_tokens_cost ?? null,
+                requestCost: response.usage.cost.request_cost ?? null,
+                totalCost: response.usage.cost.total_cost ?? null,
+              }
+            : null,
         },
       },
     };
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = this.getArgs(options);
 
     const body = { ...args, stream: true };
@@ -208,7 +227,7 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -226,6 +245,12 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
           citationTokens: number | null;
           numSearchQueries: number | null;
         };
+        cost: {
+          inputTokensCost: number | null;
+          outputTokensCost: number | null;
+          requestCost: number | null;
+          totalCost: number | null;
+        } | null;
         images: Array<{
           imageUrl: string;
           originUrl: string;
@@ -239,6 +264,7 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
           citationTokens: null,
           numSearchQueries: null,
         },
+        cost: null,
         images: null,
       },
     };
@@ -251,7 +277,7 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof perplexityChunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -295,6 +321,16 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
                 citationTokens: value.usage.citation_tokens ?? null,
                 numSearchQueries: value.usage.num_search_queries ?? null,
               };
+
+              providerMetadata.perplexity.cost = value.usage.cost
+                ? {
+                    inputTokensCost: value.usage.cost.input_tokens_cost ?? null,
+                    outputTokensCost:
+                      value.usage.cost.output_tokens_cost ?? null,
+                    requestCost: value.usage.cost.request_cost ?? null,
+                    totalCost: value.usage.cost.total_cost ?? null,
+                  }
+                : null;
             }
 
             if (value.images != null) {
@@ -371,6 +407,13 @@ function getResponseMetadata({
   };
 }
 
+const perplexityCostSchema = z.object({
+  input_tokens_cost: z.number().nullish(),
+  output_tokens_cost: z.number().nullish(),
+  request_cost: z.number().nullish(),
+  total_cost: z.number().nullish(),
+});
+
 const perplexityUsageSchema = z.object({
   prompt_tokens: z.number(),
   completion_tokens: z.number(),
@@ -378,6 +421,7 @@ const perplexityUsageSchema = z.object({
   citation_tokens: z.number().nullish(),
   num_search_queries: z.number().nullish(),
   reasoning_tokens: z.number().nullish(),
+  cost: perplexityCostSchema.nullish(),
 });
 
 export const perplexityImageSchema = z.object({

@@ -1,10 +1,10 @@
 import { stringifyForTelemetry } from './stringify-for-telemetry';
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
 
 describe('stringifyForTelemetry', () => {
   it('should stringify a prompt with text parts', () => {
-    const prompt: LanguageModelV3Prompt = [
+    const prompt: LanguageModelV4Prompt = [
       { role: 'system', content: 'You are a helpful assistant.' },
       {
         role: 'user',
