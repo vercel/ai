@@ -125,11 +125,39 @@ export function smoothStream<TOOLS extends ToolSet>({
       }
     }
 
+    // Drain buffer with smooth delays before emitting non-smoothable chunks
+    // (e.g. tool calls). This prevents tool execution side effects from
+    // appearing mid-text in the consumer's output.
+    async function smoothDrainBuffer(
+      controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>,
+    ) {
+      if (buffer.length > 0 && type !== undefined) {
+        let match;
+        while ((match = detectChunk(buffer)) != null) {
+          controller.enqueue({ type, text: match, id });
+          buffer = buffer.slice(match.length);
+          await delay(delayInMs);
+        }
+
+        if (buffer.length > 0) {
+          controller.enqueue({
+            type,
+            text: buffer,
+            id,
+            ...(providerMetadata != null ? { providerMetadata } : {}),
+          });
+          buffer = '';
+          providerMetadata = undefined;
+          await delay(delayInMs);
+        }
+      }
+    }
+
     return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       async transform(chunk, controller) {
-        // Handle non-smoothable chunks: flush buffer and pass through
+        // Handle non-smoothable chunks: drain buffer with delays, then pass through
         if (chunk.type !== 'text-delta' && chunk.type !== 'reasoning-delta') {
-          flushBuffer(controller);
+          await smoothDrainBuffer(controller);
           controller.enqueue(chunk);
           return;
         }
@@ -156,6 +184,10 @@ export function smoothStream<TOOLS extends ToolSet>({
 
           await delay(delayInMs);
         }
+      },
+
+      flush(controller) {
+        flushBuffer(controller);
       },
     });
   };
