@@ -53,6 +53,7 @@ const originalGenerateCallId = createIdGenerator({
 export async function embedMany({
   model: modelArg,
   values,
+  dimensions,
   maxParallelCalls = Infinity,
   maxRetries: maxRetriesArg,
   abortSignal,
@@ -72,6 +73,12 @@ export async function embedMany({
    * The values that should be embedded.
    */
   values: Array<string>;
+
+  /**
+   * The number of dimensions the resulting output embeddings should have.
+   * Only supported by some models and providers.
+   */
+  dimensions?: number;
 
   /**
    * Maximum number of retries per embedding model call. Set to 0 to disable retries.
@@ -218,6 +225,7 @@ export async function embedMany({
               fn: async doEmbedSpan => {
                 const modelResponse = await model.doEmbed({
                   values,
+                  dimensions,
                   abortSignal,
                   headers: headersWithUserAgent,
                   providerOptions,
@@ -348,6 +356,7 @@ export async function embedMany({
                 fn: async doEmbedSpan => {
                   const modelResponse = await model.doEmbed({
                     values: chunk,
+                    dimensions,
                     abortSignal,
                     headers: headersWithUserAgent,
                     providerOptions,
