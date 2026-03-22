@@ -239,6 +239,14 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
         statusResponse.status === 'done' ||
         (statusResponse.status == null && statusResponse.video?.url)
       ) {
+        if (statusResponse.video?.respect_moderation === false) {
+          throw new AISDKError({
+            name: 'XAI_VIDEO_MODERATION_ERROR',
+            message:
+              'Video generation was blocked due to a content policy violation.',
+          });
+        }
+
         if (!statusResponse.video?.url) {
           throw new AISDKError({
             name: 'XAI_VIDEO_GENERATION_ERROR',
@@ -267,6 +275,9 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
               videoUrl: statusResponse.video.url,
               ...(statusResponse.video.duration != null
                 ? { duration: statusResponse.video.duration }
+                : {}),
+              ...(statusResponse.usage?.cost_in_usd_ticks != null
+                ? { costInUsdTicks: statusResponse.usage.cost_in_usd_ticks }
                 : {}),
             },
           },
@@ -299,4 +310,9 @@ const xaiVideoStatusResponseSchema = z.object({
     })
     .nullish(),
   model: z.string().nullish(),
+  usage: z
+    .object({
+      cost_in_usd_ticks: z.number().nullish(),
+    })
+    .nullish(),
 });
