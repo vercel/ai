@@ -113,7 +113,8 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
   return {
     callId,
     operationId: 'ai.generateText',
-    model,
+    provider: model.provider,
+    modelId: model.modelId,
     system: undefined,
     prompt: 'Hello',
     messages: undefined,
@@ -146,7 +147,8 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
   return {
     callId,
     stepNumber: 0,
-    model,
+    provider: model.provider,
+    modelId: model.modelId,
     system: undefined,
     messages: [],
     tools: undefined,
@@ -249,7 +251,8 @@ function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
   return {
     callId,
     stepNumber: 0,
-    model,
+    provider: model.provider,
+    modelId: model.modelId,
     toolCall: {
       type: 'tool-call' as const,
       toolCallId: 'tool-call-1',
@@ -272,7 +275,8 @@ function makeToolCallFinishEvent(
   const base = {
     callId,
     stepNumber: 0,
-    model,
+    provider: model.provider,
+    modelId: model.modelId,
     toolCall: {
       type: 'tool-call' as const,
       toolCallId: 'tool-call-1',

@@ -6,6 +6,7 @@ import {
   LanguageModelV4ToolResultOutput,
 } from '@ai-sdk/provider';
 import {
+  CustomPart,
   DataContent,
   FilePart,
   ImagePart,
@@ -233,6 +234,7 @@ export function convertToLanguageModelMessage({
             (
               part,
             ): part is
+              | CustomPart
               | TextPart
               | FilePart
               | ReasoningPart
@@ -244,6 +246,13 @@ export function convertToLanguageModelMessage({
             const providerOptions = part.providerOptions;
 
             switch (part.type) {
+              case 'custom': {
+                return {
+                  type: 'custom' as const,
+                  kind: part.kind,
+                  providerOptions,
+                };
+              }
               case 'file': {
                 const { data, mediaType } = convertToLanguageModelV4DataContent(
                   part.data,

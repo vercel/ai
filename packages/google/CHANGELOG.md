@@ -1,5 +1,40 @@
 # @ai-sdk/google
 
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- 18c1970: feat(provider/google): Add multimodal tool-result support for Google function responses.
+
+  Tool results with `output.type = 'content'` now map media parts into
+  `functionResponse.parts` for Google models, including `image-data`,
+  `file-data`, and base64 `data:` URLs in URL-style content parts.
+  Remote HTTP(S) URLs in URL-style tool-result parts are not supported.
+
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/provider@4.0.0-beta.4
+
+## 4.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+
 ## 4.0.0-beta.11
 
 ### Patch Changes
@@ -398,13 +433,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 2625a04: feat(openai); update spec for mcp approval
@@ -713,13 +748,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]

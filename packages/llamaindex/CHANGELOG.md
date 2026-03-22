@@ -1,5 +1,101 @@
 # @ai-sdk/llamaindex
 
+## 3.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [caf1b6f]
+  - ai@7.0.0-beta.33
+
+## 3.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [4b46062]
+  - ai@7.0.0-beta.32
+
+## 3.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [e79e644]
+  - ai@7.0.0-beta.31
+
+## 3.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [f5a6f89]
+  - ai@7.0.0-beta.30
+
+## 3.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [877bf12]
+  - ai@7.0.0-beta.29
+
+## 3.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [b9cf502]
+  - ai@7.0.0-beta.28
+
+## 3.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [3887c70]
+  - ai@7.0.0-beta.27
+
+## 3.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [f0b0b20]
+  - ai@7.0.0-beta.26
+
+## 3.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [ff9ce30]
+  - ai@7.0.0-beta.25
+
+## 3.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - ai@7.0.0-beta.24
+
+## 3.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [80d4dde]
+  - ai@7.0.0-beta.23
+
+## 3.0.0-beta.22
+
+### Patch Changes
+
+- ai@7.0.0-beta.22
+
+## 3.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [34fd051]
+  - ai@7.0.0-beta.21
+
+## 3.0.0-beta.20
+
+### Patch Changes
+
+- ai@7.0.0-beta.20
+
 ## 3.0.0-beta.19
 
 ### Patch Changes

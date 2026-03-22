@@ -176,9 +176,9 @@ export type StepResult<TOOLS extends ToolSet> = {
   readonly providerMetadata: ProviderMetadata | undefined;
 };
 
-export class DefaultStepResult<TOOLS extends ToolSet>
-  implements StepResult<TOOLS>
-{
+export class DefaultStepResult<
+  TOOLS extends ToolSet,
+> implements StepResult<TOOLS> {
   readonly callId: StepResult<TOOLS>['callId'];
   readonly stepNumber: StepResult<TOOLS>['stepNumber'];
   readonly model: StepResult<TOOLS>['model'];
@@ -197,7 +197,8 @@ export class DefaultStepResult<TOOLS extends ToolSet>
   constructor({
     callId,
     stepNumber,
-    model,
+    provider,
+    modelId,
     functionId,
     metadata,
     experimental_context,
@@ -212,7 +213,8 @@ export class DefaultStepResult<TOOLS extends ToolSet>
   }: {
     callId: StepResult<TOOLS>['callId'];
     stepNumber: StepResult<TOOLS>['stepNumber'];
-    model: StepResult<TOOLS>['model'];
+    provider: string;
+    modelId: string;
     functionId: StepResult<TOOLS>['functionId'];
     metadata: StepResult<TOOLS>['metadata'];
     experimental_context: StepResult<TOOLS>['experimental_context'];
@@ -227,7 +229,7 @@ export class DefaultStepResult<TOOLS extends ToolSet>
   }) {
     this.callId = callId;
     this.stepNumber = stepNumber;
-    this.model = model;
+    this.model = { provider, modelId };
     this.functionId = functionId;
     this.metadata = metadata;
     this.experimental_context = experimental_context;

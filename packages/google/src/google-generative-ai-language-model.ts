@@ -17,7 +17,10 @@ import {
   FetchFunction,
   generateId,
   InferSchema,
+  isCustomReasoning,
   lazySchema,
+  mapReasoningToProviderBudget,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
@@ -96,6 +99,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
     seed,
     tools,
     toolChoice,
+    reasoning,
     providerOptions,
   }: LanguageModelV4CallOptions) {
     const warnings: SharedV4Warning[] = [];
@@ -135,10 +139,15 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
     }
 
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
+    const supportsFunctionResponseParts = this.modelId.startsWith('gemini-3');
 
     const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
       prompt,
-      { isGemmaModel, providerOptionsName },
+      {
+        isGemmaModel,
+        providerOptionsName,
+        supportsFunctionResponseParts,
+      },
     );
 
     const {
@@ -150,6 +159,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
       toolChoice,
       modelId: this.modelId,
     });
+
+    const resolvedThinking = resolveThinkingConfig({
+      reasoning,
+      modelId: this.modelId,
+      warnings,
+    });
+    const thinkingConfig =
+      googleOptions?.thinkingConfig || resolvedThinking
+        ? { ...resolvedThinking, ...googleOptions?.thinkingConfig }
+        : undefined;
 
     return {
       args: {
@@ -182,7 +201,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
 
           // provider options:
           responseModalities: googleOptions?.responseModalities,
-          thinkingConfig: googleOptions?.thinkingConfig,
+          thinkingConfig,
           ...(googleOptions?.mediaResolution && {
             mediaResolution: googleOptions.mediaResolution,
           }),
@@ -704,6 +723,109 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
       request: { body: args },
     };
   }
+}
+
+function isGemini3Model(modelId: string): boolean {
+  return /gemini-3[\.\-]/i.test(modelId) || /gemini-3$/i.test(modelId);
+}
+
+function getMaxOutputTokensForGemini25Model(): number {
+  return 65536;
+}
+
+function getMaxThinkingTokensForGemini25Model(modelId: string): number {
+  const id = modelId.toLowerCase();
+  if (id.includes('2.5-pro') || id.includes('gemini-3-pro-image')) {
+    return 32768;
+  }
+  return 24576;
+}
+
+type GoogleThinkingConfig = NonNullable<
+  InferSchema<typeof googleLanguageModelOptions>['thinkingConfig']
+>;
+
+function resolveThinkingConfig({
+  reasoning,
+  modelId,
+  warnings,
+}: {
+  reasoning: LanguageModelV4CallOptions['reasoning'];
+  modelId: string;
+  warnings: SharedV4Warning[];
+}): Omit<GoogleThinkingConfig, 'includeThoughts'> | undefined {
+  if (!isCustomReasoning(reasoning)) {
+    return undefined;
+  }
+
+  if (isGemini3Model(modelId) && !modelId.includes('gemini-3-pro-image')) {
+    return resolveGemini3ThinkingConfig({ reasoning, warnings });
+  }
+
+  return resolveGemini25ThinkingConfig({ reasoning, modelId, warnings });
+}
+
+function resolveGemini3ThinkingConfig({
+  reasoning,
+  warnings,
+}: {
+  reasoning: Exclude<
+    LanguageModelV4CallOptions['reasoning'],
+    'provider-default' | undefined
+  >;
+  warnings: SharedV4Warning[];
+}): Pick<GoogleThinkingConfig, 'thinkingLevel'> | undefined {
+  if (reasoning === 'none') {
+    // It's not possible to fully disable thinking with Gemini 3.
+    return { thinkingLevel: 'minimal' };
+  }
+
+  const thinkingLevel = mapReasoningToProviderEffort({
+    reasoning,
+    effortMap: {
+      minimal: 'minimal',
+      low: 'low',
+      medium: 'medium',
+      high: 'high',
+      xhigh: 'high',
+    },
+    warnings,
+  });
+
+  if (thinkingLevel == null) {
+    return undefined;
+  }
+
+  return { thinkingLevel };
+}
+
+function resolveGemini25ThinkingConfig({
+  reasoning,
+  modelId,
+  warnings,
+}: {
+  reasoning: Exclude<
+    LanguageModelV4CallOptions['reasoning'],
+    'provider-default' | undefined
+  >;
+  modelId: string;
+  warnings: SharedV4Warning[];
+}): Pick<GoogleThinkingConfig, 'thinkingBudget'> | undefined {
+  if (reasoning === 'none') {
+    return { thinkingBudget: 0 };
+  }
+
+  const thinkingBudget = mapReasoningToProviderBudget({
+    reasoning,
+    maxOutputTokens: getMaxOutputTokensForGemini25Model(),
+    maxReasoningBudget: getMaxThinkingTokensForGemini25Model(modelId),
+    minReasoningBudget: 0,
+    warnings,
+  });
+  if (thinkingBudget == null) {
+    return undefined;
+  }
+  return { thinkingBudget };
 }
 
 function getToolCallsFromParts({

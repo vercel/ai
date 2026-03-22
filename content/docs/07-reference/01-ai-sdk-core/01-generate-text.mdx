@@ -443,6 +443,13 @@ To see `generateText` in action, check out [these examples](#examples).
         'The seed (integer) to use for random sampling. If set and supported by the model, calls will generate deterministic results.',
     },
     {
+      name: 'reasoning',
+      type: "'provider-default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'",
+      isOptional: true,
+      description:
+        "Controls how much reasoning the model performs before generating a response. When omitted, the provider's default behavior is used. `'provider-default'` explicitly requests the provider's default. Providers that do not support reasoning will emit a warning. If reasoning-related `providerOptions` are also set, they take precedence and this parameter is ignored. See the [reasoning guide](/docs/ai-sdk-core/reasoning) for provider-specific mapping details.",
+    },
+    {
       name: 'maxRetries',
       type: 'number',
       isOptional: true,
@@ -458,10 +465,10 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'timeout',
-      type: 'number | { totalMs?: number; stepMs?: number }',
+      type: 'number | { totalMs?: number; stepMs?: number; toolMs?: number; tools?: { [toolName]Ms?: number } }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs and/or stepMs properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call), useful for multi-step generations. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, toolMs, and/or tools properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call). toolMs sets the default timeout for all tool executions. tools sets per-tool timeout overrides using the pattern {toolName}Ms (e.g. weatherMs, slowApiMs) that take precedence over toolMs - tool names are type-checked for autocomplete. If a tool takes longer than its timeout, it aborts and returns a tool-error so the model can respond or retry. Can be used alongside abortSignal.',
     },
     {
       name: 'headers',
@@ -694,7 +701,7 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_repairToolCall',
-      type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV3ToolCall | null>',
+      type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV4ToolCall | null>',
       isOptional: true,
       description:
         'A function that attempts to repair a tool call that failed to parse. Return either a repaired tool call or null if the tool call cannot be repaired.',
@@ -714,7 +721,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'toolCall',
-              type: 'LanguageModelV3ToolCall',
+              type: 'LanguageModelV4ToolCall',
               description: 'The tool call that failed to parse.',
             },
             {
@@ -1072,7 +1079,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'toolChoice',
-              type: 'LanguageModelV3ToolChoice | undefined',
+              type: 'LanguageModelV4ToolChoice | undefined',
               description: 'The tool choice configuration for this step.',
             },
             {

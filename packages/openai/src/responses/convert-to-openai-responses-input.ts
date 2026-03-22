@@ -7,6 +7,7 @@ import {
 import {
   convertToBase64,
   isNonNullable,
+  parseJSON,
   parseProviderOptions,
   ToolNameMapping,
   validateTypes,
@@ -22,11 +23,16 @@ import {
 } from '../tool/local-shell';
 import { shellInputSchema, shellOutputSchema } from '../tool/shell';
 import {
+  OpenAIResponsesCompactionItem,
   OpenAIResponsesCustomToolCallOutput,
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
 } from './openai-responses-api';
+import {
+  toolSearchInputSchema,
+  toolSearchOutputSchema,
+} from '../tool/tool-search';
 
 /**
  * Check if a string is a file ID based on the given prefixes
@@ -206,6 +212,41 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
+              const resolvedToolName = toolNameMapping.toProviderToolName(
+                part.toolName,
+              );
+
+              if (resolvedToolName === 'tool_search') {
+                if (store && id != null) {
+                  input.push({ type: 'item_reference', id });
+                  break;
+                }
+
+                const parsedInput =
+                  typeof part.input === 'string'
+                    ? await parseJSON({
+                        text: part.input,
+                        schema: toolSearchInputSchema,
+                      })
+                    : await validateTypes({
+                        value: part.input,
+                        schema: toolSearchInputSchema,
+                      });
+
+                const execution =
+                  parsedInput.call_id != null ? 'client' : 'server';
+
+                input.push({
+                  type: 'tool_search_call',
+                  id: id ?? part.toolCallId,
+                  execution,
+                  call_id: parsedInput.call_id ?? null,
+                  status: 'completed',
+                  arguments: parsedInput.arguments,
+                });
+                break;
+              }
+
               if (part.providerExecuted) {
                 if (store && id != null) {
                   input.push({ type: 'item_reference', id });
@@ -217,10 +258,6 @@ export async function convertToOpenAIResponsesInput({
                 input.push({ type: 'item_reference', id });
                 break;
               }
-
-              const resolvedToolName = toolNameMapping.toProviderToolName(
-                part.toolName,
-              );
 
               if (hasLocalShellTool && resolvedToolName === 'local_shell') {
                 const parsedInput = await validateTypes({
@@ -327,6 +364,35 @@ export async function convertToOpenAIResponsesInput({
               const resolvedResultToolName = toolNameMapping.toProviderToolName(
                 part.toolName,
               );
+
+              if (resolvedResultToolName === 'tool_search') {
+                const itemId =
+                  (
+                    part.providerOptions?.[providerOptionsName] as
+                      | { itemId?: string }
+                      | undefined
+                  )?.itemId ?? part.toolCallId;
+
+                if (store) {
+                  input.push({ type: 'item_reference', id: itemId });
+                } else if (part.output.type === 'json') {
+                  const parsedOutput = await validateTypes({
+                    value: part.output.value,
+                    schema: toolSearchOutputSchema,
+                  });
+
+                  input.push({
+                    type: 'tool_search_output',
+                    id: itemId,
+                    execution: 'server',
+                    call_id: null,
+                    status: 'completed',
+                    tools: parsedOutput.tools,
+                  });
+                }
+
+                break;
+              }
 
               /*
                * Shell tool results are separate output items (shell_call_output)
@@ -478,6 +544,36 @@ export async function convertToOpenAIResponsesInput({
               }
               break;
             }
+
+            case 'custom': {
+              if (part.kind === 'openai-compaction') {
+                const providerOpts =
+                  part.providerOptions?.[providerOptionsName];
+                const id = providerOpts?.itemId as string | undefined;
+
+                if (hasConversation && id != null) {
+                  break;
+                }
+
+                if (store && id != null) {
+                  input.push({ type: 'item_reference', id });
+                  break;
+                }
+
+                const encryptedContent = providerOpts?.encryptedContent as
+                  | string
+                  | undefined;
+
+                if (id != null) {
+                  input.push({
+                    type: 'compaction',
+                    id,
+                    encrypted_content: encryptedContent!,
+                  } satisfies OpenAIResponsesCompactionItem);
+                }
+              }
+              break;
+            }
           }
         }
 
@@ -526,6 +622,22 @@ export async function convertToOpenAIResponsesInput({
           const resolvedToolName = toolNameMapping.toProviderToolName(
             part.toolName,
           );
+
+          if (resolvedToolName === 'tool_search' && output.type === 'json') {
+            const parsedOutput = await validateTypes({
+              value: output.value,
+              schema: toolSearchOutputSchema,
+            });
+
+            input.push({
+              type: 'tool_search_output',
+              execution: 'client',
+              call_id: part.toolCallId,
+              status: 'completed',
+              tools: parsedOutput.tools,
+            });
+            continue;
+          }
 
           if (
             hasLocalShellTool &&
