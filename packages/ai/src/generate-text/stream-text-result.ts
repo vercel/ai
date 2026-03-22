@@ -11,6 +11,7 @@ import { LanguageModelResponseMetadata } from '../types/language-model-response-
 import { LanguageModelUsage } from '../types/usage';
 import { InferUIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { UIMessageStreamOnFinishCallback } from '../ui-message-stream/ui-message-stream-on-finish-callback';
+import { UIMessageStreamOnStepFinishCallback } from '../ui-message-stream/ui-message-stream-on-step-finish-callback';
 import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
 import { InferUIMessageMetadata, UIMessage } from '../ui/ui-messages';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
@@ -53,6 +54,12 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   generateMessageId?: IdGenerator;
 
   onFinish?: UIMessageStreamOnFinishCallback<UI_MESSAGE>;
+
+  /**
+   * Callback that is called when each step finishes during streaming.
+   * Useful for persisting intermediate UI messages during multi-step agent runs.
+   */
+  onStepFinish?: UIMessageStreamOnStepFinishCallback<UI_MESSAGE>;
 
   /**
    * Extracts message metadata that will be send to the client.
