@@ -1,4 +1,3 @@
-import dns from 'node:dns';
 import { DownloadError } from './download-error';
 
 /**
@@ -186,9 +185,12 @@ export async function validateResolvedUrl(url: string): Promise<void> {
 
   let result: { address: string; family: number };
   try {
-    result = await dns.promises.lookup(hostname);
+    const { promises } = await import('node:dns');
+    result = await promises.lookup(hostname);
   } catch {
-    return; // DNS failure will be caught by fetch
+    // DNS failure or unavailable node:dns (edge runtime) — skip validation.
+    // DNS errors will be caught by fetch; edge runtimes don't need this check.
+    return;
   }
 
   const { address: resolvedIp, family } = result;

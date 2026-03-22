@@ -6,10 +6,8 @@ import {
 import { DownloadError } from './download-error';
 
 vi.mock('node:dns', () => ({
-  default: {
-    promises: {
-      lookup: vi.fn(),
-    },
+  promises: {
+    lookup: vi.fn(),
   },
 }));
 
@@ -251,7 +249,7 @@ describe('validateResolvedUrl', () => {
 
   beforeEach(async () => {
     const dns = await import('node:dns');
-    mockLookup = dns.default.promises.lookup as ReturnType<typeof vi.fn>;
+    mockLookup = dns.promises.lookup as ReturnType<typeof vi.fn>;
     mockLookup.mockReset();
   });
 
@@ -306,7 +304,10 @@ describe('validateResolvedUrl', () => {
   });
 
   it('should allow hostname resolving to public IPv6 address', async () => {
-    mockLookup.mockResolvedValue({ address: '2001:db8::1', family: 6 });
+    mockLookup.mockResolvedValue({
+      address: '2607:f8b0:4004:800::200e',
+      family: 6,
+    });
     await expect(
       validateResolvedUrl('http://example.com/file'),
     ).resolves.toBeUndefined();
