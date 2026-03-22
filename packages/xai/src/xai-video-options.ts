@@ -6,6 +6,8 @@ export type XaiVideoModelOptions = {
   pollTimeoutMs?: number | null;
   resolution?: '480p' | '720p' | null;
   videoUrl?: string | null;
+  extensionVideoUrl?: string | null;
+  referenceImages?: Array<string> | null;
   [key: string]: unknown;
 };
 
@@ -17,6 +19,8 @@ export const xaiVideoModelOptionsSchema = lazySchema(() =>
         pollTimeoutMs: z.number().positive().nullish(),
         resolution: z.enum(['480p', '720p']).nullish(),
         videoUrl: z.string().nullish(),
+        extensionVideoUrl: z.string().nullish(),
+        referenceImages: z.array(z.string()).nullish(),
       })
       .passthrough(),
   ),
