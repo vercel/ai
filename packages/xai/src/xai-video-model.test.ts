@@ -632,6 +632,33 @@ describe('XaiVideoModel', () => {
       };
     });
 
+    it('should throw when status is failed', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'failed',
+          video: { url: '', duration: 0, respect_moderation: true },
+          model: '',
+          error: {
+            code: 'failed_precondition',
+            message: 'Unsupported video content-type.',
+          },
+        },
+      };
+
+      const model = createModel();
+
+      await expect(model.doGenerate({ ...defaultOptions })).rejects.toThrow(
+        'failed_precondition: Unsupported video content-type.',
+      );
+
+      // Reset
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+
     it('should throw when no request_id is returned', async () => {
       server.urls[`${TEST_BASE_URL}/videos/generations`].response = {
         type: 'json-value',

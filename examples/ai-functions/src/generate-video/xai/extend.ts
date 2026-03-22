@@ -12,11 +12,11 @@ run(async () => {
         model: xai.video('grok-imagine-video'),
         prompt:
           'The camera slowly zooms out to reveal the city skyline at sunset',
-        duration: 6,
+        duration: 2,
         providerOptions: {
           xai: {
             extensionVideoUrl:
-              'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/prudence.mp4',
+              'https://2ktyacfouk5yfxly.public.blob.vercel-storage.com/prudence-480p.mp4',
             pollTimeoutMs: 1200000, // 20 minutes
           } satisfies XaiVideoModelOptions,
         },

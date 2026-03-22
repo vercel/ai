@@ -11,7 +11,7 @@ run(async () => {
       generateVideo({
         model: xai.video('grok-imagine-video'),
         prompt: 'Two cats playing together on a cozy sofa, warm lighting',
-        duration: 10,
+        duration: 2,
         aspectRatio: '16:9',
         providerOptions: {
           xai: {

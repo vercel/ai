@@ -10,14 +10,13 @@ run(async () => {
     () =>
       generateVideo({
         model: xai.video('grok-imagine-video'),
-        prompt:
-          'A golden retriever running through a sunlit meadow, cinematic slow motion',
-        duration: 8,
+        prompt: 'A bee flying through a meadow',
+        duration: 2,
         aspectRatio: '16:9',
         providerOptions: {
           xai: {
             referenceImages: [
-              'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-cat.png',
+              'https://2ktyacfouk5yfxly.public.blob.vercel-storage.com/05-bee-macro.png',
             ],
             pollTimeoutMs: 600000, // 10 minutes
           } satisfies XaiVideoModelOptions,

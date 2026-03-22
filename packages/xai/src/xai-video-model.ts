@@ -272,18 +272,33 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
         ? 'extensions'
         : 'generations';
 
+    const submitUrl = `${baseURL}/videos/${endpoint}`;
+
+    // DEBUG: log the submit request
+    console.error(
+      `[xai-video-debug] POST ${submitUrl}\n` +
+        `[xai-video-debug] request body: ${JSON.stringify(body, null, 2)}`,
+    );
+
     // Step 1: Create video generation/edit/extension request
-    const { value: createResponse } = await postJsonToApi({
-      url: `${baseURL}/videos/${endpoint}`,
-      headers: combineHeaders(this.config.headers(), options.headers),
-      body,
-      failedResponseHandler: xaiFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        xaiCreateVideoResponseSchema,
-      ),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
+    const { value: createResponse, rawValue: createRawValue } =
+      await postJsonToApi({
+        url: submitUrl,
+        headers: combineHeaders(this.config.headers(), options.headers),
+        body,
+        failedResponseHandler: xaiFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          xaiCreateVideoResponseSchema,
+        ),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
+
+    // DEBUG: log the raw submit response
+    console.error(
+      `[xai-video-debug] POST response (raw): ${JSON.stringify(createRawValue, null, 2)}\n` +
+        `[xai-video-debug] POST response (parsed): ${JSON.stringify(createResponse, null, 2)}`,
+    );
 
     const requestId = createResponse.request_id;
     if (!requestId) {
@@ -298,6 +313,13 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
     const pollTimeoutMs = xaiOptions?.pollTimeoutMs ?? 600000;
     const startTime = Date.now();
     let responseHeaders: Record<string, string> | undefined;
+    const pollUrl = `${baseURL}/videos/${requestId}`;
+    let pollCount = 0;
+
+    // DEBUG: log polling config
+    console.error(
+      `[xai-video-debug] Polling ${pollUrl} every ${pollIntervalMs}ms (timeout: ${pollTimeoutMs}ms)`,
+    );
 
     while (true) {
       await delay(pollIntervalMs, { abortSignal: options.abortSignal });
@@ -309,17 +331,33 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
         });
       }
 
-      const { value: statusResponse, responseHeaders: pollHeaders } =
-        await getFromApi({
-          url: `${baseURL}/videos/${requestId}`,
-          headers: combineHeaders(this.config.headers(), options.headers),
-          successfulResponseHandler: createJsonResponseHandler(
-            xaiVideoStatusResponseSchema,
-          ),
-          failedResponseHandler: xaiFailedResponseHandler,
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        });
+      pollCount++;
+
+      const {
+        value: statusResponse,
+        rawValue: statusRawValue,
+        responseHeaders: pollHeaders,
+      } = await getFromApi({
+        url: pollUrl,
+        headers: combineHeaders(this.config.headers(), options.headers),
+        successfulResponseHandler: createJsonResponseHandler(
+          xaiVideoStatusResponseSchema,
+        ),
+        failedResponseHandler: xaiFailedResponseHandler,
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
+
+      const elapsedMs = Date.now() - startTime;
+
+      // DEBUG: log each poll response
+      console.error(
+        `[xai-video-debug] Poll #${pollCount} (${(elapsedMs / 1000).toFixed(1)}s elapsed) GET ${pollUrl}\n` +
+          `[xai-video-debug] Poll raw response: ${JSON.stringify(statusRawValue, null, 2)}\n` +
+          `[xai-video-debug] Poll parsed status: "${statusResponse.status}" | ` +
+          `video: ${statusResponse.video ? 'present' : 'null'} | ` +
+          `response.video: ${statusResponse.response?.video ? 'present' : 'null'}`,
+      );
 
       responseHeaders = pollHeaders;
 
@@ -384,6 +422,17 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
         });
       }
 
+      if (statusResponse.status === 'failed') {
+        const errorInfo = statusResponse.error;
+        const errorMessage = errorInfo
+          ? `${errorInfo.code ?? 'unknown'}: ${errorInfo.message ?? 'unknown error'}`
+          : 'Unknown failure';
+        throw new AISDKError({
+          name: 'XAI_VIDEO_GENERATION_ERROR',
+          message: `Video generation failed: ${errorMessage}`,
+        });
+      }
+
       // 'pending' → continue polling
     }
   }
@@ -415,6 +464,13 @@ const xaiVideoStatusResponseSchema = z.object({
       video: xaiVideoDataSchema.nullish(),
       model: z.string().nullish(),
       usage: xaiUsageSchema.nullish(),
+    })
+    .nullish(),
+  // Error details returned when status is "failed"
+  error: z
+    .object({
+      code: z.string().nullish(),
+      message: z.string().nullish(),
     })
     .nullish(),
 });
