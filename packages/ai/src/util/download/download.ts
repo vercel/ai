@@ -3,6 +3,7 @@ import {
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
   validateDownloadUrl,
+  validateResolvedUrl,
 } from '@ai-sdk/provider-utils';
 import {
   withUserAgentSuffix,
@@ -31,6 +32,7 @@ export const download = async ({
 }) => {
   const urlText = url.toString();
   validateDownloadUrl(urlText);
+  await validateResolvedUrl(urlText);
   try {
     const response = await fetch(urlText, {
       headers: withUserAgentSuffix(
@@ -44,6 +46,7 @@ export const download = async ({
     // Validate final URL after redirects to prevent SSRF via open redirect
     if (response.redirected) {
       validateDownloadUrl(response.url);
+      await validateResolvedUrl(response.url);
     }
 
     if (!response.ok) {

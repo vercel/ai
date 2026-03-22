@@ -1,6 +1,17 @@
-import { describe, it, expect } from 'vitest';
-import { validateDownloadUrl } from './validate-download-url';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  validateDownloadUrl,
+  validateResolvedUrl,
+} from './validate-download-url';
 import { DownloadError } from './download-error';
+
+vi.mock('node:dns', () => ({
+  default: {
+    promises: {
+      lookup: vi.fn(),
+    },
+  },
+}));
 
 describe('validateDownloadUrl', () => {
   describe('allowed URLs', () => {
@@ -137,6 +148,46 @@ describe('validateDownloadUrl', () => {
         DownloadError,
       );
     });
+
+    it('should block 100.64.0.0/10 (CGNAT, RFC 6598)', () => {
+      expect(() => validateDownloadUrl('http://100.64.0.0/file')).toThrow(
+        DownloadError,
+      );
+      expect(() => validateDownloadUrl('http://100.127.255.255/file')).toThrow(
+        DownloadError,
+      );
+    });
+
+    it('should allow 100.128.0.0 (outside CGNAT range)', () => {
+      expect(() =>
+        validateDownloadUrl('http://100.128.0.0/file'),
+      ).not.toThrow();
+    });
+
+    it('should block 198.18.0.0/15 (Benchmarking, RFC 2544)', () => {
+      expect(() => validateDownloadUrl('http://198.18.0.0/file')).toThrow(
+        DownloadError,
+      );
+      expect(() => validateDownloadUrl('http://198.19.255.255/file')).toThrow(
+        DownloadError,
+      );
+    });
+
+    it('should allow 198.20.0.0 (outside benchmarking range)', () => {
+      expect(() => validateDownloadUrl('http://198.20.0.0/file')).not.toThrow();
+    });
+
+    it('should block 240.0.0.0/4 (reserved)', () => {
+      expect(() => validateDownloadUrl('http://240.0.0.0/file')).toThrow(
+        DownloadError,
+      );
+    });
+
+    it('should block 255.255.255.255 (broadcast)', () => {
+      expect(() => validateDownloadUrl('http://255.255.255.255/file')).toThrow(
+        DownloadError,
+      );
+    });
   });
 
   describe('blocked IPv6 addresses', () => {
@@ -192,5 +243,72 @@ describe('validateDownloadUrl', () => {
         validateDownloadUrl('http://[::ffff:203.0.113.1]/file'),
       ).not.toThrow();
     });
+  });
+});
+
+describe('validateResolvedUrl', () => {
+  let mockLookup: ReturnType<typeof vi.fn>;
+
+  beforeEach(async () => {
+    const dns = await import('node:dns');
+    mockLookup = dns.default.promises.lookup as ReturnType<typeof vi.fn>;
+    mockLookup.mockReset();
+  });
+
+  it('should block hostname resolving to 169.254.169.254 (cloud metadata SSRF)', async () => {
+    mockLookup.mockResolvedValue({ address: '169.254.169.254', family: 4 });
+    await expect(
+      validateResolvedUrl('http://evil.attacker.com/latest/meta-data/'),
+    ).rejects.toThrow(DownloadError);
+  });
+
+  it('should block hostname resolving to 10.0.0.1', async () => {
+    mockLookup.mockResolvedValue({ address: '10.0.0.1', family: 4 });
+    await expect(
+      validateResolvedUrl('http://evil.example.com/file'),
+    ).rejects.toThrow(DownloadError);
+  });
+
+  it('should block hostname resolving to 127.0.0.1', async () => {
+    mockLookup.mockResolvedValue({ address: '127.0.0.1', family: 4 });
+    await expect(
+      validateResolvedUrl('http://evil.example.com/file'),
+    ).rejects.toThrow(DownloadError);
+  });
+
+  it('should allow hostname resolving to public IP', async () => {
+    mockLookup.mockResolvedValue({ address: '93.184.216.34', family: 4 });
+    await expect(
+      validateResolvedUrl('http://example.com/file'),
+    ).resolves.toBeUndefined();
+  });
+
+  it('should skip DNS resolution for literal IPv4 addresses', async () => {
+    await validateResolvedUrl('http://93.184.216.34/file');
+    expect(mockLookup).not.toHaveBeenCalled();
+  });
+
+  it('should skip DNS resolution for literal IPv6 addresses', async () => {
+    await validateResolvedUrl('http://[2001:db8::1]/file');
+    expect(mockLookup).not.toHaveBeenCalled();
+  });
+
+  it('should skip DNS resolution for data: URLs', async () => {
+    await validateResolvedUrl('data:text/plain;base64,aGVsbG8=');
+    expect(mockLookup).not.toHaveBeenCalled();
+  });
+
+  it('should block hostname resolving to private IPv6 address', async () => {
+    mockLookup.mockResolvedValue({ address: '::1', family: 6 });
+    await expect(
+      validateResolvedUrl('http://evil.example.com/file'),
+    ).rejects.toThrow(DownloadError);
+  });
+
+  it('should allow hostname resolving to public IPv6 address', async () => {
+    mockLookup.mockResolvedValue({ address: '2001:db8::1', family: 6 });
+    await expect(
+      validateResolvedUrl('http://example.com/file'),
+    ).resolves.toBeUndefined();
   });
 });

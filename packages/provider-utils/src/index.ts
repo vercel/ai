@@ -61,7 +61,10 @@ export {
 } from './schema';
 export { stripFileExtension } from './strip-file-extension';
 export * from './uint8-utils';
-export { validateDownloadUrl } from './validate-download-url';
+export {
+  validateDownloadUrl,
+  validateResolvedUrl,
+} from './validate-download-url';
 export * from './validate-types';
 export { VERSION } from './version';
 export { withUserAgentSuffix } from './with-user-agent-suffix';

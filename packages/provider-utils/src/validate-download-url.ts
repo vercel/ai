@@ -1,3 +1,4 @@
+import dns from 'node:dns';
 import { DownloadError } from './download-error';
 
 /**
@@ -104,6 +105,12 @@ function isPrivateIPv4(ip: string): boolean {
   if (a === 172 && b >= 16 && b <= 31) return true;
   // 192.168.0.0/16
   if (a === 192 && b === 168) return true;
+  // 100.64.0.0/10 (Carrier-Grade NAT, RFC 6598)
+  if (a === 100 && b >= 64 && b <= 127) return true;
+  // 198.18.0.0/15 (Benchmarking, RFC 2544)
+  if (a === 198 && (b === 18 || b === 19)) return true;
+  // 240.0.0.0/4 (Reserved)
+  if (a >= 240) return true;
 
   return false;
 }
@@ -145,4 +152,58 @@ function isPrivateIPv6(ip: string): boolean {
   if (normalized.startsWith('fe80')) return true;
 
   return false;
+}
+
+/**
+ * Validates that a URL's DNS resolution does not point to a private/internal IP address,
+ * preventing DNS rebinding SSRF attacks where a hostname resolves to an internal IP.
+ *
+ * @param url - The URL string to validate.
+ * @throws DownloadError if the resolved IP is private.
+ */
+export async function validateResolvedUrl(url: string): Promise<void> {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return; // Invalid URLs are handled by validateDownloadUrl
+  }
+
+  // data: URLs don't trigger network fetches
+  if (parsed.protocol === 'data:') {
+    return;
+  }
+
+  const hostname = parsed.hostname;
+
+  // Skip literal IP addresses — already validated by sync validateDownloadUrl
+  if (isIPv4(hostname)) {
+    return;
+  }
+  if (hostname.startsWith('[') && hostname.endsWith(']')) {
+    return;
+  }
+
+  let result: { address: string; family: number };
+  try {
+    result = await dns.promises.lookup(hostname);
+  } catch {
+    return; // DNS failure will be caught by fetch
+  }
+
+  const { address: resolvedIp, family } = result;
+
+  if (family === 4 && isPrivateIPv4(resolvedIp)) {
+    throw new DownloadError({
+      url,
+      message: `URL hostname ${hostname} resolves to private IP address ${resolvedIp}`,
+    });
+  }
+
+  if (family === 6 && isPrivateIPv6(resolvedIp)) {
+    throw new DownloadError({
+      url,
+      message: `URL hostname ${hostname} resolves to private IPv6 address ${resolvedIp}`,
+    });
+  }
 }
