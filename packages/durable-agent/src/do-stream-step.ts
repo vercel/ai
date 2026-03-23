@@ -8,7 +8,6 @@ import type {
 } from '@ai-sdk/provider';
 import {
   type FinishReason,
-  gateway,
   generateId,
   type StepResult,
   type StopCondition,
@@ -16,6 +15,7 @@ import {
   type ToolSet,
   type UIMessageChunk,
 } from 'ai';
+import { resolveLanguageModel } from 'ai/internal';
 import type {
   ProviderOptions,
   StreamTextTransform,
@@ -112,11 +112,10 @@ export async function doStreamStep(
 ) {
   'use step';
 
-  let model: CompatibleLanguageModel | undefined;
+  let model: CompatibleLanguageModel;
   if (typeof modelInit === 'string') {
-    model = gateway(modelInit) as CompatibleLanguageModel;
+    model = resolveLanguageModel(modelInit) as CompatibleLanguageModel;
   } else if (typeof modelInit === 'function') {
-    // User-provided model factory - returns V4
     model = await modelInit();
   } else {
     throw new Error(
