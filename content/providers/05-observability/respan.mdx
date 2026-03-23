@@ -5,34 +5,42 @@ description: Monitor, trace, and debug your AI SDK application with Respan
 
 # Respan Observability
 
-[Respan](https://respan.ai/) is an observability platform for monitoring and tracing LLM applications.
-After integrating with the AI SDK, you can use Respan to trace, monitor, and analyze your LLM calls across multiple providers.
+[Respan](https://respan.ai/) is an observability platform for monitoring and tracing LLM applications. Respan integrates with the AI SDK via OpenTelemetry to automatically capture text generation, streaming, tool use, and structured outputs across multiple providers.
+
+<Note>
+  A version of this guide is available in [Respan's
+  docs](https://respan.ai/docs/integrations/tracing/vercel-tracing).
+</Note>
 
 ## Setup
 
-Respan provides a dedicated exporter package for the AI SDK that works with [AI SDK telemetry data](/docs/ai-sdk-core/telemetry).
+Respan supports [AI SDK telemetry data](/docs/ai-sdk-core/telemetry) through the `@respan/exporter-vercel` package, an OpenTelemetry `SpanExporter` that transforms Vercel AI SDK spans into Respan format.
 
-You'll need to sign up at [platform.respan.ai](https://platform.respan.ai) and get your API key from the API keys page.
-
-### Installation
-
-Install the Respan exporter alongside the AI SDK packages:
-
-```bash
-npm install @respan/exporter-vercel @vercel/otel ai
-```
-
-### Environment Variables
-
-Set your Respan API key:
+Sign up at [platform.respan.ai](https://platform.respan.ai), generate an API key from the dashboard, and set it as an environment variable:
 
 ```bash filename=".env"
 RESPAN_API_KEY="YOUR_RESPAN_API_KEY"
 ```
 
+### Installation
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @respan/exporter-vercel @vercel/otel" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @respan/exporter-vercel @vercel/otel" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @respan/exporter-vercel @vercel/otel" dark />
+  </Tab>
+</Tabs>
+
+## Next.js
+
 ### Instrumentation
 
-Create an `instrumentation.ts` file in your project root:
+Create an `instrumentation.ts` file in your project root (or in `src/` if your project uses a `src/` directory layout):
 
 ```ts filename="instrumentation.ts"
 import { registerOTel } from '@vercel/otel';
@@ -48,11 +56,11 @@ export function register() {
 }
 ```
 
-### Enable Telemetry
+### Tracing AI SDK calls
 
-Use the `experimental_telemetry` option to enable telemetry on AI SDK function calls:
+When you call AI SDK functions, add `experimental_telemetry` to enable tracing:
 
-```ts
+```ts highlight="3,8-14"
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
@@ -61,46 +69,131 @@ const result = await generateText({
   prompt: 'Write a short story about a cat.',
   experimental_telemetry: {
     isEnabled: true,
-    functionId: 'generate_text',
+    functionId: 'generate-story',
     metadata: {
       customer_identifier: 'user-123',
+      environment: 'production',
     },
   },
 });
 ```
 
-Done! All traces that contain AI SDK spans are automatically captured in Respan.
+The exporter automatically captures:
 
-## What You'll See in Respan
+- LLM call input and output
+- Start and end time, duration / latency
+- Provider and model used
+- Input and output token counts
+- Cost calculations
+- Tool invocations and structured outputs
 
-After integrating, you'll be able to view in your Respan dashboard:
+### Streaming
 
-- **LLM call traces**: Full input/output for each AI SDK call
-- **Performance metrics**: Latency, token usage, and cost tracking
-- **Model information**: Which models and providers were used
-- **Custom metadata**: Any additional context provided via telemetry
-- **Error tracking**: Failed requests and debugging information
+The integration supports streaming functions like `streamText`. For streaming routes, set `maxDuration` to prevent timeouts:
+
+```ts highlight="1,7"
+export const maxDuration = 30;
+
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+export async function POST(req: Request) {
+  const { prompt } = await req.json();
+
+  const result = streamText({
+    model: openai('gpt-4o'),
+    prompt,
+    experimental_telemetry: { isEnabled: true },
+  });
+
+  return result.toDataStreamResponse();
+}
+```
+
+## Node.js
+
+For Node.js without a framework, configure the `NodeSDK` directly.
+
+Install dependencies:
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @respan/exporter-vercel ai @ai-sdk/openai @opentelemetry/sdk-node" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @respan/exporter-vercel ai @ai-sdk/openai @opentelemetry/sdk-node" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @respan/exporter-vercel ai @ai-sdk/openai @opentelemetry/sdk-node" dark />
+  </Tab>
+</Tabs>
+
+Then set up the OpenTelemetry SDK:
+
+```ts highlight="3-4,6-10"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+import { RespanExporter } from '@respan/exporter-vercel';
+import { NodeSDK } from '@opentelemetry/sdk-node';
+
+const sdk = new NodeSDK({
+  spanProcessors: [
+    new RespanExporter({ apiKey: process.env.RESPAN_API_KEY! }),
+  ],
+});
+
+sdk.start();
+
+async function main() {
+  const result = await generateText({
+    model: openai('gpt-4o'),
+    prompt: 'Invent a new holiday and describe its traditions.',
+    experimental_telemetry: {
+      isEnabled: true,
+      functionId: 'holiday-generator',
+      metadata: {
+        customer_identifier: 'user-123',
+      },
+    },
+  });
+
+  console.log(result.text);
+
+  await sdk.shutdown();
+}
+
+main().catch(console.error);
+```
 
 ## Configuration
 
-The `RespanExporter` accepts the following options:
+### Exporter Options
 
-| Parameter | Type    | Default                  | Description                  |
-| --------- | ------- | ------------------------ | ---------------------------- |
-| `apiKey`  | string  | `RESPAN_API_KEY` env var | Your Respan API key          |
-| `baseUrl` | string  | `https://api.respan.ai`  | API endpoint                 |
-| `debug`   | boolean | `false`                  | Enable diagnostic logging    |
+| Parameter | Type              | Default                  | Description               |
+| --------- | ----------------- | ------------------------ | ------------------------- |
+| `apiKey`  | string            | `RESPAN_API_KEY` env var | Your Respan API key       |
+| `baseUrl` | string / undefined | `https://api.respan.ai`  | API endpoint              |
 
-### Custom Metadata Attributes
+### Custom Metadata
 
-You can pass custom attributes via `experimental_telemetry.metadata` to filter and group traces in Respan:
+Pass custom attributes via `experimental_telemetry.metadata` to filter and group traces in the Respan dashboard:
 
-```ts highlight="6-11"
+| Attribute              | Description                                  |
+| ---------------------- | -------------------------------------------- |
+| `customer_identifier`  | User or customer ID for dashboard filtering  |
+| `customer_name`        | Display name for the user                    |
+| `customer_email`       | Contact email                                |
+| `thread_identifier`    | Conversation thread ID for grouping          |
+
+Any additional key-value pairs are added to span metadata automatically.
+
+```ts highlight="5-11"
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Write a short story about a cat.',
   experimental_telemetry: {
     isEnabled: true,
+    functionId: 'story-writer',
     metadata: {
       customer_identifier: 'user-123',
       customer_name: 'Jane Doe',
@@ -111,21 +204,13 @@ const result = await generateText({
 });
 ```
 
-### Streaming
-
-For routes using `streamText`, set `maxDuration` to prevent timeouts:
-
-```ts
-export const maxDuration = 30;
-```
-
 ## Troubleshooting
 
 - **Missing `@opentelemetry/api-logs`**: Install directly if peer dependency issues arise:
   ```bash
   npm install @opentelemetry/api-logs
   ```
-- **No traces appearing**: Verify that telemetry is enabled, `instrumentation.ts` exists at your project root, and `RESPAN_API_KEY` is set. Enable `debug: true` for export logs.
+- **No traces appearing**: Verify that `experimental_telemetry` is enabled on your AI SDK calls, `instrumentation.ts` exists at your project root (or `src/`), and `RESPAN_API_KEY` is set.
 - **Turbopack warning**: Add to `next.config.js`:
   ```js
   const nextConfig = { turbopack: { root: __dirname } };
@@ -136,4 +221,5 @@ export const maxDuration = 30;
 
 - [Respan Vercel AI SDK Tracing Guide](https://respan.ai/docs/integrations/tracing/vercel-tracing)
 - [Respan Vercel AI SDK Gateway Guide](https://respan.ai/docs/integrations/gateway/vercel)
+- [Respan Exporter SDK Reference](https://respan.ai/docs/sdks/typescript/exporters/vercel)
 - [Respan Documentation](https://respan.ai/docs)
