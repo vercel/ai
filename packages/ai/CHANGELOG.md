@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.135
+
+### Patch Changes
+
+- df6a330: chore(ai): remove all experimental agent events
+
 ## 6.0.134
 
 ### Patch Changes
