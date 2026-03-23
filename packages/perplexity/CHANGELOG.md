@@ -1,5 +1,11 @@
 # @ai-sdk/perplexity
 
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- d976e8a: feat(perplexity): expose provider-reported cost in providerMetadata
+
 ## 4.0.0-beta.8
 
 ### Patch Changes

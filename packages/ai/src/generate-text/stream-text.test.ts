@@ -17891,11 +17891,6 @@ describe('streamText', () => {
                 },
               },
               {
-                "request": {},
-                "type": "start-step",
-                "warnings": [],
-              },
-              {
                 "reason": "This operation was aborted",
                 "type": "abort",
               },
@@ -17928,9 +17923,6 @@ describe('streamText', () => {
               },
               {
                 "type": "finish-step",
-              },
-              {
-                "type": "start-step",
               },
               {
                 "reason": "This operation was aborted",
