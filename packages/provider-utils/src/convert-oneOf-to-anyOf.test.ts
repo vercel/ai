@@ -189,7 +189,7 @@ describe('convertOneOfToAnyOf', () => {
   });
 
   it('should convert oneOf nested inside if/then/else', () => {
-    const schema = {
+    const schema: any = {
       if: {
         properties: {
           kind: {
@@ -197,13 +197,13 @@ describe('convertOneOfToAnyOf', () => {
           },
         },
       },
-      then: {
-        oneOf: [{ type: 'string' as const }, { type: 'number' as const }],
-      },
       else: {
         oneOf: [{ type: 'boolean' as const }, { type: 'null' as const }],
       },
     };
+    Reflect.set(schema, 'then', {
+      oneOf: [{ type: 'string' as const }, { type: 'number' as const }],
+    });
     const result = convertOneOfToAnyOf(schema);
     expect((result as any).if.properties.kind).toEqual({
       anyOf: [{ const: 'a' }, { const: 'b' }],
