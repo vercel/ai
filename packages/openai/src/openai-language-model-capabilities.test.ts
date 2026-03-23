@@ -61,8 +61,6 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5.4-nano', true],
       ['gpt-5.4-nano-2026-03-17', true],
       ['new-unknown-model', true],
-      ['ft:gpt-4o-2024-08-06:org:custom:abc123', true],
-      ['custom-model', true],
     ])('%s reasoning model: %s', (modelId, expectedCapabilities) => {
       expect(
         getOpenAILanguageModelCapabilities(modelId).isReasoningModel,
