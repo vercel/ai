@@ -8,7 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "@ai-sdk/openai": "3.0.47",
+    "@ai-sdk/openai": "3.0.48",
     "@ai-sdk/react": "3.0.138",
     "@opentelemetry/api-logs": "0.55.0",
     "@opentelemetry/instrumentation": "0.52.1",
