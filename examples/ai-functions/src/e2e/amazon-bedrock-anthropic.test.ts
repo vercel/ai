@@ -14,15 +14,15 @@ import {
 } from './feature-test-suite';
 
 const createModelObject = (
-  model: LanguageModelV3,
-): { model: LanguageModelV3; modelId: string } => ({
+  model: LanguageModelV4,
+): { model: LanguageModelV4; modelId: string } => ({
   model: model,
   modelId: model.modelId,
 });
 
 const createLanguageModel = (
   modelId: string,
-  additionalTests: ((model: LanguageModelV3) => void)[] = [],
+  additionalTests: ((model: LanguageModelV4) => void)[] = [],
 ): ModelWithCapabilities<LanguageModelV3 | LanguageModelV4> => {
   const model = createBedrockAnthropic({
     region: process.env.AWS_REGION ?? 'us-east-1',
@@ -42,7 +42,7 @@ const createLanguageModel = (
 
 const createModelVariants = (
   modelId: string,
-  tests: ((model: LanguageModelV3) => void)[] = [],
+  tests: ((model: LanguageModelV4) => void)[] = [],
 ): ModelWithCapabilities<LanguageModelV3 | LanguageModelV4>[] => [
   createLanguageModel(modelId, tests),
 ];
@@ -83,7 +83,7 @@ describe('Bedrock Anthropic E2E Tests', () => {
   })();
 });
 
-const stopSequenceTests = (model: LanguageModelV3) => {
+const stopSequenceTests = (model: LanguageModelV4) => {
   it(
     'should return stop_sequence in provider metadata when stopped by stop sequence',
     async () => {
@@ -98,7 +98,7 @@ const stopSequenceTests = (model: LanguageModelV3) => {
       expect(result.finishReason).toBe('stop');
       expect(result.providerMetadata?.anthropic?.stopSequence).toBe('5');
     },
-    { timeout: LONG_TEST_MILLIS },
+    LONG_TEST_MILLIS,
   );
 
   it(
@@ -113,11 +113,11 @@ const stopSequenceTests = (model: LanguageModelV3) => {
       expect(result.text).toBeTruthy();
       expect(result.providerMetadata?.anthropic?.stopSequence).toBeNull();
     },
-    { timeout: LONG_TEST_MILLIS },
+    LONG_TEST_MILLIS,
   );
 };
 
-const toolTests = (model: LanguageModelV3) => {
+const toolTests = (model: LanguageModelV4) => {
   it(
     'should execute computer tool commands',
     async () => {
@@ -171,7 +171,7 @@ const toolTests = (model: LanguageModelV3) => {
       );
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
     },
-    { timeout: COMPUTER_USE_TEST_MILLIS },
+    COMPUTER_USE_TEST_MILLIS,
   );
 
   it(
@@ -204,7 +204,7 @@ README.md     build         data          node_modules  package.json  src       
       expect(result.text).toContain('node_modules');
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
     },
-    { timeout: COMPUTER_USE_TEST_MILLIS },
+    COMPUTER_USE_TEST_MILLIS,
   );
 
   it(
@@ -247,6 +247,6 @@ README.md     build         data          node_modules  package.json  src       
       expect(editorContent).not.toBe('## README\nThis is a test file.');
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
     },
-    { timeout: COMPUTER_USE_TEST_MILLIS },
+    COMPUTER_USE_TEST_MILLIS,
   );
 };

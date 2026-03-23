@@ -1,5 +1,98 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [18c1970]
+  - @ai-sdk/google@4.0.0-beta.15
+
+## 5.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/anthropic@4.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.4
+  - @ai-sdk/google@4.0.0-beta.14
+
+## 5.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+  - @ai-sdk/anthropic@4.0.0-beta.9
+  - @ai-sdk/google@4.0.0-beta.13
+
+## 5.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+  - @ai-sdk/anthropic@4.0.0-beta.8
+  - @ai-sdk/google@4.0.0-beta.12
+
+## 5.0.0-beta.16
+
+### Patch Changes
+
+- ebb02ea: feat(google-vertex): add the anthropic tool search tools
+
+## 5.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+  - @ai-sdk/google@4.0.0-beta.11
+  - @ai-sdk/anthropic@4.0.0-beta.7
+
+## 5.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [21d1ee3]
+  - @ai-sdk/anthropic@4.0.0-beta.6
+
+## 5.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/anthropic@4.0.0-beta.5
+  - @ai-sdk/google@4.0.0-beta.10
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 5.0.0-beta.12
+
+### Patch Changes
+
+- f05a40d: fix(vertex): throw warning when strict: true for vertexAnthropic
+- Updated dependencies [f05a40d]
+  - @ai-sdk/anthropic@4.0.0-beta.4
+
+## 5.0.0-beta.11
+
+### Patch Changes
+
+- e59176c: chore(google): update v3 specs to v4
+- Updated dependencies [e59176c]
+  - @ai-sdk/google@4.0.0-beta.9
+
+## 5.0.0-beta.10
+
+### Patch Changes
+
+- e748b35: chore: update v3 specs to v4
+- Updated dependencies [e748b35]
+  - @ai-sdk/anthropic@4.0.0-beta.3
+
 ## 5.0.0-beta.9
 
 ### Patch Changes
@@ -724,13 +817,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 32a6c13: Add Google Maps grounding tool support for location-aware Gemini responses
@@ -1214,13 +1307,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -2175,7 +2268,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -2188,7 +2281,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -2578,7 +2671,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -2591,7 +2684,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
