@@ -136,9 +136,10 @@ export function resolveVideoModel(
   if (typeof model === 'string') {
     // Use raw global provider because videoModel is experimental
     // and not part of the ProviderV4 interface
+    // @ts-ignore globalThis has no index signature in DTS build
     const provider = globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
     // TODO AI SDK v7
-    // @ts-expect-error - videoModel support is experimental
+    // @ts-ignore videoModel support is experimental
     const videoModel = provider.videoModel;
 
     if (!videoModel) {
@@ -167,6 +168,7 @@ export function resolveVideoModel(
 }
 
 function getGlobalProvider(): ProviderV4 {
+  // @ts-ignore globalThis has no index signature in DTS build
   const provider = globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
   return asProviderV4(provider);
 }
