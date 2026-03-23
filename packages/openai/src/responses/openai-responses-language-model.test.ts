@@ -3572,19 +3572,19 @@ describe('OpenAIResponsesLanguageModel', () => {
                   "itemId": "msg_01b6b3812d7541bd00698f71a5de488196b6ae435d1a54ed9c",
                 },
               },
-              "text": "Build a STOP huge signal STOP on the STOP beach using STOP rocks or STOP logs.  
+              "text": "Build a STOP huge signal STOP on the STOP beach using STOP rocks or STOP logs.
 
-          Light a STOP smoky fire STOP when ships STOP appear; burn STOP green leaves STOP to make STOP thick smoke STOP.  
+          Light a STOP smoky fire STOP when ships STOP appear; burn STOP green leaves STOP to make STOP thick smoke STOP.
 
-          Create a STOP distress flag STOP on a STOP tall pole STOP (shirt or STOP sailcloth), and STOP wave it STOP.  
+          Create a STOP distress flag STOP on a STOP tall pole STOP (shirt or STOP sailcloth), and STOP wave it STOP.
 
-          Set up STOP three fires STOP in a STOP triangle (international distress). STOP Keep dry STOP tinder ready STOP.  
+          Set up STOP three fires STOP in a STOP triangle (international distress). STOP Keep dry STOP tinder ready STOP.
 
-          Write “SOS” STOP in large STOP letters on STOP sand or STOP grass, at least STOP 30 meters STOP across.  
+          Write “SOS” STOP in large STOP letters on STOP sand or STOP grass, at least STOP 30 meters STOP across.
 
-          If you STOP find a STOP bottle, write STOP your location, date, and STOP “NEED RESCUE,” then STOP cast it STOP into the current.  
+          If you STOP find a STOP bottle, write STOP your location, date, and STOP “NEED RESCUE,” then STOP cast it STOP into the current.
 
-          Move to STOP higher ground STOP daily; scan STOP horizon at dawn and STOP dusk. Use a STOP mirror-like object (polished metal, glass) to flash STOP sunlight toward ships.  
+          Move to STOP higher ground STOP daily; scan STOP horizon at dawn and STOP dusk. Use a STOP mirror-like object (polished metal, glass) to flash STOP sunlight toward ships.
 
           Ration water STOP; collect rain STOP with leaves, shells, or cloth. Build a STOP simple shelter STOP near resources but above storm tide. Keep yourself healthy so you can signal quickly.",
               "type": "text",
@@ -7185,37 +7185,60 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         const events = await convertReadableStreamToArray(stream);
-        const finishEvent = events.find(
-          (
-            event,
-          ): event is Extract<LanguageModelV4StreamPart, { type: 'finish' }> =>
-            event.type === 'finish',
-        );
 
-        const errorEvent = events.find(
-          (
-            event,
-          ): event is Extract<LanguageModelV4StreamPart, { type: 'error' }> =>
-            event.type === 'error',
-        );
-        expect(finishEvent).toMatchObject({
-          type: 'finish',
-          finishReason: {
-            unified: 'length',
-            raw: 'max_output_tokens',
-          },
-        });
-
-        expect(errorEvent).toMatchObject({
-          type: 'error',
-          error: {
-            type: 'error',
-            error: {
-              code: 'server_error',
-              message: 'response failed',
+        expect(events).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "stream-start",
+              "warnings": [],
             },
-          },
-        });
+            {
+              "id": "resp_failed_with_reason",
+              "modelId": "gpt-4o-2024-07-18",
+              "timestamp": 2025-03-06T13:50:19.000Z,
+              "type": "response-metadata",
+            },
+            {
+              "error": {
+                "error": {
+                  "code": "server_error",
+                  "message": "response failed",
+                  "param": null,
+                  "type": "server_error",
+                },
+                "sequence_number": 1,
+                "type": "error",
+              },
+              "type": "error",
+            },
+            {
+              "finishReason": {
+                "raw": "max_output_tokens",
+                "unified": "length",
+              },
+              "providerMetadata": {
+                "openai": {
+                  "responseId": "resp_failed_with_reason",
+                },
+              },
+              "type": "finish",
+              "usage": {
+                "inputTokens": {
+                  "cacheRead": undefined,
+                  "cacheWrite": undefined,
+                  "noCache": undefined,
+                  "total": undefined,
+                },
+                "outputTokens": {
+                  "reasoning": undefined,
+                  "text": undefined,
+                  "total": undefined,
+                },
+                "raw": undefined,
+              },
+            },
+          ]
+        `);
       });
     });
 
