@@ -26,6 +26,8 @@ export function bindTelemetryIntegration(
     onStepFinish: integration.onStepFinish?.bind(integration),
     onEmbedStart: integration.onEmbedStart?.bind(integration),
     onEmbedFinish: integration.onEmbedFinish?.bind(integration),
+    onRerankStart: integration.onRerankStart?.bind(integration),
+    onRerankFinish: integration.onRerankFinish?.bind(integration),
     onFinish: integration.onFinish?.bind(integration),
     onError: integration.onError?.bind(integration),
     executeTool: integration.executeTool?.bind(integration),
@@ -99,6 +101,12 @@ export function getGlobalTelemetryIntegration<
       ),
       onEmbedFinish: createTelemetryComposite(
         integration => integration.onEmbedFinish,
+      ),
+      onRerankStart: createTelemetryComposite(
+        integration => integration.onRerankStart,
+      ),
+      onRerankFinish: createTelemetryComposite(
+        integration => integration.onRerankFinish,
       ),
       onFinish: createTelemetryComposite(integration => integration.onFinish),
       onError: createTelemetryComposite(integration => integration.onError),

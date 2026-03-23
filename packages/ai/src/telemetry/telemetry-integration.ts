@@ -15,6 +15,12 @@ import type {
   EmbedStartEvent,
   EmbedFinishEvent,
 } from '../embed/embed-events';
+import type {
+  RerankOnStartEvent,
+  RerankOnFinishEvent,
+  RerankStartEvent,
+  RerankFinishEvent,
+} from '../rerank/rerank-events';
 import { Listener } from '../util/notify';
 
 /**
@@ -28,7 +34,9 @@ export interface TelemetryIntegration {
    *
    * Use the `operationId` field to distinguish between operation types.
    */
-  onStart?: Listener<OnStartEvent<ToolSet, Output> | EmbedOnStartEvent>;
+  onStart?: Listener<
+    OnStartEvent<ToolSet, Output> | EmbedOnStartEvent | RerankOnStartEvent
+  >;
 
   /**
    * Called when an individual step (single LLM invocation) begins.
@@ -84,12 +92,26 @@ export interface TelemetryIntegration {
   onEmbedFinish?: Listener<EmbedFinishEvent>;
 
   /**
+   * Called when an individual reranking model call (doRerank) begins.
+   * There is one call per `rerank` invocation.
+   */
+  onRerankStart?: Listener<RerankStartEvent>;
+
+  /**
+   * Called when an individual reranking model call (doRerank) completes.
+   * Contains the ranking results from the model response.
+   */
+  onRerankFinish?: Listener<RerankFinishEvent>;
+
+  /**
    * Called when an operation completes. Fired for both text generation
    * (generateText/streamText) and embedding (embed/embedMany) operations.
    *
    * Use the event shape or `operationId` to distinguish between operation types.
    */
-  onFinish?: Listener<OnFinishEvent<ToolSet> | EmbedOnFinishEvent>;
+  onFinish?: Listener<
+    OnFinishEvent<ToolSet> | EmbedOnFinishEvent | RerankOnFinishEvent
+  >;
 
   /**
    * Called when an unrecoverable error occurs during the generation lifecycle.
