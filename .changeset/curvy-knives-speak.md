@@ -1,5 +1,4 @@
 ---
-'@ai-sdk/gateway': patch
 '@ai-sdk/openai': patch
 ---
 
