@@ -5,6 +5,7 @@ import { rerank } from './rerank';
 import type { RerankOnStartEvent, RerankOnFinishEvent } from './rerank-events';
 import { RerankResult } from './rerank-result';
 import { MockTracer } from '../test/mock-tracer';
+import { OpenTelemetryIntegration } from '../telemetry/open-telemetry-integration';
 
 describe('rerank', () => {
   describe('rerank with string documents', () => {
@@ -411,7 +412,7 @@ describe('rerank', () => {
             test1: 'value1',
             test2: false,
           },
-          tracer,
+          integrations: [new OpenTelemetryIntegration({ tracer })],
         },
       });
 
@@ -481,7 +482,7 @@ describe('rerank', () => {
           isEnabled: true,
           recordInputs: false,
           recordOutputs: false,
-          tracer,
+          integrations: [new OpenTelemetryIntegration({ tracer })],
         },
       });
 
