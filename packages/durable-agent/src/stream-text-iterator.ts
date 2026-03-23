@@ -1,9 +1,10 @@
 import type {
-  LanguageModelV4CallOptions,
-  LanguageModelV4Prompt,
-  LanguageModelV4ToolCall,
-  LanguageModelV4ToolResultPart,
-} from '@ai-sdk/provider';
+  AssistantContent,
+  ModelMessage,
+  SystemModelMessage,
+  ToolContent,
+  ToolResultPart,
+} from '@ai-sdk/provider-utils';
 import type {
   StepResult,
   StreamTextOnStepFinishCallback,
@@ -14,6 +15,7 @@ import type {
 import {
   doStreamStep,
   type ModelStopCondition,
+  type ParsedToolCall,
   type ProviderExecutedToolResult,
 } from './do-stream-step.js';
 import type {
@@ -22,22 +24,23 @@ import type {
   StreamTextOnErrorCallback,
   StreamTextTransform,
   TelemetrySettings,
+  ToolCallRepairFunction,
 } from './durable-agent.js';
-import { toolsToModelTools } from './tools-to-model-tools.js';
 import type { CompatibleLanguageModel } from './types.js';
 
 // Re-export for consumers
 export type { ProviderExecutedToolResult } from './do-stream-step.js';
+export type { ParsedToolCall } from './do-stream-step.js';
 
 /**
  * The value yielded by the stream text iterator when tool calls are requested.
  * Contains both the tool calls and the current conversation messages.
  */
 export interface StreamTextIteratorYieldValue {
-  /** The tool calls requested by the model */
-  toolCalls: LanguageModelV4ToolCall[];
+  /** The tool calls requested by the model (parsed with typed inputs) */
+  toolCalls: ParsedToolCall[];
   /** The conversation messages up to (and including) the tool call request */
-  messages: LanguageModelV4Prompt;
+  messages: ModelMessage[];
   /** The step result from the current step */
   step?: StepResult<ToolSet>;
   /** The current experimental context */
@@ -48,9 +51,16 @@ export interface StreamTextIteratorYieldValue {
   providerExecutedToolResults?: Map<string, ProviderExecutedToolResult>;
 }
 
+/**
+ * Tool result passed back to the iterator via iterator.next().
+ * Uses the ModelMessage ToolResultPart format.
+ */
+export type ToolResultInput = ToolResultPart;
+
 // This runs in the workflow context
 export async function* streamTextIterator({
-  prompt,
+  messages: initialMessages,
+  system,
   tools = {},
   writable,
   model,
@@ -65,11 +75,11 @@ export async function* streamTextIterator({
   experimental_context,
   experimental_telemetry,
   includeRawChunks = false,
-  experimental_transform,
-  responseFormat,
   collectUIChunks = false,
+  repairToolCall,
 }: {
-  prompt: LanguageModelV4Prompt;
+  messages: ModelMessage[];
+  system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
   tools: ToolSet;
   writable: WritableStream<UIMessageChunk>;
   model: string | (() => Promise<CompatibleLanguageModel>);
@@ -84,18 +94,15 @@ export async function* streamTextIterator({
   experimental_context?: unknown;
   experimental_telemetry?: TelemetrySettings;
   includeRawChunks?: boolean;
-  experimental_transform?:
-    | StreamTextTransform<ToolSet>
-    | Array<StreamTextTransform<ToolSet>>;
-  responseFormat?: LanguageModelV4CallOptions['responseFormat'];
-  /** If true, collects UIMessageChunks for later conversion to UIMessage[] */
   collectUIChunks?: boolean;
+  repairToolCall?: ToolCallRepairFunction<ToolSet>;
 }): AsyncGenerator<
   StreamTextIteratorYieldValue,
-  LanguageModelV4Prompt,
-  LanguageModelV4ToolResultPart[]
+  ModelMessage[],
+  ToolResultInput[]
 > {
-  let conversationPrompt = [...prompt]; // Create a mutable copy
+  let conversationMessages: ModelMessage[] = [...initialMessages];
+  let currentSystem = system;
   let currentModel: string | (() => Promise<CompatibleLanguageModel>) = model;
   let currentGenerationSettings = generationSettings ?? {};
   let currentToolChoice = toolChoice;
@@ -112,23 +119,13 @@ export async function* streamTextIterator({
   let allAccumulatedUIChunks: UIMessageChunk[] = [];
 
   // Default maxSteps to Infinity to preserve backwards compatibility
-  // (agent loops until completion unless explicitly limited)
   const effectiveMaxSteps = maxSteps ?? Infinity;
 
-  // Convert transforms to array
-  const transforms = experimental_transform
-    ? Array.isArray(experimental_transform)
-      ? experimental_transform
-      : [experimental_transform]
-    : [];
-
   while (!done) {
-    // Check if we've exceeded the maximum number of steps
     if (stepNumber >= effectiveMaxSteps) {
       break;
     }
 
-    // Check for abort signal
     if (currentGenerationSettings.abortSignal?.aborted) {
       break;
     }
@@ -139,39 +136,22 @@ export async function* streamTextIterator({
         model: currentModel,
         stepNumber,
         steps,
-        messages: conversationPrompt,
+        messages: conversationMessages,
         experimental_context: currentContext,
       });
 
-      // Apply any overrides from prepareStep
       if (prepareResult.model !== undefined) {
         currentModel = prepareResult.model;
       }
       // Apply messages override BEFORE system so the system message
       // isn't lost when messages replaces the prompt.
+      // Apply messages override BEFORE system so the system message
+      // isn't lost when messages replaces the prompt.
       if (prepareResult.messages !== undefined) {
-        conversationPrompt = [...prepareResult.messages];
+        conversationMessages = [...prepareResult.messages];
       }
       if (prepareResult.system !== undefined) {
-        // Update or prepend system message in the conversation prompt.
-        // Applied AFTER messages override so the system message isn't
-        // lost when messages replaces the prompt.
-        if (
-          conversationPrompt.length > 0 &&
-          conversationPrompt[0].role === 'system'
-        ) {
-          // Replace existing system message
-          conversationPrompt[0] = {
-            role: 'system',
-            content: prepareResult.system,
-          };
-        } else {
-          // Prepend new system message
-          conversationPrompt.unshift({
-            role: 'system',
-            content: prepareResult.system,
-          });
-        }
+        currentSystem = prepareResult.system;
       }
       if (prepareResult.experimental_context !== undefined) {
         currentContext = prepareResult.experimental_context;
@@ -265,18 +245,18 @@ export async function* streamTextIterator({
         uiChunks: stepUIChunks,
         providerExecutedToolResults,
       } = await doStreamStep(
-        conversationPrompt,
         currentModel,
+        conversationMessages,
+        currentSystem,
         writable,
-        await toolsToModelTools(effectiveTools),
+        effectiveTools,
         {
           sendStart: sendStart && isFirstIteration,
           ...currentGenerationSettings,
           toolChoice: currentToolChoice,
           includeRawChunks,
           experimental_telemetry,
-          transforms,
-          responseFormat,
+          repairToolCall,
           collectUIChunks,
         },
       );
@@ -287,70 +267,81 @@ export async function* streamTextIterator({
       lastStepWasToolCalls = false;
       lastStepUIChunks = stepUIChunks;
 
-      // Aggregate UIChunks from this step (may include tool output chunks later)
+      // Aggregate UIChunks from this step
       let allStepUIChunks = [
         ...allAccumulatedUIChunks,
         ...(stepUIChunks ?? []),
       ];
 
-      const finishReason = finish?.finishReason?.unified;
+      const finishReason = finish?.finishReason;
 
       if (finishReason === 'tool-calls') {
         lastStepWasToolCalls = true;
 
-        // Add assistant message with tool calls to the conversation
-        // Note: providerMetadata from the tool call is mapped to providerOptions
-        // in the prompt format, following the AI SDK convention. This is critical
-        // for providers like Gemini that require thoughtSignature to be preserved
-        // across multi-turn tool calls. Some fields are sanitized before mapping.
-        conversationPrompt.push({
-          role: 'assistant',
-          content: toolCalls.map(toolCall => {
+        // Build assistant message with tool calls
+        const assistantContent = toolCalls
+          .filter(tc => !tc.invalid)
+          .map(tc => {
             const sanitizedMetadata = sanitizeProviderMetadataForToolCall(
-              toolCall.providerMetadata,
+              tc.providerMetadata,
             );
             return {
-              type: 'tool-call',
-              toolCallId: toolCall.toolCallId,
-              toolName: toolCall.toolName,
-              input: JSON.parse(toolCall.input),
+              type: 'tool-call' as const,
+              toolCallId: tc.toolCallId,
+              toolName: tc.toolName,
+              input: tc.input,
+              ...(tc.providerExecuted != null
+                ? { providerExecuted: tc.providerExecuted }
+                : {}),
               ...(sanitizedMetadata != null
                 ? { providerOptions: sanitizedMetadata }
                 : {}),
             };
-          }) as typeof toolCalls,
+          }) as AssistantContent;
+
+        conversationMessages.push({
+          role: 'assistant',
+          content: assistantContent,
         });
 
-        // Yield the tool calls along with the current conversation messages
-        // This allows executeTool to pass the conversation context to tool execute functions
-        // Also include provider-executed tool results so they can be used instead of local execution
+        // Yield the tool calls for the caller to execute
         const toolResults = yield {
           toolCalls,
-          messages: conversationPrompt,
+          messages: conversationMessages,
           step,
           context: currentContext,
           uiChunks: allStepUIChunks,
           providerExecutedToolResults,
         };
 
+        // Write tool results to the UI stream
         const toolOutputChunks = await writeToolOutputToUI(
           writable,
           toolResults,
           collectUIChunks,
         );
-        // Merge tool output chunks into allStepUIChunks for the next iteration
         if (collectUIChunks && toolOutputChunks.length > 0) {
           allStepUIChunks = [...(allStepUIChunks ?? []), ...toolOutputChunks];
-          // Also accumulate for future steps
           allAccumulatedUIChunks = [
             ...allAccumulatedUIChunks,
             ...toolOutputChunks,
           ];
         }
 
-        conversationPrompt.push({
+        // Add tool results to conversation
+        const toolContent: ToolContent = toolResults.map(tr => ({
+          type: 'tool-result' as const,
+          toolCallId: tr.toolCallId,
+          toolName: tr.toolName,
+          output: tr.output,
+          ...(tr.providerOptions != null
+            ? { providerOptions: tr.providerOptions }
+            : {}),
+        }));
+
+        conversationMessages.push({
           role: 'tool',
-          content: toolResults,
+          content: toolContent,
         });
 
         if (stopConditions) {
@@ -362,41 +353,30 @@ export async function* streamTextIterator({
           }
         }
       } else if (finishReason === 'stop') {
-        // Add assistant message with text content to the conversation
+        // Add assistant message with text content
         const textContent = step.content.filter(
           item => item.type === 'text',
         ) as Array<{ type: 'text'; text: string }>;
 
         if (textContent.length > 0) {
-          conversationPrompt.push({
+          conversationMessages.push({
             role: 'assistant',
             content: textContent,
           });
         }
 
         done = true;
-      } else if (finishReason === 'length') {
-        // Model hit max tokens - stop but don't throw
-        done = true;
-      } else if (finishReason === 'content-filter') {
-        // Content filter triggered - stop but don't throw
-        done = true;
-      } else if (finishReason === 'error') {
-        // Model error - stop but don't throw
-        done = true;
-      } else if (finishReason === 'other') {
-        // Other reason - stop but don't throw
-        done = true;
-      } else if (finishReason === 'unknown') {
-        // Unknown reason - stop but don't throw
-        done = true;
-      } else if (!finishReason) {
-        // No finish reason - this might happen on incomplete streams
+      } else if (
+        finishReason === 'length' ||
+        finishReason === 'content-filter' ||
+        finishReason === 'error' ||
+        finishReason === 'other' ||
+        finishReason === 'unknown' ||
+        !finishReason
+      ) {
         done = true;
       } else {
-        throw new Error(
-          `Unexpected finish reason: ${typeof finish?.finishReason === 'object' ? JSON.stringify(finish?.finishReason) : finish?.finishReason}`,
-        );
+        throw new Error(`Unexpected finish reason: ${finishReason}`);
       }
 
       if (onStepFinish) {
@@ -410,7 +390,7 @@ export async function* streamTextIterator({
     }
   }
 
-  // Yield the final step if it wasn't already yielded (tool-calls steps are yielded inside the loop)
+  // Yield the final step if it wasn't already yielded
   if (lastStep && !lastStepWasToolCalls) {
     const finalUIChunks = [
       ...allAccumulatedUIChunks,
@@ -418,19 +398,19 @@ export async function* streamTextIterator({
     ];
     yield {
       toolCalls: [],
-      messages: conversationPrompt,
+      messages: conversationMessages,
       step: lastStep,
       context: currentContext,
       uiChunks: finalUIChunks,
     };
   }
 
-  return conversationPrompt;
+  return conversationMessages;
 }
 
 async function writeToolOutputToUI(
   writable: WritableStream<UIMessageChunk>,
-  toolResults: LanguageModelV4ToolResultPart[],
+  toolResults: ToolResultInput[],
   collectUIChunks?: boolean,
 ): Promise<UIMessageChunk[]> {
   'use step';
@@ -478,15 +458,12 @@ function sanitizeProviderMetadataForToolCall(
 
   const meta = metadata as Record<string, unknown>;
 
-  // Check if OpenAI metadata exists and needs sanitization
   if ('openai' in meta && meta.openai != null) {
     const { openai, ...restProviders } = meta;
     const openaiMeta = openai as Record<string, unknown>;
 
-    // Remove itemId from OpenAI metadata - it requires reasoning items we don't preserve
     const { itemId: _itemId, ...restOpenai } = openaiMeta;
 
-    // Reconstruct metadata without itemId
     const hasOtherOpenaiFields = Object.keys(restOpenai).length > 0;
     const hasOtherProviders = Object.keys(restProviders).length > 0;
 
