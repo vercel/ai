@@ -9,6 +9,12 @@ import type {
 } from '../generate-text/core-events';
 import type { Output } from '../generate-text/output';
 import type { ToolSet } from '../generate-text/tool-set';
+import type {
+  EmbedOnStartEvent,
+  EmbedOnFinishEvent,
+  EmbedStartEvent,
+  EmbedFinishEvent,
+} from '../embed/embed-events';
 import { Listener } from '../util/notify';
 
 /**
@@ -17,14 +23,12 @@ import { Listener } from '../util/notify';
  */
 export interface TelemetryIntegration {
   /**
-   * Called when the generation operation begins, before any LLM calls are made.
-   * Use this to initialize telemetry spans, record input parameters, or set up
-   * tracking state for the entire generation lifecycle.
+   * Called when an operation begins. Fired for both text generation
+   * (generateText/streamText) and embedding (embed/embedMany) operations.
    *
-   * The event includes the full configuration: model, messages, tools, sampling
-   * parameters, and telemetry settings.
+   * Use the `operationId` field to distinguish between operation types.
    */
-  onStart?: Listener<OnStartEvent<ToolSet, Output>>;
+  onStart?: Listener<OnStartEvent<ToolSet, Output> | EmbedOnStartEvent>;
 
   /**
    * Called when an individual step (single LLM invocation) begins.
@@ -67,12 +71,25 @@ export interface TelemetryIntegration {
   onStepFinish?: Listener<OnStepFinishEvent<ToolSet>>;
 
   /**
-   * Called when the entire generation completes (all steps finished).
-   * The event extends the final step's result with aggregated data: an array
-   * of all step results (`steps`) and total token usage across all steps
-   * (`totalUsage`).
+   * Called when an individual embedding model call (doEmbed) begins.
+   * For `embed`, there is one call. For `embedMany`, there may be multiple
+   * calls when values are chunked.
    */
-  onFinish?: Listener<OnFinishEvent<ToolSet>>;
+  onEmbedStart?: Listener<EmbedStartEvent>;
+
+  /**
+   * Called when an individual embedding model call (doEmbed) completes.
+   * Contains the embeddings, usage, and any warnings from the model response.
+   */
+  onEmbedFinish?: Listener<EmbedFinishEvent>;
+
+  /**
+   * Called when an operation completes. Fired for both text generation
+   * (generateText/streamText) and embedding (embed/embedMany) operations.
+   *
+   * Use the event shape or `operationId` to distinguish between operation types.
+   */
+  onFinish?: Listener<OnFinishEvent<ToolSet> | EmbedOnFinishEvent>;
 
   /**
    * Called when an unrecoverable error occurs during the generation lifecycle.
