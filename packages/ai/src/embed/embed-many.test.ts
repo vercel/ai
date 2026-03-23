@@ -477,6 +477,53 @@ describe('telemetry', () => {
 
     expect(tracer.jsonSpans).toMatchSnapshot();
   });
+
+  it('should correctly track telemetry spans for parallel doEmbed calls', async () => {
+    const resolvables = [
+      createResolvablePromise<void>(),
+      createResolvablePromise<void>(),
+      createResolvablePromise<void>(),
+    ];
+
+    let callCount = 0;
+
+    const embedManyPromise = embedMany({
+      model: new MockEmbeddingModelV4({
+        supportsParallelCalls: true,
+        maxEmbeddingsPerCall: 1,
+        doEmbed: async () => {
+          const index = callCount++;
+          await resolvables[index].promise;
+          return {
+            embeddings: [dummyEmbeddings[index]],
+            usage: { tokens: (index + 1) * 10 },
+            warnings: [],
+          };
+        },
+      }),
+      values: testValues,
+      experimental_telemetry: {
+        isEnabled: true,
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
+    });
+
+    resolvables[0].resolve();
+    resolvables[1].resolve();
+    resolvables[2].resolve();
+
+    await embedManyPromise;
+
+    const doEmbedSpans = tracer.jsonSpans.filter(
+      s => s.name === 'ai.embedMany.doEmbed',
+    );
+
+    expect(doEmbedSpans).toHaveLength(3);
+
+    expect(doEmbedSpans[0].attributes['ai.usage.tokens']).toBe(10);
+    expect(doEmbedSpans[1].attributes['ai.usage.tokens']).toBe(20);
+    expect(doEmbedSpans[2].attributes['ai.usage.tokens']).toBe(30);
+  });
 });
 
 describe('result.providerMetadata', () => {
