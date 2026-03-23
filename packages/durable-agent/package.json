@@ -45,10 +45,10 @@
   "devDependencies": {
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
-    "@workflow/vitest": "4.0.1-beta.7",
+    "@workflow/vitest": "4.0.1-beta.8",
     "tsup": "^8",
     "typescript": "5.8.3",
-    "workflow": "4.2.0-beta.70",
+    "workflow": "4.2.0-beta.71",
     "zod": "3.25.76"
   },
   "peerDependencies": {

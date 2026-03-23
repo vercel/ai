@@ -15,7 +15,7 @@
     "next": "^15.5.9",
     "react": "^18",
     "react-dom": "^18",
-    "workflow": "4.2.0-beta.70",
+    "workflow": "4.2.0-beta.71",
     "zod": "3.25.76"
   },
   "devDependencies": {
