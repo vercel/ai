@@ -102,7 +102,7 @@ importers:
         specifier: 3.0.47
         version: link:../../packages/openai
       '@ai-sdk/perplexity':
-        specifier: 3.0.25
+        specifier: 3.0.26
         version: link:../../packages/perplexity
       '@ai-sdk/provider-utils':
         specifier: 4.0.21
