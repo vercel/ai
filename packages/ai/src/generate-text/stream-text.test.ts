@@ -17525,10 +17525,6 @@ describe('streamText', () => {
                 "warnings": [],
               },
               {
-                "id": "1",
-                "type": "text-start",
-              },
-              {
                 "reason": "This operation was aborted",
                 "type": "abort",
               },
@@ -17545,10 +17541,6 @@ describe('streamText', () => {
               },
               {
                 "type": "start-step",
-              },
-              {
-                "id": "1",
-                "type": "text-start",
               },
               {
                 "reason": "This operation was aborted",
@@ -17899,11 +17891,6 @@ describe('streamText', () => {
                 },
               },
               {
-                "request": {},
-                "type": "start-step",
-                "warnings": [],
-              },
-              {
                 "reason": "This operation was aborted",
                 "type": "abort",
               },
@@ -17936,9 +17923,6 @@ describe('streamText', () => {
               },
               {
                 "type": "finish-step",
-              },
-              {
-                "type": "start-step",
               },
               {
                 "reason": "This operation was aborted",
