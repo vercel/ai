@@ -12,6 +12,7 @@ import {
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import { MockTracer } from '../test/mock-tracer';
+import { OpenTelemetryIntegration } from '../telemetry/open-telemetry-integration';
 import { Embedding, EmbeddingModelUsage, Warning } from '../types';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { embedMany } from './embed-many';
@@ -388,9 +389,12 @@ describe('telemetry', () => {
         doEmbed: mockEmbed(testValues, dummyEmbeddings),
       }),
       values: testValues,
+      experimental_telemetry: {
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
     });
 
-    assert.deepStrictEqual(tracer.jsonSpans, []);
+    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 
   it('should record telemetry data when enabled (multiple calls path)', async () => {
@@ -428,7 +432,7 @@ describe('telemetry', () => {
           test1: 'value1',
           test2: false,
         },
-        tracer,
+        integrations: [new OpenTelemetryIntegration({ tracer })],
       },
     });
 
@@ -449,7 +453,7 @@ describe('telemetry', () => {
           test1: 'value1',
           test2: false,
         },
-        tracer,
+        integrations: [new OpenTelemetryIntegration({ tracer })],
       },
     });
 
@@ -467,7 +471,7 @@ describe('telemetry', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
-        tracer,
+        integrations: [new OpenTelemetryIntegration({ tracer })],
       },
     });
 
