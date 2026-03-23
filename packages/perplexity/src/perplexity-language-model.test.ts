@@ -287,134 +287,13 @@ describe('PerplexityLanguageModel', () => {
         ],
       });
 
-<<<<<<< HEAD
       const result = await perplexityModel.doGenerate({
-=======
-    const result = await perplexityModel.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(result.providerMetadata).toMatchInlineSnapshot(`
-      {
-        "perplexity": {
-          "cost": null,
-          "images": [
-            {
-              "height": 100,
-              "imageUrl": "https://example.com/image.jpg",
-              "originUrl": "https://example.com/image.jpg",
-              "width": 100,
-            },
-          ],
-          "usage": {
-            "citationTokens": null,
-            "numSearchQueries": null,
-          },
-        },
-      }
-    `);
-  });
-
-  it('should extract extended usage', async () => {
-    server.urls[CHAT_COMPLETIONS_URL].response = {
-      type: 'json-value',
-      headers: { 'content-type': 'application/json' },
-      body: {
-        id: 'test-id',
-        created: 1680000000,
-        model: modelId,
-        choices: [
-          {
-            message: { role: 'assistant', content: '' },
-            finish_reason: 'stop',
-          },
-        ],
-        usage: {
-          prompt_tokens: 10,
-          completion_tokens: 20,
-          total_tokens: 30,
-          citation_tokens: 30,
-          num_search_queries: 40,
-          reasoning_tokens: 50,
-        },
-      },
-    };
-
-    const result = await perplexityModel.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(result.usage).toMatchInlineSnapshot(`
-      {
-        "inputTokens": {
-          "cacheRead": undefined,
-          "cacheWrite": undefined,
-          "noCache": 10,
-          "total": 10,
-        },
-        "outputTokens": {
-          "reasoning": 50,
-          "text": -30,
-          "total": 20,
-        },
-        "raw": {
-          "citation_tokens": 30,
-          "completion_tokens": 20,
-          "num_search_queries": 40,
-          "prompt_tokens": 10,
-          "reasoning_tokens": 50,
-          "total_tokens": 30,
-        },
-      }
-    `);
-
-    expect(result.providerMetadata).toMatchInlineSnapshot(`
-      {
-        "perplexity": {
-          "cost": null,
-          "images": null,
-          "usage": {
-            "citationTokens": 30,
-            "numSearchQueries": 40,
-          },
-        },
-      }
-    `);
-  });
-});
-
-describe('doStream', () => {
-  function prepareChunksFixtureResponse(
-    filename: string,
-    { headers }: { headers?: Record<string, string> } = {},
-  ) {
-    const chunks = fs
-      .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
-      .split('\n')
-      .filter(line => line.trim().length > 0)
-      .map(line => `data: ${line}\n\n`);
-    chunks.push('data: [DONE]\n\n');
-
-    server.urls[CHAT_COMPLETIONS_URL].response = {
-      type: 'stream-chunks',
-      headers,
-      chunks,
-    };
-  }
-
-  describe('text', () => {
-    beforeEach(() => {
-      prepareChunksFixtureResponse('perplexity-text');
-    });
-
-    it('should stream text', async () => {
-      const result = await perplexityModel.doStream({
->>>>>>> 4bcec3c6f (Backport: feat(perplexity): expose provider-reported cost in providerMetadata (#13716))
         prompt: TEST_PROMPT,
       });
 
       expect(result.providerMetadata).toStrictEqual({
         perplexity: {
+          cost: null,
           images: [
             {
               imageUrl: 'https://example.com/image.jpg',
@@ -423,85 +302,6 @@ describe('doStream', () => {
               width: 100,
             },
           ],
-<<<<<<< HEAD
-=======
-          choices: [
-            {
-              delta: { role: 'assistant', content: 'Hello' },
-              finish_reason: null,
-            },
-          ],
-        })}\n\n`,
-        `data: ${JSON.stringify({
-          id: 'stream-id',
-          created: 1680003600,
-          model: modelId,
-          choices: [
-            {
-              delta: { role: 'assistant', content: '' },
-              finish_reason: 'stop',
-            },
-          ],
-          usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 },
-        })}\n\n`,
-        'data: [DONE]\n\n',
-      ],
-    };
-
-    const { stream } = await perplexityModel.doStream({
-      prompt: TEST_PROMPT,
-    });
-
-    const result = await convertReadableStreamToArray(stream);
-    const finish = result.find(c => c.type === 'finish');
-
-    expect(finish?.providerMetadata).toMatchInlineSnapshot(`
-      {
-        "perplexity": {
-          "cost": null,
-          "images": [
-            {
-              "height": 100,
-              "imageUrl": "https://example.com/image.jpg",
-              "originUrl": "https://example.com/image.jpg",
-              "width": 100,
-            },
-          ],
-          "usage": {
-            "citationTokens": null,
-            "numSearchQueries": null,
-          },
-        },
-      }
-    `);
-  });
-
-  it('should stream extended usage', async () => {
-    server.urls[CHAT_COMPLETIONS_URL].response = {
-      type: 'stream-chunks',
-      chunks: [
-        `data: ${JSON.stringify({
-          id: 'stream-id',
-          created: 1680003600,
-          model: modelId,
-          choices: [
-            {
-              delta: { role: 'assistant', content: 'Hello' },
-              finish_reason: null,
-            },
-          ],
-        })}\n\n`,
-        `data: ${JSON.stringify({
-          id: 'stream-id',
-          created: 1680003600,
-          model: modelId,
-          choices: [
-            {
-              delta: { role: 'assistant', content: '' },
-              finish_reason: 'stop',
-            },
-          ],
->>>>>>> 4bcec3c6f (Backport: feat(perplexity): expose provider-reported cost in providerMetadata (#13716))
           usage: {
             citationTokens: null,
             numSearchQueries: null,
@@ -525,7 +325,6 @@ describe('doStream', () => {
         prompt: TEST_PROMPT,
       });
 
-<<<<<<< HEAD
       expect(result.usage).toEqual({
         inputTokens: 10,
         outputTokens: 20,
@@ -534,20 +333,11 @@ describe('doStream', () => {
 
       expect(result.providerMetadata).toEqual({
         perplexity: {
+          cost: null,
           images: null,
           usage: {
             citationTokens: 30,
             numSearchQueries: 40,
-=======
-    expect(finish?.providerMetadata).toMatchInlineSnapshot(`
-      {
-        "perplexity": {
-          "cost": null,
-          "images": null,
-          "usage": {
-            "citationTokens": 30,
-            "numSearchQueries": 40,
->>>>>>> 4bcec3c6f (Backport: feat(perplexity): expose provider-reported cost in providerMetadata (#13716))
           },
         },
       });
@@ -709,6 +499,7 @@ describe('doStream', () => {
             "finishReason": "stop",
             "providerMetadata": {
               "perplexity": {
+                "cost": null,
                 "images": null,
                 "usage": {
                   "citationTokens": null,
@@ -747,7 +538,6 @@ describe('doStream', () => {
             "type": "stream-start",
             "warnings": [],
           },
-<<<<<<< HEAD
           {
             "id": "stream-id",
             "modelId": "perplexity-001",
@@ -793,20 +583,12 @@ describe('doStream', () => {
             "finishReason": "stop",
             "providerMetadata": {
               "perplexity": {
+                "cost": null,
                 "images": null,
                 "usage": {
                   "citationTokens": null,
                   "numSearchQueries": null,
                 },
-=======
-          "providerMetadata": {
-            "perplexity": {
-              "cost": null,
-              "images": null,
-              "usage": {
-                "citationTokens": null,
-                "numSearchQueries": null,
->>>>>>> 4bcec3c6f (Backport: feat(perplexity): expose provider-reported cost in providerMetadata (#13716))
               },
             },
             "type": "finish",
@@ -894,6 +676,7 @@ describe('doStream', () => {
             "finishReason": "stop",
             "providerMetadata": {
               "perplexity": {
+                "cost": null,
                 "images": [
                   {
                     "height": 100,
@@ -978,6 +761,7 @@ describe('doStream', () => {
             "finishReason": "stop",
             "providerMetadata": {
               "perplexity": {
+                "cost": null,
                 "images": null,
                 "usage": {
                   "citationTokens": 30,
@@ -1154,6 +938,7 @@ describe('doStream', () => {
             "finishReason": "unknown",
             "providerMetadata": {
               "perplexity": {
+                "cost": null,
                 "images": null,
                 "usage": {
                   "citationTokens": null,
