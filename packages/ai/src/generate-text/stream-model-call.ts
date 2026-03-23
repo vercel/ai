@@ -47,6 +47,15 @@ export async function streamModelCall<
   includeRawChunks?: boolean;
   providerOptions?: ProviderOptions;
   repairToolCall?: ToolCallRepairFunction<TOOLS> | undefined;
+
+  // onStart is currently required because the telemetry callbacks need
+  // LanguageModelV4Prompt and we only want download URLs at most once.
+  // Therefore convertToLanguageModelPrompt can only be called once
+  // per step and the resulting LanguageModelV4Prompt needs to be
+  // passed to the onStart callback.
+  //
+  // TODO explore decoupling by changing the telemetry callbacks to accept
+  // a Prompt or a standardized Prompt.
   onStart?: (args: {
     promptMessages: LanguageModelV4Prompt;
   }) => Promise<void> | void;
