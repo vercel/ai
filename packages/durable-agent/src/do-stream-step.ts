@@ -603,10 +603,7 @@ function chunksToStep(
     )
     .map(chunk => chunk);
 
-  const rawFinishReason =
-    typeof finish?.finishReason === 'object'
-      ? finish?.finishReason?.raw
-      : undefined;
+  const rawFinishReason = finish?.finishReason?.raw;
 
   const stepResult: StepResult<any> = {
     callId: 'durable-agent', // Placeholder; DurableAgent doesn't use multi-call IDs
@@ -654,7 +651,7 @@ function chunksToStep(
     toolResults: [],
     staticToolResults: [],
     dynamicToolResults: [],
-    finishReason: normalizeFinishReason(finish?.finishReason),
+    finishReason: finish?.finishReason?.unified ?? 'other',
     rawFinishReason,
     usage: finish?.usage
       ? {
@@ -710,25 +707,4 @@ function chunksToStep(
   };
 
   return stepResult;
-}
-
-/**
- * Normalize the finish reason to the AI SDK FinishReason type.
- * AI SDK v6 may return an object with a 'unified' property,
- * while AI SDK v5 returns a plain string. This function handles both.
- *
- * @internal Exported for testing
- */
-export function normalizeFinishReason(rawFinishReason: unknown): FinishReason {
-  if (rawFinishReason == null) return 'other';
-  if (typeof rawFinishReason === 'string')
-    return rawFinishReason as FinishReason;
-  if (typeof rawFinishReason === 'object') {
-    const obj = rawFinishReason as {
-      unified?: FinishReason;
-      type?: FinishReason;
-    };
-    return obj.unified ?? obj.type ?? 'other';
-  }
-  return 'other';
 }
