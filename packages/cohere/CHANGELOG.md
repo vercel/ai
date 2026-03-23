@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- 74d520f: feat: migrate providers to support new top-level `reasoning` parameter
+
 ## 4.0.0-beta.6
 
 ### Patch Changes

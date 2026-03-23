@@ -1,5 +1,13 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- 74d520f: feat: migrate providers to support new top-level `reasoning` parameter
+- Updated dependencies [74d520f]
+  - @ai-sdk/openai-compatible@3.0.0-beta.9
+
 ## 4.0.0-beta.14
 
 ### Patch Changes

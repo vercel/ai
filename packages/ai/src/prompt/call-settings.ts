@@ -1,5 +1,5 @@
 import { LanguageModelV4CallOptions } from '@ai-sdk/provider';
-import { ToolSet } from '../generate-text/tool-set';
+import type { ToolSet } from '../generate-text/tool-set';
 
 /**
  * Timeout configuration for API calls. Can be specified as:
@@ -78,7 +78,7 @@ export function getToolTimeoutMs<TOOLS extends ToolSet>(
   return timeout.tools?.[`${toolName}Ms`] ?? timeout.toolMs;
 }
 
-export type CallSettings<TOOLS extends ToolSet> = {
+export type CallSettings = {
   /**
    * Maximum number of tokens to generate.
    */
@@ -160,14 +160,6 @@ export type CallSettings<TOOLS extends ToolSet> = {
    * Abort signal.
    */
   abortSignal?: AbortSignal;
-
-  /**
-   * Timeout in milliseconds. The call will be aborted if it takes longer
-   * than the specified timeout. Can be used alongside abortSignal.
-   *
-   * Can be specified as a number (milliseconds) or as an object with `totalMs`.
-   */
-  timeout?: TimeoutConfiguration<TOOLS>;
 
   /**
    * Additional HTTP headers to be sent with the request.

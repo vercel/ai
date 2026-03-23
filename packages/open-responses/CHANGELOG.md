@@ -1,5 +1,11 @@
 # @ai-sdk/open-responses
 
+## 2.0.0-beta.8
+
+### Patch Changes
+
+- 74d520f: feat: migrate providers to support new top-level `reasoning` parameter
+
 ## 2.0.0-beta.7
 
 ### Patch Changes
