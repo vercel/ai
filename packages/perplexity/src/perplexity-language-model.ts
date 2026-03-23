@@ -189,6 +189,15 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
             citationTokens: response.usage?.citation_tokens ?? null,
             numSearchQueries: response.usage?.num_search_queries ?? null,
           },
+          cost: response.usage?.cost
+            ? {
+                inputTokensCost: response.usage.cost.input_tokens_cost ?? null,
+                outputTokensCost:
+                  response.usage.cost.output_tokens_cost ?? null,
+                requestCost: response.usage.cost.request_cost ?? null,
+                totalCost: response.usage.cost.total_cost ?? null,
+              }
+            : null,
         },
       },
     };
@@ -230,6 +239,12 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
           citationTokens: number | null;
           numSearchQueries: number | null;
         };
+        cost: {
+          inputTokensCost: number | null;
+          outputTokensCost: number | null;
+          requestCost: number | null;
+          totalCost: number | null;
+        } | null;
         images: Array<{
           imageUrl: string;
           originUrl: string;
@@ -243,6 +258,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
           citationTokens: null,
           numSearchQueries: null,
         },
+        cost: null,
         images: null,
       },
     };
@@ -301,6 +317,16 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
                 citationTokens: value.usage.citation_tokens ?? null,
                 numSearchQueries: value.usage.num_search_queries ?? null,
               };
+
+              providerMetadata.perplexity.cost = value.usage.cost
+                ? {
+                    inputTokensCost: value.usage.cost.input_tokens_cost ?? null,
+                    outputTokensCost:
+                      value.usage.cost.output_tokens_cost ?? null,
+                    requestCost: value.usage.cost.request_cost ?? null,
+                    totalCost: value.usage.cost.total_cost ?? null,
+                  }
+                : null;
             }
 
             if (value.images != null) {
@@ -374,6 +400,13 @@ function getResponseMetadata({
   };
 }
 
+const perplexityCostSchema = z.object({
+  input_tokens_cost: z.number().nullish(),
+  output_tokens_cost: z.number().nullish(),
+  request_cost: z.number().nullish(),
+  total_cost: z.number().nullish(),
+});
+
 const perplexityUsageSchema = z.object({
   prompt_tokens: z.number(),
   completion_tokens: z.number(),
@@ -381,6 +414,7 @@ const perplexityUsageSchema = z.object({
   citation_tokens: z.number().nullish(),
   num_search_queries: z.number().nullish(),
   reasoning_tokens: z.number().nullish(),
+  cost: perplexityCostSchema.nullish(),
 });
 
 export const perplexityImageSchema = z.object({
