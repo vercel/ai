@@ -1,4 +1,5 @@
 import { DurableAgent } from '@ai-sdk/durable-agent';
+import { anthropic } from '@ai-sdk/anthropic';
 import {
   convertToModelMessages,
   type UIMessage,
@@ -59,7 +60,7 @@ export async function chat(messages: UIMessage[]) {
   const modelMessages = await convertToModelMessages(messages);
 
   const agent = new DurableAgent({
-    model: 'anthropic/claude-sonnet-4-20250514',
+    model: anthropic('claude-sonnet-4-20250514'),
     instructions:
       'You are a helpful assistant with access to weather and calculator tools. Use them when the user asks about weather in a city or needs math calculations. Keep responses concise.',
     tools: {
