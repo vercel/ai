@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.79
+
+### Patch Changes
+
+- 3caa544: chore(provider/xai): update Grok 4.20 model IDs to their non-beta versions
+
 ## 3.0.78
 
 ### Patch Changes
