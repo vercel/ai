@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { start } from 'workflow/api';
-import { calculateWorkflow } from './test/calculate-workflow.ts';
+import { calculateWorkflow } from './test/calculate-workflow.js';
 
 describe('calculateWorkflow', () => {
   it('should compute the correct result', async () => {

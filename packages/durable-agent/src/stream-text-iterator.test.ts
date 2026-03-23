@@ -9,7 +9,7 @@
 import type {
   LanguageModelV4Prompt,
   LanguageModelV4ToolCall,
-  LanguageModelV4ToolResult,
+  LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
 import type { StepResult, ToolSet, UIMessageChunk } from 'ai';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
@@ -22,6 +22,7 @@ vi.mock('./do-stream-step.js', () => ({
 // Import after mocking
 const { streamTextIterator } = await import('./stream-text-iterator.js');
 const { doStreamStep } = await import('./do-stream-step.js');
+import type { StreamTextIteratorYieldValue } from './stream-text-iterator.js';
 
 /**
  * Helper to create a mock writable stream
@@ -53,7 +54,20 @@ function createMockStepResult(
     staticToolResults: [],
     dynamicToolResults: [],
     finishReason: 'stop',
-    usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+    usage: {
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+      inputTokenDetails: {
+        noCacheTokens: undefined,
+        cacheReadTokens: undefined,
+        cacheWriteTokens: undefined,
+      },
+      outputTokenDetails: {
+        textTokens: undefined,
+        reasoningTokens: undefined,
+      },
+    },
     warnings: [],
     request: { body: '' },
     response: {
@@ -64,6 +78,47 @@ function createMockStepResult(
     },
     providerMetadata: {},
     ...overrides,
+  } as StepResult<ToolSet>;
+}
+
+const mockUsage = {
+  inputTokens: {
+    total: 10,
+    noCache: undefined,
+    cacheRead: undefined,
+    cacheWrite: undefined,
+  },
+  outputTokens: { total: 5, text: undefined, reasoning: undefined },
+};
+
+function createMockFinish(unified: 'stop' | 'tool-calls', raw: string) {
+  return {
+    type: 'finish' as const,
+    usage: mockUsage,
+    finishReason: { unified, raw },
+  };
+}
+
+function createMockDoStreamStepResult({
+  toolCalls = [] as LanguageModelV4ToolCall[],
+  finishUnified = 'stop' as 'stop' | 'tool-calls',
+  finishRaw = 'stop',
+  stepOverrides = {},
+}: {
+  toolCalls?: LanguageModelV4ToolCall[];
+  finishUnified?: 'stop' | 'tool-calls';
+  finishRaw?: string;
+  stepOverrides?: Partial<StepResult<ToolSet>>;
+} = {}) {
+  return {
+    toolCalls,
+    finish: createMockFinish(finishUnified, finishRaw),
+    step: createMockStepResult({
+      finishReason: finishUnified,
+      ...stepOverrides,
+    }),
+    uiChunks: undefined,
+    providerExecutedToolResults: new Map(),
   };
 }
 
@@ -95,22 +150,20 @@ describe('streamTextIterator', () => {
       // First call returns tool-calls with providerMetadata
       // Second call (after tool results) should receive the updated prompt
       vi.mocked(doStreamStep)
-        .mockResolvedValueOnce({
-          toolCalls: [toolCallWithMetadata],
-          finish: {
-            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+        .mockResolvedValueOnce(
+          createMockDoStreamStepResult({
+            toolCalls: [toolCallWithMetadata],
+            finishUnified: 'tool-calls',
+            finishRaw: 'tool_calls',
+          }),
+        )
+        .mockImplementationOnce(
+          async (prompt, _modelInit, _writable, _tools, _options) => {
+            // Capture the prompt on the second call to verify providerOptions
+            capturedPrompt = prompt;
+            return createMockDoStreamStepResult();
           },
-          step: createMockStepResult({ finishReason: 'tool-calls' }),
-        })
-        .mockImplementationOnce(async prompt => {
-          // Capture the prompt on the second call to verify providerOptions
-          capturedPrompt = prompt;
-          return {
-            toolCalls: [],
-            finish: { finishReason: { unified: 'stop', raw: 'stop' } },
-            step: createMockStepResult({ finishReason: 'stop' }),
-          };
-        });
+        );
 
       const iterator = streamTextIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
@@ -119,7 +172,7 @@ describe('streamTextIterator', () => {
             description: 'A test tool',
             execute: async () => ({ result: 'success' }),
           },
-        } as ToolSet,
+        } as unknown as ToolSet,
         writable: mockWritable,
         model: mockModel as any,
       });
@@ -127,10 +180,11 @@ describe('streamTextIterator', () => {
       // First iteration - get tool calls
       const firstResult = await iterator.next();
       expect(firstResult.done).toBe(false);
-      expect(firstResult.value.toolCalls).toHaveLength(1);
+      const firstValue = firstResult.value as StreamTextIteratorYieldValue;
+      expect(firstValue.toolCalls).toHaveLength(1);
 
       // Provide tool results and continue
-      const toolResults: LanguageModelV4ToolResult[] = [
+      const toolResults: LanguageModelV4ToolResultPart[] = [
         {
           type: 'tool-result',
           toolCallId: 'call-1',
@@ -140,7 +194,7 @@ describe('streamTextIterator', () => {
       ];
 
       // Second iteration - should trigger second doStreamStep call
-      const secondResult = await iterator.next(toolResults);
+      await iterator.next(toolResults);
 
       // Verify the captured prompt contains providerOptions
       expect(capturedPrompt).toBeDefined();
@@ -178,21 +232,19 @@ describe('streamTextIterator', () => {
       };
 
       vi.mocked(doStreamStep)
-        .mockResolvedValueOnce({
-          toolCalls: [toolCallWithoutMetadata],
-          finish: {
-            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+        .mockResolvedValueOnce(
+          createMockDoStreamStepResult({
+            toolCalls: [toolCallWithoutMetadata],
+            finishUnified: 'tool-calls',
+            finishRaw: 'tool_calls',
+          }),
+        )
+        .mockImplementationOnce(
+          async (prompt, _modelInit, _writable, _tools, _options) => {
+            capturedPrompt = prompt;
+            return createMockDoStreamStepResult();
           },
-          step: createMockStepResult({ finishReason: 'tool-calls' }),
-        })
-        .mockImplementationOnce(async prompt => {
-          capturedPrompt = prompt;
-          return {
-            toolCalls: [],
-            finish: { finishReason: { unified: 'stop', raw: 'stop' } },
-            step: createMockStepResult({ finishReason: 'stop' }),
-          };
-        });
+        );
 
       const iterator = streamTextIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
@@ -201,7 +253,7 @@ describe('streamTextIterator', () => {
             description: 'A test tool',
             execute: async () => ({ result: 'success' }),
           },
-        } as ToolSet,
+        } as unknown as ToolSet,
         writable: mockWritable,
         model: mockModel as any,
       });
@@ -209,7 +261,7 @@ describe('streamTextIterator', () => {
       const firstResult = await iterator.next();
       expect(firstResult.done).toBe(false);
 
-      const toolResults: LanguageModelV4ToolResult[] = [
+      const toolResults: LanguageModelV4ToolResultPart[] = [
         {
           type: 'tool-result',
           toolCallId: 'call-1',
@@ -259,21 +311,19 @@ describe('streamTextIterator', () => {
       ];
 
       vi.mocked(doStreamStep)
-        .mockResolvedValueOnce({
-          toolCalls,
-          finish: {
-            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+        .mockResolvedValueOnce(
+          createMockDoStreamStepResult({
+            toolCalls,
+            finishUnified: 'tool-calls',
+            finishRaw: 'tool_calls',
+          }),
+        )
+        .mockImplementationOnce(
+          async (prompt, _modelInit, _writable, _tools, _options) => {
+            capturedPrompt = prompt;
+            return createMockDoStreamStepResult();
           },
-          step: createMockStepResult({ finishReason: 'tool-calls' }),
-        })
-        .mockImplementationOnce(async prompt => {
-          capturedPrompt = prompt;
-          return {
-            toolCalls: [],
-            finish: { finishReason: { unified: 'stop', raw: 'stop' } },
-            step: createMockStepResult({ finishReason: 'stop' }),
-          };
-        });
+        );
 
       const iterator = streamTextIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
@@ -286,16 +336,17 @@ describe('streamTextIterator', () => {
             description: 'News tool',
             execute: async () => ({ headlines: [] }),
           },
-        } as ToolSet,
+        } as unknown as ToolSet,
         writable: mockWritable,
         model: mockModel as any,
       });
 
       const firstResult = await iterator.next();
       expect(firstResult.done).toBe(false);
-      expect(firstResult.value.toolCalls).toHaveLength(2);
+      const firstValue = firstResult.value as StreamTextIteratorYieldValue;
+      expect(firstValue.toolCalls).toHaveLength(2);
 
-      const toolResults: LanguageModelV4ToolResult[] = [
+      const toolResults: LanguageModelV4ToolResultPart[] = [
         {
           type: 'tool-result',
           toolCallId: 'call-1',
@@ -363,21 +414,19 @@ describe('streamTextIterator', () => {
       ];
 
       vi.mocked(doStreamStep)
-        .mockResolvedValueOnce({
-          toolCalls,
-          finish: {
-            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+        .mockResolvedValueOnce(
+          createMockDoStreamStepResult({
+            toolCalls,
+            finishUnified: 'tool-calls',
+            finishRaw: 'tool_calls',
+          }),
+        )
+        .mockImplementationOnce(
+          async (prompt, _modelInit, _writable, _tools, _options) => {
+            capturedPrompt = prompt;
+            return createMockDoStreamStepResult();
           },
-          step: createMockStepResult({ finishReason: 'tool-calls' }),
-        })
-        .mockImplementationOnce(async prompt => {
-          capturedPrompt = prompt;
-          return {
-            toolCalls: [],
-            finish: { finishReason: { unified: 'stop', raw: 'stop' } },
-            step: createMockStepResult({ finishReason: 'stop' }),
-          };
-        });
+        );
 
       const iterator = streamTextIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
@@ -390,14 +439,14 @@ describe('streamTextIterator', () => {
             description: 'Tool without metadata',
             execute: async () => ({ ok: true }),
           },
-        } as ToolSet,
+        } as unknown as ToolSet,
         writable: mockWritable,
         model: mockModel as any,
       });
 
       await iterator.next();
 
-      const toolResults: LanguageModelV4ToolResult[] = [
+      const toolResults: LanguageModelV4ToolResultPart[] = [
         {
           type: 'tool-result',
           toolCallId: 'call-1',
@@ -454,21 +503,19 @@ describe('streamTextIterator', () => {
       };
 
       vi.mocked(doStreamStep)
-        .mockResolvedValueOnce({
-          toolCalls: [toolCallWithOpenAIMetadata],
-          finish: {
-            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+        .mockResolvedValueOnce(
+          createMockDoStreamStepResult({
+            toolCalls: [toolCallWithOpenAIMetadata],
+            finishUnified: 'tool-calls',
+            finishRaw: 'tool_calls',
+          }),
+        )
+        .mockImplementationOnce(
+          async (prompt, _modelInit, _writable, _tools, _options) => {
+            capturedPrompt = prompt;
+            return createMockDoStreamStepResult();
           },
-          step: createMockStepResult({ finishReason: 'tool-calls' }),
-        })
-        .mockImplementationOnce(async prompt => {
-          capturedPrompt = prompt;
-          return {
-            toolCalls: [],
-            finish: { finishReason: { unified: 'stop', raw: 'stop' } },
-            step: createMockStepResult({ finishReason: 'stop' }),
-          };
-        });
+        );
 
       const iterator = streamTextIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
@@ -477,14 +524,14 @@ describe('streamTextIterator', () => {
             description: 'A test tool',
             execute: async () => ({ result: 'success' }),
           },
-        } as ToolSet,
+        } as unknown as ToolSet,
         writable: mockWritable,
         model: mockModel as any,
       });
 
       await iterator.next();
 
-      const toolResults: LanguageModelV4ToolResult[] = [
+      const toolResults: LanguageModelV4ToolResultPart[] = [
         {
           type: 'tool-result',
           toolCallId: 'call-1',
@@ -528,21 +575,19 @@ describe('streamTextIterator', () => {
       };
 
       vi.mocked(doStreamStep)
-        .mockResolvedValueOnce({
-          toolCalls: [toolCallWithMixedOpenAIMetadata],
-          finish: {
-            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+        .mockResolvedValueOnce(
+          createMockDoStreamStepResult({
+            toolCalls: [toolCallWithMixedOpenAIMetadata],
+            finishUnified: 'tool-calls',
+            finishRaw: 'tool_calls',
+          }),
+        )
+        .mockImplementationOnce(
+          async (prompt, _modelInit, _writable, _tools, _options) => {
+            capturedPrompt = prompt;
+            return createMockDoStreamStepResult();
           },
-          step: createMockStepResult({ finishReason: 'tool-calls' }),
-        })
-        .mockImplementationOnce(async prompt => {
-          capturedPrompt = prompt;
-          return {
-            toolCalls: [],
-            finish: { finishReason: { unified: 'stop', raw: 'stop' } },
-            step: createMockStepResult({ finishReason: 'stop' }),
-          };
-        });
+        );
 
       const iterator = streamTextIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
@@ -551,14 +596,14 @@ describe('streamTextIterator', () => {
             description: 'A test tool',
             execute: async () => ({ result: 'success' }),
           },
-        } as ToolSet,
+        } as unknown as ToolSet,
         writable: mockWritable,
         model: mockModel as any,
       });
 
       await iterator.next();
 
-      const toolResults: LanguageModelV4ToolResult[] = [
+      const toolResults: LanguageModelV4ToolResultPart[] = [
         {
           type: 'tool-result',
           toolCallId: 'call-1',
@@ -608,21 +653,19 @@ describe('streamTextIterator', () => {
       };
 
       vi.mocked(doStreamStep)
-        .mockResolvedValueOnce({
-          toolCalls: [toolCallWithMixedProviders],
-          finish: {
-            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+        .mockResolvedValueOnce(
+          createMockDoStreamStepResult({
+            toolCalls: [toolCallWithMixedProviders],
+            finishUnified: 'tool-calls',
+            finishRaw: 'tool_calls',
+          }),
+        )
+        .mockImplementationOnce(
+          async (prompt, _modelInit, _writable, _tools, _options) => {
+            capturedPrompt = prompt;
+            return createMockDoStreamStepResult();
           },
-          step: createMockStepResult({ finishReason: 'tool-calls' }),
-        })
-        .mockImplementationOnce(async prompt => {
-          capturedPrompt = prompt;
-          return {
-            toolCalls: [],
-            finish: { finishReason: { unified: 'stop', raw: 'stop' } },
-            step: createMockStepResult({ finishReason: 'stop' }),
-          };
-        });
+        );
 
       const iterator = streamTextIterator({
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
@@ -631,14 +674,14 @@ describe('streamTextIterator', () => {
             description: 'A test tool',
             execute: async () => ({ result: 'success' }),
           },
-        } as ToolSet,
+        } as unknown as ToolSet,
         writable: mockWritable,
         model: mockModel as any,
       });
 
       await iterator.next();
 
-      const toolResults: LanguageModelV4ToolResult[] = [
+      const toolResults: LanguageModelV4ToolResultPart[] = [
         {
           type: 'tool-result',
           toolCallId: 'call-1',

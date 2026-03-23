@@ -105,9 +105,9 @@ export interface WorkflowChatTransportOptions<UI_MESSAGE extends UIMessage> {
  *
  * @implements {ChatTransport<UI_MESSAGE>}
  */
-export class WorkflowChatTransport<UI_MESSAGE extends UIMessage>
-  implements ChatTransport<UI_MESSAGE>
-{
+export class WorkflowChatTransport<
+  UI_MESSAGE extends UIMessage,
+> implements ChatTransport<UI_MESSAGE> {
   private readonly api: string;
   private readonly fetch: typeof fetch;
   private readonly onChatSendMessage?: OnChatSendMessage<UI_MESSAGE>;
