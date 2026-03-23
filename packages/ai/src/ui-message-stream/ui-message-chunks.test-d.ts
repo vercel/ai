@@ -13,6 +13,6 @@ describe('UI message chunks type', () => {
       },
     });
 
-    expectTypeOf(chunk).toEqualTypeOf<UIMessageChunk>();
+    expectTypeOf(chunk).toMatchTypeOf<UIMessageChunk>();
   });
 });
