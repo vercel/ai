@@ -9,3 +9,4 @@ export { prepareCallSettings } from '../src/prompt/prepare-call-settings';
 export { prepareRetries } from '../src/util/prepare-retries';
 export { asLanguageModelUsage } from '../src/types/usage';
 export { resolveLanguageModel } from '../src/model/resolve-model';
+export { getToolDescriptors } from '../src/generate-text/get-tool-descriptors';
