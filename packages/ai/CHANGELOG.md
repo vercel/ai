@@ -1,5 +1,12 @@
 # ai
 
+## 6.0.136
+
+### Patch Changes
+
+- Updated dependencies [763e178]
+  - @ai-sdk/gateway@3.0.78
+
 ## 6.0.135
 
 ### Patch Changes
