@@ -45,10 +45,15 @@ The hooks, e.g. `useChat` or `useCompletion`, provide a `stop` helper function t
 This will cancel the stream from the client side to the server.
 
 <Note type="warning">
-  Stream abort functionality is not compatible with stream resumption. If you're
-  using `resume: true` in `useChat`, the abort functionality will break the
-  resumption mechanism. Choose either abort or resume functionality, but not
-  both.
+  Request-bound aborts are not compatible with resumable streams. If you're
+  using `resume: true` in `useChat`, calling the built-in `stop()` helper,
+  closing the tab, or refreshing the page aborts the active HTTP request. If
+  your server forwards that signal to `streamText`, the generation stops and
+  resumption fails.
+
+  If you need both resumable streams and a manual "Stop" action, implement a
+  separate server-managed stop endpoint instead of relying only on the built-in
+  `stop()` helper.
 </Note>
 
 ```tsx file="app/page.tsx" highlight="9,18-20"

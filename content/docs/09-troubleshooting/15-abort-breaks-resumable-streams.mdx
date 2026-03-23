@@ -1,46 +1,39 @@
 ---
 title: Abort breaks resumable streams
-description: Troubleshooting stream resumption failures when using abort functionality
+description: Troubleshooting resumable stream failures caused by request-bound abort handling
 ---
 
 # Abort breaks resumable streams
 
 ## Issue
 
-When using `useChat` with `resume: true` for stream resumption, the abort functionality breaks. Closing a tab, refreshing the page, or calling the `stop()` function will trigger an abort signal that interferes with the resumption mechanism, preventing streams from being properly resumed.
+When using `useChat` with `resume: true`, built-in abort handling can break
+stream resumption. Closing a tab, refreshing the page, or calling
+`useChat().stop()` aborts the active HTTP request. If your server forwards
+`req.signal` to `streamText`, the generation stops with that request, so the
+resume endpoint has nothing left to reconnect to.
 
 ```tsx
-// This configuration will cause conflicts
+// This setup will conflict with resumable streams
 const { messages, stop } = useChat({
-  id: chatId,
-  resume: true, // Stream resumption enabled
-});
-
-// Closing the tab will trigger abort and stop resumption
-```
-
-## Background
-
-When a page is closed or refreshed, the browser automatically sends an abort signal, which breaks the resumption flow.
-
-## Current limitations
-
-We're aware of this incompatibility and are exploring solutions. **In the meantime, please choose either stream resumption or abort functionality based on your application's requirements**, but not both.
-
-### Option 1: Use stream resumption without abort
-
-If you need to support long-running generations that persist across page reloads:
-
-```tsx
-const { messages, sendMessage } = useChat({
   id: chatId,
   resume: true,
 });
 ```
 
-### Option 2: Use abort without stream resumption
+## Why this happens
 
-If you need to allow users to stop streams manually:
+`stop()` and browser disconnects abort the underlying fetch request. With
+resumable streams, the generation needs to keep running independently of that
+request so the client can reconnect later. If generation is tied directly to
+`req.signal`, aborting the request also aborts the generation.
+
+## Solutions
+
+### Option 1: Use built-in abort handling without stream resumption
+
+If you want to use the built-in `stop()` helper, keep the default
+request-bound abort behavior and disable resumable streams:
 
 ```tsx
 const { messages, sendMessage, stop } = useChat({
@@ -48,6 +41,27 @@ const { messages, sendMessage, stop } = useChat({
   resume: false, // Disable stream resumption (default behavior)
 });
 ```
+
+### Option 2: Use stream resumption with a custom stop endpoint
+
+If you need both resumable streams and a manual Stop action, move cancellation
+state to the server:
+
+1. Create a server-owned `AbortController` for each active generation
+2. Store the controller (or a lookup key for it) alongside the `activeStreamId`
+3. Accumulate the assistant response on the server while streaming
+4. Add a `POST /api/chat/[id]/stop` endpoint that aborts the controller
+5. Persist the partial assistant message and clear the `activeStreamId` when stopping
+
+<Note>
+  Call your stop endpoint from the UI instead of relying only on the built-in
+  `stop()` helper. Treat the server's accumulated assistant response as the
+  source of truth for persistence.
+</Note>
+
+This is a custom architecture that you implement on top of the SDK. The SDK
+supports the primitives for it, but it does not create the stop endpoint or
+server-side controller registry for you.
 
 ## Related
 

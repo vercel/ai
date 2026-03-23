@@ -8,10 +8,16 @@ description: Learn how to resume chatbot streams after client disconnects.
 `useChat` supports resuming ongoing streams after page reloads. Use this feature to build applications with long-running generations.
 
 <Note type="warning">
-  Stream resumption is not compatible with abort functionality. Closing a tab or
-  refreshing the page triggers an abort signal that will break the resumption
-  mechanism. Do not use `resume: true` if you need abort functionality in your
-  application. See
+  Resumable streams are not compatible with request-bound abort handling.
+  Closing a tab, refreshing the page, or calling `useChat().stop()` aborts the
+  active HTTP request. If your server forwards that abort signal to
+  `streamText`, the generation stops and there is nothing left to resume.
+
+  If you need both resumable streams and a manual "Stop" action, implement
+  stopping on the server: keep a server-owned `AbortController`, expose a
+  separate stop endpoint, persist the partial assistant message, and clear the
+  `activeStreamId` when stopping. See
+  [Stopping Streams](/docs/advanced/stopping-streams) and
   [troubleshooting](/docs/troubleshooting/abort-breaks-resumable-streams) for
   more details.
 </Note>
@@ -30,7 +36,8 @@ Stream resumption requires persistence for messages and active streams in your a
 
 - Storage to track which stream belongs to each chat
 - Redis to store the UIMessage stream
-- Two API endpoints: POST to create streams, GET to resume them
+- Two required API endpoints: POST to create streams and GET to resume them
+- An optional POST stop endpoint if you need manual stopping with resumable streams
 - Integration with [`resumable-stream`](https://www.npmjs.com/package/resumable-stream) to manage Redis storage
 
 ## Prerequisites
@@ -209,6 +216,26 @@ The diagram above shows the complete lifecycle of a resumable stream:
 4. **Stream recovery**: The GET handler checks for an `activeStreamId` and uses `resumeExistingStream` to reconnect. If no active stream exists, it returns a 204 (No Content) response
 5. **Completion cleanup**: When the stream finishes, the `onFinish` callback clears the `activeStreamId` by setting it to `null`
 
+## Add a custom stop endpoint
+
+The built-in `stop()` helper aborts the current HTTP request. That works for
+non-resumable chats, but it conflicts with resumable streams when the server
+forwards `req.signal` to `streamText`.
+
+To support both resumable streams and manual stopping:
+
+1. Create a server-owned `AbortController` for each active generation
+2. Store the controller (or a lookup key for it) alongside the `activeStreamId`
+3. Accumulate the assistant response on the server while streaming
+4. Add a `POST /api/chat/[id]/stop` endpoint that aborts the controller
+5. When stopping, persist the partial assistant message and clear the `activeStreamId`
+
+<Note>
+  Call your stop endpoint from the UI instead of relying only on the built-in
+  `stop()` helper. Treat the server's accumulated assistant response as the
+  source of truth for persistence.
+</Note>
+
 ## Customize the resume endpoint
 
 By default, the `useChat` hook makes a GET request to `/api/chat/[id]/stream` when resuming. Customize this endpoint, credentials, and headers, using the `prepareReconnectToStreamRequest` option in `DefaultChatTransport`:
@@ -252,11 +279,12 @@ This lets you:
 
 ## Important considerations
 
-- **Incompatibility with abort**: Stream resumption is not compatible with abort functionality. Closing a tab or refreshing the page triggers an abort signal that will break the resumption mechanism. Do not use `resume: true` if you need abort functionality in your application
+- **Request-bound aborts**: Stream resumption is not compatible with aborting the active chat request by forwarding `req.signal` to the model generation. Closing a tab, refreshing the page, or calling `useChat().stop()` will abort the HTTP request and break resumption in that setup
+- **Custom stopping**: If you need resumable streams and a manual stop action, implement cancellation on the server with a separate stop endpoint and a server-owned `AbortController`, then persist the partial assistant response before clearing the `activeStreamId`
 - **Stream expiration**: Streams in Redis expire after a set time (configurable in the `resumable-stream` package)
 - **Multiple clients**: Multiple clients can connect to the same stream simultaneously
 - **Error handling**: When no active stream exists, the GET handler returns a 204 (No Content) status code
-- **Security**: Ensure proper authentication and authorization for both creating and resuming streams
+- **Security**: Ensure proper authentication and authorization for creating, resuming, and optionally stopping streams
 - **Race conditions**: Clear the `activeStreamId` when starting a new stream to prevent resuming outdated streams
 
 <br />
