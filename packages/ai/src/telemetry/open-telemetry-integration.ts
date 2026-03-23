@@ -117,8 +117,7 @@ interface CallState {
   rootContext: Context | undefined;
   stepSpan: Span | undefined;
   stepContext: Context | undefined;
-  embedSpan: Span | undefined;
-  embedContext: Context | undefined;
+  embedSpans: Map<string, { span: Span; context: Context }>;
   toolSpans: Map<string, { span: Span; context: Context }>;
   baseTelemetryAttributes: Attributes;
   settings: Record<string, unknown>;
@@ -236,8 +235,7 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       rootContext,
       stepSpan: undefined,
       stepContext: undefined,
-      embedSpan: undefined,
-      embedContext: undefined,
+      embedSpans: new Map(),
       toolSpans: new Map(),
       baseTelemetryAttributes,
       settings,
@@ -296,8 +294,7 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       rootContext,
       stepSpan: undefined,
       stepContext: undefined,
-      embedSpan: undefined,
-      embedContext: undefined,
+      embedSpans: new Map(),
       toolSpans: new Map(),
       baseTelemetryAttributes,
       settings,
@@ -620,21 +617,30 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       },
     });
 
-    state.embedSpan = this.tracer.startSpan(
+    const embedSpan = this.tracer.startSpan(
       event.operationId,
       { attributes },
       state.rootContext,
     );
-    state.embedContext = trace.setSpan(state.rootContext, state.embedSpan);
+    const embedContext = trace.setSpan(state.rootContext, embedSpan);
+
+    state.embedSpans.set(event.embedCallId, {
+      span: embedSpan,
+      context: embedContext,
+    });
   }
 
   onEmbedFinish(event: EmbedFinishEvent): void {
     const state = this.getCallState(event.callId);
-    if (!state?.embedSpan) return;
+    if (!state) return;
 
+    const embedSpanEntry = state.embedSpans.get(event.embedCallId);
+    if (!embedSpanEntry) return;
+
+    const { span } = embedSpanEntry;
     const { telemetry } = state;
 
-    state.embedSpan.setAttributes(
+    span.setAttributes(
       selectAttributes(telemetry, {
         'ai.embeddings': {
           output: () =>
@@ -644,9 +650,8 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       }),
     );
 
-    state.embedSpan.end();
-    state.embedSpan = undefined;
-    state.embedContext = undefined;
+    span.end();
+    state.embedSpans.delete(event.embedCallId);
   }
 
   onChunk(event: OnChunkEvent<ToolSet>): void {
@@ -696,10 +701,11 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       state.stepSpan.end();
     }
 
-    if (state.embedSpan) {
-      recordSpanError(state.embedSpan, actualError);
-      state.embedSpan.end();
+    for (const { span: embedSpan } of state.embedSpans.values()) {
+      recordSpanError(embedSpan, actualError);
+      embedSpan.end();
     }
+    state.embedSpans.clear();
 
     recordSpanError(state.rootSpan, actualError);
 

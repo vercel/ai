@@ -151,9 +151,12 @@ export async function embed({
   try {
     const { embedding, usage, warnings, response, providerMetadata } =
       await retry(async () => {
+        const embedCallId = generateCallId();
+
         await notify({
           event: {
             callId,
+            embedCallId,
             operationId: 'ai.embed.doEmbed',
             provider: model.provider,
             modelId: model.modelId,
@@ -180,6 +183,7 @@ export async function embed({
         await notify({
           event: {
             callId,
+            embedCallId,
             operationId: 'ai.embed.doEmbed',
             provider: model.provider,
             modelId: model.modelId,

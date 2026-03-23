@@ -118,6 +118,9 @@ export interface EmbedStartEvent {
   /** Unique identifier for this embed call, used to correlate events. */
   readonly callId: string;
 
+  /** Unique identifier for this individual doEmbed invocation, used to correlate start/finish within parallel chunks. */
+  readonly embedCallId: string;
+
   /** Identifies the inner operation (e.g. 'ai.embed.doEmbed' or 'ai.embedMany.doEmbed'). */
   readonly operationId: string;
 
@@ -154,6 +157,9 @@ export interface EmbedStartEvent {
 export interface EmbedFinishEvent {
   /** Unique identifier for this embed call, used to correlate events. */
   readonly callId: string;
+
+  /** Unique identifier for this individual doEmbed invocation, used to correlate start/finish within parallel chunks. */
+  readonly embedCallId: string;
 
   /** Identifies the inner operation (e.g. 'ai.embed.doEmbed' or 'ai.embedMany.doEmbed'). */
   readonly operationId: string;

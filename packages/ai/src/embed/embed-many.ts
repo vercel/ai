@@ -173,9 +173,12 @@ export async function embedMany({
     if (maxEmbeddingsPerCall == null || maxEmbeddingsPerCall === Infinity) {
       const { embeddings, usage, warnings, response, providerMetadata } =
         await retry(async () => {
+          const embedCallId = generateCallId();
+
           await notify({
             event: {
               callId,
+              embedCallId,
               operationId: 'ai.embedMany.doEmbed',
               provider: model.provider,
               modelId: model.modelId,
@@ -202,6 +205,7 @@ export async function embedMany({
           await notify({
             event: {
               callId,
+              embedCallId,
               operationId: 'ai.embedMany.doEmbed',
               provider: model.provider,
               modelId: model.modelId,
@@ -281,9 +285,12 @@ export async function embedMany({
       const results = await Promise.all(
         parallelChunk.map(chunk => {
           return retry(async () => {
+            const embedCallId = generateCallId();
+
             await notify({
               event: {
                 callId,
+                embedCallId,
                 operationId: 'ai.embedMany.doEmbed',
                 provider: model.provider,
                 modelId: model.modelId,
@@ -310,6 +317,7 @@ export async function embedMany({
             await notify({
               event: {
                 callId,
+                embedCallId,
                 operationId: 'ai.embedMany.doEmbed',
                 provider: model.provider,
                 modelId: model.modelId,
