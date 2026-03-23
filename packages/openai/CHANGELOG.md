@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- e6376c2: fix(openai): preserve raw finish reason for failed responses stream events
+
+  Handle `response.failed` chunks in Responses API streaming so `finishReason.raw` is preserved from `incomplete_details.reason` (e.g. `max_output_tokens`), and map failed-without-reason cases to unified `error` instead of `other`.
+
 ## 4.0.0-beta.13
 
 ### Patch Changes
