@@ -53,7 +53,9 @@ This will cancel the stream from the client side to the server.
 
   If you need both resumable streams and a manual "Stop" action, implement a
   separate server-managed stop endpoint instead of relying only on the built-in
-  `stop()` helper.
+  `stop()` helper. In serverless or multi-instance deployments, cancellation
+  should be coordinated through shared infrastructure rather than per-instance
+  in-memory controller state.
 </Note>
 
 ```tsx file="app/page.tsx" highlight="9,18-20"

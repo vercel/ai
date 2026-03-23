@@ -14,9 +14,11 @@ description: Learn how to resume chatbot streams after client disconnects.
   `streamText`, the generation stops and there is nothing left to resume.
 
   If you need both resumable streams and a manual "Stop" action, implement
-  stopping on the server: keep a server-owned `AbortController`, expose a
-  separate stop endpoint, persist the partial assistant message, and clear the
-  `activeStreamId` when stopping. See
+  stopping on the server: keep a server-owned `AbortController` (or shared
+  cancellation registry), expose a separate stop endpoint, persist the partial
+  assistant message, and clear the `activeStreamId` when stopping. In
+  serverless or multi-instance deployments, do not rely on in-memory controller
+  state in a single function instance. See
   [Stopping Streams](/docs/advanced/stopping-streams) and
   [troubleshooting](/docs/troubleshooting/abort-breaks-resumable-streams) for
   more details.
@@ -224,16 +226,18 @@ forwards `req.signal` to `streamText`.
 
 To support both resumable streams and manual stopping:
 
-1. Create a server-owned `AbortController` for each active generation
-2. Store the controller (or a lookup key for it) alongside the `activeStreamId`
+1. Create a server-owned `AbortController` (or cancellation token) for each active generation
+2. Store a cancellation lookup key alongside the `activeStreamId` in shared storage (for example Redis)
 3. Accumulate the assistant response on the server while streaming
-4. Add a `POST /api/chat/[id]/stop` endpoint that aborts the controller
+4. Add a `POST /api/chat/[id]/stop` endpoint that resolves the key and aborts generation
 5. When stopping, persist the partial assistant message and clear the `activeStreamId`
 
 <Note>
   Call your stop endpoint from the UI instead of relying only on the built-in
   `stop()` helper. Treat the server's accumulated assistant response as the
-  source of truth for persistence.
+  source of truth for persistence. In serverless or multi-instance deployments,
+  resolve cancellation through shared infrastructure instead of in-memory state
+  on a single process.
 </Note>
 
 ## Customize the resume endpoint
@@ -280,7 +284,7 @@ This lets you:
 ## Important considerations
 
 - **Request-bound aborts**: Stream resumption is not compatible with aborting the active chat request by forwarding `req.signal` to the model generation. Closing a tab, refreshing the page, or calling `useChat().stop()` will abort the HTTP request and break resumption in that setup
-- **Custom stopping**: If you need resumable streams and a manual stop action, implement cancellation on the server with a separate stop endpoint and a server-owned `AbortController`, then persist the partial assistant response before clearing the `activeStreamId`
+- **Custom stopping**: If you need resumable streams and a manual stop action, implement cancellation on the server with a separate stop endpoint and shared cancellation infrastructure (not only in-memory state), then persist the partial assistant response before clearing the `activeStreamId`
 - **Stream expiration**: Streams in Redis expire after a set time (configurable in the `resumable-stream` package)
 - **Multiple clients**: Multiple clients can connect to the same stream simultaneously
 - **Error handling**: When no active stream exists, the GET handler returns a 204 (No Content) status code

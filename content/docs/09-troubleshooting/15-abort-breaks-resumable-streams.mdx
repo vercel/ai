@@ -47,21 +47,23 @@ const { messages, sendMessage, stop } = useChat({
 If you need both resumable streams and a manual Stop action, move cancellation
 state to the server:
 
-1. Create a server-owned `AbortController` for each active generation
-2. Store the controller (or a lookup key for it) alongside the `activeStreamId`
+1. Create a server-owned `AbortController` (or cancellation token) for each active generation
+2. Store a cancellation lookup key alongside the `activeStreamId` in shared storage (for example Redis)
 3. Accumulate the assistant response on the server while streaming
-4. Add a `POST /api/chat/[id]/stop` endpoint that aborts the controller
+4. Add a `POST /api/chat/[id]/stop` endpoint that resolves the key and aborts generation
 5. Persist the partial assistant message and clear the `activeStreamId` when stopping
 
 <Note>
   Call your stop endpoint from the UI instead of relying only on the built-in
   `stop()` helper. Treat the server's accumulated assistant response as the
-  source of truth for persistence.
+  source of truth for persistence. In serverless or multi-instance deployments,
+  resolve cancellation through shared infrastructure instead of in-memory state
+  on a single process.
 </Note>
 
 This is a custom architecture that you implement on top of the SDK. The SDK
 supports the primitives for it, but it does not create the stop endpoint or
-server-side controller registry for you.
+distributed cancellation registry for you.
 
 ## Related
 
