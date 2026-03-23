@@ -56,7 +56,17 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5-nano-2025-08-07', true],
       ['gpt-5-pro', true],
       ['gpt-5-pro-2025-10-06', true],
+<<<<<<< HEAD
       ['new-unknown-model', true],
+=======
+      ['gpt-5.4-mini', true],
+      ['gpt-5.4-mini-2026-03-17', true],
+      ['gpt-5.4-nano', true],
+      ['gpt-5.4-nano-2026-03-17', true],
+      ['new-unknown-model', false],
+      ['ft:gpt-4o-2024-08-06:org:custom:abc123', false],
+      ['custom-model', false],
+>>>>>>> 9c548debc (Backport: feat(openai): add additional GPT-5.4 models (#13755))
     ])('%s reasoning model: %s', (modelId, expectedCapabilities) => {
       expect(
         getOpenAILanguageModelCapabilities(modelId).isReasoningModel,
@@ -75,8 +85,12 @@ describe('getOpenAILanguageModelCapabilities', () => {
       ['gpt-5.2-chat-latest', true],
       ['gpt-5.3-chat-latest', true],
       ['gpt-5.4', true],
+      ['gpt-5.4-mini', true],
+      ['gpt-5.4-nano', true],
       ['gpt-5.4-pro', true],
       ['gpt-5.4-2026-03-05', true],
+      ['gpt-5.4-mini-2026-03-17', true],
+      ['gpt-5.4-nano-2026-03-17', true],
       ['gpt-5', false],
       ['gpt-5-mini', false],
       ['gpt-5-nano', false],
