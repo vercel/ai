@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- 365da1a: Add `gpt-5.4-mini`, `gpt-5.4-mini-2026-03-17`, `gpt-5.4-nano`, and `gpt-5.4-nano-2026-03-17` models.
+
 ## 4.0.0-beta.14
 
 ### Patch Changes
