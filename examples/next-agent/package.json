@@ -8,7 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "@ai-sdk/openai": "3.0.47",
+    "@ai-sdk/openai": "3.0.48",
     "@ai-sdk/react": "3.0.138",
     "@vercel/blob": "^0.26.0",
     "ai": "6.0.136",

@@ -13,7 +13,7 @@
   },
   "type": "module",
   "devDependencies": {
-    "@ai-sdk/openai": "3.0.47",
+    "@ai-sdk/openai": "3.0.48",
     "@ai-sdk/provider-utils": "4.0.21",
     "@ai-sdk/svelte": "4.0.136",
     "@sveltejs/adapter-vercel": "^6.3.3",
