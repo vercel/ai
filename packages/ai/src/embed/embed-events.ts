@@ -107,3 +107,69 @@ export interface EmbedOnFinishEvent {
   /** Additional metadata from telemetry settings. */
   readonly metadata: Record<string, JSONValue> | undefined;
 }
+
+/**
+ * Event fired when an individual embedding model call (inner operation doEmbed) begins.
+ *
+ * For `embed`, there is one call. For `embedMany`, there may be multiple
+ * calls when values are chunked.
+ */
+export interface EmbedStartEvent {
+  /** Unique identifier for this embed call, used to correlate events. */
+  readonly callId: string;
+
+  /** Identifies the inner operation (e.g. 'ai.embed.doEmbed' or 'ai.embedMany.doEmbed'). */
+  readonly operationId: string;
+
+  /** The provider identifier. */
+  readonly provider: string;
+
+  /** The specific model identifier. */
+  readonly modelId: string;
+
+  /** The values being embedded in this particular model call. */
+  readonly values: Array<string>;
+
+  /** Whether telemetry is enabled. */
+  readonly isEnabled: boolean | undefined;
+
+  /** Whether to record inputs in telemetry. Enabled by default. */
+  readonly recordInputs: boolean | undefined;
+
+  /** Whether to record outputs in telemetry. Enabled by default. */
+  readonly recordOutputs: boolean | undefined;
+
+  /** Identifier from telemetry settings for grouping related operations. */
+  readonly functionId: string | undefined;
+
+  /** Additional metadata from telemetry settings. */
+  readonly metadata: Record<string, JSONValue> | undefined;
+}
+
+/**
+ * Event fired when an individual embedding model call (doEmbed) completes.
+ *
+ * Contains the embeddings, usage, and any warnings from the model response.
+ */
+export interface EmbedFinishEvent {
+  /** Unique identifier for this embed call, used to correlate events. */
+  readonly callId: string;
+
+  /** Identifies the inner operation (e.g. 'ai.embed.doEmbed' or 'ai.embedMany.doEmbed'). */
+  readonly operationId: string;
+
+  /** The provider identifier. */
+  readonly provider: string;
+
+  /** The specific model identifier. */
+  readonly modelId: string;
+
+  /** The values that were embedded in this particular model call. */
+  readonly values: Array<string>;
+
+  /** The resulting embeddings from the model call. */
+  readonly embeddings: Array<Embedding>;
+
+  /** Token usage for this model call. */
+  readonly usage: EmbeddingModelUsage;
+}
