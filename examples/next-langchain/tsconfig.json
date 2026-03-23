@@ -44,10 +44,10 @@
       "path": "../../packages/ai"
     },
     {
-      "path": "../../packages/react"
+      "path": "../../packages/langchain"
     },
     {
-      "path": "../../packages/langchain"
+      "path": "../../packages/react"
     }
   ]
 }

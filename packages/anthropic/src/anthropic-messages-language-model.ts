@@ -31,6 +31,8 @@ import {
   postJsonToApi,
   Resolvable,
   resolve,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import { AnthropicMessageMetadata } from './anthropic-message-metadata';
@@ -148,6 +150,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
 
   private readonly config: AnthropicMessagesConfig;
   private readonly generateId: () => string;
+
+  static [WORKFLOW_SERIALIZE](inst: AnthropicMessagesLanguageModel) {
+    return {
+      modelId: inst.modelId,
+      config: inst.config,
+    };
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: AnthropicMessagesModelId;
+    config: AnthropicMessagesConfig;
+  }) {
+    return new AnthropicMessagesLanguageModel(options.modelId, options.config);
+  }
 
   constructor(
     modelId: AnthropicMessagesModelId,
@@ -1262,6 +1278,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
+    'use step';
+
     const {
       args: body,
       warnings,
