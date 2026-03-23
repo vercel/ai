@@ -20,7 +20,7 @@
     "@ai-sdk/mcp": "1.0.30",
     "@ai-sdk/mistral": "3.0.27",
     "@ai-sdk/openai": "3.0.47",
-    "@ai-sdk/perplexity": "3.0.25",
+    "@ai-sdk/perplexity": "3.0.26",
     "@ai-sdk/provider-utils": "4.0.21",
     "@ai-sdk/react": "3.0.136",
     "@ai-sdk/rsc": "2.0.134",
