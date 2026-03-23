@@ -574,6 +574,7 @@ function chunksToStep(
   const rawFinishReason = finish?.finishReason?.raw;
 
   const stepResult: StepResult<any> = {
+    callId: 'durable-agent', // Placeholder; DurableAgent doesn't use multi-call IDs
     stepNumber: 0, // Will be overridden by the caller
     model: {
       provider: responseMetadata?.modelId?.split(':')[0] ?? 'unknown',

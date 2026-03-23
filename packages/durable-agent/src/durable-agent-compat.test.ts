@@ -265,6 +265,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
       // GAP: DurableAgent does not have prepareCall. ToolLoopAgent has it on the constructor.
       // DurableAgent has prepareStep on stream options, but prepareCall is different —
       // it transforms the generateText/streamText call params.
+      // @ts-expect-error - not yet implemented on DurableAgent
       const agent = new DurableAgent<{ value: string }>({
         model: asModelFactory(mockModel),
         prepareCall: ({ options, ...rest }: any) => {
@@ -504,86 +505,81 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         });
       });
 
-      it.fails(
-        'should call experimental_onStart from constructor',
-        async () => {
-          const onStartCalls: string[] = [];
+      it.fails('should call experimental_onStart from constructor', async () => {
+        const onStartCalls: string[] = [];
 
-          // GAP: DurableAgent does not accept experimental_onStart in constructor
-          const agent = new DurableAgent({
-            model: asModelFactory(mockModel),
-            experimental_onStart: async () => {
-              onStartCalls.push('constructor');
-            },
-          });
+        // GAP: DurableAgent does not accept experimental_onStart in constructor
+        const agent = new DurableAgent({
+          model: asModelFactory(mockModel),
+          // @ts-expect-error - not yet implemented on DurableAgent
+          experimental_onStart: async () => {
+            onStartCalls.push('constructor');
+          },
+        });
 
-          const { writable } = createMockWritable();
-          await agent.stream({
-            messages: [{ role: 'user' as const, content: 'Hello, world!' }],
-            writable,
-          });
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user' as const, content: 'Hello, world!' }],
+          writable,
+        });
 
-          expect(onStartCalls).toMatchInlineSnapshot(`
+        expect(onStartCalls).toMatchInlineSnapshot(`
           [
             "constructor",
           ]
         `);
-        },
-      );
+      });
 
-      it.fails(
-        'should call experimental_onStart from stream method',
-        async () => {
-          const onStartCalls: string[] = [];
+      it.fails('should call experimental_onStart from stream method', async () => {
+        const onStartCalls: string[] = [];
 
-          const agent = new DurableAgent({ model: asModelFactory(mockModel) });
+        const agent = new DurableAgent({ model: asModelFactory(mockModel) });
 
-          const { writable } = createMockWritable();
-          await agent.stream({
-            messages: [{ role: 'user' as const, content: 'Hello, world!' }],
-            writable,
-            experimental_onStart: async () => {
-              onStartCalls.push('method');
-            },
-          });
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user' as const, content: 'Hello, world!' }],
+          writable,
+          // @ts-expect-error - not yet implemented on DurableAgent
+          experimental_onStart: async () => {
+            onStartCalls.push('method');
+          },
+        });
 
-          expect(onStartCalls).toMatchInlineSnapshot(`
+        expect(onStartCalls).toMatchInlineSnapshot(`
           [
             "method",
           ]
         `);
-        },
-      );
+      });
 
-      it.fails(
-        'should call both constructor and method experimental_onStart in correct order',
-        async () => {
-          const onStartCalls: string[] = [];
+      it.fails('should call both constructor and method experimental_onStart in correct order', async () => {
+        const onStartCalls: string[] = [];
 
-          const agent = new DurableAgent({
-            model: asModelFactory(mockModel),
-            experimental_onStart: async () => {
-              onStartCalls.push('constructor');
-            },
-          });
+        const agent = new DurableAgent({
+          model: asModelFactory(mockModel),
+          // @ts-expect-error - not yet implemented on DurableAgent
+          experimental_onStart: async () => {
+            onStartCalls.push('constructor');
+          },
+        });
 
-          const { writable } = createMockWritable();
-          await agent.stream({
-            messages: [{ role: 'user' as const, content: 'Hello, world!' }],
-            writable,
-            experimental_onStart: async () => {
-              onStartCalls.push('method');
-            },
-          });
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user' as const, content: 'Hello, world!' }],
+          writable,
+          // @ts-expect-error - not yet implemented on DurableAgent
+          experimental_onStart: async () => {
+            onStartCalls.push('method');
+          },
+        });
 
-          expect(onStartCalls).toMatchInlineSnapshot(`
+        expect(onStartCalls).toMatchInlineSnapshot(`
           [
             "constructor",
             "method",
           ]
         `);
-        },
-      );
+      });
 
       it.fails('should pass correct event information', async () => {
         let startEvent!: any;
@@ -593,6 +589,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
           instructions: 'You are a helpful assistant',
           temperature: 0.7,
           maxOutputTokens: 500,
+          // @ts-expect-error - not yet implemented on DurableAgent
           experimental_context: { userId: 'test-user' },
         });
 
@@ -600,6 +597,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'Hello, world!' }],
           writable,
+          // @ts-expect-error - not yet implemented on DurableAgent
           experimental_onStart: async (event: any) => {
             startEvent = event;
           },
@@ -643,86 +641,81 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         });
       });
 
-      it.fails(
-        'should call experimental_onStepStart from constructor',
-        async () => {
-          const onStepStartCalls: string[] = [];
+      it.fails('should call experimental_onStepStart from constructor', async () => {
+        const onStepStartCalls: string[] = [];
 
-          // GAP: DurableAgent does not accept experimental_onStepStart in constructor
-          const agent = new DurableAgent({
-            model: asModelFactory(mockModel),
-            experimental_onStepStart: async () => {
-              onStepStartCalls.push('constructor');
-            },
-          });
+        // GAP: DurableAgent does not accept experimental_onStepStart in constructor
+        const agent = new DurableAgent({
+          model: asModelFactory(mockModel),
+          // @ts-expect-error - not yet implemented on DurableAgent
+          experimental_onStepStart: async () => {
+            onStepStartCalls.push('constructor');
+          },
+        });
 
-          const { writable } = createMockWritable();
-          await agent.stream({
-            messages: [{ role: 'user' as const, content: 'Hello, world!' }],
-            writable,
-          });
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user' as const, content: 'Hello, world!' }],
+          writable,
+        });
 
-          expect(onStepStartCalls).toMatchInlineSnapshot(`
+        expect(onStepStartCalls).toMatchInlineSnapshot(`
           [
             "constructor",
           ]
         `);
-        },
-      );
+      });
 
-      it.fails(
-        'should call experimental_onStepStart from stream method',
-        async () => {
-          const onStepStartCalls: string[] = [];
+      it.fails('should call experimental_onStepStart from stream method', async () => {
+        const onStepStartCalls: string[] = [];
 
-          const agent = new DurableAgent({ model: asModelFactory(mockModel) });
+        const agent = new DurableAgent({ model: asModelFactory(mockModel) });
 
-          const { writable } = createMockWritable();
-          await agent.stream({
-            messages: [{ role: 'user' as const, content: 'Hello, world!' }],
-            writable,
-            experimental_onStepStart: async () => {
-              onStepStartCalls.push('method');
-            },
-          });
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user' as const, content: 'Hello, world!' }],
+          writable,
+          // @ts-expect-error - not yet implemented on DurableAgent
+          experimental_onStepStart: async () => {
+            onStepStartCalls.push('method');
+          },
+        });
 
-          expect(onStepStartCalls).toMatchInlineSnapshot(`
+        expect(onStepStartCalls).toMatchInlineSnapshot(`
           [
             "method",
           ]
         `);
-        },
-      );
+      });
 
-      it.fails(
-        'should call both constructor and method experimental_onStepStart in correct order',
-        async () => {
-          const onStepStartCalls: string[] = [];
+      it.fails('should call both constructor and method experimental_onStepStart in correct order', async () => {
+        const onStepStartCalls: string[] = [];
 
-          const agent = new DurableAgent({
-            model: asModelFactory(mockModel),
-            experimental_onStepStart: async () => {
-              onStepStartCalls.push('constructor');
-            },
-          });
+        const agent = new DurableAgent({
+          model: asModelFactory(mockModel),
+          // @ts-expect-error - not yet implemented on DurableAgent
+          experimental_onStepStart: async () => {
+            onStepStartCalls.push('constructor');
+          },
+        });
 
-          const { writable } = createMockWritable();
-          await agent.stream({
-            messages: [{ role: 'user' as const, content: 'Hello, world!' }],
-            writable,
-            experimental_onStepStart: async () => {
-              onStepStartCalls.push('method');
-            },
-          });
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user' as const, content: 'Hello, world!' }],
+          writable,
+          // @ts-expect-error - not yet implemented on DurableAgent
+          experimental_onStepStart: async () => {
+            onStepStartCalls.push('method');
+          },
+        });
 
-          expect(onStepStartCalls).toMatchInlineSnapshot(`
+        expect(onStepStartCalls).toMatchInlineSnapshot(`
           [
             "constructor",
             "method",
           ]
         `);
-        },
-      );
+      });
 
       it.fails('should pass correct event information', async () => {
         let stepStartEvent!: any;
@@ -730,6 +723,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         const agent = new DurableAgent({
           model: asModelFactory(mockModel),
           instructions: 'You are a helpful assistant',
+          // @ts-expect-error - not yet implemented on DurableAgent
           experimental_context: { userId: 'test-user' },
         });
 
@@ -737,6 +731,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'Hello, world!' }],
           writable,
+          // @ts-expect-error - not yet implemented on DurableAgent
           experimental_onStepStart: async (event: any) => {
             stepStartEvent = event;
           },
@@ -893,109 +888,104 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
 
   describe('experimental_onToolCallStart', () => {
     describe('stream', () => {
-      it.fails(
-        'should call experimental_onToolCallStart from constructor',
-        async () => {
-          const calls: string[] = [];
+      it.fails('should call experimental_onToolCallStart from constructor', async () => {
+        const calls: string[] = [];
 
-          // GAP: DurableAgent does not accept experimental_onToolCallStart in constructor
-          const agent = new DurableAgent({
-            model: asModelFactory(createToolCallStreamMockModel()),
-            tools: {
-              testTool: tool({
-                inputSchema: z.object({ value: z.string() }),
-                execute: async ({ value }: { value: string }) =>
-                  `${value}-result`,
-              }),
-            },
-            experimental_onToolCallStart: async () => {
-              calls.push('constructor');
-            },
-          });
+        // GAP: DurableAgent does not accept experimental_onToolCallStart in constructor
+        const agent = new DurableAgent({
+          model: asModelFactory(createToolCallStreamMockModel()),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+          // @ts-expect-error - not yet implemented on DurableAgent
+          experimental_onToolCallStart: async () => {
+            calls.push('constructor');
+          },
+        });
 
-          const { writable } = createMockWritable();
-          await agent.stream({
-            messages: [{ role: 'user' as const, content: 'test' }],
-            writable,
-          });
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user' as const, content: 'test' }],
+          writable,
+        });
 
-          expect(calls).toMatchInlineSnapshot(`
+        expect(calls).toMatchInlineSnapshot(`
           [
             "constructor",
           ]
         `);
-        },
-      );
+      });
 
-      it.fails(
-        'should call experimental_onToolCallStart from stream method',
-        async () => {
-          const calls: string[] = [];
+      it.fails('should call experimental_onToolCallStart from stream method', async () => {
+        const calls: string[] = [];
 
-          const agent = new DurableAgent({
-            model: asModelFactory(createToolCallStreamMockModel()),
-            tools: {
-              testTool: tool({
-                inputSchema: z.object({ value: z.string() }),
-                execute: async ({ value }: { value: string }) =>
-                  `${value}-result`,
-              }),
-            },
-          });
+        const agent = new DurableAgent({
+          model: asModelFactory(createToolCallStreamMockModel()),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+        });
 
-          const { writable } = createMockWritable();
-          await agent.stream({
-            messages: [{ role: 'user' as const, content: 'test' }],
-            writable,
-            experimental_onToolCallStart: async () => {
-              calls.push('method');
-            },
-          });
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user' as const, content: 'test' }],
+          writable,
+          // @ts-expect-error - not yet implemented on DurableAgent
+          experimental_onToolCallStart: async () => {
+            calls.push('method');
+          },
+        });
 
-          expect(calls).toMatchInlineSnapshot(`
+        expect(calls).toMatchInlineSnapshot(`
           [
             "method",
           ]
         `);
-        },
-      );
+      });
 
-      it.fails(
-        'should call both constructor and method in correct order',
-        async () => {
-          const calls: string[] = [];
+      it.fails('should call both constructor and method in correct order', async () => {
+        const calls: string[] = [];
 
-          const agent = new DurableAgent({
-            model: asModelFactory(createToolCallStreamMockModel()),
-            tools: {
-              testTool: tool({
-                inputSchema: z.object({ value: z.string() }),
-                execute: async ({ value }: { value: string }) =>
-                  `${value}-result`,
-              }),
-            },
-            experimental_onToolCallStart: async () => {
-              calls.push('constructor');
-            },
-          });
+        const agent = new DurableAgent({
+          model: asModelFactory(createToolCallStreamMockModel()),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+          // @ts-expect-error - not yet implemented on DurableAgent
+          experimental_onToolCallStart: async () => {
+            calls.push('constructor');
+          },
+        });
 
-          const { writable } = createMockWritable();
-          await agent.stream({
-            messages: [{ role: 'user' as const, content: 'test' }],
-            writable,
-            experimental_onToolCallStart: async () => {
-              calls.push('method');
-            },
-          });
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user' as const, content: 'test' }],
+          writable,
+          // @ts-expect-error - not yet implemented on DurableAgent
+          experimental_onToolCallStart: async () => {
+            calls.push('method');
+          },
+        });
 
-          expect(calls).toMatchInlineSnapshot(`
+        expect(calls).toMatchInlineSnapshot(`
           [
             "constructor",
             "method",
           ]
         `);
-        },
-      );
+      });
 
       it.fails('should pass correct event information', async () => {
         let event!: any;
@@ -1015,6 +1005,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'test' }],
           writable,
+          // @ts-expect-error - not yet implemented on DurableAgent
           experimental_onToolCallStart: async (e: any) => {
             event = e;
           },
@@ -1041,109 +1032,104 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
 
   describe('experimental_onToolCallFinish', () => {
     describe('stream', () => {
-      it.fails(
-        'should call experimental_onToolCallFinish from constructor',
-        async () => {
-          const calls: string[] = [];
+      it.fails('should call experimental_onToolCallFinish from constructor', async () => {
+        const calls: string[] = [];
 
-          // GAP: DurableAgent does not accept experimental_onToolCallFinish in constructor
-          const agent = new DurableAgent({
-            model: asModelFactory(createToolCallStreamMockModel()),
-            tools: {
-              testTool: tool({
-                inputSchema: z.object({ value: z.string() }),
-                execute: async ({ value }: { value: string }) =>
-                  `${value}-result`,
-              }),
-            },
-            experimental_onToolCallFinish: async () => {
-              calls.push('constructor');
-            },
-          });
+        // GAP: DurableAgent does not accept experimental_onToolCallFinish in constructor
+        const agent = new DurableAgent({
+          model: asModelFactory(createToolCallStreamMockModel()),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+          // @ts-expect-error - not yet implemented on DurableAgent
+          experimental_onToolCallFinish: async () => {
+            calls.push('constructor');
+          },
+        });
 
-          const { writable } = createMockWritable();
-          await agent.stream({
-            messages: [{ role: 'user' as const, content: 'test' }],
-            writable,
-          });
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user' as const, content: 'test' }],
+          writable,
+        });
 
-          expect(calls).toMatchInlineSnapshot(`
+        expect(calls).toMatchInlineSnapshot(`
           [
             "constructor",
           ]
         `);
-        },
-      );
+      });
 
-      it.fails(
-        'should call experimental_onToolCallFinish from stream method',
-        async () => {
-          const calls: string[] = [];
+      it.fails('should call experimental_onToolCallFinish from stream method', async () => {
+        const calls: string[] = [];
 
-          const agent = new DurableAgent({
-            model: asModelFactory(createToolCallStreamMockModel()),
-            tools: {
-              testTool: tool({
-                inputSchema: z.object({ value: z.string() }),
-                execute: async ({ value }: { value: string }) =>
-                  `${value}-result`,
-              }),
-            },
-          });
+        const agent = new DurableAgent({
+          model: asModelFactory(createToolCallStreamMockModel()),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+        });
 
-          const { writable } = createMockWritable();
-          await agent.stream({
-            messages: [{ role: 'user' as const, content: 'test' }],
-            writable,
-            experimental_onToolCallFinish: async () => {
-              calls.push('method');
-            },
-          });
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user' as const, content: 'test' }],
+          writable,
+          // @ts-expect-error - not yet implemented on DurableAgent
+          experimental_onToolCallFinish: async () => {
+            calls.push('method');
+          },
+        });
 
-          expect(calls).toMatchInlineSnapshot(`
+        expect(calls).toMatchInlineSnapshot(`
           [
             "method",
           ]
         `);
-        },
-      );
+      });
 
-      it.fails(
-        'should call both constructor and method in correct order',
-        async () => {
-          const calls: string[] = [];
+      it.fails('should call both constructor and method in correct order', async () => {
+        const calls: string[] = [];
 
-          const agent = new DurableAgent({
-            model: asModelFactory(createToolCallStreamMockModel()),
-            tools: {
-              testTool: tool({
-                inputSchema: z.object({ value: z.string() }),
-                execute: async ({ value }: { value: string }) =>
-                  `${value}-result`,
-              }),
-            },
-            experimental_onToolCallFinish: async () => {
-              calls.push('constructor');
-            },
-          });
+        const agent = new DurableAgent({
+          model: asModelFactory(createToolCallStreamMockModel()),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+          // @ts-expect-error - not yet implemented on DurableAgent
+          experimental_onToolCallFinish: async () => {
+            calls.push('constructor');
+          },
+        });
 
-          const { writable } = createMockWritable();
-          await agent.stream({
-            messages: [{ role: 'user' as const, content: 'test' }],
-            writable,
-            experimental_onToolCallFinish: async () => {
-              calls.push('method');
-            },
-          });
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user' as const, content: 'test' }],
+          writable,
+          // @ts-expect-error - not yet implemented on DurableAgent
+          experimental_onToolCallFinish: async () => {
+            calls.push('method');
+          },
+        });
 
-          expect(calls).toMatchInlineSnapshot(`
+        expect(calls).toMatchInlineSnapshot(`
           [
             "constructor",
             "method",
           ]
         `);
-        },
-      );
+      });
 
       it.fails('should pass correct event information on success', async () => {
         let event!: any;
@@ -1165,6 +1151,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'test' }],
           writable,
+          // @ts-expect-error - not yet implemented on DurableAgent
           experimental_onToolCallFinish: async (e: any) => {
             event = e;
           },
@@ -1317,184 +1304,177 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
     });
 
     describe('stream', () => {
-      it.fails(
-        'should call per-call integration listeners for all lifecycle events',
-        async () => {
-          const events: string[] = [];
+      it.fails('should call per-call integration listeners for all lifecycle events', async () => {
+        const events: string[] = [];
 
-          // GAP: DurableAgent does not support telemetry integration listeners
-          const agent = new DurableAgent({
-            model: asModelFactory(createToolCallStreamMockModel()),
-            tools: {
-              testTool: tool({
-                inputSchema: z.object({ value: z.string() }),
-                execute: async ({ value }: { value: string }) =>
-                  `${value}-result`,
-              }),
-            },
-            experimental_telemetry: {
-              integrations: {
-                onStart: async () => {
-                  events.push('onStart');
-                },
-                onStepStart: async () => {
-                  events.push('onStepStart');
-                },
-                onToolCallStart: async () => {
-                  events.push('onToolCallStart');
-                },
-                onToolCallFinish: async () => {
-                  events.push('onToolCallFinish');
-                },
-                onStepFinish: async () => {
-                  events.push('onStepFinish');
-                },
-                onFinish: async () => {
-                  events.push('onFinish');
-                },
-              },
-            },
-          });
-
-          const { writable } = createMockWritable();
-          await agent.stream({
-            messages: [{ role: 'user' as const, content: 'test' }],
-            writable,
-          });
-
-          expect(events).toEqual([
-            'onStart',
-            'onStepStart',
-            'onToolCallStart',
-            'onToolCallFinish',
-            'onStepFinish',
-            'onStepStart',
-            'onStepFinish',
-            'onFinish',
-          ]);
-        },
-      );
-
-      it.fails(
-        'should call globally registered integration listeners',
-        async () => {
-          const events: string[] = [];
-
-          (globalThis as any).AI_SDK_TELEMETRY_INTEGRATIONS = [
-            {
+        // GAP: DurableAgent does not support telemetry integration listeners
+        const agent = new DurableAgent({
+          model: asModelFactory(createToolCallStreamMockModel()),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+            }),
+          },
+          experimental_telemetry: {
+            // @ts-expect-error - not yet implemented on DurableAgent
+            integrations: {
               onStart: async () => {
-                events.push('global-onStart');
+                events.push('onStart');
+              },
+              onStepStart: async () => {
+                events.push('onStepStart');
+              },
+              onToolCallStart: async () => {
+                events.push('onToolCallStart');
+              },
+              onToolCallFinish: async () => {
+                events.push('onToolCallFinish');
               },
               onStepFinish: async () => {
-                events.push('global-onStepFinish');
+                events.push('onStepFinish');
               },
               onFinish: async () => {
-                events.push('global-onFinish');
+                events.push('onFinish');
               },
             },
-          ];
+          },
+        });
 
-          const agent = new DurableAgent({
-            model: asModelFactory(
-              new MockLanguageModelV4({
-                doStream: async () => ({
-                  stream: convertArrayToReadableStream([
-                    { type: 'stream-start' as const, warnings: [] },
-                    {
-                      type: 'response-metadata' as const,
-                      id: 'id-0',
-                      modelId: 'mock-model-id',
-                      timestamp: new Date(0),
-                    },
-                    { type: 'text-start' as const, id: '1' },
-                    { type: 'text-delta' as const, id: '1', delta: 'Hello!' },
-                    { type: 'text-end' as const, id: '1' },
-                    dummyStreamFinish,
-                  ]),
-                }),
-              }),
-            ),
-          });
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user' as const, content: 'test' }],
+          writable,
+        });
 
-          const { writable } = createMockWritable();
-          await agent.stream({
-            messages: [{ role: 'user' as const, content: 'test' }],
-            writable,
-          });
+        expect(events).toEqual([
+          'onStart',
+          'onStepStart',
+          'onToolCallStart',
+          'onToolCallFinish',
+          'onStepFinish',
+          'onStepStart',
+          'onStepFinish',
+          'onFinish',
+        ]);
+      });
 
-          expect(events).toEqual([
-            'global-onStart',
-            'global-onStepFinish',
-            'global-onFinish',
-          ]);
-        },
-      );
+      it.fails('should call globally registered integration listeners', async () => {
+        const events: string[] = [];
 
-      it.fails(
-        'should call integration listeners alongside agent callbacks',
-        async () => {
-          const events: string[] = [];
-
-          const agent = new DurableAgent({
-            model: asModelFactory(
-              new MockLanguageModelV4({
-                doStream: async () => ({
-                  stream: convertArrayToReadableStream([
-                    { type: 'stream-start' as const, warnings: [] },
-                    {
-                      type: 'response-metadata' as const,
-                      id: 'id-0',
-                      modelId: 'mock-model-id',
-                      timestamp: new Date(0),
-                    },
-                    { type: 'text-start' as const, id: '1' },
-                    { type: 'text-delta' as const, id: '1', delta: 'Hello!' },
-                    { type: 'text-end' as const, id: '1' },
-                    dummyStreamFinish,
-                  ]),
-                }),
-              }),
-            ),
-            experimental_onStart: async () => {
-              events.push('agent-onStart');
+        (globalThis as any).AI_SDK_TELEMETRY_INTEGRATIONS = [
+          {
+            onStart: async () => {
+              events.push('global-onStart');
             },
             onStepFinish: async () => {
-              events.push('agent-onStepFinish');
+              events.push('global-onStepFinish');
             },
             onFinish: async () => {
-              events.push('agent-onFinish');
+              events.push('global-onFinish');
             },
-            experimental_telemetry: {
-              integrations: {
-                onStart: async () => {
-                  events.push('integration-onStart');
-                },
-                onStepFinish: async () => {
-                  events.push('integration-onStepFinish');
-                },
-                onFinish: async () => {
-                  events.push('integration-onFinish');
-                },
+          },
+        ];
+
+        const agent = new DurableAgent({
+          model: asModelFactory(
+            new MockLanguageModelV4({
+              doStream: async () => ({
+                stream: convertArrayToReadableStream([
+                  { type: 'stream-start' as const, warnings: [] },
+                  {
+                    type: 'response-metadata' as const,
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  { type: 'text-start' as const, id: '1' },
+                  { type: 'text-delta' as const, id: '1', delta: 'Hello!' },
+                  { type: 'text-end' as const, id: '1' },
+                  dummyStreamFinish,
+                ]),
+              }),
+            }),
+          ),
+        });
+
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user' as const, content: 'test' }],
+          writable,
+        });
+
+        expect(events).toEqual([
+          'global-onStart',
+          'global-onStepFinish',
+          'global-onFinish',
+        ]);
+      });
+
+      it.fails('should call integration listeners alongside agent callbacks', async () => {
+        const events: string[] = [];
+
+        const agent = new DurableAgent({
+          model: asModelFactory(
+            new MockLanguageModelV4({
+              doStream: async () => ({
+                stream: convertArrayToReadableStream([
+                  { type: 'stream-start' as const, warnings: [] },
+                  {
+                    type: 'response-metadata' as const,
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  { type: 'text-start' as const, id: '1' },
+                  { type: 'text-delta' as const, id: '1', delta: 'Hello!' },
+                  { type: 'text-end' as const, id: '1' },
+                  dummyStreamFinish,
+                ]),
+              }),
+            }),
+          ),
+          experimental_onStart: async () => {
+            events.push('agent-onStart');
+          },
+          onStepFinish: async () => {
+            events.push('agent-onStepFinish');
+          },
+          onFinish: async () => {
+            events.push('agent-onFinish');
+          },
+          experimental_telemetry: {
+            // @ts-expect-error - not yet implemented on DurableAgent
+            integrations: {
+              onStart: async () => {
+                events.push('integration-onStart');
+              },
+              onStepFinish: async () => {
+                events.push('integration-onStepFinish');
+              },
+              onFinish: async () => {
+                events.push('integration-onFinish');
               },
             },
-          });
+          },
+        });
 
-          const { writable } = createMockWritable();
-          await agent.stream({
-            messages: [{ role: 'user' as const, content: 'test' }],
-            writable,
-          });
+        const { writable } = createMockWritable();
+        await agent.stream({
+          messages: [{ role: 'user' as const, content: 'test' }],
+          writable,
+        });
 
-          expect(events).toEqual([
-            'agent-onStart',
-            'integration-onStart',
-            'agent-onStepFinish',
-            'integration-onStepFinish',
-            'agent-onFinish',
-            'integration-onFinish',
-          ]);
-        },
-      );
+        expect(events).toEqual([
+          'agent-onStart',
+          'integration-onStart',
+          'agent-onStepFinish',
+          'integration-onStepFinish',
+          'agent-onFinish',
+          'integration-onFinish',
+        ]);
+      });
 
       it('should not break streaming when an integration listener throws', async () => {
         const agent = new DurableAgent({
@@ -1518,6 +1498,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
             }),
           ),
           experimental_telemetry: {
+            // @ts-expect-error - not yet implemented on DurableAgent
             integrations: {
               onStart: async () => {
                 throw new Error('integration error');
@@ -1544,39 +1525,36 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
 
   describe('tool approval', () => {
     describe('stream', () => {
-      it.fails(
-        'should pause agent when tool has needsApproval: true',
-        async () => {
-          // GAP: DurableAgent does not support tool approval.
-          // When a tool has needsApproval: true, the agent should pause
-          // and emit a tool-approval-request before executing the tool.
-          const agent = new DurableAgent({
-            model: asModelFactory(createToolCallStreamMockModel()),
-            tools: {
-              testTool: tool({
-                inputSchema: z.object({ value: z.string() }),
-                execute: async ({ value }: { value: string }) =>
-                  `${value}-result`,
-                needsApproval: true,
-              }),
-            },
-          });
+      it.fails('should pause agent when tool has needsApproval: true', async () => {
+        // GAP: DurableAgent does not support tool approval.
+        // When a tool has needsApproval: true, the agent should pause
+        // and emit a tool-approval-request before executing the tool.
+        const agent = new DurableAgent({
+          model: asModelFactory(createToolCallStreamMockModel()),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async ({ value }: { value: string }) =>
+                `${value}-result`,
+              needsApproval: true,
+            }),
+          },
+        });
 
-          const { writable, chunks } = createMockWritable();
-          const result = await agent.stream({
-            messages: [{ role: 'user' as const, content: 'test' }],
-            writable,
-          });
+        const { writable, chunks } = createMockWritable();
+        const result = await agent.stream({
+          messages: [{ role: 'user' as const, content: 'test' }],
+          writable,
+        });
 
-          // When approval is needed, the agent should stop and return the
-          // unresolved tool call (similar to client-side tools without execute).
-          // The toolCalls should contain the pending call, and toolResults
-          // should NOT contain it (since it wasn't executed yet).
-          expect(result.toolCalls.length).toBe(1);
-          expect(result.toolCalls[0].toolName).toBe('testTool');
-          expect(result.toolResults.length).toBe(0);
-        },
-      );
+        // When approval is needed, the agent should stop and return the
+        // unresolved tool call (similar to client-side tools without execute).
+        // The toolCalls should contain the pending call, and toolResults
+        // should NOT contain it (since it wasn't executed yet).
+        expect(result.toolCalls.length).toBe(1);
+        expect(result.toolCalls[0].toolName).toBe('testTool');
+        expect(result.toolResults.length).toBe(0);
+      });
 
       it.fails('should support needsApproval as a function', async () => {
         // GAP: needsApproval can be a function that receives the tool input
