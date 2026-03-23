@@ -24,6 +24,8 @@ export function bindTelemetryIntegration(
     onToolCallFinish: integration.onToolCallFinish?.bind(integration),
     onChunk: integration.onChunk?.bind(integration),
     onStepFinish: integration.onStepFinish?.bind(integration),
+    onEmbedStart: integration.onEmbedStart?.bind(integration),
+    onEmbedFinish: integration.onEmbedFinish?.bind(integration),
     onFinish: integration.onFinish?.bind(integration),
     onError: integration.onError?.bind(integration),
     executeTool: integration.executeTool?.bind(integration),
@@ -91,6 +93,12 @@ export function getGlobalTelemetryIntegration<
       onChunk: createTelemetryComposite(integration => integration.onChunk),
       onStepFinish: createTelemetryComposite(
         integration => integration.onStepFinish,
+      ),
+      onEmbedStart: createTelemetryComposite(
+        integration => integration.onEmbedStart,
+      ),
+      onEmbedFinish: createTelemetryComposite(
+        integration => integration.onEmbedFinish,
       ),
       onFinish: createTelemetryComposite(integration => integration.onFinish),
       onError: createTelemetryComposite(integration => integration.onError),

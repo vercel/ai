@@ -148,7 +148,6 @@ export type GatewayModelId =
   | 'openai/o4-mini'
   | 'perplexity/sonar'
   | 'perplexity/sonar-pro'
-  | 'perplexity/sonar-reasoning'
   | 'perplexity/sonar-reasoning-pro'
   | 'prime-intellect/intellect-3'
   | 'xai/grok-2-vision'
