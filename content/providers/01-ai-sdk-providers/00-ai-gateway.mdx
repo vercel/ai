@@ -533,9 +533,11 @@ for await (const part of result.fullStream) {
 }
 ```
 
-### Usage Tracking with User and Tags
+### Advanced Reporting
 
-Track usage per end-user and categorize requests with tags:
+Track usage per end-user and categorize requests with tags, then query the data through the reporting API.
+
+#### Usage Tracking with User and Tags
 
 ```ts
 import type { GatewayLanguageModelOptions } from '@ai-sdk/gateway';
@@ -559,85 +561,16 @@ This allows you to:
 - Filter and analyze spending by feature or use case using tags
 - Track which users or features are driving the most AI usage
 
+#### Reporting API
+
+You can query usage data programmatically using the [Advanced Reporting API](https://vercel.com/docs/ai-gateway/capabilities/advanced-reporting). The API supports grouping by `model`, `user`, `tag`, `provider`, or `credential_type`, and filtering by date range, user, model, tags, and more.
+
 #### Pricing
 
 | Charge type | Cost                                                              |
 | ----------- | ----------------------------------------------------------------- |
 | Tag/User ID | $0.075 per 1,000 unique tag or user ID values written per request |
 | Query       | $5 per 1,000 queries to the reporting endpoint                    |
-
-#### Advanced Reporting API
-
-You can query usage data programmatically using the [Advanced Reporting API](https://vercel.com/docs/ai-gateway/capabilities/advanced-reporting).
-
-**Endpoint:** `GET https://ai-gateway.vercel.sh/v1/report`
-
-All requests require a Bearer token in the `Authorization` header.
-
-**Required query parameters:**
-
-| Parameter    | Type   | Description                       |
-| ------------ | ------ | --------------------------------- |
-| `start_date` | string | Start date in `YYYY-MM-DD` format |
-| `end_date`   | string | End date in `YYYY-MM-DD` format   |
-
-Dates are inclusive (both `start_date` and `end_date` are included) and in UTC.
-
-**Optional query parameters:**
-
-| Parameter         | Type   | Options                                               | Description                                               |
-| ----------------- | ------ | ----------------------------------------------------- | --------------------------------------------------------- |
-| `group_by`        | string | `model`, `user`, `tag`, `provider`, `credential_type` | How to group the results                                  |
-| `date_part`       | string | `hour`, `day`                                         | Time period to group results into (UTC)                   |
-| `user_id`         | string |                                                       | Filter by a specific user ID                              |
-| `model`           | string |                                                       | Filter by a specific model in `creator/model-name` format |
-| `tags`            | string |                                                       | Filter by tags (comma-separated, boolean OR)              |
-| `credential_type` | string |                                                       | Filter by credential type (`byok` or `system`)            |
-| `provider`        | string |                                                       | Filter by provider                                        |
-
-**Response format:**
-
-The API returns a JSON object with a `results` array. Each result only contains the grouping field relevant to the `group_by` parameter you used. It can take a few minutes for requests to appear in the reporting endpoint.
-
-```json
-{
-  "results": [
-    {
-      "day": "2026-01-01",
-      "model": "anthropic/claude-sonnet-4.6",
-      "provider": "anthropic",
-      "user": "user_123",
-      "tag": "production",
-      "total_cost": 10.5,
-      "market_cost": 12.0,
-      "input_tokens": 1000,
-      "output_tokens": 500,
-      "cached_input_tokens": 200,
-      "cache_creation_input_tokens": 50,
-      "reasoning_tokens": 100,
-      "request_count": 25
-    }
-  ]
-}
-```
-
-| Field                         | Description                                             |
-| ----------------------------- | ------------------------------------------------------- |
-| `day`                         | The date for this result group in UTC (`YYYY-MM-DD`)    |
-| `model`                       | Present when `group_by=model`                           |
-| `provider`                    | Present when `group_by=provider`                        |
-| `user`                        | Present when `group_by=user`                            |
-| `tag`                         | Present when `group_by=tag`                             |
-| `total_cost`                  | Charged price in USD. Returns `0.00` for BYOK requests. |
-| `market_cost`                 | Market price of the request at the time it ran          |
-| `input_tokens`                | Input tokens used                                       |
-| `output_tokens`               | Output tokens used                                      |
-| `cached_input_tokens`         | Cached input tokens                                     |
-| `cache_creation_input_tokens` | Cache creation tokens                                   |
-| `reasoning_tokens`            | Reasoning tokens                                        |
-| `request_count`               | Number of requests                                      |
-
-All cost values are in USD and aggregated based on the grouping parameter.
 
 ## Provider Options
 
