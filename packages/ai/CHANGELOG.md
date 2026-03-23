@@ -1,5 +1,22 @@
 # ai
 
+## 7.0.0-beta.33
+
+### Patch Changes
+
+- caf1b6f: feat(ai): introduce experimental callbacks for rerank function
+
+## 7.0.0-beta.32
+
+### Major Changes
+
+- 4b46062: refactoring(ai): extract tool callback invocation into separate function and forward chunks before callback invocation
+
+### Patch Changes
+
+- Updated dependencies [165b97a]
+  - @ai-sdk/gateway@4.0.0-beta.18
+
 ## 7.0.0-beta.31
 
 ### Patch Changes

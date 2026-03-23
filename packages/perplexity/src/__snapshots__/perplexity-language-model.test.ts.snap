@@ -64,6 +64,7 @@ These reflect post-2020 Census trends (873,965 in 2020), with population declini
   },
   "providerMetadata": {
     "perplexity": {
+      "cost": null,
       "images": null,
       "usage": {
         "citationTokens": null,
@@ -220,6 +221,7 @@ This holiday scales for individuals (home setups) or communities (pop-up parks),
   },
   "providerMetadata": {
     "perplexity": {
+      "cost": null,
       "images": null,
       "usage": {
         "citationTokens": null,
@@ -426,6 +428,7 @@ exports[`doStream > citations > should stream citations 1`] = `
     },
     "providerMetadata": {
       "perplexity": {
+        "cost": null,
         "images": null,
         "usage": {
           "citationTokens": null,
@@ -553,6 +556,7 @@ exports[`doStream > text > should stream text 1`] = `
     },
     "providerMetadata": {
       "perplexity": {
+        "cost": null,
         "images": null,
         "usage": {
           "citationTokens": null,

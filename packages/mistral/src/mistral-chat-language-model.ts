@@ -16,6 +16,7 @@ import {
   generateId,
   injectJsonInstructionIntoMessages,
   isCustomReasoning,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
@@ -103,11 +104,34 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
-    if (isCustomReasoning(reasoning)) {
+    const supportsReasoningEffort =
+      this.modelId === 'mistral-small-latest' ||
+      this.modelId === 'mistral-small-2603';
+
+    let resolvedReasoningEffort: string | undefined;
+    if (supportsReasoningEffort) {
+      resolvedReasoningEffort =
+        options.reasoningEffort ??
+        (isCustomReasoning(reasoning)
+          ? reasoning === 'none'
+            ? 'none'
+            : mapReasoningToProviderEffort({
+                reasoning,
+                effortMap: {
+                  minimal: 'high',
+                  low: 'high',
+                  medium: 'high',
+                  high: 'high',
+                  xhigh: 'high',
+                },
+                warnings,
+              })
+          : undefined);
+    } else if (isCustomReasoning(reasoning)) {
       warnings.push({
         type: 'unsupported',
         feature: 'reasoning',
-        details: 'This provider does not support reasoning configuration.',
+        details: 'This model does not support reasoning configuration.',
       });
     }
 
@@ -135,6 +159,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       temperature,
       top_p: topP,
       random_seed: seed,
+      reasoning_effort: resolvedReasoningEffort,
 
       // response format:
       response_format:
