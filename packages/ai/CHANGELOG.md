@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.36
+
+### Patch Changes
+
+- 118b953: feat(ai): decouple otel from embed functions
+
 ## 7.0.0-beta.35
 
 ### Patch Changes
