@@ -1,3 +1,5 @@
+# Stream Text Loop Control
+
 ```
 initial model messages
 response model messages
@@ -8,8 +10,7 @@ do {
   convert step input messages (after prepare step) to language model v4 messages
 
  stream = doStream (with language model v4 messages)
-
- transform function for user friendly format
+ transform stream for user friendly format
 
  run tools transformation on stream
    executes tools and injects tool results into stream
@@ -48,6 +49,36 @@ do {
     )
 )
 
+transform the unified stream with custom user-defined transformations
+
 unified stream
 stream 1 -- stream 2 -- stream 3
 ```
+
+# Stream Pipeline Structure
+````
+Y
+^^^
+
+                   doStream1    doStream2
+                   tr1          tr1
+                   tr2          tr2
+stitchable stream  L------------L--------
+|
+abort control
+|
+user defined transformation
+|
+output transform
+|
+event processor
+|
+BASE STREAM on the result object
+on-demand tee-based transforms
+|                      |
+text transform         toUIMessageStream
+                       |
+                       full stream
+                       |
+                       ui message transform
+````
