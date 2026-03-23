@@ -1,18 +1,19 @@
 import { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { CallSettings } from '../prompt';
+import { CallSettings, Prompt } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
-import { StandardizedPrompt } from '../prompt/standardize-prompt';
+import { standardizePrompt } from '../prompt/standardize-prompt';
 import { LanguageModel, ToolChoice } from '../types/language-model';
+import { createAsyncIterableStream } from '../util/async-iterable-stream';
 import { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
+import { createStreamTextPartTransform } from './create-stream-text-part-transform';
 import { Output } from './output';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolSet } from './tool-set';
-import { createStreamTextPartTransform } from './create-stream-text-part-transform';
 
 export async function streamModelCall<
   TOOLS extends ToolSet,
@@ -23,6 +24,7 @@ export async function streamModelCall<
   output,
   toolChoice,
   activeTools,
+  prompt,
   system,
   messages,
   download,
@@ -44,20 +46,26 @@ export async function streamModelCall<
   headers?: Record<string, string | undefined>;
   includeRawChunks?: boolean;
   providerOptions?: ProviderOptions;
-  repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
+  repairToolCall?: ToolCallRepairFunction<TOOLS> | undefined;
   onStart?: (args: {
     promptMessages: LanguageModelV4Prompt;
   }) => Promise<void> | void;
-} & StandardizedPrompt &
+} & Prompt &
   CallSettings) {
   const resolvedModel = resolveLanguageModel(model);
 
   const { retry } = prepareRetries({ maxRetries, abortSignal });
 
+  const standardizedPrompt = await standardizePrompt({
+    system,
+    prompt,
+    messages,
+  } as Prompt);
+
   const promptMessages = await convertToLanguageModelPrompt({
     prompt: {
-      system,
-      messages,
+      system: standardizedPrompt.system,
+      messages: standardizedPrompt.messages,
     },
     supportedUrls: await resolvedModel.supportedUrls,
     download,
@@ -94,13 +102,15 @@ export async function streamModelCall<
   );
 
   return {
-    stream: languageModelStream.pipeThrough(
-      createStreamTextPartTransform({
-        tools,
-        system,
-        messages,
-        repairToolCall,
-      }),
+    stream: createAsyncIterableStream(
+      languageModelStream.pipeThrough(
+        createStreamTextPartTransform({
+          tools,
+          system: standardizedPrompt.system,
+          messages: standardizedPrompt.messages,
+          repairToolCall,
+        }),
+      ),
     ),
     response,
     request,

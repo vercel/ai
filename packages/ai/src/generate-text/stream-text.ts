@@ -24,7 +24,6 @@ import {
   getTotalTimeoutMs,
   TimeoutConfiguration,
 } from '../prompt/call-settings';
-import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
@@ -72,6 +71,8 @@ import { mergeObjects } from '../util/merge-objects';
 import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
+import { collectToolApprovals } from './collect-tool-approvals';
+import { ContentPart } from './content-part';
 import type {
   OnFinishEvent,
   OnStartEvent,
@@ -80,14 +81,10 @@ import type {
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
 } from './core-events';
-import { collectToolApprovals } from './collect-tool-approvals';
-import { ContentPart } from './content-part';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
-import {
-  createStreamTextPartTransform,
-  UglyTransformedStreamTextPart,
-} from './create-stream-text-part-transform';
+import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
 import { executeToolCall } from './execute-tool-call';
+import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 import { Output, text } from './output';
 import {
   InferCompleteOutput,
@@ -103,6 +100,7 @@ import {
   stepCountIs,
   StopCondition,
 } from './stop-condition';
+import { streamModelCall } from './stream-model-call';
 import {
   ConsumeStreamOptions,
   StreamTextResult,
@@ -115,8 +113,6 @@ import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolOutput } from './tool-output';
 import { StaticToolOutputDenied } from './tool-output-denied';
 import { ToolSet } from './tool-set';
-import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
-import { streamModelCall } from './stream-model-call';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1555,7 +1551,6 @@ class DefaultStreamTextResult<
             prepareStepResult?.experimental_context ?? experimental_context;
 
           const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
-
           const stepSystem = prepareStepResult?.system ?? initialPrompt.system;
 
           const stepProviderOptions = mergeObjects(
