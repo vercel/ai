@@ -102,7 +102,8 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                 return {
                   type: 'text' as const,
                   text: part.text,
-                  ...(part.providerMetadata != null
+                  ...(part.providerMetadata != null &&
+                  Object.keys(part.providerMetadata).length > 0
                     ? { providerOptions: part.providerMetadata }
                     : {}),
                 };
@@ -115,7 +116,8 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   mediaType: part.mediaType,
                   filename: part.filename,
                   data: part.url,
-                  ...(part.providerMetadata != null
+                  ...(part.providerMetadata != null &&
+                  Object.keys(part.providerMetadata).length > 0
                     ? { providerOptions: part.providerMetadata }
                     : {}),
                 };
@@ -159,7 +161,8 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                 content.push({
                   type: 'text' as const,
                   text: part.text,
-                  ...(part.providerMetadata != null
+                  ...(part.providerMetadata != null &&
+                  Object.keys(part.providerMetadata).length > 0
                     ? { providerOptions: part.providerMetadata }
                     : {}),
                 });
@@ -192,7 +195,10 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                 content.push({
                   type: 'reasoning' as const,
                   text: part.text,
-                  providerOptions: part.providerMetadata,
+                  ...(part.providerMetadata != null &&
+                  Object.keys(part.providerMetadata).length > 0
+                    ? { providerOptions: part.providerMetadata }
+                    : {}),
                 });
               } else if (isToolUIPart(part)) {
                 const toolName = getToolName(part);
@@ -208,7 +214,8 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                           ('rawInput' in part ? part.rawInput : undefined))
                         : part.input,
                     providerExecuted: part.providerExecuted,
-                    ...(part.callProviderMetadata != null
+                    ...(part.callProviderMetadata != null &&
+                    Object.keys(part.callProviderMetadata).length > 0
                       ? { providerOptions: part.callProviderMetadata }
                       : {}),
                   });
