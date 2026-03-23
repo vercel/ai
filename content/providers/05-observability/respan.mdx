@@ -1,0 +1,139 @@
+---
+title: Respan
+description: Monitor, trace, and debug your AI SDK application with Respan
+---
+
+# Respan Observability
+
+[Respan](https://respan.ai/) is an observability platform for monitoring and tracing LLM applications.
+After integrating with the AI SDK, you can use Respan to trace, monitor, and analyze your LLM calls across multiple providers.
+
+## Setup
+
+Respan provides a dedicated exporter package for the AI SDK that works with [AI SDK telemetry data](/docs/ai-sdk-core/telemetry).
+
+You'll need to sign up at [platform.respan.ai](https://platform.respan.ai) and get your API key from the API keys page.
+
+### Installation
+
+Install the Respan exporter alongside the AI SDK packages:
+
+```bash
+npm install @respan/exporter-vercel @vercel/otel ai
+```
+
+### Environment Variables
+
+Set your Respan API key:
+
+```bash filename=".env"
+RESPAN_API_KEY="YOUR_RESPAN_API_KEY"
+```
+
+### Instrumentation
+
+Create an `instrumentation.ts` file in your project root:
+
+```ts filename="instrumentation.ts"
+import { registerOTel } from '@vercel/otel';
+import { RespanExporter } from '@respan/exporter-vercel';
+
+export function register() {
+  registerOTel({
+    serviceName: 'my-app',
+    traceExporter: new RespanExporter({
+      apiKey: process.env.RESPAN_API_KEY!,
+    }),
+  });
+}
+```
+
+### Enable Telemetry
+
+Use the `experimental_telemetry` option to enable telemetry on AI SDK function calls:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Write a short story about a cat.',
+  experimental_telemetry: {
+    isEnabled: true,
+    functionId: 'generate_text',
+    metadata: {
+      customer_identifier: 'user-123',
+    },
+  },
+});
+```
+
+Done! All traces that contain AI SDK spans are automatically captured in Respan.
+
+## What You'll See in Respan
+
+After integrating, you'll be able to view in your Respan dashboard:
+
+- **LLM call traces**: Full input/output for each AI SDK call
+- **Performance metrics**: Latency, token usage, and cost tracking
+- **Model information**: Which models and providers were used
+- **Custom metadata**: Any additional context provided via telemetry
+- **Error tracking**: Failed requests and debugging information
+
+## Configuration
+
+The `RespanExporter` accepts the following options:
+
+| Parameter | Type    | Default                  | Description                  |
+| --------- | ------- | ------------------------ | ---------------------------- |
+| `apiKey`  | string  | `RESPAN_API_KEY` env var | Your Respan API key          |
+| `baseUrl` | string  | `https://api.respan.ai`  | API endpoint                 |
+| `debug`   | boolean | `false`                  | Enable diagnostic logging    |
+
+### Custom Metadata Attributes
+
+You can pass custom attributes via `experimental_telemetry.metadata` to filter and group traces in Respan:
+
+```ts highlight="6-11"
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Write a short story about a cat.',
+  experimental_telemetry: {
+    isEnabled: true,
+    metadata: {
+      customer_identifier: 'user-123',
+      customer_name: 'Jane Doe',
+      thread_identifier: 'conversation-456',
+      environment: 'production',
+    },
+  },
+});
+```
+
+### Streaming
+
+For routes using `streamText`, set `maxDuration` to prevent timeouts:
+
+```ts
+export const maxDuration = 30;
+```
+
+## Troubleshooting
+
+- **Missing `@opentelemetry/api-logs`**: Install directly if peer dependency issues arise:
+  ```bash
+  npm install @opentelemetry/api-logs
+  ```
+- **No traces appearing**: Verify that telemetry is enabled, `instrumentation.ts` exists at your project root, and `RESPAN_API_KEY` is set. Enable `debug: true` for export logs.
+- **Turbopack warning**: Add to `next.config.js`:
+  ```js
+  const nextConfig = { turbopack: { root: __dirname } };
+  module.exports = nextConfig;
+  ```
+
+## Resources
+
+- [Respan Vercel AI SDK Tracing Guide](https://respan.ai/docs/integrations/tracing/vercel-tracing)
+- [Respan Vercel AI SDK Gateway Guide](https://respan.ai/docs/integrations/gateway/vercel)
+- [Respan Documentation](https://respan.ai/docs)
