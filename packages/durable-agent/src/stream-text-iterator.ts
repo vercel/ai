@@ -147,8 +147,15 @@ export async function* streamTextIterator({
       if (prepareResult.model !== undefined) {
         currentModel = prepareResult.model;
       }
+      // Apply messages override BEFORE system so the system message
+      // isn't lost when messages replaces the prompt.
+      if (prepareResult.messages !== undefined) {
+        conversationPrompt = [...prepareResult.messages];
+      }
       if (prepareResult.system !== undefined) {
-        // Update or prepend system message in the conversation prompt
+        // Update or prepend system message in the conversation prompt.
+        // Applied AFTER messages override so the system message isn't
+        // lost when messages replaces the prompt.
         if (
           conversationPrompt.length > 0 &&
           conversationPrompt[0].role === 'system'
@@ -165,9 +172,6 @@ export async function* streamTextIterator({
             content: prepareResult.system,
           });
         }
-      }
-      if (prepareResult.messages !== undefined) {
-        conversationPrompt = [...prepareResult.messages];
       }
       if (prepareResult.experimental_context !== undefined) {
         currentContext = prepareResult.experimental_context;
