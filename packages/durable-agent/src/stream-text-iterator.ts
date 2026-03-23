@@ -23,6 +23,7 @@ import type {
   StreamTextTransform,
   TelemetrySettings,
 } from './durable-agent.js';
+import { createUIMessageChunkTransform } from './to-ui-message-chunk.js';
 import { toolsToModelTools } from './tools-to-model-tools.js';
 import type { CompatibleLanguageModel } from './types.js';
 
@@ -71,7 +72,7 @@ export async function* streamTextIterator({
 }: {
   prompt: LanguageModelV4Prompt;
   tools: ToolSet;
-  writable: WritableStream<UIMessageChunk>;
+  writable?: WritableStream<UIMessageChunk>;
   model: string | (() => Promise<CompatibleLanguageModel>);
   stopConditions?: ModelStopCondition[] | ModelStopCondition;
   maxSteps?: number;
@@ -262,24 +263,33 @@ export async function* streamTextIterator({
         toolCalls,
         finish,
         step,
-        uiChunks: stepUIChunks,
+        chunks: rawChunks,
         providerExecutedToolResults,
       } = await doStreamStep(
         conversationPrompt,
         currentModel,
-        writable,
         await toolsToModelTools(effectiveTools),
         {
-          sendStart: sendStart && isFirstIteration,
           ...currentGenerationSettings,
           toolChoice: currentToolChoice,
           includeRawChunks,
           experimental_telemetry,
           transforms,
           responseFormat,
-          collectUIChunks,
         },
       );
+
+      // Write UIMessageChunks to writable if provided
+      let stepUIChunks: UIMessageChunk[] | undefined;
+      if (writable) {
+        stepUIChunks = await writeChunksToUI(
+          writable,
+          rawChunks,
+          sendStart && isFirstIteration,
+          collectUIChunks,
+        );
+      }
+
       isFirstIteration = false;
       stepNumber++;
       steps.push(step);
@@ -333,11 +343,9 @@ export async function* streamTextIterator({
           providerExecutedToolResults,
         };
 
-        const toolOutputChunks = await writeToolOutputToUI(
-          writable,
-          toolResults,
-          collectUIChunks,
-        );
+        const toolOutputChunks = writable
+          ? await writeToolOutputToUI(writable, toolResults, collectUIChunks)
+          : [];
         // Merge tool output chunks into allStepUIChunks for the next iteration
         if (collectUIChunks && toolOutputChunks.length > 0) {
           allStepUIChunks = [...(allStepUIChunks ?? []), ...toolOutputChunks];
@@ -452,6 +460,50 @@ async function writeToolOutputToUI(
     writer.releaseLock();
   }
   return chunks;
+}
+
+/**
+ * Write raw LanguageModelV4StreamPart chunks to a WritableStream as UIMessageChunks.
+ * Uses createUIMessageChunkTransform for the conversion.
+ */
+async function writeChunksToUI(
+  writable: WritableStream<UIMessageChunk>,
+  rawChunks: import('@ai-sdk/provider').LanguageModelV4StreamPart[],
+  sendStart: boolean,
+  collectUIChunks: boolean,
+): Promise<UIMessageChunk[]> {
+  'use step';
+
+  const uiChunks: UIMessageChunk[] = [];
+
+  // Create a readable stream from the raw chunks
+  const rawStream = new ReadableStream<
+    import('@ai-sdk/provider').LanguageModelV4StreamPart
+  >({
+    start: controller => {
+      for (const chunk of rawChunks) {
+        controller.enqueue(chunk);
+      }
+      controller.close();
+    },
+  });
+
+  // Pipe through UIMessageChunk transform, optionally collecting chunks
+  await rawStream
+    .pipeThrough(createUIMessageChunkTransform({ sendStart }))
+    .pipeThrough(
+      new TransformStream<UIMessageChunk, UIMessageChunk>({
+        transform: (chunk, controller) => {
+          if (collectUIChunks) {
+            uiChunks.push(chunk);
+          }
+          controller.enqueue(chunk);
+        },
+      }),
+    )
+    .pipeTo(writable, { preventClose: true });
+
+  return uiChunks;
 }
 
 /**

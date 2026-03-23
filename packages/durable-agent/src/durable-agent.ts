@@ -475,9 +475,12 @@ export interface DurableAgentStreamOptions<
   system?: string;
 
   /**
-   * The stream to which the agent writes message chunks. For example, use `getWritable<UIMessageChunk>()` to write to the workflow's default output stream.
+   * The stream to which the agent writes UIMessageChunks. For example, use `getWritable<UIMessageChunk>()` to write to the workflow's default output stream.
+   *
+   * When omitted, the agent streams ModelMessages only — no UIMessageChunk conversion happens.
+   * This is useful for headless agent execution where UI rendering is not needed.
    */
-  writable: WritableStream<UIMessageChunk>;
+  writable?: WritableStream<UIMessageChunk>;
 
   /**
    * If true, prevents the writable stream from being closed after streaming completes.
@@ -1086,10 +1089,9 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
                 ),
               );
 
-            // Combine executable and provider results, then write to UI
+            // Combine executable and provider results, then write to UI if writable provided
             const resolvedResults = [...executableResults, ...providerResults];
-            if (resolvedResults.length > 0) {
-              // Write resolved tool results to the UI stream
+            if (resolvedResults.length > 0 && options.writable) {
               const writer = options.writable.getWriter();
               try {
                 for (const result of resolvedResults) {
@@ -1133,7 +1135,7 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
             // Close the stream and call onFinish before returning
             const sendFinish = options.sendFinish ?? true;
             const preventClose = options.preventClose ?? false;
-            if (sendFinish || !preventClose) {
+            if (options.writable && (sendFinish || !preventClose)) {
               await closeStream(options.writable, preventClose, sendFinish);
             }
 
@@ -1270,8 +1272,8 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
     const sendFinish = options.sendFinish ?? true;
     const preventClose = options.preventClose ?? false;
 
-    // Handle stream closing
-    if (sendFinish || !preventClose) {
+    // Handle stream closing (only when writable is provided)
+    if (options.writable && (sendFinish || !preventClose)) {
       await closeStream(options.writable, preventClose, sendFinish);
     }
 
