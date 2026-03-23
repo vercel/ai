@@ -21,6 +21,7 @@ import type {
   StreamTextTransform,
   TelemetrySettings,
 } from './durable-agent.js';
+import { recordSpan } from './telemetry.js';
 import type { CompatibleLanguageModel } from './types.js';
 
 export type FinishPart = Extract<LanguageModelV4StreamPart, { type: 'finish' }>;
@@ -163,7 +164,38 @@ export async function doStreamStep(
     }),
   };
 
-  const result = await model.doStream(callOptions);
+  const result = await recordSpan({
+    name: 'ai.streamText.doStream',
+    telemetry: options?.experimental_telemetry,
+    attributes: {
+      'ai.model.provider': model.provider,
+      'ai.model.id': model.modelId,
+      'gen_ai.system': model.provider,
+      'gen_ai.request.model': model.modelId,
+      ...(options?.maxOutputTokens !== undefined && {
+        'gen_ai.request.max_tokens': options.maxOutputTokens,
+      }),
+      ...(options?.temperature !== undefined && {
+        'gen_ai.request.temperature': options.temperature,
+      }),
+      ...(options?.topP !== undefined && {
+        'gen_ai.request.top_p': options.topP,
+      }),
+      ...(options?.topK !== undefined && {
+        'gen_ai.request.top_k': options.topK,
+      }),
+      ...(options?.frequencyPenalty !== undefined && {
+        'gen_ai.request.frequency_penalty': options.frequencyPenalty,
+      }),
+      ...(options?.presencePenalty !== undefined && {
+        'gen_ai.request.presence_penalty': options.presencePenalty,
+      }),
+      ...(options?.stopSequences !== undefined && {
+        'gen_ai.request.stop_sequences': options.stopSequences,
+      }),
+    },
+    fn: () => model!.doStream(callOptions),
+  });
 
   let finish: FinishPart | undefined;
   const toolCalls: LanguageModelV4ToolCall[] = [];
@@ -571,7 +603,10 @@ function chunksToStep(
     )
     .map(chunk => chunk);
 
-  const rawFinishReason = finish?.finishReason?.raw;
+  const rawFinishReason =
+    typeof finish?.finishReason === 'object'
+      ? finish?.finishReason?.raw
+      : undefined;
 
   const stepResult: StepResult<any> = {
     callId: 'durable-agent', // Placeholder; DurableAgent doesn't use multi-call IDs
@@ -619,7 +654,7 @@ function chunksToStep(
     toolResults: [],
     staticToolResults: [],
     dynamicToolResults: [],
-    finishReason: finish?.finishReason?.unified ?? 'other',
+    finishReason: normalizeFinishReason(finish?.finishReason),
     rawFinishReason,
     usage: finish?.usage
       ? {
@@ -675,4 +710,25 @@ function chunksToStep(
   };
 
   return stepResult;
+}
+
+/**
+ * Normalize the finish reason to the AI SDK FinishReason type.
+ * AI SDK v6 may return an object with a 'unified' property,
+ * while AI SDK v5 returns a plain string. This function handles both.
+ *
+ * @internal Exported for testing
+ */
+export function normalizeFinishReason(rawFinishReason: unknown): FinishReason {
+  if (rawFinishReason == null) return 'other';
+  if (typeof rawFinishReason === 'string')
+    return rawFinishReason as FinishReason;
+  if (typeof rawFinishReason === 'object') {
+    const obj = rawFinishReason as {
+      unified?: FinishReason;
+      type?: FinishReason;
+    };
+    return obj.unified ?? obj.type ?? 'other';
+  }
+  return 'other';
 }

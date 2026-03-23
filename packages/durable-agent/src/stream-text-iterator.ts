@@ -5,6 +5,7 @@ import type {
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
 import type {
+  FinishReason,
   StepResult,
   StreamTextOnStepFinishCallback,
   ToolChoice,
@@ -147,8 +148,15 @@ export async function* streamTextIterator({
       if (prepareResult.model !== undefined) {
         currentModel = prepareResult.model;
       }
+      // Apply messages override BEFORE system so the system message
+      // isn't lost when messages replaces the prompt.
+      if (prepareResult.messages !== undefined) {
+        conversationPrompt = [...prepareResult.messages];
+      }
       if (prepareResult.system !== undefined) {
-        // Update or prepend system message in the conversation prompt
+        // Update or prepend system message in the conversation prompt.
+        // Applied AFTER messages override so the system message isn't
+        // lost when messages replaces the prompt.
         if (
           conversationPrompt.length > 0 &&
           conversationPrompt[0].role === 'system'
@@ -165,9 +173,6 @@ export async function* streamTextIterator({
             content: prepareResult.system,
           });
         }
-      }
-      if (prepareResult.messages !== undefined) {
-        conversationPrompt = [...prepareResult.messages];
       }
       if (prepareResult.experimental_context !== undefined) {
         currentContext = prepareResult.experimental_context;
@@ -289,7 +294,8 @@ export async function* streamTextIterator({
         ...(stepUIChunks ?? []),
       ];
 
-      const finishReason = finish?.finishReason?.unified;
+      // Normalize finishReason - AI SDK v6 returns { unified, raw }, v5 returns a string
+      const finishReason = normalizeFinishReason(finish?.finishReason);
 
       if (finishReason === 'tool-calls') {
         lastStepWasToolCalls = true;
@@ -497,4 +503,19 @@ function sanitizeProviderMetadataForToolCall(
   }
 
   return meta;
+}
+
+/**
+ * Normalize finishReason from different AI SDK versions.
+ * - AI SDK v6: returns { unified: 'tool-calls', raw: 'tool_use' }
+ * - AI SDK v5: returns 'tool-calls' string directly
+ */
+function normalizeFinishReason(raw: unknown): FinishReason | undefined {
+  if (raw == null) return undefined;
+  if (typeof raw === 'string') return raw as FinishReason;
+  if (typeof raw === 'object') {
+    const obj = raw as { unified?: FinishReason; type?: FinishReason };
+    return obj.unified ?? obj.type ?? 'other';
+  }
+  return undefined;
 }

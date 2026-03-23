@@ -7,6 +7,8 @@ export {
   type DurableAgentStreamOptions,
   type DurableAgentStreamResult,
   type GenerationSettings,
+  type InferDurableAgentTools,
+  type InferDurableAgentUIMessage,
   type OutputSpecification,
   type PrepareStepCallback,
   type PrepareStepInfo,
