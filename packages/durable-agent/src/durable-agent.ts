@@ -25,11 +25,26 @@ import {
   type UIMessageChunk,
 } from 'ai';
 import { convertToLanguageModelPrompt, standardizePrompt } from 'ai/internal';
+import { recordSpan } from './telemetry.js';
 import { streamTextIterator } from './stream-text-iterator.js';
 import type { CompatibleLanguageModel } from './types.js';
 
 // Re-export for consumers
 export type { CompatibleLanguageModel } from './types.js';
+
+/**
+ * Infer the type of the tools of a durable agent.
+ */
+export type InferDurableAgentTools<DURABLE_AGENT> =
+  DURABLE_AGENT extends DurableAgent<infer TOOLS> ? TOOLS : never;
+
+/**
+ * Infer the UI message type of a durable agent.
+ */
+export type InferDurableAgentUIMessage<
+  DURABLE_AGENT,
+  MESSAGE_METADATA = unknown,
+> = UIMessage<MESSAGE_METADATA>;
 
 /**
  * Re-export the Output helper for structured output specifications.
@@ -88,6 +103,22 @@ export interface TelemetrySettings {
     | null
     | undefined
   >;
+
+  /**
+   * Enable or disable input recording. Enabled by default.
+   *
+   * You might want to disable input recording to avoid recording sensitive
+   * information, to reduce data transfers, or to increase performance.
+   */
+  recordInputs?: boolean;
+
+  /**
+   * Enable or disable output recording. Enabled by default.
+   *
+   * You might want to disable output recording to avoid recording sensitive
+   * information, to reduce data transfers, or to increase performance.
+   */
+  recordOutputs?: boolean;
 
   /**
    * Custom tracer for the telemetry.
@@ -294,7 +325,9 @@ export type PrepareStepCallback<TTools extends ToolSet = ToolSet> = (
 /**
  * Configuration options for creating a {@link DurableAgent} instance.
  */
-export interface DurableAgentOptions extends GenerationSettings {
+export interface DurableAgentOptions<
+  TTools extends ToolSet = ToolSet,
+> extends GenerationSettings {
   /**
    * The model provider to use for the agent.
    *
@@ -308,7 +341,7 @@ export interface DurableAgentOptions extends GenerationSettings {
    * Tools can be implemented as workflow steps for automatic retries and persistence,
    * or as regular workflow-level logic using core library features like sleep() and Hooks.
    */
-  tools?: ToolSet;
+  tools?: TTools;
 
   /**
    * Agent instructions. Can be a string, a SystemModelMessage, or an array of SystemModelMessages.
@@ -325,12 +358,21 @@ export interface DurableAgentOptions extends GenerationSettings {
   /**
    * The tool choice strategy. Default: 'auto'.
    */
-  toolChoice?: ToolChoice<ToolSet>;
+  toolChoice?: ToolChoice<TTools>;
 
   /**
    * Optional telemetry configuration (experimental).
    */
   experimental_telemetry?: TelemetrySettings;
+
+  /**
+   * Default callback function called before each step in the agent loop.
+   * Use this to modify settings, manage context, or inject messages dynamically
+   * for every stream call on this agent instance.
+   *
+   * Per-stream `prepareStep` values passed to `stream()` override this default.
+   */
+  prepareStep?: PrepareStepCallback<TTools>;
 
   /**
    * Callback function to be called after each step completes.
@@ -435,8 +477,12 @@ export interface DurableAgentStreamOptions<
   preventClose?: boolean;
 
   /**
-   * If true, sends a 'start' chunk at the beginning of the stream.
-   * Defaults to true.
+   * If true, sends a 'start' chunk (with an auto-generated messageId) at the
+   * beginning of the stream. Defaults to true.
+   *
+   * Set to `false` when you write custom UIMessageChunks to the writable
+   * stream **before** calling `agent.stream()`. The auto-generated start
+   * chunk would overwrite your custom message metadata.
    */
   sendStart?: boolean;
 
@@ -723,16 +769,18 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
   private generationSettings: GenerationSettings;
   private toolChoice?: ToolChoice<TBaseTools>;
   private telemetry?: TelemetrySettings;
+  private prepareStep?: PrepareStepCallback<TBaseTools>;
   private constructorOnStepFinish?: StreamTextOnStepFinishCallback<ToolSet>;
   private constructorOnFinish?: StreamTextOnFinishCallback<ToolSet>;
 
-  constructor(options: DurableAgentOptions & { tools?: TBaseTools }) {
+  constructor(options: DurableAgentOptions<TBaseTools>) {
     this.model = options.model;
     this.tools = (options.tools ?? {}) as TBaseTools;
     // `instructions` takes precedence over deprecated `system`
     this.instructions = options.instructions ?? options.system;
-    this.toolChoice = options.toolChoice as ToolChoice<TBaseTools>;
+    this.toolChoice = options.toolChoice;
     this.telemetry = options.experimental_telemetry;
+    this.prepareStep = options.prepareStep;
     this.constructorOnStepFinish = options.onStepFinish;
     this.constructorOnFinish = options.onFinish;
 
@@ -875,6 +923,9 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
     // Determine effective tool choice
     const effectiveToolChoice = options.toolChoice ?? this.toolChoice;
 
+    // Merge telemetry settings
+    const effectiveTelemetry = options.experimental_telemetry ?? this.telemetry;
+
     // Filter tools if activeTools is specified
     const effectiveTools =
       options.activeTools && options.activeTools.length > 0
@@ -919,11 +970,13 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
       sendStart: options.sendStart ?? true,
       onStepFinish: mergedOnStepFinish,
       onError: options.onError,
-      prepareStep: options.prepareStep,
+      prepareStep:
+        options.prepareStep ??
+        (this.prepareStep as PrepareStepCallback<ToolSet> | undefined),
       generationSettings: mergedGenerationSettings,
       toolChoice: effectiveToolChoice as ToolChoice<ToolSet>,
       experimental_context: experimentalContext,
-      experimental_telemetry: options.experimental_telemetry ?? this.telemetry,
+      experimental_telemetry: effectiveTelemetry,
       includeRawChunks: options.includeRawChunks ?? false,
       experimental_transform: options.experimental_transform as
         | StreamTextTransform<ToolSet>
@@ -1004,6 +1057,7 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
                     iterMessages,
                     experimentalContext,
                     options.experimental_repairToolCall as ToolCallRepairFunction<ToolSet>,
+                    effectiveTelemetry,
                   ),
               ),
             );
@@ -1469,6 +1523,7 @@ async function executeTool(
   messages: LanguageModelV4Prompt,
   experimentalContext?: unknown,
   repairToolCall?: ToolCallRepairFunction<ToolSet>,
+  telemetry?: TelemetrySettings,
 ): Promise<LanguageModelV4ToolResultPart> {
   const tool = tools[toolCall.toolName];
   if (!tool) throw new Error(`Tool "${toolCall.toolName}" not found`);
