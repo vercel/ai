@@ -130,15 +130,18 @@ Install dependencies:
 
 Then set up the OpenTelemetry SDK:
 
-```ts highlight="3-4,6-10"
+```ts highlight="3-5,7-13"
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { RespanExporter } from '@respan/exporter-vercel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
+import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
 
 const sdk = new NodeSDK({
   spanProcessors: [
-    new RespanExporter({ apiKey: process.env.RESPAN_API_KEY! }),
+    new SimpleSpanProcessor(
+      new RespanExporter({ apiKey: process.env.RESPAN_API_KEY! }),
+    ),
   ],
 });
 
