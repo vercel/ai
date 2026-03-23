@@ -1226,6 +1226,19 @@ class DefaultStreamTextResult<
       },
     });
 
+    // introduce a gate that prevent further tokens from
+    // being emitted after a transform calls stopStream
+    let isRunning = true;
+    stream = stream.pipeThrough(
+      new TransformStream({
+        async transform(chunk, controller) {
+          if (isRunning) {
+            controller.enqueue(chunk);
+          }
+        },
+      }),
+    );
+
     // transform the stream before output parsing
     // to enable replacement of stream segments:
     for (const transform of transforms) {
@@ -1234,6 +1247,7 @@ class DefaultStreamTextResult<
           tools: tools as TOOLS,
           stopStream() {
             stitchableStream.terminate();
+            isRunning = false;
           },
         }),
       );
@@ -1607,17 +1621,8 @@ class DefaultStreamTextResult<
             ...callSettings,
           });
 
-          const stream1 = languageModelStream.pipeThrough(
-            createStreamTextPartTransform({
-              tools,
-              system,
-              messages: stepMessages,
-              repairToolCall,
-            }),
-          );
-
           const stream2 = invokeToolCallbacksFromStream({
-            stream: stream1,
+            stream: languageModelStream,
             tools,
             stepInputMessages,
             abortSignal,

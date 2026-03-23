@@ -12,6 +12,7 @@ import { prepareRetries } from '../util/prepare-retries';
 import { Output } from './output';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolSet } from './tool-set';
+import { createStreamTextPartTransform } from './create-stream-text-part-transform';
 
 export async function streamModelCall<
   TOOLS extends ToolSet,
@@ -93,7 +94,14 @@ export async function streamModelCall<
   );
 
   return {
-    stream: languageModelStream,
+    stream: languageModelStream.pipeThrough(
+      createStreamTextPartTransform({
+        tools,
+        system,
+        messages,
+        repairToolCall,
+      }),
+    ),
     response,
     request,
   };
