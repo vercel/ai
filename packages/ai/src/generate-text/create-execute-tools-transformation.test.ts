@@ -11,7 +11,7 @@ import { createExecuteToolsTransformation } from './create-execute-tools-transfo
 import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
 
 const finishChunk = {
-  type: 'model-call-finish' as const,
+  type: 'model-call-end' as const,
   finishReason: 'stop' as const,
   rawFinishReason: 'stop' as const,
   usage: asLanguageModelUsage({
@@ -77,7 +77,7 @@ describe('createExecuteToolsTransformation', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
-            "type": "model-call-finish",
+            "type": "model-call-end",
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -158,7 +158,7 @@ describe('createExecuteToolsTransformation', () => {
         {
           "finishReason": "stop",
           "rawFinishReason": "stop",
-          "type": "model-call-finish",
+          "type": "model-call-end",
           "usage": {
             "cachedInputTokens": undefined,
             "inputTokenDetails": {
@@ -697,7 +697,7 @@ describe('createExecuteToolsTransformation', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
-            "type": "model-call-finish",
+            "type": "model-call-end",
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -784,7 +784,7 @@ describe('createExecuteToolsTransformation', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
-            "type": "model-call-finish",
+            "type": "model-call-end",
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {

@@ -105,7 +105,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
           break;
         }
 
-        case 'model-call-finish': {
+        case 'model-call-end': {
           await Promise.all(
             toolCallsToExecute.map(async toolCall => {
               try {

@@ -66,7 +66,7 @@ describe('createStreamTextPartTransform', () => {
       expect(result).toMatchInlineSnapshot(`
         [
           {
-            "type": "model-call-init",
+            "type": "model-call-start",
             "warnings": [
               {
                 "details": "approval fallback is being used",
@@ -83,7 +83,7 @@ describe('createStreamTextPartTransform', () => {
             "finishReason": "stop",
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
-            "type": "model-call-finish",
+            "type": "model-call-end",
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -152,7 +152,7 @@ describe('createStreamTextPartTransform', () => {
             "finishReason": "stop",
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
-            "type": "model-call-finish",
+            "type": "model-call-end",
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -260,7 +260,7 @@ describe('createStreamTextPartTransform', () => {
             "finishReason": "stop",
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
-            "type": "model-call-finish",
+            "type": "model-call-end",
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -346,7 +346,7 @@ describe('createStreamTextPartTransform', () => {
             "finishReason": "stop",
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
-            "type": "model-call-finish",
+            "type": "model-call-end",
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -414,7 +414,7 @@ describe('createStreamTextPartTransform', () => {
             "finishReason": "stop",
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
-            "type": "model-call-finish",
+            "type": "model-call-end",
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -499,7 +499,7 @@ describe('createStreamTextPartTransform', () => {
               "finishReason": "stop",
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
-              "type": "model-call-finish",
+              "type": "model-call-end",
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -561,7 +561,7 @@ describe('createStreamTextPartTransform', () => {
             "finishReason": "stop",
             "providerMetadata": undefined,
             "rawFinishReason": undefined,
-            "type": "model-call-finish",
+            "type": "model-call-end",
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -658,7 +658,7 @@ describe('createStreamTextPartTransform', () => {
             "finishReason": "tool-calls",
             "providerMetadata": undefined,
             "rawFinishReason": undefined,
-            "type": "model-call-finish",
+            "type": "model-call-end",
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -799,7 +799,7 @@ describe('createStreamTextPartTransform', () => {
             "finishReason": "tool-calls",
             "providerMetadata": undefined,
             "rawFinishReason": undefined,
-            "type": "model-call-finish",
+            "type": "model-call-end",
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {

@@ -50,21 +50,15 @@ export type UglyTransformedStreamTextPart<TOOLS extends ToolSet> =
   | TextStreamToolCallPart<TOOLS>
   | TextStreamToolResultPart<TOOLS>
   | TextStreamToolErrorPart<TOOLS>
-
-  // the finish part is special because it gets further transformed into
-  // a finish-step part (which includes additional response information and
-  // can have a different finish reason):
   | {
-      type: 'model-call-finish';
+      type: 'model-call-end';
       finishReason: FinishReason;
       rawFinishReason: string | undefined;
       usage: LanguageModelUsage;
       providerMetadata?: ProviderMetadata;
     }
-
-  // warnings from the model call initialization
   | {
-      type: 'model-call-init';
+      type: 'model-call-start';
       warnings: Array<SharedV4Warning>;
     }
   | ({ type: 'response-metadata' } & LanguageModelV4ResponseMetadata);
@@ -123,7 +117,7 @@ export function createStreamTextPartTransform<TOOLS extends ToolSet>({
 
         case 'finish': {
           controller.enqueue({
-            type: 'model-call-finish',
+            type: 'model-call-end',
             finishReason: chunk.finishReason.unified,
             rawFinishReason: chunk.finishReason.raw,
             usage: asLanguageModelUsage(chunk.usage),
@@ -233,7 +227,7 @@ export function createStreamTextPartTransform<TOOLS extends ToolSet>({
 
         case 'stream-start': {
           controller.enqueue({
-            type: 'model-call-init',
+            type: 'model-call-start',
             warnings: chunk.warnings,
           });
           break;

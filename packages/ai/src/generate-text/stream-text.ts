@@ -1682,7 +1682,7 @@ class DefaultStreamTextResult<
                 async transform(chunk, controller): Promise<void> {
                   resetChunkTimeout();
 
-                  if (chunk.type === 'model-call-init') {
+                  if (chunk.type === 'model-call-start') {
                     warnings = chunk.warnings;
                     return; // stream start chunks are sent immediately and do not count as first chunk
                   }
@@ -1778,7 +1778,7 @@ class DefaultStreamTextResult<
                       break;
                     }
 
-                    case 'model-call-finish': {
+                    case 'model-call-end': {
                       // Note: tool executions might not be finished yet when the finish event is emitted.
                       // store usage and finish reason for promises and onFinish callback:
                       stepUsage = chunk.usage;
