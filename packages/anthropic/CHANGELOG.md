@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.71
+
+### Patch Changes
+
+- b0a0821: feat (provider/anthropic): support passing metadata.user_id
+
 ## 2.0.70
 
 ### Patch Changes
