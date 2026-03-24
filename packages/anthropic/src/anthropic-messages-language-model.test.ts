@@ -3090,7 +3090,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         providerOptions: {
           anthropic: {
             metadata: { userId: 'test-user-id' },
-          } satisfies AnthropicLanguageModelOptions,
+          } satisfies AnthropicProviderOptions,
         },
       });
 

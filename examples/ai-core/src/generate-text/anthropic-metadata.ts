@@ -1,10 +1,7 @@
-import {
-  anthropic,
-  type AnthropicLanguageModelOptions,
-} from '@ai-sdk/anthropic';
+import { anthropic, type AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
-import { run } from '../../lib/run';
-import { print } from '../../lib/print';
+import { run } from '../lib/run';
+import { print } from '../lib/print';
 
 run(async () => {
   const result = await generateText({
@@ -13,7 +10,7 @@ run(async () => {
     providerOptions: {
       anthropic: {
         metadata: { userId: 'user-123' },
-      } satisfies AnthropicLanguageModelOptions,
+      } satisfies AnthropicProviderOptions,
     },
   });
 
