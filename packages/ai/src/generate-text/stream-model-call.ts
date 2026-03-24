@@ -2,6 +2,7 @@ import {
   getErrorMessage,
   LanguageModelV4Prompt,
   LanguageModelV4StreamPart,
+  SharedV4Headers,
 } from '@ai-sdk/provider';
 import {
   ModelMessage,
@@ -143,7 +144,21 @@ export async function streamModelCall<
     promptMessages: LanguageModelV4Prompt;
   }) => Promise<void> | void;
 } & Prompt &
-  CallSettings) {
+  CallSettings): Promise<{
+  stream: ReadableStream<ModelCallStreamPart<TOOLS>>;
+  request?: {
+    /**
+     * Request HTTP body that was sent to the provider API.
+     */
+    body?: unknown;
+  };
+  response?: {
+    /**
+     * Response headers.
+     */
+    headers?: SharedV4Headers;
+  };
+}> {
   const resolvedModel = resolveLanguageModel(model);
 
   const { retry } = prepareRetries({ maxRetries, abortSignal });
@@ -193,23 +208,25 @@ export async function streamModelCall<
     }),
   );
 
+  const standardizedStream = languageModelStream.pipeThrough(
+    createLanguageModelStreamPartToModelCallStreamPartTransform({
+      tools,
+      system: standardizedPrompt.system,
+      messages: standardizedPrompt.messages,
+      repairToolCall,
+    }),
+  );
+
   return {
-    stream: createAsyncIterableStream(
-      languageModelStream.pipeThrough(
-        createStreamTextPartTransform({
-          tools,
-          system: standardizedPrompt.system,
-          messages: standardizedPrompt.messages,
-          repairToolCall,
-        }),
-      ),
-    ),
+    stream: createAsyncIterableStream(standardizedStream),
     response,
     request,
   };
 }
 
-function createStreamTextPartTransform<TOOLS extends ToolSet>({
+function createLanguageModelStreamPartToModelCallStreamPartTransform<
+  TOOLS extends ToolSet,
+>({
   tools,
   system,
   messages,
