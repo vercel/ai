@@ -31,6 +31,16 @@ export function convertToGroqChatMessages(
                 return { type: 'text', text: part.text };
               }
               case 'file': {
+                if (
+                  typeof part.data === 'object' &&
+                  !(part.data instanceof Uint8Array) &&
+                  !(part.data instanceof URL)
+                ) {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'file parts with provider references',
+                  });
+                }
+
                 if (!part.mediaType.startsWith('image/')) {
                   throw new UnsupportedFunctionalityError({
                     functionality: 'Non-image file content parts',

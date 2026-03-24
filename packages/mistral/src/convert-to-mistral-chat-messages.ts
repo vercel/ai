@@ -43,6 +43,16 @@ export function convertToMistralChatMessages(
               }
 
               case 'file': {
+                if (
+                  typeof part.data === 'object' &&
+                  !(part.data instanceof Uint8Array) &&
+                  !(part.data instanceof URL)
+                ) {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'file parts with provider references',
+                  });
+                }
+
                 if (part.mediaType.startsWith('image/')) {
                   const mediaType =
                     part.mediaType === 'image/*'

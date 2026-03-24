@@ -220,6 +220,12 @@ export function convertToGoogleGenerativeAIMessages(
                 typeof part.data === 'object' &&
                 !(part.data instanceof Uint8Array)
               ) {
+                if (providerOptionsName === 'vertex') {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'file parts with provider references',
+                  });
+                }
+
                 parts.push({
                   fileData: {
                     mimeType: mediaType,
@@ -314,6 +320,12 @@ export function convertToGoogleGenerativeAIMessages(
                     typeof part.data === 'object' &&
                     !(part.data instanceof Uint8Array)
                   ) {
+                    if (providerOptionsName === 'vertex') {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: 'file parts with provider references',
+                      });
+                    }
+
                     return {
                       fileData: {
                         mimeType: part.mediaType,

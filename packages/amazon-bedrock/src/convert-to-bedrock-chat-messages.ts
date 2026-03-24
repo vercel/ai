@@ -112,6 +112,16 @@ export async function convertToBedrockChatMessages(
                   }
 
                   case 'file': {
+                    if (
+                      typeof part.data === 'object' &&
+                      !(part.data instanceof Uint8Array) &&
+                      !(part.data instanceof URL)
+                    ) {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: 'file parts with provider references',
+                      });
+                    }
+
                     if (part.data instanceof URL) {
                       // The AI SDK automatically downloads files for user file parts with URLs
                       throw new UnsupportedFunctionalityError({
