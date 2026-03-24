@@ -9,8 +9,8 @@ import {
   StreamTextOnToolCallFinishCallback,
   StreamTextOnToolCallStartCallback,
 } from './stream-text';
-import { ToolSet } from './tool-set';
 import { TypedToolCall } from './tool-call';
+import { ToolSet } from './tool-set';
 
 export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   tools,
@@ -63,55 +63,12 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
         UglyTransformedStreamTextPart<TOOLS>
       >,
     ) {
+      // immediately forward all chunks
+      controller.enqueue(chunk);
+
       const chunkType = chunk.type;
-
       switch (chunkType) {
-        case 'finish': {
-          await Promise.all(
-            toolCallsToExecute.map(async toolCall => {
-              try {
-                // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
-                // because we want to process the next chunk as soon as possible.
-                // This is important for the case where the tool execution takes a long time.
-                const result = await executeToolCall({
-                  toolCall,
-                  tools,
-                  telemetry,
-                  callId,
-                  messages,
-                  abortSignal,
-                  timeout,
-                  experimental_context,
-                  stepNumber,
-                  provider,
-                  modelId,
-                  onToolCallStart,
-                  onToolCallFinish,
-                  executeToolInTelemetryContext,
-                  onPreliminaryToolResult: result => {
-                    controller.enqueue(result);
-                  },
-                });
-                controller.enqueue(result);
-              } catch (error) {
-                controller.enqueue({
-                  type: 'error',
-                  error,
-                });
-              }
-            }),
-          );
-
-          // the finish chunk is delayed until all tool results are received
-          controller.enqueue(chunk);
-
-          break;
-        }
-
-        // process tool call:
         case 'tool-call': {
-          controller.enqueue(chunk);
-
           if (chunk.invalid) {
             break;
           }
@@ -148,9 +105,43 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
           break;
         }
 
-        default: {
-          // forward all other chunks
-          controller.enqueue(chunk);
+        case 'model-call-end': {
+          await Promise.all(
+            toolCallsToExecute.map(async toolCall => {
+              try {
+                // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
+                // because we want to process the next chunk as soon as possible.
+                // This is important for the case where the tool execution takes a long time.
+                const result = await executeToolCall({
+                  toolCall,
+                  tools,
+                  telemetry,
+                  callId,
+                  messages,
+                  abortSignal,
+                  timeout,
+                  experimental_context,
+                  stepNumber,
+                  provider,
+                  modelId,
+                  onToolCallStart,
+                  onToolCallFinish,
+                  executeToolInTelemetryContext,
+                  onPreliminaryToolResult: result => {
+                    controller.enqueue(result);
+                  },
+                });
+                controller.enqueue(result);
+              } catch (error) {
+                controller.enqueue({
+                  type: 'error',
+                  error,
+                });
+              }
+            }),
+          );
+
+          break;
         }
       }
     },
