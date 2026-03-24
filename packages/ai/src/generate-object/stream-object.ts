@@ -60,7 +60,7 @@ import type {
   ObjectOnStartEvent,
   ObjectOnStepFinishEvent,
   ObjectOnStepStartEvent,
-} from './generate-object-events';
+} from './structured-output-events';
 import { getOutputStrategy, OutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
 import { RepairTextFunction } from './repair-text';

@@ -44,7 +44,7 @@ import type {
   ObjectOnStartEvent,
   ObjectOnStepFinishEvent,
   ObjectOnStepStartEvent,
-} from './generate-object-events';
+} from './structured-output-events';
 import { GenerateObjectResult } from './generate-object-result';
 import { getOutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
