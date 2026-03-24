@@ -4,6 +4,10 @@ export type {
   GenerateObjectOnStartEvent,
   GenerateObjectOnStepFinishEvent,
   GenerateObjectOnStepStartEvent,
+  StreamObjectOnFinishEvent,
+  StreamObjectOnStartEvent,
+  StreamObjectOnStepFinishEvent,
+  StreamObjectOnStepStartEvent,
 } from './generate-object-events';
 export type { RepairTextFunction } from './repair-text';
 export type { GenerateObjectResult } from './generate-object-result';

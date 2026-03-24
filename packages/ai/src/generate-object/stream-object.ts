@@ -51,8 +51,16 @@ import {
 } from '../util/async-iterable-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DownloadFunction } from '../util/download/download-function';
+import { notify } from '../util/notify';
+import type { Listener } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
+import type {
+  StreamObjectOnFinishEvent,
+  StreamObjectOnStartEvent,
+  StreamObjectOnStepFinishEvent,
+  StreamObjectOnStepStartEvent,
+} from './generate-object-events';
 import { getOutputStrategy, OutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
 import { RepairTextFunction } from './repair-text';
@@ -245,6 +253,24 @@ export function streamObject<
       providerOptions?: ProviderOptions;
 
       /**
+       * Callback that is called when the streamObject operation begins,
+       * before the LLM call is made.
+       */
+      experimental_onStart?: Listener<StreamObjectOnStartEvent>;
+
+      /**
+       * Callback that is called when the model call (step) begins,
+       * before the provider is called.
+       */
+      experimental_onStepStart?: Listener<StreamObjectOnStepStartEvent>;
+
+      /**
+       * Callback that is called when the model streaming step completes,
+       * with the raw accumulated text before final schema validation.
+       */
+      onStepFinish?: Listener<StreamObjectOnStepFinishEvent>;
+
+      /**
        * Callback that is invoked when an error occurs during streaming.
        * You can use it to log errors.
        * The stream processing will pause until the callback promise is resolved.
@@ -254,7 +280,7 @@ export function streamObject<
       /**
        * Callback that is called when the LLM response and the final object validation are finished.
        */
-      onFinish?: StreamObjectOnFinishCallback<RESULT>;
+      onFinish?: Listener<StreamObjectOnFinishEvent<RESULT>>;
 
       /**
        * Internal. For test use only. May change without notice.
@@ -291,6 +317,9 @@ export function streamObject<
     experimental_telemetry: telemetry,
     experimental_download: download,
     providerOptions,
+    experimental_onStart: onStart,
+    experimental_onStepStart: onStepStart,
+    onStepFinish,
     onError = ({ error }: { error: unknown }) => {
       console.error(error);
     },
@@ -341,6 +370,9 @@ export function streamObject<
     schemaDescription,
     providerOptions,
     repairText,
+    onStart,
+    onStepStart,
+    onStepFinish,
     onError,
     onFinish,
     download,
@@ -390,6 +422,9 @@ class DefaultStreamObjectResult<
     schemaDescription,
     providerOptions,
     repairText,
+    onStart,
+    onStepStart,
+    onStepFinish,
     onError,
     onFinish,
     download,
@@ -411,8 +446,11 @@ class DefaultStreamObjectResult<
     schemaDescription: string | undefined;
     providerOptions: ProviderOptions | undefined;
     repairText: RepairTextFunction | undefined;
+    onStart: Listener<StreamObjectOnStartEvent> | undefined;
+    onStepStart: Listener<StreamObjectOnStepStartEvent> | undefined;
+    onStepFinish: Listener<StreamObjectOnStepFinishEvent> | undefined;
     onError: StreamObjectOnErrorCallback;
-    onFinish: StreamObjectOnFinishCallback<RESULT> | undefined;
+    onFinish: Listener<StreamObjectOnFinishEvent<RESULT>> | undefined;
     download: DownloadFunction | undefined;
     generateId: () => string;
     currentDate: () => Date;
@@ -481,6 +519,46 @@ class DefaultStreamObjectResult<
       tracer,
       endWhenDone: false,
       fn: async rootSpan => {
+        const callId = generateId();
+        const jsonSchema = await outputStrategy.jsonSchema();
+
+        await notify({
+          event: {
+            callId,
+            operationId: 'ai.streamObject' as const,
+            provider: model.provider,
+            modelId: model.modelId,
+            system,
+            prompt,
+            messages,
+            maxOutputTokens: callSettings.maxOutputTokens,
+            temperature: callSettings.temperature,
+            topP: callSettings.topP,
+            topK: callSettings.topK,
+            presencePenalty: callSettings.presencePenalty,
+            frequencyPenalty: callSettings.frequencyPenalty,
+            seed: callSettings.seed,
+            maxRetries,
+            headers,
+            providerOptions,
+            abortSignal,
+            output: outputStrategy.type as
+              | 'object'
+              | 'array'
+              | 'enum'
+              | 'no-schema',
+            schema: jsonSchema as Record<string, unknown> | undefined,
+            schemaName,
+            schemaDescription,
+            isEnabled: telemetry?.isEnabled,
+            recordInputs: telemetry?.recordInputs,
+            recordOutputs: telemetry?.recordOutputs,
+            functionId: telemetry?.functionId,
+            metadata: telemetry?.metadata,
+          },
+          callbacks: [onStart],
+        });
+
         const standardizedPrompt = await standardizePrompt({
           system,
           prompt,
@@ -490,7 +568,7 @@ class DefaultStreamObjectResult<
         const callOptions = {
           responseFormat: {
             type: 'json' as const,
-            schema: await outputStrategy.jsonSchema(),
+            schema: jsonSchema,
             name: schemaName,
             description: schemaDescription,
           },
@@ -505,6 +583,24 @@ class DefaultStreamObjectResult<
           headers,
           includeRawChunks: false,
         };
+
+        await notify({
+          event: {
+            callId,
+            stepNumber: 0 as const,
+            provider: model.provider,
+            modelId: model.modelId,
+            providerOptions,
+            headers,
+            abortSignal,
+            functionId: telemetry?.functionId,
+            metadata: telemetry?.metadata as
+              | Record<string, unknown>
+              | undefined,
+            promptMessages: callOptions.prompt,
+          },
+          callbacks: [onStepStart],
+        });
 
         const transformer: Transformer<
           LanguageModelV4StreamPart,
@@ -814,17 +910,50 @@ class DefaultStreamObjectResult<
                     }),
                   );
 
-                  // call onFinish callback:
-                  await onFinish?.({
-                    usage: finalUsage,
-                    object,
-                    error,
-                    response: {
-                      ...fullResponse,
-                      headers: response?.headers,
+                  await notify({
+                    event: {
+                      callId,
+                      stepNumber: 0 as const,
+                      provider: model.provider,
+                      modelId: model.modelId,
+                      finishReason: finishReason ?? 'other',
+                      usage: finalUsage,
+                      objectText: accumulatedText,
+                      warnings,
+                      request: request ?? {},
+                      response: {
+                        ...fullResponse,
+                        headers: response?.headers,
+                      },
+                      providerMetadata,
+                      functionId: telemetry?.functionId,
+                      metadata: telemetry?.metadata as
+                        | Record<string, unknown>
+                        | undefined,
                     },
-                    warnings,
-                    providerMetadata,
+                    callbacks: [onStepFinish],
+                  });
+
+                  await notify({
+                    event: {
+                      callId,
+                      object,
+                      error,
+                      finishReason: finishReason ?? 'other',
+                      usage: finalUsage,
+                      warnings,
+                      request: request ?? {},
+                      response: {
+                        ...fullResponse,
+                        headers: response?.headers,
+                      },
+                      providerMetadata,
+                      functionId: telemetry?.functionId,
+                      metadata: telemetry?.metadata as
+                        | Record<string, unknown>
+                        | undefined,
+                    },
+                    callbacks: [onFinish],
                   });
                 } catch (error) {
                   controller.enqueue({ type: 'error', error });
