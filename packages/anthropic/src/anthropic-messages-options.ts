@@ -112,6 +112,46 @@ export const anthropicProviderOptions = z.object({
     .optional(),
 
   /**
+<<<<<<< HEAD
+=======
+   * Metadata to include with the request.
+   *
+   * See https://platform.claude.com/docs/en/api/messages/create for details.
+   */
+  metadata: z
+    .object({
+      /**
+       * An external identifier for the user associated with the request.
+       *
+       * Should be a UUID, hash value, or other opaque identifier.
+       * Must not contain PII (name, email, phone number, etc.).
+       */
+      userId: z.string().optional(),
+    })
+    .optional(),
+
+  /**
+   * MCP servers to be utilized in this request.
+   */
+  mcpServers: z
+    .array(
+      z.object({
+        type: z.literal('url'),
+        name: z.string(),
+        url: z.string(),
+        authorizationToken: z.string().nullish(),
+        toolConfiguration: z
+          .object({
+            enabled: z.boolean().nullish(),
+            allowedTools: z.array(z.string()).nullish(),
+          })
+          .nullish(),
+      }),
+    )
+    .optional(),
+
+  /**
+>>>>>>> 05b8ca2b0 (Backport: feat (provider/anthropic): support passing metadata.user_id (#13783))
    * Agent Skills configuration. Skills enable Claude to perform specialized tasks
    * like document processing (PPTX, DOCX, PDF, XLSX) and data analysis.
    * Requires code execution tool to be enabled.
