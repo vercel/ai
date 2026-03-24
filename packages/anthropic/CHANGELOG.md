@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.64
+
+### Patch Changes
+
+- 05b8ca2: feat (provider/anthropic): support passing metadata.user_id
+
 ## 3.0.63
 
 ### Patch Changes
@@ -448,13 +454,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - f33a018: chore: add model ID for Haiku 4.5
@@ -794,13 +800,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
