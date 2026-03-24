@@ -64,7 +64,6 @@ function createModel(modelId: string) {
       `https://test-resource.openai.azure.com/openai/v1${path}`,
     headers: () => ({ Authorization: `Bearer APIKEY` }),
     generateId: mockId(),
-    fileIdPrefixes: ['assistant-'],
   });
 }
 
