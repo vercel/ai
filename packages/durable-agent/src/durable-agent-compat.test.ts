@@ -17,6 +17,7 @@ import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { DurableAgent } from './durable-agent.js';
+import { LanguageModelV4StreamPart } from '@ai-sdk/provider';
 
 // ============================================================================
 // Test helpers
@@ -27,8 +28,8 @@ import { DurableAgent } from './durable-agent.js';
  * DIVERGENCE: DurableAgent requires a writable stream; ToolLoopAgent does not.
  */
 function createMockWritable() {
-  const chunks: any[] = [];
-  const writable = new WritableStream<any>({
+  const chunks: LanguageModelV4StreamPart[] = [];
+  const writable = new WritableStream<LanguageModelV4StreamPart>({
     write(chunk) {
       chunks.push(chunk);
     },
