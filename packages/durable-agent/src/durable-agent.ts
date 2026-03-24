@@ -14,7 +14,6 @@ import {
   type LanguageModelUsage,
   type ModelMessage,
   Output,
-  readUIMessageStream,
   type StepResult,
   type StopCondition,
   type StreamTextOnStepFinishCallback,
@@ -22,7 +21,6 @@ import {
   type ToolChoice,
   type ToolSet,
   type UIMessage,
-  type UIMessageChunk,
 } from 'ai';
 import { convertToLanguageModelPrompt, standardizePrompt } from 'ai/internal';
 import { recordSpan } from './telemetry.js';
@@ -475,36 +473,6 @@ export interface DurableAgentStreamOptions<
   system?: string;
 
   /**
-   * The stream to which the agent writes UIMessageChunks. For example, use `getWritable<UIMessageChunk>()` to write to the workflow's default output stream.
-   *
-   * When omitted, the agent streams ModelMessages only — no UIMessageChunk conversion happens.
-   * This is useful for headless agent execution where UI rendering is not needed.
-   */
-  writable?: WritableStream<UIMessageChunk>;
-
-  /**
-   * If true, prevents the writable stream from being closed after streaming completes.
-   * Defaults to false (stream will be closed).
-   */
-  preventClose?: boolean;
-
-  /**
-   * If true, sends a 'start' chunk (with an auto-generated messageId) at the
-   * beginning of the stream. Defaults to true.
-   *
-   * Set to `false` when you write custom UIMessageChunks to the writable
-   * stream **before** calling `agent.stream()`. The auto-generated start
-   * chunk would overwrite your custom message metadata.
-   */
-  sendStart?: boolean;
-
-  /**
-   * If true, sends a 'finish' chunk at the end of the stream.
-   * Defaults to true.
-   */
-  sendFinish?: boolean;
-
-  /**
    * Condition for stopping the generation when there are tool results in the last step.
    * When the condition is an array, any of the conditions can be met to stop the generation.
    */
@@ -639,16 +607,6 @@ export interface DurableAgentStreamOptions<
   prepareStep?: PrepareStepCallback<TTools>;
 
   /**
-   * If true, accumulates UIMessage[] during streaming.
-   * The accumulated messages will be available in the `uiMessages` property of the result.
-   * This is useful when you need the final UIMessage representation after streaming completes,
-   * without having to re-read the stream.
-   *
-   * @default false
-   */
-  collectUIMessages?: boolean;
-
-  /**
    * Timeout in milliseconds for the stream operation.
    * When specified, creates an AbortSignal that will abort the operation after the given time.
    * If both `timeout` and `abortSignal` are provided, whichever triggers first will abort.
@@ -737,10 +695,10 @@ export interface DurableAgentStreamResult<
   experimental_output: OUTPUT;
 
   /**
-   * The accumulated UI messages from the stream.
-   * Only available when `collectUIMessages` is set to `true` in the stream options.
+   * Raw LanguageModelV4StreamPart chunks from each step, keyed by step index.
+   * Useful for custom stream processing or converting to UIMessageChunks externally.
    */
-  uiMessages?: UIMessage[];
+  rawChunks: import('@ai-sdk/provider').LanguageModelV4StreamPart[][];
 }
 
 /**
@@ -765,9 +723,8 @@ export interface DurableAgentStreamResult<
  *   instructions: 'You are a helpful weather assistant.',
  * });
  *
- * await agent.stream({
+ * const result = await agent.stream({
  *   messages: [{ role: 'user', content: 'What is the weather?' }],
- *   writable: getWritable<UIMessageChunk>(),
  * });
  * ```
  */
@@ -970,22 +927,20 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
         toolCalls: [],
         toolResults: [],
         experimental_output: undefined as OUTPUT,
-        uiMessages: undefined,
+        rawChunks: [],
       };
     }
 
-    // Track collected UI chunks if collectUIMessages is enabled
-    const collectUIChunks = options.collectUIMessages ?? false;
-    const allUIChunks: UIMessageChunk[] = [];
+    // Collect raw chunks from each step
+    const allRawChunks: import('@ai-sdk/provider').LanguageModelV4StreamPart[][] =
+      [];
 
     const iterator = streamTextIterator({
       model: this.model,
       tools: effectiveTools as ToolSet,
-      writable: options.writable,
       prompt: modelPrompt,
       stopConditions: options.stopWhen,
       maxSteps: options.maxSteps,
-      sendStart: options.sendStart ?? true,
       onStepFinish: mergedOnStepFinish,
       onError: options.onError,
       prepareStep:
@@ -1000,7 +955,6 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
         | StreamTextTransform<ToolSet>
         | Array<StreamTextTransform<ToolSet>>,
       responseFormat: await options.experimental_output?.responseFormat,
-      collectUIChunks,
     });
 
     // Track the final conversation messages from the iterator
@@ -1025,20 +979,17 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
           messages: iterMessages,
           step,
           context,
-          uiChunks,
+          rawChunks,
           providerExecutedToolResults,
         } = result.value;
         if (step) {
-          // The step result is compatible with StepResult<TTools> since we're using the same tools
           steps.push(step as unknown as StepResult<TTools>);
         }
-        // Update context if changed by prepareStep
         if (context !== undefined) {
           experimentalContext = context;
         }
-        // Collect UI chunks if enabled
-        if (uiChunks && uiChunks.length > 0) {
-          allUIChunks.push(...uiChunks);
+        if (rawChunks) {
+          allRawChunks.push(rawChunks);
         }
 
         // Only execute tools if there are tool calls
@@ -1089,31 +1040,8 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
                 ),
               );
 
-            // Combine executable and provider results, then write to UI if writable provided
             const resolvedResults = [...executableResults, ...providerResults];
-            if (resolvedResults.length > 0 && options.writable) {
-              const writer = options.writable.getWriter();
-              try {
-                for (const result of resolvedResults) {
-                  const chunk: UIMessageChunk = {
-                    type: 'tool-output-available' as const,
-                    toolCallId: result.toolCallId,
-                    output:
-                      'value' in result.output
-                        ? result.output.value
-                        : undefined,
-                  };
-                  await writer.write(chunk);
-                  if (collectUIChunks) {
-                    allUIChunks.push(chunk);
-                  }
-                }
-              } finally {
-                writer.releaseLock();
-              }
-            }
 
-            // Build toolCalls for ALL tool calls in this step (matches AI SDK convention)
             const allToolCalls: ToolCall[] = toolCalls.map(tc => ({
               type: 'tool-call' as const,
               toolCallId: tc.toolCallId,
@@ -1121,7 +1049,6 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
               input: safeParseInput(tc.input),
             }));
 
-            // Build toolResults only for tools that were executed
             const allToolResults: ToolResult[] = resolvedResults.map(r => ({
               type: 'tool-result' as const,
               toolCallId: r.toolCallId,
@@ -1132,15 +1059,6 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
               output: 'value' in r.output ? r.output.value : undefined,
             }));
 
-            // Close the stream and call onFinish before returning
-            const sendFinish = options.sendFinish ?? true;
-            const preventClose = options.preventClose ?? false;
-            if (options.writable && (sendFinish || !preventClose)) {
-              await closeStream(options.writable, preventClose, sendFinish);
-            }
-
-            // Add resolved tool results to the conversation so callers
-            // don't need to re-execute server tools when resuming
             if (resolvedResults.length > 0) {
               iterMessages.push({
                 role: 'tool',
@@ -1148,9 +1066,6 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
               });
             }
 
-            // iterMessages includes the assistant tool-call message (and any
-            // resolved tool results), so callers can resume the conversation.
-            // Cast matches the existing pattern used at the end of stream().
             const messages = iterMessages as unknown as ModelMessage[];
 
             if (mergedOnFinish && !wasAborted) {
@@ -1166,17 +1081,13 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
               });
             }
 
-            const uiMessages = collectUIChunks
-              ? await convertChunksToUIMessages(allUIChunks)
-              : undefined;
-
             return {
               messages,
               steps,
               toolCalls: allToolCalls,
               toolResults: allToolResults,
               experimental_output: undefined as OUTPUT,
-              uiMessages,
+              rawChunks: allRawChunks,
             };
           }
 
@@ -1269,14 +1180,6 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
       }
     }
 
-    const sendFinish = options.sendFinish ?? true;
-    const preventClose = options.preventClose ?? false;
-
-    // Handle stream closing (only when writable is provided)
-    if (options.writable && (sendFinish || !preventClose)) {
-      await closeStream(options.writable, preventClose, sendFinish);
-    }
-
     // Use the final messages from the iterator, or fall back to original messages
     const messages = (finalMessages ??
       options.messages) as unknown as ModelMessage[];
@@ -1326,19 +1229,13 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
       throw encounteredError;
     }
 
-    // Collect accumulated UI messages if requested
-    // This requires a step function since it performs stream operations
-    const uiMessages = collectUIChunks
-      ? await convertChunksToUIMessages(allUIChunks)
-      : undefined;
-
     return {
       messages: messages as ModelMessage[],
       steps,
       toolCalls: lastStepToolCalls,
       toolResults: lastStepToolResults,
       experimental_output: experimentalOutput,
-      uiMessages,
+      rawChunks: allRawChunks,
     };
   }
 }
@@ -1374,88 +1271,6 @@ function filterTools<TTools extends ToolSet>(
     }
   }
   return filtered;
-}
-
-async function writeFinishChunk(writable: WritableStream<UIMessageChunk>) {
-  'use step';
-
-  const writer = writable.getWriter();
-  try {
-    await writer.write({ type: 'finish' });
-  } finally {
-    writer.releaseLock();
-  }
-}
-
-async function closeStream(
-  writable: WritableStream<UIMessageChunk>,
-  preventClose?: boolean,
-  sendFinish?: boolean,
-) {
-  'use step';
-
-  // Conditionally write the finish chunk
-  if (sendFinish) {
-    await writeFinishChunk(writable);
-  }
-
-  // Conditionally close the stream
-  if (!preventClose) {
-    await writable.close();
-  }
-}
-
-/**
- * Convert UIMessageChunks to UIMessage[] using the AI SDK's readUIMessageStream.
- * This must be a step function because it performs stream operations.
- *
- * @param chunks - The collected UIMessageChunks to convert
- * @returns The accumulated UIMessage array
- */
-async function convertChunksToUIMessages(
-  chunks: UIMessageChunk[],
-): Promise<UIMessage[]> {
-  'use step';
-
-  if (chunks.length === 0) {
-    return [];
-  }
-
-  // Create a readable stream from the collected chunks.
-  // AI SDK only supports conversion from UIMessageChunk[] to UIMessage[]
-  // as a streaming operation, so we need to wrap the chunks in a stream.
-  const chunkStream = new ReadableStream<UIMessageChunk>({
-    start: controller => {
-      for (const chunk of chunks) {
-        controller.enqueue(chunk);
-      }
-      controller.close();
-    },
-  });
-
-  // Use the AI SDK's readUIMessageStream to convert chunks to messages
-  const messageStream = readUIMessageStream({
-    stream: chunkStream,
-    onError: error => {
-      console.error('Error processing UI message chunks:', error);
-    },
-  });
-
-  // Collect all message updates and return the final state
-  const messages: UIMessage[] = [];
-  for await (const message of messageStream) {
-    // readUIMessageStream yields updated versions of the message as it's built
-    // We want to collect the final state of each message
-    // Messages are identified by their id, so we update in place
-    const existingIndex = messages.findIndex(m => m.id === message.id);
-    if (existingIndex >= 0) {
-      messages[existingIndex] = message;
-    } else {
-      messages.push(message);
-    }
-  }
-
-  return messages;
 }
 
 /**

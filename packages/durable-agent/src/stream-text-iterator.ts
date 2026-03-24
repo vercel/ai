@@ -9,7 +9,6 @@ import type {
   StreamTextOnStepFinishCallback,
   ToolChoice,
   ToolSet,
-  UIMessageChunk,
 } from 'ai';
 import {
   doStreamStep,
@@ -23,7 +22,6 @@ import type {
   StreamTextTransform,
   TelemetrySettings,
 } from './durable-agent.js';
-import { createUIMessageChunkTransform } from './to-ui-message-chunk.js';
 import { toolsToModelTools } from './tools-to-model-tools.js';
 import type { CompatibleLanguageModel } from './types.js';
 
@@ -43,8 +41,8 @@ export interface StreamTextIteratorYieldValue {
   step?: StepResult<ToolSet>;
   /** The current experimental context */
   context?: unknown;
-  /** The UIMessageChunks written during this step (only when collectUIChunks is enabled) */
-  uiChunks?: UIMessageChunk[];
+  /** Raw LanguageModelV4StreamPart chunks from this step */
+  rawChunks?: import('@ai-sdk/provider').LanguageModelV4StreamPart[];
   /** Provider-executed tool results (keyed by tool call ID) */
   providerExecutedToolResults?: Map<string, ProviderExecutedToolResult>;
 }
@@ -53,11 +51,9 @@ export interface StreamTextIteratorYieldValue {
 export async function* streamTextIterator({
   prompt,
   tools = {},
-  writable,
   model,
   stopConditions,
   maxSteps,
-  sendStart = true,
   onStepFinish,
   onError,
   prepareStep,
@@ -68,15 +64,12 @@ export async function* streamTextIterator({
   includeRawChunks = false,
   experimental_transform,
   responseFormat,
-  collectUIChunks = false,
 }: {
   prompt: LanguageModelV4Prompt;
   tools: ToolSet;
-  writable?: WritableStream<UIMessageChunk>;
   model: string | (() => Promise<CompatibleLanguageModel>);
   stopConditions?: ModelStopCondition[] | ModelStopCondition;
   maxSteps?: number;
-  sendStart?: boolean;
   onStepFinish?: StreamTextOnStepFinishCallback<any>;
   onError?: StreamTextOnErrorCallback;
   prepareStep?: PrepareStepCallback<any>;
@@ -89,8 +82,6 @@ export async function* streamTextIterator({
     | StreamTextTransform<ToolSet>
     | Array<StreamTextTransform<ToolSet>>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
-  /** If true, collects UIMessageChunks for later conversion to UIMessage[] */
-  collectUIChunks?: boolean;
 }): AsyncGenerator<
   StreamTextIteratorYieldValue,
   LanguageModelV4Prompt,
@@ -109,8 +100,9 @@ export async function* streamTextIterator({
   let stepNumber = 0;
   let lastStep: StepResult<any> | undefined;
   let lastStepWasToolCalls = false;
-  let lastStepUIChunks: UIMessageChunk[] | undefined;
-  let allAccumulatedUIChunks: UIMessageChunk[] = [];
+  let lastStepRawChunks:
+    | import('@ai-sdk/provider').LanguageModelV4StreamPart[]
+    | undefined;
 
   // Default maxSteps to Infinity to preserve backwards compatibility
   // (agent loops until completion unless explicitly limited)
@@ -279,29 +271,12 @@ export async function* streamTextIterator({
         },
       );
 
-      // Write UIMessageChunks to writable if provided
-      let stepUIChunks: UIMessageChunk[] | undefined;
-      if (writable) {
-        stepUIChunks = await writeChunksToUI(
-          writable,
-          rawChunks,
-          sendStart && isFirstIteration,
-          collectUIChunks,
-        );
-      }
-
       isFirstIteration = false;
       stepNumber++;
       steps.push(step);
       lastStep = step;
       lastStepWasToolCalls = false;
-      lastStepUIChunks = stepUIChunks;
-
-      // Aggregate UIChunks from this step (may include tool output chunks later)
-      let allStepUIChunks = [
-        ...allAccumulatedUIChunks,
-        ...(stepUIChunks ?? []),
-      ];
+      lastStepRawChunks = rawChunks;
 
       const finishReason = finish?.finishReason?.unified;
 
@@ -339,22 +314,9 @@ export async function* streamTextIterator({
           messages: conversationPrompt,
           step,
           context: currentContext,
-          uiChunks: allStepUIChunks,
+          rawChunks,
           providerExecutedToolResults,
         };
-
-        const toolOutputChunks = writable
-          ? await writeToolOutputToUI(writable, toolResults, collectUIChunks)
-          : [];
-        // Merge tool output chunks into allStepUIChunks for the next iteration
-        if (collectUIChunks && toolOutputChunks.length > 0) {
-          allStepUIChunks = [...(allStepUIChunks ?? []), ...toolOutputChunks];
-          // Also accumulate for future steps
-          allAccumulatedUIChunks = [
-            ...allAccumulatedUIChunks,
-            ...toolOutputChunks,
-          ];
-        }
 
         conversationPrompt.push({
           role: 'tool',
@@ -420,90 +382,16 @@ export async function* streamTextIterator({
 
   // Yield the final step if it wasn't already yielded (tool-calls steps are yielded inside the loop)
   if (lastStep && !lastStepWasToolCalls) {
-    const finalUIChunks = [
-      ...allAccumulatedUIChunks,
-      ...(lastStepUIChunks ?? []),
-    ];
     yield {
       toolCalls: [],
       messages: conversationPrompt,
       step: lastStep,
       context: currentContext,
-      uiChunks: finalUIChunks,
+      rawChunks: lastStepRawChunks,
     };
   }
 
   return conversationPrompt;
-}
-
-async function writeToolOutputToUI(
-  writable: WritableStream<UIMessageChunk>,
-  toolResults: LanguageModelV4ToolResultPart[],
-  collectUIChunks?: boolean,
-): Promise<UIMessageChunk[]> {
-  'use step';
-  const writer = writable.getWriter();
-  const chunks: UIMessageChunk[] = [];
-  try {
-    for (const result of toolResults) {
-      const chunk: UIMessageChunk = {
-        type: 'tool-output-available' as const,
-        toolCallId: result.toolCallId,
-        output: 'value' in result.output ? result.output.value : undefined,
-      };
-      if (collectUIChunks) {
-        chunks.push(chunk);
-      }
-      await writer.write(chunk);
-    }
-  } finally {
-    writer.releaseLock();
-  }
-  return chunks;
-}
-
-/**
- * Write raw LanguageModelV4StreamPart chunks to a WritableStream as UIMessageChunks.
- * Uses createUIMessageChunkTransform for the conversion.
- */
-async function writeChunksToUI(
-  writable: WritableStream<UIMessageChunk>,
-  rawChunks: import('@ai-sdk/provider').LanguageModelV4StreamPart[],
-  sendStart: boolean,
-  collectUIChunks: boolean,
-): Promise<UIMessageChunk[]> {
-  'use step';
-
-  const uiChunks: UIMessageChunk[] = [];
-
-  // Create a readable stream from the raw chunks
-  const rawStream = new ReadableStream<
-    import('@ai-sdk/provider').LanguageModelV4StreamPart
-  >({
-    start: controller => {
-      for (const chunk of rawChunks) {
-        controller.enqueue(chunk);
-      }
-      controller.close();
-    },
-  });
-
-  // Pipe through UIMessageChunk transform, optionally collecting chunks
-  await rawStream
-    .pipeThrough(createUIMessageChunkTransform({ sendStart }))
-    .pipeThrough(
-      new TransformStream<UIMessageChunk, UIMessageChunk>({
-        transform: (chunk, controller) => {
-          if (collectUIChunks) {
-            uiChunks.push(chunk);
-          }
-          controller.enqueue(chunk);
-        },
-      }),
-    )
-    .pipeTo(writable, { preventClose: true });
-
-  return uiChunks;
 }
 
 /**
