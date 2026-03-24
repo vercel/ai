@@ -126,9 +126,9 @@ export interface LanguageModelV4CustomPart {
   type: 'custom';
 
   /**
-   * The kind of custom content, in the format `{provider}-{provider-type}`.
+   * The kind of custom content, in the format `{provider}.{provider-type}`.
    */
-  kind: string;
+  kind: `${string}.${string}`;
 
   /**
    * Additional provider-specific options. They are passed through

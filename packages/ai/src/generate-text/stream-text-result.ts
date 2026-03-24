@@ -407,7 +407,7 @@ export type TextStreamReasoningDeltaPart = {
 
 export type TextStreamCustomPart = {
   type: 'custom';
-  kind: string;
+  kind: `${string}.${string}`;
   providerMetadata?: ProviderMetadata;
 };
 
