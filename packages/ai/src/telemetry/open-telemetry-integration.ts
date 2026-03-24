@@ -16,6 +16,12 @@ import type {
   EmbedFinishEvent,
 } from '../embed/embed-events';
 import type {
+  RerankOnStartEvent,
+  RerankOnFinishEvent,
+  RerankStartEvent,
+  RerankFinishEvent,
+} from '../rerank/rerank-events';
+import type {
   OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
@@ -118,6 +124,7 @@ interface CallState {
   stepSpan: Span | undefined;
   stepContext: Context | undefined;
   embedSpans: Map<string, { span: Span; context: Context }>;
+  rerankSpan: { span: Span; context: Context } | undefined;
   toolSpans: Map<string, { span: Span; context: Context }>;
   baseTelemetryAttributes: Attributes;
   settings: Record<string, unknown>;
@@ -165,7 +172,12 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
     return context.with(toolSpanEntry.context, execute);
   }
 
-  onStart(event: OnStartEvent<ToolSet, Output> | EmbedOnStartEvent): void {
+  onStart(
+    event:
+      | OnStartEvent<ToolSet, Output>
+      | EmbedOnStartEvent
+      | RerankOnStartEvent,
+  ): void {
     if (event.isEnabled !== true) return;
 
     if (
@@ -173,6 +185,11 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       event.operationId === 'ai.embedMany'
     ) {
       this.onEmbedOperationStart(event as EmbedOnStartEvent);
+      return;
+    }
+
+    if (event.operationId === 'ai.rerank') {
+      this.onRerankOperationStart(event as RerankOnStartEvent);
       return;
     }
 
@@ -236,6 +253,7 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       stepSpan: undefined,
       stepContext: undefined,
       embedSpans: new Map(),
+      rerankSpan: undefined,
       toolSpans: new Map(),
       baseTelemetryAttributes,
       settings,
@@ -295,6 +313,7 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       stepSpan: undefined,
       stepContext: undefined,
       embedSpans: new Map(),
+      rerankSpan: undefined,
       toolSpans: new Map(),
       baseTelemetryAttributes,
       settings,
@@ -497,7 +516,9 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
     state.stepContext = undefined;
   }
 
-  onFinish(event: OnFinishEvent<ToolSet> | EmbedOnFinishEvent): void {
+  onFinish(
+    event: OnFinishEvent<ToolSet> | EmbedOnFinishEvent | RerankOnFinishEvent,
+  ): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
@@ -506,6 +527,11 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       state.operationId === 'ai.embedMany'
     ) {
       this.onEmbedOperationFinish(event as EmbedOnFinishEvent);
+      return;
+    }
+
+    if (state.operationId === 'ai.rerank') {
+      this.onRerankOperationFinish(event as RerankOnFinishEvent);
       return;
     }
 
@@ -654,6 +680,110 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
     state.embedSpans.delete(event.embedCallId);
   }
 
+  private onRerankOperationStart(event: RerankOnStartEvent): void {
+    const telemetry: TelemetrySettings = {
+      isEnabled: event.isEnabled,
+      recordInputs: event.recordInputs,
+      recordOutputs: event.recordOutputs,
+      functionId: event.functionId,
+      metadata: event.metadata,
+    };
+
+    const settings: Record<string, unknown> = {
+      maxRetries: event.maxRetries,
+    };
+
+    const baseTelemetryAttributes = getBaseTelemetryAttributes({
+      model: { provider: event.provider, modelId: event.modelId },
+      telemetry,
+      headers: event.headers,
+      settings,
+    });
+
+    const attributes = selectAttributes(telemetry, {
+      ...assembleOperationName({
+        operationId: event.operationId,
+        telemetry,
+      }),
+      ...baseTelemetryAttributes,
+      'ai.documents': {
+        input: () => event.documents.map(d => JSON.stringify(d)),
+      },
+    });
+
+    const rootSpan = this.tracer.startSpan(event.operationId, { attributes });
+    const rootContext = trace.setSpan(context.active(), rootSpan);
+
+    this.callStates.set(event.callId, {
+      operationId: event.operationId,
+      telemetry,
+      rootSpan,
+      rootContext,
+      stepSpan: undefined,
+      stepContext: undefined,
+      embedSpans: new Map(),
+      rerankSpan: undefined,
+      toolSpans: new Map(),
+      baseTelemetryAttributes,
+      settings,
+    });
+  }
+
+  private onRerankOperationFinish(event: RerankOnFinishEvent): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.rootSpan) return;
+
+    state.rootSpan.end();
+    this.cleanupCallState(event.callId);
+  }
+
+  onRerankStart(event: RerankStartEvent): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.rootSpan || !state.rootContext) return;
+
+    const { telemetry } = state;
+
+    const attributes = selectAttributes(telemetry, {
+      ...assembleOperationName({
+        operationId: event.operationId,
+        telemetry,
+      }),
+      ...state.baseTelemetryAttributes,
+      'ai.documents': {
+        input: () => event.documents.map(d => JSON.stringify(d)),
+      },
+    });
+
+    const rerankSpan = this.tracer.startSpan(
+      event.operationId,
+      { attributes },
+      state.rootContext,
+    );
+    const rerankContext = trace.setSpan(state.rootContext, rerankSpan);
+
+    state.rerankSpan = { span: rerankSpan, context: rerankContext };
+  }
+
+  onRerankFinish(event: RerankFinishEvent): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.rerankSpan) return;
+
+    const { span } = state.rerankSpan;
+    const { telemetry } = state;
+
+    span.setAttributes(
+      selectAttributes(telemetry, {
+        'ai.ranking.type': event.documentsType,
+        'ai.ranking': {
+          output: () => event.ranking.map(r => JSON.stringify(r)),
+        },
+      }),
+    );
+
+    span.end();
+    state.rerankSpan = undefined;
+  }
+
   onChunk(event: OnChunkEvent<ToolSet>): void {
     const chunk = event.chunk as {
       type: string;
@@ -706,6 +836,12 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       embedSpan.end();
     }
     state.embedSpans.clear();
+
+    if (state.rerankSpan) {
+      recordSpanError(state.rerankSpan.span, actualError);
+      state.rerankSpan.span.end();
+      state.rerankSpan = undefined;
+    }
 
     recordSpanError(state.rootSpan, actualError);
 

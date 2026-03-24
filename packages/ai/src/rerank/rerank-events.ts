@@ -118,3 +118,72 @@ export interface RerankOnFinishEvent {
   /** Additional metadata from telemetry settings. */
   readonly metadata: Record<string, JSONValue> | undefined;
 }
+
+/**
+ * Event fired when an individual reranking model call (inner doRerank) begins.
+ */
+export interface RerankStartEvent {
+  /** Unique identifier for this rerank call, used to correlate events. */
+  readonly callId: string;
+
+  /** Identifies the inner operation ('ai.rerank.doRerank'). */
+  readonly operationId: string;
+
+  /** The provider identifier. */
+  readonly provider: string;
+
+  /** The specific model identifier. */
+  readonly modelId: string;
+
+  /** The documents being reranked. */
+  readonly documents: Array<JSONObject | string>;
+
+  /** The type of documents ('text' or 'object'). */
+  readonly documentsType: string;
+
+  /** The query to rerank against. */
+  readonly query: string;
+
+  /** Number of top documents to return. */
+  readonly topN: number | undefined;
+
+  /** Whether telemetry is enabled. */
+  readonly isEnabled: boolean | undefined;
+
+  /** Whether to record inputs in telemetry. Enabled by default. */
+  readonly recordInputs: boolean | undefined;
+
+  /** Whether to record outputs in telemetry. Enabled by default. */
+  readonly recordOutputs: boolean | undefined;
+
+  /** Identifier from telemetry settings for grouping related operations. */
+  readonly functionId: string | undefined;
+
+  /** Additional metadata from telemetry settings. */
+  readonly metadata: Record<string, JSONValue> | undefined;
+}
+
+/**
+ * Event fired when an individual reranking model call (doRerank) completes.
+ *
+ * Contains the ranking results from the model response.
+ */
+export interface RerankFinishEvent {
+  /** Unique identifier for this rerank call, used to correlate events. */
+  readonly callId: string;
+
+  /** Identifies the inner operation ('ai.rerank.doRerank'). */
+  readonly operationId: string;
+
+  /** The provider identifier. */
+  readonly provider: string;
+
+  /** The specific model identifier. */
+  readonly modelId: string;
+
+  /** The type of documents ('text' or 'object'). */
+  readonly documentsType: string;
+
+  /** The ranking results from the model. */
+  readonly ranking: Array<{ index: number; relevanceScore: number }>;
+}
