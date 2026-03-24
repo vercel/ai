@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.39
+
+### Patch Changes
+
+- f4cfccd: feat(ai): decouple otel from rerank function
+
 ## 7.0.0-beta.38
 
 ### Patch Changes
