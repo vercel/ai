@@ -4,6 +4,7 @@ import {
   LanguageModelV4Prompt,
   LanguageModelV4TextPart,
   LanguageModelV4ToolResultOutput,
+  SharedV4ProviderReference,
 } from '@ai-sdk/provider';
 import {
   CustomPart,
@@ -254,11 +255,24 @@ export function convertToLanguageModelMessage({
                 };
               }
               case 'file': {
+                if (
+                  typeof part.data === 'object' &&
+                  !(part.data instanceof Uint8Array) &&
+                  !(part.data instanceof URL)
+                ) {
+                  return {
+                    type: 'file' as const,
+                    data: part.data as SharedV4ProviderReference,
+                    filename: part.filename,
+                    mediaType: part.mediaType,
+                    providerOptions,
+                  };
+                }
                 const { data, mediaType } = convertToLanguageModelV4DataContent(
                   part.data,
                 );
                 return {
-                  type: 'file',
+                  type: 'file' as const,
                   data,
                   filename: part.filename,
                   mediaType: mediaType ?? part.mediaType,
@@ -267,7 +281,7 @@ export function convertToLanguageModelMessage({
               }
               case 'reasoning': {
                 return {
-                  type: 'reasoning',
+                  type: 'reasoning' as const,
                   text: part.text,
                   providerOptions,
                 };
@@ -446,19 +460,25 @@ function convertPartToLanguageModelPart(
     };
   }
 
-  let originalData: DataContent | URL;
   const type = part.type;
-  switch (type) {
-    case 'image':
-      originalData = part.image;
-      break;
-    case 'file':
-      originalData = part.data;
+  const rawData = type === 'image' ? part.image : part.data;
 
-      break;
-    default:
-      throw new Error(`Unsupported part type: ${type}`);
+  if (
+    typeof rawData === 'object' &&
+    !(rawData instanceof Uint8Array) &&
+    !(rawData instanceof ArrayBuffer) &&
+    !(rawData instanceof URL)
+  ) {
+    return {
+      type: 'file',
+      mediaType: part.mediaType ?? (type === 'image' ? 'image/*' : ''),
+      filename: type === 'file' ? part.filename : undefined,
+      data: rawData,
+      providerOptions: part.providerOptions,
+    };
   }
+
+  const originalData: DataContent | URL = rawData;
 
   const { data: convertedData, mediaType: convertedMediaType } =
     convertToLanguageModelV4DataContent(originalData);
@@ -466,7 +486,6 @@ function convertPartToLanguageModelPart(
   let mediaType: string | undefined = convertedMediaType ?? part.mediaType;
   let data: Uint8Array | string | URL = convertedData; // binary | base64 | url
 
-  // If the content is a URL, we check if it was downloaded:
   if (data instanceof URL) {
     const downloadedFile = downloadedAssets[data.toString()];
     if (downloadedFile) {
@@ -475,13 +494,8 @@ function convertPartToLanguageModelPart(
     }
   }
 
-  // Now that we have the normalized data either as a URL or a Uint8Array,
-  // we can create the LanguageModelV4Part.
   switch (type) {
     case 'image': {
-      // When possible, try to detect the media type automatically
-      // to deal with incorrect media type inputs.
-      // When detection fails, use provided media type.
       if (data instanceof Uint8Array || typeof data === 'string') {
         mediaType =
           detectMediaType({ data, signatures: imageMediaTypeSignatures }) ??
@@ -490,7 +504,7 @@ function convertPartToLanguageModelPart(
 
       return {
         type: 'file',
-        mediaType: mediaType ?? 'image/*', // any image
+        mediaType: mediaType ?? 'image/*',
         filename: undefined,
         data,
         providerOptions: part.providerOptions,
@@ -498,7 +512,6 @@ function convertPartToLanguageModelPart(
     }
 
     case 'file': {
-      // We must have a mediaType for files, if not, throw an error.
       if (mediaType == null) {
         throw new Error(`Media type is missing for file part`);
       }
