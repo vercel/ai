@@ -10,6 +10,38 @@ import { getWritable } from 'workflow';
 import z from 'zod';
 
 // ============================================================================
+// Write raw chunks to the workflow writable as UIMessageChunks
+// ============================================================================
+
+async function writeUIChunks(rawChunks: LanguageModelV4StreamPart[][]) {
+  'use step';
+
+  const writable = getWritable<UIMessageChunk>();
+  const writer = writable.getWriter();
+
+  try {
+    await writer.write({ type: 'start', messageId: generateId() });
+
+    for (const stepChunks of rawChunks) {
+      await writer.write({ type: 'start-step' });
+      for (const chunk of stepChunks) {
+        const uiChunk = toUIMessageChunk(chunk) as UIMessageChunk | undefined;
+        if (uiChunk != null) {
+          await writer.write(uiChunk);
+        }
+      }
+      await writer.write({ type: 'finish-step' });
+    }
+
+    await writer.write({ type: 'finish' });
+  } finally {
+    writer.releaseLock();
+  }
+
+  await writable.close();
+}
+
+// ============================================================================
 // Tool step functions — these run as durable steps with full Node.js access
 // ============================================================================
 
@@ -104,7 +136,7 @@ export async function chat(messages: UIMessage[]) {
   });
 
   // Convert raw chunks to UIMessageChunks and write to the workflow writable
-  // await writeUIChunks(result.rawChunks);
+  await writeUIChunks(result.rawChunks);
 
   return { messages: result.messages };
 }
