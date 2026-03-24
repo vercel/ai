@@ -27,8 +27,8 @@ import { DurableAgent } from './durable-agent.js';
  * DIVERGENCE: DurableAgent requires a writable stream; ToolLoopAgent does not.
  */
 function createMockWritable() {
-  const chunks: UIMessageChunk[] = [];
-  const writable = new WritableStream<UIMessageChunk>({
+  const chunks: any[] = [];
+  const writable = new WritableStream<any>({
     write(chunk) {
       chunks.push(chunk);
     },
@@ -589,7 +589,6 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
           instructions: 'You are a helpful assistant',
           temperature: 0.7,
           maxOutputTokens: 500,
-          // @ts-expect-error - not yet implemented on DurableAgent
           experimental_context: { userId: 'test-user' },
         });
 
@@ -723,7 +722,6 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         const agent = new DurableAgent({
           model: asModelFactory(mockModel),
           instructions: 'You are a helpful assistant',
-          // @ts-expect-error - not yet implemented on DurableAgent
           experimental_context: { userId: 'test-user' },
         });
 

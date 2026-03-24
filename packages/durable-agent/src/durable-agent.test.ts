@@ -2221,7 +2221,7 @@ describe('DurableAgent', () => {
     });
   });
 
-  describe('collectUIMessages', () => {
+  /* collectUIMessages tests removed — DurableAgent no longer handles UIMessageChunks
     it('should return undefined uiMessages when collectUIMessages is false', async () => {
       const mockModel = createMockModel();
 
@@ -2399,5 +2399,5 @@ describe('DurableAgent', () => {
       expect(result.uiMessages).toBeDefined();
       expect(Array.isArray(result.uiMessages)).toBe(true);
     });
-  });
+  */
 });
