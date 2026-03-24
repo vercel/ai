@@ -94,6 +94,7 @@ export const postToApi = async <T>({
   abortSignal?: AbortSignal;
   fetch?: FetchFunction;
 }) => {
+  console.log(JSON.stringify({ url, headers, body: body.values }, null, 2));
   try {
     const response = await fetch(url, {
       method: 'POST',

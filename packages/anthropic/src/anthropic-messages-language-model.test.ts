@@ -3083,7 +3083,7 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     it('should pass metadata with user_id to request body', async () => {
-      prepareJsonFixtureResponse('anthropic-text');
+      prepareJsonResponse({});
 
       const result = await model.doGenerate({
         prompt: TEST_PROMPT,
