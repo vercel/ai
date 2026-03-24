@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- 1f509d4: fix(ai): force template check on 'kind' param
+
 ## 4.0.0-beta.4
 
 ### Patch Changes

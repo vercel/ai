@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- 1f509d4: fix(ai): force template check on 'kind' param
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+
 ## 4.0.0-beta.15
 
 ### Patch Changes
