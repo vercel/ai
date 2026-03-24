@@ -1,5 +1,19 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- 365da1a: Add `gpt-5.4-mini`, `gpt-5.4-mini-2026-03-17`, `gpt-5.4-nano`, and `gpt-5.4-nano-2026-03-17` models.
+
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- e6376c2: fix(openai): preserve raw finish reason for failed responses stream events
+
+  Handle `response.failed` chunks in Responses API streaming so `finishReason.raw` is preserved from `incomplete_details.reason` (e.g. `max_output_tokens`), and map failed-without-reason cases to unified `error` instead of `other`.
+
 ## 4.0.0-beta.13
 
 ### Patch Changes
