@@ -1,0 +1,196 @@
+---
+title: Agent Inc.
+description: Learn how to use the Agent Inc. provider with the AI SDK.
+---
+
+# Agent Inc. Provider
+
+[Agent Inc.](https://agentinc.fun) is a multi-model AI inference gateway on Solana. The [`@agent-inc/ai-sdk-provider`](https://www.npmjs.com/package/@agent-inc/ai-sdk-provider) package gives you access to **Claude, GPT, Gemini, DeepSeek, Grok** and 30+ models through a single provider — all models available on the [Vercel AI Gateway](https://sdk.vercel.ai/models) are supported.
+
+Unique to Agent Inc. is an optional **x402 payment mode**: trustless per-request SOL micropayments on Solana via the [x402 protocol](https://github.com/anthropics/x402), so you can pay for inference directly from a wallet without an API key.
+
+## Setup
+
+The Agent Inc. provider is available via the `@agent-inc/ai-sdk-provider` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @agent-inc/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @agent-inc/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @agent-inc/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @agent-inc/ai-sdk-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `agentinc` from `@agent-inc/ai-sdk-provider`:
+
+```ts
+import { agentinc } from '@agent-inc/ai-sdk-provider';
+```
+
+If you need to customize the configuration, use the `createAgentInc` function:
+
+```ts
+import { createAgentInc } from '@agent-inc/ai-sdk-provider';
+
+const agentinc = createAgentInc({
+  apiKey: process.env.AGENTINC_API_KEY,
+});
+```
+
+### Configuration Options
+
+- **apiKey** _string_
+
+  API key for authentication. Defaults to the `AGENTINC_API_KEY` environment variable.
+
+- **baseURL** _string_
+
+  Custom base URL for API calls. Defaults to `https://agentinc.fun/api/v1`.
+
+- **headers** _Record&lt;string, string&gt;_
+
+  Extra headers to include in every request.
+
+- **solanaSecretKey** _Uint8Array_
+
+  64-byte Solana keypair for x402 payment mode. When provided without an `apiKey`, enables trustless per-request SOL micropayments.
+
+- **solanaNetwork** _"solana" | "solana-devnet"_
+
+  Solana network for x402 payments. Defaults to `"solana"` (mainnet).
+
+- **solanaRpcUrl** _string_
+
+  Custom Solana RPC endpoint for x402 payments.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Language Models
+
+Create models for text generation by passing any `provider/model` ID:
+
+```ts
+const model = agentinc('anthropic/claude-sonnet-4.6');
+```
+
+All models on the [Vercel AI Gateway](https://sdk.vercel.ai/models) are supported. Popular picks:
+
+| Model ID                      | Description              |
+| ----------------------------- | ------------------------ |
+| `anthropic/claude-haiku-4.6`  | Fast, cost-efficient     |
+| `anthropic/claude-sonnet-4.6` | Balanced                 |
+| `anthropic/claude-opus-4.6`   | Highest capability       |
+| `openai/gpt-5-mini`           | Fast and affordable      |
+| `google/gemini-2.5-flash`     | Multimodal, low-cost     |
+| `deepseek/deepseek-v3.2`     | Strong reasoning         |
+| `xai/grok-4-fast-reasoning`   | Fast reasoning           |
+
+Any `provider/model` string is accepted — the type hints provide autocomplete, not restrictions.
+
+## Embedding Models
+
+Agent Inc. supports embedding models via the `embeddingModel` method:
+
+```ts
+const embeddingModel = agentinc.embeddingModel('openai/text-embedding-3-large');
+```
+
+## Examples
+
+### `generateText`
+
+```ts
+import { createAgentInc } from '@agent-inc/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const agentinc = createAgentInc({
+  apiKey: process.env.AGENTINC_API_KEY,
+});
+
+const { text } = await generateText({
+  model: agentinc('anthropic/claude-sonnet-4.6'),
+  prompt: 'Explain the x402 payment protocol.',
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```ts
+import { agentinc } from '@agent-inc/ai-sdk-provider';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: agentinc('anthropic/claude-sonnet-4.6'),
+  prompt: 'Write a short story about AI agents.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### `embed`
+
+```ts
+import { createAgentInc } from '@agent-inc/ai-sdk-provider';
+import { embed } from 'ai';
+
+const agentinc = createAgentInc();
+
+const { embedding } = await embed({
+  model: agentinc.embeddingModel('openai/text-embedding-3-large'),
+  value: 'What is the meaning of life?',
+});
+```
+
+### x402 SOL Payment Mode
+
+Pay per-request with SOL instead of an API key. Requires `@solana/kit` as a peer dependency:
+
+```bash
+npm install @agent-inc/ai-sdk-provider @solana/kit
+```
+
+```ts
+import { createAgentInc } from '@agent-inc/ai-sdk-provider';
+import { generateText } from 'ai';
+import { readFileSync } from 'fs';
+import { homedir } from 'os';
+import { join } from 'path';
+
+const keypair = new Uint8Array(
+  JSON.parse(
+    readFileSync(join(homedir(), '.config/solana/id.json'), 'utf-8'),
+  ),
+);
+
+const agentinc = createAgentInc({
+  solanaSecretKey: keypair,
+  solanaNetwork: 'solana-devnet',
+});
+
+const { text } = await generateText({
+  model: agentinc('openai/gpt-5-mini'),
+  prompt: 'How do Solana micropayments work?',
+});
+```
+
+## Additional Resources
+
+- [Agent Inc. Platform](https://agentinc.fun)
+- [GitHub Repository](https://github.com/ChristopherTrimboli/agentinc)
+- [npm Package](https://www.npmjs.com/package/@agent-inc/ai-sdk-provider)
+- [x402 Protocol](https://github.com/anthropics/x402)
