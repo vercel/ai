@@ -1,4 +1,4 @@
-import { ModelCallStreamPart } from './create-stream-text-part-transform';
+import { ModelCallStreamPart } from './stream-model-call';
 import { ToolSet } from './tool-set';
 import { ModelMessage } from '@ai-sdk/provider-utils';
 

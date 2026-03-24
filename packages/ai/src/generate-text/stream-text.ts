@@ -82,7 +82,6 @@ import type {
   OnToolCallStartEvent,
 } from './core-events';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
-import { ModelCallStreamPart } from './create-stream-text-part-transform';
 import { executeToolCall } from './execute-tool-call';
 import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 import { Output, text } from './output';
@@ -100,7 +99,7 @@ import {
   stepCountIs,
   StopCondition,
 } from './stop-condition';
-import { streamModelCall } from './stream-model-call';
+import { ModelCallStreamPart, streamModelCall } from './stream-model-call';
 import {
   ConsumeStreamOptions,
   StreamTextResult,

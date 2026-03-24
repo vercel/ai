@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
-import { ModelCallStreamPart } from './create-stream-text-part-transform';
+import { ModelCallStreamPart } from './stream-model-call';
 import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 
 describe('invokeToolCallbacksFromStream', () => {

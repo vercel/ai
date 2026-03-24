@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { asLanguageModelUsage } from '../types/usage';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
-import { ModelCallStreamPart } from './create-stream-text-part-transform';
+import { ModelCallStreamPart } from './stream-model-call';
 
 const finishChunk = {
   type: 'model-call-end' as const,

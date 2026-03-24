@@ -2,7 +2,6 @@ import { IdGenerator, ModelMessage } from '@ai-sdk/provider-utils';
 import { TimeoutConfiguration } from '../prompt/call-settings';
 import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { ModelCallStreamPart } from './create-stream-text-part-transform';
 import { executeToolCall } from './execute-tool-call';
 import { isApprovalNeeded } from './is-approval-needed';
 import {
@@ -11,6 +10,7 @@ import {
 } from './stream-text';
 import { TypedToolCall } from './tool-call';
 import { ToolSet } from './tool-set';
+import { ModelCallStreamPart } from './stream-model-call';
 
 export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   tools,

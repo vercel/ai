@@ -10,7 +10,10 @@ import {
 import { describe, expect, it } from 'vitest';
 import z from 'zod';
 import { NoSuchToolError } from '../error/no-such-tool-error';
-import { createStreamTextPartTransform } from './create-stream-text-part-transform';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import { streamModelCall } from './stream-model-call';
+import { ToolCallRepairFunction } from './tool-call-repair-function';
+import { ToolSet } from './tool-set';
 
 const testUsage: LanguageModelV4Usage = {
   inputTokens: {
@@ -26,44 +29,70 @@ const testUsage: LanguageModelV4Usage = {
   },
 };
 
-describe('createStreamTextPartTransform', () => {
+async function streamModelCallResult<TOOLS extends ToolSet>({
+  streamParts,
+  tools,
+  repairToolCall,
+}: {
+  streamParts: LanguageModelV4StreamPart[];
+  tools: TOOLS | undefined;
+  repairToolCall?: ToolCallRepairFunction<TOOLS>;
+}) {
+  const model = new MockLanguageModelV4({
+    doStream: async () => ({
+      stream: convertArrayToReadableStream(streamParts),
+    }),
+  });
+
+  const { stream } = await streamModelCall({
+    model,
+    tools,
+    prompt: 'test prompt',
+    system: undefined,
+    repairToolCall,
+  });
+
+  return convertReadableStreamToArray(stream);
+}
+
+describe('streamModelCall', () => {
   describe('stream-start parts', () => {
     it('should convert stream-start to init-model-call', async () => {
-      const inputStream: ReadableStream<LanguageModelV4StreamPart> =
-        convertArrayToReadableStream([
-          {
-            type: 'stream-start',
-            warnings: [
-              {
-                type: 'compatibility',
-                feature: 'tool-approval',
-                details: 'approval fallback is being used',
-              },
-              {
-                type: 'other',
-                message: 'custom warning',
-              },
-            ],
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: testUsage,
-          },
-        ]);
-
-      const transformedStream = inputStream.pipeThrough(
-        createStreamTextPartTransform({
-          tools: undefined,
-          system: undefined,
-          messages: [],
-          repairToolCall: undefined,
+      const model = new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'stream-start',
+              warnings: [
+                {
+                  type: 'compatibility',
+                  feature: 'tool-approval',
+                  details: 'approval fallback is being used',
+                },
+                {
+                  type: 'other',
+                  message: 'custom warning',
+                },
+              ],
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
         }),
-      );
+      });
 
-      const result = await convertReadableStreamToArray(transformedStream);
+      const { stream } = await streamModelCall({
+        model,
+        tools: undefined,
+        prompt: 'test prompt',
+        system: undefined,
+        repairToolCall: undefined,
+      });
 
-      expect(result).toMatchInlineSnapshot(`
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
           {
             "type": "model-call-start",
@@ -109,8 +138,8 @@ describe('createStreamTextPartTransform', () => {
 
   describe('text parts', () => {
     it('should convert text to delta', async () => {
-      const inputStream: ReadableStream<LanguageModelV4StreamPart> =
-        convertArrayToReadableStream([
+      const result = await streamModelCallResult({
+        streamParts: [
           { type: 'text-start', id: '1' },
           { type: 'text-delta', id: '1', delta: 'text' },
           { type: 'text-end', id: '1' },
@@ -119,18 +148,10 @@ describe('createStreamTextPartTransform', () => {
             finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
           },
-        ]);
-
-      const transformedStream = inputStream.pipeThrough(
-        createStreamTextPartTransform({
-          tools: undefined,
-          system: undefined,
-          messages: [],
-          repairToolCall: undefined,
-        }),
-      );
-
-      const result = await convertReadableStreamToArray(transformedStream);
+        ],
+        tools: undefined,
+        repairToolCall: undefined,
+      });
 
       expect(result).toMatchInlineSnapshot(`
         [
@@ -178,23 +199,15 @@ describe('createStreamTextPartTransform', () => {
 
   describe('reasoning parts', () => {
     it('should convert text to delta', async () => {
-      const inputStream: ReadableStream<LanguageModelV4StreamPart> =
-        convertArrayToReadableStream([
+      const result = await streamModelCallResult({
+        streamParts: [
           { type: 'reasoning-start', id: '1' },
           { type: 'reasoning-delta', id: '1', delta: 'text' },
           { type: 'reasoning-end', id: '1' },
-        ]);
-
-      const transformedStream = inputStream.pipeThrough(
-        createStreamTextPartTransform({
-          tools: undefined,
-          system: undefined,
-          messages: [],
-          repairToolCall: undefined,
-        }),
-      );
-
-      const result = await convertReadableStreamToArray(transformedStream);
+        ],
+        tools: undefined,
+        repairToolCall: undefined,
+      });
 
       expect(result).toMatchInlineSnapshot(`
       [
@@ -219,8 +232,8 @@ describe('createStreamTextPartTransform', () => {
 
   describe('file parts', () => {
     it('should use GeneratedFile', async () => {
-      const inputStream: ReadableStream<LanguageModelV4StreamPart> =
-        convertArrayToReadableStream([
+      const result = await streamModelCallResult({
+        streamParts: [
           {
             type: 'file',
             data: 'SGVsbG8gV29ybGQ=', // "Hello World" base64-encoded
@@ -231,18 +244,10 @@ describe('createStreamTextPartTransform', () => {
             finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
           },
-        ]);
-
-      const transformedStream = inputStream.pipeThrough(
-        createStreamTextPartTransform({
-          tools: undefined,
-          system: undefined,
-          messages: [],
-          repairToolCall: undefined,
-        }),
-      );
-
-      const result = await convertReadableStreamToArray(transformedStream);
+        ],
+        tools: undefined,
+        repairToolCall: undefined,
+      });
 
       expect(result).toMatchInlineSnapshot(`
         [
@@ -284,8 +289,8 @@ describe('createStreamTextPartTransform', () => {
     });
 
     it('should use GeneratedFile with providerMetadata', async () => {
-      const inputStream: ReadableStream<LanguageModelV4StreamPart> =
-        convertArrayToReadableStream([
+      const result = await streamModelCallResult({
+        streamParts: [
           {
             type: 'file',
             data: new Uint8Array([
@@ -301,18 +306,10 @@ describe('createStreamTextPartTransform', () => {
             finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
           },
-        ]);
-
-      const transformedStream = inputStream.pipeThrough(
-        createStreamTextPartTransform({
-          tools: undefined,
-          system: undefined,
-          messages: [],
-          repairToolCall: undefined,
-        }),
-      );
-
-      const result = await convertReadableStreamToArray(transformedStream);
+        ],
+        tools: undefined,
+        repairToolCall: undefined,
+      });
 
       expect(result).toMatchInlineSnapshot(`
         [
@@ -372,8 +369,8 @@ describe('createStreamTextPartTransform', () => {
 
   describe('custom parts', () => {
     it('should forward custom parts', async () => {
-      const inputStream: ReadableStream<LanguageModelV4StreamPart> =
-        convertArrayToReadableStream([
+      const result = await streamModelCallResult({
+        streamParts: [
           {
             type: 'custom',
             kind: 'openai.compaction',
@@ -386,18 +383,10 @@ describe('createStreamTextPartTransform', () => {
             finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
           },
-        ]);
-
-      const transformedStream = inputStream.pipeThrough(
-        createStreamTextPartTransform({
-          tools: undefined,
-          system: undefined,
-          messages: [],
-          repairToolCall: undefined,
-        }),
-      );
-
-      const result = await convertReadableStreamToArray(transformedStream);
+        ],
+        tools: undefined,
+        repairToolCall: undefined,
+      });
 
       expect(result).toMatchInlineSnapshot(`
         [
@@ -447,8 +436,8 @@ describe('createStreamTextPartTransform', () => {
         }),
       };
 
-      const inputStream: ReadableStream<LanguageModelV4StreamPart> =
-        convertArrayToReadableStream([
+      const result = await streamModelCallResult({
+        streamParts: [
           {
             type: 'tool-call',
             toolCallId: 'call-1',
@@ -460,29 +449,22 @@ describe('createStreamTextPartTransform', () => {
             finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
           },
-        ]);
+        ],
+        tools,
+        repairToolCall: async ({ toolCall, error }) => {
+          expect(NoSuchToolError.isInstance(error)).toBe(true);
+          expect(toolCall).toStrictEqual({
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'unknownTool',
+            input: `{ "value": "test" }`,
+          });
 
-      const transformedStream = inputStream.pipeThrough(
-        createStreamTextPartTransform({
-          tools,
-          system: undefined,
-          messages: [],
-          repairToolCall: async ({ toolCall, tools, inputSchema, error }) => {
-            expect(NoSuchToolError.isInstance(error)).toBe(true);
-            expect(toolCall).toStrictEqual({
-              type: 'tool-call',
-              toolCallId: 'call-1',
-              toolName: 'unknownTool',
-              input: `{ "value": "test" }`,
-            });
+          return { ...toolCall, toolName: 'correctTool' };
+        },
+      });
 
-            return { ...toolCall, toolName: 'correctTool' };
-          },
-        }),
-      );
-
-      expect(await convertReadableStreamToArray(transformedStream))
-        .toMatchInlineSnapshot(`
+      expect(result).toMatchInlineSnapshot(`
           [
             {
               "input": {
@@ -525,8 +507,8 @@ describe('createStreamTextPartTransform', () => {
 
   describe('tool-approval-request parts', () => {
     it('should emit error when tool call is not found for provider approval request', async () => {
-      const inputStream: ReadableStream<LanguageModelV4StreamPart> =
-        convertArrayToReadableStream([
+      const result = await streamModelCallResult({
+        streamParts: [
           // No tool-call part before the approval request
           {
             type: 'tool-approval-request',
@@ -538,18 +520,10 @@ describe('createStreamTextPartTransform', () => {
             finishReason: { unified: 'stop', raw: undefined },
             usage: testUsage,
           },
-        ]);
-
-      const transformedStream = inputStream.pipeThrough(
-        createStreamTextPartTransform({
-          tools: undefined,
-          system: undefined,
-          messages: [],
-          repairToolCall: undefined,
-        }),
-      );
-
-      const result = await convertReadableStreamToArray(transformedStream);
+        ],
+        tools: undefined,
+        repairToolCall: undefined,
+      });
 
       expect(result).toMatchInlineSnapshot(`
         [
@@ -594,8 +568,8 @@ describe('createStreamTextPartTransform', () => {
         }),
       };
 
-      const inputStream: ReadableStream<LanguageModelV4StreamPart> =
-        convertArrayToReadableStream([
+      const result = await streamModelCallResult({
+        streamParts: [
           {
             type: 'tool-call',
             toolCallId: 'mcp-call-1',
@@ -613,18 +587,10 @@ describe('createStreamTextPartTransform', () => {
             finishReason: { unified: 'tool-calls', raw: undefined },
             usage: testUsage,
           },
-        ]);
-
-      const transformedStream = inputStream.pipeThrough(
-        createStreamTextPartTransform({
-          tools,
-          system: undefined,
-          messages: [],
-          repairToolCall: undefined,
-        }),
-      );
-
-      const result = await convertReadableStreamToArray(transformedStream);
+        ],
+        tools,
+        repairToolCall: undefined,
+      });
 
       expect(result).toMatchInlineSnapshot(`
         [
@@ -697,8 +663,8 @@ describe('createStreamTextPartTransform', () => {
         }),
       };
 
-      const inputStream: ReadableStream<LanguageModelV4StreamPart> =
-        convertArrayToReadableStream([
+      const result = await streamModelCallResult({
+        streamParts: [
           {
             type: 'tool-call',
             toolCallId: 'mcp-call-1',
@@ -728,18 +694,10 @@ describe('createStreamTextPartTransform', () => {
             finishReason: { unified: 'tool-calls', raw: undefined },
             usage: testUsage,
           },
-        ]);
-
-      const transformedStream = inputStream.pipeThrough(
-        createStreamTextPartTransform({
-          tools,
-          system: undefined,
-          messages: [],
-          repairToolCall: undefined,
-        }),
-      );
-
-      const result = await convertReadableStreamToArray(transformedStream);
+        ],
+        tools,
+        repairToolCall: undefined,
+      });
 
       expect(result).toMatchInlineSnapshot(`
         [
