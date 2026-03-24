@@ -68,6 +68,43 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
 
       const chunkType = chunk.type;
       switch (chunkType) {
+        case 'tool-call': {
+          if (chunk.invalid) {
+            break;
+          }
+
+          const tool = tools?.[chunk.toolName];
+
+          if (tool == null) {
+            // ignore tool calls for tools that are not available,
+            // e.g. provider-executed dynamic tools
+            break;
+          }
+
+          if (
+            await isApprovalNeeded({
+              tool,
+              toolCall: chunk,
+              messages,
+              experimental_context,
+            })
+          ) {
+            controller.enqueue({
+              type: 'tool-approval-request',
+              approvalId: generateId(),
+              toolCall: chunk,
+            });
+            break;
+          }
+
+          // Only execute tools that are not provider-executed:
+          if (tool.execute != null && chunk.providerExecuted !== true) {
+            toolCallsToExecute.push(chunk);
+          }
+
+          break;
+        }
+
         case 'model-call-finish': {
           await Promise.all(
             toolCallsToExecute.map(async toolCall => {
@@ -103,44 +140,6 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
               }
             }),
           );
-
-          break;
-        }
-
-        // process tool call:
-        case 'tool-call': {
-          if (chunk.invalid) {
-            break;
-          }
-
-          const tool = tools?.[chunk.toolName];
-
-          if (tool == null) {
-            // ignore tool calls for tools that are not available,
-            // e.g. provider-executed dynamic tools
-            break;
-          }
-
-          if (
-            await isApprovalNeeded({
-              tool,
-              toolCall: chunk,
-              messages,
-              experimental_context,
-            })
-          ) {
-            controller.enqueue({
-              type: 'tool-approval-request',
-              approvalId: generateId(),
-              toolCall: chunk,
-            });
-            break;
-          }
-
-          // Only execute tools that are not provider-executed:
-          if (tool.execute != null && chunk.providerExecuted !== true) {
-            toolCallsToExecute.push(chunk);
-          }
 
           break;
         }
