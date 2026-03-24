@@ -7,6 +7,7 @@ import {
 import { convertToLanguageModelV4DataContent } from '../prompt/data-content';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { ProviderReference } from '../types/provider-reference';
+import { Warning } from '../types/warning';
 import {
   detectMediaType,
   documentMediaTypeSignatures,
@@ -20,6 +21,7 @@ import { UploadFileResult } from './upload-file-result';
  * @param files - The FilesV4 interface to use for uploading.
  * @param data - The file data to upload.
  * @param mediaType - Optional IANA media type. Auto-detected from file bytes if not provided.
+ * @param filename - Optional filename for the uploaded file.
  * @param providerOptions - Additional provider-specific options.
  *
  * @returns A result object containing the provider reference and optional metadata.
@@ -28,6 +30,7 @@ export async function uploadFile({
   files,
   data: dataArg,
   mediaType: mediaTypeArg,
+  filename,
   providerOptions,
 }: {
   /**
@@ -45,6 +48,11 @@ export async function uploadFile({
    * Auto-detected from file bytes if not provided.
    */
   mediaType?: string;
+
+  /**
+   * Optional filename for the uploaded file.
+   */
+  filename?: string;
 
   /**
    * Additional provider-specific options.
@@ -70,25 +78,30 @@ export async function uploadFile({
   const result = await files.uploadFile({
     data,
     mediaType,
-    providerOptions: providerOptions ?? {},
+    filename,
+    providerOptions,
   });
 
   return new DefaultUploadFileResult({
     providerReference: result.providerReference,
     providerMetadata: result.providerMetadata,
+    warnings: result.warnings,
   });
 }
 
 class DefaultUploadFileResult implements UploadFileResult {
   readonly providerReference: ProviderReference;
   readonly providerMetadata?: ProviderMetadata;
+  readonly warnings: Array<Warning>;
 
   constructor(options: {
     providerReference: ProviderReference;
     providerMetadata?: ProviderMetadata;
+    warnings: Array<Warning>;
   }) {
     this.providerReference = options.providerReference;
     this.providerMetadata = options.providerMetadata;
+    this.warnings = options.warnings;
   }
 }
 

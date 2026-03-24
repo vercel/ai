@@ -16,6 +16,7 @@ describe('uploadFile', () => {
   const mockResult: FilesV4UploadFileResult = {
     providerReference: { 'mock-provider': 'file-abc123' },
     providerMetadata: { 'mock-provider': { size: 1024 } },
+    warnings: [],
   };
 
   it('should pass Uint8Array data directly to files.uploadFile', async () => {
@@ -29,7 +30,8 @@ describe('uploadFile', () => {
 
     expect(uploadFileSpy).toHaveBeenCalledWith({
       data,
-      providerOptions: {},
+      filename: undefined,
+      providerOptions: undefined,
     });
     expect(result.providerReference).toEqual({
       'mock-provider': 'file-abc123',
@@ -37,6 +39,7 @@ describe('uploadFile', () => {
     expect(result.providerMetadata).toEqual({
       'mock-provider': { size: 1024 },
     });
+    expect(result.warnings).toEqual([]);
   });
 
   it('should convert ArrayBuffer data to Uint8Array', async () => {
@@ -105,11 +108,12 @@ describe('uploadFile', () => {
 
     expect(uploadFileSpy).toHaveBeenCalledWith({
       data: new Uint8Array([1]),
+      filename: undefined,
       providerOptions,
     });
   });
 
-  it('should default providerOptions to empty object', async () => {
+  it('should pass undefined providerOptions when not provided', async () => {
     const uploadFileSpy = vi.fn().mockResolvedValue(mockResult);
 
     await uploadFile({
@@ -119,13 +123,45 @@ describe('uploadFile', () => {
 
     expect(uploadFileSpy).toHaveBeenCalledWith({
       data: new Uint8Array([1]),
-      providerOptions: {},
+      filename: undefined,
+      providerOptions: undefined,
     });
+  });
+
+  it('should pass filename through to files.uploadFile', async () => {
+    const uploadFileSpy = vi.fn().mockResolvedValue(mockResult);
+
+    await uploadFile({
+      files: createMockFiles({ uploadFile: uploadFileSpy }),
+      data: new Uint8Array([1]),
+      filename: 'test.pdf',
+    });
+
+    const callArg = uploadFileSpy.mock.calls[0][0];
+    expect(callArg.filename).toBe('test.pdf');
+  });
+
+  it('should pass warnings from provider result', async () => {
+    const uploadFileSpy = vi.fn().mockResolvedValue({
+      providerReference: { 'mock-provider': 'file-abc' },
+      warnings: [{ type: 'unsupported', feature: 'filename' }],
+    });
+
+    const result = await uploadFile({
+      files: createMockFiles({ uploadFile: uploadFileSpy }),
+      data: new Uint8Array([1]),
+      filename: 'test.pdf',
+    });
+
+    expect(result.warnings).toEqual([
+      { type: 'unsupported', feature: 'filename' },
+    ]);
   });
 
   it('should return result without providerMetadata when not provided', async () => {
     const uploadFileSpy = vi.fn().mockResolvedValue({
       providerReference: { 'mock-provider': 'file-xyz' },
+      warnings: [],
     });
 
     const result = await uploadFile({

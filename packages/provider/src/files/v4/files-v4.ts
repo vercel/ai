@@ -1,6 +1,7 @@
 import { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
 import { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider-options';
 import { SharedV4ProviderReference } from '../../shared/v4/shared-v4-provider-reference';
+import { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
 
 /**
  * Result of uploading a file via the files interface.
@@ -17,6 +18,11 @@ export type FilesV4UploadFileResult = {
    * functionality that can be fully encapsulated in the provider.
    */
   providerMetadata?: SharedV4ProviderMetadata;
+
+  /**
+   * Warnings from the provider.
+   */
+  warnings: Array<SharedV4Warning>;
 };
 
 /**
@@ -40,6 +46,7 @@ export type FilesV4 = {
   uploadFile(options: {
     data: Uint8Array | string;
     mediaType?: string;
+    filename?: string;
     providerOptions?: SharedV4ProviderOptions;
   }): PromiseLike<FilesV4UploadFileResult>;
 };
