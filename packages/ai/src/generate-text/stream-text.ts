@@ -1778,7 +1778,7 @@ class DefaultStreamTextResult<
                       break;
                     }
 
-                    case 'finish': {
+                    case 'model-call-finish': {
                       // Note: tool executions might not be finished yet when the finish event is emitted.
                       // store usage and finish reason for promises and onFinish callback:
                       stepUsage = chunk.usage;

@@ -66,7 +66,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
       const chunkType = chunk.type;
 
       switch (chunkType) {
-        case 'finish': {
+        case 'model-call-finish': {
           await Promise.all(
             toolCallsToExecute.map(async toolCall => {
               try {

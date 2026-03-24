@@ -55,7 +55,7 @@ export type UglyTransformedStreamTextPart<TOOLS extends ToolSet> =
   // a finish-step part (which includes additional response information and
   // can have a different finish reason):
   | {
-      type: 'finish';
+      type: 'model-call-finish';
       finishReason: FinishReason;
       rawFinishReason: string | undefined;
       usage: LanguageModelUsage;
@@ -123,7 +123,7 @@ export function createStreamTextPartTransform<TOOLS extends ToolSet>({
 
         case 'finish': {
           controller.enqueue({
-            type: 'finish',
+            type: 'model-call-finish',
             finishReason: chunk.finishReason.unified,
             rawFinishReason: chunk.finishReason.raw,
             usage: asLanguageModelUsage(chunk.usage),

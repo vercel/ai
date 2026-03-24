@@ -11,7 +11,7 @@ import { UglyTransformedStreamTextPart } from './create-stream-text-part-transfo
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
 
 const finishChunk = {
-  type: 'finish' as const,
+  type: 'model-call-finish' as const,
   finishReason: 'stop' as const,
   rawFinishReason: 'stop' as const,
   usage: asLanguageModelUsage({
@@ -87,7 +87,7 @@ describe('createExecuteToolsTransformation', () => {
           {
             "finishReason": "stop",
             "rawFinishReason": "stop",
-            "type": "finish",
+            "type": "model-call-finish",
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -146,49 +146,49 @@ describe('createExecuteToolsTransformation', () => {
         inputStream.pipeThrough(transformedStream),
       ),
     ).toMatchInlineSnapshot(`
-        [
-          {
-            "input": {
-              "value": "test",
-            },
-            "toolCallId": "call-1",
-            "toolName": "syncTool",
-            "type": "tool-call",
+      [
+        {
+          "input": {
+            "value": "test",
           },
-          {
-            "dynamic": false,
-            "input": {
-              "value": "test",
-            },
-            "output": "test-sync-result",
-            "toolCallId": "call-1",
-            "toolName": "syncTool",
-            "type": "tool-result",
+          "toolCallId": "call-1",
+          "toolName": "syncTool",
+          "type": "tool-call",
+        },
+        {
+          "dynamic": false,
+          "input": {
+            "value": "test",
           },
-          {
-            "finishReason": "stop",
-            "rawFinishReason": "stop",
-            "type": "finish",
-            "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokenDetails": {
-                "cacheReadTokens": undefined,
-                "cacheWriteTokens": undefined,
-                "noCacheTokens": 3,
-              },
-              "inputTokens": 3,
-              "outputTokenDetails": {
-                "reasoningTokens": undefined,
-                "textTokens": 10,
-              },
-              "outputTokens": 10,
-              "raw": undefined,
+          "output": "test-sync-result",
+          "toolCallId": "call-1",
+          "toolName": "syncTool",
+          "type": "tool-result",
+        },
+        {
+          "finishReason": "stop",
+          "rawFinishReason": "stop",
+          "type": "model-call-finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
+            "inputTokens": 3,
+            "outputTokenDetails": {
               "reasoningTokens": undefined,
-              "totalTokens": 13,
+              "textTokens": 10,
             },
+            "outputTokens": 10,
+            "raw": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
           },
-        ]
-      `);
+        },
+      ]
+    `);
   });
 
   it('should hold off on sending finish until the delayed tool result is received', async () => {
@@ -252,7 +252,7 @@ describe('createExecuteToolsTransformation', () => {
         {
           "finishReason": "stop",
           "rawFinishReason": "stop",
-          "type": "finish",
+          "type": "model-call-finish",
           "usage": {
             "cachedInputTokens": undefined,
             "inputTokenDetails": {
@@ -768,28 +768,50 @@ describe('createExecuteToolsTransformation', () => {
 
       const result = await convertReadableStreamToArray(transformedStream);
 
-      // tool-call should come first
-      expect(result[0]).toMatchObject({
-        type: 'tool-call',
-        toolCallId: 'call-1',
-        toolName: 'failingTool',
-      });
-
-      // tool-error should be included
-      expect(result).toContainEqual(
-        expect.objectContaining({
-          type: 'tool-error',
-          toolCallId: 'call-1',
-          toolName: 'failingTool',
-          error: toolError,
-        }),
-      );
-
-      // finish should come last (stream closes properly)
-      expect(result[result.length - 1]).toMatchObject({
-        type: 'finish',
-        finishReason: 'stop',
-      });
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "value": "test",
+            },
+            "toolCallId": "call-1",
+            "toolName": "failingTool",
+            "type": "tool-call",
+          },
+          {
+            "dynamic": false,
+            "error": [Error: Tool execution failed!],
+            "input": {
+              "value": "test",
+            },
+            "toolCallId": "call-1",
+            "toolName": "failingTool",
+            "type": "tool-error",
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "type": "model-call-finish",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+        ]
+      `);
     });
 
     it('should handle error thrown in sync tool execution', async () => {
@@ -833,20 +855,50 @@ describe('createExecuteToolsTransformation', () => {
 
       const result = await convertReadableStreamToArray(transformedStream);
 
-      // tool-error should be included
-      expect(result).toContainEqual(
-        expect.objectContaining({
-          type: 'tool-error',
-          toolCallId: 'call-1',
-          toolName: 'failingTool',
-          error: toolError,
-        }),
-      );
-
-      // stream should close properly
-      expect(result[result.length - 1]).toMatchObject({
-        type: 'finish',
-      });
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "value": "test",
+            },
+            "toolCallId": "call-1",
+            "toolName": "failingTool",
+            "type": "tool-call",
+          },
+          {
+            "dynamic": false,
+            "error": [Error: Sync tool failed!],
+            "input": {
+              "value": "test",
+            },
+            "toolCallId": "call-1",
+            "toolName": "failingTool",
+            "type": "tool-error",
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "type": "model-call-finish",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+        ]
+      `);
     });
   });
 });
