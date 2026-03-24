@@ -167,7 +167,7 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
-    it('should convert messages with image parts using file_id', async () => {
+    it('should convert messages with image parts using provider reference', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
@@ -176,7 +176,7 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: 'file-12345',
+                data: { openai: 'file-12345' },
               },
             ],
           },
@@ -184,7 +184,6 @@ describe('convertToOpenAIResponsesInput', () => {
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
         providerOptionsName: 'openai',
-        fileIdPrefixes: ['file-'],
         store: true,
       });
 
@@ -349,7 +348,7 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
-    it('should convert messages with PDF file parts using file_id', async () => {
+    it('should convert messages with PDF file parts using provider reference', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
@@ -358,7 +357,7 @@ describe('convertToOpenAIResponsesInput', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: 'file-pdf-12345',
+                data: { openai: 'file-pdf-12345' },
               },
             ],
           },
@@ -366,7 +365,6 @@ describe('convertToOpenAIResponsesInput', () => {
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
         providerOptionsName: 'openai',
-        fileIdPrefixes: ['file-'],
         store: true,
       });
 
@@ -477,8 +475,8 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
-    describe('Azure OpenAI file ID support', () => {
-      it('should convert image parts with assistant- prefix', async () => {
+    describe('provider reference support', () => {
+      it('should resolve provider reference for a different providerOptionsName', async () => {
         const result = await convertToOpenAIResponsesInput({
           toolNameMapping: testToolNameMapping,
           prompt: [
@@ -488,14 +486,13 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'image/png',
-                  data: 'assistant-img-abc123',
+                  data: { azure: 'assistant-img-abc123' },
                 },
               ],
             },
           ],
           systemMessageMode: 'system',
-          providerOptionsName: 'openai',
-          fileIdPrefixes: ['assistant-'],
+          providerOptionsName: 'azure',
           store: true,
         });
 
@@ -512,7 +509,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ]);
       });
 
-      it('should convert PDF parts with assistant- prefix', async () => {
+      it('should resolve provider reference for PDF parts', async () => {
         const result = await convertToOpenAIResponsesInput({
           prompt: [
             {
@@ -521,7 +518,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'application/pdf',
-                  data: 'assistant-pdf-abc123',
+                  data: { openai: 'file-pdf-abc123' },
                 },
               ],
             },
@@ -529,7 +526,6 @@ describe('convertToOpenAIResponsesInput', () => {
           toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
           providerOptionsName: 'openai',
-          fileIdPrefixes: ['assistant-'],
           store: true,
         });
 
@@ -539,14 +535,14 @@ describe('convertToOpenAIResponsesInput', () => {
             content: [
               {
                 type: 'input_file',
-                file_id: 'assistant-pdf-abc123',
+                file_id: 'file-pdf-abc123',
               },
             ],
           },
         ]);
       });
 
-      it('should support multiple file ID prefixes', async () => {
+      it('should handle multiple provider references in one message', async () => {
         const result = await convertToOpenAIResponsesInput({
           prompt: [
             {
@@ -555,12 +551,12 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'image/png',
-                  data: 'assistant-img-abc123',
+                  data: { openai: 'file-img-abc123', anthropic: 'img-xyz' },
                 },
                 {
                   type: 'file',
                   mediaType: 'application/pdf',
-                  data: 'file-pdf-xyz789',
+                  data: { openai: 'file-pdf-xyz789', google: 'doc-123' },
                 },
               ],
             },
@@ -568,7 +564,6 @@ describe('convertToOpenAIResponsesInput', () => {
           toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
           providerOptionsName: 'openai',
-          fileIdPrefixes: ['assistant-', 'file-'],
           store: true,
         });
 
@@ -578,7 +573,7 @@ describe('convertToOpenAIResponsesInput', () => {
             content: [
               {
                 type: 'input_image',
-                file_id: 'assistant-img-abc123',
+                file_id: 'file-img-abc123',
               },
               {
                 type: 'input_file',
@@ -588,10 +583,33 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ]);
       });
-    });
 
-    describe('fileIdPrefixes undefined behavior', () => {
-      it('should treat all file data as base64 when fileIdPrefixes is undefined', async () => {
+      it('should throw when provider is not in the reference', async () => {
+        await expect(
+          convertToOpenAIResponsesInput({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: { anthropic: 'file-xyz' },
+                  },
+                ],
+              },
+            ],
+            toolNameMapping: testToolNameMapping,
+            systemMessageMode: 'system',
+            providerOptionsName: 'openai',
+            store: true,
+          }),
+        ).rejects.toThrow(
+          "No reference found for provider 'openai'. Available providers: anthropic",
+        );
+      });
+
+      it('should treat plain strings as base64 data', async () => {
         const result = await convertToOpenAIResponsesInput({
           prompt: [
             {
@@ -600,12 +618,12 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'image/png',
-                  data: 'file-12345', // Looks like file ID but should be treated as base64
+                  data: 'file-12345',
                 },
                 {
                   type: 'file',
                   mediaType: 'application/pdf',
-                  data: 'assistant-abc123', // Looks like file ID but should be treated as base64
+                  data: 'assistant-abc123',
                   filename: 'test.pdf',
                 },
               ],
@@ -614,7 +632,6 @@ describe('convertToOpenAIResponsesInput', () => {
           toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
           providerOptionsName: 'openai',
-          // fileIdPrefixes intentionally omitted
           store: true,
         });
 
@@ -630,40 +647,6 @@ describe('convertToOpenAIResponsesInput', () => {
                 type: 'input_file',
                 filename: 'test.pdf',
                 file_data: 'data:application/pdf;base64,assistant-abc123',
-              },
-            ],
-          },
-        ]);
-      });
-
-      it('should handle empty fileIdPrefixes array', async () => {
-        const result = await convertToOpenAIResponsesInput({
-          prompt: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'file',
-                  mediaType: 'image/png',
-                  data: 'file-12345',
-                },
-              ],
-            },
-          ],
-          toolNameMapping: testToolNameMapping,
-          systemMessageMode: 'system',
-          providerOptionsName: 'openai',
-          fileIdPrefixes: [], // Empty array should disable file ID detection
-          store: true,
-        });
-
-        expect(result.input).toEqual([
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'input_image',
-                image_url: 'data:image/png;base64,file-12345',
               },
             ],
           },
